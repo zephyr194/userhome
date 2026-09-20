@@ -6,29 +6,45 @@ Discovery evidence never grants write or execution authority by itself.
 ## Adding an application
 
 1. Add a unique, stable `id`, `displayName`, description, and `iconKey`.
-2. Add only bounded detection rules:
+   Declare exactly one `coverageClass`:
+   - `MANAGED_WRITABLE` for catalog-authorized readable and writable documents.
+   - `MANAGED_READ_ONLY` for catalog-authorized bounded, redacted reads only.
+   - `DETECTED_UNSUPPORTED` for metadata-only detection without content access.
+   - `EXCLUDED` for credentials, keys, caches, logs, databases, sockets, stores,
+     lock files, and runtime state.
+2. Add `presentation.category` as bounded display text. Reuse `iconKey` for
+   icons; do not add application-specific frontend branches for presentation.
+3. Add only bounded detection rules:
    - `HOME_PATH` must remain below the current user's home.
    - `HOMEBREW_PATH` must remain below `/opt/homebrew` or `/usr/local`.
    - `EXECUTABLE`, `BREW_FORMULA`, and `SERVICE` values are identifiers, not
      paths or command fragments.
-3. Declare only executable/package/service identifiers already implemented by
+4. Declare only executable/package/service identifiers already implemented by
    typed Rust enums. A catalog entry must not introduce arbitrary commands,
    arguments, environments, launchd labels, or paths.
-4. For every `configDocument`, define a unique `configId`, approved
+5. For every `configDocument`, define a unique `configId`, approved
    `pathTemplate`, known `format`, `sensitivity`, `adapterId`, `validatorId`,
-   finite `maxSizeBytes`, and least-privilege `writePolicy`.
-5. Mark credentials, tokens, endpoints containing credentials, and similar
+   finite `maxSizeBytes`, least-privilege `writePolicy`, and an `editorKey`.
+   `editorKey` is document-level rendering metadata and must not be inferred
+   from `appId`; reuse an existing generic or adapter-backed renderer where
+   possible.
+6. Mark credentials, tokens, endpoints containing credentials, and similar
    content as `SECRET`; mark identity and host configuration as `SENSITIVE`.
-6. Add or reuse a parser and validator before enabling writes. A new parser,
+7. Add or reuse a parser and validator before enabling writes. A new parser,
    validator, writable path, executable mapping, service mutation, or
    `elevationResourceId` requires explicit security review and approval.
-7. Add fixture-based catalog, discovery, read, validation, diff, backup, write,
+8. Add fixture-based catalog, discovery, read, validation, diff, backup, write,
    restore, and redaction coverage as applicable. Fixtures must use temporary
    homes and must not read live user files.
 
 ## Compatibility rules
 
 - Increment `schemaVersion` only for additive schema changes.
+- Schema version 1 definitions that omit the additive coverage fields migrate
+  deterministically: `WRITE_CONFIG` implies `MANAGED_WRITABLE`, otherwise
+  `READ_CONFIG` implies `MANAGED_READ_ONLY`, and other definitions imply
+  `DETECTED_UNSUPPORTED`. Missing `presentation.category` becomes `Other`, and
+  missing document `editorKey` uses `adapterId`.
 - Never repurpose an existing app, config, adapter, validator, service, or
   elevation resource ID.
 - Unknown fields and unsafe definitions must fail catalog validation.
@@ -36,10 +52,17 @@ Discovery evidence never grants write or execution authority by itself.
 - Apple Silicon and Intel Homebrew prefixes must remain explicit and bounded.
 - Frontend IPC continues to send catalog IDs only; it never sends filesystem or
   executable paths.
+- Catalog summaries may expose `coverageClass`, `presentation.category`, and
+  per-document `configId`/`editorKey`; they must not expose path templates,
+  executable mappings, validators, or write authority.
 
 ## Review checklist
 
 - [ ] IDs are unique and stable.
+- [ ] Coverage class agrees with read/write capabilities and does not grant
+      authority by itself.
+- [ ] Category and editor keys are sufficient for data-first rendering without
+      an `appId` branch.
 - [ ] Paths resolve under an approved root and symlink escape is rejected.
 - [ ] File size and output limits are finite.
 - [ ] Sensitivity and redaction behavior are documented.

@@ -6,6 +6,8 @@
       "displayName": "GitHub Copilot",
       "description": "管理 Copilot CLI 的用户级 JSON 配置与指令文件。",
       "iconKey": "copilot",
+      "coverageClass": "MANAGED_WRITABLE",
+      "presentation": { "category": "AI 开发工具" },
       "detectionRules": [
         { "kind": "HOME_PATH", "value": "~/.copilot" },
         { "kind": "EXECUTABLE", "value": "copilot" }
@@ -20,6 +22,7 @@
           "format": "JSON",
           "sensitivity": "SENSITIVE",
           "adapterId": "copilot-json",
+          "editorKey": "copilot-json",
           "validatorId": "json",
           "maxSizeBytes": 262144,
           "writePolicy": "STRUCTURED_AND_RAW"
@@ -30,6 +33,7 @@
           "format": "JSON",
           "sensitivity": "SENSITIVE",
           "adapterId": "copilot-json",
+          "editorKey": "copilot-json",
           "validatorId": "json",
           "maxSizeBytes": 262144,
           "writePolicy": "STRUCTURED_AND_RAW"
@@ -40,6 +44,7 @@
           "format": "JSON",
           "sensitivity": "SECRET",
           "adapterId": "copilot-json",
+          "editorKey": "copilot-json",
           "validatorId": "json",
           "maxSizeBytes": 262144,
           "writePolicy": "STRUCTURED_AND_RAW"
@@ -50,6 +55,7 @@
           "format": "JSON",
           "sensitivity": "SENSITIVE",
           "adapterId": "copilot-json",
+          "editorKey": "copilot-json",
           "validatorId": "json",
           "maxSizeBytes": 262144,
           "writePolicy": "STRUCTURED_AND_RAW"
@@ -60,6 +66,7 @@
           "format": "MARKDOWN",
           "sensitivity": "SENSITIVE",
           "adapterId": "copilot-instructions",
+          "editorKey": "copilot-instructions",
           "validatorId": "markdown",
           "maxSizeBytes": 262144,
           "writePolicy": "STRUCTURED_AND_RAW"
@@ -73,6 +80,8 @@
       "displayName": "Caddy",
       "description": "管理 Homebrew 安装的 Caddy 配置与用户级服务。",
       "iconKey": "caddy",
+      "coverageClass": "MANAGED_WRITABLE",
+      "presentation": { "category": "网络服务" },
       "detectionRules": [
         { "kind": "EXECUTABLE", "value": "caddy" },
         { "kind": "BREW_FORMULA", "value": "caddy" },
@@ -92,6 +101,7 @@
           "format": "CADDYFILE",
           "sensitivity": "STANDARD",
           "adapterId": "caddyfile",
+          "editorKey": "caddyfile",
           "validatorId": "caddy",
           "maxSizeBytes": 1048576,
           "writePolicy": "STRUCTURED_AND_RAW",
@@ -111,6 +121,8 @@
       "displayName": "Git",
       "description": "管理 Git 全局身份、默认分支、别名和安全设置。",
       "iconKey": "git",
+      "coverageClass": "MANAGED_WRITABLE",
+      "presentation": { "category": "版本控制" },
       "detectionRules": [
         { "kind": "EXECUTABLE", "value": "git" },
         { "kind": "BREW_FORMULA", "value": "git" },
@@ -126,6 +138,7 @@
           "format": "GIT_CONFIG",
           "sensitivity": "SENSITIVE",
           "adapterId": "git-config",
+          "editorKey": "git-config",
           "validatorId": "git-config",
           "maxSizeBytes": 524288,
           "writePolicy": "STRUCTURED_AND_RAW"
@@ -139,6 +152,8 @@
       "displayName": "OpenSSH",
       "description": "管理 SSH 客户端 Host 配置，不读取任何私钥内容。",
       "iconKey": "openssh",
+      "coverageClass": "MANAGED_WRITABLE",
+      "presentation": { "category": "远程访问" },
       "detectionRules": [
         { "kind": "EXECUTABLE", "value": "ssh" },
         { "kind": "BREW_FORMULA", "value": "openssh" },
@@ -154,6 +169,7 @@
           "format": "SSH_CONFIG",
           "sensitivity": "SENSITIVE",
           "adapterId": "ssh-config",
+          "editorKey": "ssh-config",
           "validatorId": "ssh-config",
           "maxSizeBytes": 524288,
           "writePolicy": "STRUCTURED_AND_RAW"
@@ -167,6 +183,8 @@
       "displayName": "Zsh",
       "description": "管理 .zshrc 中由 UserHome 所有的别名与环境配置块。",
       "iconKey": "zsh",
+      "coverageClass": "MANAGED_WRITABLE",
+      "presentation": { "category": "Shell" },
       "detectionRules": [
         { "kind": "EXECUTABLE", "value": "zsh" },
         { "kind": "BREW_FORMULA", "value": "zsh" },
@@ -182,6 +200,7 @@
           "format": "SHELL",
           "sensitivity": "SENSITIVE",
           "adapterId": "zsh-managed-block",
+          "editorKey": "zsh-managed-block",
           "validatorId": "zsh",
           "maxSizeBytes": 524288,
           "writePolicy": "MANAGED_BLOCK"
@@ -195,6 +214,8 @@
       "displayName": "npm",
       "description": "管理用户级 npm 设置，并始终屏蔽认证信息。",
       "iconKey": "npm",
+      "coverageClass": "MANAGED_WRITABLE",
+      "presentation": { "category": "包管理" },
       "detectionRules": [
         { "kind": "EXECUTABLE", "value": "npm" },
         { "kind": "HOME_PATH", "value": "~/.npmrc" }
@@ -209,6 +230,7 @@
           "format": "INI",
           "sensitivity": "SECRET",
           "adapterId": "npmrc",
+          "editorKey": "npmrc",
           "validatorId": "npmrc",
           "maxSizeBytes": 262144,
           "writePolicy": "STRUCTURED_AND_RAW"

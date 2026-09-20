@@ -1,9 +1,23 @@
 use serde::Serialize;
 
 use crate::{
-    catalog::{CATALOG_SCHEMA_VERSION, load_builtin_catalog},
+    catalog::{CATALOG_SCHEMA_VERSION, CatalogCoverageClass, load_builtin_catalog},
     error::AppError,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ManagedConfigDocumentPresentation {
+    config_id: String,
+    editor_key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ManagedAppPresentation {
+    category: String,
+    config_documents: Vec<ManagedConfigDocumentPresentation>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -12,6 +26,8 @@ pub struct ManagedAppSummary {
     display_name: String,
     description: String,
     icon_key: String,
+    coverage_class: CatalogCoverageClass,
+    presentation: ManagedAppPresentation,
     capabilities: Vec<String>,
     managed_document_count: usize,
     service_count: usize,
@@ -35,6 +51,18 @@ pub fn list_managed_apps() -> Result<ManagedAppCatalog, AppError> {
             display_name: app.display_name().to_owned(),
             description: app.description().to_owned(),
             icon_key: app.icon_key().to_owned(),
+            coverage_class: app.coverage_class(),
+            presentation: ManagedAppPresentation {
+                category: app.presentation_category().to_owned(),
+                config_documents: app
+                    .config_documents()
+                    .iter()
+                    .map(|document| ManagedConfigDocumentPresentation {
+                        config_id: document.config_id().to_owned(),
+                        editor_key: document.editor_key().to_owned(),
+                    })
+                    .collect(),
+            },
             capabilities: app.capabilities().to_vec(),
             managed_document_count: app.config_documents().len(),
             service_count: app.services().len(),

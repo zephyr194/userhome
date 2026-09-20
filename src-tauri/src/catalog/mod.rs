@@ -5,7 +5,7 @@ use std::{
     path::{Component, Path},
 };
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub use definitions::BUILTIN_CATALOG_JSON;
 
@@ -17,6 +17,7 @@ const MAX_APPS: usize = 32;
 const MAX_CONFIG_DOCUMENTS_PER_APP: usize = 16;
 const MAX_LIST_ENTRIES: usize = 32;
 const MAX_STRING_BYTES: usize = 512;
+const DEFAULT_PRESENTATION_CATEGORY: &str = "Other";
 const ALLOWED_ADAPTERS: &[&str] = &[
     "caddyfile",
     "copilot-instructions",
@@ -119,6 +120,10 @@ pub struct ManagedAppDefinition {
     display_name: String,
     description: String,
     icon_key: String,
+    #[serde(default)]
+    coverage_class: Option<CatalogCoverageClass>,
+    #[serde(default)]
+    presentation: Option<ManagedAppPresentation>,
     detection_rules: Vec<DetectionRule>,
     executables: Vec<String>,
     brew_formulae: Vec<String>,
@@ -143,6 +148,33 @@ impl ManagedAppDefinition {
 
     pub fn icon_key(&self) -> &str {
         &self.icon_key
+    }
+
+    pub fn coverage_class(&self) -> CatalogCoverageClass {
+        self.coverage_class.unwrap_or_else(|| {
+            if self
+                .capabilities
+                .iter()
+                .any(|capability| capability == "WRITE_CONFIG")
+            {
+                CatalogCoverageClass::ManagedWritable
+            } else if self
+                .capabilities
+                .iter()
+                .any(|capability| capability == "READ_CONFIG")
+            {
+                CatalogCoverageClass::ManagedReadOnly
+            } else {
+                CatalogCoverageClass::DetectedUnsupported
+            }
+        })
+    }
+
+    pub fn presentation_category(&self) -> &str {
+        self.presentation
+            .as_ref()
+            .map(ManagedAppPresentation::category)
+            .unwrap_or(DEFAULT_PRESENTATION_CATEGORY)
     }
 
     pub fn detection_rules(&self) -> &[DetectionRule] {
@@ -174,6 +206,27 @@ impl ManagedAppDefinition {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CatalogCoverageClass {
+    ManagedWritable,
+    ManagedReadOnly,
+    DetectedUnsupported,
+    Excluded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ManagedAppPresentation {
+    category: String,
+}
+
+impl ManagedAppPresentation {
+    fn category(&self) -> &str {
+        &self.category
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DetectionRule {
@@ -199,6 +252,8 @@ pub struct ConfigDocumentDefinition {
     format: String,
     sensitivity: String,
     adapter_id: String,
+    #[serde(default)]
+    editor_key: Option<String>,
     validator_id: String,
     max_size_bytes: usize,
     write_policy: String,
@@ -224,6 +279,10 @@ impl ConfigDocumentDefinition {
 
     pub fn adapter_id(&self) -> &str {
         &self.adapter_id
+    }
+
+    pub fn editor_key(&self) -> &str {
+        self.editor_key.as_deref().unwrap_or(&self.adapter_id)
     }
 
     pub fn validator_id(&self) -> &str {
@@ -280,11 +339,13 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
         }
         validate_text(&app.display_name)?;
         validate_text(&app.description)?;
+        validate_text(app.presentation_category())?;
         validate_list(&app.executables)?;
         validate_list(&app.brew_formulae)?;
         validate_list(&app.brew_casks)?;
         validate_list(&app.services)?;
         validate_allowed_list(&app.capabilities, ALLOWED_CAPABILITIES)?;
+        validate_coverage_class(app)?;
 
         if app.detection_rules.len() > MAX_LIST_ENTRIES
             || app.config_documents.len() > MAX_CONFIG_DOCUMENTS_PER_APP
@@ -322,6 +383,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
             if !ALLOWED_ADAPTERS.contains(&document.adapter_id.as_str()) {
                 return Err(CatalogValidationError::UnsupportedAdapter);
             }
+            if !is_kebab_case(document.editor_key()) {
+                return Err(CatalogValidationError::InvalidIdentifier);
+            }
             if document.validator_id.trim().is_empty() {
                 return Err(CatalogValidationError::MissingValidator);
             }
@@ -349,6 +413,36 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
         }
     }
 
+    Ok(())
+}
+
+fn validate_coverage_class(app: &ManagedAppDefinition) -> Result<(), CatalogValidationError> {
+    let can_read = app
+        .capabilities
+        .iter()
+        .any(|capability| capability == "READ_CONFIG");
+    let can_write = app
+        .capabilities
+        .iter()
+        .any(|capability| capability == "WRITE_CONFIG");
+    let has_documents = !app.config_documents.is_empty();
+    let has_writable_document = app
+        .config_documents
+        .iter()
+        .any(|document| document.write_policy != "READ_ONLY");
+
+    let valid = match app.coverage_class() {
+        CatalogCoverageClass::ManagedWritable => can_read && can_write && has_writable_document,
+        CatalogCoverageClass::ManagedReadOnly => {
+            can_read && !can_write && has_documents && !has_writable_document
+        }
+        CatalogCoverageClass::DetectedUnsupported | CatalogCoverageClass::Excluded => {
+            !can_read && !can_write && !has_documents
+        }
+    };
+    if !valid {
+        return Err(CatalogValidationError::UnsupportedValue);
+    }
     Ok(())
 }
 
