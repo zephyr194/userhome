@@ -954,19 +954,29 @@ until feature migrations remove it.
 
 ## T31: Enforce the fixed frameless window contract
 
+**Status:** Implementation and automated verification complete on 2026-09-20;
+manual drag, minimize, close, reopen, and display-scaling review pending.
+
 **Description:** Configure the main Tauri window as a centered, fixed 1120 by
 720 logical-pixel window with platform-aware frameless chrome while preserving
 close-to-tray behavior.
 
 **Acceptance criteria:**
-- [ ] Resize and maximize are disabled and reopen preserves the intended size.
-- [ ] macOS native traffic lights coexist with the frameless top region.
-- [ ] Close still hides the window; tray Open restores and focuses it.
+- [x] Resize and maximize are disabled and reopen preserves the intended size.
+- [x] macOS native traffic lights coexist with the frameless top region.
+- [x] Close still hides the window; tray Open restores and focuses it.
 
 **Verification:**
-- [ ] `pnpm build:unsigned`
-- [ ] `pnpm test:e2e`
+- [x] `pnpm build:unsigned`
+- [x] `pnpm test:e2e`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml tray`
 - [ ] Manual: verify drag, minimize, close, reopen, and display scaling.
+
+**Evidence:** The main Tauri window is centered at 1120 by 720 logical pixels,
+cannot be resized or maximized, and uses the macOS overlay title bar with native
+decorations and a hidden title. The existing desktop smoke test launches the
+real app and confirms the logical size plus disabled resize/maximize state;
+existing close-to-hide and tray action tests remain green.
 
 **Dependencies:** None
 

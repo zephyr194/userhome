@@ -14,10 +14,14 @@
       {
         "label": "main",
         "title": "UserHome",
-        "width": 800,
-        "height": 600,
-        "minWidth": 720,
-        "minHeight": 520
+        "center": true,
+        "width": 1120,
+        "height": 720,
+        "resizable": false,
+        "maximizable": false,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {

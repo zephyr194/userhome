@@ -3,6 +3,49 @@ import { $, browser, expect } from "@wdio/globals";
 describe("UserHome desktop smoke", () => {
   it("launches the macOS app and renders the main shell", async () => {
     expect(await browser.getTitle()).toBe("UserHome");
+
+    const windowState = await browser.execute(async () => {
+      const tauriWindow = window as Window & {
+        __TAURI__: {
+          core: {
+            invoke<T>(
+              command: string,
+              args?: Record<string, unknown>,
+            ): Promise<T>;
+          };
+        };
+      };
+      const [size, scaleFactor, resizable, maximizable] = await Promise.all([
+        tauriWindow.__TAURI__.core.invoke<{
+          width: number;
+          height: number;
+        }>("plugin:window|inner_size", { label: "main" }),
+        tauriWindow.__TAURI__.core.invoke<number>(
+          "plugin:window|scale_factor",
+          { label: "main" },
+        ),
+        tauriWindow.__TAURI__.core.invoke<boolean>(
+          "plugin:window|is_resizable",
+          { label: "main" },
+        ),
+        tauriWindow.__TAURI__.core.invoke<boolean>(
+          "plugin:window|is_maximizable",
+          { label: "main" },
+        ),
+      ]);
+
+      return {
+        width: Math.round(size.width / scaleFactor),
+        height: Math.round(size.height / scaleFactor),
+        resizable,
+        maximizable,
+      };
+    });
+    expect(windowState.width).toBe(1120);
+    expect(Math.abs(windowState.height - 720)).toBeLessThanOrEqual(1);
+    expect(windowState.resizable).toBe(false);
+    expect(windowState.maximizable).toBe(false);
+
     expect(await $(".brand").getText()).toBe("UserHome");
     expect(await $("nav[aria-label='主导航']").isDisplayed()).toBe(true);
     expect(await $("#main-content h1").getText()).toBe("概览");

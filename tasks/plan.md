@@ -369,7 +369,9 @@ T35-T37 + T43
 ### Phase 8: Desktop Foundation
 
 - [x] T30 Reconcile and pin the frontend design foundation
-- [ ] T31 Enforce the fixed frameless window contract
+- [ ] T31 Enforce the fixed frameless window contract — implementation and
+      automated verification complete; manual drag and display-scaling review
+      pending
 - [ ] T32 Replace the application and tray icon system
 
 ### Checkpoint K: Desktop Foundation

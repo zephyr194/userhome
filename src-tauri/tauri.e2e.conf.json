@@ -8,7 +8,13 @@
           "identifier": "e2e",
           "description": "WebdriverIO access for the dedicated E2E build only",
           "windows": ["main"],
-          "permissions": ["wdio:default"]
+          "permissions": [
+            "wdio:default",
+            "core:window:allow-inner-size",
+            "core:window:allow-scale-factor",
+            "core:window:allow-is-resizable",
+            "core:window:allow-is-maximizable"
+          ]
         }
       ]
     }
