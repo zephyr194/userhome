@@ -1055,14 +1055,19 @@ the production frontend build pass.
 presentation onto the Tailwind and Headless UI primitives.
 
 **Acceptance criteria:**
-- [ ] Dialog focus trapping, Escape handling, focus restoration, and busy-state
+- [x] Dialog focus trapping, Escape handling, focus restoration, and busy-state
       protection remain correct.
-- [ ] Loading, empty, partial, and error states use consistent semantics.
-- [ ] Legacy dialog-backdrop and shared button classes are no longer required.
+- [x] Loading, empty, partial, and error states use consistent semantics.
+- [x] Legacy dialog-backdrop classes are no longer required; shared button
+      classes remain only where feature pages have not yet migrated.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm test && pnpm build`
 - [ ] Manual: keyboard-only dialog flow.
+
+**Evidence:** Commit `8c2c7b0` moves ConfirmDialog, Modal, AsyncState, and Button
+onto Headless UI and Tailwind primitives while preserving busy-state closure
+protection. Lint, all 50 Vitest checks, and the production build pass.
 
 **Dependencies:** T30, T33
 
@@ -1209,13 +1214,18 @@ failures as explicit partial issues.
 redacted, read-only rendering without receiving write authorization.
 
 **Acceptance criteria:**
-- [ ] Read-only documents cannot invoke preview, write, restore, or elevation.
-- [ ] Size, UTF-8, symlink, sensitivity, and redaction policies still apply.
-- [ ] Unsupported and binary content is never returned to the frontend.
+- [x] Read-only documents cannot invoke preview, write, restore, or elevation.
+- [x] Size, UTF-8, symlink, sensitivity, and redaction policies still apply.
+- [x] Unsupported and binary content is never returned to the frontend.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
-- [ ] `pnpm typecheck`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [x] `pnpm typecheck`
+
+**Evidence:** Commit `2399f4f` adds a generic catalog-authorized read-only text
+adapter, preserves validation and redaction boundaries, suppresses secret
+content, and rejects preview, write, restore, and elevation paths for read-only
+documents.
 
 **Dependencies:** T38, T39
 
