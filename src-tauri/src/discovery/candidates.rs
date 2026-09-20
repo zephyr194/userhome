@@ -15,7 +15,6 @@ use super::system::{DiscoveryCompleteness, DiscoveryIssue, catalog_home_document
 const MAX_CANDIDATES: usize = 128;
 const MAX_ENTRIES_PER_ROOT: usize = 128;
 const MAX_ISSUES: usize = 32;
-const MAX_ROOTS: usize = 32;
 const MAX_CANDIDATE_PATH_BYTES: usize = 1024;
 const CANDIDATE_SCAN_TIMEOUT: Duration = Duration::from_millis(1_500);
 
@@ -57,19 +56,6 @@ impl ConfigurationCoverage {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ScanMode {
-    Home,
-    ConfigurationRoot,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ScanRoot {
-    path: PathBuf,
-    display_prefix: PathBuf,
-    mode: ScanMode,
-}
-
 pub fn discover_candidates() -> Result<ConfigurationCoverage, DiscoveryIssue> {
     let home = env::var_os("HOME")
         .filter(|value| !value.is_empty())
@@ -77,16 +63,21 @@ pub fn discover_candidates() -> Result<ConfigurationCoverage, DiscoveryIssue> {
         .ok_or_else(|| {
             DiscoveryIssue::new("candidates", "Home directory is unavailable.", false)
         })?;
-    discover_candidates_in(&home)
+    let xdg_config_home = env::var_os("XDG_CONFIG_HOME")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from);
+    discover_candidates_in(&home, xdg_config_home.as_deref())
 }
 
-fn discover_candidates_in(home: &Path) -> Result<ConfigurationCoverage, DiscoveryIssue> {
+fn discover_candidates_in(
+    home: &Path,
+    xdg_config_home: Option<&Path>,
+) -> Result<ConfigurationCoverage, DiscoveryIssue> {
     let catalog = load_builtin_catalog().map_err(|_| {
         DiscoveryIssue::new("candidates", "Application catalog is unavailable.", false)
     })?;
     let managed_paths = catalog_home_document_coverage(&catalog);
     let mut issues = Vec::new();
-    let roots = discovery_roots(home, managed_paths.keys(), &mut issues);
     let home_root = match fs::canonicalize(home) {
         Ok(path) => path,
         Err(_) => {
@@ -104,7 +95,24 @@ fn discover_candidates_in(home: &Path) -> Result<ConfigurationCoverage, Discover
     let deadline = Instant::now() + CANDIDATE_SCAN_TIMEOUT;
     let mut candidates = BTreeMap::new();
 
-    for root in roots.into_iter().take(MAX_ROOTS) {
+    let xdg_config_home = match xdg_config_home {
+        Some(path) if path.is_absolute() => Some(path),
+        Some(_) => {
+            push_issue(
+                &mut issues,
+                "XDG configuration root is not an absolute path.",
+                false,
+            );
+            None
+        }
+        None => None,
+    };
+    let xdg_home_entry = xdg_config_home
+        .and_then(|path| path.strip_prefix(home).ok())
+        .and_then(|relative| relative.components().next())
+        .map(|component| component.as_os_str().to_string_lossy().into_owned());
+
+    for (relative, coverage_class) in &managed_paths {
         if Instant::now() >= deadline {
             push_issue(
                 &mut issues,
@@ -113,11 +121,11 @@ fn discover_candidates_in(home: &Path) -> Result<ConfigurationCoverage, Discover
             );
             break;
         }
-        scan_root(
-            &root,
+        scan_catalog_path(
+            &home.join(relative),
+            relative,
             &home_root,
-            &managed_paths,
-            deadline,
+            *coverage_class,
             &mut candidates,
             &mut issues,
         );
@@ -125,6 +133,52 @@ fn discover_candidates_in(home: &Path) -> Result<ConfigurationCoverage, Discover
             push_issue(&mut issues, "Candidate metadata limit was reached.", false);
             break;
         }
+
+        let Some(xdg_root) = xdg_config_home else {
+            continue;
+        };
+        let Ok(xdg_relative) = relative.strip_prefix(".config") else {
+            continue;
+        };
+        if xdg_relative.as_os_str().is_empty() || xdg_root == home.join(".config") {
+            continue;
+        }
+        if Instant::now() >= deadline {
+            push_issue(
+                &mut issues,
+                "Candidate metadata scan reached its time limit.",
+                true,
+            );
+            break;
+        }
+        scan_catalog_path(
+            &xdg_root.join(xdg_relative),
+            &Path::new("XDG_CONFIG_HOME").join(xdg_relative),
+            &home_root,
+            *coverage_class,
+            &mut candidates,
+            &mut issues,
+        );
+    }
+
+    if candidates.len() < MAX_CANDIDATES && Instant::now() < deadline {
+        scan_home_root(
+            &home_root,
+            &managed_paths,
+            xdg_home_entry.as_deref(),
+            deadline,
+            &mut candidates,
+            &mut issues,
+        );
+        if candidates.len() >= MAX_CANDIDATES {
+            push_issue(&mut issues, "Candidate metadata limit was reached.", false);
+        }
+    } else if Instant::now() >= deadline {
+        push_issue(
+            &mut issues,
+            "Candidate metadata scan reached its time limit.",
+            true,
+        );
     }
 
     Ok(ConfigurationCoverage {
@@ -138,122 +192,40 @@ fn discover_candidates_in(home: &Path) -> Result<ConfigurationCoverage, Discover
     })
 }
 
-fn discovery_roots<'a>(
-    home: &Path,
-    managed_paths: impl Iterator<Item = &'a PathBuf>,
-    issues: &mut Vec<DiscoveryIssue>,
-) -> Vec<ScanRoot> {
-    let mut roots = BTreeMap::new();
-    add_root(
-        &mut roots,
-        home.to_path_buf(),
-        PathBuf::new(),
-        ScanMode::Home,
-    );
-
-    let default_xdg = home.join(".config");
-    match env::var_os("XDG_CONFIG_HOME").filter(|value| !value.is_empty()) {
-        Some(value) => {
-            let path = PathBuf::from(value);
-            if path.is_absolute() {
-                add_root(
-                    &mut roots,
-                    path,
-                    PathBuf::from("XDG_CONFIG_HOME"),
-                    ScanMode::ConfigurationRoot,
-                );
-            } else {
-                push_issue(
-                    issues,
-                    "XDG configuration root is not an absolute path.",
-                    false,
-                );
-            }
-        }
-        None => add_root(
-            &mut roots,
-            default_xdg,
-            PathBuf::from(".config"),
-            ScanMode::ConfigurationRoot,
-        ),
-    }
-
-    add_root(
-        &mut roots,
-        home.join("Library/Application Support"),
-        PathBuf::from("Library/Application Support"),
-        ScanMode::ConfigurationRoot,
-    );
-
-    for relative in managed_paths {
-        if let Some(parent) = relative
-            .parent()
-            .filter(|parent| !parent.as_os_str().is_empty())
-        {
-            add_root(
-                &mut roots,
-                home.join(parent),
-                parent.to_path_buf(),
-                ScanMode::ConfigurationRoot,
-            );
-        }
-    }
-
-    if roots.len() > MAX_ROOTS {
-        push_issue(issues, "Candidate root limit was reached.", false);
-    }
-    roots.into_values().collect()
-}
-
-fn add_root(
-    roots: &mut BTreeMap<PathBuf, ScanRoot>,
-    path: PathBuf,
-    display_prefix: PathBuf,
-    mode: ScanMode,
-) {
-    roots.entry(path.clone()).or_insert(ScanRoot {
-        path,
-        display_prefix,
-        mode,
-    });
-}
-
-fn scan_root(
-    root: &ScanRoot,
+fn scan_catalog_path(
+    path: &Path,
+    display_path: &Path,
     home_root: &Path,
-    managed_paths: &BTreeMap<PathBuf, CatalogCoverageClass>,
-    deadline: Instant,
+    coverage_class: CatalogCoverageClass,
     candidates: &mut BTreeMap<String, UnmanagedCandidate>,
     issues: &mut Vec<DiscoveryIssue>,
 ) {
-    let metadata = match fs::symlink_metadata(&root.path) {
+    let display_name = display_path.to_string_lossy().into_owned();
+    if display_name.is_empty() || display_name.len() > MAX_CANDIDATE_PATH_BYTES {
+        return;
+    }
+    let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => return,
         Err(_) => {
             push_issue(
                 issues,
-                &format!(
-                    "Metadata for {} could not be inspected.",
-                    display_root(&root.display_prefix)
-                ),
+                &format!("Metadata for {display_name} could not be inspected."),
                 true,
             );
             return;
         }
     };
-    if !metadata.is_dir() && !metadata.file_type().is_symlink() {
-        return;
-    }
 
-    let resolved = match fs::canonicalize(&root.path) {
-        Ok(path) if path.starts_with(home_root) => path,
+    let Some(parent) = path.parent() else {
+        return;
+    };
+    match fs::canonicalize(parent) {
+        Ok(path) if path.starts_with(home_root) => {}
         Ok(_) => {
             push_issue(
                 issues,
-                &format!(
-                    "{} resolves outside the supported home directory.",
-                    display_root(&root.display_prefix)
-                ),
+                &format!("{display_name} resolves outside the supported home directory."),
                 false,
             );
             return;
@@ -261,24 +233,37 @@ fn scan_root(
         Err(_) => {
             push_issue(
                 issues,
-                &format!(
-                    "Metadata for {} could not be resolved.",
-                    display_root(&root.display_prefix)
-                ),
+                &format!("Metadata for {display_name} could not be resolved."),
                 true,
             );
             return;
         }
     };
-    let entries = match fs::read_dir(resolved) {
+
+    insert_candidate(
+        display_name,
+        display_path,
+        &metadata,
+        coverage_class,
+        candidates,
+        issues,
+    );
+}
+
+fn scan_home_root(
+    home_root: &Path,
+    managed_paths: &BTreeMap<PathBuf, CatalogCoverageClass>,
+    xdg_home_entry: Option<&str>,
+    deadline: Instant,
+    candidates: &mut BTreeMap<String, UnmanagedCandidate>,
+    issues: &mut Vec<DiscoveryIssue>,
+) {
+    let entries = match fs::read_dir(home_root) {
         Ok(entries) => entries,
         Err(_) => {
             push_issue(
                 issues,
-                &format!(
-                    "Metadata under {} could not be listed.",
-                    display_root(&root.display_prefix)
-                ),
+                "Metadata under the home directory could not be listed.",
                 true,
             );
             return;
@@ -297,10 +282,7 @@ fn scan_root(
         if index >= MAX_ENTRIES_PER_ROOT {
             push_issue(
                 issues,
-                &format!(
-                    "Candidate metadata limit was reached for {}.",
-                    display_root(&root.display_prefix)
-                ),
+                "Candidate metadata limit was reached for the home directory.",
                 false,
             );
             return;
@@ -310,24 +292,14 @@ fn scan_root(
             Err(_) => {
                 push_issue(
                     issues,
-                    &format!(
-                        "An entry under {} could not be inspected.",
-                        display_root(&root.display_prefix)
-                    ),
+                    "An entry under the home directory could not be inspected.",
                     true,
                 );
                 continue;
             }
         };
         let entry_name = entry.file_name().to_string_lossy().into_owned();
-        if !is_safe_name(&entry_name)
-            || (root.mode == ScanMode::Home && !is_home_candidate(&entry_name, managed_paths))
-        {
-            continue;
-        }
-        let relative = root.display_prefix.join(&entry_name);
-        let display_name = relative.to_string_lossy().into_owned();
-        if display_name.is_empty() || display_name.len() > MAX_CANDIDATE_PATH_BYTES {
+        if !is_home_candidate(&entry_name, managed_paths, xdg_home_entry) {
             continue;
         }
         let metadata = match fs::symlink_metadata(entry.path()) {
@@ -335,13 +307,17 @@ fn scan_root(
             Err(_) => {
                 push_issue(
                     issues,
-                    &format!("Metadata for {display_name} could not be inspected."),
+                    &format!("Metadata for {entry_name} could not be inspected."),
                     true,
                 );
                 continue;
             }
         };
         let kind = candidate_kind(&metadata);
+        if !matches!(kind, CandidateKind::Directory | CandidateKind::Symlink) {
+            continue;
+        }
+        let relative = PathBuf::from(&entry_name);
         let coverage_class = if is_excluded_path(&relative, kind) {
             CatalogCoverageClass::Excluded
         } else {
@@ -350,42 +326,31 @@ fn scan_root(
                 .copied()
                 .unwrap_or(CatalogCoverageClass::DetectedUnsupported)
         };
-        let modified_at_epoch_ms = match metadata.modified() {
-            Ok(value) => value
-                .duration_since(UNIX_EPOCH)
-                .ok()
-                .and_then(|duration| u64::try_from(duration.as_millis()).ok()),
-            Err(_) => {
-                push_issue(
-                    issues,
-                    &format!("Modification metadata for {display_name} could not be read."),
-                    true,
-                );
-                None
-            }
-        };
-        candidates
-            .entry(display_name.clone())
-            .or_insert(UnmanagedCandidate {
-                name: display_name,
-                kind,
-                coverage_class,
-                modified_at_epoch_ms,
-            });
+        insert_candidate(
+            entry_name,
+            &relative,
+            &metadata,
+            coverage_class,
+            candidates,
+            issues,
+        );
         if candidates.len() >= MAX_CANDIDATES {
             return;
         }
     }
 }
 
-fn is_home_candidate(name: &str, managed_paths: &BTreeMap<PathBuf, CatalogCoverageClass>) -> bool {
-    name.starts_with('.')
-        || is_excluded_name(name)
-        || managed_paths.keys().any(|path| {
-            path.components()
-                .next()
-                .is_some_and(|component| component.as_os_str() == name)
-        })
+fn is_home_candidate(
+    name: &str,
+    managed_paths: &BTreeMap<PathBuf, CatalogCoverageClass>,
+    xdg_home_entry: Option<&str>,
+) -> bool {
+    is_safe_name(name)
+        && name.starts_with('.')
+        && xdg_home_entry != Some(name)
+        && !managed_paths
+            .keys()
+            .any(|path| path != Path::new(name) && path.starts_with(name))
 }
 
 fn is_safe_name(name: &str) -> bool {
@@ -410,6 +375,44 @@ fn candidate_kind(metadata: &fs::Metadata) -> CandidateKind {
     } else {
         CandidateKind::Other
     }
+}
+
+fn insert_candidate(
+    display_name: String,
+    relative: &Path,
+    metadata: &fs::Metadata,
+    coverage_class: CatalogCoverageClass,
+    candidates: &mut BTreeMap<String, UnmanagedCandidate>,
+    issues: &mut Vec<DiscoveryIssue>,
+) {
+    let kind = candidate_kind(metadata);
+    let coverage_class = if is_excluded_path(relative, kind) {
+        CatalogCoverageClass::Excluded
+    } else {
+        coverage_class
+    };
+    let modified_at_epoch_ms = match metadata.modified() {
+        Ok(value) => value
+            .duration_since(UNIX_EPOCH)
+            .ok()
+            .and_then(|duration| u64::try_from(duration.as_millis()).ok()),
+        Err(_) => {
+            push_issue(
+                issues,
+                &format!("Modification metadata for {display_name} could not be read."),
+                true,
+            );
+            None
+        }
+    };
+    candidates
+        .entry(display_name.clone())
+        .or_insert(UnmanagedCandidate {
+            name: display_name,
+            kind,
+            coverage_class,
+            modified_at_epoch_ms,
+        });
 }
 
 fn is_excluded_path(path: &Path, kind: CandidateKind) -> bool {
@@ -507,14 +510,6 @@ fn is_excluded_stem(stem: &str) -> bool {
     )
 }
 
-fn display_root(path: &Path) -> String {
-    if path.as_os_str().is_empty() {
-        "the home directory".to_owned()
-    } else {
-        path.to_string_lossy().into_owned()
-    }
-}
-
 fn push_issue(issues: &mut Vec<DiscoveryIssue>, message: &str, retryable: bool) {
     if issues.len() < MAX_ISSUES && !issues.iter().any(|issue| issue.message == message) {
         issues.push(DiscoveryIssue::new("candidates", message, retryable));
@@ -534,18 +529,75 @@ mod tests {
         fs::write(home.join(".unknown/nested/secret"), "must not be read")
             .expect("nested fixture should be written");
         fs::create_dir_all(home.join(".copilot")).expect("managed directory should be created");
+        fs::write(home.join(".copilot/config.json"), "{}")
+            .expect("managed copilot config should be written");
+        fs::create_dir_all(home.join(".config/ghostty"))
+            .expect("managed XDG directory should be created");
+        fs::write(home.join(".config/ghostty/config"), "theme = dark")
+            .expect("managed ghostty config should be written");
+        fs::create_dir_all(home.join(".config/not-catalog"))
+            .expect("non-catalog XDG directory should be created");
+        fs::write(home.join(".config/not-catalog/settings.json"), "{}")
+            .expect("non-catalog XDG file should be written");
+        fs::create_dir_all(home.join(".xdg/ghostty"))
+            .expect("managed custom XDG directory should be created");
+        fs::write(home.join(".xdg/ghostty/config"), "theme = light")
+            .expect("managed custom XDG config should be written");
+        fs::create_dir_all(home.join(".xdg/not-catalog"))
+            .expect("non-catalog custom XDG directory should be created");
+        fs::write(home.join(".xdg/not-catalog/settings.json"), "{}")
+            .expect("non-catalog custom XDG file should be written");
+        fs::create_dir_all(home.join("Library/Application Support/Code/User"))
+            .expect("managed application support directory should be created");
+        fs::write(
+            home.join("Library/Application Support/Code/User/settings.json"),
+            "{}",
+        )
+        .expect("managed Code settings should be written");
+        fs::create_dir_all(home.join("Library/Application Support/Not Catalog"))
+            .expect("non-catalog application support directory should be created");
+        fs::write(
+            home.join("Library/Application Support/Not Catalog/settings.json"),
+            "{}",
+        )
+        .expect("non-catalog application support file should be written");
         fs::write(home.join(".not-a-directory"), "ignored").expect("hidden file should be written");
 
-        let candidates = discover_candidates_in(&home).expect("candidate scan should succeed");
+        let candidates = discover_candidates_in(&home, Some(&home.join(".xdg")))
+            .expect("candidate scan should succeed");
 
-        assert_eq!(candidates.candidates.len(), 3);
-        assert_eq!(candidates.candidates[0].name, ".copilot");
+        assert_eq!(candidates.candidates.len(), 5);
+        assert_eq!(candidates.candidates[0].name, ".config/ghostty/config");
         assert_eq!(
             candidates.candidates[0].coverage_class,
+            CatalogCoverageClass::ManagedReadOnly
+        );
+        assert_eq!(candidates.candidates[1].name, ".copilot/config.json");
+        assert_eq!(
+            candidates.candidates[1].coverage_class,
+            CatalogCoverageClass::ManagedWritable
+        );
+        assert_eq!(candidates.candidates[2].name, ".unknown");
+        assert_eq!(
+            candidates.candidates[2].coverage_class,
             CatalogCoverageClass::DetectedUnsupported
         );
-        assert_eq!(candidates.candidates[1].name, ".not-a-directory");
-        assert_eq!(candidates.candidates[2].name, ".unknown");
+        assert_eq!(
+            candidates.candidates[3].name,
+            "Library/Application Support/Code/User/settings.json"
+        );
+        assert_eq!(
+            candidates.candidates[3].coverage_class,
+            CatalogCoverageClass::ManagedReadOnly
+        );
+        assert_eq!(
+            candidates.candidates[4].name,
+            "XDG_CONFIG_HOME/ghostty/config"
+        );
+        assert_eq!(
+            candidates.candidates[4].coverage_class,
+            CatalogCoverageClass::ManagedReadOnly
+        );
         assert!(candidates.candidates.iter().all(|candidate| {
             matches!(
                 candidate.coverage_class,
@@ -556,6 +608,14 @@ mod tests {
             )
         }));
         let serialized = serde_json::to_string(&candidates).expect("candidates should serialize");
+        assert!(!serialized.contains("\"name\":\".config\""));
+        assert!(!serialized.contains("\"name\":\".config/ghostty\""));
+        assert!(!serialized.contains("\"name\":\".copilot\""));
+        assert!(!serialized.contains("\"name\":\".xdg\""));
+        assert!(!serialized.contains("\"name\":\"XDG_CONFIG_HOME/ghostty\""));
+        assert!(!serialized.contains("\"name\":\"Library/Application Support/Code\""));
+        assert!(!serialized.contains("not-catalog"));
+        assert!(!serialized.contains("Not Catalog"));
         assert!(!serialized.contains("nested"));
         assert!(!serialized.contains("secret"));
         assert!(!serialized.contains(home.to_string_lossy().as_ref()));
