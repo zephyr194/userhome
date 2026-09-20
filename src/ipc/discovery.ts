@@ -1,4 +1,5 @@
 import { createInternalError, invokeCommand, isRecord } from "./core";
+import type { ManagedAppCoverageClass } from "./catalog";
 
 const MAX_TEXT_BYTES = 2 * 1024;
 const MAX_APPLICATIONS = 32;
@@ -11,7 +12,12 @@ export type DiscoveryCompleteness = "COMPLETE" | "PARTIAL";
 export type DetectionStatus = "DETECTED" | "PARTIAL" | "ABSENT";
 export type EvidenceKind = "CONFIG_PRESENT" | "EXECUTABLE_PRESENT";
 export type PathEntryKind = "FILE" | "DIRECTORY" | "SYMLINK" | "OTHER";
-export type CandidateKind = "DIRECTORY" | "SYMLINK";
+export type CandidateKind =
+  | "FILE"
+  | "DIRECTORY"
+  | "SYMLINK"
+  | "SOCKET"
+  | "OTHER";
 
 export interface DiscoveryIssue {
   module: string;
@@ -60,12 +66,24 @@ export interface BrewInventorySummary {
 export interface UnmanagedCandidate {
   name: string;
   kind: CandidateKind;
+  coverageClass: ManagedAppCoverageClass;
   modifiedAtEpochMs?: number;
+}
+
+export interface ConfigurationCoverage {
+  completeness: DiscoveryCompleteness;
+  candidates: readonly UnmanagedCandidate[];
+  issues: readonly DiscoveryIssue[];
 }
 
 export type ModuleSnapshot<T> =
   | { status: "LOADING" }
-  | { status: "READY"; data: T }
+  | {
+      status: "READY";
+      data: T;
+      completeness?: DiscoveryCompleteness;
+      issues?: readonly DiscoveryIssue[];
+    }
   | { status: "ERROR"; error: DiscoveryIssue };
 
 export interface DiscoverySnapshot {
@@ -207,16 +225,69 @@ function decodeBrewSummary(value: unknown): BrewInventorySummary {
 function decodeCandidate(value: unknown): UnmanagedCandidate {
   if (
     !isRecord(value) ||
-    !["DIRECTORY", "SYMLINK"].includes(String(value.kind))
+    !["FILE", "DIRECTORY", "SYMLINK", "SOCKET", "OTHER"].includes(
+      String(value.kind),
+    ) ||
+    ![
+      "MANAGED_WRITABLE",
+      "MANAGED_READ_ONLY",
+      "DETECTED_UNSUPPORTED",
+      "EXCLUDED",
+    ].includes(String(value.coverageClass ?? "DETECTED_UNSUPPORTED"))
   ) {
     throw createInternalError();
   }
   return {
     name: decodeText(value.name),
     kind: value.kind as CandidateKind,
+    coverageClass: (value.coverageClass ??
+      "DETECTED_UNSUPPORTED") as ManagedAppCoverageClass,
     ...(value.modifiedAtEpochMs === undefined || value.modifiedAtEpochMs === null
       ? {}
       : { modifiedAtEpochMs: decodeCount(value.modifiedAtEpochMs) }),
+  };
+}
+
+function decodeConfigurationCoverage(value: unknown): ConfigurationCoverage {
+  if (Array.isArray(value)) {
+    if (value.length > MAX_CANDIDATES) {
+      throw createInternalError();
+    }
+    return {
+      completeness: "COMPLETE",
+      candidates: value.map(decodeCandidate),
+      issues: [],
+    };
+  }
+  if (
+    !isRecord(value) ||
+    !["COMPLETE", "PARTIAL"].includes(String(value.completeness)) ||
+    !Array.isArray(value.candidates) ||
+    value.candidates.length > MAX_CANDIDATES ||
+    !Array.isArray(value.issues) ||
+    value.issues.length > MAX_ISSUES
+  ) {
+    throw createInternalError();
+  }
+  return {
+    completeness: value.completeness as DiscoveryCompleteness,
+    candidates: value.candidates.map(decodeCandidate),
+    issues: value.issues.map(decodeIssue),
+  };
+}
+
+function decodeCandidateModule(
+  value: unknown,
+): ModuleSnapshot<readonly UnmanagedCandidate[]> {
+  const module = decodeModule(value, decodeConfigurationCoverage);
+  if (module.status !== "READY") {
+    return module;
+  }
+  return {
+    status: "READY",
+    data: module.data.candidates,
+    completeness: module.data.completeness,
+    issues: module.data.issues,
   };
 }
 
@@ -252,12 +323,7 @@ export function decodeDiscoverySnapshot(value: unknown): DiscoverySnapshot {
       : { completedAtEpochMs: decodeCount(value.completedAtEpochMs) }),
     system: decodeModule(value.system, decodeSystem),
     brew: decodeModule(value.brew, decodeBrewSummary),
-    candidates: decodeModule(value.candidates, (candidates) => {
-      if (!Array.isArray(candidates) || candidates.length > MAX_CANDIDATES) {
-        throw createInternalError();
-      }
-      return candidates.map(decodeCandidate);
-    }),
+    candidates: decodeCandidateModule(value.candidates),
   };
 }
 
@@ -269,13 +335,15 @@ export function refreshSystemSnapshot(): Promise<DiscoverySnapshot> {
   return invokeCommand("refresh_system_snapshot", decodeDiscoverySnapshot);
 }
 
-export function listUnmanagedCandidates(): Promise<
+export function getConfigurationCoverage(): Promise<ConfigurationCoverage> {
+  return invokeCommand(
+    "list_unmanaged_candidates",
+    decodeConfigurationCoverage,
+  );
+}
+
+export async function listUnmanagedCandidates(): Promise<
   readonly UnmanagedCandidate[]
 > {
-  return invokeCommand("list_unmanaged_candidates", (value) => {
-    if (!Array.isArray(value) || value.length > MAX_CANDIDATES) {
-      throw createInternalError();
-    }
-    return value.map(decodeCandidate);
-  });
+  return (await getConfigurationCoverage()).candidates;
 }

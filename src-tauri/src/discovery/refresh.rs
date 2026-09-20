@@ -16,7 +16,7 @@ use crate::brew::inventory::{
 };
 
 use super::{
-    candidates::{UnmanagedCandidate, discover_candidates},
+    candidates::{ConfigurationCoverage, discover_candidates},
     system::{DiscoveryIssue, SystemSummary, discover_system},
 };
 
@@ -76,7 +76,7 @@ pub struct DiscoverySnapshot {
     completed_at_epoch_ms: Option<u64>,
     system: ModuleSnapshot<SystemSummary>,
     brew: ModuleSnapshot<BrewInventorySummary>,
-    candidates: ModuleSnapshot<Vec<UnmanagedCandidate>>,
+    candidates: ModuleSnapshot<ConfigurationCoverage>,
 }
 
 struct CoordinatorState {
@@ -88,8 +88,7 @@ struct CoordinatorState {
 
 type SystemRunner = Arc<dyn Fn() -> Result<SystemSummary, DiscoveryIssue> + Send + Sync>;
 type BrewRunner = Arc<dyn Fn() -> Result<BrewInventory, InventoryError> + Send + Sync>;
-type CandidateRunner =
-    Arc<dyn Fn() -> Result<Vec<UnmanagedCandidate>, DiscoveryIssue> + Send + Sync>;
+type CandidateRunner = Arc<dyn Fn() -> Result<ConfigurationCoverage, DiscoveryIssue> + Send + Sync>;
 
 #[derive(Clone)]
 struct DiscoveryRunners {
@@ -316,7 +315,7 @@ impl DiscoveryCoordinator {
         }
     }
 
-    pub fn candidates(&self) -> Result<Vec<UnmanagedCandidate>, DiscoveryIssue> {
+    pub fn candidates(&self) -> Result<ConfigurationCoverage, DiscoveryIssue> {
         self.ensure_initial_refresh();
         let mut state = self
             .inner
@@ -380,7 +379,7 @@ impl DiscoveryCoordinator {
     fn update_candidates(
         &self,
         generation: u64,
-        result: Result<Result<Vec<UnmanagedCandidate>, DiscoveryIssue>, ()>,
+        result: Result<Result<ConfigurationCoverage, DiscoveryIssue>, ()>,
     ) {
         let mut state = self
             .inner
@@ -537,7 +536,7 @@ mod tests {
                     Ok(sample_system())
                 }),
                 brew: Arc::new(|| Err(InventoryError::NotFound)),
-                candidates: Arc::new(|| Ok(Vec::new())),
+                candidates: Arc::new(|| Ok(ConfigurationCoverage::empty())),
             },
             ModuleTimeouts {
                 system: Duration::from_secs(1),
@@ -567,7 +566,7 @@ mod tests {
                     thread::sleep(Duration::from_millis(100));
                     Err(InventoryError::NotFound)
                 }),
-                candidates: Arc::new(|| Ok(Vec::new())),
+                candidates: Arc::new(|| Ok(ConfigurationCoverage::empty())),
             },
             ModuleTimeouts {
                 system: Duration::from_millis(50),

@@ -1,5 +1,5 @@
 use std::{
-    collections::BTreeSet,
+    collections::BTreeMap,
     env, fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
@@ -9,7 +9,7 @@ use std::{
 use serde::Serialize;
 
 use crate::{
-    catalog::{Catalog, DetectionRule, load_builtin_catalog},
+    catalog::{Catalog, CatalogCoverageClass, DetectionRule, load_builtin_catalog},
     process::run_bounded,
 };
 
@@ -340,17 +340,21 @@ fn modified_at_epoch_ms(metadata: &fs::Metadata) -> Option<u64> {
         .and_then(|duration| u64::try_from(duration.as_millis()).ok())
 }
 
-pub(crate) fn managed_dot_directories(catalog: &Catalog) -> BTreeSet<String> {
-    catalog
-        .apps()
-        .iter()
-        .flat_map(|app| app.detection_rules())
-        .filter(|rule| rule.kind() == "HOME_PATH")
-        .filter_map(|rule| rule.value().strip_prefix("~/"))
-        .filter_map(|relative| relative.split('/').next())
-        .filter(|name| name.starts_with('.'))
-        .map(ToOwned::to_owned)
-        .collect()
+pub(crate) fn catalog_home_document_coverage(
+    catalog: &Catalog,
+) -> BTreeMap<PathBuf, CatalogCoverageClass> {
+    let mut paths = BTreeMap::new();
+    for app in catalog.apps() {
+        let coverage_class = app.coverage_class();
+        for relative in app
+            .config_documents()
+            .iter()
+            .filter_map(|document| document.path_template().strip_prefix("~/"))
+        {
+            paths.insert(PathBuf::from(relative), coverage_class);
+        }
+    }
+    paths
 }
 
 #[cfg(test)]
