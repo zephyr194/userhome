@@ -399,7 +399,7 @@ T35-T37 + T43
 - [x] T39 Implement safe configuration-candidate classification
 - [x] T40 Add generic managed read-only configuration support
 - [x] T41 Expand data-only catalog definitions in bounded batches
-- [ ] T42 Build the registry-driven Applications workspace
+- [x] T42 Build the registry-driven Applications workspace
 - [ ] T43 Migrate configuration details and confirmed actions
 
 ### Checkpoint M: Configuration Coverage

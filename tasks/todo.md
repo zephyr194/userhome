@@ -1282,13 +1282,18 @@ catalog tests pass.
 real icons, coverage-aware actions, filters, and a list-detail desktop layout.
 
 **Acceptance criteria:**
-- [ ] New data-only definitions render without central UI code changes.
-- [ ] Writable, read-only, unsupported, and excluded states are explicit.
-- [ ] Unsupported candidates expose metadata only.
+- [x] New data-only definitions render without central UI code changes.
+- [x] Writable, read-only, unsupported, and excluded states are explicit.
+- [x] Unsupported candidates expose metadata only.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm test && pnpm build`
 - [ ] Manual: verify each coverage class and keyboard navigation.
+
+**Evidence:** Commit `536489f` replaces letter avatars and hardcoded app ID
+rendering with catalog-driven icons, filters, editor registration, and
+coverage-aware actions. Existing tests were updated in place, all 50 Vitest
+checks pass, and the production build succeeds.
 
 **Dependencies:** T33, T38, T39, T40, T41
 
