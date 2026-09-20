@@ -378,7 +378,8 @@ T35-T37 + T43
 ### Checkpoint K: Desktop Foundation
 
 - [ ] Exact dependency versions, production frontend build, fixed window, and
-      generated icon assets are verified.
+      generated icon assets are verified; automated checks pass, while physical
+      display scaling and tray-theme appearance remain pending.
 
 ### Phase 9: Native Desktop Interface
 
@@ -404,19 +405,21 @@ T35-T37 + T43
 
 ### Checkpoint M: Configuration Coverage
 
-- [ ] Every safely detected candidate is classified and only explicitly
+- [x] Every safely detected candidate is classified and only explicitly
       authorized definitions expose content or write actions.
 
 ### Phase 11: Integration
 
-- [ ] T44 Complete desktop optimization integration and documentation
+- [ ] T44 Complete desktop optimization integration and documentation —
+      automated integration and documentation are complete; manual desktop and
+      external release gates remain pending.
 
 ### Checkpoint N: Optimization Complete
 
-- [ ] Existing frontend, Rust, build, and E2E checks pass.
+- [x] Existing frontend, Rust, build, and E2E checks pass.
 - [ ] Manual fixed-window, keyboard, VoiceOver, contrast, tray, and icon review
       is complete.
-- [ ] No automated verification reads or mutates real user configuration.
+- [x] No automated verification reads or mutates real user configuration.
 
 ### Extension Risks
 

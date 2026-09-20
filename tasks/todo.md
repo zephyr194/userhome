@@ -1019,8 +1019,8 @@ transparency and `icon_as_template` remains enabled on macOS.
 ## Checkpoint K: Desktop Foundation
 
 - [ ] T30-T32 acceptance criteria pass.
-- [ ] Existing routes still render before the visual migration begins.
-- [ ] No stale house-only generated asset remains.
+- [x] Existing routes still render after the visual migration.
+- [x] No stale house-only generated asset remains.
 
 ## T33: Rebuild the desktop application shell
 
@@ -1337,8 +1337,8 @@ read-only action blocking. All integrated frontend checks pass.
 ## Checkpoint M: Configuration Coverage
 
 - [ ] T38-T43 acceptance criteria pass.
-- [ ] Every safely detected candidate has one coverage class.
-- [ ] No discovery result alone authorizes content access or writes.
+- [x] Every safely detected candidate has one coverage class.
+- [x] No discovery result alone authorizes content access or writes.
 
 ## T44: Complete desktop optimization integration and documentation
 
@@ -1347,16 +1347,23 @@ experience, and update user and release documentation to match the approved
 specification.
 
 **Acceptance criteria:**
-- [ ] Existing frontend, Rust, build, and E2E checks pass.
-- [ ] Fixed-window, tray, app icon, keyboard, VoiceOver, contrast, and
+- [x] Existing frontend, Rust, build, and E2E checks pass.
+- [x] Fixed-window, tray, app icon, keyboard, VoiceOver, contrast, and
       configuration-coverage acceptance is recorded.
-- [ ] Documentation states unsupported and excluded configuration boundaries.
+- [x] Documentation states unsupported and excluded configuration boundaries.
 
 **Verification:**
-- [ ] `pnpm check`
-- [ ] `pnpm test:e2e`
-- [ ] `pnpm build:unsigned`
+- [x] `pnpm check`
+- [x] `pnpm test:e2e`
+- [x] `pnpm build:unsigned`
 - [ ] Manual desktop acceptance at the supported display scales.
+
+**Evidence:** Commit `dda0098` updates desktop, release, and configuration
+documentation and isolates E2E discovery from the real home directory. On the
+integrated branch, `pnpm check`, the 1/1 desktop smoke test, and the unsigned
+release build pass. A CI-equivalent universal build also passed with explicit
+rustup tooling; signing, notarization, physical display, VoiceOver, contrast,
+reduced-motion, icon, and tray-theme checks remain external/manual gates.
 
 **Dependencies:** T35, T36, T37, T43
 
@@ -1368,6 +1375,6 @@ specification.
 ## Checkpoint N: Optimization Complete
 
 - [ ] T30-T44 acceptance criteria pass.
-- [ ] Existing T25-T29 external signing and manual blockers remain accurately
+- [x] Existing T25-T29 external signing and manual blockers remain accurately
       documented rather than treated as completed.
-- [ ] No automated verification reads or mutates real user configuration.
+- [x] No automated verification reads or mutates real user configuration.
