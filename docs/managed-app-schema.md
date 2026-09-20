@@ -37,6 +37,30 @@ Discovery evidence never grants write or execution authority by itself.
    restore, and redaction coverage as applicable. Fixtures must use temporary
    homes and must not read live user files.
 
+## Current bounded read-only batch
+
+The T41 batch adds six locally relevant definitions. Every detection rule is an
+exact `HOME_PATH`; discovery performs ten bounded metadata checks and does
+not scan the home directory. These definitions declare no executable,
+Homebrew, service, elevation, or write authority. Every document uses the
+generic `read-only-text` adapter, `text` validator, a finite size limit, and
+`READ_ONLY`.
+
+| App ID | Detection and path variants | Sensitivity | Format | Presentation | Coverage |
+|---|---|---|---|---|---|
+| `visual-studio-code` | `~/Library/Application Support/Code/User/settings.json`; `~/Library/Application Support/Code - Insiders/User/settings.json` | `SENSITIVE` | `JSON` | `visual-studio-code`, 编辑器 | `MANAGED_READ_ONLY` |
+| `cursor` | `~/Library/Application Support/Cursor/User/settings.json` | `SENSITIVE` | `JSON` | `cursor`, 编辑器 | `MANAGED_READ_ONLY` |
+| `ghostty` | `~/Library/Application Support/com.mitchellh.ghostty/config`; `~/.config/ghostty/config` | `SENSITIVE` | `TEXT` | `ghostty`, 终端 | `MANAGED_READ_ONLY` |
+| `starship` | `~/.config/starship.toml` | `SENSITIVE` | `TEXT` | `starship`, Shell | `MANAGED_READ_ONLY` |
+| `tmux` | `~/.tmux.conf`; `~/.config/tmux/tmux.conf` | `SENSITIVE` | `TEXT` | `tmux`, 终端 | `MANAGED_READ_ONLY` |
+| `vim` | `~/.vimrc`; `~/.vim/vimrc` | `SENSITIVE` | `TEXT` | `vim`, 编辑器 | `MANAGED_READ_ONLY` |
+
+`TEXT` describes a generic UTF-8 text document; it does not imply a
+format-specific parser or validator. `SENSITIVE` content is returned only
+through the generic line-oriented secret redaction path. Known credential,
+token, key, history, cache, log, database, socket, and runtime-state paths
+remain outside this batch.
+
 ## Compatibility rules
 
 - Increment `schemaVersion` only for additive schema changes.

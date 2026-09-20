@@ -238,6 +238,240 @@
       ],
       "services": [],
       "capabilities": ["DETECT", "READ_CONFIG", "WRITE_CONFIG"]
+    },
+    {
+      "id": "visual-studio-code",
+      "displayName": "Visual Studio Code",
+      "description": "只读查看 Visual Studio Code 与 Insiders 的用户设置，敏感键值会被屏蔽。",
+      "iconKey": "visual-studio-code",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": { "category": "编辑器" },
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/Code/User/settings.json"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/Code - Insiders/User/settings.json"
+        }
+      ],
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "configDocuments": [
+        {
+          "configId": "visual-studio-code-settings",
+          "pathTemplate": "~/Library/Application Support/Code/User/settings.json",
+          "format": "JSON",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 1048576,
+          "writePolicy": "READ_ONLY"
+        },
+        {
+          "configId": "visual-studio-code-insiders-settings",
+          "pathTemplate": "~/Library/Application Support/Code - Insiders/User/settings.json",
+          "format": "JSON",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 1048576,
+          "writePolicy": "READ_ONLY"
+        }
+      ],
+      "services": [],
+      "capabilities": ["DETECT", "READ_CONFIG"]
+    },
+    {
+      "id": "cursor",
+      "displayName": "Cursor",
+      "description": "只读查看 Cursor 用户设置，敏感键值会被屏蔽。",
+      "iconKey": "cursor",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": { "category": "编辑器" },
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/Cursor/User/settings.json"
+        }
+      ],
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "configDocuments": [
+        {
+          "configId": "cursor-settings",
+          "pathTemplate": "~/Library/Application Support/Cursor/User/settings.json",
+          "format": "JSON",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 1048576,
+          "writePolicy": "READ_ONLY"
+        }
+      ],
+      "services": [],
+      "capabilities": ["DETECT", "READ_CONFIG"]
+    },
+    {
+      "id": "ghostty",
+      "displayName": "Ghostty",
+      "description": "只读查看 Ghostty 的 macOS 与 XDG 用户配置，敏感键值会被屏蔽。",
+      "iconKey": "ghostty",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": { "category": "终端" },
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/com.mitchellh.ghostty/config"
+        },
+        { "kind": "HOME_PATH", "value": "~/.config/ghostty/config" }
+      ],
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "configDocuments": [
+        {
+          "configId": "ghostty-macos-config",
+          "pathTemplate": "~/Library/Application Support/com.mitchellh.ghostty/config",
+          "format": "TEXT",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        },
+        {
+          "configId": "ghostty-xdg-config",
+          "pathTemplate": "~/.config/ghostty/config",
+          "format": "TEXT",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ],
+      "services": [],
+      "capabilities": ["DETECT", "READ_CONFIG"]
+    },
+    {
+      "id": "starship",
+      "displayName": "Starship",
+      "description": "只读查看默认 XDG 位置的 Starship 提示符配置，敏感键值会被屏蔽。",
+      "iconKey": "starship",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": { "category": "Shell" },
+      "detectionRules": [
+        { "kind": "HOME_PATH", "value": "~/.config/starship.toml" }
+      ],
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "configDocuments": [
+        {
+          "configId": "starship-config",
+          "pathTemplate": "~/.config/starship.toml",
+          "format": "TEXT",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ],
+      "services": [],
+      "capabilities": ["DETECT", "READ_CONFIG"]
+    },
+    {
+      "id": "tmux",
+      "displayName": "tmux",
+      "description": "只读查看 tmux 的传统与 XDG 用户配置，敏感键值会被屏蔽。",
+      "iconKey": "tmux",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": { "category": "终端" },
+      "detectionRules": [
+        { "kind": "HOME_PATH", "value": "~/.tmux.conf" },
+        { "kind": "HOME_PATH", "value": "~/.config/tmux/tmux.conf" }
+      ],
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "configDocuments": [
+        {
+          "configId": "tmux-config",
+          "pathTemplate": "~/.tmux.conf",
+          "format": "TEXT",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        },
+        {
+          "configId": "tmux-xdg-config",
+          "pathTemplate": "~/.config/tmux/tmux.conf",
+          "format": "TEXT",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ],
+      "services": [],
+      "capabilities": ["DETECT", "READ_CONFIG"]
+    },
+    {
+      "id": "vim",
+      "displayName": "Vim",
+      "description": "只读查看 Vim 的传统用户配置路径，敏感键值会被屏蔽。",
+      "iconKey": "vim",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": { "category": "编辑器" },
+      "detectionRules": [
+        { "kind": "HOME_PATH", "value": "~/.vimrc" },
+        { "kind": "HOME_PATH", "value": "~/.vim/vimrc" }
+      ],
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "configDocuments": [
+        {
+          "configId": "vimrc",
+          "pathTemplate": "~/.vimrc",
+          "format": "TEXT",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        },
+        {
+          "configId": "vim-runtime-config",
+          "pathTemplate": "~/.vim/vimrc",
+          "format": "TEXT",
+          "sensitivity": "SENSITIVE",
+          "adapterId": "read-only-text",
+          "editorKey": "read-only-text",
+          "validatorId": "text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ],
+      "services": [],
+      "capabilities": ["DETECT", "READ_CONFIG"]
     }
   ]
 }

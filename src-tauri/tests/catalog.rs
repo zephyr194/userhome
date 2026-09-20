@@ -1,8 +1,8 @@
 use serde_json::{Value, json};
 use userhome_lib::{
     catalog::{
-        BUILTIN_CATALOG_JSON, CATALOG_SCHEMA_VERSION, CatalogValidationError, MAX_CATALOG_BYTES,
-        MAX_CONFIG_DOCUMENT_BYTES, parse_catalog,
+        BUILTIN_CATALOG_JSON, CATALOG_SCHEMA_VERSION, CatalogCoverageClass, CatalogValidationError,
+        MAX_CATALOG_BYTES, MAX_CONFIG_DOCUMENT_BYTES, parse_catalog,
     },
     commands::catalog::list_managed_apps,
 };
@@ -15,7 +15,7 @@ fn mutate_catalog(mutator: impl FnOnce(&mut Value)) -> String {
 }
 
 #[test]
-fn catalog_loads_exactly_the_six_approved_definitions() {
+fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch() {
     let catalog = parse_catalog(BUILTIN_CATALOG_JSON).expect("built-in catalog should validate");
     let ids = catalog
         .apps()
@@ -25,9 +25,41 @@ fn catalog_loads_exactly_the_six_approved_definitions() {
 
     assert_eq!(catalog.schema_version(), CATALOG_SCHEMA_VERSION);
     assert_eq!(
-        ids,
+        ids[..6],
         ["github-copilot", "caddy", "git", "openssh", "zsh", "npm",]
     );
+    assert_eq!(
+        ids[6..],
+        [
+            "visual-studio-code",
+            "cursor",
+            "ghostty",
+            "starship",
+            "tmux",
+            "vim",
+        ]
+    );
+    for app in &catalog.apps()[..6] {
+        assert_eq!(app.coverage_class(), CatalogCoverageClass::ManagedWritable);
+        assert!(
+            app.capabilities()
+                .iter()
+                .any(|value| value == "WRITE_CONFIG")
+        );
+    }
+    for app in &catalog.apps()[6..] {
+        assert_eq!(app.coverage_class(), CatalogCoverageClass::ManagedReadOnly);
+        assert!(
+            !app.capabilities()
+                .iter()
+                .any(|value| value == "WRITE_CONFIG")
+        );
+        assert!(
+            app.config_documents()
+                .iter()
+                .all(|document| document.is_read_only())
+        );
+    }
     assert!(
         catalog
             .apps()
@@ -73,7 +105,7 @@ fn catalog_ipc_summary_omits_authoritative_paths() {
             .as_array()
             .expect("applications should be an array")
             .len(),
-        6
+        12
     );
     assert!(!serialized.to_string().contains("pathTemplate"));
     assert!(!serialized.to_string().contains("HOMEBREW_PREFIX"));
