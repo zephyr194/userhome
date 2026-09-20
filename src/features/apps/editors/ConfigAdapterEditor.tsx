@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { Panel } from "../../../components/ui";
 import type { ConfigDocument } from "../../../ipc/config";
 import { CaddyEditor } from "./CaddyEditor";
 import { CopilotEditor } from "./CopilotEditor";
@@ -29,5 +30,12 @@ export function ConfigAdapterEditor({
   onPreview: (fields: Record<string, unknown>) => void;
 }) {
   const Editor = editorKey ? EDITORS[editorKey] : undefined;
-  return Editor ? <Editor document={document} onPreview={onPreview} /> : null;
+  return Editor ? (
+    <Panel
+      className="min-w-0 p-4 [&_.config-editor]:min-h-0 [&_.config-editor]:p-0"
+      aria-label="结构化配置编辑器"
+    >
+      <Editor document={document} onPreview={onPreview} />
+    </Panel>
+  ) : null;
 }

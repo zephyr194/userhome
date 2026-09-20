@@ -20,15 +20,20 @@ import {
   type ConfigSummary,
   type ConfigWritePreview as ConfigWritePreviewValue,
 } from "../../ipc/config";
-import type { AppError } from "../../ipc/core";
-import { listOperations, type OperationSummary } from "../../ipc/operations";
+import { decodeAppError, type AppError } from "../../ipc/core";
+import {
+  getOperation,
+  listOperations,
+  type OperationDetails,
+  type OperationSummary,
+} from "../../ipc/operations";
 import { OperationHistory } from "../operations/OperationHistory";
 import { ApplicationIcon } from "./ApplicationIcon";
 import { BackupHistory } from "./BackupHistory";
 import { ConfigDetails } from "./ConfigDetails";
 import { ConfigWritePreview } from "./ConfigWritePreview";
 import { ConfigAdapterEditor } from "./editors/ConfigAdapterEditor";
-import { RawConfigEditor } from "./editors/RawConfigEditor";
+import { RawTextEditor } from "./editors/RawTextEditor";
 
 type ConfigListState =
   | { status: "idle" }
@@ -111,6 +116,9 @@ export function ConfigWorkspace({
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [operations, setOperations] = useState<OperationSummary[]>([]);
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
+  const [operation, setOperation] = useState<OperationDetails>();
+  const [actionError, setActionError] = useState<AppError>();
+  const [executing, setExecuting] = useState(false);
 
   const canRead = application.capabilities.includes("READ_CONFIG");
   const canWrite =
@@ -140,9 +148,13 @@ export function ConfigWorkspace({
     };
   }, [application.id, canRead]);
 
-  async function loadDocument(summary: ConfigSummary) {
+  async function loadDocument(summary: ConfigSummary, resetPreview = true) {
     setDocument({ status: "loading" });
-    setPreview({ status: "idle" });
+    if (resetPreview) {
+      setPreview({ status: "idle" });
+      setOperation(undefined);
+      setActionError(undefined);
+    }
     try {
       const [value, backupValues, operationValues] = await Promise.all([
         readConfig(summary.appId, summary.configId),
@@ -160,7 +172,7 @@ export function ConfigWorkspace({
         ),
       );
     } catch (error) {
-      setDocument({ status: "error", error: error as AppError });
+      setDocument({ status: "error", error: decodeAppError(error) });
     }
   }
 
@@ -168,6 +180,8 @@ export function ConfigWorkspace({
     if (!canWrite || !value.contentHash || value.writePolicy === "READ_ONLY") {
       return;
     }
+    setOperation(undefined);
+    setActionError(undefined);
     setPreview({ status: "loading" });
     try {
       const result = await previewConfigWrite({
@@ -178,7 +192,7 @@ export function ConfigWorkspace({
       });
       setPreview({ status: "ready", kind: "write", preview: result });
     } catch (error) {
-      setPreview({ status: "error", error: error as AppError });
+      setPreview({ status: "error", error: decodeAppError(error) });
     }
   }
 
@@ -189,6 +203,8 @@ export function ConfigWorkspace({
     if (!canWrite || !value.contentHash || value.writePolicy === "READ_ONLY") {
       return;
     }
+    setOperation(undefined);
+    setActionError(undefined);
     setPreview({ status: "loading" });
     try {
       const result = await previewStructuredConfigWrite({
@@ -199,7 +215,7 @@ export function ConfigWorkspace({
       });
       setPreview({ status: "ready", kind: "write", preview: result });
     } catch (error) {
-      setPreview({ status: "error", error: error as AppError });
+      setPreview({ status: "error", error: decodeAppError(error) });
     }
   }
 
@@ -212,6 +228,8 @@ export function ConfigWorkspace({
     ) {
       return;
     }
+    setOperation(undefined);
+    setActionError(undefined);
     setPreview({ status: "loading" });
     try {
       const result = await previewRestoreBackup({
@@ -222,27 +240,41 @@ export function ConfigWorkspace({
       });
       setPreview({ status: "ready", kind: "restore", preview: result });
     } catch (error) {
-      setPreview({ status: "error", error: error as AppError });
+      setPreview({ status: "error", error: decodeAppError(error) });
     }
   }
 
   async function confirmPreview() {
-    if (!canWrite || preview.status !== "ready") return;
+    if (!canWrite || preview.status !== "ready" || executing) return;
     const operationId = preview.preview.operationId;
+    setExecuting(true);
+    setActionError(undefined);
     try {
-      if (preview.kind === "write") {
-        await executeConfigWrite(operationId);
-      } else {
-        await executeRestoreBackup(operationId);
-      }
+      const result =
+        preview.kind === "write"
+          ? await executeConfigWrite(operationId)
+          : await executeRestoreBackup(operationId);
+      setOperation(result);
       if (document.status === "ready") {
-        await loadDocument(document.document);
+        await loadDocument(document.document, false);
       }
     } catch (error) {
-      setPreview({ status: "error", error: error as AppError });
+      setActionError(decodeAppError(error));
+      try {
+        setOperation(await getOperation(operationId));
+      } catch {
+        setOperation(undefined);
+      }
     } finally {
       onOperationChanged?.();
+      setExecuting(false);
     }
+  }
+
+  function closePreview() {
+    setPreview({ status: "idle" });
+    setOperation(undefined);
+    setActionError(undefined);
   }
 
   const selectedDocument =
@@ -256,8 +288,8 @@ export function ConfigWorkspace({
     Boolean(selectedDocument?.contentHash);
 
   return (
-    <article className="h-full min-h-0 overflow-y-auto overscroll-contain bg-surface">
-      <header className="sticky top-0 z-10 border-b border-border bg-surface px-5 py-4">
+    <article className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-surface">
+      <header className="border-b border-border bg-surface px-5 py-4">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-border bg-surface-muted text-foreground">
             <ApplicationIcon className="size-7" iconKey={application.iconKey} />
@@ -287,7 +319,7 @@ export function ConfigWorkspace({
         </div>
       </header>
 
-      <div className="grid gap-4 p-5">
+      <div className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain p-5 [scrollbar-gutter:stable]">
         <section
           className="rounded-md border border-border bg-surface-muted px-4 py-3"
           aria-labelledby="coverage-heading"
@@ -377,7 +409,7 @@ export function ConfigWorkspace({
         ) : document.status === "error" ? (
           <AsyncState kind="error">{document.error.message}</AsyncState>
         ) : document.status === "ready" ? (
-          <div className="config-editor-stack">
+          <div className="grid min-w-0 gap-3">
             <ConfigDetails document={document.document} />
             {canWriteDocument ? (
               <>
@@ -389,15 +421,17 @@ export function ConfigWorkspace({
                   }
                 />
                 {document.document.content !== undefined ? (
-                  <RawConfigEditor
+                  <RawTextEditor
                     content={draft}
                     redacted={document.document.contentRedacted}
+                    disabled={preview.status === "loading" || executing}
                     onChange={setDraft}
                     onPreview={() => void createWritePreview(document.document)}
                   />
                 ) : null}
                 <BackupHistory
                   backups={backups}
+                  disabled={preview.status === "loading" || executing}
                   onPreviewRestore={createRestorePreview}
                 />
                 <OperationHistory operations={operations} />
@@ -416,9 +450,13 @@ export function ConfigWorkspace({
           <AsyncState kind="error">{preview.error.message}</AsyncState>
         ) : preview.status === "ready" && canWrite ? (
           <ConfigWritePreview
+            busy={executing}
+            error={actionError}
+            kind={preview.kind}
+            operation={operation}
             preview={preview.preview}
             onConfirm={() => void confirmPreview()}
-            onCancel={() => setPreview({ status: "idle" })}
+            onCancel={closePreview}
           />
         ) : null}
       </div>
