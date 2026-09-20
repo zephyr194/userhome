@@ -36,14 +36,20 @@ export function Modal({
         className="fixed inset-0 bg-neutral-950/55 transition-opacity data-closed:opacity-0"
         transition
       />
-      <div className="fixed inset-0 overflow-y-auto p-6">
-        <div className="flex min-h-full items-center justify-center">
+      <div className="fixed inset-0 overflow-hidden p-6">
+        <div className="flex h-full items-center justify-center">
           <DialogPanel
+            aria-busy={busy || undefined}
             className={classNames(
-              "w-full max-w-xl rounded-lg border border-border bg-surface text-foreground shadow-xl",
+              "max-h-full w-full max-w-xl overflow-y-auto rounded-lg border border-border bg-surface text-foreground shadow-xl",
               "transition duration-150 data-closed:scale-95 data-closed:opacity-0",
               className,
             )}
+            onKeyDown={(event) => {
+              if (busy && event.key === "Escape") {
+                event.preventDefault();
+              }
+            }}
             transition
           >
             <div className="border-b border-border px-5 py-4">

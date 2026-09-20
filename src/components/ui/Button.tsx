@@ -6,13 +6,13 @@ type ButtonSize = "sm" | "md";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    "border-primary bg-primary text-primary-foreground hover:border-primary-hover hover:bg-primary-hover",
+    "border-primary bg-primary text-primary-foreground enabled:hover:border-primary-hover enabled:hover:bg-primary-hover",
   secondary:
-    "border-border bg-surface text-foreground hover:bg-surface-muted",
+    "border-border bg-surface text-foreground enabled:hover:bg-surface-muted",
   danger:
-    "border-danger bg-danger text-white hover:brightness-95 dark:text-neutral-950",
+    "border-danger bg-danger text-white enabled:hover:brightness-95 dark:text-neutral-950",
   ghost:
-    "border-transparent bg-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+    "border-transparent bg-transparent text-muted-foreground enabled:hover:bg-surface-muted enabled:hover:text-foreground",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
@@ -37,7 +37,7 @@ export function Button({
       className={classNames(
         "inline-flex items-center justify-center gap-2 rounded-md border font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
-        "disabled:pointer-events-none disabled:opacity-50",
+        "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
         className,

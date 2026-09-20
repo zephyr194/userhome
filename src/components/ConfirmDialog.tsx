@@ -1,7 +1,40 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  Dialog,
+  DialogBackdrop,
+  DialogPanel,
+  DialogTitle,
+} from "@headlessui/react";
+import {
+  Children,
+  isValidElement,
+  useCallback,
+  useRef,
+  type ElementType,
+  type ReactNode,
+} from "react";
+import { classNames } from "./ui/classNames";
 
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const PANEL_CLASSES = [
+  "max-h-full w-full max-w-[620px] overflow-y-auto rounded-lg border border-border bg-surface px-5 py-4 text-sm text-foreground shadow-xl",
+  "transition duration-150 data-closed:scale-95 data-closed:opacity-0",
+  "[&_h3]:mb-2.5 [&_h3]:mt-1.5 [&_h3]:text-base [&_h3]:font-semibold",
+];
+
+function bindDialogTitle(children: ReactNode, titleId: string) {
+  return Children.map(children, (child) => {
+    if (!isValidElement<{ id?: string }>(child) || child.props.id !== titleId) {
+      return child;
+    }
+
+    return (
+      <DialogTitle
+        key={child.key}
+        as={child.type as ElementType}
+        {...child.props}
+      />
+    );
+  });
+}
 
 export function ConfirmDialog({
   busy = false,
@@ -16,64 +49,60 @@ export function ConfirmDialog({
   onCancel: () => void;
   titleId: string;
 }) {
-  const dialogRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const previouslyFocused = document.activeElement;
-    const dialog = dialogRef.current;
-    const initialFocus =
-      dialog?.querySelector<HTMLElement>("[data-dialog-cancel]") ??
-      dialog?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) ??
-      dialog;
-    initialFocus?.focus();
-
-    return () => {
-      if (previouslyFocused instanceof HTMLElement) {
-        previouslyFocused.focus();
-      }
-    };
+  const initialFocusRef = useRef<HTMLElement | null>(null);
+  const setPanelRef = useCallback((panel: HTMLDivElement | null) => {
+    initialFocusRef.current =
+      panel?.querySelector<HTMLElement>(
+        "[data-dialog-cancel]:not(:disabled)",
+      ) ?? null;
   }, []);
 
-  return (
-    <div className="dialog-backdrop">
-      <section
-        ref={dialogRef}
-        className={className}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        onKeyDown={(event) => {
-          if (event.key === "Escape" && !busy) {
-            event.preventDefault();
-            onCancel();
-            return;
-          }
-          if (event.key !== "Tab") return;
+  if (typeof document === "undefined") {
+    return (
+      <div className="fixed inset-0 z-50 grid place-items-center bg-neutral-950/55 p-6">
+        <section
+          aria-busy={busy || undefined}
+          aria-labelledby={titleId}
+          aria-modal="true"
+          className={classNames(...PANEL_CLASSES, className)}
+          role="dialog"
+        >
+          {children}
+        </section>
+      </div>
+    );
+  }
 
-          const focusable = Array.from(
-            event.currentTarget.querySelectorAll<HTMLElement>(
-              FOCUSABLE_SELECTOR,
-            ),
-          );
-          if (focusable.length === 0) {
-            event.preventDefault();
-            event.currentTarget.focus();
-            return;
-          }
-          const first = focusable[0];
-          const last = focusable[focusable.length - 1];
-          if (event.shiftKey && document.activeElement === first) {
-            event.preventDefault();
-            last.focus();
-          } else if (!event.shiftKey && document.activeElement === last) {
-            event.preventDefault();
-            first.focus();
-          }
-        }}
-      >
-        {children}
-      </section>
-    </div>
+  return (
+    <Dialog
+      className="relative z-50"
+      initialFocus={initialFocusRef}
+      onClose={() => {
+        if (!busy) onCancel();
+      }}
+      open
+    >
+      <DialogBackdrop
+        className="fixed inset-0 bg-neutral-950/55 transition-opacity data-closed:opacity-0"
+        transition
+      />
+      <div className="fixed inset-0 overflow-hidden p-6">
+        <div className="flex h-full items-center justify-center">
+          <DialogPanel
+            ref={setPanelRef}
+            aria-busy={busy || undefined}
+            className={classNames(...PANEL_CLASSES, className)}
+            onKeyDown={(event) => {
+              if (busy && event.key === "Escape") {
+                event.preventDefault();
+              }
+            }}
+            transition
+          >
+            {bindDialogTitle(children, titleId)}
+          </DialogPanel>
+        </div>
+      </div>
+    </Dialog>
   );
 }

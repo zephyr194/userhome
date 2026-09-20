@@ -381,7 +381,6 @@ a {
 .applications-panel,
 .config-workspace,
 .config-details,
-.config-preview,
 .backup-history,
 .operation-history,
 .config-editor,
@@ -400,7 +399,6 @@ a {
 .applications-panel,
 .config-workspace,
 .config-details,
-.config-preview,
 .backup-history,
 .operation-history,
 .config-editor,
@@ -612,8 +610,7 @@ a {
 
 .brew-search,
 .package-details,
-.service-details,
-.action-dialog {
+.service-details {
   margin-top: 22px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
@@ -621,8 +618,7 @@ a {
 
 .brew-search h3,
 .package-details h3,
-.service-details h3,
-.action-dialog h3 {
+.service-details h3 {
   margin: 6px 0 10px;
 }
 
@@ -654,35 +650,6 @@ a {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 16px;
-}
-
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(21, 24, 22, 0.58);
-}
-
-.dialog-backdrop > .action-dialog,
-.dialog-backdrop > .config-preview {
-  width: min(620px, 100%);
-  max-height: calc(100vh - 48px);
-  margin: 0;
-  overflow: auto;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
-}
-
-.async-state {
-  margin-top: 16px;
-  color: var(--muted);
-  line-height: 1.55;
-}
-
-.async-state--error {
-  color: var(--danger);
 }
 
 .danger-button {
