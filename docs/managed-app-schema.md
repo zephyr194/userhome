@@ -61,6 +61,34 @@ through the generic line-oriented secret redaction path. Known credential,
 token, key, history, cache, log, database, socket, and runtime-state paths
 remain outside this batch.
 
+## Runtime presentation and authorization
+
+The Applications workspace renders catalog entries from `iconKey`,
+`presentation.category`, `coverageClass`, and document `editorKey` values. The
+current catalog contains 12 definitions: six `MANAGED_WRITABLE` baseline
+applications and the six `MANAGED_READ_ONLY` definitions above. Search,
+category, and coverage filters do not change authorization.
+
+Runtime behavior is fail-closed:
+
+- `MANAGED_WRITABLE` shows mutation controls only when the application also has
+  `WRITE_CONFIG`, the selected document is not `READ_ONLY`, and a current
+  content hash is available. Every mutation still requires a preview and
+  explicit confirmation.
+- `MANAGED_READ_ONLY` may return only bounded, validated, redacted text through
+  its approved adapter. It never exposes preview, write, backup, restore,
+  service, or elevation actions.
+- `DETECTED_UNSUPPORTED` exposes detection/classification metadata only. It does
+  not authorize `listConfigs`, content reads, or management actions.
+- `EXCLUDED` is assigned before content access for credentials, keys, caches,
+  logs, databases, sockets, stores, and runtime state. The UI may show only the
+  safe candidate name, entry type, coverage class, and modification time; it
+  provides no open, read, edit, backup, restore, service, or elevation action.
+
+Discovery evidence and UI selection never promote an entry to a broader
+coverage class. Authorization continues to come only from the validated
+built-in Rust catalog.
+
 ## Compatibility rules
 
 - Increment `schemaVersion` only for additive schema changes.
@@ -94,3 +122,5 @@ remain outside this batch.
 - [ ] Parser and validator reject malformed input before replacement.
 - [ ] Any service or elevated action maps to a compiled allowlist.
 - [ ] Tests use temporary fixtures and leave live configuration untouched.
+- [ ] `DETECTED_UNSUPPORTED` and `EXCLUDED` entries remain metadata-only in the
+      UI and IPC responses.

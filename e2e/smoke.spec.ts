@@ -49,10 +49,13 @@ describe("UserHome desktop smoke", () => {
     expect(await $(".brand").getText()).toBe("UserHome");
     expect(await $("nav[aria-label='主导航']").isDisplayed()).toBe(true);
     expect(await $("#main-content h1").getText()).toBe("概览");
-    expect(await $(".status-card").getText()).toContain("连接正常");
-    await $(".summary-grid").waitForDisplayed({ timeout: 5_000 });
-    expect(await $(".dashboard-panel").getText()).toContain("macOS");
-    expect(await $(".dashboard-panel").getText()).toContain("架构");
+    expect(
+      await $("aside[aria-label='本机状态']").getText(),
+    ).toContain("已连接");
+    await $("#dashboard-heading").waitForDisplayed({ timeout: 5_000 });
+    const dashboard = await $("section[aria-labelledby='dashboard-heading']");
+    expect(await dashboard.getText()).toContain("macOS");
+    expect(await dashboard.getText()).toContain("架构");
 
     const focusedHref = await browser.execute(() => {
       document
@@ -67,9 +70,15 @@ describe("UserHome desktop smoke", () => {
       await browser.execute(() => (document.activeElement as HTMLElement)?.id),
     ).toBe("main-content");
 
-    const applicationCards = await $$(".application-card");
-    expect(applicationCards).toHaveLength(6);
-    expect(await applicationCards.map((card) => card.getText())).toEqual(
+    const applicationList = await $(
+      "aside[aria-label='应用与配置候选列表']",
+    );
+    await applicationList.waitForDisplayed();
+    const applicationEntries = await applicationList.$$("button");
+    expect(applicationEntries.length).toBeGreaterThanOrEqual(12);
+    expect(
+      await applicationEntries.map((entry) => entry.getText()),
+    ).toEqual(
       expect.arrayContaining([
         expect.stringContaining("GitHub Copilot"),
         expect.stringContaining("Caddy"),
@@ -77,18 +86,27 @@ describe("UserHome desktop smoke", () => {
         expect.stringContaining("OpenSSH"),
         expect.stringContaining("Zsh"),
         expect.stringContaining("npm"),
+        expect.stringContaining("Visual Studio Code"),
+        expect.stringContaining("Cursor"),
+        expect.stringContaining("Ghostty"),
+        expect.stringContaining("Starship"),
+        expect.stringContaining("tmux"),
+        expect.stringContaining("Vim"),
       ]),
     );
-    expect(await $("#candidate-heading").isDisplayed()).toBe(true);
+    expect(await $(".applications-workspace__header").getText()).toContain(
+      "12 个 catalog 定义",
+    );
 
     await $("a[href='#homebrew']").click();
     await $("#brew-heading").waitForDisplayed();
+    const brewPanel = await $("section[aria-labelledby='brew-heading']");
     await browser.waitUntil(
-      async () => !(await $(".brew-panel").getText()).includes("正在后台解析"),
+      async () => !(await brewPanel.getText()).includes("正在后台解析"),
       { timeout: 15_000, timeoutMsg: "Homebrew discovery did not settle" },
     );
-    expect(await $(".brew-panel").getText()).toMatch(
-      /Formula \d+ · Cask \d+|未检测到/,
+    expect(await brewPanel.getText()).toMatch(
+      /Formula \d+\s*Cask \d+|未检测到/,
     );
 
     const refreshIds = await browser.execute(async () => {

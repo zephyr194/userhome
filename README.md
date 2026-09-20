@@ -19,25 +19,39 @@ tasks are tracked in [`tasks/todo.md`](tasks/todo.md).
 corepack enable
 pnpm install --frozen-lockfile
 pnpm tauri dev
-pnpm check
+pnpm lint
+pnpm typecheck
+pnpm test
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
 pnpm test:e2e
 pnpm build:unsigned
 pnpm tauri build --target universal-apple-darwin
 ```
 
 `pnpm test:e2e` builds a dedicated debug binary with the embedded WebdriverIO
-service and inspects the real macOS application window. The WDIO plugins and
-permissions are excluded from normal development and production builds.
+service and inspects the real macOS application window with an isolated
+temporary `HOME`/`XDG_CONFIG_HOME`. The temporary home is removed after the
+run, and the WDIO plugins and permissions are excluded from normal development
+and production builds.
 
 ## 桌面韧性与可访问性
 
+主窗口固定为居中的 1120 × 720 逻辑像素，禁止调整大小和最大化，并使用保留
+macOS 原生 traffic lights 的 overlay title bar。紧凑导航栏、上下文工具栏、
+主工作区和状态轨都在固定窗口内布局；长列表、编辑器和详情面板在各自区域滚动，
+不会推动文档视口。关闭主窗口会隐藏到托盘，托盘 Open 会恢复并聚焦原窗口。
+
 主界面在各模块独立加载时保持可用；loading、empty、partial、warning 和
 error 状态使用可读文本与 ARIA live region，不以颜色作为唯一状态信号。
-主导航、筛选、分页和确认流程均使用原生键盘控件，路由切换后焦点移到主内容；
+主导航、筛选、分页和确认流程使用原生键盘控件，路由切换后焦点移到主内容；
 确认对话框捕获焦点、支持 Escape 取消，并在关闭后恢复原焦点。系统启用
-`prefers-reduced-motion` 时会禁用非必要动画。
+`prefers-reduced-motion` 时会禁用非必要动画。自动化检查覆盖这些结构和行为，
+但 VoiceOver、完整键盘流程、对比度、显示缩放以及图标/托盘的亮暗模式外观仍需
+在真实 macOS 环境中人工验收。
 
-最近一次操作始终显示在右侧状态栏，配置、Homebrew 或服务操作结束后会刷新；
+最近一次操作始终显示在右侧状态轨，配置、Homebrew 或服务操作结束后会刷新；
 关闭主窗口不会丢失当前路由或操作状态。托盘仅提供 Open、Refresh、Quit，
 并显示后端观测到的应用检测数和服务运行数；摘要项不可点击，不能触发变更。
 
@@ -90,6 +104,15 @@ validation restores the exact previous bytes and permissions. Restore follows
 the same preview, hash, validation, backup, and atomic replacement safeguards;
 only the newest 20 recognized backups per catalog document are retained.
 
+The Applications workspace currently exposes 12 catalog definitions: GitHub
+Copilot, Caddy, Git, OpenSSH, Zsh, and npm are explicitly managed writable;
+Visual Studio Code, Cursor, Ghostty, Starship, tmux, and Vim are bounded
+managed read-only definitions. `MANAGED_READ_ONLY` entries never expose
+preview, write, backup, restore, service, or elevation actions.
+`DETECTED_UNSUPPORTED` and `EXCLUDED` candidates expose only safe classification
+metadata (name, entry type, coverage class, and modification time); discovery
+alone never authorizes opening or reading their contents.
+
 All automated configuration tests use temporary fixture homes and never read or
 modify live user configuration.
 
@@ -118,10 +141,11 @@ manual verification gate.
 
 ## 发布
 
-Pull request CI 只构建 unsigned 可执行文件，并作为保留 7 天的 GitHub Actions
-artifact 上传；不会创建 Release，也不会读取发布 secrets。只有匹配 `v*` 的 tag
-会进入 `release` environment，且所有 Apple 签名/公证 secrets 必须存在，否则
-工作流在导入证书或构建前失败。
+Pull request 与手动 CI 均运行前端和 Rust 检查、macOS E2E 及 unsigned 构建；
+只有 pull request 构建会把 unsigned 可执行文件作为保留 7 天的 GitHub Actions
+artifact 上传。CI 不会创建 Release，也不会读取发布 secrets。只有匹配 `v*`
+的 tag 会进入 `release` environment，且所有 Apple 签名/公证 secrets 必须存在，
+否则工作流在导入证书或构建前失败。
 
 标签工作流构建 `arm64`/`x86_64` universal helper 与 bridge，先签名嵌套二进制，
 再由 Tauri 构建、签名并公证 universal app/DMG，校验签名、架构和 stapled ticket

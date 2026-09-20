@@ -5,10 +5,12 @@ releases. No workflow publishes a non-draft release.
 
 ## Pull requests
 
-`.github/workflows/ci.yml` runs lint, type checking, frontend tests, Rust checks,
-desktop E2E, and `pnpm build:unsigned`. The unsigned executable is uploaded as a
-GitHub Actions artifact with seven-day retention. The workflow has only
-`contents: read` and does not receive Apple release secrets.
+`.github/workflows/ci.yml` runs for pull requests and manual dispatch. It runs
+lint, type checking, frontend tests, Rust checks, desktop E2E, and
+`pnpm build:unsigned`. Only pull request runs upload the unsigned executable as
+a GitHub Actions artifact with seven-day retention. The workflow has only
+`contents: read`, does not receive Apple release secrets, and never creates a
+GitHub Release.
 
 ## Tagged draft releases
 
@@ -40,15 +42,44 @@ and branch/tag protection in GitHub before production use.
 ## Local unsigned verification
 
 ```bash
-pnpm build:helper:universal
+pnpm lint
+pnpm typecheck
+pnpm test
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+pnpm test:e2e
 pnpm build:unsigned
-pnpm tauri build --target universal-apple-darwin
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+CI=true CARGO="$(rustup which cargo)" RUSTC="$(rustup which rustc)" \
+  pnpm tauri build --target universal-apple-darwin
 lipo -archs src-tauri/helper/dist/UserHomeHelper
 lipo -archs src-tauri/helper/dist/libUserHomeHelperBridge.dylib
+lipo -archs \
+  src-tauri/target/universal-apple-darwin/release/bundle/macos/UserHome.app/Contents/MacOS/userhome
 ```
 
-Expected helper output contains both `arm64` and `x86_64`. Unsigned output is
-development evidence only and must not be uploaded to a public Release.
+Use the repository-pinned Node.js and pnpm versions. On machines where Homebrew
+`cargo` precedes rustup in `PATH`, the explicit `CARGO` and `RUSTC` values above
+ensure the installed cross-target standard libraries are used. `CI=true` keeps
+DMG creation non-interactive and avoids Finder automation.
+
+Expected architecture output contains both `arm64` and `x86_64` for the app,
+helper, and bridge. Local output is unsigned or ad-hoc signed development
+evidence only: it does not prove a Developer ID identity, Team ID,
+notarization, stapling, Gatekeeper acceptance, or the protected GitHub release
+path, and it must not be uploaded to a public Release.
+
+The automated desktop smoke verifies the 1120 by 720 logical window contract,
+disabled resize/maximize, route focus transfer, all 12 catalog definitions,
+Homebrew inventory settling, refresh coalescing, and unsigned-helper
+fail-closed behavior. The app receives an isolated temporary
+`HOME`/`XDG_CONFIG_HOME` for the run, so catalog and discovery checks cannot
+inspect real user configuration paths. The smoke does not replace manual checks
+for window dragging, minimize/close/reopen behavior, supported display scales,
+complete keyboard-only flows, VoiceOver, contrast, reduced motion,
+app/Dock/Finder icon rendering, or tray appearance and interaction in light and
+dark modes.
 
 ## Production verification gate
 
@@ -64,6 +95,9 @@ Before publishing a draft, verify the protected run itself:
   Apple Silicon machines.
 - Helper registration, denial, unregister, and disposable protected Caddy
   fixture checks in `docs/elevation-checklist.md` pass.
+- The fixed window, internal scrolling, keyboard-only flows, VoiceOver,
+  contrast, reduced motion, app/Dock/Finder icons, and tray behavior pass manual
+  review at supported display scales and light/dark appearances.
 
 Rollback is to leave or return the GitHub Release to draft, remove affected
 assets, and publish a new fixed tag after repeating the full gate. Do not reuse
