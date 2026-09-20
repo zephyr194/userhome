@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { NavigationRail } from "../components/NavigationRail";
+import { Button } from "../components/ui";
 import { OperationStatus } from "../features/operations/OperationStatus";
 import { APP_ROUTES, type AppRouteId } from "./routeDefinitions";
 import { RoutePanel } from "./routes";
@@ -114,45 +116,35 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
         跳到主要内容
       </a>
       <div className="app-shell">
-        <header className="topbar">
-          <div>
-            <p className="brand">UserHome</p>
-            <p className="brand-subtitle">本机配置与应用管理</p>
-          </div>
-          <div className="refresh-controls">
-            <RefreshStatus state={state.refresh} />
-            <button
-              className="secondary-button"
-              type="button"
-              disabled={state.refresh.status === "refreshing"}
-              onClick={onRefresh}
+        <header className="titlebar" data-tauri-drag-region>
+          <div className="titlebar__brand" data-tauri-drag-region>
+            <span
+              className="brand-mark"
+              aria-hidden="true"
+              data-tauri-drag-region
             >
-              刷新
-            </button>
+              UH
+            </span>
+            <div data-tauri-drag-region>
+              <p className="brand" data-tauri-drag-region>
+                UserHome
+              </p>
+              <p className="brand-subtitle" data-tauri-drag-region>
+                本机配置与应用管理
+              </p>
+            </div>
           </div>
+          <p className="titlebar__context" data-tauri-drag-region>
+            本机工作区
+          </p>
         </header>
 
         <div className="workspace">
-          <nav aria-label="主导航" className="sidebar">
-            <ul>
-              {APP_ROUTES.map((route) => (
-                <li key={route.id}>
-                  <a
-                    href={`#${route.id}`}
-                    aria-current={
-                      activeRouteId === route.id ? "page" : undefined
-                    }
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setActiveRouteId(route.id);
-                    }}
-                  >
-                    {route.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          <NavigationRail
+            activeRouteId={activeRouteId}
+            onNavigate={setActiveRouteId}
+            routes={APP_ROUTES}
+          />
 
           <main
             ref={mainRef}
@@ -160,23 +152,44 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
             className="main-content"
             tabIndex={-1}
           >
-            <header className="page-heading">
-              <p className="page-eyebrow">{activeRoute.eyebrow}</p>
-              <h1>{activeRoute.label}</h1>
-              <p>{activeRoute.description}</p>
+            <header className="context-toolbar">
+              <div className="page-heading">
+                <p className="page-eyebrow">{activeRoute.eyebrow}</p>
+                <div className="page-heading__title">
+                  <h1>{activeRoute.label}</h1>
+                  <span aria-hidden="true">/</span>
+                  <p>{activeRoute.description}</p>
+                </div>
+              </div>
+              <div className="refresh-controls">
+                <RefreshStatus state={state.refresh} />
+                <Button
+                  className="toolbar-refresh-button"
+                  size="sm"
+                  disabled={state.refresh.status === "refreshing"}
+                  onClick={onRefresh}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+                  </svg>
+                  刷新
+                </Button>
+              </div>
             </header>
 
-            <div className="content-grid">
-              <RoutePanel
-                applications={state.applications}
-                discovery={state.discovery}
-                onOperationChanged={onRefresh}
-                route={activeRoute}
-              />
-              <aside className="status-rail" aria-label="本机状态">
-                <ConnectionStatus state={state.connection} />
-                <OperationStatus state={state.recentOperation} />
-              </aside>
+            <div className="workspace-scroll">
+              <div className="content-grid">
+                <RoutePanel
+                  applications={state.applications}
+                  discovery={state.discovery}
+                  onOperationChanged={onRefresh}
+                  route={activeRoute}
+                />
+                <aside className="status-rail" aria-label="本机状态">
+                  <ConnectionStatus state={state.connection} />
+                  <OperationStatus state={state.recentOperation} />
+                </aside>
+              </div>
             </div>
           </main>
         </div>
