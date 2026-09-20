@@ -9,7 +9,7 @@ use crate::{
     error::AppError,
 };
 
-use super::{ConfigEnvironment, resolve_definition, resolve_path};
+use super::{ConfigEnvironment, resolve_definition, resolve_path, validation::validate_text_bytes};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -98,9 +98,8 @@ pub fn read_config(
 
     let resolved = resolve_path(definition, environment)?;
     let bytes = read_bounded(&resolved.target_path, definition.max_size_bytes())?;
-    let text = String::from_utf8(bytes)
-        .map_err(|_| AppError::validation_failed("Configuration is not valid UTF-8."))?;
-    let view = super::adapters::inspect(definition, &text)?;
+    let text = validate_text_bytes(definition, &bytes)?;
+    let view = super::adapters::inspect(definition, text)?;
     Ok(ConfigDocument {
         summary,
         content: view.content,
@@ -153,7 +152,10 @@ pub(crate) fn summarize(
             ));
         }
         let bytes = read_bounded(&resolved.target_path, definition.max_size_bytes())?;
-        (Some(bytes.len() as u64), Some(hash_bytes(&bytes)))
+        (
+            Some(bytes.len() as u64),
+            (!definition.is_read_only()).then(|| hash_bytes(&bytes)),
+        )
     } else {
         (None, None)
     };

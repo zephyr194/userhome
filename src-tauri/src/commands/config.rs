@@ -83,6 +83,7 @@ pub fn preview_config_write(
     input: ConfigWriteInput,
 ) -> Result<ConfigWritePreview, AppError> {
     let catalog = builtin_catalog()?;
+    require_writable_definition(&catalog, &input.app_id, &input.config_id)?;
     let (mutation, prepared) = prepare_write(&catalog, config.environment()?, input)?;
     let intent = mutation_intent(OperationKind::ConfigurationWrite, &mutation);
     let operation = operations.preview(
@@ -114,6 +115,7 @@ pub fn preview_structured_config_write(
     input: StructuredConfigWriteInput,
 ) -> Result<ConfigWritePreview, AppError> {
     let catalog = builtin_catalog()?;
+    require_writable_definition(&catalog, &input.app_id, &input.config_id)?;
     let (mutation, prepared) = prepare_structured_write(&catalog, config.environment()?, input)?;
     let intent = mutation_intent(OperationKind::ConfigurationWrite, &mutation);
     let operation = operations.preview(
@@ -146,6 +148,8 @@ pub fn execute_config_write(
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
     let mutation = config.pending(&operation_id)?;
+    let catalog = builtin_catalog()?;
+    require_writable_definition(&catalog, &mutation.app_id, &mutation.config_id)?;
     let intent = mutation_intent(OperationKind::ConfigurationWrite, &mutation);
     if let Err(error) = operations.authorize_mutation(&operation_id, &intent) {
         if error.code() == crate::error::AppErrorCode::Timeout {
@@ -153,7 +157,6 @@ pub fn execute_config_write(
         }
         return Err(error);
     }
-    let catalog = builtin_catalog()?;
     let result = if mutation.elevation_resource_id.is_some() {
         operations.record_progress(&operation_id, "Submitting the allowlisted helper request.")?;
         validate_pending_write(&catalog, config.environment()?, &mutation).and_then(|()| {
@@ -191,7 +194,10 @@ pub fn execute_config_write(
 #[tauri::command]
 pub fn list_config_backups(key: ConfigKey) -> Result<Vec<BackupSummary>, AppError> {
     let catalog = builtin_catalog()?;
-    crate::config::resolve_definition(&catalog, &key.app_id, &key.config_id)?;
+    let definition = crate::config::resolve_definition(&catalog, &key.app_id, &key.config_id)?;
+    if definition.is_read_only() {
+        return Ok(Vec::new());
+    }
     let environment = ConfigEnvironment::from_environment()?;
     list_backup_records(&environment, &key.app_id, &key.config_id)
 }
@@ -203,6 +209,7 @@ pub fn preview_restore_backup(
     input: RestoreBackupInput,
 ) -> Result<ConfigWritePreview, AppError> {
     let catalog = builtin_catalog()?;
+    require_writable_definition(&catalog, &input.app_id, &input.config_id)?;
     let (mutation, prepared) = prepare_restore(&catalog, config.environment()?, input)?;
     let intent = mutation_intent(OperationKind::ConfigurationRestore, &mutation);
     let operation = operations.preview(
@@ -235,6 +242,8 @@ pub fn execute_restore_backup(
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
     let mutation = config.pending(&operation_id)?;
+    let catalog = builtin_catalog()?;
+    require_writable_definition(&catalog, &mutation.app_id, &mutation.config_id)?;
     let intent = mutation_intent(OperationKind::ConfigurationRestore, &mutation);
     if let Err(error) = operations.authorize_mutation(&operation_id, &intent) {
         if error.code() == crate::error::AppErrorCode::Timeout {
@@ -242,7 +251,6 @@ pub fn execute_restore_backup(
         }
         return Err(error);
     }
-    let catalog = builtin_catalog()?;
     let result = if mutation.elevation_resource_id.is_some() {
         operations.record_progress(&operation_id, "Submitting the allowlisted helper request.")?;
         if mutation.source_id.is_none() {
@@ -281,6 +289,20 @@ pub fn execute_restore_backup(
         }
     }
     operations.get(&operation_id)
+}
+
+fn require_writable_definition(
+    catalog: &crate::catalog::Catalog,
+    app_id: &str,
+    config_id: &str,
+) -> Result<(), AppError> {
+    let definition = crate::config::resolve_definition(catalog, app_id, config_id)?;
+    if definition.is_read_only() {
+        return Err(AppError::not_supported(
+            "Configuration document is read-only.",
+        ));
+    }
+    Ok(())
 }
 
 pub(crate) fn mutation_intent(

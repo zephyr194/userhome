@@ -12,6 +12,11 @@ import {
 
 export type ConfigSensitivity = "STANDARD" | "SENSITIVE" | "SECRET";
 export type ConfigEntryKind = "FILE" | "DIRECTORY";
+export type ConfigWritePolicy =
+  | "MANAGED_BLOCK"
+  | "READ_ONLY"
+  | "STRUCTURED_AND_RAW"
+  | "RAW_VALIDATED";
 
 export interface ConfigSummary {
   appId: string;
@@ -19,7 +24,7 @@ export interface ConfigSummary {
   displayPath: string;
   format: string;
   sensitivity: ConfigSensitivity;
-  writePolicy: string;
+  writePolicy: ConfigWritePolicy;
   exists: boolean;
   entryKind?: ConfigEntryKind;
   sizeBytes?: number;
@@ -64,6 +69,12 @@ export interface BackupSummary {
 
 const SENSITIVITIES: readonly string[] = ["STANDARD", "SENSITIVE", "SECRET"];
 const ENTRY_KINDS: readonly string[] = ["FILE", "DIRECTORY"];
+const WRITE_POLICIES: readonly string[] = [
+  "MANAGED_BLOCK",
+  "READ_ONLY",
+  "STRUCTURED_AND_RAW",
+  "RAW_VALIDATED",
+];
 
 function decodeOptionalSafeInteger(value: unknown): number | undefined {
   if (value === undefined || value === null) return undefined;
@@ -85,6 +96,7 @@ function decodeConfigSummary(value: unknown): ConfigSummary {
     typeof value.displayPath !== "string" ||
     typeof value.format !== "string" ||
     typeof value.writePolicy !== "string" ||
+    !WRITE_POLICIES.includes(value.writePolicy) ||
     typeof value.exists !== "boolean" ||
     typeof value.sensitivity !== "string" ||
     !SENSITIVITIES.includes(value.sensitivity)
@@ -96,6 +108,13 @@ function decodeConfigSummary(value: unknown): ConfigSummary {
     value.entryKind !== null &&
     (typeof value.entryKind !== "string" ||
       !ENTRY_KINDS.includes(value.entryKind))
+  ) {
+    throw createInternalError();
+  }
+  if (
+    value.writePolicy === "READ_ONLY" &&
+    value.contentHash !== undefined &&
+    value.contentHash !== null
   ) {
     throw createInternalError();
   }
@@ -116,7 +135,7 @@ function decodeConfigSummary(value: unknown): ConfigSummary {
     displayPath: value.displayPath,
     format: value.format,
     sensitivity: value.sensitivity as ConfigSensitivity,
-    writePolicy: value.writePolicy,
+    writePolicy: value.writePolicy as ConfigWritePolicy,
     exists: value.exists,
     ...(value.entryKind == null
       ? {}

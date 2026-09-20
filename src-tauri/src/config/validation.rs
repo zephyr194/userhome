@@ -34,21 +34,10 @@ pub fn validate_bytes(
     environment: &ConfigEnvironment,
     bytes: &[u8],
 ) -> Result<(), AppError> {
-    if bytes.len() > definition.max_size_bytes() {
-        return Err(AppError::validation_failed(
-            "Configuration exceeds the catalog size limit.",
-        ));
-    }
-    let text = std::str::from_utf8(bytes)
-        .map_err(|_| AppError::validation_failed("Configuration must be valid UTF-8."))?;
-    if text.contains('\0') {
-        return Err(AppError::validation_failed(
-            "Configuration contains a forbidden null byte.",
-        ));
-    }
+    let text = validate_text_bytes(definition, bytes)?;
     match definition.validator_id() {
         "json" => json::validate(text)?,
-        "markdown" => {}
+        "markdown" | "text" => {}
         "caddy" => caddy::validate(environment, text)?,
         "git-config" => git::validate(text)?,
         "ssh-config" => {
@@ -64,6 +53,25 @@ pub fn validate_bytes(
         }
     }
     Ok(())
+}
+
+pub fn validate_text_bytes<'a>(
+    definition: &ConfigDocumentDefinition,
+    bytes: &'a [u8],
+) -> Result<&'a str, AppError> {
+    if bytes.len() > definition.max_size_bytes() {
+        return Err(AppError::validation_failed(
+            "Configuration exceeds the catalog size limit.",
+        ));
+    }
+    let text = std::str::from_utf8(bytes)
+        .map_err(|_| AppError::validation_failed("Configuration must be valid UTF-8."))?;
+    if text.contains('\0') {
+        return Err(AppError::validation_failed(
+            "Configuration contains a forbidden null byte.",
+        ));
+    }
+    Ok(text)
 }
 
 pub fn validate_config(

@@ -24,6 +24,7 @@ const ALLOWED_ADAPTERS: &[&str] = &[
     "copilot-json",
     "git-config",
     "npmrc",
+    "read-only-text",
     "ssh-config",
     "zsh-managed-block",
 ];
@@ -33,6 +34,7 @@ const ALLOWED_VALIDATORS: &[&str] = &[
     "json",
     "markdown",
     "npmrc",
+    "text",
     "ssh-config",
     "zsh",
 ];
@@ -297,6 +299,10 @@ impl ConfigDocumentDefinition {
         &self.write_policy
     }
 
+    pub fn is_read_only(&self) -> bool {
+        self.write_policy == "READ_ONLY"
+    }
+
     pub fn elevation_resource_id(&self) -> Option<&str> {
         self.elevation_resource_id.as_deref()
     }
@@ -397,6 +403,13 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
             }
             if !ALLOWED_WRITE_POLICIES.contains(&document.write_policy.as_str()) {
                 return Err(CatalogValidationError::UnsupportedWritePolicy);
+            }
+            let generic_read_only = document.adapter_id == "read-only-text";
+            if generic_read_only != (document.validator_id == "text")
+                || (generic_read_only && !document.is_read_only())
+                || (document.is_read_only() && document.elevation_resource_id.is_some())
+            {
+                return Err(CatalogValidationError::UnsupportedValue);
             }
             if !ALLOWED_FORMATS.contains(&document.format.as_str())
                 || !ALLOWED_SENSITIVITIES.contains(&document.sensitivity.as_str())
