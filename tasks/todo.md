@@ -935,15 +935,15 @@ foundation, pin exact dependency versions, and retain compatibility styling
 until feature migrations remove it.
 
 **Acceptance criteria:**
-- [ ] `@headlessui/react`, `tailwindcss`, and `@tailwindcss/vite` use exact
+- [x] `@headlessui/react`, `tailwindcss`, and `@tailwindcss/vite` use exact
       stable versions in `package.json`.
 - [x] Tailwind is connected through the Vite plugin and exposes semantic
       light/dark tokens.
 - [x] Shared Button, Panel, StatusBadge, and Modal primitives compile.
 
 **Verification:**
-- [ ] `pnpm install --frozen-lockfile`
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm install --frozen-lockfile`
+- [x] `pnpm lint && pnpm test && pnpm build`
 
 **Dependencies:** None
 

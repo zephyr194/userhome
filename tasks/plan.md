@@ -368,7 +368,7 @@ T35-T37 + T43
 
 ### Phase 8: Desktop Foundation
 
-- [ ] T30 Reconcile and pin the frontend design foundation
+- [x] T30 Reconcile and pin the frontend design foundation
 - [ ] T31 Enforce the fixed frameless window contract
 - [ ] T32 Replace the application and tray icon system
 

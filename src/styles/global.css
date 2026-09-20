@@ -1,22 +1,59 @@
-:root {
-  font-family:
+@import "tailwindcss";
+
+@theme inline {
+  --color-canvas: var(--app-canvas);
+  --color-surface: var(--app-surface);
+  --color-surface-muted: var(--app-surface-muted);
+  --color-border: var(--app-border);
+  --color-foreground: var(--app-foreground);
+  --color-muted-foreground: var(--app-muted-foreground);
+  --color-primary: var(--app-primary);
+  --color-primary-hover: var(--app-primary-hover);
+  --color-primary-soft: var(--app-primary-soft);
+  --color-primary-foreground: var(--app-primary-foreground);
+  --color-success: var(--app-success);
+  --color-warning: var(--app-warning);
+  --color-danger: var(--app-danger);
+  --font-sans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
-  color: #202124;
-  background: #f4f4f2;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: var(--app-foreground);
+  background: var(--app-canvas);
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --surface: #ffffff;
-  --surface-subtle: #f8f8f6;
-  --border: #d9dad6;
-  --text: #202124;
-  --muted: #666a66;
-  --accent: #215f48;
-  --accent-soft: #e5f1eb;
-  --success: #237a50;
-  --warning: #9a6700;
-  --danger: #b42318;
+  --app-canvas: #f4f4f2;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f8f8f6;
+  --app-border: #d9dad6;
+  --app-foreground: #202124;
+  --app-muted-foreground: #666a66;
+  --app-primary: #215f48;
+  --app-primary-hover: #174d39;
+  --app-primary-soft: #e5f1eb;
+  --app-primary-foreground: #ffffff;
+  --app-success: #237a50;
+  --app-warning: #9a6700;
+  --app-danger: #b42318;
+  --surface: var(--app-surface);
+  --surface-subtle: var(--app-surface-muted);
+  --border: var(--app-border);
+  --text: var(--app-foreground);
+  --muted: var(--app-muted-foreground);
+  --accent: var(--app-primary);
+  --accent-soft: var(--app-primary-soft);
+  --success: var(--app-success);
+  --warning: var(--app-warning);
+  --danger: var(--app-danger);
 }
 
 * {
@@ -26,7 +63,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #f4f4f2;
+  background: var(--app-canvas);
 }
 
 body {
@@ -34,7 +71,7 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--text);
-  background: #f4f4f2;
+  background: var(--app-canvas);
 }
 
 button,
@@ -942,23 +979,27 @@ a {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    color: #f0f1ee;
-    background: #1f211f;
-    --surface: #292b29;
-    --surface-subtle: #252725;
-    --border: #444744;
-    --text: #f0f1ee;
-    --muted: #b4b8b3;
-    --accent: #80c7a5;
-    --accent-soft: #253e33;
-    --success: #6bc99a;
-    --warning: #e3b45c;
-    --danger: #f08a80;
+    color: var(--app-foreground);
+    background: var(--app-canvas);
+    color-scheme: dark;
+    --app-canvas: #1f211f;
+    --app-surface: #292b29;
+    --app-surface-muted: #252725;
+    --app-border: #444744;
+    --app-foreground: #f0f1ee;
+    --app-muted-foreground: #b4b8b3;
+    --app-primary: #80c7a5;
+    --app-primary-hover: #9dd8bc;
+    --app-primary-soft: #253e33;
+    --app-primary-foreground: #102b22;
+    --app-success: #6bc99a;
+    --app-warning: #e3b45c;
+    --app-danger: #f08a80;
   }
 
   html,
   body {
-    background: #1f211f;
+    background: var(--app-canvas);
   }
 
   .sidebar {
