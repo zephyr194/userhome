@@ -1310,14 +1310,19 @@ checks pass, and the production build succeeds.
 and restore actions into the fixed-window desktop workspace.
 
 **Acceptance criteria:**
-- [ ] Write controls appear only for explicitly writable documents.
-- [ ] Redaction, validation, diff, backup, restore, and confirmation remain
+- [x] Write controls appear only for explicitly writable documents.
+- [x] Redaction, validation, diff, backup, restore, and confirmation remain
       visible and ordered.
-- [ ] Large configuration content scrolls within its pane without clipping.
+- [x] Large configuration content scrolls within its pane without clipping.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm test && pnpm build`
 - [ ] Manual: read-only, writable, secret-redacted, and restore flows.
+
+**Evidence:** Commit `9c5bdc4` migrates configuration details, raw text,
+preview, backup, and restore interactions into the fixed workspace while
+preserving authorization, redaction, content-hash concurrency checks, and
+read-only action blocking. All integrated frontend checks pass.
 
 **Dependencies:** T34, T40, T42
 
