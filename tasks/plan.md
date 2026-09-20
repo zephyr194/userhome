@@ -384,9 +384,9 @@ T35-T37 + T43
 
 - [x] T33 Rebuild the desktop application shell
 - [x] T34 Migrate shared dialogs and asynchronous states
-- [ ] T35 Migrate the Dashboard and status rail
-- [ ] T36 Migrate Homebrew inventory and actions
-- [ ] T37 Migrate services and operation history
+- [x] T35 Migrate the Dashboard and status rail
+- [x] T36 Migrate Homebrew inventory and actions
+- [x] T37 Migrate services and operation history
 
 ### Checkpoint L: Desktop Interface
 
@@ -398,7 +398,7 @@ T35-T37 + T43
 - [x] T38 Extend the catalog coverage contract
 - [x] T39 Implement safe configuration-candidate classification
 - [x] T40 Add generic managed read-only configuration support
-- [ ] T41 Expand data-only catalog definitions in bounded batches
+- [x] T41 Expand data-only catalog definitions in bounded batches
 - [ ] T42 Build the registry-driven Applications workspace
 - [ ] T43 Migrate configuration details and confirmed actions
 

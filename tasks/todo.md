@@ -1083,13 +1083,17 @@ protection. Lint, all 50 Vitest checks, and the production build pass.
 application, Homebrew, connection, refresh, and operation state.
 
 **Acceptance criteria:**
-- [ ] Information priority is clear without a uniform card grid.
-- [ ] Partial and failed modules remain independently understandable.
-- [ ] Status is communicated with text or icons as well as color.
+- [x] Information priority is clear without a uniform card grid.
+- [x] Partial and failed modules remain independently understandable.
+- [x] Status is communicated with text or icons as well as color.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm test && pnpm build`
 - [ ] Manual: verify normal, loading, partial, and error states.
+
+**Evidence:** Commit `0781a19` delivers the dense Dashboard and status rail with
+independent module states and text/icon status cues. Lint, all 50 Vitest checks,
+and the production build pass after integration.
 
 **Dependencies:** T33, T34
 
@@ -1106,13 +1110,17 @@ application, Homebrew, connection, refresh, and operation state.
 confirmed mutations into the desktop design system.
 
 **Acceptance criteria:**
-- [ ] Search and filtering fit the fixed workspace without clipped controls.
-- [ ] Package type, state, and available action remain explicit.
-- [ ] Mutation preview, progress, result, and error states remain intact.
+- [x] Search and filtering fit the fixed workspace without clipped controls.
+- [x] Package type, state, and available action remain explicit.
+- [x] Mutation preview, progress, result, and error states remain intact.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm test && pnpm build`
 - [ ] Manual: inventory, search, details, and confirmation flows.
+
+**Evidence:** Commit `b6b9476` migrates Homebrew inventory, search, details,
+pagination, and confirmed actions to the desktop design system while preserving
+all mutation states. The integrated frontend checks pass.
 
 **Dependencies:** T33, T34
 
@@ -1129,13 +1137,17 @@ confirmed mutations into the desktop design system.
 and operation history to the shared desktop interaction patterns.
 
 **Acceptance criteria:**
-- [ ] User/system scope and read-only services remain distinguishable.
-- [ ] Start, stop, restart, progress, and failure states remain explicit.
-- [ ] Long histories scroll inside the workspace without moving the window.
+- [x] User/system scope and read-only services remain distinguishable.
+- [x] Start, stop, restart, progress, and failure states remain explicit.
+- [x] Long histories scroll inside the workspace without moving the window.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm test && pnpm build`
 - [ ] Manual: service details and operation-history navigation.
+
+**Evidence:** Commit `21844c9` migrates service inventory, detail and confirmed
+actions plus operation history to shared desktop primitives with bounded
+history scrolling. The integrated frontend checks pass.
 
 **Dependencies:** T33, T34
 
@@ -1242,15 +1254,20 @@ approved detection and read-only formats, while leaving bespoke or writable
 formats for separately approved work.
 
 **Acceptance criteria:**
-- [ ] Each definition documents detection, path variants, sensitivity, format,
+- [x] Each definition documents detection, path variants, sensitivity, format,
       and coverage class.
-- [ ] No definition grants write access without an approved adapter and
+- [x] No definition grants write access without an approved adapter and
       validator.
-- [ ] Catalog size and startup discovery remain within specified bounds.
+- [x] Catalog size and startup discovery remain within specified bounds.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
 - [ ] Manual: compare coverage summary with the baseline machine.
+
+**Evidence:** Commit `45117f7` adds bounded read-only definitions for Visual
+Studio Code, Cursor, Ghostty, Starship, tmux, and Vim across ten exact HOME_PATH
+variants. The six baseline IDs and their authorization remain unchanged, and
+catalog tests pass.
 
 **Dependencies:** T38, T39
 
