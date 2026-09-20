@@ -1,6 +1,6 @@
 # Spec: platform-foundation
 
-Status: Approved on 2026-09-20
+Status: Approved on 2026-09-20; window-contract revision approved on 2026-09-20
 
 ## Objective
 
@@ -11,6 +11,10 @@ elevation foundation required by every other module.
 ## Responsibilities
 
 - Create and restore the main desktop window.
+- Enforce a centered 1120 by 720 logical-pixel main window that cannot be
+  resized or maximized.
+- Provide a frameless top region with safe drag zones and platform-appropriate
+  window controls.
 - Create the tray and implement open, refresh, status, and quit actions.
 - Define release and development Tauri capabilities.
 - Register typed Rust commands and sanitized events.
@@ -51,6 +55,9 @@ change managed application configuration.
 ## Acceptance Criteria
 
 - Closing the window hides it; tray Open restores and focuses it; Quit exits.
+- The main window remains fixed at its configured logical size across reopen
+  and supported display scale factors.
+- Interactive controls never become part of a window drag region.
 - A duplicate refresh request joins the active refresh rather than starting a
   second scan.
 - Conflicting Homebrew or service mutations cannot run concurrently.

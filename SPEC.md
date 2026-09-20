@@ -1,12 +1,15 @@
 # Spec: UserHome
 
-Status: Approved on 2026-09-20
+Status: Approved on 2026-09-20; desktop-experience revision approved on 2026-09-20
 
 ## Objective
 
 Build a lightweight macOS tray and desktop application for managing the current
 user's application configuration, Homebrew-installed software, selected
 Homebrew services, and basic machine capabilities.
+
+The primary window must feel like a purpose-built desktop utility rather than a
+responsive web dashboard embedded in a native shell.
 
 The primary user is a developer or advanced macOS user who wants one local UI
 for answering:
@@ -28,6 +31,10 @@ or remote control.
 ### MVP capabilities
 
 - macOS desktop window and menu-bar tray built with Tauri 2.
+- Fixed-size, non-resizable main window with a frameless top region and
+  platform-appropriate native window controls.
+- Tailwind CSS for semantic design tokens and layout, with Headless UI for
+  accessible interaction primitives.
 - Startup scan plus explicit manual refresh.
 - Detection of supported applications from home-directory paths, executables,
   Homebrew formulae/casks, and Homebrew services.
@@ -36,7 +43,7 @@ or remote control.
   explicit confirmation.
 - Structured configuration for well-understood fields plus an advanced raw
   editor for supported files.
-- Initial deep integrations:
+- Initial deep integrations, retained as the compatibility baseline:
   - GitHub Copilot CLI: `~/.copilot`
   - Caddy: `${HOMEBREW_PREFIX}/etc/Caddyfile`
   - Git: `~/.gitconfig`
@@ -76,7 +83,8 @@ code. All user paths derive from the operating system at runtime.
 - Automatic application updates.
 - Editing Copilot databases, logs, session state, runtime tokens, caches, or
   lock files.
-- Managing every possible dot-directory without a catalog definition.
+- Recursively reading or editing every file below the home directory.
+- Promising write support for every detected application configuration.
 
 ## Tech Stack
 
@@ -89,6 +97,7 @@ No prerelease dependency is permitted without explicit approval.
 | Native backend | Rust stable, edition 2024 |
 | Frontend | React stable + TypeScript strict mode |
 | Frontend build | Vite stable |
+| Frontend styling | Tailwind CSS 4.x + Headless UI 2.x |
 | Package manager | pnpm, exact version pinned in `packageManager` |
 | Native serialization | `serde` / `serde_json` |
 | Frontend validation | Zod for user-entered structured values and IPC decoding |
@@ -234,6 +243,7 @@ set.
 src/
   app/                    React application shell and routing
   components/             Reusable visual components
+    ui/                   Tailwind and Headless UI primitives
   features/
     dashboard/
     apps/
@@ -374,6 +384,14 @@ Official Apple references:
 ## Desktop and Tray Behavior
 
 - Closing the main window hides it and leaves the tray running.
+- The main window opens centered at 1120 by 720 logical pixels.
+- The main window is not resizable or maximizable.
+- The top region is frameless. macOS retains native traffic-light controls;
+  other platforms may use accessible custom controls if platform support is
+  added later.
+- Only designated non-interactive regions may initiate window dragging.
+- Navigation and content use bounded internal scroll regions; the document body
+  does not grow beyond the fixed window.
 - The tray menu provides: Open UserHome, Refresh, concise health summary, and
   Quit.
 - No install, uninstall, configuration write, or service mutation is triggered
@@ -471,8 +489,9 @@ Required quality bar:
 
 1. The signed application launches on macOS 13+ and remains available through
    the menu-bar tray after its main window is hidden.
-2. On the baseline machine, it identifies all six configured integrations and
-   distinguishes configuration, executable, Homebrew, and service evidence.
+2. On the baseline machine, it retains all six configured integrations and
+   classifies every safely detected configuration candidate as managed
+   writable, managed read-only, detected unsupported, or explicitly excluded.
 3. It lists all installed Homebrew formulae and casks without blocking the UI.
 4. A supported configuration can be edited through a structured form or raw
    editor, validated, diffed, backed up, written atomically, and restored.
@@ -501,13 +520,13 @@ Required quality bar:
 
 ## Visual Identity
 
-- The application mark is a deep forest-green rounded square with a light
-  home outline, a control bar, and a warm status point.
-- The mark represents a local home base for configuration, services, and
-  machine health without embedding text that becomes illegible at small sizes.
+- The application mark combines user-home context with configuration or control
+  semantics; a literal house silhouette must not be the only identifying idea.
+- The mark uses simple geometry that remains recognizable at 16, 18, 22, and
+  32 pixels without embedded text or fine detail.
 - The source asset is `src-tauri/icons/userhome-icon.svg`; Tauri-generated
   platform assets live beside it.
-- The macOS tray uses the matching single-color house silhouette from
+- The macOS tray uses a matching single-color configuration-oriented symbol from
   `src-tauri/icons/tray-template.svg`, rendered as a template icon so it
   follows the menu bar appearance.
 

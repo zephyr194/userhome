@@ -923,3 +923,383 @@ the change for review without publishing.
 - [x] No real user configuration was mutated by automated tests.
 - [x] Ready for code review and production-readiness review; production ship
       decision is NO-GO until documented external gates pass.
+
+# Desktop Experience Optimization
+
+Status: Approved for autonomous execution on 2026-09-20
+
+## T30: Reconcile and pin the frontend design foundation
+
+**Description:** Complete the already-started Tailwind CSS and Headless UI
+foundation, pin exact dependency versions, and retain compatibility styling
+until feature migrations remove it.
+
+**Acceptance criteria:**
+- [ ] `@headlessui/react`, `tailwindcss`, and `@tailwindcss/vite` use exact
+      stable versions in `package.json`.
+- [x] Tailwind is connected through the Vite plugin and exposes semantic
+      light/dark tokens.
+- [x] Shared Button, Panel, StatusBadge, and Modal primitives compile.
+
+**Verification:**
+- [ ] `pnpm install --frozen-lockfile`
+- [ ] `pnpm lint && pnpm test && pnpm build`
+
+**Dependencies:** None
+
+**Files likely touched:** `package.json`, `pnpm-lock.yaml`, `vite.config.ts`,
+`src/styles/global.css`, `src/components/ui/`
+
+**Estimated scope:** M
+
+## T31: Enforce the fixed frameless window contract
+
+**Description:** Configure the main Tauri window as a centered, fixed 1120 by
+720 logical-pixel window with platform-aware frameless chrome while preserving
+close-to-tray behavior.
+
+**Acceptance criteria:**
+- [ ] Resize and maximize are disabled and reopen preserves the intended size.
+- [ ] macOS native traffic lights coexist with the frameless top region.
+- [ ] Close still hides the window; tray Open restores and focuses it.
+
+**Verification:**
+- [ ] `pnpm build:unsigned`
+- [ ] `pnpm test:e2e`
+- [ ] Manual: verify drag, minimize, close, reopen, and display scaling.
+
+**Dependencies:** None
+
+**Files likely touched:** `src-tauri/tauri.conf.json`,
+`src-tauri/tauri.e2e.conf.json`, `src-tauri/src/lib.rs`, `e2e/smoke.spec.ts`
+
+**Estimated scope:** M
+
+## T32: Replace the application and tray icon system
+
+**Description:** Replace the house-only symbol with a configuration-oriented
+master SVG and matching monochrome tray artwork, then regenerate platform
+assets.
+
+**Acceptance criteria:**
+- [ ] The symbol remains recognizable at all shipped app and tray sizes.
+- [ ] The macOS tray asset works as a template icon in light and dark modes.
+- [ ] Bundled PNG, ICNS, and ICO assets are generated from the approved source.
+
+**Verification:**
+- [ ] Run the Tauri icon-generation command against the master SVG.
+- [ ] `pnpm build:unsigned`
+- [ ] Manual: inspect app, Dock, Finder, and tray rendering.
+
+**Dependencies:** None
+
+**Files likely touched:** `src-tauri/icons/userhome-icon.svg`,
+`src-tauri/icons/tray-template.svg`, `src-tauri/icons/`,
+`src-tauri/tauri.conf.json`, `src-tauri/src/tray/mod.rs`
+
+**Estimated scope:** M
+
+## Checkpoint K: Desktop Foundation
+
+- [ ] T30-T32 acceptance criteria pass.
+- [ ] Existing routes still render before the visual migration begins.
+- [ ] No stale house-only generated asset remains.
+
+## T33: Rebuild the desktop application shell
+
+**Description:** Replace the web-dashboard shell with an integrated title bar,
+compact icon navigation, contextual toolbar, and bounded workspace.
+
+**Acceptance criteria:**
+- [ ] The shell fits 1120 by 720 without document-level overflow.
+- [ ] Navigation, refresh, focus transfer, and status visibility are preserved.
+- [ ] Drag regions never overlap interactive elements.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm test && pnpm build`
+- [ ] Manual: keyboard navigation and title-bar interaction.
+
+**Dependencies:** T30, T31, T32
+
+**Files likely touched:** `src/app/AppShell.tsx`,
+`src/app/routeDefinitions.ts`, `src/app/routes.tsx`,
+`src/components/NavigationRail.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T34: Migrate shared dialogs and asynchronous states
+
+**Description:** Move shared modal, loading, error, empty, and disabled-state
+presentation onto the Tailwind and Headless UI primitives.
+
+**Acceptance criteria:**
+- [ ] Dialog focus trapping, Escape handling, focus restoration, and busy-state
+      protection remain correct.
+- [ ] Loading, empty, partial, and error states use consistent semantics.
+- [ ] Legacy dialog-backdrop and shared button classes are no longer required.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm test && pnpm build`
+- [ ] Manual: keyboard-only dialog flow.
+
+**Dependencies:** T30, T33
+
+**Files likely touched:** `src/components/ConfirmDialog.tsx`,
+`src/components/AsyncState.tsx`, `src/components/ui/Modal.tsx`,
+`src/components/ui/Button.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T35: Migrate the Dashboard and status rail
+
+**Description:** Deliver a dense desktop summary workspace for machine,
+application, Homebrew, connection, refresh, and operation state.
+
+**Acceptance criteria:**
+- [ ] Information priority is clear without a uniform card grid.
+- [ ] Partial and failed modules remain independently understandable.
+- [ ] Status is communicated with text or icons as well as color.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm test && pnpm build`
+- [ ] Manual: verify normal, loading, partial, and error states.
+
+**Dependencies:** T33, T34
+
+**Files likely touched:** `src/features/dashboard/DashboardPage.tsx`,
+`src/features/dashboard/SystemSummary.tsx`,
+`src/features/operations/OperationStatus.tsx`, `src/app/AppShell.tsx`,
+`src/styles/global.css`
+
+**Estimated scope:** M
+
+## T36: Migrate Homebrew inventory and actions
+
+**Description:** Convert Homebrew inventory, search, details, pagination, and
+confirmed mutations into the desktop design system.
+
+**Acceptance criteria:**
+- [ ] Search and filtering fit the fixed workspace without clipped controls.
+- [ ] Package type, state, and available action remain explicit.
+- [ ] Mutation preview, progress, result, and error states remain intact.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm test && pnpm build`
+- [ ] Manual: inventory, search, details, and confirmation flows.
+
+**Dependencies:** T33, T34
+
+**Files likely touched:** `src/features/brew/BrewInventoryPage.tsx`,
+`src/features/brew/BrewSearch.tsx`,
+`src/features/brew/BrewPackageDetails.tsx`,
+`src/features/brew/BrewActionDialog.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T37: Migrate services and operation history
+
+**Description:** Convert service inventory, details, confirmed service actions,
+and operation history to the shared desktop interaction patterns.
+
+**Acceptance criteria:**
+- [ ] User/system scope and read-only services remain distinguishable.
+- [ ] Start, stop, restart, progress, and failure states remain explicit.
+- [ ] Long histories scroll inside the workspace without moving the window.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm test && pnpm build`
+- [ ] Manual: service details and operation-history navigation.
+
+**Dependencies:** T33, T34
+
+**Files likely touched:** `src/features/services/ServicesPage.tsx`,
+`src/features/services/ServiceDetails.tsx`,
+`src/features/services/ServiceActionDialog.tsx`,
+`src/features/operations/OperationHistory.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## Checkpoint L: Desktop Interface
+
+- [ ] T33-T37 acceptance criteria pass.
+- [ ] All primary routes fit the fixed window and support keyboard navigation.
+- [ ] The interface no longer presents as a generic responsive web dashboard.
+
+## T38: Extend the catalog coverage contract
+
+**Description:** Add explicit coverage classes and data-first rendering metadata
+while preserving the current six application IDs and authorization rules.
+
+**Acceptance criteria:**
+- [ ] Catalog and IPC distinguish writable, read-only, unsupported, and excluded.
+- [ ] Existing schema data remains compatible or migrates deterministically.
+- [ ] A data-only application definition requires no frontend `appId` branch.
+
+**Verification:**
+- [ ] `pnpm typecheck`
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+
+**Dependencies:** None
+
+**Files likely touched:** `src-tauri/src/catalog/mod.rs`,
+`src-tauri/src/catalog/catalog-v1.json`,
+`src-tauri/src/commands/catalog.rs`, `src/ipc/catalog.ts`,
+`docs/managed-app-schema.md`
+
+**Estimated scope:** M
+
+## T39: Implement safe configuration-candidate classification
+
+**Description:** Extend bounded metadata discovery to classify known
+configuration locations without recursively reading the home directory.
+
+**Acceptance criteria:**
+- [ ] Every candidate receives exactly one coverage class.
+- [ ] Credentials, keys, caches, logs, databases, sockets, stores, and runtime
+      state are excluded before content access.
+- [ ] Permission and timeout failures remain explicit partial results.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [ ] `pnpm typecheck`
+
+**Dependencies:** T38
+
+**Files likely touched:** `src-tauri/src/discovery/system.rs`,
+`src-tauri/src/discovery/candidates.rs`,
+`src-tauri/src/discovery/refresh.rs`,
+`src-tauri/src/commands/discovery.rs`, `src/ipc/discovery.ts`
+
+**Estimated scope:** M
+
+## T40: Add generic managed read-only configuration support
+
+**Description:** Permit explicitly cataloged text configurations to use bounded,
+redacted, read-only rendering without receiving write authorization.
+
+**Acceptance criteria:**
+- [ ] Read-only documents cannot invoke preview, write, restore, or elevation.
+- [ ] Size, UTF-8, symlink, sensitivity, and redaction policies still apply.
+- [ ] Unsupported and binary content is never returned to the frontend.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [ ] `pnpm typecheck`
+
+**Dependencies:** T38, T39
+
+**Files likely touched:** `src-tauri/src/config/adapters/mod.rs`,
+`src-tauri/src/config/validation.rs`, `src-tauri/src/config/read.rs`,
+`src-tauri/src/commands/config.rs`, `src/ipc/config.ts`
+
+**Estimated scope:** M
+
+## T41: Expand data-only catalog definitions in bounded batches
+
+**Description:** Add locally relevant application definitions that can reuse
+approved detection and read-only formats, while leaving bespoke or writable
+formats for separately approved work.
+
+**Acceptance criteria:**
+- [ ] Each definition documents detection, path variants, sensitivity, format,
+      and coverage class.
+- [ ] No definition grants write access without an approved adapter and
+      validator.
+- [ ] Catalog size and startup discovery remain within specified bounds.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [ ] Manual: compare coverage summary with the baseline machine.
+
+**Dependencies:** T38, T39
+
+**Files likely touched:** `src-tauri/src/catalog/catalog-v1.json`,
+`docs/managed-app-schema.md`
+
+**Estimated scope:** S per batch
+
+## T42: Build the registry-driven Applications workspace
+
+**Description:** Replace letter avatars and hardcoded application branching with
+real icons, coverage-aware actions, filters, and a list-detail desktop layout.
+
+**Acceptance criteria:**
+- [ ] New data-only definitions render without central UI code changes.
+- [ ] Writable, read-only, unsupported, and excluded states are explicit.
+- [ ] Unsupported candidates expose metadata only.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm test && pnpm build`
+- [ ] Manual: verify each coverage class and keyboard navigation.
+
+**Dependencies:** T33, T38, T39, T40, T41
+
+**Files likely touched:** `src/features/apps/ApplicationsPage.tsx`,
+`src/features/apps/ConfigWorkspace.tsx`,
+`src/features/apps/editors/ConfigAdapterEditor.tsx`,
+`src/features/apps/UnmanagedCandidates.tsx`, `src/ipc/catalog.ts`
+
+**Estimated scope:** M
+
+## T43: Migrate configuration details and confirmed actions
+
+**Description:** Move configuration details, raw editor, diff preview, backups,
+and restore actions into the fixed-window desktop workspace.
+
+**Acceptance criteria:**
+- [ ] Write controls appear only for explicitly writable documents.
+- [ ] Redaction, validation, diff, backup, restore, and confirmation remain
+      visible and ordered.
+- [ ] Large configuration content scrolls within its pane without clipping.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm test && pnpm build`
+- [ ] Manual: read-only, writable, secret-redacted, and restore flows.
+
+**Dependencies:** T34, T40, T42
+
+**Files likely touched:** `src/features/apps/ConfigDetails.tsx`,
+`src/features/apps/ConfigWritePreview.tsx`,
+`src/features/apps/BackupHistory.tsx`,
+`src/features/apps/editors/RawConfigEditor.tsx`,
+`src/components/ui/Modal.tsx`
+
+**Estimated scope:** M
+
+## Checkpoint M: Configuration Coverage
+
+- [ ] T38-T43 acceptance criteria pass.
+- [ ] Every safely detected candidate has one coverage class.
+- [ ] No discovery result alone authorizes content access or writes.
+
+## T44: Complete desktop optimization integration and documentation
+
+**Description:** Run the existing project gates, verify the bundled desktop
+experience, and update user and release documentation to match the approved
+specification.
+
+**Acceptance criteria:**
+- [ ] Existing frontend, Rust, build, and E2E checks pass.
+- [ ] Fixed-window, tray, app icon, keyboard, VoiceOver, contrast, and
+      configuration-coverage acceptance is recorded.
+- [ ] Documentation states unsupported and excluded configuration boundaries.
+
+**Verification:**
+- [ ] `pnpm check`
+- [ ] `pnpm test:e2e`
+- [ ] `pnpm build:unsigned`
+- [ ] Manual desktop acceptance at the supported display scales.
+
+**Dependencies:** T35, T36, T37, T43
+
+**Files likely touched:** `README.md`, `docs/release-readiness.md`,
+`docs/managed-app-schema.md`, `docs/release.md`, `tasks/todo.md`
+
+**Estimated scope:** M
+
+## Checkpoint N: Optimization Complete
+
+- [ ] T30-T44 acceptance criteria pass.
+- [ ] Existing T25-T29 external signing and manual blockers remain accurately
+      documented rather than treated as completed.
+- [ ] No automated verification reads or mutates real user configuration.

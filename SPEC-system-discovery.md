@@ -1,12 +1,13 @@
 # Spec: system-discovery
 
-Status: Approved on 2026-09-20
+Status: Approved on 2026-09-20; configuration-coverage revision approved on 2026-09-20
 
 ## Objective
 
 Produce a non-blocking, refreshable snapshot of supported home-directory
 applications, macOS capabilities, Homebrew installation, installed formulae and
-casks, executables, and services.
+casks, executables, services, and safely identifiable application-configuration
+candidates.
 
 ## Discovery Sources
 
@@ -17,9 +18,17 @@ casks, executables, and services.
 - `brew --prefix`, `brew --version`, and machine-readable Homebrew queries.
 - `brew services list` for service state.
 - Shallow names of unknown dot-directories for optional read-only candidates.
+- Catalog-owned path variants for XDG, macOS Application Support, and
+  application-specific home-directory locations.
+- Bounded metadata-only inspection for known configuration filenames and
+  directories. Unknown contents are not opened.
 
 Discovery reads metadata only unless a module explicitly requests a managed
 document.
+
+The scanner must exclude credentials, private keys, token stores, caches, logs,
+databases, sockets, package stores, lock files, and runtime state before any
+content access is considered.
 
 ## Interfaces
 
@@ -29,6 +38,7 @@ refresh_system_snapshot() -> OperationId
 list_managed_apps() -> ManagedAppSummary[]
 get_managed_app(appId) -> ManagedAppDetails
 list_unmanaged_candidates() -> UnmanagedCandidate[]
+get_configuration_coverage() -> ConfigurationCoverage
 ```
 
 Evidence is explicit:
@@ -48,6 +58,8 @@ SERVICE_REGISTERED
   conditions, without blocking rendering.
 - Module timeouts produce partial results and a retryable error.
 - Startup and manual refresh are the only automatic scans in MVP.
+- Coverage discovery must remain bounded by configured roots, entry limits,
+  metadata limits, and module timeouts.
 
 ## Acceptance Criteria
 
@@ -59,6 +71,10 @@ SERVICE_REGISTERED
   session state, or cache contents.
 - Symlink metadata and resolved target policy are reported without replacing the
   symlink.
+- Every safely detected candidate receives one catalog coverage class.
+- Permission failures and unreadable metadata produce explicit partial results
+  rather than silently disappearing.
+- No recursive scan of the complete home directory is performed.
 
 ## Boundaries
 

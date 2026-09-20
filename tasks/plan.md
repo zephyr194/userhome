@@ -315,3 +315,112 @@ Resolve before the named task:
   may create draft releases automatically.
 - Before T29: final application and tray icon assets are provided in
   `src-tauri/icons/`; product approval is recorded with the implementation.
+
+## Desktop Experience Optimization Extension
+
+Status: Approved for autonomous execution on 2026-09-20
+
+This extension preserves T01-T29 and implements the approved desktop-experience,
+window, icon, and configuration-coverage revisions. Existing external signing
+and manual-review blockers remain separate from this work.
+
+### Extension Decisions
+
+- Keep the six current integrations fully compatible while treating them as a
+  baseline rather than a catalog ceiling.
+- Classify all safely detected configuration candidates; do not promise write
+  support for arbitrary files.
+- Use Tailwind CSS 4 and Headless UI 2 through semantic shared primitives.
+- Use a fixed 1120 by 720 logical-pixel window with platform-aware frameless
+  chrome and bounded internal scrolling.
+- Maintain one editable application SVG and one dedicated monochrome tray SVG;
+  generated assets remain checked in because Tauri packaging consumes them.
+- Do not add new test cases unless separately requested. Verification uses the
+  repository's existing checks and manual desktop acceptance.
+
+### Extension Dependency Graph
+
+```text
+T30 frontend foundation
+  -> T33 desktop shell
+  -> T34 shared interaction states
+  -> T35 dashboard
+  -> T36 Homebrew UI
+  -> T37 services and operations UI
+
+T31 window contract + T32 icon system
+  -> T33 desktop shell
+
+T38 catalog coverage contract
+  -> T39 safe discovery classification
+  -> T41 bounded catalog expansion
+
+T38 + T39
+  -> T40 generic read-only configuration support
+
+T33 + T40 + T41
+  -> T42 registry-driven Applications workspace
+  -> T43 configuration details and actions
+
+T35-T37 + T43
+  -> T44 integration and documentation
+```
+
+### Phase 8: Desktop Foundation
+
+- [ ] T30 Reconcile and pin the frontend design foundation
+- [ ] T31 Enforce the fixed frameless window contract
+- [ ] T32 Replace the application and tray icon system
+
+### Checkpoint K: Desktop Foundation
+
+- [ ] Exact dependency versions, production frontend build, fixed window, and
+      generated icon assets are verified.
+
+### Phase 9: Native Desktop Interface
+
+- [ ] T33 Rebuild the desktop application shell
+- [ ] T34 Migrate shared dialogs and asynchronous states
+- [ ] T35 Migrate the Dashboard and status rail
+- [ ] T36 Migrate Homebrew inventory and actions
+- [ ] T37 Migrate services and operation history
+
+### Checkpoint L: Desktop Interface
+
+- [ ] Every primary route fits the fixed window, remains keyboard accessible,
+      and no longer depends on generic web-dashboard presentation.
+
+### Phase 10: Configuration Coverage
+
+- [ ] T38 Extend the catalog coverage contract
+- [ ] T39 Implement safe configuration-candidate classification
+- [ ] T40 Add generic managed read-only configuration support
+- [ ] T41 Expand data-only catalog definitions in bounded batches
+- [ ] T42 Build the registry-driven Applications workspace
+- [ ] T43 Migrate configuration details and confirmed actions
+
+### Checkpoint M: Configuration Coverage
+
+- [ ] Every safely detected candidate is classified and only explicitly
+      authorized definitions expose content or write actions.
+
+### Phase 11: Integration
+
+- [ ] T44 Complete desktop optimization integration and documentation
+
+### Checkpoint N: Optimization Complete
+
+- [ ] Existing frontend, Rust, build, and E2E checks pass.
+- [ ] Manual fixed-window, keyboard, VoiceOver, contrast, tray, and icon review
+      is complete.
+- [ ] No automated verification reads or mutates real user configuration.
+
+### Extension Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Fixed window clips dense configuration screens | High | Define internal scroll ownership before page migration and verify every route at 1120 by 720 |
+| Broad configuration discovery exposes private data | High | Metadata-only bounded detection, explicit exclusions, and catalog authorization before reads |
+| Frameless drag regions intercept controls | High | Mark drag zones explicitly and manually verify every title-bar control |
+| App definitions require bespoke adapters | Medium | Land data-only and read-only definitions first; require separate approval for new writable adapters |
+| Generated icon assets drift from source SVG | Medium | Regenerate through the Tauri icon command and verify bundle resources |

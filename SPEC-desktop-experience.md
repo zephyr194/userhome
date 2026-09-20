@@ -1,12 +1,38 @@
 # Spec: desktop-experience
 
-Status: Approved on 2026-09-20
+Status: Approved on 2026-09-20; visual-system revision approved on 2026-09-20
 
 ## Objective
 
-Provide a simple, responsive desktop and tray experience that makes system
-state, configuration changes, Homebrew operations, and privilege requirements
-understandable before the user acts.
+Provide a compact, polished desktop and tray experience that makes system state,
+configuration changes, Homebrew operations, and privilege requirements
+understandable before the user acts. The interface must read as a native desktop
+utility rather than a conventional responsive administration website.
+
+## Window and Shell
+
+- Main window: centered, 1120 by 720 logical pixels.
+- Resizing and maximizing are disabled.
+- The top region is frameless and integrated with application identity,
+  refresh state, contextual actions, and platform window controls.
+- macOS keeps native traffic-light controls; drag regions must not overlap
+  buttons, links, fields, menus, or other interactive content.
+- The document viewport remains fixed. Navigation, lists, editors, and detail
+  panes use intentional internal scrolling.
+- The primary composition is a compact navigation rail plus a contextual
+  workspace, not a generic page header followed by a card grid.
+
+## Visual System
+
+- Tailwind CSS supplies semantic tokens and layout utilities.
+- Headless UI supplies accessible dialogs, menus, listboxes, popovers, and
+  transitions where those interaction patterns are required.
+- Color tokens cover canvas, surface, muted surface, border, foreground,
+  muted foreground, primary, success, warning, and danger roles.
+- Avoid excessive gradients, large decorative shadows, pill-shaped controls,
+  oversized page headings, and uniform stock-card grids.
+- Application and tray icons use the approved configuration-oriented brand
+  symbol rather than a house-only mark.
 
 ## Navigation
 
@@ -90,6 +116,14 @@ No mutation is available directly from the tray.
 - Closing and reopening from the tray preserves current navigation and active
   operation state.
 - Partial discovery failures do not collapse the whole UI into a generic error.
+- The window cannot be resized or maximized and opens at 1120 by 720 logical
+  pixels.
+- Content remains usable without document-level overflow at the configured
+  window size.
+- Tailwind semantic tokens and shared primitives replace feature-specific
+  button, panel, badge, field, and dialog styling.
+- The app and tray icons remain recognizable at their smallest shipped sizes
+  and work in light and dark system appearances.
 
 ## Boundaries
 

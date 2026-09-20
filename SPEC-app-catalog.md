@@ -1,6 +1,6 @@
 # Spec: app-catalog
 
-Status: Approved on 2026-09-20
+Status: Approved on 2026-09-20; coverage revision approved on 2026-09-20
 
 ## Objective
 
@@ -46,6 +46,25 @@ Catalog IDs are kebab-case and never derived from user-controlled filenames.
 Unknown dot-directories may appear as read-only candidates by name, but they are
 not editable until a catalog definition is added and approved.
 
+The six definitions above are a compatibility baseline, not the maximum
+supported catalog size.
+
+## Coverage Classes
+
+Every safely detected configuration candidate is classified as exactly one of:
+
+1. `MANAGED_WRITABLE`: catalog-owned path, sensitivity, adapter, validator,
+   backup, and write policy are all defined.
+2. `MANAGED_READ_ONLY`: content may be safely displayed with redaction and size
+   limits, but no write policy is available.
+3. `DETECTED_UNSUPPORTED`: metadata identifies a likely application
+   configuration, but content is not read.
+4. `EXCLUDED`: credentials, private keys, token stores, caches, logs, databases,
+   sockets, package stores, lock files, and runtime state.
+
+Discovery is not authorization. A candidate may move into a managed class only
+through an approved catalog definition.
+
 ## Extension Rules
 
 - New definitions are data-first where possible.
@@ -63,6 +82,10 @@ not editable until a catalog definition is added and approved.
 - Unknown dot-directories remain read-only and expose no file contents.
 - The catalog can add a future application without changing discovery or UI
   contracts.
+- The UI can render a new data-only definition without adding an `appId`
+  branch.
+- Coverage reporting distinguishes supported, read-only, unsupported, and
+  excluded candidates.
 
 ## Boundaries
 
