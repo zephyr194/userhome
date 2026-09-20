@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "types": ["node", "webdriverio", "@wdio/globals/types", "mocha"]
+  },
+  "include": ["vite.config.ts", "vitest.config.ts", "wdio.conf.ts", "e2e"]
+}

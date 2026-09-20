@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="background" x1="116" y1="96" x2="908" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2C6A51"/>
+      <stop offset="1" stop-color="#102B22"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="244" y1="228" x2="780" y2="504" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B9E8D0"/>
+      <stop offset="1" stop-color="#80C7A5"/>
+    </linearGradient>
+    <filter id="shadow" x="180" y="190" width="664" height="654" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="24" stdDeviation="20" flood-color="#07150F" flood-opacity=".28"/>
+    </filter>
+  </defs>
+
+  <rect x="48" y="48" width="928" height="928" rx="224" fill="url(#background)"/>
+  <path
+    d="M218 493 512 238l294 255"
+    fill="none"
+    stroke="url(#roof)"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="62"
+  />
+  <path
+    d="M302 471v286h420V471"
+    fill="#F4F1E8"
+    filter="url(#shadow)"
+  />
+  <path
+    d="M430 757V628c0-22 18-40 40-40h84c22 0 40 18 40 40v129"
+    fill="#173B2E"
+  />
+  <rect x="392" y="480" width="240" height="112" rx="56" fill="#173B2E"/>
+  <circle cx="438" cy="536" r="18" fill="#E4B66B"/>
+  <rect x="478" y="518" width="110" height="36" rx="18" fill="#80C7A5"/>
+</svg>
