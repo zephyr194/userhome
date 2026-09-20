@@ -382,7 +382,7 @@ T35-T37 + T43
 
 ### Phase 9: Native Desktop Interface
 
-- [ ] T33 Rebuild the desktop application shell
+- [x] T33 Rebuild the desktop application shell
 - [ ] T34 Migrate shared dialogs and asynchronous states
 - [ ] T35 Migrate the Dashboard and status rail
 - [ ] T36 Migrate Homebrew inventory and actions
@@ -396,7 +396,7 @@ T35-T37 + T43
 ### Phase 10: Configuration Coverage
 
 - [x] T38 Extend the catalog coverage contract
-- [ ] T39 Implement safe configuration-candidate classification
+- [x] T39 Implement safe configuration-candidate classification
 - [ ] T40 Add generic managed read-only configuration support
 - [ ] T41 Expand data-only catalog definitions in bounded batches
 - [ ] T42 Build the registry-driven Applications workspace

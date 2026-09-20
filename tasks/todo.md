@@ -1028,13 +1028,18 @@ transparency and `icon_as_template` remains enabled on macOS.
 compact icon navigation, contextual toolbar, and bounded workspace.
 
 **Acceptance criteria:**
-- [ ] The shell fits 1120 by 720 without document-level overflow.
-- [ ] Navigation, refresh, focus transfer, and status visibility are preserved.
-- [ ] Drag regions never overlap interactive elements.
+- [x] The shell fits 1120 by 720 without document-level overflow.
+- [x] Navigation, refresh, focus transfer, and status visibility are preserved.
+- [x] Drag regions never overlap interactive elements.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm test && pnpm build`
 - [ ] Manual: keyboard navigation and title-bar interaction.
+
+**Evidence:** Commit `b6a3ea7` replaces the web-dashboard frame with a compact
+desktop shell, drag-safe title region, icon navigation rail, contextual toolbar,
+and internally scrolling workspace. Lint, 50 Vitest checks, type checking, and
+the production frontend build pass.
 
 **Dependencies:** T30, T31, T32
 
@@ -1175,14 +1180,19 @@ fallbacks while preserving the six existing IDs and path authorization.
 configuration locations without recursively reading the home directory.
 
 **Acceptance criteria:**
-- [ ] Every candidate receives exactly one coverage class.
-- [ ] Credentials, keys, caches, logs, databases, sockets, stores, and runtime
+- [x] Every candidate receives exactly one coverage class.
+- [x] Credentials, keys, caches, logs, databases, sockets, stores, and runtime
       state are excluded before content access.
-- [ ] Permission and timeout failures remain explicit partial results.
+- [x] Permission and timeout failures remain explicit partial results.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `pnpm typecheck`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `pnpm typecheck`
+
+**Evidence:** Commit `a6c0acd` adds bounded path classification, excludes
+sensitive and runtime artifacts before content access, prevents detection paths
+from inheriting write authorization, and preserves permission and timeout
+failures as explicit partial issues.
 
 **Dependencies:** T38
 
