@@ -1,0 +1,150 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Signed universal macOS draft
+    runs-on: macos-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require protected release secrets
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          missing=0
+          require_secret() {
+            if [ -z "$2" ]; then
+              echo "::error::Missing required release secret: $1"
+              missing=1
+            fi
+          }
+          require_secret APPLE_CERTIFICATE "${APPLE_CERTIFICATE:-}"
+          require_secret APPLE_CERTIFICATE_PASSWORD "${APPLE_CERTIFICATE_PASSWORD:-}"
+          require_secret APPLE_SIGNING_IDENTITY "${APPLE_SIGNING_IDENTITY:-}"
+          require_secret APPLE_ID "${APPLE_ID:-}"
+          require_secret APPLE_PASSWORD "${APPLE_PASSWORD:-}"
+          require_secret APPLE_TEAM_ID "${APPLE_TEAM_ID:-}"
+          exit "$missing"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - run: pnpm check
+
+      - name: Import Developer ID certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          certificate_path="$RUNNER_TEMP/userhome-signing.p12"
+          keychain_path="$RUNNER_TEMP/userhome-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 32)"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 \
+            -k "$keychain_path"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -k "$keychain_password" \
+            "$keychain_path"
+          security list-keychain -d user -s "$keychain_path"
+
+      - name: Build and sign universal helper
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          pnpm build:helper:universal
+          codesign --force --options runtime --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            src-tauri/helper/dist/libUserHomeHelperBridge.dylib
+          codesign --force --options runtime --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" \
+            src-tauri/helper/dist/UserHomeHelper
+          codesign --verify --strict --verbose=2 \
+            src-tauri/helper/dist/libUserHomeHelperBridge.dylib
+          codesign --verify --strict --verbose=2 \
+            src-tauri/helper/dist/UserHomeHelper
+          lipo -archs src-tauri/helper/dist/UserHomeHelper | grep -q arm64
+          lipo -archs src-tauri/helper/dist/UserHomeHelper | grep -q x86_64
+          lipo -archs src-tauri/helper/dist/libUserHomeHelperBridge.dylib | grep -q arm64
+          lipo -archs src-tauri/helper/dist/libUserHomeHelperBridge.dylib | grep -q x86_64
+
+      - name: Build, sign, and notarize universal app
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          USERHOME_HELPER_PREBUILT: "1"
+        run: pnpm tauri build --target universal-apple-darwin --bundles app,dmg
+
+      - name: Verify signed bundle and helper
+        run: |
+          set -euo pipefail
+          app_path="src-tauri/target/universal-apple-darwin/release/bundle/macos/UserHome.app"
+          helper_path="$app_path/Contents/Resources/UserHomeHelper"
+          bridge_path="$app_path/Contents/Resources/libUserHomeHelperBridge.dylib"
+          test -d "$app_path"
+          test -x "$helper_path"
+          test -f "$bridge_path"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign --verify --strict --verbose=2 "$helper_path"
+          codesign --verify --strict --verbose=2 "$bridge_path"
+          lipo -archs "$helper_path" | grep -q arm64
+          lipo -archs "$helper_path" | grep -q x86_64
+          xcrun stapler validate "$app_path"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "$app_path" \
+            "src-tauri/target/universal-apple-darwin/release/bundle/UserHome.app.zip"
+
+      - name: Create draft GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg \
+            src-tauri/target/universal-apple-darwin/release/bundle/UserHome.app.zip \
+            --draft \
+            --verify-tag \
+            --title "UserHome $GITHUB_REF_NAME" \
+            --notes "Signed and notarized universal macOS draft release."
+
+      - name: Remove temporary signing keychain
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/userhome-signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/userhome-signing.p12"
