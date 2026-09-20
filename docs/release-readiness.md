@@ -64,9 +64,16 @@ implement the npm audit endpoint.
 
 ## Security review
 
-| # | Severity | File | Lines | Vulnerability | Confidence |
-|---|----------|------|-------|---------------|------------|
-| - | - | - | - | No security vulnerabilities found | - |
+The final branch review found three issues, all resolved before handoff:
+
+| Severity | Area | Resolution |
+|---|---|---|
+| High | Generic read-only sensitive content could bypass line-based redaction | Commit `1d1900a` uses structured JSON redaction and fails closed to metadata-only output for sensitive formats that cannot be reliably parsed. |
+| Medium | Candidate discovery enumerated arbitrary entries below configuration roots | Commit `be02029` limits discovery to exact catalog paths plus the original bounded top-level dot-directory scan. |
+| Medium | Managed ancestor directories could be duplicated as unsupported candidates | Commit `be02029` suppresses managed ancestors and extends existing discovery regressions. |
+
+Targeted configuration and discovery tests, strict Clippy, and frontend type
+checking pass after these fixes.
 
 ## Ship Decision: NO-GO
 

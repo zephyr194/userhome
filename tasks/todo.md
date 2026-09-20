@@ -1209,7 +1209,9 @@ configuration locations without recursively reading the home directory.
 **Evidence:** Commit `a6c0acd` adds bounded path classification, excludes
 sensitive and runtime artifacts before content access, prevents detection paths
 from inheriting write authorization, and preserves permission and timeout
-failures as explicit partial issues.
+failures as explicit partial issues. Post-review commit `be02029` further limits
+inspection to exact catalog paths plus bounded top-level dot directories and
+prevents managed ancestors from being duplicated as unsupported candidates.
 
 **Dependencies:** T38
 
@@ -1237,7 +1239,9 @@ redacted, read-only rendering without receiving write authorization.
 **Evidence:** Commit `2399f4f` adds a generic catalog-authorized read-only text
 adapter, preserves validation and redaction boundaries, suppresses secret
 content, and rejects preview, write, restore, and elevation paths for read-only
-documents.
+documents. Post-review commit `1d1900a` replaces heuristic sensitive-text
+redaction with structured JSON redaction and metadata-only failure for formats
+that cannot be safely parsed.
 
 **Dependencies:** T38, T39
 
@@ -1364,6 +1368,8 @@ integrated branch, `pnpm check`, the 1/1 desktop smoke test, and the unsigned
 release build pass. A CI-equivalent universal build also passed with explicit
 rustup tooling; signing, notarization, physical display, VoiceOver, contrast,
 reduced-motion, icon, and tray-theme checks remain external/manual gates.
+Commits `1d1900a` and `be02029` resolve all findings from the final independent
+code review.
 
 **Dependencies:** T35, T36, T37, T43
 
