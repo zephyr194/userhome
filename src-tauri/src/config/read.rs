@@ -216,9 +216,10 @@ mod tests {
         path::PathBuf,
     };
 
+    use serde_json::Value;
     use uuid::Uuid;
 
-    use crate::catalog::load_builtin_catalog;
+    use crate::catalog::{BUILTIN_CATALOG_JSON, load_builtin_catalog, parse_catalog};
 
     use super::{super::ConfigEnvironment, read_config};
 
@@ -311,5 +312,102 @@ mod tests {
         let error = read_config(&catalog, &fixture.environment(), "openssh", "private-key")
             .expect_err("reject arbitrary config identifier");
         assert_eq!(error.code(), crate::error::AppErrorCode::NotFound);
+    }
+
+    #[test]
+    fn redacts_compact_json_in_generic_sensitive_read_only_config() {
+        let fixture = Fixture::new();
+        let settings_dir = fixture.home.join("Library/Application Support/Code/User");
+        fs::create_dir_all(&settings_dir).expect("create settings directory");
+        fs::write(
+            settings_dir.join("settings.json"),
+            br#"{"editor.fontSize":14,"extension":{"apiToken":"compact-secret"}}"#,
+        )
+        .expect("write settings");
+
+        let document = read_config(
+            &load_builtin_catalog().expect("catalog"),
+            &fixture.environment(),
+            "visual-studio-code",
+            "visual-studio-code-settings",
+        )
+        .expect("read settings");
+        let encoded = serde_json::to_string(&document).expect("serialize document");
+
+        assert!(encoded.contains("editor.fontSize"));
+        assert!(encoded.contains("[REDACTED]"));
+        assert!(!encoded.contains("compact-secret"));
+
+        fs::write(
+            settings_dir.join("settings.json"),
+            br#"{"apiToken":"unterminated}"#,
+        )
+        .expect("write invalid settings");
+        let error = read_config(
+            &load_builtin_catalog().expect("catalog"),
+            &fixture.environment(),
+            "visual-studio-code",
+            "visual-studio-code-settings",
+        )
+        .expect_err("reject invalid settings JSON");
+        assert_eq!(error.code(), crate::error::AppErrorCode::ValidationFailed);
+    }
+
+    #[test]
+    fn hides_command_style_sensitive_read_only_content() {
+        let fixture = Fixture::new();
+        fs::create_dir_all(fixture.home.join(".config/ghostty")).expect("create ghostty config");
+        fs::write(
+            fixture.home.join(".tmux.conf"),
+            b"set-environment -g API_TOKEN tmux-secret\n",
+        )
+        .expect("write tmux config");
+        fs::write(
+            fixture.home.join(".vimrc"),
+            b"let g:api_token = 'vim-secret'\n",
+        )
+        .expect("write vim config");
+        fs::write(
+            fixture.home.join(".config/ghostty/config"),
+            b"command = env API_TOKEN=ghostty-secret shell\n",
+        )
+        .expect("write ghostty config");
+
+        let catalog = load_builtin_catalog().expect("catalog");
+        for (app_id, config_id, secret) in [
+            ("tmux", "tmux-config", "tmux-secret"),
+            ("vim", "vimrc", "vim-secret"),
+            ("ghostty", "ghostty-xdg-config", "ghostty-secret"),
+        ] {
+            let document = read_config(&catalog, &fixture.environment(), app_id, config_id)
+                .expect("read config");
+            let encoded = serde_json::to_string(&document).expect("serialize document");
+
+            assert!(document.content().is_none());
+            assert!(!encoded.contains(secret));
+        }
+    }
+
+    #[test]
+    fn preserves_standard_read_only_content() {
+        let fixture = Fixture::new();
+        fs::write(fixture.home.join(".tmux.conf"), b"set -g mouse on\n")
+            .expect("write tmux config");
+        let mut value: Value =
+            serde_json::from_str(BUILTIN_CATALOG_JSON).expect("built-in catalog");
+        let tmux = value["apps"]
+            .as_array_mut()
+            .expect("apps")
+            .iter_mut()
+            .find(|app| app["id"] == "tmux")
+            .expect("tmux");
+        tmux["configDocuments"][0]["sensitivity"] = Value::String("STANDARD".to_owned());
+        let catalog = parse_catalog(&serde_json::to_string(&value).expect("serialize catalog"))
+            .expect("standard read-only catalog");
+
+        let document = read_config(&catalog, &fixture.environment(), "tmux", "tmux-config")
+            .expect("read config");
+
+        assert_eq!(document.content(), Some("set -g mouse on\n"));
     }
 }

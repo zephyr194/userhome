@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use crate::{catalog::ConfigDocumentDefinition, error::AppError};
 
-use super::redaction::{REDACTED_VALUE, is_secret_key};
+use super::redaction::redact_json;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -73,14 +73,24 @@ fn inspect_read_only_text(
             content_redacted: false,
             structured: None,
         }),
-        "SENSITIVE" => {
-            let (content, content_redacted) = redact_sensitive_text(content);
+        "SENSITIVE" if definition.format() == "JSON" => {
+            let value: Value = serde_json::from_str(content).map_err(|_| {
+                AppError::validation_failed("Read-only configuration JSON is invalid.")
+            })?;
+            let redacted = redact_json(&value);
+            let content =
+                serde_json::to_string_pretty(&redacted).map_err(|_| AppError::internal())?;
             Ok(AdapterView {
-                content: Some(content),
-                content_redacted,
+                content: Some(format!("{content}\n")),
+                content_redacted: redacted != value,
                 structured: None,
             })
         }
+        "SENSITIVE" => Ok(AdapterView {
+            content: None,
+            content_redacted: true,
+            structured: None,
+        }),
         "SECRET" => Ok(AdapterView {
             content: None,
             content_redacted: true,
@@ -89,39 +99,6 @@ fn inspect_read_only_text(
         _ => Err(AppError::not_supported(
             "Configuration sensitivity is not supported.",
         )),
-    }
-}
-
-fn redact_sensitive_text(content: &str) -> (String, bool) {
-    let trailing_newline = content.ends_with('\n');
-    let mut redacted = false;
-    let content = content
-        .lines()
-        .map(|line| {
-            let trimmed = line.trim_start();
-            let assignment = trimmed.strip_prefix("export ").unwrap_or(trimmed);
-            let separator = assignment
-                .char_indices()
-                .filter(|(_, character)| matches!(character, '=' | ':'))
-                .map(|(index, _)| index)
-                .min();
-            let Some(separator) = separator else {
-                return line.to_owned();
-            };
-            let key = assignment[..separator].trim().trim_matches(['"', '\'']);
-            if !is_secret_key(key) {
-                return line.to_owned();
-            }
-            redacted = true;
-            let value_start = line.len() - assignment.len() + separator + 1;
-            format!("{}{}", &line[..value_start], REDACTED_VALUE)
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    if trailing_newline {
-        (format!("{content}\n"), redacted)
-    } else {
-        (content, redacted)
     }
 }
 
