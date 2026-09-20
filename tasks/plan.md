@@ -372,7 +372,8 @@ T35-T37 + T43
 - [ ] T31 Enforce the fixed frameless window contract — implementation and
       automated verification complete; manual drag and display-scaling review
       pending
-- [ ] T32 Replace the application and tray icon system
+- [ ] T32 Replace the application and tray icon system — implementation and
+      bundle verification complete; manual light/dark appearance review pending
 
 ### Checkpoint K: Desktop Foundation
 
@@ -394,7 +395,7 @@ T35-T37 + T43
 
 ### Phase 10: Configuration Coverage
 
-- [ ] T38 Extend the catalog coverage contract
+- [x] T38 Extend the catalog coverage contract
 - [ ] T39 Implement safe configuration-candidate classification
 - [ ] T40 Add generic managed read-only configuration support
 - [ ] T41 Expand data-only catalog definitions in bounded batches

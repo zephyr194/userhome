@@ -987,19 +987,26 @@ existing close-to-hide and tray action tests remain green.
 
 ## T32: Replace the application and tray icon system
 
+**Status:** Implementation and bundle verification complete on 2026-09-20;
+manual app, Dock, Finder, and light/dark tray review pending.
+
 **Description:** Replace the house-only symbol with a configuration-oriented
 master SVG and matching monochrome tray artwork, then regenerate platform
 assets.
 
 **Acceptance criteria:**
-- [ ] The symbol remains recognizable at all shipped app and tray sizes.
+- [x] The symbol remains recognizable at all shipped app and tray sizes.
 - [ ] The macOS tray asset works as a template icon in light and dark modes.
-- [ ] Bundled PNG, ICNS, and ICO assets are generated from the approved source.
+- [x] Bundled PNG, ICNS, and ICO assets are generated from the approved source.
 
 **Verification:**
-- [ ] Run the Tauri icon-generation command against the master SVG.
-- [ ] `pnpm build:unsigned`
+- [x] Run the Tauri icon-generation command against the master SVG.
+- [x] `pnpm tauri build --bundles app`
 - [ ] Manual: inspect app, Dock, Finder, and tray rendering.
+
+**Evidence:** Commit `00b2b2e` replaces both SVG sources and regenerates the
+complete Tauri desktop/mobile icon matrix. The tray PNG is monochrome with
+transparency and `icon_as_template` remains enabled on macOS.
 
 **Dependencies:** None
 
@@ -1141,13 +1148,17 @@ and operation history to the shared desktop interaction patterns.
 while preserving the current six application IDs and authorization rules.
 
 **Acceptance criteria:**
-- [ ] Catalog and IPC distinguish writable, read-only, unsupported, and excluded.
-- [ ] Existing schema data remains compatible or migrates deterministically.
-- [ ] A data-only application definition requires no frontend `appId` branch.
+- [x] Catalog and IPC distinguish writable, read-only, unsupported, and excluded.
+- [x] Existing schema data remains compatible or migrates deterministically.
+- [x] A data-only application definition requires no frontend `appId` branch.
 
 **Verification:**
-- [ ] `pnpm typecheck`
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Rust formatting, Clippy, catalog tests, and the complete Rust test suite
+
+**Evidence:** Commit `5404400` adds coverage classes, application presentation
+categories, and document-level editor keys with deterministic schema-v1
+fallbacks while preserving the six existing IDs and path authorization.
 
 **Dependencies:** None
 
