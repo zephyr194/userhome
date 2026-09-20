@@ -43,6 +43,11 @@ describe("listManagedApps", () => {
       "zsh",
       "npm",
     ]);
+    expect(catalog.applications[0].coverageClass).toBe("MANAGED_READ_ONLY");
+    expect(catalog.applications[0].presentation).toEqual({
+      category: "Other",
+      configDocuments: [],
+    });
     expect(catalog.applications[0]).not.toHaveProperty("configDocuments");
   });
 

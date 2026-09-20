@@ -31,7 +31,8 @@ describe("UnmanagedCandidates", () => {
     );
 
     expect(markup).toContain(".config");
-    expect(markup).toContain("仅显示名称、类型与修改时间");
+    expect(markup).toContain("仅显示名称、类型、覆盖分类与修改时间");
+    expect(markup).toContain("已发现，暂不支持");
     expect(markup).not.toContain("contents");
     expect(markup).not.toContain("path");
   });

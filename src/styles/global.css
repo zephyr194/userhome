@@ -379,7 +379,6 @@ a {
 .welcome-panel,
 .placeholder-panel,
 .applications-panel,
-.config-workspace,
 .config-details,
 .backup-history,
 .operation-history,
@@ -397,7 +396,6 @@ a {
 .welcome-panel,
 .placeholder-panel,
 .applications-panel,
-.config-workspace,
 .config-details,
 .backup-history,
 .operation-history,
@@ -575,6 +573,11 @@ a {
   gap: 16px;
 }
 
+.candidate-list li > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+
 .search-results li,
 .service-list li {
   display: flex;
@@ -594,7 +597,7 @@ a {
   color: var(--muted);
 }
 
-.candidate-list span,
+.candidate-list li > span:first-child > span,
 .inventory-list small {
   color: var(--muted);
   font-size: 12px;
@@ -710,107 +713,96 @@ a {
   line-height: 1.65;
 }
 
-.applications-panel__heading {
+.applications-workspace {
+  height: calc(100dvh - 168px);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.applications-workspace__header {
+  padding: 16px 18px 14px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
+  border-bottom: 1px solid var(--border);
 }
 
-.applications-panel__heading h2 {
-  margin-bottom: 0;
-}
-
-.applications-panel__heading > p {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.applications-list,
-.application-capabilities {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.applications-list {
-  margin-top: 24px;
-  display: grid;
-  gap: 12px;
-}
-
-.application-card {
-  padding: 18px;
-  background: var(--surface-subtle);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.application-card__identity {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-
-.application-card__icon {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  color: #ffffff;
-  background: var(--accent);
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.application-card h3,
-.application-card p {
+.applications-workspace__header h2,
+.applications-workspace__header p {
   margin: 0;
 }
 
-.application-card h3 {
-  font-size: 16px;
+.applications-workspace__header h2 {
+  margin-top: 3px;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
 }
 
-.application-card__identity p {
+.applications-workspace__header > div:first-child > p:last-child {
   margin-top: 4px;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.application-capabilities {
-  margin-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.application-capabilities li {
-  padding: 3px 7px;
-  color: #315c4b;
-  background: var(--accent-soft);
-  border: 1px solid #c8dcd2;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.application-card .application-card__metadata {
-  margin-top: 12px;
   color: var(--muted);
   font-size: 12px;
 }
 
-.config-app-actions {
-  display: flex;
-  flex-wrap: wrap;
+.applications-workspace__filters {
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 150px 180px;
   gap: 8px;
-  margin: 18px 0;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.applications-workspace__filters label {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.applications-workspace__filters input,
+.applications-workspace__filters select {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 5px 8px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.applications-workspace__body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(270px, 0.85fr) minmax(0, 1.65fr);
+  overflow: hidden;
+}
+
+.applications-workspace__list {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--border);
+  scrollbar-gutter: stable;
+}
+
+.applications-workspace__detail {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .config-list,

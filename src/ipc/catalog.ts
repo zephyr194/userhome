@@ -33,8 +33,8 @@ export interface ManagedAppSummary {
   displayName: string;
   description: string;
   iconKey: string;
-  coverageClass?: ManagedAppCoverageClass;
-  presentation?: ManagedAppPresentation;
+  coverageClass: ManagedAppCoverageClass;
+  presentation: ManagedAppPresentation;
   capabilities: readonly ManagedAppCapability[];
   managedDocumentCount: number;
   serviceCount: number;

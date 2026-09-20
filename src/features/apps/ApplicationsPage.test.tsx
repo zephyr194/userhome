@@ -16,14 +16,25 @@ const catalog = {
     displayName: String(displayName),
     description: `${displayName} description`,
     iconKey: String(id),
-    capabilities: ["DETECT", "READ_CONFIG"] as const,
+    coverageClass: "MANAGED_WRITABLE" as const,
+    presentation: {
+      category: "开发工具",
+      configDocuments: Array.from(
+        { length: Number(managedDocumentCount) },
+        (_, index) => ({
+          configId: `${id}-config-${index}`,
+          editorKey: `${id}-editor`,
+        }),
+      ),
+    },
+    capabilities: ["DETECT", "READ_CONFIG", "WRITE_CONFIG"] as const,
     managedDocumentCount: Number(managedDocumentCount),
     serviceCount: Number(serviceCount),
   })),
 };
 
 describe("ApplicationsPage", () => {
-  it("renders all six approved definitions as a read-only list", () => {
+  it("renders all six approved definitions in the catalog workspace", () => {
     const markup = renderToStaticMarkup(
       <ApplicationsPage
         candidates={{ status: "READY", data: [] }}
@@ -31,7 +42,6 @@ describe("ApplicationsPage", () => {
       />,
     );
 
-    expect(markup.match(/class="application-card"/g)).toHaveLength(6);
     for (const name of [
       "GitHub Copilot",
       "Caddy",
@@ -42,12 +52,13 @@ describe("ApplicationsPage", () => {
     ]) {
       expect(markup).toContain(name);
     }
-    expect(markup).toContain("受管文档 4 项");
-    expect(markup).toContain("用户级服务 1 项");
+    expect(markup).toContain('aria-label="应用与配置候选列表"');
+    expect(markup).toContain("受管可写");
+    expect(markup).toContain("4 个配置定义");
+    expect(markup).toContain("<svg");
     expect(markup).not.toContain("~");
     expect(markup).not.toContain("pathTemplate");
-    expect(markup).toContain("仅可通过内置 catalog");
-    expect(markup).toContain("安全配置");
+    expect(markup).toContain("覆盖与授权");
   });
 
   it("renders explicit loading and error states", () => {
