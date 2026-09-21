@@ -1,8 +1,14 @@
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import type { ApplicationsState } from "../../app/shellState";
 import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
-import type { ApplicationsState } from "../../app/shellState";
 import type {
   ManagedAppCatalog,
   ManagedAppCoverageClass,
@@ -59,17 +65,19 @@ const COVERAGE_FILTERS: readonly {
   { value: "EXCLUDED", label: "已排除" },
 ];
 
-function catalogEntries(catalog: ManagedAppCatalog): ApplicationEntry[] {
-  return catalog.applications.map((application) => ({
-    key: `catalog:${application.id}`,
-    kind: "catalog",
-    application,
-    category: application.presentation.category,
-    coverageClass: application.coverageClass,
-    displayName: application.displayName,
-    description: application.description,
-    iconKey: application.iconKey,
-  }));
+function catalogEntries(catalog?: ManagedAppCatalog): ApplicationEntry[] {
+  return (
+    catalog?.applications.map((application) => ({
+      key: `catalog:${application.id}`,
+      kind: "catalog" as const,
+      application,
+      category: application.presentation.category,
+      coverageClass: application.coverageClass,
+      displayName: application.displayName,
+      description: application.description,
+      iconKey: application.iconKey,
+    })) ?? []
+  );
 }
 
 function candidateEntries(
@@ -88,15 +96,36 @@ function candidateEntries(
   }));
 }
 
+function keyboardTargetIndex(
+  event: KeyboardEvent<HTMLButtonElement>,
+  currentIndex: number,
+  entryCount: number,
+): number | undefined {
+  if (event.key === "ArrowDown") {
+    return Math.min(currentIndex + 1, entryCount - 1);
+  }
+  if (event.key === "ArrowUp") {
+    return Math.max(currentIndex - 1, 0);
+  }
+  if (event.key === "Home") {
+    return 0;
+  }
+  if (event.key === "End") {
+    return entryCount - 1;
+  }
+  return undefined;
+}
+
 function ApplicationsWorkspace({
   candidates,
-  catalog,
   onOperationChanged,
+  state,
 }: {
   candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
-  catalog: ManagedAppCatalog;
   onOperationChanged?: () => void;
+  state: ApplicationsState;
 }) {
+  const catalog = state.status === "ready" ? state.catalog : undefined;
   const entries = useMemo(
     () => [...catalogEntries(catalog), ...candidateEntries(candidates)],
     [candidates, catalog],
@@ -111,20 +140,61 @@ function ApplicationsWorkspace({
   const [coverage, setCoverage] = useState<
     "ALL" | ManagedAppCoverageClass
   >("ALL");
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const focusedKey = useRef<string | undefined>(undefined);
 
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const filteredEntries = entries.filter(
-    (entry) =>
-      (category === "ALL" || entry.category === category) &&
-      (coverage === "ALL" || entry.coverageClass === coverage) &&
-      (normalizedQuery.length === 0 ||
-        entry.displayName.toLocaleLowerCase().includes(normalizedQuery) ||
-        entry.description.toLocaleLowerCase().includes(normalizedQuery) ||
-        entry.category.toLocaleLowerCase().includes(normalizedQuery)),
-  );
+  const filteredEntries = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    return entries.filter(
+      (entry) =>
+        (category === "ALL" || entry.category === category) &&
+        (coverage === "ALL" || entry.coverageClass === coverage) &&
+        (normalizedQuery.length === 0 ||
+          entry.displayName.toLocaleLowerCase().includes(normalizedQuery) ||
+          entry.description.toLocaleLowerCase().includes(normalizedQuery) ||
+          entry.category.toLocaleLowerCase().includes(normalizedQuery)),
+    );
+  }, [category, coverage, entries, query]);
+
   const selectedEntry =
     filteredEntries.find((entry) => entry.key === selectedKey) ??
     filteredEntries[0];
+
+  useEffect(() => {
+    if (
+      !focusedKey.current ||
+      filteredEntries.some((entry) => entry.key === focusedKey.current)
+    ) {
+      return;
+    }
+
+    const fallback = selectedEntry;
+    focusedKey.current = fallback?.key;
+    if (fallback) {
+      setSelectedKey(fallback.key);
+      requestAnimationFrame(() => buttonRefs.current.get(fallback.key)?.focus());
+    }
+  }, [filteredEntries, selectedEntry]);
+
+  function moveSelection(
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentIndex: number,
+  ) {
+    const nextIndex = keyboardTargetIndex(
+      event,
+      currentIndex,
+      filteredEntries.length,
+    );
+    if (nextIndex === undefined || nextIndex === currentIndex) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextEntry = filteredEntries[nextIndex];
+    setSelectedKey(nextEntry.key);
+    focusedKey.current = nextEntry.key;
+    buttonRefs.current.get(nextEntry.key)?.focus();
+  }
 
   return (
     <section
@@ -134,18 +204,16 @@ function ApplicationsWorkspace({
       <header className="applications-workspace__header">
         <div>
           <p className="section-kicker">
-            受管目录 v{catalog.schemaVersion}
+            {catalog ? `受管目录 v${catalog.schemaVersion}` : "受管目录"}
           </p>
           <h2 id="applications-heading">Applications</h2>
-          <p>
-            通过 catalog 覆盖级别区分可写、只读与仅元数据条目。
-          </p>
+          <p>通过覆盖级别区分可写、只读与仅元数据条目。</p>
         </div>
         <div className="text-right text-xs text-muted-foreground">
           <strong className="block text-sm text-foreground">
             {entries.length} 项
           </strong>
-          {catalog.applications.length} 个 catalog 定义
+          {catalog ? `${catalog.applications.length} 个 catalog 定义` : "目录待就绪"}
         </div>
       </header>
 
@@ -204,20 +272,38 @@ function ApplicationsWorkspace({
             <span>{filteredEntries.length} 项</span>
           </div>
 
+          {state.status === "loading" ? (
+            <div className="px-3 pb-1">
+              <AsyncState kind="loading">正在加载受管应用目录…</AsyncState>
+            </div>
+          ) : state.status === "error" ? (
+            <div className="px-3 pb-1">
+              <AsyncState kind="error">{state.error.message}</AsyncState>
+            </div>
+          ) : null}
+
           {filteredEntries.length === 0 ? (
             <div className="p-3">
               <AsyncState kind="empty">没有符合筛选条件的条目。</AsyncState>
             </div>
           ) : (
-            <ul>
-              {filteredEntries.map((entry) => {
+            <ul role="listbox" aria-label="应用与配置候选列表">
+              {filteredEntries.map((entry, index) => {
                 const isSelected = selectedEntry?.key === entry.key;
                 const coverageValue =
                   COVERAGE_PRESENTATION[entry.coverageClass];
                 return (
-                  <li key={entry.key}>
+                  <li key={entry.key} role="presentation">
                     <button
+                      ref={(button) => {
+                        if (button) {
+                          buttonRefs.current.set(entry.key, button);
+                        } else {
+                          buttonRefs.current.delete(entry.key);
+                        }
+                      }}
                       type="button"
+                      role="option"
                       className={classNames(
                         "flex w-full items-start gap-3 border-b border-border px-3 py-3 text-left transition-colors",
                         "hover:bg-surface-muted focus-visible:relative focus-visible:z-10",
@@ -225,8 +311,13 @@ function ApplicationsWorkspace({
                           ? "bg-primary-soft text-foreground"
                           : "bg-surface",
                       )}
-                      aria-current={isSelected ? "true" : undefined}
+                      aria-selected={isSelected}
+                      tabIndex={isSelected ? 0 : -1}
                       onClick={() => setSelectedKey(entry.key)}
+                      onFocus={() => {
+                        focusedKey.current = entry.key;
+                      }}
+                      onKeyDown={(event) => moveSelection(event, index)}
                     >
                       <span
                         className={classNames(
@@ -268,11 +359,11 @@ function ApplicationsWorkspace({
           )}
 
           {candidates.status === "LOADING" ? (
-            <div className="border-t border-border p-3">
+            <div className="border-t border-border px-3 pb-3">
               <AsyncState kind="loading">正在补充未受管候选元数据…</AsyncState>
             </div>
           ) : candidates.status === "ERROR" ? (
-            <div className="border-t border-border p-3">
+            <div className="border-t border-border px-3 pb-3">
               <AsyncState kind="error">{candidates.error.message}</AsyncState>
             </div>
           ) : null}
@@ -314,41 +405,11 @@ export function ApplicationsPage({
   onOperationChanged,
   state,
 }: ApplicationsPageProps) {
-  if (state.status === "loading") {
-    return (
-      <section
-        className="applications-panel"
-        aria-labelledby="applications-heading"
-        aria-busy="true"
-      >
-        <p className="section-kicker">受管目录</p>
-        <h2 id="applications-heading">Applications</h2>
-        <AsyncState kind="loading">正在加载应用目录…</AsyncState>
-      </section>
-    );
-  }
-
-  if (state.status === "error") {
-    return (
-      <div className="stacked-panels">
-        <section
-          className="applications-panel"
-          aria-labelledby="applications-heading"
-        >
-          <p className="section-kicker">受管目录</p>
-          <h2 id="applications-heading">应用目录暂不可用</h2>
-          <AsyncState kind="error">{state.error.message}</AsyncState>
-        </section>
-        <UnmanagedCandidates state={candidates} />
-      </div>
-    );
-  }
-
   return (
     <ApplicationsWorkspace
       candidates={candidates}
-      catalog={state.catalog}
       onOperationChanged={onOperationChanged}
+      state={state}
     />
   );
 }
