@@ -26,6 +26,7 @@ const CANDIDATE_ROOT_KINDS = [
 const CANDIDATE_EVIDENCE_KINDS = [
   "METADATA_PRESENT",
   "CATALOG_DOCUMENT",
+  "CATALOG_SERVICE",
   "BOUNDED_ROOT_ENTRY",
   "SYMLINK_METADATA_ONLY",
   "EXCLUSION_RULE",
@@ -40,6 +41,7 @@ const CANDIDATE_SCAN_OUTCOME_KINDS = [
   "COMPLETE",
   "CANDIDATE_LIMIT_REACHED",
   "ENTRY_LIMIT_REACHED",
+  "METADATA_LIMIT_REACHED",
   "PERMISSION_DENIED",
   "SYMLINK_METADATA_ONLY",
   "TIMEOUT",
@@ -67,6 +69,7 @@ export type CandidateRootKind =
 export type CandidateEvidence =
   | "METADATA_PRESENT"
   | "CATALOG_DOCUMENT"
+  | "CATALOG_SERVICE"
   | "BOUNDED_ROOT_ENTRY"
   | "SYMLINK_METADATA_ONLY"
   | "EXCLUSION_RULE";
@@ -79,6 +82,7 @@ export type CandidateScanOutcomeKind =
   | "COMPLETE"
   | "CANDIDATE_LIMIT_REACHED"
   | "ENTRY_LIMIT_REACHED"
+  | "METADATA_LIMIT_REACHED"
   | "PERMISSION_DENIED"
   | "SYMLINK_METADATA_ONLY"
   | "TIMEOUT"
@@ -155,9 +159,13 @@ export interface CandidateScanOutcome {
 export interface CandidateScanSummary {
   candidateCount: number;
   metadataCount: number;
+  rootCount: number;
+  elapsedMs: number;
   limits: {
     maxCandidates: number;
     maxEntriesPerRoot: number;
+    maxMetadataCount: number;
+    maxRootDepth: number;
     timeoutMs: number;
   };
   outcomes: readonly CandidateScanOutcome[];
@@ -497,9 +505,13 @@ function legacyCandidateScanSummary(
   return {
     candidateCount,
     metadataCount: candidateCount,
+    rootCount: 0,
+    elapsedMs: 0,
     limits: {
       maxCandidates: MAX_CANDIDATES,
       maxEntriesPerRoot: MAX_CANDIDATES,
+      maxMetadataCount: MAX_CANDIDATES,
+      maxRootDepth: 1,
       timeoutMs: 1_500,
     },
     outcomes: [],
@@ -522,19 +534,40 @@ function decodeCandidateScanSummary(
     value.candidateCount,
     MAX_CANDIDATES,
   );
+  const metadataCount = decodeCount(value.metadataCount);
   const maxCandidates = decodeCount(value.limits.maxCandidates);
+  const maxMetadataCount =
+    value.limits.maxMetadataCount === undefined ||
+    value.limits.maxMetadataCount === null
+      ? Math.max(MAX_CANDIDATES, metadataCount)
+      : decodeCount(value.limits.maxMetadataCount);
   if (
     decodedCandidateCount !== candidateCount ||
-    maxCandidates < decodedCandidateCount
+    maxCandidates < decodedCandidateCount ||
+    maxMetadataCount < metadataCount
   ) {
     throw createInternalError();
   }
   return {
     candidateCount: decodedCandidateCount,
-    metadataCount: decodeCount(value.metadataCount),
+    metadataCount,
+    rootCount:
+      value.rootCount === undefined || value.rootCount === null
+        ? 0
+        : decodeCount(value.rootCount),
+    elapsedMs:
+      value.elapsedMs === undefined || value.elapsedMs === null
+        ? 0
+        : decodeCount(value.elapsedMs),
     limits: {
       maxCandidates,
       maxEntriesPerRoot: decodeCount(value.limits.maxEntriesPerRoot),
+      maxMetadataCount,
+      maxRootDepth:
+        value.limits.maxRootDepth === undefined ||
+        value.limits.maxRootDepth === null
+          ? 1
+          : decodeCount(value.limits.maxRootDepth),
       timeoutMs: decodeCount(value.limits.timeoutMs),
     },
     outcomes: value.outcomes.map(decodeCandidateScanOutcome),

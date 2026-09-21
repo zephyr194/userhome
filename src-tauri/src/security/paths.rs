@@ -3,6 +3,8 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+pub(crate) const TRUSTED_BREW_PREFIXES: &[&str] = &["/opt/homebrew", "/usr/local"];
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathPolicyError {
     NotFound,

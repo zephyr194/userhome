@@ -47,6 +47,7 @@ const SENSITIVITY_LABELS: Record<CandidateSensitivityHint, string> = {
 const EVIDENCE_LABELS: Record<CandidateEvidence, string> = {
   METADATA_PRESENT: "元数据存在",
   CATALOG_DOCUMENT: "Catalog 文档匹配",
+  CATALOG_SERVICE: "Catalog 服务位置",
   BOUNDED_ROOT_ENTRY: "受限根目录条目",
   SYMLINK_METADATA_ONLY: "仅检查符号链接元数据",
   EXCLUSION_RULE: "命中排除规则",

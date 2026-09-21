@@ -392,11 +392,9 @@ impl DiscoveryCoordinator {
         state.snapshot.candidates = match result {
             Ok(Ok(candidates)) => ModuleSnapshot::ready(candidates),
             Ok(Err(error)) => ModuleSnapshot::error(error),
-            Err(()) => ModuleSnapshot::error(DiscoveryIssue::new(
-                "candidates",
-                "Candidate discovery timed out.",
-                true,
-            )),
+            Err(()) => {
+                ModuleSnapshot::ready(ConfigurationCoverage::timed_out(self.timeouts.candidates))
+            }
         };
         self.inner.changed.notify_all();
     }

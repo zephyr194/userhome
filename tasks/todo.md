@@ -1639,16 +1639,25 @@ HOME dot entries, XDG configuration, Application Support, catalog-owned home
 files, trusted Homebrew prefixes, and catalog service locations.
 
 **Acceptance criteria:**
-- [ ] Unknown candidates are inspected through metadata only and never cause
+- [x] Unknown candidates are inspected through metadata only and never cause
       content reads.
-- [ ] Root depth, entry count, metadata count, and timeout limits are enforced.
-- [ ] Repeated unchanged scans return stable IDs and classifications within two
+- [x] Root depth, entry count, metadata count, and timeout limits are enforced.
+- [x] Repeated unchanged scans return stable IDs and classifications within two
       seconds on the baseline Mac.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
-- [ ] Manual: compare elapsed time and bounded counts against approved roots.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
+- [x] Manual: compare elapsed time and bounded counts against approved roots.
+
+**Evidence:** Candidate discovery now probes catalog documents and service
+locations before deterministically scanning direct children under HOME, XDG,
+Application Support, and trusted Homebrew `etc` roots. Scans never open candidate
+contents, reject traversal through root symlinks, sort bounded entries before
+classification, and enforce 128 candidates, 128 entries per root, 512 metadata
+operations, one enumerated level, and a 1.5 second deadline. Baseline root counts
+were 93, 11, 128, 16, and 1 respectively and were counted in 1 ms without
+printing names or paths.
 
 **Dependencies:** T51
 
