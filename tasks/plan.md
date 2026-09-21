@@ -430,3 +430,216 @@ T35-T37 + T43
 | Frameless drag regions intercept controls | High | Mark drag zones explicitly and manually verify every title-bar control |
 | App definitions require bespoke adapters | Medium | Land data-only and read-only definitions first; require separate approval for new writable adapters |
 | Generated icon assets drift from source SVG | Medium | Regenerate through the Tauri icon command and verify bundle resources |
+
+## Desktop Completeness Extension
+
+Status: Approved for autonomous execution on 2026-09-21
+
+This extension preserves T01-T44 and all of their existing completion state,
+manual checks, signing prerequisites, external blockers, and recorded evidence.
+It schedules the approved native shell, baseline inventory, configuration
+platform, catalog expansion, and application settings specifications without
+authorizing new dependencies, new scan roots, background polling, launch at
+login, or new test files.
+
+Specifications:
+
+- [`../SPEC-native-desktop-shell.md`](../SPEC-native-desktop-shell.md)
+- [`../SPEC-home-baseline-inventory.md`](../SPEC-home-baseline-inventory.md)
+- [`../SPEC-configuration-platform.md`](../SPEC-configuration-platform.md)
+- [`../SPEC-catalog-expansion.md`](../SPEC-catalog-expansion.md)
+- [`../SPEC-application-settings.md`](../SPEC-application-settings.md)
+
+### Extension Decisions
+
+- Retain the fixed 1120 by 720 Tauri window and native traffic lights while
+  replacing route-level web composition with one sidebar, toolbar, and bounded
+  list/detail workspace.
+- Keep provider and mutation logic outside shared React layout primitives.
+- Treat discovery as metadata-only evidence. Catalog definitions remain the
+  sole authority for configuration reads, writes, restores, and elevation.
+- Introduce typed root aliases, path variants, format capabilities, document
+  states, and diagnostics before adding further catalog definitions.
+- Expand the catalog in bounded data-only batches; unsupported or excluded
+  candidates remain explicit instead of receiving speculative access.
+- Persist only versioned UserHome preferences under the app-owned application
+  support directory, using atomic writes and safe-default migration.
+- Use the current dependency set. A parser, launch-at-login plugin, background
+  watcher, notification integration, or other new dependency remains an
+  ask-first boundary and must not be silently introduced during execution.
+- Do not add test files. Verification uses existing suites, existing fixtures,
+  focused commands, and the documented manual desktop checks.
+
+### Extension Dependency Graph
+
+```text
+T45 desktop workspace
+  -> T46 native menus and shortcuts
+  -> T47 dashboard workspace
+  -> T48 applications workspace
+  -> T49 Homebrew workspace
+  -> T50 services workspace
+
+T51 baseline inventory contract
+  -> T52 bounded approved-root scanning
+      -> T53 sanitized baseline export
+
+T51 + T38
+  -> T54 catalog path and format contract
+      -> T55 document resolution and diagnostics
+          -> T56 reusable read-only format handling
+              -> T57 configuration workspace dispatch
+              -> T58 catalog expansion: editors and terminals
+              -> T59 catalog expansion: AI and developer tools
+                  -> T60 coverage metrics and explanations
+
+T61 preference persistence
+  -> T62 settings IPC and hydration
+      -> T63 settings workspace
+      -> T64 appearance behavior
+      -> T65 lifecycle, refresh, and selection preferences
+      -> T66 backup retention and clearing
+      -> T67 privacy and discovery controls
+      -> T68 diagnostics export and reset
+
+T46-T50 + T53 + T57 + T60 + T63-T68
+  -> T69 desktop completeness integration
+```
+
+### Phase 12: Native Workspace Foundation
+
+- [ ] T45 Establish the native desktop workspace primitives
+- [ ] T46 Add native application menu commands and keyboard routing
+- [ ] T47 Recompose Dashboard as a compact summary workspace
+- [ ] T48 Complete persistent Applications list/detail interaction
+- [ ] T49 Complete persistent Homebrew list/detail interaction
+- [ ] T50 Complete persistent Services list/detail interaction
+
+### Checkpoint O: Native Workspace
+
+- [ ] Every primary route uses the fixed sidebar/toolbar/workspace hierarchy.
+- [ ] `Command+,`, `Command+R`, arrow navigation, focus rings, and pane-local
+      loading/error behavior are verified.
+- [ ] The document body does not scroll at 1120 by 720.
+
+### Phase 13: Baseline Inventory and Configuration Platform
+
+- [ ] T51 Define the deterministic baseline inventory contract
+- [ ] T52 Implement bounded approved-root metadata scanning
+- [ ] T53 Export and document the sanitized baseline manifest
+- [ ] T54 Extend catalog path variants and format capabilities
+- [ ] T55 Return typed configuration resolution and diagnostics
+- [ ] T56 Add reusable fail-closed read-only format handling
+- [ ] T57 Drive configuration viewers and editors by capability
+
+### Checkpoint P: Safe Configuration Platform
+
+- [ ] Approved roots are bounded, deterministic, metadata-only, and complete
+      within the documented limits.
+- [ ] Every document returns one explicit state and one safe next action.
+- [ ] Unknown roots, formats, adapters, validators, and policies fail closed.
+- [ ] Existing write, backup, restore, symlink, and elevation safeguards pass
+      without broadening authority.
+
+### Phase 14: Catalog Completeness
+
+- [ ] T58 Expand editor and terminal catalog coverage
+- [ ] T59 Expand AI and developer-tool catalog coverage
+- [ ] T60 Enforce coverage metrics and render support explanations
+
+### Checkpoint Q: Catalog Coverage
+
+- [ ] Every sanitized baseline candidate has exactly one coverage class.
+- [ ] Priority A behavior is unchanged and Priority B has managed coverage or a
+      precise exclusion reason.
+- [ ] At least 90% of eligible text roots are managed read-only or writable.
+- [ ] No data-only application introduces an `appId` branch in React.
+
+### Phase 15: Application Settings
+
+- [ ] T61 Add versioned atomic preference persistence
+- [ ] T62 Expose typed settings IPC and application hydration
+- [ ] T63 Replace the Settings placeholder with grouped detail panes
+- [ ] T64 Apply and persist semantic appearance
+- [ ] T65 Apply lifecycle, refresh, and selection preferences
+- [ ] T66 Integrate backup retention and confirmed clearing
+- [ ] T67 Apply privacy and optional discovery-root preferences
+- [ ] T68 Export sanitized diagnostics and reset preferences
+
+### Checkpoint R: Settings Complete
+
+- [ ] Settings opens from the sidebar and `Command+,`, restores its selected
+      group, and remains usable at 1120 by 720.
+- [ ] Appearance, lifecycle, refresh, editor, backup, privacy, and diagnostics
+      preferences persist with safe validation and migration.
+- [ ] Reset, backup clearing, and managed-configuration mutation remain separate.
+- [ ] Diagnostics contain no configuration content, secrets, username, absolute
+      home path, environment dump, or authorization material.
+
+### Phase 16: Integration
+
+- [ ] T69 Complete desktop completeness verification and documentation
+
+### Checkpoint S: Desktop Completeness Complete
+
+- [ ] T45-T69 acceptance criteria pass or retain an explicit approved external
+      or manual blocker.
+- [ ] Existing T04, T05, T25-T29, T31, T32, and T34-T44 manual/external
+      blockers remain documented and are not converted to completed results.
+- [ ] `pnpm check`, `pnpm test:e2e`, and `pnpm build:unsigned` pass.
+- [ ] No automated check reads or mutates real user configuration.
+
+### Parallel Waves
+
+| Wave | Parallel lanes | Coordination boundary |
+|---|---|---|
+| W1 | T45 shell, T51 inventory model, T54 catalog contract, T61 preferences | These foundations own separate modules and may start together. |
+| W2 | T46 menu bridge, T52 scanner, T55 diagnostics, T62 settings IPC | Each lane follows its W1 dependency; shared `lib.rs` edits require serialization. |
+| W3 | T47 dashboard, T53 export, T56 format handling, T63 settings workspace | Dashboard and Settings route edits must be serialized around shared route files. |
+| W4 | T48 Applications, T58 catalog batch, T64 appearance, T67 privacy | Catalog JSON changes are serialized; UI lanes may proceed against stable contracts. |
+| W5 | T49 Homebrew, T57 config UI, T59 catalog batch, T65 lifecycle | Shell route changes are serialized; T59 follows T58 in the catalog lane. |
+| W6 | T50 Services, T60 coverage, T66 backups, T68 diagnostics | Provider work remains independent; shared Settings files require coordination. |
+| W7 | T69 integration | Runs only after every preceding dependency is complete or explicitly blocked. |
+
+Within a wave, tasks sharing `src/app/routes.tsx`, `src/app/AppShell.tsx`,
+`src/styles/global.css`, `src-tauri/src/lib.rs`, or
+`src-tauri/src/catalog/catalog-v1.json` execute sequentially or after an
+explicit ownership handoff.
+
+### Verification Checkpoints
+
+Every task runs its focused verification from `todo.md`. Checkpoints O-R run:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+Checkpoints O, Q, R, and S additionally run:
+
+```bash
+pnpm test:e2e
+```
+
+Checkpoint S additionally runs:
+
+```bash
+pnpm build:unsigned
+```
+
+### Extension Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Shared shell files create parallel merge conflicts | Medium | Serialize tasks that own route, shell, or global-style files within each wave. |
+| Fixed-window panes clip dense content | High | Assign explicit scroll ownership and verify each route at 1120 by 720 before integration. |
+| Broader baseline discovery exposes private metadata | High | Probe exact catalog paths first, enumerate only approved direct children, cap depth/count/time, and sanitize exports. |
+| Format support is mistaken for write authority | High | Separate format recognition, redaction, validation, editor capability, and write policy; fail closed on missing capability. |
+| New catalog entries regress existing integrations | High | Keep Priority A identifiers and authorization stable and validate the last-known-good catalog on load failure. |
+| Preferences weaken filesystem or mutation boundaries | High | Store only typed UserHome behavior values; never persist paths, content, credentials, or authority. |
+| Diagnostic export leaks private data | High | Build from typed sanitized summaries and reject raw environment, paths, content, and authorization fields. |
+| Parser or launch-at-login work pressures dependency scope | Medium | Keep unsupported capability explicit and request separate approval before adding any dependency. |

@@ -1384,3 +1384,883 @@ code review.
 - [x] Existing T25-T29 external signing and manual blockers remain accurately
       documented rather than treated as completed.
 - [x] No automated verification reads or mutates real user configuration.
+
+# Desktop Completeness Revision
+
+Status: Approved for autonomous execution on 2026-09-21
+
+This revision preserves every T01-T44 task, checkbox, evidence note, manual
+check, signing prerequisite, and external blocker above. It adds no approval
+for new dependencies, new scan roots, background polling, launch at login, or
+new test files.
+
+## T45: Establish the native desktop workspace primitives
+
+**Description:** Replace route-level page framing with reusable sidebar,
+toolbar, list/detail, optional inspector, banner, and operation-progress slots
+that own their internal scroll regions.
+
+**Acceptance criteria:**
+- [ ] The fixed 1120 by 720 shell has no document-level overflow.
+- [ ] Route content uses named desktop slots instead of generic page/card
+      abstractions.
+- [ ] Traffic-light and drag regions do not overlap interactive controls.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: inspect shell sizing, pane scrolling, focus rings, and title-bar
+      interactions at 1120 by 720.
+
+**Dependencies:** T33, T34
+
+**Parallel wave:** W1, shell lane
+
+**Checkpoint:** O
+
+**Risks:** Shared shell and global-style ownership can conflict with later
+route migrations; land this contract before T47-T50.
+
+**Files likely touched:** `src/components/DesktopWorkspace.tsx`,
+`src/components/NavigationRail.tsx`, `src/app/AppShell.tsx`,
+`src/app/routeDefinitions.ts`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T46: Add native application menu commands and keyboard routing
+
+**Description:** Provide Settings, Refresh, Hide/Show, and Quit application
+commands and route `Command+,` and `Command+R` through one command bridge.
+
+**Acceptance criteria:**
+- [ ] Settings and Refresh work from both the native menu and keyboard.
+- [ ] Hide/Show preserves the active route and selection; Quit exits normally.
+- [ ] Search fields clear with `Escape` without stealing unrelated focus.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml tray`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: exercise menu items and keyboard commands in the desktop app.
+
+**Dependencies:** T45
+
+**Parallel wave:** W2, shell lane
+
+**Checkpoint:** O
+
+**Risks:** macOS menu events and webview keyboard handlers can trigger an
+action twice; use one event path and coalesce refresh through the existing
+coordinator.
+
+**Files likely touched:** `src-tauri/src/tray/mod.rs`,
+`src-tauri/src/lib.rs`, `src/app/AppShell.tsx`,
+`src/app/refreshEvents.ts`, `src-tauri/tauri.conf.json`
+
+**Estimated scope:** M
+
+## T47: Recompose Dashboard as a compact summary workspace
+
+**Description:** Remove the permanent status rail and present machine,
+application, Homebrew, provider, refresh, and operation summaries as compact
+grouped rows within the Dashboard workspace.
+
+**Acceptance criteria:**
+- [ ] Dashboard contains no hero header, generic card grid, or permanent
+      application-level status rail.
+- [ ] Provider loading, partial, error, and disconnected states remain isolated.
+- [ ] Status uses text or icons in addition to color.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: inspect normal, loading, partial, error, and operation states.
+
+**Dependencies:** T45, T46
+
+**Parallel wave:** W3, shell lane; may run with T53, T56, and T63
+
+**Checkpoint:** O
+
+**Risks:** Removing the rail can hide operation state; retain persistent
+operation visibility in the toolbar or Dashboard summary.
+
+**Files likely touched:** `src/features/dashboard/DashboardPage.tsx`,
+`src/features/dashboard/SystemSummary.tsx`,
+`src/features/operations/OperationStatus.tsx`, `src/app/AppShell.tsx`,
+`src/styles/global.css`
+
+**Estimated scope:** M
+
+## T48: Complete persistent Applications list/detail interaction
+
+**Description:** Make Applications a selection-based list/detail workspace with
+keyboard navigation, stable selection, coverage filters, and an optional
+configuration inspector.
+
+**Acceptance criteria:**
+- [ ] Selection remains stable while catalog, discovery, or configuration data
+      refreshes.
+- [ ] Arrow keys move list selection and focus remains predictable.
+- [ ] Empty, unsupported, excluded, loading, and error states occupy only the
+      affected pane.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: verify keyboard navigation and selection retention across refresh.
+
+**Dependencies:** T45, T47
+
+**Parallel wave:** W4, shell lane; serialize shared route/style edits
+
+**Checkpoint:** O
+
+**Risks:** Re-sorted catalog results can invalidate array-index selection; use
+stable application and document identifiers.
+
+**Files likely touched:** `src/features/apps/ApplicationsPage.tsx`,
+`src/features/apps/ConfigWorkspace.tsx`, `src/app/shellState.ts`,
+`src/app/routes.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T49: Complete persistent Homebrew list/detail interaction
+
+**Description:** Convert Homebrew inventory, search, package details, and
+actions into a compact selection-based list/detail workspace.
+
+**Acceptance criteria:**
+- [ ] Formula/cask selection persists through search, pagination, and refresh
+      when the selected package remains available.
+- [ ] Search uses toolbar placement and `Escape` clearing behavior.
+- [ ] Preview, progress, result, conflict, and partial-failure states remain
+      visible in the relevant pane.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: verify search, list navigation, details, and confirmation flow.
+
+**Dependencies:** T45, T47
+
+**Parallel wave:** W5, shell lane; serialize after T48
+
+**Checkpoint:** O
+
+**Risks:** Refresh can remove the selected package after mutation; define a
+deterministic nearest-selection or empty-detail fallback.
+
+**Files likely touched:** `src/features/brew/BrewInventoryPage.tsx`,
+`src/features/brew/BrewSearch.tsx`,
+`src/features/brew/BrewPackageDetails.tsx`, `src/app/routes.tsx`,
+`src/styles/global.css`
+
+**Estimated scope:** M
+
+## T50: Complete persistent Services list/detail interaction
+
+**Description:** Present service inventory, details, actions, and operation
+history through compact list/detail panes with stable service selection.
+
+**Acceptance criteria:**
+- [ ] User, system, manageable, and read-only service states remain explicit.
+- [ ] Selection persists through state refresh when the service still exists.
+- [ ] Destructive or state-changing actions remain separately previewed and
+      confirmed.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: verify arrow navigation, state refresh, action flow, and bounded
+      history scrolling.
+
+**Dependencies:** T45, T47
+
+**Parallel wave:** W6, shell lane; serialize after T49
+
+**Checkpoint:** O
+
+**Risks:** Service state updates can replace focused content; reconcile by
+stable service ID without remounting the active detail pane.
+
+**Files likely touched:** `src/features/services/ServicesPage.tsx`,
+`src/features/services/ServiceDetails.tsx`,
+`src/features/services/ServiceActionDialog.tsx`,
+`src/features/operations/OperationHistory.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## Checkpoint O: Native Workspace
+
+- [ ] T45-T50 acceptance criteria pass.
+- [ ] Every primary route fits 1120 by 720 with pane-owned scrolling.
+- [ ] Settings and Refresh menu/keyboard commands work without duplicate events.
+- [ ] Existing manual tray, display-scale, VoiceOver, contrast, reduced-motion,
+      and icon checks remain open until actually performed.
+
+## T51: Define the deterministic baseline inventory contract
+
+**Description:** Introduce typed candidate identity, root kind, relative path,
+entry type, evidence, format hints, sensitivity, coverage, reason, and optional
+catalog ownership without exposing absolute private paths.
+
+**Acceptance criteria:**
+- [ ] Candidate IDs are deterministic and independent of the absolute home path.
+- [ ] Every candidate has exactly one coverage class and human-readable reason.
+- [ ] Counts, limits, permission, symlink, and timeout outcomes are explicit.
+
+**Verification:**
+- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [ ] `pnpm typecheck`
+
+**Dependencies:** T39
+
+**Parallel wave:** W1, inventory lane
+
+**Checkpoint:** P
+
+**Risks:** Candidate identifiers may drift as display labels change; derive IDs
+from normalized root kind and relative path, not presentation text.
+
+**Files likely touched:** `src-tauri/src/discovery/candidates.rs`,
+`src-tauri/src/discovery/system.rs`,
+`src-tauri/src/commands/discovery.rs`, `src/ipc/discovery.ts`,
+`src-tauri/src/security/paths.rs`
+
+**Estimated scope:** M
+
+## T52: Implement bounded approved-root metadata scanning
+
+**Description:** Scan exact catalog probes and bounded direct children under
+HOME dot entries, XDG configuration, Application Support, catalog-owned home
+files, trusted Homebrew prefixes, and catalog service locations.
+
+**Acceptance criteria:**
+- [ ] Unknown candidates are inspected through metadata only and never cause
+      content reads.
+- [ ] Root depth, entry count, metadata count, and timeout limits are enforced.
+- [ ] Repeated unchanged scans return stable IDs and classifications within two
+      seconds on the baseline Mac.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
+- [ ] Manual: compare elapsed time and bounded counts against approved roots.
+
+**Dependencies:** T51
+
+**Parallel wave:** W2, inventory lane
+
+**Checkpoint:** P
+
+**Risks:** Application Support breadth can become an accidental recursive scan;
+allow only direct children or finite catalog-declared profiles.
+
+**Files likely touched:** `src-tauri/src/discovery/candidates.rs`,
+`src-tauri/src/discovery/system.rs`,
+`src-tauri/src/discovery/refresh.rs`,
+`src-tauri/src/security/paths.rs`, `src/ipc/discovery.ts`
+
+**Estimated scope:** M
+
+## T53: Export and document the sanitized baseline manifest
+
+**Description:** Add a developer-facing sanitized export and coverage summary
+that can drive catalog work without committing usernames, contents, credential
+names, or unrestricted listings.
+
+**Acceptance criteria:**
+- [ ] The exported total equals managed, unsupported, and excluded counts.
+- [ ] The export contains normalized root aliases and no absolute username,
+      configuration content, secrets, cache/log/database entries, or runtime
+      state.
+- [ ] Raw baseline artifacts remain outside version control.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [ ] `pnpm typecheck`
+- [ ] Manual: inspect a sanitized export and compare counts with runtime
+      coverage.
+
+**Dependencies:** T52
+
+**Parallel wave:** W3, inventory lane
+
+**Checkpoint:** P
+
+**Risks:** Apparently harmless path segments can identify a user or secret;
+export only typed aliases, normalized relative paths, classifications, and
+bounded metadata.
+
+**Files likely touched:** `src-tauri/src/discovery/candidates.rs`,
+`src-tauri/src/commands/discovery.rs`, `src/ipc/discovery.ts`,
+`src-tauri/src/lib.rs`, `docs/home-baseline-coverage.md`
+
+**Estimated scope:** M
+
+## T54: Extend catalog path variants and format capabilities
+
+**Description:** Add typed root aliases, ordered path variants, existence and
+precedence rules, format families, purpose, sensitivity, access mode, adapter,
+validator, editor, and size limits to catalog documents.
+
+**Acceptance criteria:**
+- [ ] Documents can declare bounded HOME, XDG, Application Support, Homebrew,
+      and app-support variants without absolute user-specific paths.
+- [ ] JSON/JSONC, TOML, YAML, INI/Git config, key/value, plist, command-oriented,
+      and plain-text families are recognized independently of write authority.
+- [ ] Unknown roots, formats, adapters, validators, editors, and policies reject
+      the candidate catalog while the last known valid catalog remains usable.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [ ] `pnpm typecheck`
+- [ ] Inspect catalog validation errors for every unknown capability class.
+
+**Dependencies:** T38, T51
+
+**Parallel wave:** W1, configuration lane
+
+**Checkpoint:** P
+
+**Risks:** Schema compatibility can alter existing authorization; migrate the
+current definitions deterministically and keep Priority A IDs and paths stable.
+
+**Files likely touched:** `src-tauri/src/catalog/mod.rs`,
+`src-tauri/src/catalog/catalog-v1.json`,
+`src-tauri/src/security/paths.rs`, `src/ipc/catalog.ts`,
+`docs/managed-app-schema.md`
+
+**Estimated scope:** M
+
+## T55: Return typed configuration resolution and diagnostics
+
+**Description:** Resolve document variants and return one explicit state with a
+safe display path, retryability, and next action for missing, invalid,
+redacted, oversized, denied, unsafe, unsupported, and I/O outcomes.
+
+**Acceptance criteria:**
+- [ ] `resolve_config_variants`, `read_config`, and `diagnose_config` expose
+      stable typed contracts.
+- [ ] Failed reads never appear as empty successful documents.
+- [ ] One malformed document does not block unrelated documents or applications.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test`
+- [ ] Manual: inspect every diagnostic state without exposing a private path.
+
+**Dependencies:** T54
+
+**Parallel wave:** W2, configuration lane
+
+**Checkpoint:** P
+
+**Risks:** Mapping distinct I/O failures to generic errors makes recovery
+unsafe; preserve one bounded diagnostic state and action for every failure.
+
+**Files likely touched:** `src-tauri/src/config/mod.rs`,
+`src-tauri/src/config/read.rs`, `src-tauri/src/commands/config.rs`,
+`src/ipc/config.ts`, `src-tauri/src/error.rs`
+
+**Estimated scope:** M
+
+## T56: Add reusable fail-closed read-only format handling
+
+**Description:** Introduce a format-capability registry that safely returns
+redacted UTF-8 content or metadata-only diagnostics for reusable format
+families, without granting generic write access.
+
+**Acceptance criteria:**
+- [ ] Safe JSON/JSONC, INI/key-value, and declared non-sensitive text documents
+      reuse shared handlers.
+- [ ] Sensitive command-oriented, unsupported, binary, database, credential,
+      cache, log, socket, and runtime formats never return raw content.
+- [ ] Structured writes remain limited to an approved parser, round-trip
+      strategy, validator, sensitivity policy, and editor capability.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
+- [ ] Confirm no parser dependency was added without separate approval.
+
+**Dependencies:** T55
+
+**Parallel wave:** W3, configuration lane
+
+**Checkpoint:** P
+
+**Risks:** Text heuristics can leak secrets or imply write safety; return
+metadata only whenever reliable parsing or redaction is unavailable.
+
+**Files likely touched:** `src-tauri/src/config/formats/mod.rs`,
+`src-tauri/src/config/formats/json.rs`,
+`src-tauri/src/config/formats/text.rs`,
+`src-tauri/src/config/redaction.rs`,
+`src-tauri/src/config/adapters/mod.rs`
+
+**Estimated scope:** M
+
+## T57: Drive configuration viewers and editors by capability
+
+**Description:** Dispatch configuration presentation by document state,
+capability, format, and `editorKey`, including path variants and diagnostics,
+without central `appId` branches.
+
+**Acceptance criteria:**
+- [ ] Read-only, writable, metadata-only, excluded, and diagnostic states have
+      distinct actions.
+- [ ] Variant selection and large content remain inside bounded panes.
+- [ ] Existing write, preview, backup, restore, validation, and redaction order
+      remains unchanged.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: inspect writable, read-only, redacted, invalid, and unsupported
+      documents.
+
+**Dependencies:** T48, T55, T56
+
+**Parallel wave:** W5, configuration UI lane
+
+**Checkpoint:** P
+
+**Risks:** UI fallback behavior can accidentally expose actions; unknown
+capabilities must render a non-actionable diagnostic rather than a generic
+editor.
+
+**Files likely touched:** `src/features/apps/ConfigWorkspace.tsx`,
+`src/features/apps/ConfigDetails.tsx`,
+`src/features/apps/editors/ConfigAdapterEditor.tsx`,
+`src/features/apps/editors/RawTextEditor.tsx`, `src/ipc/config.ts`
+
+**Estimated scope:** M
+
+## Checkpoint P: Safe Configuration Platform
+
+- [ ] T51-T57 acceptance criteria pass.
+- [ ] Baseline scanning remains bounded, deterministic, and metadata-only.
+- [ ] Every document state and next action is explicit and safely displayed.
+- [ ] Existing write, restore, backup, symlink, and elevation suites pass.
+- [ ] No new dependency, scan root, writable format, or privileged target was
+      introduced without separate approval.
+
+## T58: Expand editor and terminal catalog coverage
+
+**Description:** Add bounded data-only definitions and path variants for VS
+Code channels, Cursor, Zed, Vim, Neovim, Ghostty, iTerm2, tmux, and Starship.
+
+**Acceptance criteria:**
+- [ ] Each application has detection evidence and at least one managed document
+      or a precise safe exclusion.
+- [ ] Product channels share identities only when configuration semantics match.
+- [ ] Existing six writable and six read-only definitions remain unchanged in
+      authorization and behavior.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test`
+- [ ] Manual: compare this batch with the sanitized baseline manifest.
+
+**Dependencies:** T53, T54, T56
+
+**Parallel wave:** W4, catalog lane; serialize before T59
+
+**Checkpoint:** Q
+
+**Risks:** Similar product channels may use incompatible files; model separate
+variants or applications rather than merging on name alone.
+
+**Files likely touched:** `src-tauri/src/catalog/catalog-v1.json`,
+`docs/managed-app-schema.md`, `docs/home-baseline-coverage.md`
+
+**Estimated scope:** M
+
+## T59: Expand AI and developer-tool catalog coverage
+
+**Description:** Add bounded data-only definitions for Claude, Codex, Gemini,
+Antigravity, Trae, Docker, OrbStack, gcloud, Raycast, GitKraken CLI, and Apifox
+where settings can be separated from credentials and runtime state.
+
+**Acceptance criteria:**
+- [ ] Every definition separates settings from credentials, sessions, logs,
+      caches, databases, telemetry, and runtime state.
+- [ ] Unsupported entries name the missing parser, redactor, path contract, or
+      product knowledge required.
+- [ ] No definition grants write, executable, service, privileged, or broad
+      filesystem authority.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test`
+- [ ] Manual: compare this batch with sanitized baseline evidence.
+
+**Dependencies:** T58
+
+**Parallel wave:** W5, catalog lane; sequential after T58
+
+**Checkpoint:** Q
+
+**Risks:** AI and cloud tools frequently co-locate credentials and settings;
+prefer metadata-only or exclusion over uncertain redaction.
+
+**Files likely touched:** `src-tauri/src/catalog/catalog-v1.json`,
+`docs/managed-app-schema.md`, `docs/home-baseline-coverage.md`
+
+**Estimated scope:** M
+
+## T60: Enforce coverage metrics and render support explanations
+
+**Description:** Validate catalog coverage against the sanitized manifest and
+show grouped, searchable detection evidence, managed documents, unsupported
+areas, exclusions, and completeness counts in Applications.
+
+**Acceptance criteria:**
+- [ ] All candidates are classified, Priority A remains usable, and Priority B
+      meets the approved managed-or-excluded rule.
+- [ ] At least 90% of eligible text roots are managed read-only or writable.
+- [ ] Application detail explains evidence, limitations, exclusions, and the
+      concrete requirement for increased support.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: reconcile displayed totals with the sanitized manifest.
+
+**Dependencies:** T53, T57, T59
+
+**Parallel wave:** W6, catalog and Applications lane
+
+**Checkpoint:** Q
+
+**Risks:** Metrics can be gamed by overusing `EXCLUDED`; require a specific
+reason and preserve the eligible-text denominator.
+
+**Files likely touched:** `src-tauri/src/catalog/mod.rs`,
+`src-tauri/src/commands/catalog.rs`, `src/ipc/catalog.ts`,
+`src/features/apps/ApplicationsPage.tsx`,
+`docs/home-baseline-coverage.md`
+
+**Estimated scope:** M
+
+## Checkpoint Q: Catalog Coverage
+
+- [ ] T58-T60 acceptance criteria pass.
+- [ ] Every sanitized candidate maps to one coverage class and all counts agree.
+- [ ] Priority A behavior remains compatible and Priority B coverage is
+      evidence-based.
+- [ ] No catalog-only addition requires an `appId` branch or grants new write
+      authority.
+
+## T61: Add versioned atomic preference persistence
+
+**Description:** Store validated UserHome preferences as versioned JSON under
+the app-owned application support directory with additive migration,
+safe-default recovery, and atomic replacement.
+
+**Acceptance criteria:**
+- [ ] The persisted schema contains only approved appearance, lifecycle,
+      refresh, editor, backup, and optional discovery-root values.
+- [ ] Invalid or unknown values fall back safely and produce a non-secret
+      diagnostic.
+- [ ] Preference writes preserve the previous valid file on failure.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- [ ] Inspect the stored JSON contract for paths, content, secrets, or authority.
+
+**Dependencies:** None
+
+**Parallel wave:** W1, settings lane
+
+**Checkpoint:** R
+
+**Risks:** A permissive patch model can persist unrecognized fields; deserialize
+through explicit typed fields and reject invalid updates.
+
+**Files likely touched:** `src-tauri/src/settings/mod.rs`,
+`src-tauri/src/settings/store.rs`,
+`src-tauri/src/settings/migration.rs`, `src-tauri/src/lib.rs`
+
+**Estimated scope:** M
+
+## T62: Expose typed settings IPC and application hydration
+
+**Description:** Add typed get, update, and reset preference commands and load
+preferences before applying route, appearance, refresh, or lifecycle behavior.
+
+**Acceptance criteria:**
+- [ ] The frontend sends typed values and never a storage path or arbitrary form.
+- [ ] Startup exposes loading, ready, and safe-default diagnostic states.
+- [ ] Concurrent patches serialize without silently losing recognized values.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+**Dependencies:** T61
+
+**Parallel wave:** W2, settings lane
+
+**Checkpoint:** R
+
+**Risks:** UI can briefly apply incorrect defaults before hydration; gate
+preference-dependent behavior while retaining a responsive shell.
+
+**Files likely touched:** `src-tauri/src/commands/settings.rs`,
+`src-tauri/src/commands/mod.rs`, `src-tauri/src/lib.rs`,
+`src/ipc/settings.ts`, `src/App.tsx`
+
+**Estimated scope:** M
+
+## T63: Replace the Settings placeholder with grouped detail panes
+
+**Description:** Build a compact Settings list/detail workspace for Appearance,
+General, Refresh, Configuration and Backups, Privacy and Discovery,
+Diagnostics, and Reset.
+
+**Acceptance criteria:**
+- [ ] Settings contains no placeholder, hero, or document-level scrolling.
+- [ ] `Command+,` and the sidebar open Settings and restore its selected group.
+- [ ] Keyboard navigation and focus remain visible and predictable.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: navigate every group at 1120 by 720 using keyboard only.
+
+**Dependencies:** T45, T62
+
+**Parallel wave:** W3, settings UI lane; serialize shared route edits with T47
+
+**Checkpoint:** R
+
+**Risks:** One oversized form can recreate a web settings page; keep one
+selected group in the detail pane with pane-owned scrolling.
+
+**Files likely touched:** `src/features/settings/SettingsPage.tsx`,
+`src/features/settings/SettingsSidebar.tsx`, `src/app/routes.tsx`,
+`src/app/routeDefinitions.ts`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T64: Apply and persist semantic appearance
+
+**Description:** Apply System, Light, or Dark appearance immediately through
+semantic tokens while following operating-system reduced motion and retaining
+compact density.
+
+**Acceptance criteria:**
+- [ ] Appearance changes apply without restart and persist across restart.
+- [ ] System appearance follows the current OS preference.
+- [ ] Status never relies on color alone and focus remains visible in all modes.
+
+**Verification:**
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: verify System, Light, Dark, contrast, focus, and reduced motion.
+
+**Dependencies:** T62, T63
+
+**Parallel wave:** W4, settings appearance lane
+
+**Checkpoint:** R
+
+**Risks:** Theme application can flash or conflict with Tailwind tokens; apply
+one root attribute before rendering preference-dependent content.
+
+**Files likely touched:** `src/features/settings/AppearanceSettings.tsx`,
+`src/features/settings/SettingsPage.tsx`, `src/App.tsx`,
+`src/ipc/settings.ts`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T65: Apply lifecycle, refresh, and selection preferences
+
+**Description:** Apply open-on-launch, close-to-tray, restore-selection,
+refresh-on-launch, refresh-on-reopen, bounded provider timeout, and preferred
+editor-mode preferences without enabling background scans.
+
+**Acceptance criteria:**
+- [ ] Launch, close, reopen, and refresh behavior follows validated preferences.
+- [ ] Last route and safe stable item IDs restore without selecting absent data.
+- [ ] Timeout values come only from bounded presets and periodic scanning
+      remains disabled.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml tray`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: restart, close/reopen, selection restore, and refresh preference
+      scenarios.
+
+**Dependencies:** T46, T48, T49, T50, T62, T63
+
+**Parallel wave:** W5, lifecycle lane
+
+**Checkpoint:** R
+
+**Risks:** Restoring stale item IDs can trap focus in missing content; validate
+against current provider data and fall back to the first safe item or no
+selection.
+
+**Files likely touched:** `src/features/settings/GeneralSettings.tsx`,
+`src/features/settings/RefreshSettings.tsx`, `src/App.tsx`,
+`src/app/shellState.ts`, `src-tauri/src/tray/mod.rs`
+
+**Estimated scope:** M
+
+## T66: Integrate backup retention and confirmed clearing
+
+**Description:** Apply bounded backup-retention presets, report app-owned backup
+size/location, and clear only app-owned backups through preview and explicit
+confirmation.
+
+**Acceptance criteria:**
+- [ ] Retention accepts only approved presets and deletes only owned backups
+      beyond the selected limit.
+- [ ] Clear preview names the exact safe display location and backup count.
+- [ ] Preference reset does not clear backups, and backup clearing does not
+      alter managed configuration.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config::retention`
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+
+**Dependencies:** T12, T61, T62, T63
+
+**Parallel wave:** W6, settings backup lane
+
+**Checkpoint:** R
+
+**Risks:** Retention and clearing are destructive; resolve and verify the
+app-owned backup root independently of frontend input before preview and
+execution.
+
+**Files likely touched:** `src-tauri/src/config/retention.rs`,
+`src-tauri/src/config/backup.rs`,
+`src-tauri/src/commands/settings.rs`, `src/ipc/settings.ts`,
+`src/features/settings/BackupSettings.tsx`
+
+**Estimated scope:** M
+
+## T67: Apply privacy and optional discovery-root preferences
+
+**Description:** Explain active metadata-only roots, allow approved optional
+roots to be disabled, and display paths through aliases without changing
+catalog authorization.
+
+**Acceptance criteria:**
+- [ ] Users can disable only predefined optional roots; no arbitrary path input
+      is accepted.
+- [ ] Disabling discovery evidence does not grant or revoke catalog read/write
+      authority.
+- [ ] Displayed paths use `~` or root aliases and reveal no absolute username.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: toggle optional roots and compare bounded coverage results.
+
+**Dependencies:** T52, T62, T63
+
+**Parallel wave:** W4, privacy lane
+
+**Checkpoint:** R
+
+**Risks:** Treating preferences as path input broadens authority; map typed root
+IDs to backend-owned scan profiles only.
+
+**Files likely touched:** `src/features/settings/PrivacySettings.tsx`,
+`src-tauri/src/settings/mod.rs`,
+`src-tauri/src/discovery/candidates.rs`,
+`src-tauri/src/discovery/refresh.rs`,
+`src-tauri/src/commands/discovery.rs`
+
+**Estimated scope:** M
+
+## T68: Export sanitized diagnostics and reset preferences
+
+**Description:** Show version, architecture, macOS, catalog, helper, refresh,
+and provider health; export/copy only a sanitized report; and reset preferences
+without touching backups or managed configuration.
+
+**Acceptance criteria:**
+- [ ] Diagnostics contain no configuration content, secrets, username, absolute
+      home path, environment dump, or authorization material.
+- [ ] Export and copy require explicit user actions and expose failures.
+- [ ] Reset restores documented safe defaults while preserving backups and all
+      managed application files.
+
+**Verification:**
+- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [ ] Manual: inspect exported diagnostics and restart after reset.
+
+**Dependencies:** T53, T60, T62, T63, T66
+
+**Parallel wave:** W6, diagnostics lane; coordinate shared Settings files
+
+**Checkpoint:** R
+
+**Risks:** Combining existing provider payloads can reintroduce private fields;
+construct diagnostics from an allowlisted summary type rather than serializing
+runtime objects.
+
+**Files likely touched:** `src-tauri/src/settings/diagnostics.rs`,
+`src-tauri/src/commands/settings.rs`, `src/ipc/settings.ts`,
+`src/features/settings/DiagnosticsSettings.tsx`,
+`src/features/settings/SettingsPage.tsx`
+
+**Estimated scope:** M
+
+## Checkpoint R: Settings Complete
+
+- [ ] T61-T68 acceptance criteria pass.
+- [ ] Settings opens from the sidebar and `Command+,` and restores its group.
+- [ ] Appearance, lifecycle, refresh, editor, backup, privacy, and diagnostics
+      behavior persists through restart.
+- [ ] Reset, backup deletion, and managed-configuration mutation remain separate.
+- [ ] Launch at login remains unavailable unless separately approved.
+
+## T69: Complete desktop completeness verification and documentation
+
+**Description:** Run the approved project gates, trace all five revision specs
+to evidence, record manual/external gates accurately, and update user-facing
+documentation without publishing.
+
+**Acceptance criteria:**
+- [ ] Every T45-T68 criterion maps to implementation evidence or an explicit
+      approved blocker.
+- [ ] Native shell, baseline inventory, configuration platform, catalog
+      coverage, and Settings behavior match the approved specifications.
+- [ ] Existing T01-T44 manual/signing/external blockers remain intact and no
+      automated check reads or mutates real user configuration.
+
+**Verification:**
+- [ ] `pnpm check`
+- [ ] `pnpm test:e2e`
+- [ ] `pnpm build:unsigned`
+- [ ] Manual: complete fixed-window, keyboard, VoiceOver, contrast,
+      reduced-motion, tray, icon, settings persistence, and baseline coverage
+      review where local permissions and credentials allow.
+
+**Dependencies:** T46, T47, T48, T49, T50, T53, T57, T60, T63, T64, T65, T66,
+T67, T68
+
+**Parallel wave:** W7, integration only
+
+**Checkpoint:** S
+
+**Risks:** Passing automation can conceal unavailable signing or human-interface
+evidence; retain every unperformed manual/external item as unchecked.
+
+**Files likely touched:** `README.md`, `docs/release-readiness.md`,
+`docs/managed-app-schema.md`, `docs/home-baseline-coverage.md`,
+`tasks/todo.md`
+
+**Estimated scope:** M
+
+## Checkpoint S: Desktop Completeness Complete
+
+- [ ] T45-T69 acceptance criteria pass or retain an explicit approved blocker.
+- [ ] `pnpm check`, `pnpm test:e2e`, and `pnpm build:unsigned` pass.
+- [ ] All five approved revision specifications are traced to evidence.
+- [ ] Existing manual, signing, notarization, GitHub-hosted CI, and local
+      Computer Use blockers remain accurately documented.
+- [ ] No automated verification reads or mutates real user configuration.
