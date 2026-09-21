@@ -864,6 +864,210 @@
         "DETECT",
         "READ_CONFIG"
       ]
+    },
+    {
+      "id": "zed",
+      "displayName": "Zed",
+      "description": "Fast collaborative code editor. This definition covers the shared user settings document without assuming access to project-local configuration.",
+      "iconKey": "zed",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Development Tools"
+      },
+      "executables": [
+        "zed"
+      ],
+      "brewFormulae": [],
+      "brewCasks": [
+        "zed"
+      ],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "EXECUTABLE",
+          "value": "zed"
+        },
+        {
+          "kind": "BREW_CASK",
+          "value": "zed"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.config/zed/settings.json"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "zed-settings",
+          "purpose": "Shared Zed user settings",
+          "pathTemplate": "~/.config/zed/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "xdg-settings",
+              "root": "XDG_CONFIG_HOME",
+              "relativePath": "zed/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSONC",
+          "formatFamily": "JSONC",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "neovim",
+      "displayName": "Neovim",
+      "description": "Extensible terminal editor. Lua and Vimscript entry points are modeled separately and remain metadata-only because no approved parser exists.",
+      "iconKey": "neovim",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Development Tools"
+      },
+      "executables": [
+        "nvim"
+      ],
+      "brewFormulae": [
+        "neovim"
+      ],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "EXECUTABLE",
+          "value": "nvim"
+        },
+        {
+          "kind": "BREW_FORMULA",
+          "value": "neovim"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.config/nvim/init.lua"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.config/nvim/init.vim"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "neovim-init-lua",
+          "purpose": "Neovim Lua entry point",
+          "pathTemplate": "~/.config/nvim/init.lua",
+          "pathVariants": [
+            {
+              "variantId": "xdg-init-lua",
+              "root": "XDG_CONFIG_HOME",
+              "relativePath": "nvim/init.lua",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
+          "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        },
+        {
+          "configId": "neovim-init-vim",
+          "purpose": "Neovim Vimscript entry point",
+          "pathTemplate": "~/.config/nvim/init.vim",
+          "pathVariants": [
+            {
+              "variantId": "xdg-init-vim",
+              "root": "XDG_CONFIG_HOME",
+              "relativePath": "nvim/init.vim",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
+          "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "iterm2",
+      "displayName": "iTerm2",
+      "description": "macOS terminal emulator. The default preferences plist is bounded and read-only; custom preference folders remain outside catalog authorization.",
+      "iconKey": "iterm2",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Terminal"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [
+        "iterm2"
+      ],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "BREW_CASK",
+          "value": "iterm2"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Preferences/com.googlecode.iterm2.plist"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "iterm2-preferences",
+          "purpose": "Default iTerm2 preferences",
+          "pathTemplate": "~/Library/Preferences/com.googlecode.iterm2.plist",
+          "pathVariants": [
+            {
+              "variantId": "macos-preferences",
+              "root": "HOME",
+              "relativePath": "Library/Preferences/com.googlecode.iterm2.plist",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "PLIST",
+          "formatFamily": "PLIST",
+          "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 2097152,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
     }
   ]
 }

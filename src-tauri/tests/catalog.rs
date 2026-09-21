@@ -14,22 +14,35 @@ fn mutate_catalog(mutator: impl FnOnce(&mut Value)) -> String {
     serde_json::to_string(&document).expect("mutated catalog should serialize")
 }
 
+fn stable_hash(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf29ce484222325, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+    })
+}
+
 #[test]
-fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch() {
+fn catalog_preserves_existing_definitions_and_adds_the_editor_terminal_batch() {
     let catalog = parse_catalog(BUILTIN_CATALOG_JSON).expect("built-in catalog should validate");
+    let t58_start = BUILTIN_CATALOG_JSON
+        .find(",\n    {\n      \"id\": \"zed\"")
+        .expect("T58 catalog batch");
     let ids = catalog
         .apps()
         .iter()
         .map(|app| app.id())
         .collect::<Vec<_>>();
 
+    assert_eq!(
+        stable_hash(BUILTIN_CATALOG_JSON[..t58_start].as_bytes()),
+        0x2bde398b0bddd10f
+    );
     assert_eq!(catalog.schema_version(), CATALOG_SCHEMA_VERSION);
     assert_eq!(
         ids[..6],
         ["github-copilot", "caddy", "git", "openssh", "zsh", "npm",]
     );
     assert_eq!(
-        ids[6..],
+        ids[6..12],
         [
             "visual-studio-code",
             "cursor",
@@ -39,6 +52,7 @@ fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch()
             "vim",
         ]
     );
+    assert_eq!(ids[12..], ["zed", "neovim", "iterm2"]);
     for app in &catalog.apps()[..6] {
         assert_eq!(app.coverage_class(), CatalogCoverageClass::ManagedWritable);
         assert!(
@@ -58,6 +72,124 @@ fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch()
             app.config_documents()
                 .iter()
                 .all(|document| document.is_read_only())
+        );
+    }
+
+    let existing_read_only_documents = [
+        (
+            "visual-studio-code",
+            vec![
+                (
+                    "visual-studio-code-settings",
+                    "~/Library/Application Support/Code/User/settings.json",
+                ),
+                (
+                    "visual-studio-code-insiders-settings",
+                    "~/Library/Application Support/Code - Insiders/User/settings.json",
+                ),
+            ],
+        ),
+        (
+            "cursor",
+            vec![(
+                "cursor-settings",
+                "~/Library/Application Support/Cursor/User/settings.json",
+            )],
+        ),
+        (
+            "ghostty",
+            vec![
+                (
+                    "ghostty-macos-config",
+                    "~/Library/Application Support/com.mitchellh.ghostty/config",
+                ),
+                ("ghostty-xdg-config", "~/.config/ghostty/config"),
+            ],
+        ),
+        (
+            "starship",
+            vec![("starship-config", "~/.config/starship.toml")],
+        ),
+        (
+            "tmux",
+            vec![
+                ("tmux-config", "~/.tmux.conf"),
+                ("tmux-xdg-config", "~/.config/tmux/tmux.conf"),
+            ],
+        ),
+        (
+            "vim",
+            vec![
+                ("vimrc", "~/.vimrc"),
+                ("vim-runtime-config", "~/.vim/vimrc"),
+            ],
+        ),
+    ];
+    for (app_id, expected_documents) in existing_read_only_documents {
+        let app = catalog
+            .apps()
+            .iter()
+            .find(|app| app.id() == app_id)
+            .expect("existing read-only application");
+        let actual_documents = app
+            .config_documents()
+            .iter()
+            .map(|document| (document.config_id(), document.path_template()))
+            .collect::<Vec<_>>();
+        assert_eq!(actual_documents, expected_documents);
+    }
+
+    let expected_new_documents = [
+        (
+            "zed",
+            vec![("zed-settings", "zed/settings.json", "JSONC")],
+            "SECRET",
+        ),
+        (
+            "neovim",
+            vec![
+                ("neovim-init-lua", "nvim/init.lua", "TEXT"),
+                ("neovim-init-vim", "nvim/init.vim", "TEXT"),
+            ],
+            "SENSITIVE",
+        ),
+        (
+            "iterm2",
+            vec![(
+                "iterm2-preferences",
+                "Library/Preferences/com.googlecode.iterm2.plist",
+                "PLIST",
+            )],
+            "SENSITIVE",
+        ),
+    ];
+    for (app_id, expected_documents, expected_sensitivity) in expected_new_documents {
+        let app = catalog
+            .apps()
+            .iter()
+            .find(|app| app.id() == app_id)
+            .expect("new read-only application");
+        assert!(
+            app.detection_rules()
+                .iter()
+                .any(|rule| rule.kind() == "HOME_PATH")
+        );
+        let actual_documents = app
+            .config_documents()
+            .iter()
+            .map(|document| {
+                (
+                    document.config_id(),
+                    document.path_variants()[0].relative_path(),
+                    document.format(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(actual_documents, expected_documents);
+        assert!(
+            app.config_documents()
+                .iter()
+                .all(|document| document.sensitivity() == expected_sensitivity)
         );
     }
     assert!(
@@ -106,7 +238,7 @@ fn catalog_ipc_summary_exposes_only_sanitized_path_variants() {
             .as_array()
             .expect("applications should be an array")
             .len(),
-        12
+        15
     );
     assert!(encoded.contains("pathVariants"));
     assert!(encoded.contains("HOMEBREW_PREFIX"));

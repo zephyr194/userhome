@@ -62,6 +62,34 @@ coverage equations still balanced and every exported path passed the alias and
 privacy checks. The raw JSON was streamed through the validator and was not
 written to disk.
 
+## T58 editor and terminal comparison
+
+The T58 catalog batch was compared with the same approved root mapping using
+existence-only checks. No file content or absolute private path was printed.
+`Present` means the exact catalog document existed in the local baseline;
+`Absent` remains useful catalog coverage and does not trigger broader
+discovery.
+
+| Application | Safe catalog documents | Baseline evidence |
+|---|---|---|
+| Visual Studio Code | `APPLICATION_SUPPORT/Code/User/settings.json`; `APPLICATION_SUPPORT/Code - Insiders/User/settings.json` | Both channels present |
+| Cursor | `APPLICATION_SUPPORT/Cursor/User/settings.json` | Absent |
+| Zed | `XDG_CONFIG_HOME/zed/settings.json` | Present |
+| Vim | `HOME/.vimrc`; `HOME/.vim/vimrc` | Primary present; runtime document absent |
+| Neovim | `XDG_CONFIG_HOME/nvim/init.lua`; `XDG_CONFIG_HOME/nvim/init.vim` | Both entry points absent |
+| Ghostty | `APPLICATION_SUPPORT/com.mitchellh.ghostty/config`; `XDG_CONFIG_HOME/ghostty/config` | XDG document present; macOS document absent |
+| iTerm2 | `HOME/Library/Preferences/com.googlecode.iterm2.plist` | Present |
+| tmux | `HOME/.tmux.conf`; `XDG_CONFIG_HOME/tmux/tmux.conf` | Both documents absent |
+| Starship | `XDG_CONFIG_HOME/starship.toml` | Present |
+
+Stable and Insiders VS Code settings share one application identity because
+their JSON settings semantics match, but they remain distinct documents.
+Cursor stays a separate product identity. Vim and Neovim also remain separate;
+Neovim's Lua and Vimscript entry points are not modeled as variants because
+their languages are not interchangeable. Missing paths, project-local files,
+custom iTerm2 preference folders, and recursive plugin/runtime trees are not
+inferred or scanned.
+
 ## Handling exported data
 
 Use the IPC result directly for local catalog analysis. If a temporary JSON

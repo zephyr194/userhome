@@ -1913,16 +1913,28 @@ editor.
 Code channels, Cursor, Zed, Vim, Neovim, Ghostty, iTerm2, tmux, and Starship.
 
 **Acceptance criteria:**
-- [ ] Each application has detection evidence and at least one managed document
+- [x] Each application has detection evidence and at least one managed document
       or a precise safe exclusion.
-- [ ] Product channels share identities only when configuration semantics match.
-- [ ] Existing six writable and six read-only definitions remain unchanged in
+- [x] Product channels share identities only when configuration semantics match.
+- [x] Existing six writable and six read-only definitions remain unchanged in
       authorization and behavior.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test`
-- [ ] Manual: compare this batch with the sanitized baseline manifest.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm lint && pnpm typecheck && pnpm test`
+- [x] Manual: compare this batch with the sanitized baseline manifest.
+
+**Evidence:** The catalog retains the original six writable and six read-only
+application definitions, then adds bounded read-only definitions for Zed,
+Neovim, and iTerm2. VS Code stable and Insiders remain distinct documents
+under one identity because their settings semantics match; Cursor, Vim, and
+Neovim remain separate product identities, and Neovim's Lua and Vimscript
+entry points remain separate metadata-only documents. Existing catalog tests
+now lock the original application order, document IDs, paths, and write
+prohibition while checking the new exact detection evidence, formats, and
+sensitivity; all 11 targeted catalog tests, lint, typecheck, and all 66 Vitest
+tests passed, and the existence-only baseline comparison is recorded without
+absolute paths in `docs/home-baseline-coverage.md`.
 
 **Dependencies:** T53, T54, T56
 

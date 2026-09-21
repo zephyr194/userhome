@@ -109,14 +109,15 @@ diagnostic rather than raw text. Binary input fails UTF-8 validation before
 format handling; unsupported, database, credential, cache, log, socket, and
 runtime-state documents have no generic raw-content capability.
 
-## Current bounded read-only batch
+## Current bounded read-only catalog
 
-The T41 batch adds six locally relevant definitions. Every detection rule is an
-exact `HOME_PATH`; discovery performs ten bounded metadata checks and does
-not scan the home directory. These definitions declare no executable,
-Homebrew, service, elevation, or write authority. Every document uses the
-generic `read-only-text` adapter, `text` validator, a finite size limit, and
-`READ_ONLY`.
+The original T41 batch adds six locally relevant definitions with exact
+`HOME_PATH` evidence. T58 preserves those application identities, document
+IDs, paths, and authorization while adding Zed, Neovim, and iTerm2. New
+executable and Homebrew identifiers are detection evidence only; they do not
+grant execution, package-management, service, elevation, or write authority.
+Every document uses the generic `read-only-text` adapter, `text` validator, a
+finite size limit, and `READ_ONLY`.
 
 | App ID | Detection and path variants | Sensitivity | Format | Presentation | Coverage |
 |---|---|---|---|---|---|
@@ -126,20 +127,29 @@ generic `read-only-text` adapter, `text` validator, a finite size limit, and
 | `starship` | `~/.config/starship.toml` | `SENSITIVE` | `TEXT` | `starship`, Shell | `MANAGED_READ_ONLY` |
 | `tmux` | `~/.tmux.conf`; `~/.config/tmux/tmux.conf` | `SENSITIVE` | `TEXT` | `tmux`, 终端 | `MANAGED_READ_ONLY` |
 | `vim` | `~/.vimrc`; `~/.vim/vimrc` | `SENSITIVE` | `TEXT` | `vim`, 编辑器 | `MANAGED_READ_ONLY` |
+| `zed` | `XDG_CONFIG_HOME/zed/settings.json` | `SECRET` | `JSONC` | `zed`, 编辑器 | `MANAGED_READ_ONLY` |
+| `neovim` | `XDG_CONFIG_HOME/nvim/init.lua`; `XDG_CONFIG_HOME/nvim/init.vim` | `SENSITIVE` | `TEXT` | `neovim`, 编辑器 | `MANAGED_READ_ONLY` |
+| `iterm2` | `~/Library/Preferences/com.googlecode.iterm2.plist` | `SENSITIVE` | `PLIST` | `iterm2`, 终端 | `MANAGED_READ_ONLY` |
 
 `TEXT` describes a generic UTF-8 text document; it does not imply a
 format-specific parser or validator. The current `SENSITIVE` plain-text
 documents are metadata-only because no reliable parser and redactor has been
-approved. Known credential, token, key, history, cache, log, database, socket,
-and runtime-state paths remain outside this batch.
+approved. Neovim's Lua and Vimscript entry points therefore remain separate
+documents instead of being presented as interchangeable variants. Zed settings
+can embed command environment values, so the document is `SECRET` and remains
+metadata-only even though its JSONC syntax is recognized. iTerm2's plist
+remains metadata-only when UTF-8 and returns an invalid diagnostic for binary
+input, so neither representation exposes raw preferences. Custom iTerm2
+preference folders and known credential, token, key, history, cache, log,
+database, socket, and runtime-state paths remain outside this batch.
 
 ## Runtime presentation and authorization
 
 The Applications workspace renders catalog entries from `iconKey`,
 `presentation.category`, `coverageClass`, and sanitized document metadata. The
 catalog IPC may expose typed root aliases and normalized relative paths, but it
-does not expose absolute filesystem paths. The current catalog contains 12
-definitions: six `MANAGED_WRITABLE` baseline applications and the six
+does not expose absolute filesystem paths. The current catalog contains 15
+definitions: six `MANAGED_WRITABLE` baseline applications and the nine
 `MANAGED_READ_ONLY` definitions above. Search, category, and coverage filters
 do not change authorization.
 
