@@ -1771,15 +1771,25 @@ safe display path, retryability, and next action for missing, invalid,
 redacted, oversized, denied, unsafe, unsupported, and I/O outcomes.
 
 **Acceptance criteria:**
-- [ ] `resolve_config_variants`, `read_config`, and `diagnose_config` expose
+- [x] `resolve_config_variants`, `read_config`, and `diagnose_config` expose
       stable typed contracts.
-- [ ] Failed reads never appear as empty successful documents.
-- [ ] One malformed document does not block unrelated documents or applications.
+- [x] Failed reads never appear as empty successful documents.
+- [x] One malformed document does not block unrelated documents or applications.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test`
-- [ ] Manual: inspect every diagnostic state without exposing a private path.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [x] `pnpm lint && pnpm typecheck && pnpm test`
+- [x] Manual: inspect every diagnostic state without exposing a private path.
+
+**Evidence:** Configuration resolution now evaluates bounded root-relative
+variants in precedence order, selects the first non-missing entry, and exposes
+typed resolution, read, and diagnostic commands with optional exact
+`variantId` selection. All nine document states serialize only catalog IDs,
+safe `~` or root-alias display paths, retryability, and a fixed next action;
+failed states contain no content, structured values, or writable hash. The
+targeted Rust run passed 37 config tests, including fallback selection and
+malformed-document isolation, while frontend lint, typecheck, and all 51 Vitest
+tests passed.
 
 **Dependencies:** T54
 

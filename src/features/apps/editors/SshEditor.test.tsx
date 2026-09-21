@@ -9,7 +9,11 @@ describe("SshEditor", () => {
         document={{
           appId: "openssh",
           configId: "ssh-client-config",
+          variantId: "primary",
           displayPath: "~/.ssh/config",
+          state: "READY",
+          retryable: false,
+          nextAction: "NONE",
           format: "SSH_CONFIG",
           sensitivity: "SENSITIVE",
           writePolicy: "STRUCTURED_AND_RAW",

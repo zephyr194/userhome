@@ -9,7 +9,11 @@ describe("ConfigDetails", () => {
         document={{
           appId: "git",
           configId: "git-global-config",
+          variantId: "primary",
           displayPath: "~/.gitconfig",
+          state: "REDACTED",
+          retryable: false,
+          nextAction: "VIEW_REDACTED",
           format: "GIT_CONFIG",
           sensitivity: "SENSITIVE",
           writePolicy: "STRUCTURED_AND_RAW",
@@ -38,7 +42,11 @@ describe("ConfigDetails", () => {
         document={{
           appId: "npm",
           configId: "npm-user-config",
+          variantId: "primary",
           displayPath: "~/.npmrc",
+          state: "REDACTED",
+          retryable: false,
+          nextAction: "VIEW_REDACTED",
           format: "INI",
           sensitivity: "SECRET",
           writePolicy: "STRUCTURED_AND_RAW",

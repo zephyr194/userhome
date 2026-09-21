@@ -16,7 +16,10 @@ import {
   previewStructuredConfigWrite,
   readConfig,
   type BackupSummary,
+  type ConfigDiagnostic,
   type ConfigDocument,
+  type ConfigDocumentState,
+  type ConfigNextAction,
   type ConfigSummary,
   type ConfigWritePreview as ConfigWritePreviewValue,
 } from "../../ipc/config";
@@ -45,6 +48,7 @@ type DocumentState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "ready"; document: ConfigDocument }
+  | { status: "diagnostic"; diagnostic: ConfigDiagnostic }
   | { status: "error"; error: AppError };
 
 type PreviewState =
@@ -88,6 +92,30 @@ const COVERAGE_PRESENTATION: Record<
     description: "此类数据被明确排除，仅保留分类元数据。",
     tone: "warning",
   },
+};
+
+const CONFIG_STATE_LABELS: Record<ConfigDocumentState, string> = {
+  MISSING: "不存在",
+  READY: "可读取",
+  INVALID: "内容无效",
+  REDACTED: "已屏蔽",
+  TOO_LARGE: "超过大小限制",
+  PERMISSION_DENIED: "权限不足",
+  UNSAFE_SYMLINK: "链接不安全",
+  UNSUPPORTED_FORMAT: "格式不支持",
+  IO_ERROR: "读取失败",
+};
+
+const CONFIG_ACTION_LABELS: Record<ConfigNextAction, string> = {
+  NONE: "无需操作",
+  CREATE_FILE: "创建配置文件后重试",
+  FIX_CONTENT: "修复配置内容后重试",
+  VIEW_REDACTED: "查看已屏蔽的安全视图",
+  REDUCE_SIZE: "缩小文件后重试",
+  REVIEW_PERMISSIONS: "检查文件权限后重试",
+  REPAIR_SYMLINK: "修复不安全的符号链接",
+  UPDATE_CATALOG: "更新 catalog 能力定义",
+  RETRY: "稍后重试",
 };
 
 function configEditorKey(
@@ -163,14 +191,19 @@ export function ConfigWorkspace({
           : Promise.resolve([]),
         canWrite ? listOperations() : Promise.resolve([]),
       ]);
-      setDocument({ status: "ready", document: value });
-      setDraft(value.content ?? "");
       setBackups(backupValues);
       setOperations(
         operationValues.filter((operation) =>
           operation.summary.includes("configuration"),
         ),
       );
+      if (value.state !== "READY" && value.state !== "REDACTED") {
+        setDocument({ status: "diagnostic", diagnostic: value });
+        setDraft("");
+        return;
+      }
+      setDocument({ status: "ready", document: value });
+      setDraft(value.content ?? "");
     } catch (error) {
       setDocument({ status: "error", error: decodeAppError(error) });
     }
@@ -393,7 +426,7 @@ export function ConfigWorkspace({
                           {editorKey ?? "通用元数据视图"}
                         </span>
                         <span className="mt-0.5 block">
-                          {config.exists ? "打开" : "不存在"}
+                          {CONFIG_STATE_LABELS[config.state]}
                         </span>
                       </span>
                     </button>
@@ -408,6 +441,13 @@ export function ConfigWorkspace({
           <AsyncState kind="loading">正在读取配置…</AsyncState>
         ) : document.status === "error" ? (
           <AsyncState kind="error">{document.error.message}</AsyncState>
+        ) : document.status === "diagnostic" ? (
+          <AsyncState
+            kind={document.diagnostic.retryable ? "error" : "empty"}
+          >
+            {CONFIG_STATE_LABELS[document.diagnostic.state]}；下一步：
+            {CONFIG_ACTION_LABELS[document.diagnostic.nextAction]}
+          </AsyncState>
         ) : document.status === "ready" ? (
           <div className="grid min-w-0 gap-3">
             <ConfigDetails document={document.document} />

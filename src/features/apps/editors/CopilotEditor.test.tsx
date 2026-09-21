@@ -9,7 +9,11 @@ describe("CopilotEditor", () => {
         document={{
           appId: "github-copilot",
           configId: "copilot-settings",
+          variantId: "primary",
           displayPath: "~/.copilot/settings.json",
+          state: "READY",
+          retryable: false,
+          nextAction: "NONE",
           format: "JSON",
           sensitivity: "SENSITIVE",
           writePolicy: "STRUCTURED_AND_RAW",

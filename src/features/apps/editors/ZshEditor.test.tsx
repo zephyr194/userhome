@@ -9,7 +9,11 @@ describe("ZshEditor", () => {
         document={{
           appId: "zsh",
           configId: "zshrc",
+          variantId: "primary",
           displayPath: "~/.zshrc",
+          state: "READY",
+          retryable: false,
+          nextAction: "NONE",
           format: "SHELL",
           sensitivity: "SENSITIVE",
           writePolicy: "MANAGED_BLOCK",

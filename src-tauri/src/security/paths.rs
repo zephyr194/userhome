@@ -22,6 +22,8 @@ pub enum CatalogPathRoot {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathPolicyError {
     NotFound,
+    PermissionDenied,
+    Io,
     OutsideAuthorizedRoot,
     UnsupportedEntry,
 }
@@ -48,32 +50,34 @@ pub fn resolve_catalog_path(
         return Err(PathPolicyError::OutsideAuthorizedRoot);
     };
 
-    if relative.is_empty()
-        || Path::new(relative)
-            .components()
-            .any(|component| !matches!(component, Component::Normal(_)))
-    {
+    resolve_rooted_catalog_path(root, relative, display_prefix)
+}
+
+pub fn resolve_rooted_catalog_path(
+    root: &Path,
+    relative: &str,
+    display_root: &str,
+) -> Result<AuthorizedPath, PathPolicyError> {
+    if !is_safe_catalog_relative_path(relative) {
         return Err(PathPolicyError::OutsideAuthorizedRoot);
     }
 
-    let canonical_root = fs::canonicalize(root).map_err(|_| PathPolicyError::NotFound)?;
+    let canonical_root = fs::canonicalize(root).map_err(classify_io_error)?;
     let logical_path = root.join(relative);
-    let display_path = format!("{display_prefix}/{relative}");
+    let display_path = format!("{display_root}/{relative}");
 
     match fs::symlink_metadata(&logical_path) {
         Ok(metadata) if metadata.file_type().is_symlink() => {
-            let target_path =
-                fs::canonicalize(&logical_path).map_err(|_| PathPolicyError::NotFound)?;
+            let target_path = fs::canonicalize(&logical_path).map_err(classify_io_error)?;
             ensure_contained(&target_path, &canonical_root)?;
-            let target_metadata =
-                fs::metadata(&target_path).map_err(|_| PathPolicyError::NotFound)?;
+            let target_metadata = fs::metadata(&target_path).map_err(classify_io_error)?;
             if !target_metadata.is_file() && !target_metadata.is_dir() {
                 return Err(PathPolicyError::UnsupportedEntry);
             }
             let target_relative = target_path
                 .strip_prefix(&canonical_root)
                 .map_err(|_| PathPolicyError::OutsideAuthorizedRoot)?;
-            let symlink_target = format!("{display_prefix}/{}", target_relative.to_string_lossy());
+            let symlink_target = format!("{display_root}/{}", target_relative.to_string_lossy());
             Ok(AuthorizedPath {
                 logical_path,
                 target_path,
@@ -85,8 +89,7 @@ pub fn resolve_catalog_path(
             if !metadata.is_file() && !metadata.is_dir() {
                 return Err(PathPolicyError::UnsupportedEntry);
             }
-            let target_path =
-                fs::canonicalize(&logical_path).map_err(|_| PathPolicyError::NotFound)?;
+            let target_path = fs::canonicalize(&logical_path).map_err(classify_io_error)?;
             ensure_contained(&target_path, &canonical_root)?;
             Ok(AuthorizedPath {
                 logical_path,
@@ -97,8 +100,7 @@ pub fn resolve_catalog_path(
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
             let parent = logical_path.parent().ok_or(PathPolicyError::NotFound)?;
-            let canonical_parent =
-                fs::canonicalize(parent).map_err(|_| PathPolicyError::NotFound)?;
+            let canonical_parent = fs::canonicalize(parent).map_err(classify_io_error)?;
             ensure_contained(&canonical_parent, &canonical_root)?;
             let file_name = logical_path
                 .file_name()
@@ -111,7 +113,15 @@ pub fn resolve_catalog_path(
                 symlink_target: None,
             })
         }
-        Err(_) => Err(PathPolicyError::NotFound),
+        Err(error) => Err(classify_io_error(error)),
+    }
+}
+
+fn classify_io_error(error: std::io::Error) -> PathPolicyError {
+    match error.kind() {
+        std::io::ErrorKind::NotFound => PathPolicyError::NotFound,
+        std::io::ErrorKind::PermissionDenied => PathPolicyError::PermissionDenied,
+        _ => PathPolicyError::Io,
     }
 }
 

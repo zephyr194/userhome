@@ -47,7 +47,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::catalog::list_managed_apps,
             commands::config::list_configs,
+            commands::config::resolve_config_variants,
             commands::config::read_config,
+            commands::config::diagnose_config,
             commands::config::validate_config,
             commands::config::preview_config_write,
             commands::config::preview_structured_config_write,

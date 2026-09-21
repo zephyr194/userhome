@@ -1,4 +1,9 @@
-import { createInternalError, invokeCommand, isRecord } from "./core";
+import {
+  createInternalError,
+  hasControlCharacters,
+  invokeCommand,
+  isRecord,
+} from "./core";
 
 export const CATALOG_SCHEMA_VERSION = 1;
 const MAX_MANAGED_APPS = 32;
@@ -250,7 +255,7 @@ function decodeRelativePath(value: unknown): string {
     relativePath.startsWith("/") ||
     relativePath.includes("\\") ||
     relativePath.includes("\0") ||
-    /[\u0000-\u001f\u007f]/.test(relativePath) ||
+    hasControlCharacters(relativePath) ||
     parts.some((part) => part.length === 0 || part === "." || part === "..")
   ) {
     throw createInternalError();

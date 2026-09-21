@@ -9,7 +9,11 @@ describe("GitEditor", () => {
         document={{
           appId: "git",
           configId: "git-global-config",
+          variantId: "primary",
           displayPath: "~/.gitconfig",
+          state: "REDACTED",
+          retryable: false,
+          nextAction: "VIEW_REDACTED",
           format: "GIT_CONFIG",
           sensitivity: "SENSITIVE",
           writePolicy: "STRUCTURED_AND_RAW",

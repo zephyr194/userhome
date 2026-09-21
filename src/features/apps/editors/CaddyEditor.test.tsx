@@ -9,7 +9,11 @@ describe("CaddyEditor", () => {
         document={{
           appId: "caddy",
           configId: "caddyfile",
+          variantId: "primary",
           displayPath: "${HOMEBREW_PREFIX}/etc/Caddyfile",
+          state: "READY",
+          retryable: false,
+          nextAction: "NONE",
           format: "CADDYFILE",
           sensitivity: "STANDARD",
           writePolicy: "STRUCTURED_AND_RAW",

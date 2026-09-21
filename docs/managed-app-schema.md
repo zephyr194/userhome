@@ -143,6 +143,45 @@ Discovery evidence and UI selection never promote an entry to a broader
 coverage class. Authorization continues to come only from the validated
 built-in Rust catalog.
 
+## Typed resolution and diagnostics
+
+Configuration reads resolve catalog variants in ascending `precedence`. The
+first non-`MISSING` variant is selected; an unsafe, denied, invalid, or
+unsupported higher-precedence entry fails closed instead of silently falling
+through to a lower-precedence file. Callers may request an exact `variantId`,
+but they never submit a path.
+
+The configuration IPC exposes three contracts:
+
+- `resolve_config_variants` returns every bounded variant with one selected
+  entry, safe display metadata, and no content.
+- `read_config` returns the selected or requested variant with an explicit
+  state. Content and structured data are present only for `READY` or
+  `REDACTED`.
+- `diagnose_config` returns only the selected or requested diagnostic.
+
+Every result contains `appId`, `configId`, `variantId`, a root-alias
+`displayPath`, `state`, `retryable`, and `nextAction`. Diagnostic states and
+actions are fixed:
+
+| State | Next action | Retryable |
+|---|---|---|
+| `MISSING` | `CREATE_FILE` | No |
+| `READY` | `NONE` | No |
+| `INVALID` | `FIX_CONTENT` | No |
+| `REDACTED` | `VIEW_REDACTED` | No |
+| `TOO_LARGE` | `REDUCE_SIZE` | No |
+| `PERMISSION_DENIED` | `REVIEW_PERMISSIONS` | No |
+| `UNSAFE_SYMLINK` | `REPAIR_SYMLINK` | No |
+| `UNSUPPORTED_FORMAT` | `UPDATE_CATALOG` | No |
+| `IO_ERROR` | `RETRY` | Yes |
+
+Failed reads never serialize content, structured values, or a writable content
+hash. Listing an application's documents isolates each read result, so one
+invalid document remains visible as `INVALID` without preventing other
+documents from loading. Display and symlink paths use `~` or typed root aliases;
+absolute private paths and low-level I/O details never cross IPC.
+
 ## Compatibility rules
 
 - Increment `schemaVersion` only for additive schema changes.

@@ -1,6 +1,11 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { describe, expect, it } from "vitest";
-import { previewStructuredConfigWrite, readConfig } from "./config";
+import {
+  diagnoseConfig,
+  previewStructuredConfigWrite,
+  readConfig,
+  resolveConfigVariants,
+} from "./config";
 
 describe("config IPC", () => {
   it("decodes adapter fields and redacted raw content", async () => {
@@ -12,7 +17,11 @@ describe("config IPC", () => {
       return {
         appId: "npm",
         configId: "npm-user-config",
+        variantId: "primary",
         displayPath: "~/.npmrc",
+        state: "REDACTED",
+        retryable: false,
+        nextAction: "VIEW_REDACTED",
         format: "INI",
         sensitivity: "SECRET",
         writePolicy: "STRUCTURED_AND_RAW",
@@ -67,5 +76,60 @@ describe("config IPC", () => {
         fields: { userName: "Example" },
       }),
     ).resolves.toMatchObject({ operationId: "op-1", proposedHash: "after" });
+  });
+
+  it("decodes variant resolution and typed diagnostics", async () => {
+    const summary = {
+      appId: "starship",
+      configId: "starship-config",
+      format: "TOML",
+      sensitivity: "SENSITIVE",
+      writePolicy: "READ_ONLY",
+      entryKind: null,
+      sizeBytes: null,
+      modifiedAtEpochMs: null,
+      mode: null,
+      contentHash: null,
+      symlink: null,
+    };
+    mockIPC((command, payload) => {
+      expect(payload).toEqual({
+        key: { appId: "starship", configId: "starship-config" },
+      });
+      if (command === "resolve_config_variants") {
+        return [
+          {
+            ...summary,
+            variantId: "xdg",
+            displayPath: "XDG_CONFIG_HOME/starship.toml",
+            state: "MISSING",
+            retryable: false,
+            nextAction: "CREATE_FILE",
+            exists: false,
+            selected: true,
+          },
+        ];
+      }
+      expect(command).toBe("diagnose_config");
+      return {
+        appId: "starship",
+        configId: "starship-config",
+        variantId: "xdg",
+        displayPath: "XDG_CONFIG_HOME/starship.toml",
+        state: "MISSING",
+        retryable: false,
+        nextAction: "CREATE_FILE",
+      };
+    });
+
+    await expect(
+      resolveConfigVariants("starship", "starship-config"),
+    ).resolves.toMatchObject([{ selected: true, state: "MISSING" }]);
+    await expect(
+      diagnoseConfig("starship", "starship-config"),
+    ).resolves.toMatchObject({
+      state: "MISSING",
+      nextAction: "CREATE_FILE",
+    });
   });
 });
