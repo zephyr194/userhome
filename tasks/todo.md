@@ -1639,19 +1639,40 @@ deterministic nearest-selection or empty-detail fallback.
 
 ## T50: Complete persistent Services list/detail interaction
 
+**Status:** Implementation and automated verification complete on 2026-09-21;
+manual arrow navigation, refresh, action, and history inspection remains blocked
+because Orca Computer Use cannot enumerate the unsigned E2E application window.
+
 **Description:** Present service inventory, details, actions, and operation
 history through compact list/detail panes with stable service selection.
 
 **Acceptance criteria:**
-- [ ] User, system, manageable, and read-only service states remain explicit.
-- [ ] Selection persists through state refresh when the service still exists.
-- [ ] Destructive or state-changing actions remain separately previewed and
+- [x] User, system, manageable, and read-only service states remain explicit.
+- [x] Selection persists through state refresh when the service still exists.
+- [x] Destructive or state-changing actions remain separately previewed and
       confirmed.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] Manual: verify arrow navigation, state refresh, action flow, and bounded
       history scrolling.
+      The E2E application builds and runs, but Orca Computer Use reports no
+      accessibility window for the unsigned process, so interactive inspection
+      remains an external/manual gate.
+
+**Evidence:** Service selection is keyed by stable `serviceId`, reconciles only
+when a refreshed inventory removes the selected service, and keeps the active
+detail component mounted while matching details refresh. The list implements
+roving focus with Arrow Up/Down and Home/End; state, scope, manageable, and
+read-only labels use text in addition to semantic badge colors. Inventory,
+detail, preview, execution, error, and recent-operation states stay within
+their owning panes, and operation history has its own bounded keyboard-scroll
+region. Preview responses are request-gated against the current service,
+execution is guarded against duplicate confirmation, and state-changing
+actions still require the existing explicit confirmation dialog. ESLint,
+TypeScript, all 50 existing Vitest checks, production Vite build, and E2E
+desktop build pass under the repository's current Node 20.20.2 engine warning;
+the temporary application process was stopped after the blocked manual attempt.
 
 **Dependencies:** T45, T47
 
