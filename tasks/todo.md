@@ -1725,17 +1725,28 @@ precedence rules, format families, purpose, sensitivity, access mode, adapter,
 validator, editor, and size limits to catalog documents.
 
 **Acceptance criteria:**
-- [ ] Documents can declare bounded HOME, XDG, Application Support, Homebrew,
+- [x] Documents can declare bounded HOME, XDG, Application Support, Homebrew,
       and app-support variants without absolute user-specific paths.
-- [ ] JSON/JSONC, TOML, YAML, INI/Git config, key/value, plist, command-oriented,
+- [x] JSON/JSONC, TOML, YAML, INI/Git config, key/value, plist, command-oriented,
       and plain-text families are recognized independently of write authority.
-- [ ] Unknown roots, formats, adapters, validators, editors, and policies reject
+- [x] Unknown roots, formats, adapters, validators, editors, and policies reject
       the candidate catalog while the last known valid catalog remains usable.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm typecheck`
-- [ ] Inspect catalog validation errors for every unknown capability class.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm typecheck`
+- [x] Inspect catalog validation errors for every unknown capability class.
+
+**Evidence:** Schema version 1 now carries additive typed root-relative
+variants, deterministic precedence, format families, purpose, sensitivity,
+access mode, and bounded presentation metadata while retaining each legacy
+`pathTemplate` as an authorization compatibility anchor. The built-in catalog
+was migrated without changing Priority A app/config IDs or paths; IPC emits
+only root aliases and normalized relative paths, never absolute user paths.
+Catalog tests cover all approved roots, every requested read-only format family,
+and explicit rejection for unknown roots, existence rules, formats, format
+families, sensitivities, access modes, adapters, validators, editors, and write
+policies; strict Clippy and TypeScript type checking also passed.
 
 **Dependencies:** T38, T51
 

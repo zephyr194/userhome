@@ -7,20 +7,42 @@
       "description": "管理 Copilot CLI 的用户级 JSON 配置与指令文件。",
       "iconKey": "copilot",
       "coverageClass": "MANAGED_WRITABLE",
-      "presentation": { "category": "AI 开发工具" },
+      "presentation": {
+        "category": "AI 开发工具"
+      },
       "detectionRules": [
-        { "kind": "HOME_PATH", "value": "~/.copilot" },
-        { "kind": "EXECUTABLE", "value": "copilot" }
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.copilot"
+        },
+        {
+          "kind": "EXECUTABLE",
+          "value": "copilot"
+        }
       ],
-      "executables": ["copilot"],
+      "executables": [
+        "copilot"
+      ],
       "brewFormulae": [],
       "brewCasks": [],
       "configDocuments": [
         {
           "configId": "copilot-config",
+          "purpose": "Copilot CLI configuration",
           "pathTemplate": "~/.copilot/config.json",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".copilot/config.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "JSON",
+          "formatFamily": "JSON",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_WRITE",
           "adapterId": "copilot-json",
           "editorKey": "copilot-json",
           "validatorId": "json",
@@ -29,9 +51,21 @@
         },
         {
           "configId": "copilot-settings",
+          "purpose": "Copilot CLI settings",
           "pathTemplate": "~/.copilot/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".copilot/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "JSON",
+          "formatFamily": "JSON",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_WRITE",
           "adapterId": "copilot-json",
           "editorKey": "copilot-json",
           "validatorId": "json",
@@ -40,9 +74,21 @@
         },
         {
           "configId": "copilot-mcp-config",
+          "purpose": "Copilot MCP server configuration",
           "pathTemplate": "~/.copilot/mcp-config.json",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".copilot/mcp-config.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "JSON",
+          "formatFamily": "JSON",
           "sensitivity": "SECRET",
+          "accessMode": "READ_WRITE",
           "adapterId": "copilot-json",
           "editorKey": "copilot-json",
           "validatorId": "json",
@@ -51,9 +97,21 @@
         },
         {
           "configId": "copilot-permissions-config",
+          "purpose": "Copilot permission configuration",
           "pathTemplate": "~/.copilot/permissions-config.json",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".copilot/permissions-config.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "JSON",
+          "formatFamily": "JSON",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_WRITE",
           "adapterId": "copilot-json",
           "editorKey": "copilot-json",
           "validatorId": "json",
@@ -62,9 +120,21 @@
         },
         {
           "configId": "copilot-instructions",
+          "purpose": "Copilot user instructions",
           "pathTemplate": "~/.copilot/copilot-instructions.md",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".copilot/copilot-instructions.md",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "MARKDOWN",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_WRITE",
           "adapterId": "copilot-instructions",
           "editorKey": "copilot-instructions",
           "validatorId": "markdown",
@@ -73,7 +143,11 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG", "WRITE_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG",
+        "WRITE_CONFIG"
+      ]
     },
     {
       "id": "caddy",
@@ -81,25 +155,52 @@
       "description": "管理 Homebrew 安装的 Caddy 配置与用户级服务。",
       "iconKey": "caddy",
       "coverageClass": "MANAGED_WRITABLE",
-      "presentation": { "category": "网络服务" },
+      "presentation": {
+        "category": "网络服务"
+      },
       "detectionRules": [
-        { "kind": "EXECUTABLE", "value": "caddy" },
-        { "kind": "BREW_FORMULA", "value": "caddy" },
-        { "kind": "SERVICE", "value": "caddy" },
+        {
+          "kind": "EXECUTABLE",
+          "value": "caddy"
+        },
+        {
+          "kind": "BREW_FORMULA",
+          "value": "caddy"
+        },
+        {
+          "kind": "SERVICE",
+          "value": "caddy"
+        },
         {
           "kind": "HOMEBREW_PATH",
           "value": "${HOMEBREW_PREFIX}/etc/Caddyfile"
         }
       ],
-      "executables": ["caddy"],
-      "brewFormulae": ["caddy"],
+      "executables": [
+        "caddy"
+      ],
+      "brewFormulae": [
+        "caddy"
+      ],
       "brewCasks": [],
       "configDocuments": [
         {
           "configId": "caddyfile",
+          "purpose": "Caddy server configuration",
           "pathTemplate": "${HOMEBREW_PREFIX}/etc/Caddyfile",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOMEBREW_PREFIX",
+              "relativePath": "etc/Caddyfile",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "CADDYFILE",
+          "formatFamily": "COMMAND",
           "sensitivity": "STANDARD",
+          "accessMode": "READ_WRITE",
           "adapterId": "caddyfile",
           "editorKey": "caddyfile",
           "validatorId": "caddy",
@@ -108,7 +209,9 @@
           "elevationResourceId": "caddy:system-caddyfile"
         }
       ],
-      "services": ["caddy"],
+      "services": [
+        "caddy"
+      ],
       "capabilities": [
         "DETECT",
         "READ_CONFIG",
@@ -122,21 +225,48 @@
       "description": "管理 Git 全局身份、默认分支、别名和安全设置。",
       "iconKey": "git",
       "coverageClass": "MANAGED_WRITABLE",
-      "presentation": { "category": "版本控制" },
+      "presentation": {
+        "category": "版本控制"
+      },
       "detectionRules": [
-        { "kind": "EXECUTABLE", "value": "git" },
-        { "kind": "BREW_FORMULA", "value": "git" },
-        { "kind": "HOME_PATH", "value": "~/.gitconfig" }
+        {
+          "kind": "EXECUTABLE",
+          "value": "git"
+        },
+        {
+          "kind": "BREW_FORMULA",
+          "value": "git"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.gitconfig"
+        }
       ],
-      "executables": ["git"],
-      "brewFormulae": ["git"],
+      "executables": [
+        "git"
+      ],
+      "brewFormulae": [
+        "git"
+      ],
       "brewCasks": [],
       "configDocuments": [
         {
           "configId": "git-global-config",
+          "purpose": "Git global configuration",
           "pathTemplate": "~/.gitconfig",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".gitconfig",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "GIT_CONFIG",
+          "formatFamily": "GIT_CONFIG",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_WRITE",
           "adapterId": "git-config",
           "editorKey": "git-config",
           "validatorId": "git-config",
@@ -145,7 +275,11 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG", "WRITE_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG",
+        "WRITE_CONFIG"
+      ]
     },
     {
       "id": "openssh",
@@ -153,21 +287,48 @@
       "description": "管理 SSH 客户端 Host 配置，不读取任何私钥内容。",
       "iconKey": "openssh",
       "coverageClass": "MANAGED_WRITABLE",
-      "presentation": { "category": "远程访问" },
+      "presentation": {
+        "category": "远程访问"
+      },
       "detectionRules": [
-        { "kind": "EXECUTABLE", "value": "ssh" },
-        { "kind": "BREW_FORMULA", "value": "openssh" },
-        { "kind": "HOME_PATH", "value": "~/.ssh/config" }
+        {
+          "kind": "EXECUTABLE",
+          "value": "ssh"
+        },
+        {
+          "kind": "BREW_FORMULA",
+          "value": "openssh"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.ssh/config"
+        }
       ],
-      "executables": ["ssh"],
-      "brewFormulae": ["openssh"],
+      "executables": [
+        "ssh"
+      ],
+      "brewFormulae": [
+        "openssh"
+      ],
       "brewCasks": [],
       "configDocuments": [
         {
           "configId": "ssh-client-config",
+          "purpose": "OpenSSH client configuration",
           "pathTemplate": "~/.ssh/config",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".ssh/config",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "SSH_CONFIG",
+          "formatFamily": "COMMAND",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_WRITE",
           "adapterId": "ssh-config",
           "editorKey": "ssh-config",
           "validatorId": "ssh-config",
@@ -176,7 +337,11 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG", "WRITE_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG",
+        "WRITE_CONFIG"
+      ]
     },
     {
       "id": "zsh",
@@ -184,21 +349,48 @@
       "description": "管理 .zshrc 中由 UserHome 所有的别名与环境配置块。",
       "iconKey": "zsh",
       "coverageClass": "MANAGED_WRITABLE",
-      "presentation": { "category": "Shell" },
+      "presentation": {
+        "category": "Shell"
+      },
       "detectionRules": [
-        { "kind": "EXECUTABLE", "value": "zsh" },
-        { "kind": "BREW_FORMULA", "value": "zsh" },
-        { "kind": "HOME_PATH", "value": "~/.zshrc" }
+        {
+          "kind": "EXECUTABLE",
+          "value": "zsh"
+        },
+        {
+          "kind": "BREW_FORMULA",
+          "value": "zsh"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.zshrc"
+        }
       ],
-      "executables": ["zsh"],
-      "brewFormulae": ["zsh"],
+      "executables": [
+        "zsh"
+      ],
+      "brewFormulae": [
+        "zsh"
+      ],
       "brewCasks": [],
       "configDocuments": [
         {
           "configId": "zshrc",
+          "purpose": "Zsh user configuration",
           "pathTemplate": "~/.zshrc",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".zshrc",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "SHELL",
+          "formatFamily": "COMMAND",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_WRITE",
           "adapterId": "zsh-managed-block",
           "editorKey": "zsh-managed-block",
           "validatorId": "zsh",
@@ -207,7 +399,11 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG", "WRITE_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG",
+        "WRITE_CONFIG"
+      ]
     },
     {
       "id": "npm",
@@ -215,20 +411,44 @@
       "description": "管理用户级 npm 设置，并始终屏蔽认证信息。",
       "iconKey": "npm",
       "coverageClass": "MANAGED_WRITABLE",
-      "presentation": { "category": "包管理" },
+      "presentation": {
+        "category": "包管理"
+      },
       "detectionRules": [
-        { "kind": "EXECUTABLE", "value": "npm" },
-        { "kind": "HOME_PATH", "value": "~/.npmrc" }
+        {
+          "kind": "EXECUTABLE",
+          "value": "npm"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.npmrc"
+        }
       ],
-      "executables": ["npm"],
-      "brewFormulae": ["node"],
+      "executables": [
+        "npm"
+      ],
+      "brewFormulae": [
+        "node"
+      ],
       "brewCasks": [],
       "configDocuments": [
         {
           "configId": "npm-user-config",
+          "purpose": "npm user configuration",
           "pathTemplate": "~/.npmrc",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".npmrc",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "INI",
+          "formatFamily": "INI",
           "sensitivity": "SECRET",
+          "accessMode": "READ_WRITE",
           "adapterId": "npmrc",
           "editorKey": "npmrc",
           "validatorId": "npmrc",
@@ -237,7 +457,11 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG", "WRITE_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG",
+        "WRITE_CONFIG"
+      ]
     },
     {
       "id": "visual-studio-code",
@@ -245,7 +469,9 @@
       "description": "只读查看 Visual Studio Code 与 Insiders 的用户设置，敏感键值会被屏蔽。",
       "iconKey": "visual-studio-code",
       "coverageClass": "MANAGED_READ_ONLY",
-      "presentation": { "category": "编辑器" },
+      "presentation": {
+        "category": "编辑器"
+      },
       "detectionRules": [
         {
           "kind": "HOME_PATH",
@@ -262,9 +488,21 @@
       "configDocuments": [
         {
           "configId": "visual-studio-code-settings",
+          "purpose": "Visual Studio Code user settings",
           "pathTemplate": "~/Library/Application Support/Code/User/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "Code/User/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "JSON",
+          "formatFamily": "JSON",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -273,9 +511,21 @@
         },
         {
           "configId": "visual-studio-code-insiders-settings",
+          "purpose": "Visual Studio Code Insiders user settings",
           "pathTemplate": "~/Library/Application Support/Code - Insiders/User/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "Code - Insiders/User/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "JSON",
+          "formatFamily": "JSON",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -284,7 +534,10 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ]
     },
     {
       "id": "cursor",
@@ -292,7 +545,9 @@
       "description": "只读查看 Cursor 用户设置，敏感键值会被屏蔽。",
       "iconKey": "cursor",
       "coverageClass": "MANAGED_READ_ONLY",
-      "presentation": { "category": "编辑器" },
+      "presentation": {
+        "category": "编辑器"
+      },
       "detectionRules": [
         {
           "kind": "HOME_PATH",
@@ -305,9 +560,21 @@
       "configDocuments": [
         {
           "configId": "cursor-settings",
+          "purpose": "Cursor user settings",
           "pathTemplate": "~/Library/Application Support/Cursor/User/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "Cursor/User/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "JSON",
+          "formatFamily": "JSON",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -316,7 +583,10 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ]
     },
     {
       "id": "ghostty",
@@ -324,13 +594,18 @@
       "description": "只读检测 Ghostty 的 macOS 与 XDG 用户配置，仅显示文件元数据。",
       "iconKey": "ghostty",
       "coverageClass": "MANAGED_READ_ONLY",
-      "presentation": { "category": "终端" },
+      "presentation": {
+        "category": "终端"
+      },
       "detectionRules": [
         {
           "kind": "HOME_PATH",
           "value": "~/Library/Application Support/com.mitchellh.ghostty/config"
         },
-        { "kind": "HOME_PATH", "value": "~/.config/ghostty/config" }
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.config/ghostty/config"
+        }
       ],
       "executables": [],
       "brewFormulae": [],
@@ -338,9 +613,21 @@
       "configDocuments": [
         {
           "configId": "ghostty-macos-config",
+          "purpose": "Ghostty macOS configuration",
           "pathTemplate": "~/Library/Application Support/com.mitchellh.ghostty/config",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "com.mitchellh.ghostty/config",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -349,9 +636,21 @@
         },
         {
           "configId": "ghostty-xdg-config",
+          "purpose": "Ghostty XDG configuration",
           "pathTemplate": "~/.config/ghostty/config",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "XDG_CONFIG_HOME",
+              "relativePath": "ghostty/config",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -360,7 +659,10 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ]
     },
     {
       "id": "starship",
@@ -368,9 +670,14 @@
       "description": "只读检测默认 XDG 位置的 Starship 提示符配置，仅显示文件元数据。",
       "iconKey": "starship",
       "coverageClass": "MANAGED_READ_ONLY",
-      "presentation": { "category": "Shell" },
+      "presentation": {
+        "category": "Shell"
+      },
       "detectionRules": [
-        { "kind": "HOME_PATH", "value": "~/.config/starship.toml" }
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.config/starship.toml"
+        }
       ],
       "executables": [],
       "brewFormulae": [],
@@ -378,9 +685,21 @@
       "configDocuments": [
         {
           "configId": "starship-config",
+          "purpose": "Starship prompt configuration",
           "pathTemplate": "~/.config/starship.toml",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "XDG_CONFIG_HOME",
+              "relativePath": "starship.toml",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -389,7 +708,10 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ]
     },
     {
       "id": "tmux",
@@ -397,10 +719,18 @@
       "description": "只读检测 tmux 的传统与 XDG 用户配置，仅显示文件元数据。",
       "iconKey": "tmux",
       "coverageClass": "MANAGED_READ_ONLY",
-      "presentation": { "category": "终端" },
+      "presentation": {
+        "category": "终端"
+      },
       "detectionRules": [
-        { "kind": "HOME_PATH", "value": "~/.tmux.conf" },
-        { "kind": "HOME_PATH", "value": "~/.config/tmux/tmux.conf" }
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.tmux.conf"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.config/tmux/tmux.conf"
+        }
       ],
       "executables": [],
       "brewFormulae": [],
@@ -408,9 +738,21 @@
       "configDocuments": [
         {
           "configId": "tmux-config",
+          "purpose": "tmux user configuration",
           "pathTemplate": "~/.tmux.conf",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".tmux.conf",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -419,9 +761,21 @@
         },
         {
           "configId": "tmux-xdg-config",
+          "purpose": "tmux XDG configuration",
           "pathTemplate": "~/.config/tmux/tmux.conf",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "XDG_CONFIG_HOME",
+              "relativePath": "tmux/tmux.conf",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -430,7 +784,10 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ]
     },
     {
       "id": "vim",
@@ -438,10 +795,18 @@
       "description": "只读检测 Vim 的传统用户配置路径，仅显示文件元数据。",
       "iconKey": "vim",
       "coverageClass": "MANAGED_READ_ONLY",
-      "presentation": { "category": "编辑器" },
+      "presentation": {
+        "category": "编辑器"
+      },
       "detectionRules": [
-        { "kind": "HOME_PATH", "value": "~/.vimrc" },
-        { "kind": "HOME_PATH", "value": "~/.vim/vimrc" }
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.vimrc"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.vim/vimrc"
+        }
       ],
       "executables": [],
       "brewFormulae": [],
@@ -449,9 +814,21 @@
       "configDocuments": [
         {
           "configId": "vimrc",
+          "purpose": "Vim user configuration",
           "pathTemplate": "~/.vimrc",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".vimrc",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -460,9 +837,21 @@
         },
         {
           "configId": "vim-runtime-config",
+          "purpose": "Vim runtime configuration",
           "pathTemplate": "~/.vim/vimrc",
+          "pathVariants": [
+            {
+              "variantId": "primary",
+              "root": "HOME",
+              "relativePath": ".vim/vimrc",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
           "format": "TEXT",
+          "formatFamily": "PLAIN_TEXT",
           "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
           "adapterId": "read-only-text",
           "editorKey": "read-only-text",
           "validatorId": "text",
@@ -471,7 +860,10 @@
         }
       ],
       "services": [],
-      "capabilities": ["DETECT", "READ_CONFIG"]
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ]
     }
   ]
 }

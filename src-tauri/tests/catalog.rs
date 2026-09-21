@@ -95,9 +95,10 @@ fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch()
 }
 
 #[test]
-fn catalog_ipc_summary_omits_authoritative_paths() {
+fn catalog_ipc_summary_exposes_only_sanitized_path_variants() {
     let response = list_managed_apps().expect("catalog command should succeed");
     let serialized = serde_json::to_value(response).expect("catalog response should serialize");
+    let encoded = serialized.to_string();
 
     assert_eq!(serialized["schemaVersion"], json!(CATALOG_SCHEMA_VERSION));
     assert_eq!(
@@ -107,9 +108,11 @@ fn catalog_ipc_summary_omits_authoritative_paths() {
             .len(),
         12
     );
-    assert!(!serialized.to_string().contains("pathTemplate"));
-    assert!(!serialized.to_string().contains("HOMEBREW_PREFIX"));
-    assert!(!serialized.to_string().contains("~/."));
+    assert!(encoded.contains("pathVariants"));
+    assert!(encoded.contains("HOMEBREW_PREFIX"));
+    assert!(!encoded.contains("pathTemplate"));
+    assert!(!encoded.contains("~/."));
+    assert!(!encoded.contains("/Users/"));
 }
 
 #[test]
@@ -142,6 +145,15 @@ fn catalog_rejects_unsafe_paths_and_missing_adapters() {
         Err(CatalogValidationError::UnsafePath)
     );
 
+    let absolute_variant = mutate_catalog(|document| {
+        document["apps"][0]["configDocuments"][0]["pathVariants"][0]["relativePath"] =
+            json!("/Users/example/.copilot/config.json");
+    });
+    assert_eq!(
+        parse_catalog(&absolute_variant),
+        Err(CatalogValidationError::UnsafePath)
+    );
+
     let missing_adapter = mutate_catalog(|document| {
         document["apps"][0]["configDocuments"][0]["adapterId"] = json!("");
     });
@@ -149,6 +161,55 @@ fn catalog_rejects_unsafe_paths_and_missing_adapters() {
         parse_catalog(&missing_adapter),
         Err(CatalogValidationError::MissingAdapter)
     );
+}
+
+#[test]
+fn catalog_accepts_bounded_variants_for_every_approved_root() {
+    let source = mutate_catalog(|catalog| {
+        catalog["apps"][9]["configDocuments"][0]["pathVariants"] = json!([
+            {
+                "variantId": "xdg",
+                "root": "XDG_CONFIG_HOME",
+                "relativePath": "starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 0
+            },
+            {
+                "variantId": "home",
+                "root": "HOME",
+                "relativePath": ".starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 1
+            },
+            {
+                "variantId": "application-support",
+                "root": "APPLICATION_SUPPORT",
+                "relativePath": "Starship/config.toml",
+                "existenceRule": "FILE",
+                "precedence": 2
+            },
+            {
+                "variantId": "homebrew",
+                "root": "HOMEBREW_PREFIX",
+                "relativePath": "etc/starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 3
+            },
+            {
+                "variantId": "app-support",
+                "root": "APP_SUPPORT",
+                "relativePath": "catalog/starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 4
+            }
+        ]);
+    });
+
+    let catalog = parse_catalog(&source).expect("approved roots should validate");
+    let variants = catalog.apps()[9].config_documents()[0].path_variants();
+    assert_eq!(variants.len(), 5);
+    assert_eq!(variants[0].precedence(), 0);
+    assert_eq!(variants[4].precedence(), 4);
 }
 
 #[test]
@@ -176,6 +237,123 @@ fn catalog_rejects_unbounded_documents_and_unknown_write_policies() {
     assert_eq!(
         parse_catalog(&unknown_policy),
         Err(CatalogValidationError::UnsupportedWritePolicy)
+    );
+}
+
+#[test]
+fn catalog_rejects_unknown_document_capability_classes() {
+    let cases = [
+        (
+            "pathVariants",
+            "root",
+            json!("ARBITRARY_ROOT"),
+            CatalogValidationError::UnsupportedRoot,
+        ),
+        (
+            "pathVariants",
+            "existenceRule",
+            json!("MAYBE"),
+            CatalogValidationError::UnsupportedExistenceRule,
+        ),
+        (
+            "document",
+            "format",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedFormat,
+        ),
+        (
+            "document",
+            "formatFamily",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedFormatFamily,
+        ),
+        (
+            "document",
+            "sensitivity",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedSensitivity,
+        ),
+        (
+            "document",
+            "accessMode",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedAccessMode,
+        ),
+        (
+            "document",
+            "adapterId",
+            json!("arbitrary"),
+            CatalogValidationError::UnsupportedAdapter,
+        ),
+        (
+            "document",
+            "validatorId",
+            json!("arbitrary"),
+            CatalogValidationError::UnsupportedValidator,
+        ),
+        (
+            "document",
+            "editorKey",
+            json!("arbitrary"),
+            CatalogValidationError::UnsupportedEditor,
+        ),
+        (
+            "document",
+            "writePolicy",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedWritePolicy,
+        ),
+    ];
+    let known_valid = parse_catalog(BUILTIN_CATALOG_JSON).expect("known valid catalog");
+
+    for (scope, field, value, expected) in cases {
+        let source = mutate_catalog(|catalog| {
+            let document = &mut catalog["apps"][0]["configDocuments"][0];
+            if scope == "pathVariants" {
+                document["pathVariants"][0][field] = value;
+            } else {
+                document[field] = value;
+            }
+        });
+        assert_eq!(parse_catalog(&source), Err(expected));
+    }
+
+    assert_eq!(known_valid.apps()[0].id(), "github-copilot");
+}
+
+#[test]
+fn catalog_recognizes_read_only_format_families_without_write_authority() {
+    for (format, family) in [
+        ("JSON", "JSON"),
+        ("JSONC", "JSONC"),
+        ("TOML", "TOML"),
+        ("YAML", "YAML"),
+        ("INI", "INI"),
+        ("GIT_CONFIG", "GIT_CONFIG"),
+        ("KEY_VALUE", "KEY_VALUE"),
+        ("PLIST", "PLIST"),
+        ("SSH_CONFIG", "COMMAND"),
+        ("TEXT", "PLAIN_TEXT"),
+    ] {
+        let source = mutate_catalog(|catalog| {
+            let document = &mut catalog["apps"][9]["configDocuments"][0];
+            document["format"] = json!(format);
+            document["formatFamily"] = json!(family);
+        });
+        let catalog = parse_catalog(&source).expect("read-only format should validate");
+        let document = &catalog.apps()[9].config_documents()[0];
+        assert!(document.is_read_only());
+        assert_eq!(document.format(), format);
+    }
+
+    let writable_mismatch = mutate_catalog(|catalog| {
+        let document = &mut catalog["apps"][0]["configDocuments"][0];
+        document["format"] = json!("TOML");
+        document["formatFamily"] = json!("TOML");
+    });
+    assert_eq!(
+        parse_catalog(&writable_mismatch),
+        Err(CatalogValidationError::UnsupportedAdapterFormat)
     );
 }
 
@@ -212,7 +390,7 @@ fn catalog_rejects_unsupported_versions_and_excessive_app_counts() {
     );
 
     let too_many_apps = mutate_catalog(|document| {
-        let template = document["apps"][0].clone();
+        let template = document["apps"][1].clone();
         document["apps"] = Value::Array(
             (0..33)
                 .map(|index| {

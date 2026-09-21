@@ -3,7 +3,21 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
+use serde::{Deserialize, Serialize};
+
 pub(crate) const TRUSTED_BREW_PREFIXES: &[&str] = &["/opt/homebrew", "/usr/local"];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CatalogPathRoot {
+    Home,
+    XdgConfigHome,
+    ApplicationSupport,
+    HomebrewPrefix,
+    AppSupport,
+    #[serde(other)]
+    Unknown,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PathPolicyError {
@@ -107,6 +121,16 @@ fn ensure_contained(path: &Path, root: &Path) -> Result<(), PathPolicyError> {
     } else {
         Err(PathPolicyError::OutsideAuthorizedRoot)
     }
+}
+
+pub fn is_safe_catalog_relative_path(value: &str) -> bool {
+    !value.is_empty()
+        && !value.contains('\0')
+        && !value.contains('\\')
+        && !value.chars().any(char::is_control)
+        && Path::new(value)
+            .components()
+            .all(|component| matches!(component, Component::Normal(_)))
 }
 
 #[cfg(test)]

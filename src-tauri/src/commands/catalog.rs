@@ -1,15 +1,36 @@
 use serde::Serialize;
 
 use crate::{
-    catalog::{CATALOG_SCHEMA_VERSION, CatalogCoverageClass, load_builtin_catalog},
+    catalog::{
+        CATALOG_SCHEMA_VERSION, CatalogCoverageClass, ConfigAccessMode, ConfigFormatFamily,
+        ConfigPathExistenceRule, ConfigSensitivity, load_builtin_catalog,
+    },
     error::AppError,
+    security::paths::CatalogPathRoot,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ManagedConfigPathVariantPresentation {
+    variant_id: String,
+    root: CatalogPathRoot,
+    relative_path: String,
+    existence_rule: ConfigPathExistenceRule,
+    precedence: u16,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ManagedConfigDocumentPresentation {
     config_id: String,
+    purpose: String,
+    path_variants: Vec<ManagedConfigPathVariantPresentation>,
+    format: String,
+    format_family: ConfigFormatFamily,
+    sensitivity: ConfigSensitivity,
+    access_mode: ConfigAccessMode,
     editor_key: String,
+    max_size_bytes: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -59,7 +80,24 @@ pub fn list_managed_apps() -> Result<ManagedAppCatalog, AppError> {
                     .iter()
                     .map(|document| ManagedConfigDocumentPresentation {
                         config_id: document.config_id().to_owned(),
+                        purpose: document.purpose().to_owned(),
+                        path_variants: document
+                            .path_variants()
+                            .iter()
+                            .map(|variant| ManagedConfigPathVariantPresentation {
+                                variant_id: variant.variant_id().to_owned(),
+                                root: variant.root(),
+                                relative_path: variant.relative_path().to_owned(),
+                                existence_rule: variant.existence_rule(),
+                                precedence: variant.precedence(),
+                            })
+                            .collect(),
+                        format: document.format().to_owned(),
+                        format_family: document.format_family(),
+                        sensitivity: document.sensitivity_kind(),
+                        access_mode: document.access_mode(),
                         editor_key: document.editor_key().to_owned(),
+                        max_size_bytes: document.max_size_bytes(),
                     })
                     .collect(),
             },

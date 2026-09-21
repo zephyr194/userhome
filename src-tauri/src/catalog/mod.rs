@@ -1,12 +1,12 @@
 mod definitions;
 
-use std::{
-    collections::HashSet,
-    path::{Component, Path},
-};
+use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
+use crate::security::paths::is_safe_catalog_relative_path;
+
+pub use crate::security::paths::CatalogPathRoot;
 pub use definitions::BUILTIN_CATALOG_JSON;
 
 pub const CATALOG_SCHEMA_VERSION: u16 = 1;
@@ -15,6 +15,7 @@ pub const MAX_CONFIG_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
 
 const MAX_APPS: usize = 32;
 const MAX_CONFIG_DOCUMENTS_PER_APP: usize = 16;
+const MAX_PATH_VARIANTS_PER_DOCUMENT: usize = 8;
 const MAX_LIST_ENTRIES: usize = 32;
 const MAX_STRING_BYTES: usize = 512;
 const DEFAULT_PRESENTATION_CATEGORY: &str = "Other";
@@ -38,6 +39,16 @@ const ALLOWED_VALIDATORS: &[&str] = &[
     "ssh-config",
     "zsh",
 ];
+const ALLOWED_EDITORS: &[&str] = &[
+    "caddyfile",
+    "copilot-instructions",
+    "copilot-json",
+    "git-config",
+    "npmrc",
+    "read-only-text",
+    "ssh-config",
+    "zsh-managed-block",
+];
 const ALLOWED_WRITE_POLICIES: &[&str] = &[
     "MANAGED_BLOCK",
     "READ_ONLY",
@@ -49,13 +60,17 @@ const ALLOWED_FORMATS: &[&str] = &[
     "GIT_CONFIG",
     "INI",
     "JSON",
+    "JSONC",
+    "KEY_VALUE",
     "MARKDOWN",
     "MARKDOWN_DIRECTORY",
+    "PLIST",
     "SHELL",
     "SSH_CONFIG",
     "TEXT",
+    "TOML",
+    "YAML",
 ];
-const ALLOWED_SENSITIVITIES: &[&str] = &["STANDARD", "SENSITIVE", "SECRET"];
 const ALLOWED_CAPABILITIES: &[&str] = &["DETECT", "MANAGE_SERVICE", "READ_CONFIG", "WRITE_CONFIG"];
 const ALLOWED_DETECTION_RULES: &[&str] = &[
     "BREW_CASK",
@@ -76,9 +91,19 @@ pub enum CatalogValidationError {
     InvalidIdentifier,
     DuplicateAppId,
     DuplicateConfigId,
+    DuplicatePathVariantId,
     UnsafePath,
+    UnsupportedRoot,
+    UnsupportedExistenceRule,
+    InvalidPathPrecedence,
+    UnsupportedFormat,
+    UnsupportedFormatFamily,
+    UnsupportedSensitivity,
+    UnsupportedAccessMode,
     MissingAdapter,
     UnsupportedAdapter,
+    UnsupportedAdapterFormat,
+    UnsupportedEditor,
     MissingValidator,
     UnsupportedValidator,
     UnboundedDocument,
@@ -247,13 +272,112 @@ impl DetectionRule {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ConfigPathExistenceRule {
+    File,
+    Directory,
+    FileOrDirectory,
+    #[serde(other)]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ConfigFormatFamily {
+    Json,
+    Jsonc,
+    Toml,
+    Yaml,
+    Ini,
+    GitConfig,
+    KeyValue,
+    Plist,
+    Command,
+    PlainText,
+    #[serde(other)]
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ConfigSensitivity {
+    Standard,
+    Sensitive,
+    Secret,
+    #[serde(other)]
+    Unknown,
+}
+
+impl ConfigSensitivity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Standard => "STANDARD",
+            Self::Sensitive => "SENSITIVE",
+            Self::Secret => "SECRET",
+            Self::Unknown => "UNKNOWN",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ConfigAccessMode {
+    ReadWrite,
+    ReadOnly,
+    MetadataOnly,
+    Excluded,
+    #[serde(other)]
+    Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ConfigPathVariant {
+    variant_id: String,
+    root: CatalogPathRoot,
+    relative_path: String,
+    existence_rule: ConfigPathExistenceRule,
+    precedence: u16,
+}
+
+impl ConfigPathVariant {
+    pub fn variant_id(&self) -> &str {
+        &self.variant_id
+    }
+
+    pub fn root(&self) -> CatalogPathRoot {
+        self.root
+    }
+
+    pub fn relative_path(&self) -> &str {
+        &self.relative_path
+    }
+
+    pub fn existence_rule(&self) -> ConfigPathExistenceRule {
+        self.existence_rule
+    }
+
+    pub fn precedence(&self) -> u16 {
+        self.precedence
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ConfigDocumentDefinition {
     config_id: String,
+    #[serde(default)]
+    purpose: Option<String>,
     path_template: String,
+    #[serde(default)]
+    path_variants: Vec<ConfigPathVariant>,
     format: String,
-    sensitivity: String,
+    #[serde(default)]
+    format_family: Option<ConfigFormatFamily>,
+    sensitivity: ConfigSensitivity,
+    #[serde(default)]
+    access_mode: Option<ConfigAccessMode>,
     adapter_id: String,
     #[serde(default)]
     editor_key: Option<String>,
@@ -272,12 +396,39 @@ impl ConfigDocumentDefinition {
         &self.path_template
     }
 
+    pub fn purpose(&self) -> &str {
+        self.purpose.as_deref().unwrap_or(&self.config_id)
+    }
+
+    pub fn path_variants(&self) -> &[ConfigPathVariant] {
+        &self.path_variants
+    }
+
     pub fn format(&self) -> &str {
         &self.format
     }
 
+    pub fn format_family(&self) -> ConfigFormatFamily {
+        self.format_family
+            .unwrap_or_else(|| infer_format_family(&self.format))
+    }
+
     pub fn sensitivity(&self) -> &str {
-        &self.sensitivity
+        self.sensitivity.as_str()
+    }
+
+    pub fn sensitivity_kind(&self) -> ConfigSensitivity {
+        self.sensitivity
+    }
+
+    pub fn access_mode(&self) -> ConfigAccessMode {
+        self.access_mode.unwrap_or_else(|| {
+            if self.write_policy == "READ_ONLY" {
+                ConfigAccessMode::ReadOnly
+            } else {
+                ConfigAccessMode::ReadWrite
+            }
+        })
     }
 
     pub fn adapter_id(&self) -> &str {
@@ -381,9 +532,11 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
             if !config_ids.insert(document.config_id.as_str()) {
                 return Err(CatalogValidationError::DuplicateConfigId);
             }
+            validate_text(document.purpose())?;
             if !is_safe_path_template(&document.path_template) {
                 return Err(CatalogValidationError::UnsafePath);
             }
+            validate_path_variants(document)?;
             if document.adapter_id.trim().is_empty() {
                 return Err(CatalogValidationError::MissingAdapter);
             }
@@ -392,6 +545,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
             }
             if !is_kebab_case(document.editor_key()) {
                 return Err(CatalogValidationError::InvalidIdentifier);
+            }
+            if !ALLOWED_EDITORS.contains(&document.editor_key()) {
+                return Err(CatalogValidationError::UnsupportedEditor);
             }
             if document.validator_id.trim().is_empty() {
                 return Err(CatalogValidationError::MissingValidator);
@@ -405,15 +561,35 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
             if !ALLOWED_WRITE_POLICIES.contains(&document.write_policy.as_str()) {
                 return Err(CatalogValidationError::UnsupportedWritePolicy);
             }
+            if !ALLOWED_FORMATS.contains(&document.format.as_str()) {
+                return Err(CatalogValidationError::UnsupportedFormat);
+            }
+            let inferred_format_family = infer_format_family(&document.format);
+            if inferred_format_family == ConfigFormatFamily::Unknown
+                || document.format_family() == ConfigFormatFamily::Unknown
+                || document.format_family() != inferred_format_family
+            {
+                return Err(CatalogValidationError::UnsupportedFormatFamily);
+            }
+            if !adapter_supports_format(&document.adapter_id, &document.format) {
+                return Err(CatalogValidationError::UnsupportedAdapterFormat);
+            }
+            if document.sensitivity_kind() == ConfigSensitivity::Unknown {
+                return Err(CatalogValidationError::UnsupportedSensitivity);
+            }
+            let access_mode = document.access_mode();
+            if access_mode == ConfigAccessMode::Unknown
+                || access_mode == ConfigAccessMode::MetadataOnly
+                || access_mode == ConfigAccessMode::Excluded
+                || (access_mode == ConfigAccessMode::ReadOnly && !document.is_read_only())
+                || (access_mode == ConfigAccessMode::ReadWrite && document.is_read_only())
+            {
+                return Err(CatalogValidationError::UnsupportedAccessMode);
+            }
             let generic_read_only = document.adapter_id == "read-only-text";
             if generic_read_only != (document.validator_id == "text")
                 || (generic_read_only && !document.is_read_only())
                 || (document.is_read_only() && document.elevation_resource_id.is_some())
-            {
-                return Err(CatalogValidationError::UnsupportedValue);
-            }
-            if !ALLOWED_FORMATS.contains(&document.format.as_str())
-                || !ALLOWED_SENSITIVITIES.contains(&document.sensitivity.as_str())
             {
                 return Err(CatalogValidationError::UnsupportedValue);
             }
@@ -428,6 +604,88 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
     }
 
     Ok(())
+}
+
+fn validate_path_variants(
+    document: &ConfigDocumentDefinition,
+) -> Result<(), CatalogValidationError> {
+    if document.path_variants.is_empty() {
+        return Ok(());
+    }
+    if document.path_variants.len() > MAX_PATH_VARIANTS_PER_DOCUMENT {
+        return Err(CatalogValidationError::TooManyEntries);
+    }
+
+    let mut variant_ids = HashSet::with_capacity(document.path_variants.len());
+    for (index, variant) in document.path_variants.iter().enumerate() {
+        if !is_kebab_case(&variant.variant_id) {
+            return Err(CatalogValidationError::InvalidIdentifier);
+        }
+        if !variant_ids.insert(variant.variant_id.as_str()) {
+            return Err(CatalogValidationError::DuplicatePathVariantId);
+        }
+        if variant.root == CatalogPathRoot::Unknown {
+            return Err(CatalogValidationError::UnsupportedRoot);
+        }
+        if variant.existence_rule == ConfigPathExistenceRule::Unknown {
+            return Err(CatalogValidationError::UnsupportedExistenceRule);
+        }
+        if variant.precedence as usize != index {
+            return Err(CatalogValidationError::InvalidPathPrecedence);
+        }
+        if variant.relative_path.len() > MAX_STRING_BYTES
+            || !is_safe_catalog_relative_path(&variant.relative_path)
+        {
+            return Err(CatalogValidationError::UnsafePath);
+        }
+    }
+
+    if path_variant_template(&document.path_variants[0]) != document.path_template {
+        return Err(CatalogValidationError::UnsafePath);
+    }
+    Ok(())
+}
+
+fn path_variant_template(variant: &ConfigPathVariant) -> String {
+    let prefix = match variant.root {
+        CatalogPathRoot::Home => "~",
+        CatalogPathRoot::XdgConfigHome => "~/.config",
+        CatalogPathRoot::ApplicationSupport => "~/Library/Application Support",
+        CatalogPathRoot::HomebrewPrefix => "${HOMEBREW_PREFIX}",
+        CatalogPathRoot::AppSupport => "~/Library/Application Support/UserHome",
+        CatalogPathRoot::Unknown => "",
+    };
+    format!("{prefix}/{}", variant.relative_path)
+}
+
+fn infer_format_family(format: &str) -> ConfigFormatFamily {
+    match format {
+        "JSON" => ConfigFormatFamily::Json,
+        "JSONC" => ConfigFormatFamily::Jsonc,
+        "TOML" => ConfigFormatFamily::Toml,
+        "YAML" => ConfigFormatFamily::Yaml,
+        "INI" => ConfigFormatFamily::Ini,
+        "GIT_CONFIG" => ConfigFormatFamily::GitConfig,
+        "KEY_VALUE" => ConfigFormatFamily::KeyValue,
+        "PLIST" => ConfigFormatFamily::Plist,
+        "CADDYFILE" | "SHELL" | "SSH_CONFIG" => ConfigFormatFamily::Command,
+        "MARKDOWN" | "MARKDOWN_DIRECTORY" | "TEXT" => ConfigFormatFamily::PlainText,
+        _ => ConfigFormatFamily::Unknown,
+    }
+}
+
+fn adapter_supports_format(adapter_id: &str, format: &str) -> bool {
+    match adapter_id {
+        "caddyfile" => format == "CADDYFILE",
+        "copilot-instructions" => matches!(format, "MARKDOWN" | "MARKDOWN_DIRECTORY"),
+        "copilot-json" => format == "JSON",
+        "git-config" => format == "GIT_CONFIG",
+        "npmrc" => format == "INI",
+        "read-only-text" => ALLOWED_FORMATS.contains(&format),
+        "ssh-config" => format == "SSH_CONFIG",
+        "zsh-managed-block" => format == "SHELL",
+        _ => false,
+    }
 }
 
 fn validate_coverage_class(app: &ManagedAppDefinition) -> Result<(), CatalogValidationError> {
@@ -516,8 +774,5 @@ fn is_safe_path_template(value: &str) -> bool {
         return false;
     };
 
-    !relative.is_empty()
-        && Path::new(relative)
-            .components()
-            .all(|component| matches!(component, Component::Normal(_)))
+    is_safe_catalog_relative_path(relative)
 }

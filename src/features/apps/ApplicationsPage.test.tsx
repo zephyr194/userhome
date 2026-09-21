@@ -23,7 +23,22 @@ const catalog = {
         { length: Number(managedDocumentCount) },
         (_, index) => ({
           configId: `${id}-config-${index}`,
+          purpose: `${displayName} configuration`,
+          pathVariants: [
+            {
+              variantId: "primary",
+              root: "HOME" as const,
+              relativePath: `.config/${id}/config`,
+              existenceRule: "FILE" as const,
+              precedence: 0,
+            },
+          ],
+          format: "JSON" as const,
+          formatFamily: "JSON" as const,
+          sensitivity: "SENSITIVE" as const,
+          accessMode: "READ_WRITE" as const,
           editorKey: `${id}-editor`,
+          maxSizeBytes: 262_144,
         }),
       ),
     },
