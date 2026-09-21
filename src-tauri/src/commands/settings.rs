@@ -36,11 +36,13 @@ pub fn update_preferences(
     let requested_retention = patch.backup_retention();
     let result = coordinator.update_with(patch, |preferences| {
         if requested_retention.is_some() {
-            enforce_all(
-                &builtin_catalog()?,
-                config.environment()?,
-                preferences.backup_retention(),
-            )
+            (|| {
+                enforce_all(
+                    &builtin_catalog()?,
+                    config.environment()?,
+                    preferences.backup_retention(),
+                )
+            })()
             .map_err(backup_retention_cleanup_error)?;
         }
         Ok(())
