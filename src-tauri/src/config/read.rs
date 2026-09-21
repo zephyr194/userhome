@@ -4,7 +4,10 @@ use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use crate::{catalog::Catalog, error::AppError};
+use crate::{
+    catalog::{Catalog, ConfigFormatFamily},
+    error::AppError,
+};
 
 pub use super::resolution::{
     ConfigDiagnostic, ConfigDocumentState, ConfigEntryKind, ConfigNextAction, ConfigSummary,
@@ -97,6 +100,24 @@ pub fn read_config_result(
             summary: resolved.summary,
             content: None,
             content_redacted: false,
+            structured: None,
+        });
+    }
+    if definition.is_read_only() && definition.format_family() == ConfigFormatFamily::Plist {
+        let state = if resolved
+            .summary
+            .size_bytes
+            .is_some_and(|size| size > definition.max_size_bytes() as u64)
+        {
+            ConfigDocumentState::TooLarge
+        } else {
+            ConfigDocumentState::Redacted
+        };
+        set_summary_state(&mut resolved.summary, state);
+        return Ok(ConfigDocument {
+            summary: resolved.summary,
+            content: None,
+            content_redacted: state == ConfigDocumentState::Redacted,
             structured: None,
         });
     }
@@ -433,6 +454,41 @@ mod tests {
             .expect("read config");
 
         assert_eq!(document.content(), Some("set -g mouse on\n"));
+    }
+
+    #[test]
+    fn returns_only_metadata_for_binary_plists() {
+        let fixture = Fixture::new();
+        let preferences = fixture.home.join("Library/Preferences");
+        fs::create_dir_all(&preferences).expect("create preferences directory");
+        fs::write(
+            preferences.join("com.googlecode.iterm2.plist"),
+            [
+                0x62, 0x70, 0x6c, 0x69, 0x73, 0x74, 0x30, 0x30, 0xd2, 0x01, 0x02, 0x03, 0x04, 0x55,
+                0x54, 0x68, 0x65, 0x6d, 0x65, 0x55, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x54, 0x44, 0x61,
+                0x72, 0x6b, 0x5f, 0x10, 0x0f, 0x6d, 0x75, 0x73, 0x74, 0x2d, 0x6e, 0x6f, 0x74, 0x2d,
+                0x72, 0x65, 0x74, 0x75, 0x72, 0x6e, 0x08, 0x0d, 0x13, 0x19, 0x1e, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x30,
+            ],
+        )
+        .expect("write binary plist");
+
+        let document = read_config(
+            &load_builtin_catalog().expect("catalog"),
+            &fixture.environment(),
+            "iterm2",
+            "iterm2-preferences",
+        )
+        .expect("read plist metadata");
+        let encoded = serde_json::to_string(&document).expect("serialize document");
+
+        assert_eq!(document.diagnostic().state(), ConfigDocumentState::Redacted);
+        assert!(document.content().is_none());
+        assert!(encoded.contains("\"writePolicy\":\"READ_ONLY\""));
+        assert!(encoded.contains("\"contentHash\":null"));
+        assert!(!encoded.contains("must-not-return"));
     }
 
     #[test]
