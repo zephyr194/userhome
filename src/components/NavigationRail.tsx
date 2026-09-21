@@ -78,7 +78,7 @@ export function NavigationRail({
               <span className="navigation-rail__icon">
                 <NavigationIcon icon={route.icon} />
               </span>
-              <span>{route.label}</span>
+              <span className="navigation-rail__label">{route.label}</span>
             </a>
           </li>
         ))}

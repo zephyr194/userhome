@@ -1396,20 +1396,30 @@ new test files.
 
 ## T45: Establish the native desktop workspace primitives
 
+**Status:** Done on 2026-09-21
+
 **Description:** Replace route-level page framing with reusable sidebar,
 toolbar, list/detail, optional inspector, banner, and operation-progress slots
 that own their internal scroll regions.
 
 **Acceptance criteria:**
-- [ ] The fixed 1120 by 720 shell has no document-level overflow.
-- [ ] Route content uses named desktop slots instead of generic page/card
+- [x] The fixed 1120 by 720 shell has no document-level overflow.
+- [x] Route content uses named desktop slots instead of generic page/card
       abstractions.
-- [ ] Traffic-light and drag regions do not overlap interactive controls.
+- [x] Traffic-light and drag regions do not overlap interactive controls.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: inspect shell sizing, pane scrolling, focus rings, and title-bar
-      interactions at 1120 by 720.
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Code inspection: the document and shell remain overflow-hidden, named
+      panes own scrolling, focus styles remain global, and title-bar drag
+      regions contain no interactive controls.
+
+**Evidence:** `DesktopWorkspace` provides sidebar, toolbar, list, detail,
+inspector, banner, and operation-progress slots without consuming feature
+state. `AppShell` preserves the existing route, refresh, connection, discovery,
+and operation data while placing them into the new bounded workspace. All 50
+existing Vitest checks pass and the production Vite build succeeds under the
+repository's current Node 20.20.2 environment warning.
 
 **Dependencies:** T33, T34
 

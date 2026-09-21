@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button, StatusBadge } from "../components/ui";
 import { OperationStatus } from "../features/operations/OperationStatus";
@@ -502,94 +503,77 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
               <p className="brand" data-tauri-drag-region>
                 UserHome
               </p>
-              <p className="brand-subtitle" data-tauri-drag-region>
-                本机配置与应用管理
-              </p>
             </div>
           </div>
-          <p className="titlebar__context" data-tauri-drag-region>
-            本机工作区
-          </p>
+          <h1 className="titlebar__context" data-tauri-drag-region>
+            {activeRoute.label}
+          </h1>
         </header>
 
-        <div className="workspace">
-          <NavigationRail
-            activeRouteId={activeRouteId}
-            onNavigate={setActiveRouteId}
-            routes={APP_ROUTES}
-          />
-
-          <main
-            ref={mainRef}
-            id="main-content"
-            className="main-content"
-            tabIndex={-1}
-          >
-            <header className="context-toolbar">
-              <div className="page-heading">
-                <p className="page-eyebrow">{activeRoute.eyebrow}</p>
-                <div className="page-heading__title">
-                  <h1>{activeRoute.label}</h1>
-                  <span aria-hidden="true">/</span>
-                  <p>{activeRoute.description}</p>
-                </div>
-              </div>
-              <div className="refresh-controls">
-                <Button
-                  className="toolbar-refresh-button"
-                  size="sm"
-                  disabled={state.refresh.status === "refreshing"}
-                  onClick={onRefresh}
-                  aria-label={
+        <DesktopWorkspace
+          mainRef={mainRef}
+          sidebar={
+            <NavigationRail
+              activeRouteId={activeRouteId}
+              onNavigate={setActiveRouteId}
+              routes={APP_ROUTES}
+            />
+          }
+          toolbar={
+            <div className="refresh-controls">
+              <Button
+                className="toolbar-refresh-button"
+                size="sm"
+                disabled={state.refresh.status === "refreshing"}
+                onClick={onRefresh}
+                aria-label={
+                  state.refresh.status === "refreshing"
+                    ? "正在刷新本机状态"
+                    : "刷新本机状态"
+                }
+              >
+                <svg
+                  className={
                     state.refresh.status === "refreshing"
-                      ? "正在刷新本机状态"
-                      : "刷新本机状态"
+                      ? "animate-spin"
+                      : undefined
                   }
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
-                  <svg
-                    className={
-                      state.refresh.status === "refreshing"
-                        ? "animate-spin"
-                        : undefined
-                    }
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-                  </svg>
-                  {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
-                </Button>
-              </div>
-            </header>
-
-            <div className="workspace-scroll">
-              <div className="content-grid">
-                <RoutePanel
-                  applications={state.applications}
-                  discovery={state.discovery}
-                  onOperationChanged={onRefresh}
-                  route={activeRoute}
-                />
-                <aside className="status-rail" aria-label="本机状态">
-                  <div className="col-span-full overflow-hidden rounded-lg border border-border bg-surface">
-                    <header className="border-b border-border px-4 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-                        实时状态
-                      </p>
-                      <h2 className="mt-1 text-sm font-semibold">系统状态轨</h2>
-                    </header>
-                    <div className="divide-y divide-border">
-                      <DiscoveryStatus state={state.discovery} />
-                      <ConnectionStatus state={state.connection} />
-                      <RefreshStatus state={state.refresh} />
-                      <OperationStatus state={state.recentOperation} />
-                    </div>
-                  </div>
-                </aside>
+                  <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+                </svg>
+                {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
+              </Button>
+            </div>
+          }
+          detailLabel={`${activeRoute.label}内容`}
+          detail={
+            <RoutePanel
+              applications={state.applications}
+              discovery={state.discovery}
+              onOperationChanged={onRefresh}
+              route={activeRoute}
+            />
+          }
+          inspectorLabel="本机状态"
+          inspector={
+            <div className="status-inspector">
+              <header className="status-inspector__header">
+                <p>实时状态</p>
+                <h2>本机状态</h2>
+              </header>
+              <div className="status-inspector__content">
+                <DiscoveryStatus state={state.discovery} />
+                <ConnectionStatus state={state.connection} />
+                <RefreshStatus state={state.refresh} />
               </div>
             </div>
-          </main>
-        </div>
+          }
+          operationProgress={
+            <OperationStatus state={state.recentOperation} />
+          }
+        />
       </div>
     </>
   );
