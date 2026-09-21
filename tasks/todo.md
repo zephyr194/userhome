@@ -2551,8 +2551,8 @@ documentation without publishing.
       interaction was intentionally not run during T69 so verification would
       not steal focus or interfere with other applications.
 
-**Evidence:** `pnpm check` passed ESLint, both TypeScript projects, 28 Vitest
-files / 70 tests, Rust formatting, strict Clippy, 90 library tests, and 22
+**Evidence:** `pnpm check` passed ESLint, both TypeScript projects, 29 Vitest
+files / 71 tests, Rust formatting, strict Clippy, 92 library tests, and 22
 integration tests. `pnpm test:e2e` passed its single macOS WebKit smoke using a
 WDIO-created temporary `HOME`/`XDG_CONFIG_HOME`, a schema-valid hidden-window
 preference fixture, and disabled optional unknown-root discovery; it did not
@@ -2577,6 +2577,37 @@ evidence; retain every unperformed manual/external item as unchecked.
 `tasks/todo.md`
 
 **Estimated scope:** M
+
+## Final review corrections
+
+**Status:** Done on 2026-09-21
+
+- [x] Backup retention preferences are atomically persisted before retryable
+      cleanup. Cleanup failure returns `PARTIAL_FAILURE` while the saved policy
+      remains active and visible.
+- [x] Forced provider refreshes received during an active refresh are queued,
+      and Privacy waits for the follow-up refresh that uses the new optional
+      discovery roots.
+- [x] Read-only PLIST documents are classified as metadata-only before body
+      reads or UTF-8 validation. Binary plist content remains absent, the
+      document remains read-only, and XML plist metadata stays redacted.
+
+**Regression evidence:** `settings_coordinator_persists_before_retryable_follow_up_work`,
+`createRefreshCoordinator > queues a forced refresh received during an active
+refresh`, and `returns_only_metadata_for_binary_plists` each failed before its
+fix and pass after it. The corrections are recorded in `a83a828`, `f77424d`,
+`050bfac`, and `eb8035c`.
+
+**Verification:** `pnpm check`, the hidden isolated-`HOME` `pnpm test:e2e`, and
+`pnpm build:unsigned` pass. The first E2E attempt encountered a transient
+Homebrew inventory timeout; the unchanged retry passed without opening the
+native window or reading real user configuration. Orca Computer Use then
+launched the built app with a separate temporary `HOME`: `Command+,` opened
+Settings, keyboard navigation selected all seven groups in order, the sidebar
+restored the selected Reset group, and a Privacy root change made during an
+active refresh kept every root control disabled until the queued refresh
+completed. The isolated preference file recorded only the selected `HOME`
+root, and the test app plus temporary directory were removed afterward.
 
 ## Checkpoint S: Desktop Completeness Complete
 
