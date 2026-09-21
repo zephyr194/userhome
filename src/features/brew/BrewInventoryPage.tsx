@@ -47,10 +47,14 @@ function targetIndex(
 }
 
 export function BrewInventoryPage({
+  initialSelection,
+  onSelectionChange,
   onOperationChanged,
   refreshId,
   summary,
 }: {
+  initialSelection?: BrewSearchResult;
+  onSelectionChange?: (selection?: BrewSearchResult) => void;
   onOperationChanged?: () => void;
   refreshId?: string;
   summary: ModuleSnapshot<BrewInventorySummary>;
@@ -61,7 +65,9 @@ export function BrewInventoryPage({
   const [filter, setFilter] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const [mutationRefresh, setMutationRefresh] = useState(0);
-  const [selected, setSelected] = useState<BrewSearchResult>();
+  const [selected, setSelected] = useState<BrewSearchResult | undefined>(
+    initialSelection,
+  );
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
   const requestKey = `${refreshId ?? ""}:${mutationRefresh}:${kind}:${filter}:${pageNumber}`;
   const [state, setState] = useState<InventoryState>({
@@ -120,6 +126,11 @@ export function BrewInventoryPage({
     (item) => packageKey(item) === selectedKey,
   );
 
+  function selectPackage(selection?: BrewSearchResult) {
+    setSelected(selection);
+    onSelectionChange?.(selection);
+  }
+
   function moveSelection(
     event: KeyboardEvent<HTMLButtonElement>,
     currentIndex: number,
@@ -133,7 +144,7 @@ export function BrewInventoryPage({
       kind: next.kind,
       identifier: next.identifier,
     };
-    setSelected(nextSelection);
+    selectPackage(nextSelection);
     buttonRefs.current.get(packageKey(nextSelection))?.focus();
   }
 
@@ -304,7 +315,7 @@ export function BrewInventoryPage({
                               role="option"
                               aria-selected={isSelected}
                               tabIndex={isTabStop ? 0 : -1}
-                              onClick={() => setSelected(itemSelection)}
+                              onClick={() => selectPackage(itemSelection)}
                               onKeyDown={(event) =>
                                 moveSelection(event, index)
                               }
@@ -369,14 +380,14 @@ export function BrewInventoryPage({
                 className="brew-workspace__detail"
                 aria-label="Homebrew 软件包详情"
               >
-                {selected ? (
+                {selected && selectedIsVisible ? (
                   <BrewPackageInspector
                     idPrefix="brew-installed-package"
                     key={packageKey(selected)}
                     onChanged={handleChanged}
                     onSelectionRemoved={(removed) => {
                       if (packageKey(removed) === selectedKey) {
-                        setSelected(undefined);
+                        selectPackage(undefined);
                       }
                     }}
                     refreshId={refreshId}

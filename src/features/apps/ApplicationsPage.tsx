@@ -19,6 +19,7 @@ import type {
   ModuleSnapshot,
   UnmanagedCandidate,
 } from "../../ipc/discovery";
+import type { PreferredEditorMode } from "../../ipc/settings";
 import { ApplicationIcon } from "./ApplicationIcon";
 import { CatalogCoverageSummary } from "./CatalogCoverageSummary";
 import { ConfigWorkspace } from "./ConfigWorkspace";
@@ -160,12 +161,22 @@ function entrySearchText(entry: ApplicationEntry): string {
 
 function ApplicationsWorkspace({
   candidates,
+  initialSelectedConfigIds,
+  initialSelectedKey,
+  onSelectedConfigChange,
+  onSelectedKeyChange,
   onOperationChanged,
+  preferredEditorMode,
   refreshId,
   state,
 }: {
   candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
+  initialSelectedConfigIds?: Record<string, string>;
+  initialSelectedKey?: string;
+  onSelectedConfigChange?: (applicationId: string, configId?: string) => void;
+  onSelectedKeyChange?: (key?: string) => void;
   onOperationChanged?: () => void;
+  preferredEditorMode: PreferredEditorMode;
   refreshId?: string;
   state: ApplicationsState;
 }) {
@@ -178,7 +189,7 @@ function ApplicationsWorkspace({
     () => [...new Set(entries.map((entry) => entry.category))].sort(),
     [entries],
   );
-  const [selectedKey, setSelectedKey] = useState(entries[0]?.key);
+  const [selectedKey, setSelectedKey] = useState(initialSelectedKey);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("ALL");
   const [coverage, setCoverage] = useState<
@@ -186,7 +197,8 @@ function ApplicationsWorkspace({
   >("ALL");
   const [selectedConfigIds, setSelectedConfigIds] = useState<
     Record<string, string | undefined>
-  >({});
+  >(initialSelectedConfigIds ?? {});
+  const selectedConfigChangeRef = useRef(onSelectedConfigChange);
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
   const focusedKey = useRef<string | undefined>(undefined);
   const listHasFocus = useRef(false);
@@ -214,9 +226,19 @@ function ApplicationsWorkspace({
         .filter((group) => group.entries.length > 0),
     [categories, filteredEntries],
   );
+  const validSelectedKey =
+    state.status === "ready" &&
+    selectedKey &&
+    !entries.some((entry) => entry.key === selectedKey)
+      ? undefined
+      : selectedKey;
   const selectedEntry =
-    filteredEntries.find((entry) => entry.key === selectedKey) ??
+    filteredEntries.find((entry) => entry.key === validSelectedKey) ??
     filteredEntries[0];
+
+  useEffect(() => {
+    selectedConfigChangeRef.current = onSelectedConfigChange;
+  }, [onSelectedConfigChange]);
 
   useEffect(() => {
     if (
@@ -243,13 +265,22 @@ function ApplicationsWorkspace({
         if (configId === undefined) {
           const next = { ...current };
           delete next[applicationId];
+          selectedConfigChangeRef.current?.(applicationId, undefined);
           return next;
         }
+        selectedConfigChangeRef.current?.(applicationId, configId);
         return { ...current, [applicationId]: configId };
       });
     },
     [],
   );
+
+  function selectEntry(entry: ApplicationEntry) {
+    setSelectedKey(entry.key);
+    onSelectedKeyChange?.(
+      entry.kind === "catalog" ? entry.key : undefined,
+    );
+  }
 
   function moveSelection(
     event: KeyboardEvent<HTMLButtonElement>,
@@ -269,7 +300,7 @@ function ApplicationsWorkspace({
       return;
     }
     const nextEntry = filteredEntries[nextIndex];
-    setSelectedKey(nextEntry.key);
+    selectEntry(nextEntry);
     focusedKey.current = nextEntry.key;
     buttonRefs.current.get(nextEntry.key)?.focus();
   }
@@ -414,7 +445,7 @@ function ApplicationsWorkspace({
                           )}
                           aria-selected={isSelected}
                           tabIndex={isSelected ? 0 : -1}
-                          onClick={() => setSelectedKey(entry.key)}
+                          onClick={() => selectEntry(entry)}
                           onFocus={() => {
                             focusedKey.current = entry.key;
                           }}
@@ -486,6 +517,7 @@ function ApplicationsWorkspace({
               application={selectedEntry.application}
               onOperationChanged={onOperationChanged}
               onSelectedConfigChange={updateConfigSelection}
+              preferredEditorMode={preferredEditorMode}
               refreshId={refreshId}
               selectedConfigId={
                 selectedConfigIds[selectedEntry.application.id]
@@ -505,21 +537,36 @@ function ApplicationsWorkspace({
 
 interface ApplicationsPageProps {
   candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
+  initialSelectedConfigIds?: Record<string, string>;
+  initialSelectedKey?: string;
+  onSelectedConfigChange?: (applicationId: string, configId?: string) => void;
+  onSelectedKeyChange?: (key?: string) => void;
   onOperationChanged?: () => void;
+  preferredEditorMode?: PreferredEditorMode;
   refreshId?: string;
   state: ApplicationsState;
 }
 
 export function ApplicationsPage({
   candidates,
+  initialSelectedConfigIds,
+  initialSelectedKey,
+  onSelectedConfigChange,
+  onSelectedKeyChange,
   onOperationChanged,
+  preferredEditorMode,
   refreshId,
   state,
 }: ApplicationsPageProps) {
   return (
     <ApplicationsWorkspace
       candidates={candidates}
+      initialSelectedConfigIds={initialSelectedConfigIds}
+      initialSelectedKey={initialSelectedKey}
+      onSelectedConfigChange={onSelectedConfigChange}
+      onSelectedKeyChange={onSelectedKeyChange}
       onOperationChanged={onOperationChanged}
+      preferredEditorMode={preferredEditorMode ?? "STRUCTURED"}
       refreshId={refreshId}
       state={state}
     />

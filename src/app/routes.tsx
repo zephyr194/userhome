@@ -4,7 +4,10 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import type { SettingsGroupId } from "../features/settings/settingsGroups";
-import type { Appearance } from "../ipc/settings";
+import type {
+  Appearance,
+  UpdatePreferencesRequest,
+} from "../ipc/settings";
 import type {
   ApplicationsState,
   ConnectionState,
@@ -14,6 +17,7 @@ import type {
   RefreshState,
 } from "./shellState";
 import type { AppRoute } from "./routeDefinitions";
+import type { SelectionMemory } from "./selectionMemory";
 
 interface RoutePanelProps {
   applications: ApplicationsState;
@@ -21,11 +25,14 @@ interface RoutePanelProps {
   discovery: DiscoveryState;
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onOperationChanged: () => void;
+  onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
+  onSelectionChange: (patch: Partial<SelectionMemory>) => void;
   onSettingsGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
   recentOperation: RecentOperationState;
   refresh: RefreshState;
   route: AppRoute;
+  selection: SelectionMemory;
   settingsGroup: SettingsGroupId;
 }
 
@@ -35,11 +42,14 @@ export function RoutePanel({
   discovery,
   onAppearanceChange,
   onOperationChanged,
+  onPreferencesChange,
+  onSelectionChange,
   onSettingsGroupChange,
   preferences,
   recentOperation,
   refresh,
   route,
+  selection,
   settingsGroup,
 }: RoutePanelProps) {
   if (route.id === "dashboard") {
@@ -71,7 +81,26 @@ export function RoutePanel({
               : { status: "LOADING" }
         }
         state={applications}
+        initialSelectedConfigIds={selection.applicationConfigIds}
+        initialSelectedKey={selection.applicationKey}
+        onSelectedConfigChange={(applicationId, configId) => {
+          const next = { ...selection.applicationConfigIds };
+          if (configId) {
+            next[applicationId] = configId;
+          } else {
+            delete next[applicationId];
+          }
+          onSelectionChange({ applicationConfigIds: next });
+        }}
+        onSelectedKeyChange={(applicationKey) =>
+          onSelectionChange({ applicationKey })
+        }
         onOperationChanged={onOperationChanged}
+        preferredEditorMode={
+          preferences.status === "loading"
+            ? "STRUCTURED"
+            : preferences.preferences.preferredEditorMode
+        }
         refreshId={
           discovery.status === "ready"
             ? discovery.snapshot.refreshId
@@ -84,6 +113,10 @@ export function RoutePanel({
   if (route.id === "homebrew") {
     return (
       <BrewInventoryPage
+        initialSelection={selection.brewSelection}
+        onSelectionChange={(brewSelection) =>
+          onSelectionChange({ brewSelection })
+        }
         onOperationChanged={onOperationChanged}
         refreshId={
           discovery.status === "ready"
@@ -102,6 +135,10 @@ export function RoutePanel({
   if (route.id === "services") {
     return (
       <ServicesPage
+        initialSelectedServiceId={selection.serviceId}
+        onSelectedServiceChange={(serviceId) =>
+          onSelectionChange({ serviceId })
+        }
         onOperationChanged={onOperationChanged}
         refreshId={
           discovery.status === "ready"
@@ -116,6 +153,7 @@ export function RoutePanel({
     return (
       <SettingsPage
         onAppearanceChange={onAppearanceChange}
+        onPreferencesChange={onPreferencesChange}
         onSelectedGroupChange={onSettingsGroupChange}
         preferences={preferences}
         selectedGroup={settingsGroup}

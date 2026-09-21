@@ -1,19 +1,27 @@
 import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge } from "../../components/ui";
 import type { PreferencesState } from "../../app/shellState";
-import type { Appearance } from "../../ipc/settings";
+import type {
+  Appearance,
+  UpdatePreferencesRequest,
+} from "../../ipc/settings";
 import { AppearanceSettings } from "./AppearanceSettings";
+import { ConfigurationSettings } from "./ConfigurationSettings";
+import { GeneralSettings } from "./GeneralSettings";
+import { RefreshSettings } from "./RefreshSettings";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SETTINGS_GROUPS, type SettingsGroupId } from "./settingsGroups";
 import { getSettingsSummaries } from "./settingsSummaries";
 
 export function SettingsPage({
   onAppearanceChange,
+  onPreferencesChange,
   onSelectedGroupChange,
   preferences,
   selectedGroup,
 }: {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
+  onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
   onSelectedGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
   selectedGroup: SettingsGroupId;
@@ -67,6 +75,21 @@ export function SettingsPage({
             <AppearanceSettings
               appearance={preferences.preferences.appearance}
               onChange={onAppearanceChange}
+            />
+          ) : group.id === "general" ? (
+            <GeneralSettings
+              onChange={onPreferencesChange}
+              preferences={preferences.preferences}
+            />
+          ) : group.id === "refresh" ? (
+            <RefreshSettings
+              onChange={onPreferencesChange}
+              preferences={preferences.preferences}
+            />
+          ) : group.id === "configuration" ? (
+            <ConfigurationSettings
+              onChange={onPreferencesChange}
+              preferences={preferences.preferences}
             />
           ) : (
             <dl className="settings-summary-list">

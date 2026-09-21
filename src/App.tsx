@@ -29,6 +29,7 @@ import {
   updatePreferences,
   type Appearance,
   type LoadedPreferences,
+  type UpdatePreferencesRequest,
 } from "./ipc/settings";
 
 async function getRecentOperation(): Promise<OperationDetails | null> {
@@ -76,6 +77,7 @@ function App({
     preferences: loadedPreferencesState(initialPreferences),
   });
   const refreshInFlight = useRef<Promise<void> | null>(null);
+  const initialLoadStarted = useRef(false);
   const preferencesHydrated = state.preferences.status !== "loading";
   const appearance =
     state.preferences.status === "loading"
@@ -86,7 +88,7 @@ function App({
     applyAppearance(appearance);
   }, [appearance]);
 
-  const reloadShell = useCallback((): Promise<void> => {
+  const loadShell = useCallback((refreshProviders: boolean): Promise<void> => {
     if (!preferencesHydrated) {
       return Promise.resolve();
     }
@@ -94,9 +96,13 @@ function App({
       return refreshInFlight.current;
     }
 
-    dispatch({ type: "refresh-started" });
+    if (refreshProviders) {
+      dispatch({ type: "refresh-started" });
+    }
 
-    const discoveryRefresh = refreshSystemSnapshot();
+    const discoveryRefresh = refreshProviders
+      ? refreshSystemSnapshot()
+      : Promise.resolve(undefined);
     const request = Promise.all([
       getAppStatus()
         .then((appStatus) => {
@@ -140,6 +146,7 @@ function App({
         }),
       discoveryRefresh
         .then((snapshot) => {
+          if (!snapshot) return true;
           dispatch({ type: "discovery-ready", snapshot });
           return !(
             snapshot.system.status === "ERROR" &&
@@ -160,25 +167,26 @@ function App({
           localDiscoveryReady,
           refreshReady,
         ]) => {
-        if (
-          connectionReady &&
-          operationReady &&
-          applicationsReady &&
-          localDiscoveryReady &&
-          refreshReady
-        ) {
-          dispatch({
-            type: "refresh-finished",
-            completedAt: new Date().toISOString(),
-          });
-          return;
-        }
+          if (!refreshProviders) return;
+          if (
+            connectionReady &&
+            operationReady &&
+            applicationsReady &&
+            localDiscoveryReady &&
+            refreshReady
+          ) {
+            dispatch({
+              type: "refresh-finished",
+              completedAt: new Date().toISOString(),
+            });
+            return;
+          }
 
-        dispatch({
-          type: "refresh-error",
-          message: "刷新完成，但部分信息不可用。",
-        });
-      },
+          dispatch({
+            type: "refresh-error",
+            message: "刷新完成，但部分信息不可用。",
+          });
+        },
       )
       .finally(() => {
         refreshInFlight.current = null;
@@ -189,24 +197,37 @@ function App({
   }, [preferencesHydrated]);
 
   useEffect(() => {
-    void reloadShell();
-  }, [reloadShell]);
+    if (initialLoadStarted.current) return;
+    initialLoadStarted.current = true;
+    void loadShell(initialPreferences.preferences.refreshOnLaunch);
+  }, [initialPreferences.preferences.refreshOnLaunch, loadShell]);
+
+  const reloadShell = useCallback(
+    (): Promise<void> => loadShell(true),
+    [loadShell],
+  );
+
+  const changePreferences = useCallback(
+    async (patch: UpdatePreferencesRequest): Promise<void> => {
+      dispatch(loadedPreferencesAction(await updatePreferences(patch)));
+    },
+    [],
+  );
 
   const changeAppearance = useCallback(
     async (nextAppearance: Appearance): Promise<void> => {
       const previousAppearance = appearance;
       applyAppearance(nextAppearance);
       try {
-        const loaded = await updatePreferences({
+        await changePreferences({
           appearance: nextAppearance,
         });
-        dispatch(loadedPreferencesAction(loaded));
       } catch (error) {
         applyAppearance(previousAppearance);
         throw error;
       }
     },
-    [appearance],
+    [appearance, changePreferences],
   );
 
   useEffect(() => {
@@ -241,6 +262,7 @@ function App({
   return (
     <AppShell
       onAppearanceChange={changeAppearance}
+      onPreferencesChange={changePreferences}
       onRefresh={reloadShell}
       state={state}
     />

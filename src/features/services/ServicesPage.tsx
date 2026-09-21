@@ -83,14 +83,20 @@ function targetIndex(
 }
 
 export function ServicesPage({
+  initialSelectedServiceId,
   onOperationChanged,
+  onSelectedServiceChange,
   refreshId,
 }: {
+  initialSelectedServiceId?: string;
   onOperationChanged?: () => void;
+  onSelectedServiceChange?: (serviceId?: string) => void;
   refreshId?: string;
 }) {
   const [listState, setListState] = useState<ListState>({ status: "loading" });
-  const [selectedServiceId, setSelectedServiceId] = useState<string>();
+  const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>(
+    initialSelectedServiceId,
+  );
   const [detailsState, setDetailsState] = useState<DetailsState>({
     status: "idle",
   });
@@ -107,8 +113,15 @@ export function ServicesPage({
   const historyRequestRef = useRef(0);
   const previewRequestRef = useRef(0);
   const operationInFlightRef = useRef(false);
-  const selectedServiceIdRef = useRef<string | undefined>(undefined);
+  const selectedServiceChangeRef = useRef(onSelectedServiceChange);
+  const selectedServiceIdRef = useRef<string | undefined>(
+    initialSelectedServiceId,
+  );
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  useEffect(() => {
+    selectedServiceChangeRef.current = onSelectedServiceChange;
+  }, [onSelectedServiceChange]);
 
   useEffect(() => {
     const requestId = listRequestRef.current + 1;
@@ -130,6 +143,7 @@ export function ServicesPage({
           setPreview(undefined);
           setOperation(undefined);
           setActionError(undefined);
+          selectedServiceChangeRef.current?.(next);
         }
       })
       .catch((error: unknown) => {
@@ -184,6 +198,7 @@ export function ServicesPage({
     selectedServiceIdRef.current = serviceId;
     previewRequestRef.current += 1;
     setSelectedServiceId(serviceId);
+    selectedServiceChangeRef.current?.(serviceId);
     setPreview(undefined);
     setOperation(undefined);
     setActionError(undefined);

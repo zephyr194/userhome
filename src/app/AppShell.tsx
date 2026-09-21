@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -7,15 +8,21 @@ import {
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button } from "../components/ui";
-import type { SettingsGroupId } from "../features/settings/settingsGroups";
 import type { Appearance } from "../ipc/settings";
+import type { UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
 import { APP_ROUTES, type AppRouteId } from "./routeDefinitions";
 import { RoutePanel } from "./routes";
+import {
+  loadSelectionMemory,
+  saveSelectionMemory,
+  type SelectionMemory,
+} from "./selectionMemory";
 import type { ShellState } from "./shellState";
 
 interface AppShellProps {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
+  onPreferencesChange?: (patch: UpdatePreferencesRequest) => Promise<void>;
   onRefresh: () => void;
   state: ShellState;
 }
@@ -51,18 +58,35 @@ function clearSearchOnEscape(event: KeyboardEvent<HTMLDivElement>) {
 
 export function AppShell({
   onAppearanceChange,
+  onPreferencesChange,
   onRefresh,
   state,
 }: AppShellProps) {
   const hasMounted = useRef(false);
   const mainRef = useRef<HTMLElement>(null);
   const [commandError, setCommandError] = useState<string>();
-  const [activeRouteId, setActiveRouteId] =
-    useState<AppRouteId>("dashboard");
-  const [settingsGroup, setSettingsGroup] =
-    useState<SettingsGroupId>("appearance");
+  const restoreSelection =
+    state.preferences.status !== "loading" &&
+    state.preferences.preferences.restoreSelection;
+  const [selection, setSelection] = useState<SelectionMemory>(() =>
+    loadSelectionMemory(restoreSelection),
+  );
+  const activeRouteId = selection.routeId;
+  const settingsGroup = selection.settingsGroup;
   const activeRoute =
     APP_ROUTES.find((route) => route.id === activeRouteId) ?? APP_ROUTES[0];
+
+  useEffect(() => {
+    saveSelectionMemory(restoreSelection, selection);
+  }, [restoreSelection, selection]);
+
+  const updateSelection = useCallback((patch: Partial<SelectionMemory>) => {
+    setSelection((current) => ({ ...current, ...patch }));
+  }, []);
+
+  const navigate = useCallback((routeId: AppRouteId) => {
+    updateSelection({ routeId });
+  }, [updateSelection]);
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -78,7 +102,7 @@ export function AppShell({
 
     void registerSettingsRequestListener(() => {
       setCommandError(undefined);
-      setActiveRouteId("settings");
+      navigate("settings");
     })
       .then((cleanup) => {
         if (disposed) {
@@ -97,7 +121,7 @@ export function AppShell({
       disposed = true;
       unlisten?.();
     };
-  }, []);
+  }, [navigate]);
 
   const preferencesNotice =
     state.preferences.status === "loading" ? (
@@ -146,7 +170,7 @@ export function AppShell({
           sidebar={
             <NavigationRail
               activeRouteId={activeRouteId}
-              onNavigate={setActiveRouteId}
+              onNavigate={navigate}
               routes={APP_ROUTES}
             />
           }
@@ -201,11 +225,22 @@ export function AppShell({
               discovery={state.discovery}
               onAppearanceChange={onAppearanceChange}
               onOperationChanged={onRefresh}
-              onSettingsGroupChange={setSettingsGroup}
+              onPreferencesChange={
+                onPreferencesChange ??
+                (() =>
+                  Promise.reject(
+                    new Error("Preference updates are unavailable."),
+                  ))
+              }
+              onSelectionChange={updateSelection}
+              onSettingsGroupChange={(group) =>
+                updateSelection({ settingsGroup: group })
+              }
               preferences={state.preferences}
               recentOperation={state.recentOperation}
               refresh={state.refresh}
               route={activeRoute}
+              selection={selection}
               settingsGroup={settingsGroup}
             />
           }

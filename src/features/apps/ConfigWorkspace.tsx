@@ -37,6 +37,7 @@ import {
   type OperationDetails,
   type OperationSummary,
 } from "../../ipc/operations";
+import type { PreferredEditorMode } from "../../ipc/settings";
 import { OperationHistory } from "../operations/OperationHistory";
 import { ApplicationIcon } from "./ApplicationIcon";
 import { ApplicationSupportSummary } from "./ApplicationSupportSummary";
@@ -156,6 +157,7 @@ export function ConfigWorkspace({
   application,
   onOperationChanged,
   onSelectedConfigChange,
+  preferredEditorMode,
   refreshId,
   selectedConfigId,
 }: {
@@ -165,6 +167,7 @@ export function ConfigWorkspace({
     applicationId: string,
     configId?: string,
   ) => void;
+  preferredEditorMode: PreferredEditorMode;
   refreshId?: string;
   selectedConfigId?: string;
 }) {
@@ -512,6 +515,14 @@ export function ConfigWorkspace({
     selectedFormatMatches &&
     (selectedPresentation?.accessMode === "READ_WRITE" ||
       selectedPresentation?.accessMode === "READ_ONLY");
+  const hasStructuredEditor = Boolean(editorCapability?.StructuredEditor);
+  const hasRawEditor =
+    Boolean(editorCapability?.raw) &&
+    displayedDocument?.content !== undefined;
+  const showRawEditor =
+    hasRawEditor &&
+    (preferredEditorMode === "RAW" || !hasStructuredEditor);
+  const showStructuredEditor = hasStructuredEditor && !showRawEditor;
 
   function selectVariant(variantId: string) {
     if (configs.status !== "ready" || !selectedConfigId) return;
@@ -769,18 +780,19 @@ export function ConfigWorkspace({
                   ) : null}
                   {canWriteDocument ? (
                     <>
-                      <ConfigAdapterEditor
-                        document={document.document}
-                        editorKey={selectedPresentation.editorKey}
-                        onPreview={(fields) =>
-                          void createStructuredWritePreview(
-                            document.document,
-                            fields,
-                          )
-                        }
-                      />
-                      {editorCapability?.raw &&
-                      document.document.content !== undefined ? (
+                      {showStructuredEditor ? (
+                        <ConfigAdapterEditor
+                          document={document.document}
+                          editorKey={selectedPresentation.editorKey}
+                          onPreview={(fields) =>
+                            void createStructuredWritePreview(
+                              document.document,
+                              fields,
+                            )
+                          }
+                        />
+                      ) : null}
+                      {showRawEditor ? (
                         <RawTextEditor
                           content={draft}
                           redacted={document.document.contentRedacted}
