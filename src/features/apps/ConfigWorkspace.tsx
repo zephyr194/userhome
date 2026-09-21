@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge } from "../../components/ui";
 import type {
@@ -15,12 +15,12 @@ import {
   previewRestoreBackup,
   previewStructuredConfigWrite,
   readConfig,
+  resolveConfigVariants,
   type BackupSummary,
   type ConfigDiagnostic,
   type ConfigDocument,
-  type ConfigDocumentState,
-  type ConfigNextAction,
   type ConfigSummary,
+  type ConfigVariantResolution,
   type ConfigWritePreview as ConfigWritePreviewValue,
 } from "../../ipc/config";
 import { decodeAppError, type AppError } from "../../ipc/core";
@@ -33,10 +33,18 @@ import {
 import { OperationHistory } from "../operations/OperationHistory";
 import { ApplicationIcon } from "./ApplicationIcon";
 import { BackupHistory } from "./BackupHistory";
+import { ConfigDiagnosticDetails } from "./ConfigDiagnosticDetails";
 import { ConfigDetails } from "./ConfigDetails";
+import { ConfigDocumentList } from "./ConfigDocumentList";
 import { ConfigWritePreview } from "./ConfigWritePreview";
 import { ConfigAdapterEditor } from "./editors/ConfigAdapterEditor";
+import { getConfigEditorCapability } from "./editors/configEditorCapabilities";
 import { RawTextEditor } from "./editors/RawTextEditor";
+import {
+  CONFIG_DOCUMENT_ACTION_PRESENTATION,
+  getConfigPresentation,
+  resolveConfigDocumentActionMode,
+} from "./configPresentation";
 
 type ConfigListState =
   | { status: "idle" }
@@ -48,6 +56,7 @@ type DocumentState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "ready"; document: ConfigDocument }
+  | { status: "metadata"; document: ConfigDocument }
   | { status: "diagnostic"; diagnostic: ConfigDiagnostic }
   | { status: "error"; error: AppError };
 
@@ -60,6 +69,28 @@ type PreviewState =
       preview: ConfigWritePreviewValue;
     }
   | { status: "error"; error: AppError };
+
+type VariantState =
+  | { status: "idle" }
+  | { status: "loading"; configId: string }
+  | {
+      status: "ready";
+      configId: string;
+      variants: readonly ConfigVariantResolution[];
+    }
+  | { status: "error"; configId: string; error: AppError };
+
+function metadataDocumentState(summary: ConfigSummary): DocumentState {
+  return summary.state === "READY" || summary.state === "REDACTED"
+    ? {
+        status: "metadata",
+        document: {
+          ...summary,
+          contentRedacted: summary.state === "REDACTED",
+        },
+      }
+    : { status: "diagnostic", diagnostic: summary };
+}
 
 const CAPABILITY_LABELS: Record<ManagedAppCapability, string> = {
   DETECT: "检测",
@@ -94,39 +125,6 @@ const COVERAGE_PRESENTATION: Record<
   },
 };
 
-const CONFIG_STATE_LABELS: Record<ConfigDocumentState, string> = {
-  MISSING: "不存在",
-  READY: "可读取",
-  INVALID: "内容无效",
-  REDACTED: "已屏蔽",
-  TOO_LARGE: "超过大小限制",
-  PERMISSION_DENIED: "权限不足",
-  UNSAFE_SYMLINK: "链接不安全",
-  UNSUPPORTED_FORMAT: "格式不支持",
-  IO_ERROR: "读取失败",
-};
-
-const CONFIG_ACTION_LABELS: Record<ConfigNextAction, string> = {
-  NONE: "无需操作",
-  CREATE_FILE: "创建配置文件后重试",
-  FIX_CONTENT: "修复配置内容后重试",
-  VIEW_REDACTED: "查看已屏蔽的安全视图",
-  REDUCE_SIZE: "缩小文件后重试",
-  REVIEW_PERMISSIONS: "检查文件权限后重试",
-  REPAIR_SYMLINK: "修复不安全的符号链接",
-  UPDATE_CATALOG: "更新 catalog 能力定义",
-  RETRY: "稍后重试",
-};
-
-function configEditorKey(
-  application: ManagedAppSummary,
-  configId: string,
-): string | undefined {
-  return application.presentation.configDocuments.find(
-    (document) => document.configId === configId,
-  )?.editorKey;
-}
-
 export function ConfigWorkspace({
   application,
   onOperationChanged,
@@ -140,6 +138,8 @@ export function ConfigWorkspace({
       : { status: "idle" },
   );
   const [document, setDocument] = useState<DocumentState>({ status: "idle" });
+  const [selectedConfigId, setSelectedConfigId] = useState<string>();
+  const [variants, setVariants] = useState<VariantState>({ status: "idle" });
   const [draft, setDraft] = useState("");
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [operations, setOperations] = useState<OperationSummary[]>([]);
@@ -147,6 +147,7 @@ export function ConfigWorkspace({
   const [operation, setOperation] = useState<OperationDetails>();
   const [actionError, setActionError] = useState<AppError>();
   const [executing, setExecuting] = useState(false);
+  const loadRequestId = useRef(0);
 
   const canRead = application.capabilities.includes("READ_CONFIG");
   const canWrite =
@@ -160,6 +161,7 @@ export function ConfigWorkspace({
     if (!canRead) {
       return () => {
         active = false;
+        loadRequestId.current += 1;
       };
     }
 
@@ -173,24 +175,76 @@ export function ConfigWorkspace({
 
     return () => {
       active = false;
+      loadRequestId.current += 1;
     };
   }, [application.id, canRead]);
 
-  async function loadDocument(summary: ConfigSummary, resetPreview = true) {
+  async function loadDocument(
+    summary: ConfigSummary,
+    options: { resetPreview?: boolean; variantId?: string } = {},
+  ) {
+    const requestId = ++loadRequestId.current;
+    const presentation = getConfigPresentation(application, summary.configId);
+    const mayWrite =
+      canWrite && presentation?.accessMode === "READ_WRITE";
+    setSelectedConfigId(summary.configId);
     setDocument({ status: "loading" });
-    if (resetPreview) {
+    setVariants({ status: "loading", configId: summary.configId });
+    if (options.resetPreview !== false) {
       setPreview({ status: "idle" });
       setOperation(undefined);
       setActionError(undefined);
     }
+    void resolveConfigVariants(summary.appId, summary.configId)
+      .then((values) => {
+        if (loadRequestId.current === requestId) {
+          setVariants({
+            status: "ready",
+            configId: summary.configId,
+            variants: values,
+          });
+          if (
+            presentation?.accessMode === "METADATA_ONLY" ||
+            presentation?.accessMode === "EXCLUDED"
+          ) {
+            const resolved =
+              values.find(
+                (variant) => variant.variantId === options.variantId,
+              ) ?? values.find((variant) => variant.selected);
+            if (resolved) {
+              setDocument(metadataDocumentState(resolved));
+            }
+          }
+        }
+      })
+      .catch((error) => {
+        if (loadRequestId.current === requestId) {
+          setVariants({
+            status: "error",
+            configId: summary.configId,
+            error: decodeAppError(error),
+          });
+        }
+      });
+    if (
+      presentation?.accessMode === "METADATA_ONLY" ||
+      presentation?.accessMode === "EXCLUDED"
+    ) {
+      setBackups([]);
+      setOperations([]);
+      setDraft("");
+      setDocument(metadataDocumentState(summary));
+      return;
+    }
     try {
       const [value, backupValues, operationValues] = await Promise.all([
-        readConfig(summary.appId, summary.configId),
-        canWrite
+        readConfig(summary.appId, summary.configId, options.variantId),
+        mayWrite
           ? listConfigBackups(summary.appId, summary.configId)
           : Promise.resolve([]),
-        canWrite ? listOperations() : Promise.resolve([]),
+        mayWrite ? listOperations() : Promise.resolve([]),
       ]);
+      if (loadRequestId.current !== requestId) return;
       setBackups(backupValues);
       setOperations(
         operationValues.filter((operation) =>
@@ -205,7 +259,9 @@ export function ConfigWorkspace({
       setDocument({ status: "ready", document: value });
       setDraft(value.content ?? "");
     } catch (error) {
-      setDocument({ status: "error", error: decodeAppError(error) });
+      if (loadRequestId.current === requestId) {
+        setDocument({ status: "error", error: decodeAppError(error) });
+      }
     }
   }
 
@@ -289,7 +345,10 @@ export function ConfigWorkspace({
           : await executeRestoreBackup(operationId);
       setOperation(result);
       if (document.status === "ready") {
-        await loadDocument(document.document, false);
+        await loadDocument(document.document, {
+          resetPreview: false,
+          variantId: document.document.variantId,
+        });
       }
     } catch (error) {
       setActionError(decodeAppError(error));
@@ -310,15 +369,87 @@ export function ConfigWorkspace({
     setActionError(undefined);
   }
 
-  const selectedDocument =
-    document.status === "ready" ? document.document : undefined;
-  const selectedEditorKey = selectedDocument
-    ? configEditorKey(application, selectedDocument.configId)
+  const displayedDocument =
+    document.status === "ready" || document.status === "metadata"
+      ? document.document
+      : undefined;
+  const selectedPresentation = selectedConfigId
+    ? getConfigPresentation(application, selectedConfigId)
     : undefined;
-  const canWriteDocument =
-    canWrite &&
-    selectedDocument?.writePolicy !== "READ_ONLY" &&
-    Boolean(selectedDocument?.contentHash);
+  const selectedVariants =
+    variants.status === "ready" && variants.configId === selectedConfigId
+      ? variants.variants
+      : [];
+  const selectedVariantIsWritable =
+    displayedDocument !== undefined &&
+    variants.status === "ready" &&
+    variants.configId === selectedConfigId
+      ? selectedVariants.some(
+          (variant) =>
+            variant.variantId === displayedDocument.variantId &&
+            variant.selected,
+        )
+      : undefined;
+  const editorCapability = selectedPresentation
+    ? getConfigEditorCapability(selectedPresentation.editorKey)
+    : undefined;
+  const selectedFormatMatches =
+    displayedDocument?.format === selectedPresentation?.format;
+  const documentActionMode =
+    displayedDocument && selectedPresentation
+      ? resolveConfigDocumentActionMode({
+          accessMode: selectedPresentation.accessMode,
+          applicationCanWrite: canWrite,
+          contentHash: displayedDocument.contentHash,
+          editorAvailable: Boolean(
+            editorCapability?.StructuredEditor || editorCapability?.raw,
+          ),
+          formatMatches: selectedFormatMatches,
+          selectedVariant: selectedVariantIsWritable,
+          writePolicy: displayedDocument.writePolicy,
+        })
+      : undefined;
+  const canWriteDocument = documentActionMode === "WRITE";
+  const canShowDocumentContent =
+    selectedFormatMatches &&
+    (selectedPresentation?.accessMode === "READ_WRITE" ||
+      selectedPresentation?.accessMode === "READ_ONLY");
+
+  function selectVariant(variantId: string) {
+    if (configs.status !== "ready" || !selectedConfigId) return;
+    if (
+      selectedPresentation?.accessMode === "METADATA_ONLY" ||
+      selectedPresentation?.accessMode === "EXCLUDED"
+    ) {
+      const variant = selectedVariants.find(
+        (candidate) => candidate.variantId === variantId,
+      );
+      if (variant) {
+        setDocument(metadataDocumentState(variant));
+      }
+      return;
+    }
+    const summary = configs.configs.find(
+      (config) => config.configId === selectedConfigId,
+    );
+    if (summary) {
+      void loadDocument(summary, { variantId });
+    }
+  }
+
+  function retryDocument() {
+    if (configs.status !== "ready" || !selectedConfigId) return;
+    const summary = configs.configs.find(
+      (config) => config.configId === selectedConfigId,
+    );
+    if (summary) {
+      const variantId =
+        document.status === "diagnostic"
+          ? document.diagnostic.variantId
+          : undefined;
+      void loadDocument(summary, { variantId });
+    }
+  }
 
   return (
     <article className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-surface">
@@ -380,8 +511,14 @@ export function ConfigWorkspace({
         </section>
 
         {!canRead ? (
-          <AsyncState kind="empty">
-            此定义仅用于分类和检测；catalog 未授权读取配置内容。
+          <AsyncState
+            kind={
+              application.coverageClass === "EXCLUDED" ? "partial" : "empty"
+            }
+          >
+            {application.coverageClass === "EXCLUDED"
+              ? "此应用已被安全策略明确排除；不读取内容，也不提供任何配置操作。"
+              : "此应用仅提供检测与分类元数据；增加经过审核的 catalog 能力前不可读取或编辑。"}
           </AsyncState>
         ) : configs.status === "loading" ? (
           <AsyncState kind="loading">正在读取配置列表…</AsyncState>
@@ -390,51 +527,12 @@ export function ConfigWorkspace({
         ) : configs.status === "ready" && configs.configs.length === 0 ? (
           <AsyncState kind="empty">此应用暂无可展示的配置文档。</AsyncState>
         ) : configs.status === "ready" ? (
-          <section aria-labelledby="config-documents-heading">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h3 id="config-documents-heading" className="text-sm font-semibold">
-                配置文档
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {configs.configs.length} 项
-              </span>
-            </div>
-            <ul className="grid gap-2">
-              {configs.configs.map((config) => {
-                const editorKey = configEditorKey(application, config.configId);
-                const isSelected =
-                  selectedDocument?.configId === config.configId;
-                return (
-                  <li key={config.configId}>
-                    <button
-                      className="flex w-full items-center justify-between gap-4 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
-                      type="button"
-                      disabled={!config.exists}
-                      aria-pressed={isSelected}
-                      onClick={() => void loadDocument(config)}
-                    >
-                      <span className="min-w-0">
-                        <strong className="block truncate text-sm">
-                          {config.configId}
-                        </strong>
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                          {config.displayPath}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-right text-xs text-muted-foreground">
-                        <span className="block">
-                          {editorKey ?? "通用元数据视图"}
-                        </span>
-                        <span className="mt-0.5 block">
-                          {CONFIG_STATE_LABELS[config.state]}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+          <ConfigDocumentList
+            application={application}
+            configs={configs.configs}
+            selectedConfigId={selectedConfigId}
+            onSelect={(config) => void loadDocument(config)}
+          />
         ) : null}
 
         {document.status === "loading" ? (
@@ -442,25 +540,63 @@ export function ConfigWorkspace({
         ) : document.status === "error" ? (
           <AsyncState kind="error">{document.error.message}</AsyncState>
         ) : document.status === "diagnostic" ? (
-          <AsyncState
-            kind={document.diagnostic.retryable ? "error" : "empty"}
-          >
-            {CONFIG_STATE_LABELS[document.diagnostic.state]}；下一步：
-            {CONFIG_ACTION_LABELS[document.diagnostic.nextAction]}
-          </AsyncState>
-        ) : document.status === "ready" ? (
+          selectedPresentation ? (
+            <div className="grid min-w-0 gap-3">
+              <ConfigDiagnosticDetails
+                diagnostic={document.diagnostic}
+                disabled={variants.status === "loading"}
+                presentation={selectedPresentation}
+                variants={selectedVariants}
+                onRetry={retryDocument}
+                onVariantChange={selectVariant}
+              />
+              {variants.status === "error" ? (
+                <AsyncState kind="error">
+                  无法解析路径变体；没有回退到不受控路径。
+                </AsyncState>
+              ) : null}
+            </div>
+          ) : (
+            <AsyncState kind="error">
+              catalog 中缺少此文档的展示能力；已禁用所有操作。
+            </AsyncState>
+          )
+        ) : (document.status === "ready" ||
+            document.status === "metadata") &&
+          selectedPresentation ? (
           <div className="grid min-w-0 gap-3">
-            <ConfigDetails document={document.document} />
+            <ConfigDetails
+              document={document.document}
+              disabled={variants.status === "loading"}
+              contentUnavailableMessage={
+                selectedFormatMatches
+                  ? undefined
+                  : CONFIG_DOCUMENT_ACTION_PRESENTATION.FORMAT_MISMATCH
+                      .description
+              }
+              presentation={selectedPresentation}
+              showContent={
+                document.status === "ready" && canShowDocumentContent
+              }
+              variants={selectedVariants}
+              onVariantChange={selectVariant}
+            />
+            {variants.status === "error" ? (
+              <AsyncState kind="error">
+                无法解析路径变体；为避免写入错误位置，所有修改操作已禁用。
+              </AsyncState>
+            ) : null}
             {canWriteDocument ? (
               <>
                 <ConfigAdapterEditor
                   document={document.document}
-                  editorKey={selectedEditorKey}
+                  editorKey={selectedPresentation.editorKey}
                   onPreview={(fields) =>
                     void createStructuredWritePreview(document.document, fields)
                   }
                 />
-                {document.document.content !== undefined ? (
+                {editorCapability?.raw &&
+                document.document.content !== undefined ? (
                   <RawTextEditor
                     content={draft}
                     redacted={document.document.contentRedacted}
@@ -477,11 +613,26 @@ export function ConfigWorkspace({
                 <OperationHistory operations={operations} />
               </>
             ) : (
-              <AsyncState kind="empty">
-                此文档为只读视图；catalog 与文档策略均未授权写入。
+              <AsyncState
+                kind={
+                  documentActionMode
+                    ? CONFIG_DOCUMENT_ACTION_PRESENTATION[documentActionMode]
+                        .kind
+                    : "empty"
+                }
+              >
+                {documentActionMode
+                  ? CONFIG_DOCUMENT_ACTION_PRESENTATION[documentActionMode]
+                      .description
+                  : "当前文档不提供修改操作。"}
               </AsyncState>
             )}
           </div>
+        ) : document.status === "ready" ||
+          document.status === "metadata" ? (
+          <AsyncState kind="error">
+            catalog 中缺少此文档的展示能力；内容与操作均已隐藏。
+          </AsyncState>
         ) : null}
 
         {preview.status === "loading" ? (

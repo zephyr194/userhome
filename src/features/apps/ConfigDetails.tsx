@@ -1,24 +1,53 @@
-import { Panel, StatusBadge, type StatusBadgeProps } from "../../components/ui";
-import type { ConfigDocument } from "../../ipc/config";
+import { Panel, StatusBadge } from "../../components/ui";
+import type { ManagedConfigDocumentPresentation } from "../../ipc/catalog";
+import type {
+  ConfigDocument,
+  ConfigVariantResolution,
+} from "../../ipc/config";
+import {
+  ACCESS_MODE_PRESENTATION,
+  CONFIG_STATE_PRESENTATION,
+  SENSITIVITY_PRESENTATION,
+  WRITE_POLICY_LABELS,
+} from "./configPresentation";
+import { ConfigVariantSelector } from "./ConfigVariantSelector";
 
-const SENSITIVITY_DETAILS: Record<
-  ConfigDocument["sensitivity"],
-  { label: string; tone: StatusBadgeProps["tone"] }
+const CONTENT_WHITESPACE: Record<
+  ManagedConfigDocumentPresentation["formatFamily"],
+  string
 > = {
-  STANDARD: { label: "标准", tone: "neutral" },
-  SENSITIVE: { label: "敏感", tone: "warning" },
-  SECRET: { label: "秘密", tone: "danger" },
+  JSON: "whitespace-pre",
+  JSONC: "whitespace-pre",
+  TOML: "whitespace-pre",
+  YAML: "whitespace-pre",
+  INI: "whitespace-pre",
+  GIT_CONFIG: "whitespace-pre",
+  KEY_VALUE: "whitespace-pre",
+  PLIST: "whitespace-pre",
+  COMMAND: "whitespace-pre",
+  PLAIN_TEXT: "whitespace-pre-wrap",
 };
 
-const WRITE_POLICY_LABELS: Record<ConfigDocument["writePolicy"], string> = {
-  MANAGED_BLOCK: "受管区块",
-  READ_ONLY: "只读",
-  STRUCTURED_AND_RAW: "结构化与原始写入",
-  RAW_VALIDATED: "校验后原始写入",
-};
-
-export function ConfigDetails({ document }: { document: ConfigDocument }) {
-  const sensitivity = SENSITIVITY_DETAILS[document.sensitivity];
+export function ConfigDetails({
+  document,
+  presentation,
+  variants,
+  disabled = false,
+  showContent = true,
+  contentUnavailableMessage,
+  onVariantChange,
+}: {
+  document: ConfigDocument;
+  presentation: ManagedConfigDocumentPresentation;
+  variants: readonly ConfigVariantResolution[];
+  disabled?: boolean;
+  showContent?: boolean;
+  contentUnavailableMessage?: string;
+  onVariantChange: (variantId: string) => void;
+}) {
+  const sensitivity = SENSITIVITY_PRESENTATION[document.sensitivity];
+  const state = CONFIG_STATE_PRESENTATION[document.state];
+  const access = ACCESS_MODE_PRESENTATION[presentation.accessMode];
 
   return (
     <Panel className="min-w-0 p-4" aria-labelledby="config-details-heading">
@@ -31,12 +60,13 @@ export function ConfigDetails({ document }: { document: ConfigDocument }) {
             className="mt-1 break-words text-lg font-semibold"
             id="config-details-heading"
           >
-            {document.configId}
+            {presentation.purpose}
           </h3>
         </div>
-        <StatusBadge tone={sensitivity.tone}>
-          {sensitivity.label}
-        </StatusBadge>
+        <div className="flex flex-wrap gap-1.5">
+          <StatusBadge tone={state.tone}>{state.label}</StatusBadge>
+          <StatusBadge tone={sensitivity.tone}>{sensitivity.label}</StatusBadge>
+        </div>
       </div>
 
       <dl className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -47,7 +77,11 @@ export function ConfigDetails({ document }: { document: ConfigDocument }) {
           </dd>
         </div>
         <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
-          <dt className="text-xs text-muted-foreground">权限</dt>
+          <dt className="text-xs text-muted-foreground">访问模式</dt>
+          <dd className="mt-1 text-sm font-medium">{access.label}</dd>
+        </div>
+        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+          <dt className="text-xs text-muted-foreground">文件权限</dt>
           <dd className="mt-1 text-sm font-medium">
             {document.mode === undefined
               ? "不可用"
@@ -55,36 +89,52 @@ export function ConfigDetails({ document }: { document: ConfigDocument }) {
           </dd>
         </div>
         <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+          <dt className="text-xs text-muted-foreground">格式</dt>
+          <dd className="mt-1 text-sm font-medium">
+            {presentation.format} · {presentation.formatFamily}
+          </dd>
+        </div>
+        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
           <dt className="text-xs text-muted-foreground">大小</dt>
           <dd className="mt-1 text-sm font-medium">
             {document.sizeBytes === undefined
               ? "不可用"
-              : `${document.sizeBytes} bytes`}
+              : `${document.sizeBytes} / ${presentation.maxSizeBytes} bytes`}
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
-          <dt className="text-xs text-muted-foreground">格式</dt>
-          <dd className="mt-1 text-sm font-medium">{document.format}</dd>
-        </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5 sm:col-span-2">
           <dt className="text-xs text-muted-foreground">写入策略</dt>
           <dd className="mt-1 text-sm font-medium">
             {WRITE_POLICY_LABELS[document.writePolicy]}
           </dd>
         </div>
       </dl>
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        {access.description}
+      </p>
       {document.symlink && (
         <p className="mt-3 break-all rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
           符号链接目标：
           <span className="font-mono">{document.symlink.targetDisplayPath}</span>
         </p>
       )}
-      {document.content === undefined ? (
+      <div className="mt-4">
+        <ConfigVariantSelector
+          currentVariantId={document.variantId}
+          disabled={disabled}
+          variants={variants}
+          onChange={onVariantChange}
+        />
+      </div>
+      {!showContent || document.content === undefined ? (
         <p
           className="mt-4 rounded-md border border-border bg-surface-muted px-3 py-2.5 text-sm text-muted-foreground"
           role="status"
         >
-          此配置仅显示元数据，内容不会离开 Rust 边界。
+          {!showContent
+            ? (contentUnavailableMessage ??
+              "当前 catalog 访问模式仅允许元数据，界面不会显示内容。")
+            : "后端仅返回元数据，配置内容不会离开 Rust 边界。"}
         </p>
       ) : (
         <section
@@ -96,7 +146,7 @@ export function ConfigDetails({ document }: { document: ConfigDocument }) {
               当前内容
             </h4>
             <span className="text-xs text-muted-foreground">
-              只读快照
+              {presentation.formatFamily} · 只读快照
             </span>
           </div>
           {document.contentRedacted && (
@@ -104,12 +154,12 @@ export function ConfigDetails({ document }: { document: ConfigDocument }) {
               className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning"
               role="status"
             >
-              可能包含秘密的行已隐藏。
+              敏感字段、值或不安全内容已被屏蔽。
             </p>
           )}
           <pre
             aria-label="当前配置内容，可滚动"
-            className="mt-2 max-h-80 min-w-0 overflow-auto overscroll-contain rounded-md bg-neutral-950 p-3 font-mono text-xs leading-relaxed whitespace-pre text-neutral-100"
+            className={`mt-2 max-h-80 min-w-0 overflow-auto overscroll-contain rounded-md bg-neutral-950 p-3 font-mono text-xs leading-relaxed text-neutral-100 ${CONTENT_WHITESPACE[presentation.formatFamily]}`}
             tabIndex={0}
           >
             {document.content}

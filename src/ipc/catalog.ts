@@ -139,7 +139,7 @@ const EXISTENCE_RULES: readonly string[] = [
   "DIRECTORY",
   "FILE_OR_DIRECTORY",
 ];
-const FORMATS: readonly string[] = [
+export const CONFIG_FORMATS: readonly string[] = [
   "CADDYFILE",
   "GIT_CONFIG",
   "INI",
@@ -369,7 +369,10 @@ function decodePresentation(
     if (!isRecord(document)) {
       throw createInternalError();
     }
-    const format = decodeKnownValue<ConfigFormat>(document.format, FORMATS);
+    const format = decodeKnownValue<ConfigFormat>(
+      document.format,
+      CONFIG_FORMATS,
+    );
     const formatFamily = decodeKnownValue<ConfigFormatFamily>(
       document.formatFamily,
       FORMAT_FAMILIES,

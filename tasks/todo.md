@@ -1859,16 +1859,27 @@ capability, format, and `editorKey`, including path variants and diagnostics,
 without central `appId` branches.
 
 **Acceptance criteria:**
-- [ ] Read-only, writable, metadata-only, excluded, and diagnostic states have
+- [x] Read-only, writable, metadata-only, excluded, and diagnostic states have
       distinct actions.
-- [ ] Variant selection and large content remain inside bounded panes.
-- [ ] Existing write, preview, backup, restore, validation, and redaction order
+- [x] Variant selection and large content remain inside bounded panes.
+- [x] Existing write, preview, backup, restore, validation, and redaction order
       remains unchanged.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: inspect writable, read-only, redacted, invalid, and unsupported
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Manual: inspect writable, read-only, redacted, invalid, and unsupported
       documents.
+
+**Evidence:** The configuration workspace now derives every action from typed
+application capability, document `accessMode`, resolved variant priority,
+write policy, content hash, format family, and an explicit `editorKey`
+registry, without `appId` branches. Up to eight safe display-path variants are
+selectable inside the detail pane; alternate variants remain read-only, large
+content and raw drafts remain scroll-bounded, and metadata-only or excluded
+definitions never call `read_config`. Rendered-state inspection covers
+writable/redacted, read-only, metadata-only, invalid, unsupported, and unknown
+editor cases; lint, typecheck, all 66 Vitest tests, and the production Vite
+build passed.
 
 **Dependencies:** T48, T55, T56
 

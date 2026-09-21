@@ -2,6 +2,7 @@ import { mockIPC } from "@tauri-apps/api/mocks";
 import { describe, expect, it } from "vitest";
 import {
   diagnoseConfig,
+  listConfigs,
   previewStructuredConfigWrite,
   readConfig,
   resolveConfigVariants,
@@ -42,6 +43,28 @@ describe("config IPC", () => {
     await expect(readConfig("npm", "npm-user-config")).resolves.toMatchObject({
       contentRedacted: true,
       structured: { hasAuthToken: true },
+    });
+  });
+
+  it("rejects an unknown runtime format instead of selecting a generic viewer", async () => {
+    mockIPC(() => [
+      {
+        appId: "example",
+        configId: "example-config",
+        variantId: "primary",
+        displayPath: "~/.config/example/config",
+        state: "MISSING",
+        retryable: false,
+        nextAction: "CREATE_FILE",
+        format: "BINARY",
+        sensitivity: "STANDARD",
+        writePolicy: "READ_ONLY",
+        exists: false,
+      },
+    ]);
+
+    await expect(listConfigs("example")).rejects.toMatchObject({
+      code: "INTERNAL",
     });
   });
 

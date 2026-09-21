@@ -146,12 +146,16 @@ do not change authorization.
 Runtime behavior is fail-closed:
 
 - `MANAGED_WRITABLE` shows mutation controls only when the application also has
-  `WRITE_CONFIG`, the selected document is not `READ_ONLY`, and a current
-  content hash is available. Every mutation still requires a preview and
-  explicit confirmation.
+  `WRITE_CONFIG`, the document declares `READ_WRITE`, its `editorKey` maps to a
+  compiled editor capability, the selected path is the resolver's current
+  priority variant, and a current content hash is available. Every mutation
+  still requires the existing validator, preview, explicit confirmation,
+  backup, atomic write, and post-write validation order.
 - `MANAGED_READ_ONLY` may return only bounded, validated, redacted text through
   its approved adapter. It never exposes preview, write, backup, restore,
   service, or elevation actions.
+- `METADATA_ONLY` and document-level `EXCLUDED` presentation never calls
+  `read_config`; the workspace uses only bounded summary and variant metadata.
 - `DETECTED_UNSUPPORTED` exposes detection/classification metadata only. It does
   not authorize `listConfigs`, content reads, or management actions.
 - `EXCLUDED` is assigned before content access for credentials, keys, caches,
@@ -162,6 +166,15 @@ Runtime behavior is fail-closed:
 Discovery evidence and UI selection never promote an entry to a broader
 coverage class. Authorization continues to come only from the validated
 built-in Rust catalog.
+
+Document presentation is dispatched by typed state, `accessMode`,
+`formatFamily`, and `editorKey`, never by `appId`. JSON-like, assignment,
+command, and plain-text families share a bounded scrollable viewer while
+plain-text snapshots may wrap long lines. Path selection uses at most eight
+resolved root-alias variants; alternate variants are inspectable but remain
+read-only because mutation commands do not accept a variant path. Unknown
+editor capabilities and variant-resolution failures render non-actionable
+diagnostics instead of falling back to a generic editor.
 
 ## Typed resolution and diagnostics
 

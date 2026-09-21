@@ -10,6 +10,7 @@ import {
   type OperationDetails,
   type OperationPreview,
 } from "./operations";
+import { CONFIG_FORMATS, type ConfigFormat } from "./catalog";
 
 export type ConfigSensitivity = "STANDARD" | "SENSITIVE" | "SECRET";
 export type ConfigEntryKind = "FILE" | "DIRECTORY";
@@ -50,7 +51,7 @@ export interface ConfigDiagnostic {
 }
 
 export interface ConfigSummary extends ConfigDiagnostic {
-  format: string;
+  format: ConfigFormat;
   sensitivity: ConfigSensitivity;
   writePolicy: ConfigWritePolicy;
   exists: boolean;
@@ -215,6 +216,7 @@ function decodeConfigSummary(value: unknown): ConfigSummary {
   if (
     !isRecord(value) ||
     typeof value.format !== "string" ||
+    !CONFIG_FORMATS.includes(value.format) ||
     typeof value.writePolicy !== "string" ||
     !WRITE_POLICIES.includes(value.writePolicy) ||
     typeof value.exists !== "boolean" ||
@@ -270,7 +272,7 @@ function decodeConfigSummary(value: unknown): ConfigSummary {
 
   return {
     ...diagnostic,
-    format: value.format,
+    format: value.format as ConfigFormat,
     sensitivity: value.sensitivity as ConfigSensitivity,
     writePolicy: value.writePolicy as ConfigWritePolicy,
     exists: value.exists,
