@@ -178,6 +178,43 @@ export interface ConfigurationCoverage {
   issues: readonly DiscoveryIssue[];
 }
 
+export interface SanitizedBaselineCandidate {
+  candidateId: string;
+  rootKind: CandidateRootKind;
+  relativePath: string;
+  entryType: CandidateKind;
+  evidence: readonly CandidateEvidence[];
+  formatHints: readonly string[];
+  sensitivityHint: Exclude<CandidateSensitivityHint, "SECRET">;
+  coverageClass: Exclude<ManagedAppCoverageClass, "EXCLUDED">;
+  classificationReason: string;
+  catalogAppId?: string;
+}
+
+export interface BaselineCoverageSummary {
+  totalCandidateCount: number;
+  managedCandidateCount: number;
+  managedWritableCount: number;
+  managedReadOnlyCount: number;
+  unsupportedCount: number;
+  excludedCount: number;
+  exportedCandidateCount: number;
+  omittedCandidateCount: number;
+}
+
+export interface SanitizedCandidateScanSummary
+  extends Omit<CandidateScanSummary, "outcomes"> {
+  outcomes: readonly CandidateScanOutcomeKind[];
+}
+
+export interface SanitizedBaselineManifest {
+  schemaVersion: 1;
+  completeness: DiscoveryCompleteness;
+  coverage: BaselineCoverageSummary;
+  scan: SanitizedCandidateScanSummary;
+  candidates: readonly SanitizedBaselineCandidate[];
+}
+
 export type ModuleSnapshot<T> =
   | { status: "LOADING" }
   | {
@@ -520,7 +557,7 @@ function legacyCandidateScanSummary(
 
 function decodeCandidateScanSummary(
   value: unknown,
-  candidateCount: number,
+  expectedCandidateCount?: number,
 ): CandidateScanSummary {
   if (
     !isRecord(value) ||
@@ -542,7 +579,8 @@ function decodeCandidateScanSummary(
       ? Math.max(MAX_CANDIDATES, metadataCount)
       : decodeCount(value.limits.maxMetadataCount);
   if (
-    decodedCandidateCount !== candidateCount ||
+    (expectedCandidateCount !== undefined &&
+      decodedCandidateCount !== expectedCandidateCount) ||
     maxCandidates < decodedCandidateCount ||
     maxMetadataCount < metadataCount
   ) {
@@ -571,6 +609,156 @@ function decodeCandidateScanSummary(
       timeoutMs: decodeCount(value.limits.timeoutMs),
     },
     outcomes: value.outcomes.map(decodeCandidateScanOutcome),
+  };
+}
+
+function decodeSanitizedBaselineCandidate(
+  value: unknown,
+): SanitizedBaselineCandidate {
+  if (!isRecord(value)) {
+    throw createInternalError();
+  }
+  if (
+    !CANDIDATE_ROOT_KINDS.includes(value.rootKind as CandidateRootKind) ||
+    !CANDIDATE_KINDS.includes(value.entryType as CandidateKind) ||
+    !CANDIDATE_SENSITIVITY_HINTS.includes(
+      value.sensitivityHint as CandidateSensitivityHint,
+    ) ||
+    value.sensitivityHint === "SECRET" ||
+    ![
+      "MANAGED_WRITABLE",
+      "MANAGED_READ_ONLY",
+      "DETECTED_UNSUPPORTED",
+    ].includes(String(value.coverageClass))
+  ) {
+    throw createInternalError();
+  }
+  const rootKind = value.rootKind as CandidateRootKind;
+  return {
+    candidateId: decodeText(value.candidateId),
+    rootKind,
+    relativePath: decodeCandidatePath(value.relativePath, rootKind),
+    entryType: value.entryType as CandidateKind,
+    evidence: decodeCandidateStringList(
+      value.evidence,
+      CANDIDATE_EVIDENCE_KINDS,
+      MAX_CANDIDATE_EVIDENCE,
+    ) as CandidateEvidence[],
+    formatHints: decodeCandidateStringList(
+      value.formatHints,
+      undefined,
+      MAX_FORMAT_HINTS,
+    ),
+    sensitivityHint: value.sensitivityHint as Exclude<
+      CandidateSensitivityHint,
+      "SECRET"
+    >,
+    coverageClass: value.coverageClass as Exclude<
+      ManagedAppCoverageClass,
+      "EXCLUDED"
+    >,
+    classificationReason: decodeText(value.classificationReason),
+    ...(value.catalogAppId === undefined || value.catalogAppId === null
+      ? {}
+      : { catalogAppId: decodeText(value.catalogAppId) }),
+  };
+}
+
+function decodeBaselineCoverageSummary(
+  value: unknown,
+  exportedCandidateCount: number,
+): BaselineCoverageSummary {
+  if (!isRecord(value)) {
+    throw createInternalError();
+  }
+  const summary: BaselineCoverageSummary = {
+    totalCandidateCount: decodeCount(value.totalCandidateCount, MAX_CANDIDATES),
+    managedCandidateCount: decodeCount(
+      value.managedCandidateCount,
+      MAX_CANDIDATES,
+    ),
+    managedWritableCount: decodeCount(
+      value.managedWritableCount,
+      MAX_CANDIDATES,
+    ),
+    managedReadOnlyCount: decodeCount(
+      value.managedReadOnlyCount,
+      MAX_CANDIDATES,
+    ),
+    unsupportedCount: decodeCount(value.unsupportedCount, MAX_CANDIDATES),
+    excludedCount: decodeCount(value.excludedCount, MAX_CANDIDATES),
+    exportedCandidateCount: decodeCount(
+      value.exportedCandidateCount,
+      MAX_CANDIDATES,
+    ),
+    omittedCandidateCount: decodeCount(
+      value.omittedCandidateCount,
+      MAX_CANDIDATES,
+    ),
+  };
+  if (
+    summary.managedCandidateCount !==
+      summary.managedWritableCount + summary.managedReadOnlyCount ||
+    summary.totalCandidateCount !==
+      summary.managedCandidateCount +
+        summary.unsupportedCount +
+        summary.excludedCount ||
+    summary.exportedCandidateCount !== exportedCandidateCount ||
+    summary.totalCandidateCount !==
+      summary.exportedCandidateCount + summary.omittedCandidateCount
+  ) {
+    throw createInternalError();
+  }
+  return summary;
+}
+
+function decodeSanitizedCandidateScanSummary(
+  value: unknown,
+  expectedCandidateCount: number,
+): SanitizedCandidateScanSummary {
+  if (!isRecord(value) || !Array.isArray(value.outcomes)) {
+    throw createInternalError();
+  }
+  const summary = decodeCandidateScanSummary(
+    { ...value, outcomes: [] },
+    expectedCandidateCount,
+  );
+  return {
+    ...summary,
+    outcomes: decodeCandidateStringList(
+      value.outcomes,
+      CANDIDATE_SCAN_OUTCOME_KINDS,
+      MAX_SCAN_OUTCOMES,
+    ) as CandidateScanOutcomeKind[],
+  };
+}
+
+function decodeSanitizedBaselineManifest(
+  value: unknown,
+): SanitizedBaselineManifest {
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== 1 ||
+    !["COMPLETE", "PARTIAL"].includes(String(value.completeness)) ||
+    !Array.isArray(value.candidates) ||
+    value.candidates.length > MAX_CANDIDATES
+  ) {
+    throw createInternalError();
+  }
+  const candidates = value.candidates.map(decodeSanitizedBaselineCandidate);
+  const coverage = decodeBaselineCoverageSummary(
+    value.coverage,
+    candidates.length,
+  );
+  return {
+    schemaVersion: 1,
+    completeness: value.completeness as DiscoveryCompleteness,
+    coverage,
+    scan: decodeSanitizedCandidateScanSummary(
+      value.scan,
+      coverage.totalCandidateCount,
+    ),
+    candidates,
   };
 }
 
@@ -672,6 +860,13 @@ export function getConfigurationCoverage(): Promise<ConfigurationCoverage> {
   return invokeCommand(
     "list_unmanaged_candidates",
     decodeConfigurationCoverage,
+  );
+}
+
+export function exportSanitizedBaseline(): Promise<SanitizedBaselineManifest> {
+  return invokeCommand(
+    "export_sanitized_baseline",
+    decodeSanitizedBaselineManifest,
   );
 }
 

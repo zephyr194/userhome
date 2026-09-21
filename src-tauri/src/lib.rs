@@ -58,6 +58,7 @@ pub fn run() {
             commands::discovery::get_system_snapshot,
             commands::discovery::refresh_system_snapshot,
             commands::discovery::list_unmanaged_candidates,
+            commands::discovery::export_sanitized_baseline,
             commands::brew::list_brew_packages,
             commands::brew::search_brew_packages,
             commands::brew::get_brew_package,

@@ -159,6 +159,57 @@ pub struct ConfigurationCoverage {
 
 pub type BaselineInventory = ConfigurationCoverage;
 
+pub const SANITIZED_BASELINE_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SanitizedBaselineCandidate {
+    candidate_id: String,
+    root_kind: CandidateRootKind,
+    relative_path: String,
+    entry_type: CandidateKind,
+    evidence: Vec<CandidateEvidence>,
+    format_hints: Vec<String>,
+    sensitivity_hint: CandidateSensitivityHint,
+    coverage_class: CatalogCoverageClass,
+    classification_reason: String,
+    catalog_app_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaselineCoverageSummary {
+    total_candidate_count: usize,
+    managed_candidate_count: usize,
+    managed_writable_count: usize,
+    managed_read_only_count: usize,
+    unsupported_count: usize,
+    excluded_count: usize,
+    exported_candidate_count: usize,
+    omitted_candidate_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SanitizedCandidateScanSummary {
+    candidate_count: usize,
+    metadata_count: usize,
+    root_count: usize,
+    elapsed_ms: u64,
+    limits: CandidateScanLimits,
+    outcomes: Vec<CandidateScanOutcomeKind>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SanitizedBaselineManifest {
+    schema_version: u16,
+    completeness: DiscoveryCompleteness,
+    coverage: BaselineCoverageSummary,
+    scan: SanitizedCandidateScanSummary,
+    candidates: Vec<SanitizedBaselineCandidate>,
+}
+
 impl ConfigurationCoverage {
     #[cfg(test)]
     pub(crate) fn empty() -> Self {
@@ -201,6 +252,105 @@ impl ConfigurationCoverage {
             issues: vec![DiscoveryIssue::new("candidates", message, true)],
         }
     }
+
+    pub fn sanitized_manifest(&self) -> SanitizedBaselineManifest {
+        let managed_writable_count = self
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.coverage_class == CatalogCoverageClass::ManagedWritable)
+            .count();
+        let managed_read_only_count = self
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.coverage_class == CatalogCoverageClass::ManagedReadOnly)
+            .count();
+        let unsupported_count = self
+            .candidates
+            .iter()
+            .filter(|candidate| {
+                candidate.coverage_class == CatalogCoverageClass::DetectedUnsupported
+            })
+            .count();
+        let excluded_count = self
+            .candidates
+            .iter()
+            .filter(|candidate| candidate.coverage_class == CatalogCoverageClass::Excluded)
+            .count();
+        let candidates = self
+            .candidates
+            .iter()
+            .filter(|candidate| is_export_safe(candidate))
+            .map(SanitizedBaselineCandidate::from)
+            .collect::<Vec<_>>();
+        let total_candidate_count = self.candidates.len();
+        let exported_candidate_count = candidates.len();
+
+        SanitizedBaselineManifest {
+            schema_version: SANITIZED_BASELINE_SCHEMA_VERSION,
+            completeness: self.completeness,
+            coverage: BaselineCoverageSummary {
+                total_candidate_count,
+                managed_candidate_count: managed_writable_count + managed_read_only_count,
+                managed_writable_count,
+                managed_read_only_count,
+                unsupported_count,
+                excluded_count,
+                exported_candidate_count,
+                omitted_candidate_count: total_candidate_count - exported_candidate_count,
+            },
+            scan: SanitizedCandidateScanSummary {
+                candidate_count: self.summary.candidate_count,
+                metadata_count: self.summary.metadata_count,
+                root_count: self.summary.root_count,
+                elapsed_ms: self.summary.elapsed_ms,
+                limits: self.summary.limits,
+                outcomes: self
+                    .summary
+                    .outcomes
+                    .iter()
+                    .map(|outcome| outcome.kind)
+                    .collect(),
+            },
+            candidates,
+        }
+    }
+}
+
+impl From<&UnmanagedCandidate> for SanitizedBaselineCandidate {
+    fn from(candidate: &UnmanagedCandidate) -> Self {
+        Self {
+            candidate_id: candidate.candidate_id.clone(),
+            root_kind: candidate.root_kind,
+            relative_path: candidate.relative_path.clone(),
+            entry_type: candidate.entry_type,
+            evidence: candidate.evidence.clone(),
+            format_hints: candidate.format_hints.clone(),
+            sensitivity_hint: candidate.sensitivity_hint,
+            coverage_class: candidate.coverage_class,
+            classification_reason: candidate.classification_reason.clone(),
+            catalog_app_id: candidate.catalog_app_id.clone(),
+        }
+    }
+}
+
+fn is_export_safe(candidate: &UnmanagedCandidate) -> bool {
+    candidate.coverage_class != CatalogCoverageClass::Excluded
+        && candidate.sensitivity_hint != CandidateSensitivityHint::Secret
+        && !Path::new(&candidate.relative_path)
+            .components()
+            .any(|component| is_private_export_name(&component.as_os_str().to_string_lossy()))
+}
+
+fn is_private_export_name(name: &str) -> bool {
+    let normalized = name.trim_start_matches('.').to_ascii_lowercase();
+    is_excluded_name(name)
+        || normalized.contains("credential")
+        || normalized.contains("secret")
+        || normalized.contains("token")
+        || matches!(
+            normalized.as_str(),
+            "ssh" | "gnupg" | "aws" | "azure" | "gcloud" | "kube" | "docker"
+        )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1317,6 +1467,7 @@ mod tests {
             .expect("unknown directory should be created");
         fs::write(home.join(".unknown/nested/secret"), "must not be read")
             .expect("nested fixture should be written");
+        fs::create_dir_all(home.join(".cache")).expect("cache directory should be created");
         fs::create_dir_all(home.join(".copilot")).expect("managed directory should be created");
         fs::write(home.join(".copilot/config.json"), "{}")
             .expect("managed copilot config should be written");
@@ -1363,6 +1514,8 @@ mod tests {
         fs::write(brew.join("etc/tool.conf"), "must not be read")
             .expect("unknown brew config should be written");
         symlink(".unknown", home.join(".linked")).expect("metadata-only symlink should be created");
+        fs::write(home.join(".npmrc"), "//registry.example/:_authToken=secret")
+            .expect("secret catalog config should be written");
         fs::write(home.join(".not-a-directory"), "ignored").expect("hidden file should be written");
 
         let candidates =
@@ -1401,6 +1554,10 @@ mod tests {
         assert_eq!(
             candidate("HOMEBREW_PREFIX/etc/tool.conf").coverage_class,
             CatalogCoverageClass::DetectedUnsupported
+        );
+        assert_eq!(
+            candidate("~/.cache").coverage_class,
+            CatalogCoverageClass::Excluded
         );
         assert_eq!(
             candidate("~/Library/LaunchAgents/homebrew.mxcl.caddy.plist")
@@ -1478,6 +1635,35 @@ mod tests {
                 .map(|candidate| (&candidate.candidate_id, candidate.coverage_class))
                 .collect::<Vec<_>>()
         );
+        let manifest = candidates.sanitized_manifest();
+        assert_eq!(
+            manifest.coverage.total_candidate_count,
+            manifest.coverage.managed_candidate_count
+                + manifest.coverage.unsupported_count
+                + manifest.coverage.excluded_count
+        );
+        assert_eq!(
+            manifest.coverage.total_candidate_count,
+            manifest.coverage.exported_candidate_count + manifest.coverage.omitted_candidate_count
+        );
+        assert_eq!(
+            manifest.coverage.exported_candidate_count,
+            manifest.candidates.len()
+        );
+        assert!(manifest.candidates.iter().all(|candidate| {
+            candidate.coverage_class != CatalogCoverageClass::Excluded
+                && candidate.sensitivity_hint != CandidateSensitivityHint::Secret
+                && !candidate.relative_path.starts_with('/')
+        }));
+        let manifest_json =
+            serde_json::to_string(&manifest).expect("sanitized manifest should serialize");
+        assert!(!manifest_json.contains(".cache"));
+        assert!(!manifest_json.contains(".npmrc"));
+        assert!(!manifest_json.contains("modifiedAtEpochMs"));
+        assert!(!manifest_json.contains("\"name\""));
+        assert!(!manifest_json.contains("authToken"));
+        assert!(!manifest_json.contains(home.to_string_lossy().as_ref()));
+        assert!(!manifest_json.contains(brew.to_string_lossy().as_ref()));
         let serialized = serde_json::to_string(&candidates).expect("candidates should serialize");
         assert!(!serialized.contains("\"name\":\".xdg\""));
         assert!(!serialized.contains("nested"));

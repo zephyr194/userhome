@@ -1682,17 +1682,25 @@ that can drive catalog work without committing usernames, contents, credential
 names, or unrestricted listings.
 
 **Acceptance criteria:**
-- [ ] The exported total equals managed, unsupported, and excluded counts.
-- [ ] The export contains normalized root aliases and no absolute username,
+- [x] The exported total equals managed, unsupported, and excluded counts.
+- [x] The export contains normalized root aliases and no absolute username,
       configuration content, secrets, cache/log/database entries, or runtime
       state.
-- [ ] Raw baseline artifacts remain outside version control.
+- [x] Raw baseline artifacts remain outside version control.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `pnpm typecheck`
-- [ ] Manual: inspect a sanitized export and compare counts with runtime
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `pnpm typecheck`
+- [x] Manual: inspect a sanitized export and compare counts with runtime
       coverage.
+
+**Evidence:** The versioned `export_sanitized_baseline` IPC returns aggregate
+coverage plus safe candidate rows, omitting excluded and secret paths while
+retaining their counts. The inspected baseline contained 128 total candidates:
+15 managed, 110 unsupported, and 3 excluded; 119 rows were exported and 9 were
+omitted, with 159 metadata operations across 3 completed roots in 9 ms. The raw
+JSON was streamed through local validation, passed alias and privacy checks, and
+was not written into the repository.
 
 **Dependencies:** T52
 
