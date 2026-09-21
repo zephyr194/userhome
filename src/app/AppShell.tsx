@@ -22,6 +22,7 @@ import type { ShellState } from "./shellState";
 interface AppShellProps {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onPreferencesChange?: (patch: UpdatePreferencesRequest) => Promise<void>;
+  onPreferencesReset?: () => Promise<void>;
   onRefresh: () => void;
   state: ShellState;
 }
@@ -58,6 +59,7 @@ function clearSearchOnEscape(event: KeyboardEvent<HTMLDivElement>) {
 export function AppShell({
   onAppearanceChange,
   onPreferencesChange,
+  onPreferencesReset,
   onRefresh,
   state,
 }: AppShellProps) {
@@ -218,6 +220,13 @@ export function AppShell({
                 (() =>
                   Promise.reject(
                     new Error("Preference updates are unavailable."),
+                  ))
+              }
+              onPreferencesReset={
+                onPreferencesReset ??
+                (() =>
+                  Promise.reject(
+                    new Error("Preference reset is unavailable."),
                   ))
               }
               onSelectionChange={updateSelection}

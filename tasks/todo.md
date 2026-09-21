@@ -2436,16 +2436,27 @@ and provider health; export/copy only a sanitized report; and reset preferences
 without touching backups or managed configuration.
 
 **Acceptance criteria:**
-- [ ] Diagnostics contain no configuration content, secrets, username, absolute
+- [x] Diagnostics contain no configuration content, secrets, username, absolute
       home path, environment dump, or authorization material.
-- [ ] Export and copy require explicit user actions and expose failures.
-- [ ] Reset restores documented safe defaults while preserving backups and all
+- [x] Export and copy require explicit user actions and expose failures.
+- [x] Reset restores documented safe defaults while preserving backups and all
       managed application files.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: inspect exported diagnostics and restart after reset.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Manual: inspect exported diagnostics and restart after reset.
+
+**Evidence:** Diagnostics are constructed from a backend allowlist rather than
+runtime payloads, and strict IPC decoding accepts only bounded enums, counts,
+sanitized system values, and report text. An isolated 1120×720 keyboard pass
+visited every group, copied the report, exposed a missing-download-directory
+failure, then exported a 659-byte file whose content contained no username,
+absolute home path, environment value, secret marker, or optional-root list.
+The same isolated run changed appearance to Light, confirmed reset from the
+cancel-focused dialog, verified the persisted default document, and restarted
+with System appearance while retaining the separate backup/configuration
+boundaries covered by Settings tests.
 
 **Dependencies:** T53, T60, T62, T63, T66
 
@@ -2466,12 +2477,12 @@ runtime objects.
 
 ## Checkpoint R: Settings Complete
 
-- [ ] T61-T68 acceptance criteria pass.
-- [ ] Settings opens from the sidebar and `Command+,` and restores its group.
-- [ ] Appearance, lifecycle, refresh, editor, backup, privacy, and diagnostics
+- [x] T61-T68 acceptance criteria pass.
+- [x] Settings opens from the sidebar and `Command+,` and restores its group.
+- [x] Appearance, lifecycle, refresh, editor, backup, privacy, and diagnostics
       behavior persists through restart.
-- [ ] Reset, backup deletion, and managed-configuration mutation remain separate.
-- [ ] Launch at login remains unavailable unless separately approved.
+- [x] Reset, backup deletion, and managed-configuration mutation remain separate.
+- [x] Launch at login remains unavailable unless separately approved.
 
 ## T69: Complete desktop completeness verification and documentation
 

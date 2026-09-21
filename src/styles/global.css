@@ -1783,6 +1783,23 @@ a {
   color: var(--danger);
 }
 
+.diagnostics-report {
+  max-height: 260px;
+  margin: 10px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  padding: 12px;
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.55;
+  scrollbar-gutter: stable;
+}
+
 .settings-backup {
   display: grid;
   gap: 10px;

@@ -26,6 +26,7 @@ interface RoutePanelProps {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onOperationChanged: () => void;
   onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
+  onPreferencesReset: () => Promise<void>;
   onSelectionChange: (patch: Partial<SelectionMemory>) => void;
   onSettingsGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
@@ -43,6 +44,7 @@ export function RoutePanel({
   onAppearanceChange,
   onOperationChanged,
   onPreferencesChange,
+  onPreferencesReset,
   onSelectionChange,
   onSettingsGroupChange,
   preferences,
@@ -155,6 +157,7 @@ export function RoutePanel({
         onAppearanceChange={onAppearanceChange}
         onDiscoveryRefresh={onOperationChanged}
         onPreferencesChange={onPreferencesChange}
+        onPreferencesReset={onPreferencesReset}
         onSelectedGroupChange={onSettingsGroupChange}
         preferences={preferences}
         selectedGroup={settingsGroup}

@@ -26,6 +26,7 @@ import {
   type OperationDetails,
 } from "./ipc/operations";
 import {
+  resetPreferences,
   updatePreferences,
   type Appearance,
   type LoadedPreferences,
@@ -230,6 +231,12 @@ function App({
     [appearance, changePreferences],
   );
 
+  const resetApplicationPreferences = useCallback(async (): Promise<void> => {
+    const loaded = await resetPreferences();
+    applyAppearance(loaded.preferences.appearance);
+    dispatch(loadedPreferencesAction(loaded));
+  }, []);
+
   useEffect(() => {
     let disposed = false;
     let unlisten: (() => void) | undefined;
@@ -263,6 +270,7 @@ function App({
     <AppShell
       onAppearanceChange={changeAppearance}
       onPreferencesChange={changePreferences}
+      onPreferencesReset={resetApplicationPreferences}
       onRefresh={reloadShell}
       state={state}
     />

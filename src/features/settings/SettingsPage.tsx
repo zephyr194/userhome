@@ -7,17 +7,19 @@ import type {
 } from "../../ipc/settings";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { ConfigurationSettings } from "./ConfigurationSettings";
+import { DiagnosticsSettings } from "./DiagnosticsSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { PrivacySettings } from "./PrivacySettings";
 import { RefreshSettings } from "./RefreshSettings";
+import { ResetSettings } from "./ResetSettings";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SETTINGS_GROUPS, type SettingsGroupId } from "./settingsGroups";
-import { getSettingsSummaries } from "./settingsSummaries";
 
 export function SettingsPage({
   onAppearanceChange,
   onDiscoveryRefresh,
   onPreferencesChange,
+  onPreferencesReset,
   onSelectedGroupChange,
   preferences,
   selectedGroup,
@@ -25,6 +27,7 @@ export function SettingsPage({
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onDiscoveryRefresh: () => void;
   onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
+  onPreferencesReset: () => Promise<void>;
   onSelectedGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
   selectedGroup: SettingsGroupId;
@@ -100,22 +103,13 @@ export function SettingsPage({
               onDiscoveryRefresh={onDiscoveryRefresh}
               preferences={preferences.preferences}
             />
+          ) : group.id === "diagnostics" ? (
+            <DiagnosticsSettings />
           ) : (
-            <dl className="settings-summary-list">
-              {getSettingsSummaries(
-                group.id,
-                preferences.preferences,
-                preferences,
-              ).map((item) => (
-                <div key={item.label}>
-                  <dt>{item.label}</dt>
-                  <dd>
-                    <strong>{item.value}</strong>
-                    <span>{item.description}</span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <ResetSettings
+              onDiscoveryRefresh={onDiscoveryRefresh}
+              onReset={onPreferencesReset}
+            />
           )}
         </div>
       </section>
