@@ -1406,6 +1406,12 @@ a {
   scrollbar-gutter: stable;
 }
 
+.services-workspace__detail-stack {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
 .service-details-pane {
   min-width: 0;
   overflow: hidden;

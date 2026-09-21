@@ -9,9 +9,12 @@ import { StatusBadge, type StatusBadgeProps } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
   getOperation,
+  listOperations,
   type OperationDetails,
   type OperationPreview,
+  type OperationSummary,
 } from "../../ipc/operations";
+import { OperationHistory } from "../operations/OperationHistory";
 import {
   executeServiceAction,
   getService,
@@ -38,6 +41,11 @@ type DetailsState =
       details: ServiceDetailsValue;
     }
   | { status: "error"; serviceId: string; error: AppError };
+
+type HistoryState =
+  | { status: "loading" }
+  | { status: "ready"; operations: readonly OperationSummary[] }
+  | { status: "error"; error: AppError };
 
 const STATE_LABELS: Record<ServiceSummary["state"], string> = {
   STARTED: "运行中",
@@ -86,6 +94,9 @@ export function ServicesPage({
   const [detailsState, setDetailsState] = useState<DetailsState>({
     status: "idle",
   });
+  const [historyState, setHistoryState] = useState<HistoryState>({
+    status: "loading",
+  });
   const [mutationRefresh, setMutationRefresh] = useState(0);
   const [preview, setPreview] = useState<OperationPreview>();
   const [operation, setOperation] = useState<OperationDetails>();
@@ -93,6 +104,7 @@ export function ServicesPage({
   const [busy, setBusy] = useState(false);
   const listRequestRef = useRef(0);
   const detailsRequestRef = useRef(0);
+  const historyRequestRef = useRef(0);
   const operationInFlightRef = useRef(false);
   const selectedServiceIdRef = useRef<string | undefined>(undefined);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -149,6 +161,22 @@ export function ServicesPage({
         }
       });
   }, [mutationRefresh, refreshId, selectedServiceId]);
+
+  useEffect(() => {
+    const requestId = historyRequestRef.current + 1;
+    historyRequestRef.current = requestId;
+    void listOperations()
+      .then((operations) => {
+        if (historyRequestRef.current === requestId) {
+          setHistoryState({ status: "ready", operations });
+        }
+      })
+      .catch((error: unknown) => {
+        if (historyRequestRef.current === requestId) {
+          setHistoryState({ status: "error", error: decodeAppError(error) });
+        }
+      });
+  }, [mutationRefresh, refreshId]);
 
   function selectService(serviceId: string) {
     selectedServiceIdRef.current = serviceId;
@@ -349,25 +377,38 @@ export function ServicesPage({
           className="services-workspace__detail"
           aria-label="服务详情与操作"
         >
-          {visibleDetailsState.status === "idle" ? (
-            <AsyncState kind="empty">
-              从服务清单中选择一项以查看作用域、状态和可用操作。
-            </AsyncState>
-          ) : visibleDetailsState.status === "loading" ? (
-            <AsyncState kind="loading">正在加载服务详情…</AsyncState>
-          ) : visibleDetailsState.status === "error" ? (
-            <AsyncState kind="error">
-              {visibleDetailsState.error.message}
-            </AsyncState>
-          ) : (
-            <ServiceDetails
-              details={visibleDetailsState.details}
-              onAction={(action) => void createPreview(action)}
-            />
-          )}
-          {actionError && !preview ? (
-            <AsyncState kind="error">{actionError.message}</AsyncState>
-          ) : null}
+          <div className="services-workspace__detail-stack">
+            {visibleDetailsState.status === "idle" ? (
+              <AsyncState kind="empty">
+                从服务清单中选择一项以查看作用域、状态和可用操作。
+              </AsyncState>
+            ) : visibleDetailsState.status === "loading" ? (
+              <AsyncState kind="loading">正在加载服务详情…</AsyncState>
+            ) : visibleDetailsState.status === "error" ? (
+              <AsyncState kind="error">
+                {visibleDetailsState.error.message}
+              </AsyncState>
+            ) : (
+              <ServiceDetails
+                details={visibleDetailsState.details}
+                onAction={(action) => void createPreview(action)}
+              />
+            )}
+            {actionError && !preview ? (
+              <AsyncState kind="error">{actionError.message}</AsyncState>
+            ) : null}
+            {historyState.status === "loading" ? (
+              <AsyncState kind="loading">正在加载操作历史…</AsyncState>
+            ) : historyState.status === "error" ? (
+              <AsyncState kind="error">{historyState.error.message}</AsyncState>
+            ) : (
+              <OperationHistory
+                emptyMessage="暂无操作记录。"
+                operations={historyState.operations}
+                title="最近操作"
+              />
+            )}
+          </div>
         </section>
       </div>
 

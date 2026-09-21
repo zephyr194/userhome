@@ -30,9 +30,13 @@ const STATUS_TONES: Record<OperationStatus, StatusBadgeProps["tone"]> = {
 };
 
 export function OperationHistory({
+  emptyMessage = "暂无配置操作。",
   operations,
+  title = "配置历史",
 }: {
+  emptyMessage?: string;
   operations: readonly OperationSummary[];
+  title?: string;
 }) {
   return (
     <Panel
@@ -44,12 +48,12 @@ export function OperationHistory({
       </p>
       <div className="mt-1 flex items-center justify-between gap-3">
         <h3 id="operation-history-heading" className="text-lg font-semibold">
-          配置历史
+          {title}
         </h3>
         <StatusBadge>{operations.length} 项</StatusBadge>
       </div>
       {operations.length === 0 ? (
-        <AsyncState kind="empty">暂无配置操作。</AsyncState>
+        <AsyncState kind="empty">{emptyMessage}</AsyncState>
       ) : (
         <div
           className="mt-4 max-h-64 overflow-y-auto overscroll-contain rounded-md border border-border"
