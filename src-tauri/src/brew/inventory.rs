@@ -43,6 +43,10 @@ impl BrewInventorySummary {
             cask_count: 0,
         }
     }
+
+    pub(crate) fn is_available(&self) -> bool {
+        self.available
+    }
 }
 
 #[derive(Debug, Clone)]

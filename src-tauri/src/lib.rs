@@ -124,6 +124,8 @@ pub fn run() {
             commands::settings::get_preferences,
             commands::settings::update_preferences,
             commands::settings::reset_preferences,
+            commands::settings::get_diagnostics_report,
+            commands::settings::export_diagnostics_report,
             commands::settings::get_backup_storage,
             commands::settings::preview_clear_backups,
             commands::settings::execute_clear_backups

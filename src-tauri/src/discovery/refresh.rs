@@ -80,6 +80,33 @@ pub struct DiscoverySnapshot {
     candidates: ModuleSnapshot<ConfigurationCoverage>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DiagnosticRefreshState {
+    NotStarted,
+    Refreshing,
+    Complete,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum DiagnosticProviderState {
+    Loading,
+    Healthy,
+    Partial,
+    Unavailable,
+    Error,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DiscoveryDiagnostics {
+    pub(crate) macos_version: Option<String>,
+    pub(crate) architecture: Option<String>,
+    pub(crate) refresh_state: DiagnosticRefreshState,
+    pub(crate) completed_at_epoch_ms: Option<u64>,
+    pub(crate) system: DiagnosticProviderState,
+    pub(crate) homebrew: DiagnosticProviderState,
+    pub(crate) candidates: DiagnosticProviderState,
+}
+
 struct CoordinatorState {
     refreshing: bool,
     generation: u64,
@@ -220,6 +247,86 @@ impl DiscoveryCoordinator {
             .read()
             .unwrap_or_else(|error| error.into_inner())
             .clone()
+    }
+
+    pub(crate) fn diagnostics(&self) -> DiscoveryDiagnostics {
+        let state = self
+            .inner
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let system_summary = match &state.snapshot.system {
+            ModuleSnapshot {
+                status: ModuleStatus::Ready,
+                data: Some(summary),
+                ..
+            } => Some(summary),
+            _ => None,
+        };
+        DiscoveryDiagnostics {
+            macos_version: system_summary.and_then(|summary| summary.os_version.clone()),
+            architecture: system_summary.and_then(|summary| summary.architecture.clone()),
+            refresh_state: if state.refreshing {
+                DiagnosticRefreshState::Refreshing
+            } else if state.generation == 0 {
+                DiagnosticRefreshState::NotStarted
+            } else {
+                DiagnosticRefreshState::Complete
+            },
+            completed_at_epoch_ms: state.snapshot.completed_at_epoch_ms,
+            system: match &state.snapshot.system {
+                ModuleSnapshot {
+                    status: ModuleStatus::Ready,
+                    data: Some(summary),
+                    ..
+                } if summary.completeness == super::system::DiscoveryCompleteness::Partial => {
+                    DiagnosticProviderState::Partial
+                }
+                ModuleSnapshot {
+                    status: ModuleStatus::Ready,
+                    ..
+                } => DiagnosticProviderState::Healthy,
+                ModuleSnapshot {
+                    status: ModuleStatus::Error,
+                    ..
+                } => DiagnosticProviderState::Error,
+                _ => DiagnosticProviderState::Loading,
+            },
+            homebrew: match &state.snapshot.brew {
+                ModuleSnapshot {
+                    status: ModuleStatus::Ready,
+                    data: Some(summary),
+                    ..
+                } if !summary.is_available() => DiagnosticProviderState::Unavailable,
+                ModuleSnapshot {
+                    status: ModuleStatus::Ready,
+                    ..
+                } => DiagnosticProviderState::Healthy,
+                ModuleSnapshot {
+                    status: ModuleStatus::Error,
+                    ..
+                } => DiagnosticProviderState::Error,
+                _ => DiagnosticProviderState::Loading,
+            },
+            candidates: match &state.snapshot.candidates {
+                ModuleSnapshot {
+                    status: ModuleStatus::Ready,
+                    data: Some(coverage),
+                    ..
+                } if coverage.completeness == super::system::DiscoveryCompleteness::Partial => {
+                    DiagnosticProviderState::Partial
+                }
+                ModuleSnapshot {
+                    status: ModuleStatus::Ready,
+                    ..
+                } => DiagnosticProviderState::Healthy,
+                ModuleSnapshot {
+                    status: ModuleStatus::Error,
+                    ..
+                } => DiagnosticProviderState::Error,
+                _ => DiagnosticProviderState::Loading,
+            },
+        }
     }
 
     pub fn snapshot_after_local(&self) -> DiscoverySnapshot {

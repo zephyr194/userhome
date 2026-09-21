@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::AppError;
 
+pub mod diagnostics;
 mod migration;
 mod store;
 
