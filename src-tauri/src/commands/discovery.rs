@@ -14,12 +14,9 @@ pub async fn get_system_snapshot(
     coordinator: State<'_, DiscoveryCoordinator>,
 ) -> Result<DiscoverySnapshot, AppError> {
     let coordinator = coordinator.inner().clone();
-    let snapshot = tauri::async_runtime::spawn_blocking(move || {
-        coordinator.ensure_initial_refresh();
-        coordinator.snapshot_after_local()
-    })
-    .await
-    .map_err(|_| AppError::internal())?;
+    let snapshot = tauri::async_runtime::spawn_blocking(move || coordinator.snapshot_after_local())
+        .await
+        .map_err(|_| AppError::internal())?;
     crate::tray::update_application_summary(&app, &snapshot);
     Ok(snapshot)
 }

@@ -10,20 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "UserHome",
-        "center": true,
-        "width": 1120,
-        "height": 720,
-        "resizable": false,
-        "maximizable": false,
-        "decorations": true,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null,
       "capabilities": ["default"]

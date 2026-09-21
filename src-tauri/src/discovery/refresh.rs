@@ -1,6 +1,6 @@
 use std::{
     sync::{
-        Arc, Condvar, Mutex,
+        Arc, Condvar, Mutex, RwLock,
         mpsc::{self, Receiver},
     },
     thread,
@@ -14,6 +14,7 @@ use crate::brew::inventory::{
     BrewInventory, BrewInventorySummary, BrewPackagePage, BrewPackageQuery, InventoryError,
     discover_inventory,
 };
+use crate::settings::ProviderTimeoutPreset;
 
 use super::{
     candidates::{ConfigurationCoverage, discover_candidates},
@@ -104,6 +105,28 @@ struct ModuleTimeouts {
     candidates: Duration,
 }
 
+impl ModuleTimeouts {
+    fn from_preset(preset: ProviderTimeoutPreset) -> Self {
+        match preset {
+            ProviderTimeoutPreset::Short => Self {
+                system: Duration::from_secs(1),
+                brew: Duration::from_secs(5),
+                candidates: Duration::from_secs(1),
+            },
+            ProviderTimeoutPreset::Standard => Self {
+                system: SYSTEM_TIMEOUT,
+                brew: BREW_TIMEOUT,
+                candidates: CANDIDATES_TIMEOUT,
+            },
+            ProviderTimeoutPreset::Extended => Self {
+                system: Duration::from_secs(5),
+                brew: Duration::from_secs(20),
+                candidates: Duration::from_secs(5),
+            },
+        }
+    }
+}
+
 struct CoordinatorInner {
     state: Mutex<CoordinatorState>,
     changed: Condvar,
@@ -113,7 +136,7 @@ struct CoordinatorInner {
 pub struct DiscoveryCoordinator {
     inner: Arc<CoordinatorInner>,
     runners: DiscoveryRunners,
-    timeouts: ModuleTimeouts,
+    timeouts: Arc<RwLock<ModuleTimeouts>>,
 }
 
 impl Default for DiscoveryCoordinator {
@@ -124,11 +147,7 @@ impl Default for DiscoveryCoordinator {
                 brew: Arc::new(discover_inventory),
                 candidates: Arc::new(discover_candidates),
             },
-            ModuleTimeouts {
-                system: SYSTEM_TIMEOUT,
-                brew: BREW_TIMEOUT,
-                candidates: CANDIDATES_TIMEOUT,
-            },
+            ModuleTimeouts::from_preset(ProviderTimeoutPreset::Standard),
         )
     }
 }
@@ -164,11 +183,27 @@ impl DiscoveryCoordinator {
                 changed: Condvar::new(),
             }),
             runners,
-            timeouts,
+            timeouts: Arc::new(RwLock::new(timeouts)),
         }
     }
 
+    pub fn set_timeout_preset(&self, preset: ProviderTimeoutPreset) {
+        let mut timeouts = self
+            .timeouts
+            .write()
+            .unwrap_or_else(|error| error.into_inner());
+        *timeouts = ModuleTimeouts::from_preset(preset);
+    }
+
+    fn timeouts(&self) -> ModuleTimeouts {
+        *self
+            .timeouts
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+    }
+
     pub fn snapshot_after_local(&self) -> DiscoverySnapshot {
+        let timeouts = self.timeouts();
         let mut state = self
             .inner
             .state
@@ -178,7 +213,7 @@ impl DiscoveryCoordinator {
             let (next_state, _) = self
                 .inner
                 .changed
-                .wait_timeout_while(state, self.timeouts.system, |state| {
+                .wait_timeout_while(state, timeouts.system, |state| {
                     state.refreshing && state.snapshot.system.status == ModuleStatus::Loading
                 })
                 .unwrap_or_else(|error| error.into_inner());
@@ -205,6 +240,7 @@ impl DiscoveryCoordinator {
     }
 
     pub fn refresh(&self) -> DiscoverySnapshot {
+        let timeouts = self.timeouts();
         let generation = {
             let mut state = self
                 .inner
@@ -242,17 +278,18 @@ impl DiscoveryCoordinator {
         let candidates = spawn_module(self.runners.candidates.clone());
         let brew = spawn_module(self.runners.brew.clone());
 
-        let system_result = receive_before(system, started_at, self.timeouts.system);
+        let system_result = receive_before(system, started_at, timeouts.system);
         self.update_system(generation, system_result);
 
-        let candidates_result = receive_before(candidates, started_at, self.timeouts.candidates);
+        let candidates_result = receive_before(candidates, started_at, timeouts.candidates);
         self.update_candidates(generation, candidates_result);
 
-        let brew_result = receive_before(brew, started_at, self.timeouts.brew);
+        let brew_result = receive_before(brew, started_at, timeouts.brew);
         self.finish(generation, brew_result)
     }
 
     pub fn brew_page(&self, query: &BrewPackageQuery) -> Result<BrewPackagePage, InventoryError> {
+        let timeouts = self.timeouts();
         let mut state = self
             .inner
             .state
@@ -262,7 +299,7 @@ impl DiscoveryCoordinator {
             let (next_state, _) = self
                 .inner
                 .changed
-                .wait_timeout_while(state, self.timeouts.brew, |state| {
+                .wait_timeout_while(state, timeouts.brew, |state| {
                     state.refreshing && state.snapshot.brew.status == ModuleStatus::Loading
                 })
                 .unwrap_or_else(|error| error.into_inner());
@@ -316,6 +353,7 @@ impl DiscoveryCoordinator {
     }
 
     pub fn candidates(&self) -> Result<ConfigurationCoverage, DiscoveryIssue> {
+        let timeouts = self.timeouts();
         self.ensure_initial_refresh();
         let mut state = self
             .inner
@@ -326,7 +364,7 @@ impl DiscoveryCoordinator {
             let (next_state, _) = self
                 .inner
                 .changed
-                .wait_timeout_while(state, self.timeouts.candidates, |state| {
+                .wait_timeout_while(state, timeouts.candidates, |state| {
                     state.refreshing && state.snapshot.candidates.status == ModuleStatus::Loading
                 })
                 .unwrap_or_else(|error| error.into_inner());
@@ -381,6 +419,7 @@ impl DiscoveryCoordinator {
         generation: u64,
         result: Result<Result<ConfigurationCoverage, DiscoveryIssue>, ()>,
     ) {
+        let timeouts = self.timeouts();
         let mut state = self
             .inner
             .state
@@ -392,9 +431,7 @@ impl DiscoveryCoordinator {
         state.snapshot.candidates = match result {
             Ok(Ok(candidates)) => ModuleSnapshot::ready(candidates),
             Ok(Err(error)) => ModuleSnapshot::error(error),
-            Err(()) => {
-                ModuleSnapshot::ready(ConfigurationCoverage::timed_out(self.timeouts.candidates))
-            }
+            Err(()) => ModuleSnapshot::ready(ConfigurationCoverage::timed_out(timeouts.candidates)),
         };
         self.inner.changed.notify_all();
     }

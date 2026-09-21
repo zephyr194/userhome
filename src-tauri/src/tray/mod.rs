@@ -7,9 +7,10 @@ use tauri::{
 use crate::{
     discovery::refresh::DiscoverySnapshot,
     services::inventory::{ServiceState, ServiceSummary},
+    settings::{CloseBehavior, SettingsCoordinator, UserPreferences},
 };
 
-const MAIN_WINDOW_LABEL: &str = "main";
+pub(crate) const MAIN_WINDOW_LABEL: &str = "main";
 const TRAY_ID: &str = "userhome";
 const OPEN_MENU_ID: &str = "userhome.tray.open";
 const REFRESH_MENU_ID: &str = "userhome.tray.refresh";
@@ -40,6 +41,13 @@ pub enum TrayAction {
     Ignore,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CloseRequestAction {
+    Hide,
+    Quit,
+    Ignore,
+}
+
 pub fn menu_action(menu_id: &str) -> TrayAction {
     match menu_id {
         OPEN_MENU_ID => TrayAction::Open,
@@ -49,6 +57,21 @@ pub fn menu_action(menu_id: &str) -> TrayAction {
         SHOW_MENU_ID => TrayAction::Open,
         QUIT_MENU_ID | APP_QUIT_MENU_ID => TrayAction::Quit,
         _ => TrayAction::Ignore,
+    }
+}
+
+pub fn close_request_action(
+    app: &AppHandle,
+    window_label: &str,
+    is_close_requested: bool,
+) -> CloseRequestAction {
+    if !should_hide_window_on_close(window_label, is_close_requested) {
+        return CloseRequestAction::Ignore;
+    }
+
+    match preferences(app).close_behavior() {
+        CloseBehavior::KeepRunningInTray => CloseRequestAction::Hide,
+        CloseBehavior::QuitApplication => CloseRequestAction::Quit,
     }
 }
 
@@ -191,10 +214,14 @@ fn service_summary_label(counts: Option<(usize, usize)>) -> String {
 fn handle_action(app: &tauri::AppHandle, action: TrayAction) {
     match action {
         TrayAction::Open => {
-            show_main_window(app);
+            if show_main_window(app) && preferences(app).refresh_on_reopen() {
+                emit_command(app, REFRESH_REQUESTED_EVENT, "refresh");
+            }
         }
         TrayAction::Settings => {
-            show_main_window(app);
+            if show_main_window(app) && preferences(app).refresh_on_reopen() {
+                emit_command(app, REFRESH_REQUESTED_EVENT, "refresh");
+            }
             emit_command(app, SETTINGS_REQUESTED_EVENT, "settings");
         }
         TrayAction::Refresh => {
@@ -214,29 +241,41 @@ fn handle_action(app: &tauri::AppHandle, action: TrayAction) {
     }
 }
 
-fn show_main_window(app: &AppHandle) {
+fn show_main_window(app: &AppHandle) -> bool {
     let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) else {
         eprintln!("failed to show the main window: window not found");
-        return;
+        return false;
     };
+    let was_hidden = window.is_visible().map(|visible| !visible).unwrap_or(false);
 
     if let Err(error) = window.show() {
         eprintln!("failed to show the main window: {error}");
-        return;
+        return false;
     }
     if let Err(error) = window.unminimize() {
         eprintln!("failed to restore the main window: {error}");
-        return;
+        return false;
     }
     if let Err(error) = window.set_focus() {
         eprintln!("failed to focus the main window: {error}");
     }
+    was_hidden
 }
 
 fn emit_command(app: &AppHandle, event_name: &str, command_name: &str) {
     if let Err(error) = app.emit(event_name, ()) {
         eprintln!("failed to emit the {command_name} request: {error}");
     }
+}
+
+fn preferences(app: &AppHandle) -> UserPreferences {
+    app.state::<SettingsCoordinator>()
+        .get()
+        .map(|loaded| loaded.preferences().clone())
+        .unwrap_or_else(|error| {
+            eprintln!("failed to read preferences: {error:?}");
+            UserPreferences::default()
+        })
 }
 
 #[cfg(test)]
