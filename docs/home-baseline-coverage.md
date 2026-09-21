@@ -90,6 +90,34 @@ their languages are not interchangeable. Missing paths, project-local files,
 custom iTerm2 preference folders, and recursive plugin/runtime trees are not
 inferred or scanned.
 
+## T59 AI and developer-tool comparison
+
+The T59 batch was checked with exact, existence-only metadata probes against
+the approved root mapping. No file contents or absolute private paths were
+printed. Credential or runtime paths were used only to confirm an exclusion
+boundary and are never catalog documents.
+
+| Application | Safe settings evidence | Baseline comparison |
+|---|---|---|
+| Claude | `HOME/.claude/settings.json`; `APPLICATION_SUPPORT/Claude/claude_desktop_config.json` | Both settings documents present |
+| Codex | `HOME/.codex/config.toml` | Present |
+| Gemini | `HOME/.gemini/settings.json` | Present |
+| Antigravity | `APPLICATION_SUPPORT/Antigravity/User/settings.json` | Present; agent runtime remains outside the document |
+| Trae | `APPLICATION_SUPPORT/Trae/User/settings.json`; `APPLICATION_SUPPORT/Trae CN/User/settings.json` | Both product settings documents present |
+| Docker | `HOME/Library/Group Containers/group.com.docker/settings-store.json`; legacy `settings.json` | Both Desktop settings variants absent; credential-bearing CLI evidence was present but excluded |
+| OrbStack | `HOME/Library/Group Containers/HUAQ24HBR6.dev.orbstack` | Mixed data container present; no content access authorized |
+| Google Cloud CLI | `XDG_CONFIG_HOME/gcloud/configurations/config_default` | Default configuration present |
+| Raycast | `HOME/Library/Preferences/com.raycast.macos.plist` | Present |
+| GitKraken CLI | `APPLICATION_SUPPORT/GitKrakenCLI/settings.json` | Present |
+| Apifox | `HOME/Library/Preferences/cn.apifox.app.plist` | Present; project and environment stores excluded |
+
+The comparison confirms that ten products have an exact settings boundary
+even when the content policy remains metadata-only. OrbStack intentionally
+stays unsupported until a stable settings-file path and schema can be
+separated from its documented persistent data container. No dynamic user ID,
+project, profile, named gcloud configuration, plugin, extension, machine, or
+container directory is enumerated.
+
 ## Handling exported data
 
 Use the IPC result directly for local catalog analysis. If a temporary JSON

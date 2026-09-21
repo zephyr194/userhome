@@ -1957,17 +1957,30 @@ Antigravity, Trae, Docker, OrbStack, gcloud, Raycast, GitKraken CLI, and Apifox
 where settings can be separated from credentials and runtime state.
 
 **Acceptance criteria:**
-- [ ] Every definition separates settings from credentials, sessions, logs,
+- [x] Every definition separates settings from credentials, sessions, logs,
       caches, databases, telemetry, and runtime state.
-- [ ] Unsupported entries name the missing parser, redactor, path contract, or
+- [x] Unsupported entries name the missing parser, redactor, path contract, or
       product knowledge required.
-- [ ] No definition grants write, executable, service, privileged, or broad
+- [x] No definition grants write, executable, service, privileged, or broad
       filesystem authority.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test`
-- [ ] Manual: compare this batch with sanitized baseline evidence.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm lint && pnpm typecheck && pnpm test`
+- [x] Manual: compare this batch with sanitized baseline evidence.
+
+**Evidence:** The catalog now adds exact-path, data-only coverage for Claude,
+Codex, Gemini, Antigravity, Trae, Docker, OrbStack, Google Cloud CLI, Raycast,
+GitKraken CLI, and Apifox while preserving the complete T58-and-earlier prefix.
+Ten applications expose only bounded read-only documents; AI and integration
+JSON/TOML settings are `SECRET`, plist formats remain metadata-only, and
+gcloud INI values are strictly redacted. OrbStack is
+`DETECTED_UNSUPPORTED` because its documented group container mixes settings
+with machines, containers, images, credentials, databases, and runtime state
+without a stable bounded settings-file contract. Every new executable,
+Homebrew, service, elevation, and write surface is empty; all 11 targeted
+catalog tests, lint, typecheck, and all 66 Vitest tests passed, and the
+existence-only baseline comparison is recorded without absolute paths.
 
 **Dependencies:** T58
 

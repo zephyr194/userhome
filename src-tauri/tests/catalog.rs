@@ -21,11 +21,14 @@ fn stable_hash(bytes: &[u8]) -> u64 {
 }
 
 #[test]
-fn catalog_preserves_existing_definitions_and_adds_the_editor_terminal_batch() {
+fn catalog_preserves_prior_batches_and_adds_ai_developer_tools() {
     let catalog = parse_catalog(BUILTIN_CATALOG_JSON).expect("built-in catalog should validate");
     let t58_start = BUILTIN_CATALOG_JSON
         .find(",\n    {\n      \"id\": \"zed\"")
         .expect("T58 catalog batch");
+    let t59_start = BUILTIN_CATALOG_JSON
+        .find(",\n    {\n      \"id\": \"claude\"")
+        .expect("T59 catalog batch");
     let ids = catalog
         .apps()
         .iter()
@@ -35,6 +38,10 @@ fn catalog_preserves_existing_definitions_and_adds_the_editor_terminal_batch() {
     assert_eq!(
         stable_hash(BUILTIN_CATALOG_JSON[..t58_start].as_bytes()),
         0x2bde398b0bddd10f
+    );
+    assert_eq!(
+        stable_hash(BUILTIN_CATALOG_JSON[..t59_start].as_bytes()),
+        0xa1dd34663c85b8c3
     );
     assert_eq!(catalog.schema_version(), CATALOG_SCHEMA_VERSION);
     assert_eq!(
@@ -52,7 +59,23 @@ fn catalog_preserves_existing_definitions_and_adds_the_editor_terminal_batch() {
             "vim",
         ]
     );
-    assert_eq!(ids[12..], ["zed", "neovim", "iterm2"]);
+    assert_eq!(ids[12..15], ["zed", "neovim", "iterm2"]);
+    assert_eq!(
+        ids[15..],
+        [
+            "claude",
+            "codex",
+            "gemini",
+            "antigravity",
+            "trae",
+            "docker",
+            "orbstack",
+            "gcloud",
+            "raycast",
+            "gitkraken-cli",
+            "apifox",
+        ]
+    );
     for app in &catalog.apps()[..6] {
         assert_eq!(app.coverage_class(), CatalogCoverageClass::ManagedWritable);
         assert!(
@@ -61,7 +84,12 @@ fn catalog_preserves_existing_definitions_and_adds_the_editor_terminal_batch() {
                 .any(|value| value == "WRITE_CONFIG")
         );
     }
-    for app in &catalog.apps()[6..] {
+    for app in catalog
+        .apps()
+        .iter()
+        .skip(6)
+        .filter(|app| app.id() != "orbstack")
+    {
         assert_eq!(app.coverage_class(), CatalogCoverageClass::ManagedReadOnly);
         assert!(
             !app.capabilities()
@@ -74,6 +102,22 @@ fn catalog_preserves_existing_definitions_and_adds_the_editor_terminal_batch() {
                 .all(|document| document.is_read_only())
         );
     }
+    let orbstack = catalog
+        .apps()
+        .iter()
+        .find(|app| app.id() == "orbstack")
+        .expect("OrbStack definition");
+    assert_eq!(
+        orbstack.coverage_class(),
+        CatalogCoverageClass::DetectedUnsupported
+    );
+    assert_eq!(orbstack.capabilities(), ["DETECT"]);
+    assert!(orbstack.config_documents().is_empty());
+    assert!(
+        orbstack
+            .description()
+            .contains("stable bounded settings-file contract")
+    );
 
     let existing_read_only_documents = [
         (
@@ -192,6 +236,152 @@ fn catalog_preserves_existing_definitions_and_adds_the_editor_terminal_batch() {
                 .all(|document| document.sensitivity() == expected_sensitivity)
         );
     }
+
+    let t59_managed_documents = [
+        (
+            "claude",
+            vec![
+                (
+                    "claude-code-settings",
+                    ".claude/settings.json",
+                    "JSON",
+                    "SECRET",
+                ),
+                (
+                    "claude-desktop-config",
+                    "Claude/claude_desktop_config.json",
+                    "JSON",
+                    "SECRET",
+                ),
+            ],
+        ),
+        (
+            "codex",
+            vec![("codex-config", ".codex/config.toml", "TOML", "SECRET")],
+        ),
+        (
+            "gemini",
+            vec![("gemini-settings", ".gemini/settings.json", "JSON", "SECRET")],
+        ),
+        (
+            "antigravity",
+            vec![(
+                "antigravity-settings",
+                "Antigravity/User/settings.json",
+                "JSONC",
+                "SECRET",
+            )],
+        ),
+        (
+            "trae",
+            vec![
+                (
+                    "trae-settings",
+                    "Trae/User/settings.json",
+                    "JSONC",
+                    "SECRET",
+                ),
+                (
+                    "trae-cn-settings",
+                    "Trae CN/User/settings.json",
+                    "JSONC",
+                    "SECRET",
+                ),
+            ],
+        ),
+        (
+            "docker",
+            vec![(
+                "docker-desktop-settings",
+                "Library/Group Containers/group.com.docker/settings-store.json",
+                "JSON",
+                "SECRET",
+            )],
+        ),
+        (
+            "gcloud",
+            vec![(
+                "gcloud-default-config",
+                "gcloud/configurations/config_default",
+                "INI",
+                "SENSITIVE",
+            )],
+        ),
+        (
+            "raycast",
+            vec![(
+                "raycast-preferences",
+                "Library/Preferences/com.raycast.macos.plist",
+                "PLIST",
+                "SENSITIVE",
+            )],
+        ),
+        (
+            "gitkraken-cli",
+            vec![(
+                "gitkraken-cli-settings",
+                "GitKrakenCLI/settings.json",
+                "JSON",
+                "SECRET",
+            )],
+        ),
+        (
+            "apifox",
+            vec![(
+                "apifox-preferences",
+                "Library/Preferences/cn.apifox.app.plist",
+                "PLIST",
+                "SENSITIVE",
+            )],
+        ),
+    ];
+    for (app_id, expected_documents) in t59_managed_documents {
+        let app = catalog
+            .apps()
+            .iter()
+            .find(|app| app.id() == app_id)
+            .expect("T59 managed application");
+        let actual_documents = app
+            .config_documents()
+            .iter()
+            .map(|document| {
+                (
+                    document.config_id(),
+                    document.path_variants()[0].relative_path(),
+                    document.format(),
+                    document.sensitivity(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(actual_documents, expected_documents);
+    }
+    let docker = catalog
+        .apps()
+        .iter()
+        .find(|app| app.id() == "docker")
+        .expect("Docker definition");
+    assert_eq!(
+        docker.config_documents()[0]
+            .path_variants()
+            .iter()
+            .map(|variant| variant.relative_path())
+            .collect::<Vec<_>>(),
+        [
+            "Library/Group Containers/group.com.docker/settings-store.json",
+            "Library/Group Containers/group.com.docker/settings.json",
+        ]
+    );
+    for app in &catalog.apps()[15..] {
+        assert!(app.executables().is_empty());
+        assert!(app.brew_formulae().is_empty());
+        assert!(app.brew_casks().is_empty());
+        assert!(app.services().is_empty());
+        assert!(
+            app.capabilities()
+                .iter()
+                .all(|capability| matches!(capability.as_str(), "DETECT" | "READ_CONFIG"))
+        );
+    }
     assert!(
         catalog
             .apps()
@@ -238,7 +428,7 @@ fn catalog_ipc_summary_exposes_only_sanitized_path_variants() {
             .as_array()
             .expect("applications should be an array")
             .len(),
-        15
+        26
     );
     assert!(encoded.contains("pathVariants"));
     assert!(encoded.contains("HOMEBREW_PREFIX"));

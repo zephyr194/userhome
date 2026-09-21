@@ -1068,6 +1068,589 @@
           "writePolicy": "READ_ONLY"
         }
       ]
+    },
+    {
+      "id": "claude",
+      "displayName": "Claude",
+      "description": "Claude Code and Claude Desktop settings are detected separately from credentials, project sessions, logs, caches, and runtime state; recognized settings remain metadata-only.",
+      "iconKey": "claude",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "AI Development Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.claude/settings.json"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/Claude/claude_desktop_config.json"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "claude-code-settings",
+          "purpose": "Claude Code user settings without project sessions or credentials",
+          "pathTemplate": "~/.claude/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "user-settings",
+              "root": "HOME",
+              "relativePath": ".claude/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSON",
+          "formatFamily": "JSON",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        },
+        {
+          "configId": "claude-desktop-config",
+          "purpose": "Claude Desktop integration settings without application state",
+          "pathTemplate": "~/Library/Application Support/Claude/claude_desktop_config.json",
+          "pathVariants": [
+            {
+              "variantId": "desktop-config",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "Claude/claude_desktop_config.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSON",
+          "formatFamily": "JSON",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "codex",
+      "displayName": "Codex",
+      "description": "Codex user configuration is separated from auth.json, history, sessions, logs, and caches; TOML settings remain metadata-only without an approved redactor.",
+      "iconKey": "codex",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "AI Development Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.codex/config.toml"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "codex-config",
+          "purpose": "Codex user settings without authentication or session state",
+          "pathTemplate": "~/.codex/config.toml",
+          "pathVariants": [
+            {
+              "variantId": "user-config",
+              "root": "HOME",
+              "relativePath": ".codex/config.toml",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "TOML",
+          "formatFamily": "TOML",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "gemini",
+      "displayName": "Gemini",
+      "description": "Gemini CLI settings are separated from OAuth credentials, account records, history, temporary files, and Antigravity runtime data; content remains metadata-only.",
+      "iconKey": "gemini",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "AI Development Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.gemini/settings.json"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "gemini-settings",
+          "purpose": "Gemini CLI user settings without credentials or history",
+          "pathTemplate": "~/.gemini/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "user-settings",
+              "root": "HOME",
+              "relativePath": ".gemini/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSON",
+          "formatFamily": "JSON",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "antigravity",
+      "displayName": "Antigravity",
+      "description": "Antigravity editor settings are separated from Google account credentials, global storage databases, conversations, agent artifacts, logs, caches, and runtime state.",
+      "iconKey": "antigravity",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "AI Development Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/Antigravity/User/settings.json"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "antigravity-settings",
+          "purpose": "Antigravity user settings without account or agent state",
+          "pathTemplate": "~/Library/Application Support/Antigravity/User/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "user-settings",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "Antigravity/User/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSONC",
+          "formatFamily": "JSONC",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "trae",
+      "displayName": "Trae",
+      "description": "Trae and Trae CN user settings are modeled separately from accounts, global storage databases, projects, logs, caches, telemetry, and runtime state.",
+      "iconKey": "trae",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "AI Development Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/Trae/User/settings.json"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/Trae CN/User/settings.json"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "trae-settings",
+          "purpose": "Trae user settings without account or workspace state",
+          "pathTemplate": "~/Library/Application Support/Trae/User/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "global-settings",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "Trae/User/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSONC",
+          "formatFamily": "JSONC",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        },
+        {
+          "configId": "trae-cn-settings",
+          "purpose": "Trae CN user settings without account or workspace state",
+          "pathTemplate": "~/Library/Application Support/Trae CN/User/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "china-settings",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "Trae CN/User/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSONC",
+          "formatFamily": "JSONC",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "docker",
+      "displayName": "Docker",
+      "description": "Docker Desktop settings are separated from CLI registry credentials, contexts, container data, virtual machines, databases, logs, caches, and runtime state.",
+      "iconKey": "docker",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Developer Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Group Containers/group.com.docker/settings-store.json"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Group Containers/group.com.docker/settings.json"
+        },
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.docker/config.json"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "docker-desktop-settings",
+          "purpose": "Docker Desktop preferences without CLI credentials or runtime data",
+          "pathTemplate": "~/Library/Group Containers/group.com.docker/settings-store.json",
+          "pathVariants": [
+            {
+              "variantId": "settings-store",
+              "root": "HOME",
+              "relativePath": "Library/Group Containers/group.com.docker/settings-store.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            },
+            {
+              "variantId": "legacy-settings",
+              "root": "HOME",
+              "relativePath": "Library/Group Containers/group.com.docker/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 1
+            }
+          ],
+          "format": "JSON",
+          "formatFamily": "JSON",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 2097152,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "orbstack",
+      "displayName": "OrbStack",
+      "description": "Detected from its exact macOS group container, which co-locates settings with machine, container, image, credential, database, and runtime data; a stable bounded settings-file contract is required before content access.",
+      "iconKey": "orbstack",
+      "coverageClass": "DETECTED_UNSUPPORTED",
+      "presentation": {
+        "category": "Developer Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Group Containers/HUAQ24HBR6.dev.orbstack"
+        }
+      ],
+      "capabilities": [
+        "DETECT"
+      ],
+      "configDocuments": []
+    },
+    {
+      "id": "gcloud",
+      "displayName": "Google Cloud CLI",
+      "description": "The default gcloud configuration is separated from credentials databases, access tokens, application-default credentials, legacy credentials, logs, telemetry, and caches.",
+      "iconKey": "gcloud",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Cloud Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/.config/gcloud/configurations/config_default"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "gcloud-default-config",
+          "purpose": "Default gcloud property configuration without credentials or logs",
+          "pathTemplate": "~/.config/gcloud/configurations/config_default",
+          "pathVariants": [
+            {
+              "variantId": "default-configuration",
+              "root": "XDG_CONFIG_HOME",
+              "relativePath": "gcloud/configurations/config_default",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "INI",
+          "formatFamily": "INI",
+          "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "raycast",
+      "displayName": "Raycast",
+      "description": "The macOS preferences plist is separated from extension secrets, shared containers, databases, telemetry, logs, caches, and runtime state and remains metadata-only.",
+      "iconKey": "raycast",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Productivity"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Preferences/com.raycast.macos.plist"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "raycast-preferences",
+          "purpose": "Raycast application preferences without extension or runtime data",
+          "pathTemplate": "~/Library/Preferences/com.raycast.macos.plist",
+          "pathVariants": [
+            {
+              "variantId": "macos-preferences",
+              "root": "HOME",
+              "relativePath": "Library/Preferences/com.raycast.macos.plist",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "PLIST",
+          "formatFamily": "PLIST",
+          "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 2097152,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "gitkraken-cli",
+      "displayName": "GitKraken CLI",
+      "description": "GitKraken CLI settings are separated from provider credentials, repository state, logs, caches, telemetry, and runtime data; content remains metadata-only.",
+      "iconKey": "gitkraken-cli",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Developer Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Application Support/GitKrakenCLI/settings.json"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "gitkraken-cli-settings",
+          "purpose": "GitKraken CLI preferences without credentials or runtime state",
+          "pathTemplate": "~/Library/Application Support/GitKrakenCLI/settings.json",
+          "pathVariants": [
+            {
+              "variantId": "application-settings",
+              "root": "APPLICATION_SUPPORT",
+              "relativePath": "GitKrakenCLI/settings.json",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "JSON",
+          "formatFamily": "JSON",
+          "sensitivity": "SECRET",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 524288,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
+    },
+    {
+      "id": "apifox",
+      "displayName": "Apifox",
+      "description": "The macOS preferences plist is separated from API projects, environments, credentials, local databases, logs, caches, telemetry, and runtime state and remains metadata-only.",
+      "iconKey": "apifox",
+      "coverageClass": "MANAGED_READ_ONLY",
+      "presentation": {
+        "category": "Developer Tools"
+      },
+      "executables": [],
+      "brewFormulae": [],
+      "brewCasks": [],
+      "services": [],
+      "detectionRules": [
+        {
+          "kind": "HOME_PATH",
+          "value": "~/Library/Preferences/cn.apifox.app.plist"
+        }
+      ],
+      "capabilities": [
+        "DETECT",
+        "READ_CONFIG"
+      ],
+      "configDocuments": [
+        {
+          "configId": "apifox-preferences",
+          "purpose": "Apifox application preferences without projects or environments",
+          "pathTemplate": "~/Library/Preferences/cn.apifox.app.plist",
+          "pathVariants": [
+            {
+              "variantId": "macos-preferences",
+              "root": "HOME",
+              "relativePath": "Library/Preferences/cn.apifox.app.plist",
+              "existenceRule": "FILE",
+              "precedence": 0
+            }
+          ],
+          "format": "PLIST",
+          "formatFamily": "PLIST",
+          "sensitivity": "SENSITIVE",
+          "accessMode": "READ_ONLY",
+          "adapterId": "read-only-text",
+          "validatorId": "text",
+          "editorKey": "read-only-text",
+          "maxSizeBytes": 2097152,
+          "writePolicy": "READ_ONLY"
+        }
+      ]
     }
   ]
 }
