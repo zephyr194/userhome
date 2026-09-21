@@ -1,23 +1,54 @@
 import type { TauriCapabilities } from "@wdio/tauri-service";
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const appBinaryPath = "./src-tauri/target/debug/userhome";
-const inheritedE2eHome = process.env.USERHOME_E2E_HOME;
 const e2eHomePrefix = join(tmpdir(), "userhome-e2e-home-");
-const e2eHome =
-  inheritedE2eHome?.startsWith(e2eHomePrefix)
-    ? inheritedE2eHome
-    : mkdtempSync(e2eHomePrefix);
-const ownsE2eHome = e2eHome !== inheritedE2eHome;
+const e2eHome = mkdtempSync(e2eHomePrefix);
 
-process.env.USERHOME_E2E_HOME = e2eHome;
-if (ownsE2eHome) {
-  process.once("exit", () => {
-    rmSync(e2eHome, { recursive: true, force: true });
+process.once("exit", () => {
+  rmSync(e2eHome, {
+    recursive: true,
+    force: true,
+    maxRetries: 3,
+    retryDelay: 100,
   });
-}
+});
+
+const settingsDirectory = join(
+  e2eHome,
+  "Library",
+  "Application Support",
+  "com.zephyr194.userhome",
+);
+mkdirSync(settingsDirectory, { recursive: true, mode: 0o700 });
+chmodSync(settingsDirectory, 0o700);
+const settingsPath = join(settingsDirectory, "preferences.json");
+writeFileSync(
+  settingsPath,
+  JSON.stringify({
+    schemaVersion: 1,
+    appearance: "SYSTEM",
+    openWindowOnLaunch: false,
+    closeBehavior: "KEEP_RUNNING_IN_TRAY",
+    restoreSelection: false,
+    refreshOnLaunch: true,
+    refreshOnReopen: true,
+    providerTimeoutPreset: "STANDARD",
+    preferredEditorMode: "STRUCTURED",
+    backupRetention: 20,
+    optionalDiscoveryRoots: [],
+  }),
+  { mode: 0o600 },
+);
+chmodSync(settingsPath, 0o600);
 
 const capabilities: TauriCapabilities[] = [
   {

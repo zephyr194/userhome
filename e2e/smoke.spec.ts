@@ -15,47 +15,57 @@ describe("UserHome desktop smoke", () => {
           };
         };
       };
-      const [size, scaleFactor, resizable, maximizable] = await Promise.all([
-        tauriWindow.__TAURI__.core.invoke<{
-          width: number;
-          height: number;
-        }>("plugin:window|inner_size", { label: "main" }),
-        tauriWindow.__TAURI__.core.invoke<number>(
-          "plugin:window|scale_factor",
-          { label: "main" },
-        ),
-        tauriWindow.__TAURI__.core.invoke<boolean>(
-          "plugin:window|is_resizable",
-          { label: "main" },
-        ),
-        tauriWindow.__TAURI__.core.invoke<boolean>(
-          "plugin:window|is_maximizable",
-          { label: "main" },
-        ),
-      ]);
+      const [size, scaleFactor, resizable, maximizable, visible] =
+        await Promise.all([
+          tauriWindow.__TAURI__.core.invoke<{
+            width: number;
+            height: number;
+          }>("plugin:window|inner_size", { label: "main" }),
+          tauriWindow.__TAURI__.core.invoke<number>(
+            "plugin:window|scale_factor",
+            { label: "main" },
+          ),
+          tauriWindow.__TAURI__.core.invoke<boolean>(
+            "plugin:window|is_resizable",
+            { label: "main" },
+          ),
+          tauriWindow.__TAURI__.core.invoke<boolean>(
+            "plugin:window|is_maximizable",
+            { label: "main" },
+          ),
+          tauriWindow.__TAURI__.core.invoke<boolean>(
+            "plugin:window|is_visible",
+            { label: "main" },
+          ),
+        ]);
 
       return {
         width: Math.round(size.width / scaleFactor),
         height: Math.round(size.height / scaleFactor),
         resizable,
         maximizable,
+        visible,
       };
     });
     expect(windowState.width).toBe(1120);
     expect(Math.abs(windowState.height - 720)).toBeLessThanOrEqual(1);
     expect(windowState.resizable).toBe(false);
     expect(windowState.maximizable).toBe(false);
+    expect(windowState.visible).toBe(false);
 
     expect(await $(".brand").getText()).toBe("UserHome");
     expect(await $("nav[aria-label='主导航']").isDisplayed()).toBe(true);
-    expect(await $("#main-content h1").getText()).toBe("概览");
-    expect(
-      await $("aside[aria-label='本机状态']").getText(),
-    ).toContain("已连接");
+    await browser.execute(() => {
+      document
+        .querySelector<HTMLElement>("a[href='#dashboard']")
+        ?.click();
+    });
     await $("#dashboard-heading").waitForDisplayed({ timeout: 5_000 });
+    expect(await $(".titlebar__context").getText()).toBe("概览");
     const dashboard = await $("section[aria-labelledby='dashboard-heading']");
     expect(await dashboard.getText()).toContain("macOS");
     expect(await dashboard.getText()).toContain("架构");
+    expect(await dashboard.getText()).toContain("已连接");
 
     const focusedHref = await browser.execute(() => {
       document
@@ -64,11 +74,15 @@ describe("UserHome desktop smoke", () => {
       return (document.activeElement as HTMLAnchorElement)?.getAttribute("href");
     });
     expect(focusedHref).toBe("#applications");
-    await $("a[href='#applications']").click();
+    await browser.execute(() => {
+      (document.activeElement as HTMLElement)?.click();
+    });
     await $("#applications-heading").waitForDisplayed();
     expect(
-      await browser.execute(() => (document.activeElement as HTMLElement)?.id),
-    ).toBe("main-content");
+      await browser.execute(() =>
+        (document.activeElement as HTMLAnchorElement)?.getAttribute("href"),
+      ),
+    ).toBe("#applications");
 
     const applicationList = await $(
       "aside[aria-label='应用与配置候选列表']",

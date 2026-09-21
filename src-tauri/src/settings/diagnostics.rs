@@ -188,17 +188,7 @@ impl DiagnosticsReport {
             provider_timeout_preset: preferences.preferences().provider_timeout_preset(),
         };
         let generated_at_epoch_ms = now_epoch_ms();
-        let report_text = render_report(
-            generated_at_epoch_ms,
-            &application,
-            &system,
-            &catalog,
-            &helper,
-            &refresh,
-            &providers,
-            &preferences,
-        );
-        Self {
+        let mut report = Self {
             schema_version: DIAGNOSTICS_SCHEMA_VERSION,
             generated_at_epoch_ms,
             application,
@@ -208,8 +198,10 @@ impl DiagnosticsReport {
             refresh,
             providers,
             preferences,
-            report_text,
-        }
+            report_text: String::new(),
+        };
+        report.report_text = render_report(&report);
+        report
     }
 
     pub(crate) fn export_to(&self, directory: &Path) -> Result<DiagnosticsExport, AppError> {
@@ -274,16 +266,7 @@ fn now_epoch_ms() -> u64 {
         .unwrap_or(0)
 }
 
-fn render_report(
-    generated_at_epoch_ms: u64,
-    application: &ApplicationDiagnostics,
-    system: &SystemDiagnostics,
-    catalog: &CatalogDiagnostics,
-    helper: &HelperDiagnostics,
-    refresh: &RefreshDiagnostics,
-    providers: &[ProviderDiagnostics; 3],
-    preferences: &PreferenceDiagnostics,
-) -> String {
+fn render_report(report: &DiagnosticsReport) -> String {
     format!(
         concat!(
             "UserHome Diagnostics\n",
@@ -322,30 +305,31 @@ fn render_report(
             "Usernames, absolute home paths, and environment variables: not included\n"
         ),
         schema = DIAGNOSTICS_SCHEMA_VERSION,
-        generated = generated_at_epoch_ms,
-        app_version = application.version,
-        architecture = system.architecture,
-        macos = system.macos_version.as_deref().unwrap_or("UNKNOWN"),
-        catalog_schema = catalog.schema_version,
-        application_count = catalog.application_count,
-        document_count = catalog.managed_document_count,
-        service_count = catalog.service_count,
-        helper_state = helper_state_label(&helper.state),
-        helper_supported = helper.supported,
-        helper_signed = helper.signed,
-        helper_available = helper.available,
-        refresh_state = refresh_state_label(refresh.state),
-        completed = refresh
+        generated = report.generated_at_epoch_ms,
+        app_version = report.application.version,
+        architecture = report.system.architecture,
+        macos = report.system.macos_version.as_deref().unwrap_or("UNKNOWN"),
+        catalog_schema = report.catalog.schema_version,
+        application_count = report.catalog.application_count,
+        document_count = report.catalog.managed_document_count,
+        service_count = report.catalog.service_count,
+        helper_state = helper_state_label(&report.helper.state),
+        helper_supported = report.helper.supported,
+        helper_signed = report.helper.signed,
+        helper_available = report.helper.available,
+        refresh_state = refresh_state_label(report.refresh.state),
+        completed = report
+            .refresh
             .completed_at_epoch_ms
             .map(|value| value.to_string())
             .unwrap_or_else(|| "NOT_AVAILABLE".to_owned()),
-        system_provider = provider_state_label(providers[0].state),
-        homebrew_provider = provider_state_label(providers[1].state),
-        candidates_provider = provider_state_label(providers[2].state),
-        preference_state = preference_state_label(preferences.state),
-        preference_schema = preferences.schema_version,
-        diagnostic = diagnostic_code_label(preferences.diagnostic_code),
-        timeout = timeout_label(preferences.provider_timeout_preset),
+        system_provider = provider_state_label(report.providers[0].state),
+        homebrew_provider = provider_state_label(report.providers[1].state),
+        candidates_provider = provider_state_label(report.providers[2].state),
+        preference_state = preference_state_label(report.preferences.state),
+        preference_schema = report.preferences.schema_version,
+        diagnostic = diagnostic_code_label(report.preferences.diagnostic_code),
+        timeout = timeout_label(report.preferences.provider_timeout_preset),
     )
 }
 

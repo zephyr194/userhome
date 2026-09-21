@@ -125,7 +125,7 @@ fn create_clear_backups_preview(
     summary: &BackupStorageSummary,
 ) -> Result<OperationPreview, AppError> {
     operations.preview(
-        clear_backups_intent(&summary),
+        clear_backups_intent(summary),
         &format!(
             "Clear {} UserHome configuration backups.",
             summary.backup_count
