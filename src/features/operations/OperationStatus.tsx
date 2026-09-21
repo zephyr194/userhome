@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { RecentOperationState } from "../../app/shellState";
 import { StatusBadge } from "../../components/ui";
 import type {
@@ -34,7 +35,7 @@ function OperationIcon({
   if (kind === "error") {
     return (
       <svg
-        className="size-4 text-danger"
+        className="size-4 shrink-0 text-danger"
         viewBox="0 0 20 20"
         fill="none"
         stroke="currentColor"
@@ -52,7 +53,7 @@ function OperationIcon({
   if (kind === "loading") {
     return (
       <svg
-        className="size-4 animate-spin text-warning"
+        className="size-4 shrink-0 animate-spin text-warning"
         viewBox="0 0 20 20"
         fill="none"
         stroke="currentColor"
@@ -68,7 +69,7 @@ function OperationIcon({
   if (kind === "empty") {
     return (
       <svg
-        className="size-4 text-muted-foreground"
+        className="size-4 shrink-0 text-muted-foreground"
         viewBox="0 0 20 20"
         fill="none"
         stroke="currentColor"
@@ -84,7 +85,7 @@ function OperationIcon({
 
   return (
     <svg
-      className="size-4 text-primary"
+      className="size-4 shrink-0 text-primary"
       viewBox="0 0 20 20"
       fill="none"
       stroke="currentColor"
@@ -99,73 +100,70 @@ function OperationIcon({
   );
 }
 
+function OperationRow({
+  busy = false,
+  children,
+  kind,
+  status,
+  tone = "neutral",
+}: {
+  busy?: boolean;
+  children: ReactNode;
+  kind: "empty" | "error" | "loading" | "operation";
+  status: string;
+  tone?: "neutral" | "success" | "warning" | "danger";
+}) {
+  return (
+    <section
+      className="dashboard-status-row"
+      aria-labelledby="operations-heading"
+      aria-busy={busy || undefined}
+    >
+      <OperationIcon kind={kind} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <h4 id="operations-heading" className="text-xs font-semibold">
+            最近操作
+          </h4>
+          <StatusBadge tone={tone}>{status}</StatusBadge>
+        </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 export function OperationStatus({ state }: { state: RecentOperationState }) {
   if (state.status === "loading") {
     return (
-      <section
-        className="px-4 py-4"
-        aria-labelledby="operations-heading"
-        aria-live="polite"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <OperationIcon kind="loading" />
-            <h3 id="operations-heading" className="text-xs font-semibold">
-              最近操作
-            </h3>
-          </div>
-          <StatusBadge tone="warning">读取中</StatusBadge>
-        </div>
+      <OperationRow busy kind="loading" status="读取中" tone="warning">
         <p
-          className="mt-2 text-xs leading-relaxed text-muted-foreground"
+          className="mt-1 text-xs leading-relaxed text-muted-foreground"
           role="status"
-          aria-live="polite"
-          aria-busy="true"
         >
           正在读取操作记录…
         </p>
-      </section>
+      </OperationRow>
     );
   }
 
   if (state.status === "error") {
     return (
-      <section className="px-4 py-4" aria-labelledby="operations-heading">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <OperationIcon kind="error" />
-            <h3 id="operations-heading" className="text-xs font-semibold">
-              最近操作
-            </h3>
-          </div>
-          <StatusBadge tone="danger">读取失败</StatusBadge>
-        </div>
-        <p
-          className="mt-2 text-xs leading-relaxed text-danger"
-          role="alert"
-        >
+      <OperationRow kind="error" status="读取失败" tone="danger">
+        <p className="mt-1 text-xs leading-relaxed text-danger" role="alert">
           {state.error.message}
         </p>
-      </section>
+      </OperationRow>
     );
   }
 
   if (state.status === "empty") {
     return (
-      <section className="px-4 py-4" aria-labelledby="operations-heading">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <OperationIcon kind="empty" />
-            <h3 id="operations-heading" className="text-xs font-semibold">
-              最近操作
-            </h3>
-          </div>
-          <StatusBadge>空闲</StatusBadge>
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+      <OperationRow kind="empty" status="空闲">
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           暂无操作记录。
         </p>
-      </section>
+      </OperationRow>
     );
   }
 
@@ -180,26 +178,19 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
         : undefined;
 
   return (
-    <section className="px-4 py-4" aria-labelledby="operations-heading">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <OperationIcon
-            kind={operation.status === "FAILED" ? "error" : "operation"}
-          />
-          <h3 id="operations-heading" className="text-xs font-semibold">
-            最近操作
-          </h3>
-        </div>
-        <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-      </div>
-      <p className="mt-2 text-sm font-medium leading-snug">
+    <OperationRow
+      kind={operation.status === "FAILED" ? "error" : "operation"}
+      status={status.label}
+      tone={status.tone}
+    >
+      <p className="mt-1 text-xs font-medium leading-relaxed">
         {operation.summary}
       </p>
       {message ? (
-        <p className="mt-2 border-t border-border pt-2 text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           {message}
         </p>
       ) : null}
-    </section>
+    </OperationRow>
   );
 }

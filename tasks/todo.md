@@ -1487,19 +1487,36 @@ coordinator.
 
 ## T47: Recompose Dashboard as a compact summary workspace
 
+**Status:** Implementation and automated verification complete on 2026-09-21;
+manual state inspection remains blocked because Orca Computer Use cannot
+enumerate the unsigned E2E application window.
+
 **Description:** Remove the permanent status rail and present machine,
 application, Homebrew, provider, refresh, and operation summaries as compact
 grouped rows within the Dashboard workspace.
 
 **Acceptance criteria:**
-- [ ] Dashboard contains no hero header, generic card grid, or permanent
+- [x] Dashboard contains no hero header, generic card grid, or permanent
       application-level status rail.
-- [ ] Provider loading, partial, error, and disconnected states remain isolated.
-- [ ] Status uses text or icons in addition to color.
+- [x] Provider loading, partial, error, and disconnected states remain isolated.
+- [x] Status uses text or icons in addition to color.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] Manual: inspect normal, loading, partial, error, and operation states.
+      The E2E application builds and runs, but Orca Computer Use reports no
+      accessibility window for the unsigned process, so visual state
+      inspection remains an external/manual gate.
+
+**Evidence:** Dashboard now owns compact machine, application, Homebrew,
+connection-provider, refresh, and recent-operation rows, with independent
+loading, partial, error, disconnected, and empty presentations. `AppShell`
+retains the shared toolbar and command-error banner but no longer mounts a
+permanent status inspector or operation footer; every state includes a text
+label plus an icon where applicable. ESLint, TypeScript, all 50 existing
+Vitest checks, the production Vite build, and the E2E desktop build pass under
+the repository's current Node 20.20.2 engine warning; the temporary application
+process was stopped after the blocked manual attempt.
 
 **Dependencies:** T45, T46
 

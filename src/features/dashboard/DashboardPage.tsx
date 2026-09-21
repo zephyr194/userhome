@@ -1,177 +1,415 @@
-import { AsyncState } from "../../components/AsyncState";
+import type {
+  ConnectionState,
+  DiscoveryState,
+  RecentOperationState,
+  RefreshState,
+} from "../../app/shellState";
 import { StatusBadge } from "../../components/ui";
-import type { DiscoveryState } from "../../app/shellState";
+import { OperationStatus } from "../operations/OperationStatus";
 import { SystemSummary } from "./SystemSummary";
 
-export function DashboardPage({ state }: { state: DiscoveryState }) {
-  if (state.status === "loading") {
+type StatusTone = "neutral" | "success" | "warning" | "danger";
+
+interface DashboardPageProps {
+  connection?: ConnectionState;
+  recentOperation?: RecentOperationState;
+  refresh?: RefreshState;
+  state: DiscoveryState;
+}
+
+function StatusIcon({
+  busy = false,
+  tone,
+}: {
+  busy?: boolean;
+  tone: StatusTone;
+}) {
+  if (busy) {
     return (
-      <section
-        className="min-w-0 rounded-lg border border-border bg-surface p-5"
-        aria-labelledby="dashboard-heading"
-        aria-busy="true"
+      <svg
+        className="size-4 shrink-0 animate-spin text-warning"
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        aria-hidden="true"
       >
-        <p className="section-kicker">本机发现</p>
-        <h2
-          id="dashboard-heading"
-          className="mt-2 text-2xl font-semibold tracking-tight"
-        >
-          正在构建本机概览
-        </h2>
-        <AsyncState kind="loading">正在读取本机元数据…</AsyncState>
-      </section>
+        <path d="M17 10a7 7 0 1 1-2.05-4.95" />
+      </svg>
     );
   }
 
-  if (state.status === "error") {
+  if (tone === "danger") {
     return (
-      <section
-        className="min-w-0 rounded-lg border border-border bg-surface p-5"
-        aria-labelledby="dashboard-heading"
+      <svg
+        className="size-4 shrink-0 text-danger"
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
       >
-        <p className="section-kicker">本机发现</p>
-        <h2
-          id="dashboard-heading"
-          className="mt-2 text-2xl font-semibold tracking-tight"
-        >
-          本机状态暂不可用
-        </h2>
-        <AsyncState kind="error">{state.error.message}</AsyncState>
-      </section>
+        <path d="M10 3 2.5 17h15L10 3Z" />
+        <path d="M10 7.5v4M10 14.5h.01" />
+      </svg>
     );
   }
 
-  const { snapshot } = state;
-  const systemIsPartial =
-    snapshot.system.status === "READY" &&
-    snapshot.system.data.completeness === "PARTIAL";
+  if (tone === "success") {
+    return (
+      <svg
+        className="size-4 shrink-0 text-success"
+        viewBox="0 0 20 20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="10" cy="10" r="7" />
+        <path d="m6.5 10 2.2 2.2 4.8-5" />
+      </svg>
+    );
+  }
 
   return (
-    <section className="min-w-0 space-y-3" aria-labelledby="dashboard-heading">
-      <div className="rounded-lg border border-border bg-surface">
-        <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div>
-            <p className="section-kicker">本机发现</p>
-            <h2
-              id="dashboard-heading"
-              className="mt-1 text-xl font-semibold tracking-tight"
-            >
-              这台 Mac
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              本机身份、应用能力与配置证据
-            </p>
-          </div>
-          {snapshot.system.status === "LOADING" ? (
-            <StatusBadge tone="warning">读取中</StatusBadge>
-          ) : snapshot.system.status === "ERROR" ? (
-            <StatusBadge tone="danger">读取失败</StatusBadge>
-          ) : systemIsPartial ? (
-            <StatusBadge tone="warning">部分结果</StatusBadge>
-          ) : (
-            <StatusBadge tone="success">信息完整</StatusBadge>
-          )}
-        </header>
+    <svg
+      className={`size-4 shrink-0 ${
+        tone === "warning" ? "text-warning" : "text-muted-foreground"
+      }`}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 9.5v4M10 6.5h.01" />
+    </svg>
+  );
+}
 
-        <div className="p-4">
-          {snapshot.system.status === "LOADING" ? (
-            <AsyncState kind="loading">正在读取本机元数据…</AsyncState>
-          ) : snapshot.system.status === "ERROR" ? (
-            <AsyncState kind="error">{snapshot.system.error.message}</AsyncState>
-          ) : (
-            <SystemSummary summary={snapshot.system.data} />
-          )}
+function StatusRow({
+  busy = false,
+  detail,
+  label,
+  role,
+  status,
+  tone,
+}: {
+  busy?: boolean;
+  detail: string;
+  label: string;
+  role?: "alert" | "status";
+  status: string;
+  tone: StatusTone;
+}) {
+  return (
+    <div className="dashboard-status-row" aria-busy={busy || undefined}>
+      <StatusIcon busy={busy} tone={tone} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <h4 className="text-xs font-semibold">{label}</h4>
+          <StatusBadge tone={tone}>{status}</StatusBadge>
         </div>
+        <p
+          className={`mt-1 text-xs leading-relaxed ${
+            tone === "danger" ? "text-danger" : "text-muted-foreground"
+          }`}
+          role={role}
+        >
+          {detail}
+        </p>
       </div>
+    </div>
+  );
+}
+
+function ConnectionSummary({ state }: { state: ConnectionState }) {
+  if (state.status === "loading") {
+    return (
+      <StatusRow
+        busy
+        detail="正在连接本地 Tauri 服务…"
+        label="本地服务"
+        role="status"
+        status="连接中"
+        tone="warning"
+      />
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <StatusRow
+        detail={state.error.message}
+        label="本地服务"
+        role="alert"
+        status="连接失败"
+        tone="danger"
+      />
+    );
+  }
+  return (
+    <StatusRow
+      detail={`UserHome v${state.appStatus.version}`}
+      label="本地服务"
+      status="已连接"
+      tone="success"
+    />
+  );
+}
+
+function RefreshSummary({ state }: { state: RefreshState }) {
+  if (state.status === "refreshing") {
+    return (
+      <StatusRow
+        busy
+        detail="正在刷新本机状态…"
+        label="数据刷新"
+        role="status"
+        status="进行中"
+        tone="warning"
+      />
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <StatusRow
+        detail={state.message}
+        label="数据刷新"
+        role="status"
+        status="部分完成"
+        tone="warning"
+      />
+    );
+  }
+  if (state.status === "ready") {
+    const completedAt = new Intl.DateTimeFormat("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).format(new Date(state.completedAt));
+    return (
+      <StatusRow
+        detail={`最近刷新：${completedAt}`}
+        label="数据刷新"
+        status="已完成"
+        tone="success"
+      />
+    );
+  }
+  return (
+    <StatusRow
+      detail="等待首次刷新"
+      label="数据刷新"
+      status="等待"
+      tone="neutral"
+    />
+  );
+}
+
+function DiscoverySummary({ state }: { state: DiscoveryState }) {
+  if (state.status === "loading") {
+    return (
+      <StatusRow
+        busy
+        detail="正在读取机器信息与应用证据…"
+        label="本机发现"
+        role="status"
+        status="读取中"
+        tone="warning"
+      />
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <StatusRow
+        detail={state.error.message}
+        label="本机发现"
+        role="alert"
+        status="不可用"
+        tone="danger"
+      />
+    );
+  }
+  if (state.snapshot.system.status === "LOADING") {
+    return (
+      <StatusRow
+        busy
+        detail="正在读取本机元数据…"
+        label="本机发现"
+        role="status"
+        status="读取中"
+        tone="warning"
+      />
+    );
+  }
+  if (state.snapshot.system.status === "ERROR") {
+    return (
+      <StatusRow
+        detail={state.snapshot.system.error.message}
+        label="本机发现"
+        role="alert"
+        status="读取失败"
+        tone="danger"
+      />
+    );
+  }
+  return <SystemSummary summary={state.snapshot.system.data} />;
+}
+
+function HomebrewSummary({ state }: { state: DiscoveryState }) {
+  if (state.status === "loading") {
+    return (
+      <StatusRow
+        busy
+        detail="正在后台读取软件清单…"
+        label="Homebrew"
+        role="status"
+        status="扫描中"
+        tone="warning"
+      />
+    );
+  }
+  if (state.status === "error") {
+    return (
+      <StatusRow
+        detail="本机发现不可用，Homebrew 状态尚未加载。"
+        label="Homebrew"
+        status="不可用"
+        tone="neutral"
+      />
+    );
+  }
+
+  const { brew } = state.snapshot;
+  if (brew.status === "LOADING") {
+    return (
+      <StatusRow
+        busy
+        detail="正在后台读取软件清单…"
+        label="Homebrew"
+        role="status"
+        status="扫描中"
+        tone="warning"
+      />
+    );
+  }
+  if (brew.status === "ERROR") {
+    return (
+      <StatusRow
+        detail={brew.error.message}
+        label="Homebrew"
+        role="alert"
+        status="扫描失败"
+        tone="danger"
+      />
+    );
+  }
+  if (!brew.data.available) {
+    return (
+      <StatusRow
+        detail="未检测到受信任的 Homebrew 安装。"
+        label="Homebrew"
+        status="未安装"
+        tone="neutral"
+      />
+    );
+  }
+
+  return (
+    <div className="dashboard-status-row">
+      <StatusIcon tone="success" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-3">
+          <h4 className="text-xs font-semibold">Homebrew</h4>
+          <StatusBadge tone="success">可用</StatusBadge>
+        </div>
+        <dl className="dashboard-inline-metrics">
+          <div>
+            <dt>版本</dt>
+            <dd>{brew.data.version ?? "不可用"}</dd>
+          </div>
+          <div>
+            <dt>Formula</dt>
+            <dd>{brew.data.formulaCount}</dd>
+          </div>
+          <div>
+            <dt>Cask</dt>
+            <dd>{brew.data.caskCount}</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+const DEFAULT_CONNECTION: ConnectionState = { status: "loading" };
+const DEFAULT_REFRESH: RefreshState = { status: "idle" };
+const DEFAULT_OPERATION: RecentOperationState = { status: "empty" };
+
+export function DashboardPage({
+  connection = DEFAULT_CONNECTION,
+  recentOperation = DEFAULT_OPERATION,
+  refresh = DEFAULT_REFRESH,
+  state,
+}: DashboardPageProps) {
+  const systemIsPartial =
+    state.status === "ready" &&
+    state.snapshot.system.status === "READY" &&
+    state.snapshot.system.data.completeness === "PARTIAL";
+
+  return (
+    <section
+      className="dashboard-workspace"
+      aria-labelledby="dashboard-heading"
+    >
+      <header className="dashboard-workspace__header">
+        <div>
+          <h2 id="dashboard-heading">概览</h2>
+          <p>本机能力、软件与最近活动</p>
+        </div>
+        {systemIsPartial ? (
+          <StatusBadge tone="warning">部分结果</StatusBadge>
+        ) : null}
+      </header>
 
       <section
-        className="rounded-lg border border-border bg-surface px-5 py-4"
-        aria-labelledby="homebrew-summary-heading"
+        className="dashboard-group"
+        aria-labelledby="dashboard-discovery-heading"
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <span
-              className="grid size-9 shrink-0 place-items-center rounded-md border border-border bg-surface-muted text-primary"
-              aria-hidden="true"
-            >
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M8 3h8l-1 4H9L8 3Z" />
-                <path d="M9 7h6l1.2 12H7.8L9 7Z" />
-                <path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16" />
-              </svg>
-            </span>
-            <div className="min-w-0">
-              <h3
-                id="homebrew-summary-heading"
-                className="text-sm font-semibold"
-              >
-                Homebrew
-              </h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                受信任安装与本机软件包规模
-              </p>
-            </div>
-          </div>
-          {snapshot.brew.status === "LOADING" ? (
-            <StatusBadge tone="warning">扫描中</StatusBadge>
-          ) : snapshot.brew.status === "ERROR" ? (
-            <StatusBadge tone="danger">扫描失败</StatusBadge>
-          ) : snapshot.brew.data.available ? (
-            <StatusBadge tone="success">可用</StatusBadge>
-          ) : (
-            <StatusBadge>未安装</StatusBadge>
-          )}
+        <h3 id="dashboard-discovery-heading">本机与应用</h3>
+        <div className="dashboard-group__content">
+          <DiscoverySummary state={state} />
         </div>
+      </section>
 
-        {snapshot.brew.status === "LOADING" ? (
-          <AsyncState kind="loading">正在后台读取软件清单…</AsyncState>
-        ) : snapshot.brew.status === "ERROR" ? (
-          <AsyncState kind="error">{snapshot.brew.error.message}</AsyncState>
-        ) : snapshot.brew.data.available ? (
-          <dl className="mt-4 grid gap-x-5 gap-y-3 border-t border-border pt-3 sm:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(72px,0.5fr))]">
-            <div className="min-w-0">
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                安装
-              </dt>
-              <dd className="mt-1 truncate text-sm font-medium">
-                {snapshot.brew.data.version ?? "版本不可用"}
-              </dd>
-              {snapshot.brew.data.prefix ? (
-                <dd className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
-                  {snapshot.brew.data.prefix}
-                </dd>
-              ) : null}
-            </div>
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Formula
-              </dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {snapshot.brew.data.formulaCount}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Cask
-              </dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {snapshot.brew.data.caskCount}
-              </dd>
-            </div>
-          </dl>
-        ) : (
-          <AsyncState kind="empty">
-            未检测到受信任的 Homebrew 安装。
-          </AsyncState>
-        )}
+      <section
+        className="dashboard-group"
+        aria-labelledby="dashboard-packages-heading"
+      >
+        <h3 id="dashboard-packages-heading">软件包</h3>
+        <div className="dashboard-group__content">
+          <HomebrewSummary state={state} />
+        </div>
+      </section>
+
+      <section
+        className="dashboard-group"
+        aria-labelledby="dashboard-runtime-heading"
+      >
+        <h3 id="dashboard-runtime-heading">运行状态</h3>
+        <div className="dashboard-group__content dashboard-group__content--rows">
+          <ConnectionSummary state={connection} />
+          <RefreshSummary state={refresh} />
+          <OperationStatus state={recentOperation} />
+        </div>
       </section>
     </section>
   );

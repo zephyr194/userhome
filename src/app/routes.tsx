@@ -2,24 +2,43 @@ import { ApplicationsPage } from "../features/apps/ApplicationsPage";
 import { BrewInventoryPage } from "../features/brew/BrewInventoryPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ServicesPage } from "../features/services/ServicesPage";
-import type { ApplicationsState, DiscoveryState } from "./shellState";
+import type {
+  ApplicationsState,
+  ConnectionState,
+  DiscoveryState,
+  RecentOperationState,
+  RefreshState,
+} from "./shellState";
 import type { AppRoute } from "./routeDefinitions";
 
 interface RoutePanelProps {
   applications: ApplicationsState;
+  connection: ConnectionState;
   discovery: DiscoveryState;
   onOperationChanged: () => void;
+  recentOperation: RecentOperationState;
+  refresh: RefreshState;
   route: AppRoute;
 }
 
 export function RoutePanel({
   applications,
+  connection,
   discovery,
   onOperationChanged,
+  recentOperation,
+  refresh,
   route,
 }: RoutePanelProps) {
   if (route.id === "dashboard") {
-    return <DashboardPage state={discovery} />;
+    return (
+      <DashboardPage
+        connection={connection}
+        refresh={refresh}
+        recentOperation={recentOperation}
+        state={discovery}
+      />
+    );
   }
 
   if (route.id === "applications") {
