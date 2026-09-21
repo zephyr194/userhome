@@ -1,14 +1,34 @@
+import { useEffect, useRef, useState } from "react";
+import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge } from "../../components/ui";
-import type {
-  BrewPackageAction,
-  BrewPackageDetails as BrewPackageDetailsValue,
+import {
+  executeBrewAction,
+  getBrewPackage,
+  previewBrewAction,
+  type BrewPackageAction,
+  type BrewPackageDetails as BrewPackageDetailsValue,
+  type BrewSearchResult,
 } from "../../ipc/brew";
+import { decodeAppError, type AppError } from "../../ipc/core";
+import {
+  getOperation,
+  type OperationDetails,
+  type OperationPreview,
+} from "../../ipc/operations";
+import { BrewActionDialog } from "./BrewActionDialog";
+
+type DetailsState =
+  | { status: "loading" }
+  | { status: "ready"; details: BrewPackageDetailsValue }
+  | { status: "error"; error: AppError };
 
 export function BrewPackageDetails({
   details,
+  headingId = "package-details-heading",
   onAction,
 }: {
   details: BrewPackageDetailsValue;
+  headingId?: string;
   onAction: (action: BrewPackageAction) => void;
 }) {
   const installed = details.installedVersions.length > 0;
@@ -16,7 +36,7 @@ export function BrewPackageDetails({
   return (
     <section
       className="min-w-0 rounded-md border border-border bg-surface"
-      aria-labelledby="package-details-heading"
+      aria-labelledby={headingId}
     >
       <header className="border-b border-border px-4 py-3">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
@@ -26,7 +46,7 @@ export function BrewPackageDetails({
             </p>
             <h3
               className="mt-1 break-words text-base font-semibold"
-              id="package-details-heading"
+              id={headingId}
             >
               {details.displayName}
             </h3>
@@ -111,5 +131,161 @@ export function BrewPackageDetails({
         </div>
       </div>
     </section>
+  );
+}
+
+export function BrewPackageInspector({
+  idPrefix = "brew-package",
+  onChanged,
+  onSelectionRemoved,
+  refreshId,
+  selected,
+}: {
+  idPrefix?: string;
+  onChanged: () => void;
+  onSelectionRemoved?: (selection: BrewSearchResult) => void;
+  refreshId?: string;
+  selected: BrewSearchResult;
+}) {
+  const [detailsState, setDetailsState] = useState<DetailsState>({
+    status: "loading",
+  });
+  const [preview, setPreview] = useState<{
+    action: BrewPackageAction;
+    value: OperationPreview;
+  }>();
+  const [operation, setOperation] = useState<OperationDetails>();
+  const [actionError, setActionError] = useState<AppError>();
+  const [busy, setBusy] = useState(false);
+  const [removeOnClose, setRemoveOnClose] = useState(false);
+  const detailsRequestRef = useRef(0);
+  const operationInFlightRef = useRef(false);
+
+  useEffect(() => {
+    let active = true;
+    const requestId = detailsRequestRef.current + 1;
+    detailsRequestRef.current = requestId;
+    void getBrewPackage(selected.kind, selected.identifier)
+      .then((details) => {
+        if (active && detailsRequestRef.current === requestId) {
+          setDetailsState({ status: "ready", details });
+        }
+      })
+      .catch((error) => {
+        if (active && detailsRequestRef.current === requestId) {
+          setDetailsState({ status: "error", error: decodeAppError(error) });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [refreshId, selected.identifier, selected.kind]);
+
+  async function createPreview(action: BrewPackageAction) {
+    if (detailsState.status !== "ready") return;
+    setActionError(undefined);
+    setOperation(undefined);
+    setRemoveOnClose(false);
+    try {
+      const value = await previewBrewAction({
+        action,
+        kind: detailsState.details.kind,
+        identifier: detailsState.details.identifier,
+      });
+      setPreview({ action, value });
+    } catch (error) {
+      setActionError(decodeAppError(error));
+    }
+  }
+
+  async function confirmAction() {
+    if (!preview || operationInFlightRef.current) return;
+    operationInFlightRef.current = true;
+    setBusy(true);
+    setActionError(undefined);
+    try {
+      const result = await executeBrewAction(preview.value.operationId);
+      setOperation(result);
+      if (
+        preview.action === "UNINSTALL" &&
+        result.status === "SUCCEEDED"
+      ) {
+        setRemoveOnClose(true);
+      }
+      onChanged();
+      const requestId = detailsRequestRef.current + 1;
+      detailsRequestRef.current = requestId;
+      try {
+        const details = await getBrewPackage(
+          selected.kind,
+          selected.identifier,
+        );
+        if (detailsRequestRef.current === requestId) {
+          setDetailsState({ status: "ready", details });
+        }
+      } catch (error) {
+        if (detailsRequestRef.current === requestId) {
+          setActionError(decodeAppError(error));
+        }
+      }
+    } catch (error) {
+      const executionError = decodeAppError(error);
+      setActionError(executionError);
+      try {
+        setOperation(await getOperation(preview.value.operationId));
+      } catch (operationError) {
+        const lookupError = decodeAppError(operationError);
+        setOperation(undefined);
+        setActionError({
+          ...lookupError,
+          message: `${executionError.message} 无法读取操作结果：${lookupError.message}`,
+          retryable: executionError.retryable || lookupError.retryable,
+        });
+      }
+      onChanged();
+    } finally {
+      operationInFlightRef.current = false;
+      setBusy(false);
+    }
+  }
+
+  function closePreview() {
+    if (removeOnClose) {
+      onSelectionRemoved?.(selected);
+    }
+    setPreview(undefined);
+    setOperation(undefined);
+    setActionError(undefined);
+    setRemoveOnClose(false);
+  }
+
+  return (
+    <div className="brew-package-inspector">
+      {detailsState.status === "loading" ? (
+        <AsyncState kind="loading">正在加载详情…</AsyncState>
+      ) : detailsState.status === "error" ? (
+        <AsyncState kind="error">{detailsState.error.message}</AsyncState>
+      ) : (
+        <BrewPackageDetails
+          details={detailsState.details}
+          headingId={`${idPrefix}-details-heading`}
+          onAction={(action) => void createPreview(action)}
+        />
+      )}
+
+      {actionError && !preview ? (
+        <AsyncState kind="error">{actionError.message}</AsyncState>
+      ) : null}
+      {preview ? (
+        <BrewActionDialog
+          preview={preview.value}
+          operation={operation}
+          error={actionError}
+          busy={busy}
+          onConfirm={() => void confirmAction()}
+          onCancel={closePreview}
+        />
+      ) : null}
+    </div>
   );
 }
