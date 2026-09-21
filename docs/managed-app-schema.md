@@ -216,6 +216,20 @@ Discovery evidence and UI selection never promote an entry to a broader
 coverage class. Authorization continues to come only from the validated
 built-in Rust catalog.
 
+Settings also remain outside the authorization boundary. The four optional
+discovery-root preference IDs (`HOME`, `XDG_CONFIG_HOME`,
+`APPLICATION_SUPPORT`, and `HOMEBREW_PREFIX`) only enable or suppress bounded
+metadata evidence for unknown candidates; they do not add, remove, or rewrite
+catalog documents, paths, capabilities, write policies, services, or elevation
+resources. Backup-retention preferences affect only the app-owned backup root,
+and preference reset does not delete backups or managed application files.
+
+The diagnostics surface does not serialize catalog definitions or runtime
+configuration objects. Its backend allowlist exports only schema/application
+counts and fixed health enums, so legacy path templates, resolved absolute
+paths, configuration content, helper reasons, operation intents, and
+authorization material cannot cross the diagnostics IPC.
+
 Document presentation is dispatched by typed state, `accessMode`,
 `formatFamily`, and `editorKey`, never by `appId`. JSON-like, assignment,
 command, and plain-text families share a bounded scrollable viewer while

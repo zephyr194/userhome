@@ -145,6 +145,22 @@ visible. The manifest remains `PARTIAL` because the global
 128-candidate limit was reached, but all observed candidates are classified
 and the eligible-text result exceeds the required 90% threshold.
 
+## Evidence stages
+
+The T53 and T60 tables describe two checkpoints over the same bounded baseline,
+not conflicting totals. T53 captured the sanitized inventory before catalog
+expansion (`15` managed, `110` unsupported, `3` excluded). T58-T60 then added
+catalog definitions and reconciled those same classifications into the final
+coverage result (`28` managed, `97` unsupported, `3` excluded) while keeping
+the total fixed at `128`.
+
+T69 did not enumerate or reopen the real user's configuration. Final automated
+verification used Rust temporary fixtures and a WDIO-created temporary
+`HOME`/`XDG_CONFIG_HOME`; the hidden E2E preference fixture disabled all
+optional unknown-root discovery. The release-readiness decision therefore
+relies on the recorded sanitized aggregate above and retains a disposable
+baseline-machine comparison as an unchecked manual gate.
+
 ## Handling exported data
 
 Use the IPC result directly for local catalog analysis. If a temporary JSON

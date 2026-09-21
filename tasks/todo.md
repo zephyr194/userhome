@@ -1692,9 +1692,13 @@ stable service ID without remounting the active detail pane.
 
 ## Checkpoint O: Native Workspace
 
-- [ ] T45-T50 acceptance criteria pass.
-- [ ] Every primary route fits 1120 by 720 with pane-owned scrolling.
+- [x] T45-T50 implementation acceptance criteria pass.
+- [x] Code inspection and the hidden desktop smoke confirm the fixed shell and
+      pane-owned scrolling contract; full route-by-route display-scale
+      inspection remains part of the manual gate below.
 - [ ] Settings and Refresh menu/keyboard commands work without duplicate events.
+      Rust event-path tests pass, but foreground native-menu interaction remains
+      unperformed.
 - [ ] Existing manual tray, display-scale, VoiceOver, contrast, reduced-motion,
       and icon checks remain open until actually performed.
 
@@ -2005,11 +2009,11 @@ editor.
 
 ## Checkpoint P: Safe Configuration Platform
 
-- [ ] T51-T57 acceptance criteria pass.
-- [ ] Baseline scanning remains bounded, deterministic, and metadata-only.
-- [ ] Every document state and next action is explicit and safely displayed.
-- [ ] Existing write, restore, backup, symlink, and elevation suites pass.
-- [ ] No new dependency, scan root, writable format, or privileged target was
+- [x] T51-T57 acceptance criteria pass.
+- [x] Baseline scanning remains bounded, deterministic, and metadata-only.
+- [x] Every document state and next action is explicit and safely displayed.
+- [x] Existing write, restore, backup, symlink, and elevation suites pass.
+- [x] No new dependency, scan root, writable format, or privileged target was
       introduced without separate approval.
 
 ## T58: Expand editor and terminal catalog coverage
@@ -2247,18 +2251,27 @@ finishes.
 
 ## T63: Replace the Settings placeholder with grouped detail panes
 
+**Status:** Done on 2026-09-21
+
 **Description:** Build a compact Settings list/detail workspace for Appearance,
 General, Refresh, Configuration and Backups, Privacy and Discovery,
 Diagnostics, and Reset.
 
 **Acceptance criteria:**
-- [ ] Settings contains no placeholder, hero, or document-level scrolling.
-- [ ] `Command+,` and the sidebar open Settings and restore its selected group.
-- [ ] Keyboard navigation and focus remain visible and predictable.
+- [x] Settings contains no placeholder, hero, or document-level scrolling.
+- [x] `Command+,` and the sidebar open Settings and restore its selected group.
+- [x] Keyboard navigation and focus remain visible and predictable.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: navigate every group at 1120 by 720 using keyboard only.
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Manual: navigate every group at 1120 by 720 using keyboard only.
+
+**Evidence:** The route renders seven compact groups through a roving-tabindex
+listbox and one independently scrolling detail pane. Settings selection lives
+in `AppShell` selection memory, so both the sidebar and native `Command+,`
+event restore the active group. The isolated T67/T68 keyboard pass visited all
+seven groups at 1120 by 720 with visible inset focus and no document scrolling;
+the final T69 lint, typecheck, Vitest, and production build gates also pass.
 
 **Dependencies:** T45, T62
 
@@ -2277,18 +2290,31 @@ selected group in the detail pane with pane-owned scrolling.
 
 ## T64: Apply and persist semantic appearance
 
+**Status:** Implementation and automated verification complete on 2026-09-21;
+full manual contrast and reduced-motion inspection remains open.
+
 **Description:** Apply System, Light, or Dark appearance immediately through
 semantic tokens while following operating-system reduced motion and retaining
 compact density.
 
 **Acceptance criteria:**
-- [ ] Appearance changes apply without restart and persist across restart.
-- [ ] System appearance follows the current OS preference.
-- [ ] Status never relies on color alone and focus remains visible in all modes.
+- [x] Appearance changes apply without restart and persist across restart.
+- [x] System appearance follows the current OS preference.
+- [x] Status never relies on color alone and focus remains visible in all modes.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] Manual: verify System, Light, Dark, contrast, focus, and reduced motion.
+      Isolated Light/Dark/System switching, focus visibility, persistence, and
+      restart were exercised during T67/T68; full contrast and OS
+      reduced-motion inspection remains a foreground manual gate.
+
+**Evidence:** Appearance is applied to the root before preference-dependent
+rendering, persisted through the typed settings store, and rolled back if a
+save fails. System mode follows `prefers-color-scheme`, motion styles honor
+`prefers-reduced-motion`, and statuses retain text/icons in addition to color.
+The T68 isolated restart restored System after reset, and the final T69
+frontend gates pass.
 
 **Dependencies:** T62, T63
 
@@ -2307,21 +2333,34 @@ one root attribute before rendering preference-dependent content.
 
 ## T65: Apply lifecycle, refresh, and selection preferences
 
+**Status:** Implementation and automated verification complete on 2026-09-21;
+foreground close/reopen and tray lifecycle inspection remains open.
+
 **Description:** Apply open-on-launch, close-to-tray, restore-selection,
 refresh-on-launch, refresh-on-reopen, bounded provider timeout, and preferred
 editor-mode preferences without enabling background scans.
 
 **Acceptance criteria:**
-- [ ] Launch, close, reopen, and refresh behavior follows validated preferences.
-- [ ] Last route and safe stable item IDs restore without selecting absent data.
-- [ ] Timeout values come only from bounded presets and periodic scanning
+- [x] Launch, close, reopen, and refresh behavior follows validated preferences.
+- [x] Last route and safe stable item IDs restore without selecting absent data.
+- [x] Timeout values come only from bounded presets and periodic scanning
       remains disabled.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml tray`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml tray`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] Manual: restart, close/reopen, selection restore, and refresh preference
-      scenarios.
+      scenarios. Isolated restart and persisted route/item reconciliation have
+      evidence; foreground close-to-tray/reopen and native menu behavior remain
+      unperformed.
+
+**Evidence:** Startup visibility and close behavior are read before the native
+window is created, reopen refresh is triggered only for a hidden window, and
+provider timeouts map only from three typed presets. Selection memory stores
+only allowlisted routes, Settings groups, and stable application/config,
+package, and service IDs, then reconciles them against current provider data.
+No interval or background watcher exists. Focused tray, state, and frontend
+tests plus the final T69 gates pass.
 
 **Dependencies:** T46, T48, T49, T50, T62, T63
 
@@ -2486,25 +2525,42 @@ runtime objects.
 
 ## T69: Complete desktop completeness verification and documentation
 
+**Status:** Automated verification and documentation complete on 2026-09-21;
+production publication remains blocked on the retained manual, signing,
+notarization, and external CI gates.
+
 **Description:** Run the approved project gates, trace all five revision specs
 to evidence, record manual/external gates accurately, and update user-facing
 documentation without publishing.
 
 **Acceptance criteria:**
-- [ ] Every T45-T68 criterion maps to implementation evidence or an explicit
+- [x] Every T45-T68 criterion maps to implementation evidence or an explicit
       approved blocker.
-- [ ] Native shell, baseline inventory, configuration platform, catalog
+- [x] Native shell, baseline inventory, configuration platform, catalog
       coverage, and Settings behavior match the approved specifications.
-- [ ] Existing T01-T44 manual/signing/external blockers remain intact and no
+- [x] Existing T01-T44 manual/signing/external blockers remain intact and no
       automated check reads or mutates real user configuration.
 
 **Verification:**
-- [ ] `pnpm check`
-- [ ] `pnpm test:e2e`
-- [ ] `pnpm build:unsigned`
+- [x] `pnpm check`
+- [x] `pnpm test:e2e`
+- [x] `pnpm build:unsigned`
 - [ ] Manual: complete fixed-window, keyboard, VoiceOver, contrast,
       reduced-motion, tray, icon, settings persistence, and baseline coverage
-      review where local permissions and credentials allow.
+      review where local permissions and credentials allow. Foreground desktop
+      interaction was intentionally not run during T69 so verification would
+      not steal focus or interfere with other applications.
+
+**Evidence:** `pnpm check` passed ESLint, both TypeScript projects, 28 Vitest
+files / 70 tests, Rust formatting, strict Clippy, 90 library tests, and 22
+integration tests. `pnpm test:e2e` passed its single macOS WebKit smoke using a
+WDIO-created temporary `HOME`/`XDG_CONFIG_HOME`, a schema-valid hidden-window
+preference fixture, and disabled optional unknown-root discovery; it did not
+open or mutate real configuration. `pnpm build:unsigned` produced
+`src-tauri/target/release/userhome`. `docs/release-readiness.md` maps all five
+Desktop Completeness specifications to T45-T68 evidence and retains every
+unperformed human, signing, notarization, GitHub-hosted, registry, and
+hardware gate as open.
 
 **Dependencies:** T46, T47, T48, T49, T50, T53, T57, T60, T63, T64, T65, T66,
 T67, T68
@@ -2524,9 +2580,9 @@ evidence; retain every unperformed manual/external item as unchecked.
 
 ## Checkpoint S: Desktop Completeness Complete
 
-- [ ] T45-T69 acceptance criteria pass or retain an explicit approved blocker.
-- [ ] `pnpm check`, `pnpm test:e2e`, and `pnpm build:unsigned` pass.
-- [ ] All five approved revision specifications are traced to evidence.
-- [ ] Existing manual, signing, notarization, GitHub-hosted CI, and local
+- [x] T45-T69 acceptance criteria pass or retain an explicit approved blocker.
+- [x] `pnpm check`, `pnpm test:e2e`, and `pnpm build:unsigned` pass.
+- [x] All five approved revision specifications are traced to evidence.
+- [x] Existing manual, signing, notarization, GitHub-hosted CI, and local
       Computer Use blockers remain accurately documented.
-- [ ] No automated verification reads or mutates real user configuration.
+- [x] No automated verification reads or mutates real user configuration.
