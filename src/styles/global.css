@@ -391,7 +391,6 @@ a {
 .placeholder-panel,
 .applications-panel,
 .operation-history,
-.services-panel,
 .candidate-panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -402,7 +401,6 @@ a {
 .placeholder-panel,
 .applications-panel,
 .operation-history,
-.services-panel,
 .candidate-panel {
   min-height: 240px;
   padding: clamp(20px, 2.4vw, 30px);
@@ -411,7 +409,6 @@ a {
 .welcome-panel h2,
 .placeholder-panel h2,
 .applications-panel h2,
-.services-panel h2,
 .candidate-panel h2 {
   max-width: 560px;
   margin: 10px 0 12px;
@@ -609,8 +606,7 @@ a {
 .dashboard-application-rows,
 .dashboard-application-rows ul,
 .candidate-list,
-.search-results,
-.service-list {
+.search-results {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -665,8 +661,7 @@ a {
 }
 
 .candidate-list li,
-.search-results li,
-.service-list li {
+.search-results li {
   padding: 14px;
   background: var(--surface-subtle);
   border: 1px solid var(--border);
@@ -685,38 +680,25 @@ a {
   gap: 4px;
 }
 
-.search-results li,
-.service-list li {
+.search-results li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.search-results li > span,
-.service-list li > span {
+.search-results li > span {
   display: grid;
   gap: 4px;
 }
 
-.search-results small,
-.service-list small {
+.search-results small {
   color: var(--muted);
 }
 
 .candidate-list li > span:first-child > span {
   color: var(--muted);
   font-size: 12px;
-}
-
-.service-details {
-  margin-top: 22px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border);
-}
-
-.service-details h3 {
-  margin: 6px 0 10px;
 }
 
 .package-metadata {
