@@ -1587,19 +1587,39 @@ stable application and document identifiers.
 
 ## T49: Complete persistent Homebrew list/detail interaction
 
+**Status:** Implementation and automated verification complete on 2026-09-21;
+manual search, navigation, detail, and confirmation inspection remains blocked
+because Orca Computer Use cannot enumerate the unsigned E2E application window.
+
 **Description:** Convert Homebrew inventory, search, package details, and
 actions into a compact selection-based list/detail workspace.
 
 **Acceptance criteria:**
-- [ ] Formula/cask selection persists through search, pagination, and refresh
+- [x] Formula/cask selection persists through search, pagination, and refresh
       when the selected package remains available.
-- [ ] Search uses toolbar placement and `Escape` clearing behavior.
-- [ ] Preview, progress, result, conflict, and partial-failure states remain
+- [x] Search uses toolbar placement and `Escape` clearing behavior.
+- [x] Preview, progress, result, conflict, and partial-failure states remain
       visible in the relevant pane.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] Manual: verify search, list navigation, details, and confirmation flow.
+      The E2E application builds and runs, but Orca Computer Use reports no
+      accessibility window for the unsigned process, so interactive inspection
+      remains an external/manual gate.
+
+**Evidence:** Installed and search results use stable package identities based
+on package kind and identifier, retain valid selections across provider
+refreshes and pagination, and expose deterministic empty-detail behavior after
+a completed uninstall. Inventory filtering and catalog search are toolbar
+controls; clearing either input, including the application-level `Escape`
+shortcut, resets its active query. Both package lists implement roving focus
+with Arrow Up/Down and Home/End, while details, preview, progress, results,
+conflicts, errors, and partial output remain in the selected package pane.
+Stale search and detail responses are gated by request IDs. ESLint, TypeScript,
+all 50 existing Vitest checks, production Vite build, and E2E desktop build pass
+under the repository's current Node 20.20.2 engine warning; the temporary
+application process was stopped after the blocked manual attempt.
 
 **Dependencies:** T45, T47
 
