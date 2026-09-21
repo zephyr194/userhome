@@ -8,12 +8,14 @@ import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button } from "../components/ui";
 import type { SettingsGroupId } from "../features/settings/settingsGroups";
+import type { Appearance } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
 import { APP_ROUTES, type AppRouteId } from "./routeDefinitions";
 import { RoutePanel } from "./routes";
 import type { ShellState } from "./shellState";
 
 interface AppShellProps {
+  onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onRefresh: () => void;
   state: ShellState;
 }
@@ -47,7 +49,11 @@ function clearSearchOnEscape(event: KeyboardEvent<HTMLDivElement>) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-export function AppShell({ onRefresh, state }: AppShellProps) {
+export function AppShell({
+  onAppearanceChange,
+  onRefresh,
+  state,
+}: AppShellProps) {
   const hasMounted = useRef(false);
   const mainRef = useRef<HTMLElement>(null);
   const [commandError, setCommandError] = useState<string>();
@@ -193,6 +199,7 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
               applications={state.applications}
               connection={state.connection}
               discovery={state.discovery}
+              onAppearanceChange={onAppearanceChange}
               onOperationChanged={onRefresh}
               onSettingsGroupChange={setSettingsGroup}
               preferences={state.preferences}

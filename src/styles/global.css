@@ -44,6 +44,12 @@
   --app-success: #237a50;
   --app-warning: #9a6700;
   --app-danger: #b42318;
+  --app-focus-ring: #2c6eac;
+  --app-sidebar: #ecece8;
+  --app-sidebar-foreground: #454844;
+  --app-sidebar-hover: rgba(255, 255, 255, 0.58);
+  --app-sidebar-current-foreground: #174d39;
+  --app-sidebar-current-border: #bad3c6;
   --surface: var(--app-surface);
   --surface-subtle: var(--app-surface-muted);
   --border: var(--app-border);
@@ -92,7 +98,7 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid #2c6eac;
+  outline: 3px solid var(--app-focus-ring);
   outline-offset: 3px;
 }
 
@@ -223,7 +229,7 @@ a {
 .desktop-workspace__sidebar {
   min-width: 0;
   min-height: 0;
-  background: #ecece8;
+  background: var(--app-sidebar);
   border-right: 1px solid var(--border);
   overflow: hidden;
 }
@@ -251,7 +257,7 @@ a {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #454844;
+  color: var(--app-sidebar-foreground);
   font-size: 12px;
   font-weight: 600;
   line-height: 1.2;
@@ -288,13 +294,13 @@ a {
 }
 
 .navigation-rail a:hover {
-  background: rgba(255, 255, 255, 0.58);
+  background: var(--app-sidebar-hover);
 }
 
 .navigation-rail a[aria-current="page"] {
-  color: #174d39;
+  color: var(--app-sidebar-current-foreground);
   background: var(--accent-soft);
-  border-color: #bad3c6;
+  border-color: var(--app-sidebar-current-border);
 }
 
 .desktop-workspace__main {
@@ -1617,6 +1623,148 @@ a {
   line-height: 1.45;
 }
 
+.appearance-settings {
+  display: grid;
+  gap: 14px;
+}
+
+.appearance-settings fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.appearance-settings legend {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.appearance-settings__options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.appearance-option {
+  min-width: 0;
+  position: relative;
+}
+
+.appearance-option input {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  opacity: 0;
+}
+
+.appearance-option__card {
+  min-height: 142px;
+  padding: 10px;
+  display: grid;
+  grid-template-rows: 76px auto auto;
+  align-content: start;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.appearance-option:hover .appearance-option__card {
+  background: var(--surface-subtle);
+}
+
+.appearance-option input:checked + .appearance-option__card {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+}
+
+.appearance-option input:focus-visible + .appearance-option__card {
+  outline: 3px solid var(--app-focus-ring);
+  outline-offset: 3px;
+}
+
+.appearance-option__preview {
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 28% minmax(0, 1fr);
+  background: #ffffff;
+  border: 1px solid #c8cac5;
+  border-radius: 6px;
+}
+
+.appearance-option__preview > span:first-child {
+  background: #e8e9e5;
+  border-right: 1px solid #c8cac5;
+}
+
+.appearance-option__preview > span:last-child {
+  margin: 10px;
+  background: #f3f4f1;
+  border: 1px solid #d7d9d4;
+  border-radius: 4px;
+}
+
+.appearance-option__preview--dark {
+  background: #292b29;
+  border-color: #535753;
+}
+
+.appearance-option__preview--dark > span:first-child {
+  background: #202220;
+  border-color: #535753;
+}
+
+.appearance-option__preview--dark > span:last-child {
+  background: #353835;
+  border-color: #535753;
+}
+
+.appearance-option__preview--system {
+  grid-template-columns: 14% 14% minmax(0, 1fr);
+}
+
+.appearance-option__preview--system > span:first-child {
+  background: #e8e9e5;
+}
+
+.appearance-option__preview--system::before {
+  content: "";
+  background: #202220;
+  border-right: 1px solid #535753;
+}
+
+.appearance-option__preview--system > span:last-child {
+  background:
+    linear-gradient(90deg, #f3f4f1 0 50%, #353835 50% 100%);
+}
+
+.appearance-option__card > strong {
+  font-size: 12px;
+}
+
+.appearance-option__card > span:last-child {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.appearance-settings__status {
+  min-height: 20px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.appearance-settings__status--error {
+  color: var(--danger);
+}
+
 .service-details-pane {
   min-width: 0;
   overflow: hidden;
@@ -1762,8 +1910,34 @@ a {
   cursor: pointer;
 }
 
+:root[data-appearance="dark"] {
+  color: var(--app-foreground);
+  background: var(--app-canvas);
+  color-scheme: dark;
+  --app-canvas: #1f211f;
+  --app-surface: #292b29;
+  --app-surface-muted: #252725;
+  --app-border: #444744;
+  --app-foreground: #f0f1ee;
+  --app-muted-foreground: #b4b8b3;
+  --app-primary: #80c7a5;
+  --app-primary-hover: #9dd8bc;
+  --app-primary-soft: #253e33;
+  --app-primary-foreground: #102b22;
+  --app-success: #6bc99a;
+  --app-warning: #e3b45c;
+  --app-danger: #f08a80;
+  --app-focus-ring: #8fc7ff;
+  --app-sidebar: #242624;
+  --app-sidebar-foreground: #d3d6d1;
+  --app-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --app-sidebar-current-foreground: #b9e8d0;
+  --app-sidebar-current-border: #3f6955;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-appearance]),
+  :root[data-appearance="system"] {
     color: var(--app-foreground);
     background: var(--app-canvas);
     color-scheme: dark;
@@ -1780,28 +1954,12 @@ a {
     --app-success: #6bc99a;
     --app-warning: #e3b45c;
     --app-danger: #f08a80;
-  }
-
-  html,
-  body {
-    background: var(--app-canvas);
-  }
-
-  .desktop-workspace__sidebar {
-    background: #242624;
-  }
-
-  .navigation-rail a {
-    color: #d3d6d1;
-  }
-
-  .navigation-rail a:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .navigation-rail a[aria-current="page"] {
-    color: #b9e8d0;
-    border-color: #3f6955;
+    --app-focus-ring: #8fc7ff;
+    --app-sidebar: #242624;
+    --app-sidebar-foreground: #d3d6d1;
+    --app-sidebar-hover: rgba(255, 255, 255, 0.06);
+    --app-sidebar-current-foreground: #b9e8d0;
+    --app-sidebar-current-border: #3f6955;
   }
 }
 

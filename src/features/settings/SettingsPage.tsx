@@ -1,15 +1,19 @@
 import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge } from "../../components/ui";
 import type { PreferencesState } from "../../app/shellState";
+import type { Appearance } from "../../ipc/settings";
+import { AppearanceSettings } from "./AppearanceSettings";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SETTINGS_GROUPS, type SettingsGroupId } from "./settingsGroups";
 import { getSettingsSummaries } from "./settingsSummaries";
 
 export function SettingsPage({
+  onAppearanceChange,
   onSelectedGroupChange,
   preferences,
   selectedGroup,
 }: {
+  onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onSelectedGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
   selectedGroup: SettingsGroupId;
@@ -59,6 +63,11 @@ export function SettingsPage({
         <div className="settings-workspace__detail-content">
           {preferences.status === "loading" ? (
             <AsyncState kind="loading">正在加载本机偏好设置…</AsyncState>
+          ) : group.id === "appearance" ? (
+            <AppearanceSettings
+              appearance={preferences.preferences.appearance}
+              onChange={onAppearanceChange}
+            />
           ) : (
             <dl className="settings-summary-list">
               {getSettingsSummaries(

@@ -4,6 +4,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import type { SettingsGroupId } from "../features/settings/settingsGroups";
+import type { Appearance } from "../ipc/settings";
 import type {
   ApplicationsState,
   ConnectionState,
@@ -18,6 +19,7 @@ interface RoutePanelProps {
   applications: ApplicationsState;
   connection: ConnectionState;
   discovery: DiscoveryState;
+  onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onOperationChanged: () => void;
   onSettingsGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
@@ -31,6 +33,7 @@ export function RoutePanel({
   applications,
   connection,
   discovery,
+  onAppearanceChange,
   onOperationChanged,
   onSettingsGroupChange,
   preferences,
@@ -112,6 +115,7 @@ export function RoutePanel({
   if (route.id === "settings") {
     return (
       <SettingsPage
+        onAppearanceChange={onAppearanceChange}
         onSelectedGroupChange={onSettingsGroupChange}
         preferences={preferences}
         selectedGroup={settingsGroup}

@@ -15,7 +15,11 @@ const loadingState: ShellState = {
 describe("AppShell", () => {
   it("renders the accessible desktop shell and primary navigation", () => {
     const markup = renderToStaticMarkup(
-      <AppShell onRefresh={() => undefined} state={loadingState} />,
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={loadingState}
+      />,
     );
 
     expect(markup).toContain('href="#main-content"');
@@ -71,7 +75,11 @@ describe("AppShell", () => {
     };
 
     const markup = renderToStaticMarkup(
-      <AppShell onRefresh={() => undefined} state={state} />,
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={state}
+      />,
     );
 
     expect(markup).toContain('role="alert"');

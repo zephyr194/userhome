@@ -1,7 +1,19 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+} from "react";
 import { AppShell } from "./app/AppShell";
+import { applyAppearance } from "./app/appearance";
 import { registerRefreshRequestListener } from "./app/refreshEvents";
-import { initialShellState, shellReducer } from "./app/shellState";
+import {
+  initialShellState,
+  shellReducer,
+  type PreferencesState,
+  type ShellAction,
+} from "./app/shellState";
 import { listManagedApps } from "./ipc/catalog";
 import { type AppError, getAppStatus } from "./ipc/core";
 import {
@@ -14,8 +26,9 @@ import {
   type OperationDetails,
 } from "./ipc/operations";
 import {
-  DEFAULT_USER_PREFERENCES,
-  getPreferences,
+  updatePreferences,
+  type Appearance,
+  type LoadedPreferences,
 } from "./ipc/settings";
 
 async function getRecentOperation(): Promise<OperationDetails | null> {
@@ -23,10 +36,55 @@ async function getRecentOperation(): Promise<OperationDetails | null> {
   return operations[0] ? getOperation(operations[0].operationId) : null;
 }
 
-function App() {
-  const [state, dispatch] = useReducer(shellReducer, initialShellState);
+function loadedPreferencesAction(
+  loaded: LoadedPreferences,
+): ShellAction {
+  return loaded.diagnostic
+    ? {
+        type: "preferences-safe-default",
+        preferences: loaded.preferences,
+        diagnostic: loaded.diagnostic,
+      }
+    : {
+        type: "preferences-ready",
+        preferences: loaded.preferences,
+      };
+}
+
+function loadedPreferencesState(
+  loaded: LoadedPreferences,
+): PreferencesState {
+  return loaded.diagnostic
+    ? {
+        status: "safe-default",
+        preferences: loaded.preferences,
+        diagnostic: loaded.diagnostic,
+      }
+    : {
+        status: "ready",
+        preferences: loaded.preferences,
+      };
+}
+
+function App({
+  initialPreferences,
+}: {
+  initialPreferences: LoadedPreferences;
+}) {
+  const [state, dispatch] = useReducer(shellReducer, {
+    ...initialShellState,
+    preferences: loadedPreferencesState(initialPreferences),
+  });
   const refreshInFlight = useRef<Promise<void> | null>(null);
   const preferencesHydrated = state.preferences.status !== "loading";
+  const appearance =
+    state.preferences.status === "loading"
+      ? initialPreferences.preferences.appearance
+      : state.preferences.preferences.appearance;
+
+  useLayoutEffect(() => {
+    applyAppearance(appearance);
+  }, [appearance]);
 
   const reloadShell = useCallback((): Promise<void> => {
     if (!preferencesHydrated) {
@@ -134,39 +192,22 @@ function App() {
     void reloadShell();
   }, [reloadShell]);
 
-  useEffect(() => {
-    let active = true;
-    void getPreferences()
-      .then((loaded) => {
-        if (!active) return;
-        dispatch(
-          loaded.diagnostic
-            ? {
-                type: "preferences-safe-default",
-                preferences: loaded.preferences,
-                diagnostic: loaded.diagnostic,
-              }
-            : {
-                type: "preferences-ready",
-                preferences: loaded.preferences,
-              },
-        );
-      })
-      .catch(() => {
-        if (!active) return;
-        dispatch({
-          type: "preferences-safe-default",
-          preferences: DEFAULT_USER_PREFERENCES,
-          diagnostic: {
-            code: "READ_FAILED",
-            message: "偏好设置不可用，已启用安全默认值。",
-          },
+  const changeAppearance = useCallback(
+    async (nextAppearance: Appearance): Promise<void> => {
+      const previousAppearance = appearance;
+      applyAppearance(nextAppearance);
+      try {
+        const loaded = await updatePreferences({
+          appearance: nextAppearance,
         });
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+        dispatch(loadedPreferencesAction(loaded));
+      } catch (error) {
+        applyAppearance(previousAppearance);
+        throw error;
+      }
+    },
+    [appearance],
+  );
 
   useEffect(() => {
     let disposed = false;
@@ -197,7 +238,13 @@ function App() {
     };
   }, [reloadShell]);
 
-  return <AppShell onRefresh={reloadShell} state={state} />;
+  return (
+    <AppShell
+      onAppearanceChange={changeAppearance}
+      onRefresh={reloadShell}
+      state={state}
+    />
+  );
 }
 
 export default App;
