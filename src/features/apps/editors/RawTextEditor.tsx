@@ -37,7 +37,7 @@ export function RawTextEditor({
       </label>
       <textarea
         aria-describedby={redacted ? "raw-text-redaction-note" : undefined}
-        className="mt-1.5 block h-72 min-h-40 w-full resize-y rounded-md border border-border bg-surface px-3 py-2.5 font-mono text-xs leading-relaxed text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="mt-1.5 block h-72 min-h-40 max-h-96 w-full resize-y rounded-md border border-border bg-surface px-3 py-2.5 font-mono text-xs leading-relaxed text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         disabled={disabled}
         id="raw-config-content"
         spellCheck={false}

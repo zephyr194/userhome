@@ -1,5 +1,4 @@
 use std::{
-    collections::BTreeMap,
     env, fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
@@ -9,14 +8,14 @@ use std::{
 use serde::Serialize;
 
 use crate::{
-    catalog::{Catalog, CatalogCoverageClass, DetectionRule, load_builtin_catalog},
+    catalog::{Catalog, DetectionRule, load_builtin_catalog},
     process::run_bounded,
+    security::paths::TRUSTED_BREW_PREFIXES,
 };
 
 const LOCAL_COMMAND_TIMEOUT: Duration = Duration::from_secs(1);
 const MAX_LOCAL_OUTPUT_BYTES: usize = 4 * 1024;
 const TRUSTED_EXECUTABLE_DIRS: &[&str] = &["/usr/bin", "/bin", "/usr/sbin", "/sbin"];
-const TRUSTED_BREW_PREFIXES: &[&str] = &["/opt/homebrew", "/usr/local"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -338,23 +337,6 @@ fn modified_at_epoch_ms(metadata: &fs::Metadata) -> Option<u64> {
         .ok()
         .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
         .and_then(|duration| u64::try_from(duration.as_millis()).ok())
-}
-
-pub(crate) fn catalog_home_document_coverage(
-    catalog: &Catalog,
-) -> BTreeMap<PathBuf, CatalogCoverageClass> {
-    let mut paths = BTreeMap::new();
-    for app in catalog.apps() {
-        let coverage_class = app.coverage_class();
-        for relative in app
-            .config_documents()
-            .iter()
-            .filter_map(|document| document.path_template().strip_prefix("~/"))
-        {
-            paths.insert(PathBuf::from(relative), coverage_class);
-        }
-    }
-    paths
 }
 
 #[cfg(test)]

@@ -1,46 +1,21 @@
-use std::{fs, os::unix::fs::PermissionsExt, time::UNIX_EPOCH};
+use std::{fs, path::Path};
 
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-use crate::{
-    catalog::{Catalog, ConfigDocumentDefinition},
-    error::AppError,
+use crate::{catalog::Catalog, error::AppError};
+
+pub use super::resolution::{
+    ConfigDiagnostic, ConfigDocumentState, ConfigEntryKind, ConfigNextAction, ConfigSummary,
+    ConfigVariantResolution, resolve_config_variants,
 };
-
-use super::{ConfigEnvironment, resolve_definition, resolve_path, validation::validate_text_bytes};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ConfigEntryKind {
-    File,
-    Directory,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConfigSymlink {
-    target_display_path: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ConfigSummary {
-    app_id: String,
-    config_id: String,
-    display_path: String,
-    format: String,
-    sensitivity: String,
-    write_policy: String,
-    exists: bool,
-    entry_kind: Option<ConfigEntryKind>,
-    size_bytes: Option<u64>,
-    modified_at_epoch_ms: Option<u64>,
-    mode: Option<u32>,
-    content_hash: Option<String>,
-    symlink: Option<ConfigSymlink>,
-}
+use super::{
+    ConfigEnvironment,
+    resolution::{resolve_variants, selected_variant_index, set_summary_state},
+    resolve_definition,
+    validation::validate_text_bytes,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -56,6 +31,10 @@ impl ConfigDocument {
     pub(crate) fn content(&self) -> Option<&str> {
         self.content.as_deref()
     }
+
+    pub fn diagnostic(&self) -> &ConfigDiagnostic {
+        &self.summary.diagnostic
+    }
 }
 
 pub fn list_configs(
@@ -70,7 +49,10 @@ pub fn list_configs(
         .ok_or_else(|| AppError::not_found("Managed application was not found."))?;
     app.config_documents()
         .iter()
-        .map(|definition| summarize(app_id, definition, environment))
+        .map(|definition| {
+            read_config_result(catalog, environment, app_id, definition.config_id(), None)
+                .map(|document| document.summary)
+        })
         .collect()
 }
 
@@ -80,113 +62,140 @@ pub fn read_config(
     app_id: &str,
     config_id: &str,
 ) -> Result<ConfigDocument, AppError> {
-    let definition = resolve_definition(catalog, app_id, config_id)?;
-    let summary = summarize(app_id, definition, environment)?;
-    if !summary.exists {
-        return Err(AppError::not_found(
-            "Configuration document does not exist.",
-        ));
+    let document = read_config_result(catalog, environment, app_id, config_id, None)?;
+    if document.diagnostic().state.is_readable() {
+        return Ok(document);
     }
-    if summary.entry_kind != Some(ConfigEntryKind::File) {
+    Err(document.diagnostic().state.as_app_error())
+}
+
+pub fn read_config_result(
+    catalog: &Catalog,
+    environment: &ConfigEnvironment,
+    app_id: &str,
+    config_id: &str,
+    variant_id: Option<&str>,
+) -> Result<ConfigDocument, AppError> {
+    let definition = resolve_definition(catalog, app_id, config_id)?;
+    let mut variants = resolve_variants(app_id, definition, environment);
+    let index = selected_variant_index(&variants, variant_id)?;
+    let mut resolved = variants.swap_remove(index);
+    if resolved.summary.diagnostic.state != ConfigDocumentState::Ready {
         return Ok(ConfigDocument {
-            summary,
+            summary: resolved.summary,
             content: None,
-            content_redacted: true,
+            content_redacted: false,
+            structured: None,
+        });
+    }
+    if resolved.summary.entry_kind != Some(ConfigEntryKind::File) {
+        set_summary_state(
+            &mut resolved.summary,
+            ConfigDocumentState::UnsupportedFormat,
+        );
+        return Ok(ConfigDocument {
+            summary: resolved.summary,
+            content: None,
+            content_redacted: false,
             structured: None,
         });
     }
 
-    let resolved = resolve_path(definition, environment)?;
-    let bytes = read_bounded(&resolved.target_path, definition.max_size_bytes())?;
-    let text = validate_text_bytes(definition, &bytes)?;
-    let view = super::adapters::inspect(definition, text)?;
+    let Some(target_path) = resolved.target_path else {
+        set_summary_state(&mut resolved.summary, ConfigDocumentState::IoError);
+        return Ok(ConfigDocument {
+            summary: resolved.summary,
+            content: None,
+            content_redacted: false,
+            structured: None,
+        });
+    };
+    let bytes = match read_bounded_for_diagnostic(&target_path, definition.max_size_bytes()) {
+        Ok(bytes) => bytes,
+        Err(state) => {
+            set_summary_state(&mut resolved.summary, state);
+            return Ok(ConfigDocument {
+                summary: resolved.summary,
+                content: None,
+                content_redacted: false,
+                structured: None,
+            });
+        }
+    };
+    resolved.summary.content_hash = (!definition.is_read_only()).then(|| hash_bytes(&bytes));
+    let text = match validate_text_bytes(definition, &bytes) {
+        Ok(text) => text,
+        Err(error) => {
+            set_summary_state(
+                &mut resolved.summary,
+                ConfigDocumentState::from_app_error(&error),
+            );
+            return Ok(ConfigDocument {
+                summary: resolved.summary,
+                content: None,
+                content_redacted: false,
+                structured: None,
+            });
+        }
+    };
+    let view = match super::adapters::inspect(definition, text) {
+        Ok(view) => view,
+        Err(error) => {
+            set_summary_state(
+                &mut resolved.summary,
+                ConfigDocumentState::from_app_error(&error),
+            );
+            return Ok(ConfigDocument {
+                summary: resolved.summary,
+                content: None,
+                content_redacted: false,
+                structured: None,
+            });
+        }
+    };
+    let state = if view.content_redacted {
+        ConfigDocumentState::Redacted
+    } else {
+        ConfigDocumentState::Ready
+    };
+    set_summary_state(&mut resolved.summary, state);
+
     Ok(ConfigDocument {
-        summary,
+        summary: resolved.summary,
         content: view.content,
         content_redacted: view.content_redacted,
         structured: view.structured,
     })
 }
 
-pub(crate) fn summarize(
-    app_id: &str,
-    definition: &ConfigDocumentDefinition,
+pub fn diagnose_config(
+    catalog: &Catalog,
     environment: &ConfigEnvironment,
-) -> Result<ConfigSummary, AppError> {
-    let resolved = match resolve_path(definition, environment) {
-        Ok(path) => path,
-        Err(error) if error.code() == crate::error::AppErrorCode::NotFound => {
-            return Ok(ConfigSummary {
-                app_id: app_id.to_owned(),
-                config_id: definition.config_id().to_owned(),
-                display_path: definition.path_template().to_owned(),
-                format: definition.format().to_owned(),
-                sensitivity: definition.sensitivity().to_owned(),
-                write_policy: definition.write_policy().to_owned(),
-                exists: false,
-                entry_kind: None,
-                size_bytes: None,
-                modified_at_epoch_ms: None,
-                mode: None,
-                content_hash: None,
-                symlink: None,
-            });
-        }
-        Err(error) => return Err(error),
-    };
-    let metadata = fs::metadata(&resolved.target_path)
-        .map_err(|_| AppError::not_found("Configuration document is unavailable."))?;
-    let entry_kind = if metadata.is_file() {
-        ConfigEntryKind::File
-    } else if metadata.is_dir() {
-        ConfigEntryKind::Directory
-    } else {
-        return Err(AppError::permission_denied(
-            "Configuration entry type is not authorized.",
-        ));
-    };
-    let (size_bytes, content_hash) = if entry_kind == ConfigEntryKind::File {
-        if metadata.len() > definition.max_size_bytes() as u64 {
-            return Err(AppError::validation_failed(
-                "Configuration exceeds the catalog size limit.",
-            ));
-        }
-        let bytes = read_bounded(&resolved.target_path, definition.max_size_bytes())?;
-        (
-            Some(bytes.len() as u64),
-            (!definition.is_read_only()).then(|| hash_bytes(&bytes)),
-        )
-    } else {
-        (None, None)
-    };
-    let modified_at_epoch_ms = metadata
-        .modified()
-        .ok()
-        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
-        .map(|value| value.as_millis().min(u128::from(u64::MAX)) as u64);
-
-    Ok(ConfigSummary {
-        app_id: app_id.to_owned(),
-        config_id: definition.config_id().to_owned(),
-        display_path: resolved.display_path,
-        format: definition.format().to_owned(),
-        sensitivity: definition.sensitivity().to_owned(),
-        write_policy: definition.write_policy().to_owned(),
-        exists: true,
-        entry_kind: Some(entry_kind),
-        size_bytes,
-        modified_at_epoch_ms,
-        mode: Some(metadata.permissions().mode() & 0o777),
-        content_hash,
-        symlink: resolved
-            .symlink_target
-            .map(|target_display_path| ConfigSymlink {
-                target_display_path,
-            }),
-    })
+    app_id: &str,
+    config_id: &str,
+    variant_id: Option<&str>,
+) -> Result<ConfigDiagnostic, AppError> {
+    read_config_result(catalog, environment, app_id, config_id, variant_id)
+        .map(|document| document.summary.diagnostic)
 }
 
-pub(crate) fn read_bounded(path: &std::path::Path, max_size: usize) -> Result<Vec<u8>, AppError> {
+fn read_bounded_for_diagnostic(
+    path: &Path,
+    max_size: usize,
+) -> Result<Vec<u8>, ConfigDocumentState> {
+    let metadata =
+        fs::metadata(path).map_err(|error| ConfigDocumentState::from_io_kind(error.kind()))?;
+    if metadata.len() > max_size as u64 {
+        return Err(ConfigDocumentState::TooLarge);
+    }
+    let bytes = fs::read(path).map_err(|error| ConfigDocumentState::from_io_kind(error.kind()))?;
+    if bytes.len() > max_size {
+        return Err(ConfigDocumentState::TooLarge);
+    }
+    Ok(bytes)
+}
+
+pub(crate) fn read_bounded(path: &Path, max_size: usize) -> Result<Vec<u8>, AppError> {
     let metadata = fs::metadata(path)
         .map_err(|_| AppError::not_found("Configuration document is unavailable."))?;
     if metadata.len() > max_size as u64 {
@@ -221,7 +230,11 @@ mod tests {
 
     use crate::catalog::{BUILTIN_CATALOG_JSON, load_builtin_catalog, parse_catalog};
 
-    use super::{super::ConfigEnvironment, read_config};
+    use super::{
+        super::{ConfigEnvironment, resolution::diagnostic},
+        ConfigDocumentState, ConfigNextAction, list_configs, read_config, read_config_result,
+        resolve_config_variants,
+    };
 
     struct Fixture {
         root: PathBuf,
@@ -351,6 +364,17 @@ mod tests {
         )
         .expect_err("reject invalid settings JSON");
         assert_eq!(error.code(), crate::error::AppErrorCode::ValidationFailed);
+
+        let diagnostic = read_config_result(
+            &load_builtin_catalog().expect("catalog"),
+            &fixture.environment(),
+            "visual-studio-code",
+            "visual-studio-code-settings",
+            None,
+        )
+        .expect("typed invalid result");
+        assert_eq!(diagnostic.diagnostic().state, ConfigDocumentState::Invalid);
+        assert!(diagnostic.content().is_none());
     }
 
     #[test]
@@ -409,5 +433,224 @@ mod tests {
             .expect("read config");
 
         assert_eq!(document.content(), Some("set -g mouse on\n"));
+    }
+
+    #[test]
+    fn resolves_the_first_existing_variant_without_exposing_absolute_paths() {
+        let fixture = Fixture::new();
+        fs::write(fixture.home.join(".starship.toml"), b"format = '$all'\n")
+            .expect("write fallback config");
+        let mut value: Value =
+            serde_json::from_str(BUILTIN_CATALOG_JSON).expect("built-in catalog");
+        let document = &mut value["apps"][9]["configDocuments"][0];
+        document["pathVariants"] = serde_json::json!([
+            {
+                "variantId": "xdg",
+                "root": "XDG_CONFIG_HOME",
+                "relativePath": "starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 0
+            },
+            {
+                "variantId": "home",
+                "root": "HOME",
+                "relativePath": ".starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 1
+            }
+        ]);
+        let catalog = parse_catalog(&serde_json::to_string(&value).expect("serialize catalog"))
+            .expect("variant catalog");
+
+        let variants = resolve_config_variants(
+            &catalog,
+            &fixture.environment(),
+            "starship",
+            "starship-config",
+        )
+        .expect("resolve variants");
+        let encoded = serde_json::to_string(&variants).expect("serialize variants");
+
+        assert_eq!(variants.len(), 2);
+        assert_eq!(
+            variants[0].summary().diagnostic.state,
+            ConfigDocumentState::Missing
+        );
+        assert!(!variants[0].selected());
+        assert_eq!(
+            variants[1].summary().diagnostic.state,
+            ConfigDocumentState::Ready
+        );
+        assert!(variants[1].selected());
+        assert!(encoded.contains("XDG_CONFIG_HOME/starship.toml"));
+        assert!(encoded.contains("~/.starship.toml"));
+        assert!(!encoded.contains(&fixture.home.to_string_lossy().to_string()));
+    }
+
+    #[test]
+    fn malformed_document_does_not_block_other_config_summaries() {
+        let fixture = Fixture::new();
+        for channel in ["Code", "Code - Insiders"] {
+            fs::create_dir_all(
+                fixture
+                    .home
+                    .join(format!("Library/Application Support/{channel}/User")),
+            )
+            .expect("create settings directory");
+        }
+        fs::write(
+            fixture
+                .home
+                .join("Library/Application Support/Code/User/settings.json"),
+            br#"{"editor.fontSize":14}"#,
+        )
+        .expect("write valid settings");
+        fs::write(
+            fixture
+                .home
+                .join("Library/Application Support/Code - Insiders/User/settings.json"),
+            br#"{"apiToken":"unterminated}"#,
+        )
+        .expect("write invalid settings");
+
+        let summaries = list_configs(
+            &load_builtin_catalog().expect("catalog"),
+            &fixture.environment(),
+            "visual-studio-code",
+        )
+        .expect("list configs");
+
+        assert_eq!(summaries.len(), 2);
+        assert_eq!(summaries[0].diagnostic.state, ConfigDocumentState::Ready);
+        assert_eq!(summaries[1].diagnostic.state, ConfigDocumentState::Invalid);
+    }
+
+    #[test]
+    fn classifies_oversized_unsafe_and_unsupported_entries() {
+        let fixture = Fixture::new();
+        fs::write(fixture.home.join(".gitconfig"), b"[user]\nname = Example\n")
+            .expect("write oversized config");
+        let mut value: Value =
+            serde_json::from_str(BUILTIN_CATALOG_JSON).expect("built-in catalog");
+        value["apps"][2]["configDocuments"][0]["maxSizeBytes"] = Value::from(1);
+        let small_limit_catalog =
+            parse_catalog(&serde_json::to_string(&value).expect("serialize catalog"))
+                .expect("small-limit catalog");
+        let oversized = read_config_result(
+            &small_limit_catalog,
+            &fixture.environment(),
+            "git",
+            "git-global-config",
+            None,
+        )
+        .expect("oversized result");
+        assert_eq!(
+            oversized.diagnostic().state(),
+            ConfigDocumentState::TooLarge
+        );
+
+        fs::remove_file(fixture.home.join(".gitconfig")).expect("remove config");
+        let outside = fixture.root.join("outside-gitconfig");
+        fs::write(&outside, b"[user]\n").expect("write outside config");
+        symlink(&outside, fixture.home.join(".gitconfig")).expect("create unsafe symlink");
+        let unsafe_link = read_config_result(
+            &load_builtin_catalog().expect("catalog"),
+            &fixture.environment(),
+            "git",
+            "git-global-config",
+            None,
+        )
+        .expect("unsafe result");
+        assert_eq!(
+            unsafe_link.diagnostic().state(),
+            ConfigDocumentState::UnsafeSymlink
+        );
+
+        fs::create_dir_all(fixture.home.join(".config/starship.toml"))
+            .expect("create unsupported directory");
+        let mut value: Value =
+            serde_json::from_str(BUILTIN_CATALOG_JSON).expect("built-in catalog");
+        let starship = &mut value["apps"][9]["configDocuments"][0];
+        starship["format"] = Value::String("MARKDOWN_DIRECTORY".to_owned());
+        starship["formatFamily"] = Value::String("PLAIN_TEXT".to_owned());
+        starship["pathVariants"][0]["existenceRule"] = Value::String("DIRECTORY".to_owned());
+        let directory_catalog =
+            parse_catalog(&serde_json::to_string(&value).expect("serialize catalog"))
+                .expect("directory catalog");
+        let unsupported = read_config_result(
+            &directory_catalog,
+            &fixture.environment(),
+            "starship",
+            "starship-config",
+            None,
+        )
+        .expect("unsupported result");
+        assert_eq!(
+            unsupported.diagnostic().state(),
+            ConfigDocumentState::UnsupportedFormat
+        );
+    }
+
+    #[test]
+    fn every_diagnostic_state_has_a_safe_action_and_retry_policy() {
+        let catalog = load_builtin_catalog().expect("catalog");
+        let definition = catalog
+            .config_document("git", "git-global-config")
+            .expect("definition")
+            .1;
+        let cases = [
+            (
+                ConfigDocumentState::Missing,
+                ConfigNextAction::CreateFile,
+                false,
+            ),
+            (ConfigDocumentState::Ready, ConfigNextAction::None, false),
+            (
+                ConfigDocumentState::Invalid,
+                ConfigNextAction::FixContent,
+                false,
+            ),
+            (
+                ConfigDocumentState::Redacted,
+                ConfigNextAction::ViewRedacted,
+                false,
+            ),
+            (
+                ConfigDocumentState::TooLarge,
+                ConfigNextAction::ReduceSize,
+                false,
+            ),
+            (
+                ConfigDocumentState::PermissionDenied,
+                ConfigNextAction::ReviewPermissions,
+                false,
+            ),
+            (
+                ConfigDocumentState::UnsafeSymlink,
+                ConfigNextAction::RepairSymlink,
+                false,
+            ),
+            (
+                ConfigDocumentState::UnsupportedFormat,
+                ConfigNextAction::UpdateCatalog,
+                false,
+            ),
+            (ConfigDocumentState::IoError, ConfigNextAction::Retry, true),
+        ];
+
+        for (state, next_action, retryable) in cases {
+            let diagnostic = diagnostic(
+                "git",
+                definition,
+                "primary",
+                "~/.gitconfig".to_owned(),
+                state,
+            );
+            let encoded = serde_json::to_string(&diagnostic).expect("serialize diagnostic");
+            assert_eq!(diagnostic.next_action(), next_action);
+            assert_eq!(diagnostic.retryable(), retryable);
+            assert!(!encoded.contains("/Users/"));
+            assert!(!encoded.contains("content"));
+        }
     }
 }

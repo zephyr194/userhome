@@ -104,14 +104,18 @@ validation restores the exact previous bytes and permissions. Restore follows
 the same preview, hash, validation, backup, and atomic replacement safeguards;
 only the newest 20 recognized backups per catalog document are retained.
 
-The Applications workspace currently exposes 12 catalog definitions: GitHub
+The Applications workspace currently exposes 26 catalog definitions: GitHub
 Copilot, Caddy, Git, OpenSSH, Zsh, and npm are explicitly managed writable;
-Visual Studio Code, Cursor, Ghostty, Starship, tmux, and Vim are bounded
-managed read-only definitions. `MANAGED_READ_ONLY` entries never expose
-preview, write, backup, restore, service, or elevation actions.
-`DETECTED_UNSUPPORTED` and `EXCLUDED` candidates expose only safe classification
-metadata (name, entry type, coverage class, and modification time); discovery
-alone never authorizes opening or reading their contents.
+Visual Studio Code, Cursor, Ghostty, Starship, tmux, Vim, Zed, Neovim, and
+iTerm2, Claude, Codex, Gemini, Antigravity, Trae, Docker, Google Cloud CLI,
+Raycast, GitKraken CLI, and Apifox are bounded managed read-only definitions.
+OrbStack is explicitly excluded because its group container co-locates
+configuration and runtime data without a stable settings-file contract.
+`MANAGED_READ_ONLY` entries never expose preview, write, backup, restore,
+service, or elevation actions. `DETECTED_UNSUPPORTED` and `EXCLUDED`
+candidates expose only safe classification metadata (name, entry type,
+coverage class, and modification time); discovery alone never authorizes
+opening or reading their contents.
 
 All automated configuration tests use temporary fixture homes and never read or
 modify live user configuration.

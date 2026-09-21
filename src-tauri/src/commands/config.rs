@@ -8,7 +8,11 @@ use crate::{
         ConfigCoordinator, ConfigEnvironment,
         backup::{BackupSummary, list_backups as list_backup_records},
         builtin_catalog,
-        read::{ConfigDocument, ConfigSummary, list_configs as list, read_config as read},
+        read::{
+            ConfigDiagnostic, ConfigDocument, ConfigSummary, ConfigVariantResolution,
+            diagnose_config as diagnose, list_configs as list, read_config_result as read,
+            resolve_config_variants as resolve_variants,
+        },
         restore::{RestoreBackupInput, execute_restore, prepare_restore},
         validation::{ValidationResult, validate_config as validate},
         write::{
@@ -31,6 +35,8 @@ use crate::{
 pub struct ConfigKey {
     app_id: String,
     config_id: String,
+    #[serde(default)]
+    variant_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -65,6 +71,30 @@ pub fn read_config(key: ConfigKey) -> Result<ConfigDocument, AppError> {
         &environment,
         &key.app_id,
         &key.config_id,
+        key.variant_id.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub fn resolve_config_variants(key: ConfigKey) -> Result<Vec<ConfigVariantResolution>, AppError> {
+    let environment = ConfigEnvironment::from_environment()?;
+    resolve_variants(
+        &builtin_catalog()?,
+        &environment,
+        &key.app_id,
+        &key.config_id,
+    )
+}
+
+#[tauri::command]
+pub fn diagnose_config(key: ConfigKey) -> Result<ConfigDiagnostic, AppError> {
+    let environment = ConfigEnvironment::from_environment()?;
+    diagnose(
+        &builtin_catalog()?,
+        &environment,
+        &key.app_id,
+        &key.config_id,
+        key.variant_id.as_deref(),
     )
 }
 

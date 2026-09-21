@@ -75,7 +75,7 @@ describe("UserHome desktop smoke", () => {
     );
     await applicationList.waitForDisplayed();
     const applicationEntries = await applicationList.$$("button");
-    expect(applicationEntries.length).toBeGreaterThanOrEqual(12);
+    expect(applicationEntries.length).toBeGreaterThanOrEqual(26);
     expect(
       await applicationEntries.map((entry) => entry.getText()),
     ).toEqual(
@@ -92,10 +92,24 @@ describe("UserHome desktop smoke", () => {
         expect.stringContaining("Starship"),
         expect.stringContaining("tmux"),
         expect.stringContaining("Vim"),
+        expect.stringContaining("Zed"),
+        expect.stringContaining("Neovim"),
+        expect.stringContaining("iTerm2"),
+        expect.stringContaining("Claude"),
+        expect.stringContaining("Codex"),
+        expect.stringContaining("Gemini"),
+        expect.stringContaining("Antigravity"),
+        expect.stringContaining("Trae"),
+        expect.stringContaining("Docker"),
+        expect.stringContaining("OrbStack"),
+        expect.stringContaining("Google Cloud CLI"),
+        expect.stringContaining("Raycast"),
+        expect.stringContaining("GitKraken CLI"),
+        expect.stringContaining("Apifox"),
       ]),
     );
     expect(await $(".applications-workspace__header").getText()).toContain(
-      "12 个 catalog 定义",
+      "26 个 catalog 定义",
     );
 
     await $("a[href='#homebrew']").click();

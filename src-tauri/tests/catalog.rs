@@ -14,22 +14,42 @@ fn mutate_catalog(mutator: impl FnOnce(&mut Value)) -> String {
     serde_json::to_string(&document).expect("mutated catalog should serialize")
 }
 
+fn stable_hash(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf29ce484222325, |hash, byte| {
+        (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
+    })
+}
+
 #[test]
-fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch() {
+fn catalog_preserves_prior_batches_and_adds_ai_developer_tools() {
     let catalog = parse_catalog(BUILTIN_CATALOG_JSON).expect("built-in catalog should validate");
+    let t58_start = BUILTIN_CATALOG_JSON
+        .find(",\n    {\n      \"id\": \"zed\"")
+        .expect("T58 catalog batch");
+    let t59_start = BUILTIN_CATALOG_JSON
+        .find(",\n    {\n      \"id\": \"claude\"")
+        .expect("T59 catalog batch");
     let ids = catalog
         .apps()
         .iter()
         .map(|app| app.id())
         .collect::<Vec<_>>();
 
+    assert_eq!(
+        stable_hash(&BUILTIN_CATALOG_JSON.as_bytes()[..t58_start]),
+        0x2bde398b0bddd10f
+    );
+    assert_eq!(
+        stable_hash(&BUILTIN_CATALOG_JSON.as_bytes()[..t59_start]),
+        0xa1dd34663c85b8c3
+    );
     assert_eq!(catalog.schema_version(), CATALOG_SCHEMA_VERSION);
     assert_eq!(
         ids[..6],
         ["github-copilot", "caddy", "git", "openssh", "zsh", "npm",]
     );
     assert_eq!(
-        ids[6..],
+        ids[6..12],
         [
             "visual-studio-code",
             "cursor",
@@ -37,6 +57,23 @@ fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch()
             "starship",
             "tmux",
             "vim",
+        ]
+    );
+    assert_eq!(ids[12..15], ["zed", "neovim", "iterm2"]);
+    assert_eq!(
+        ids[15..],
+        [
+            "claude",
+            "codex",
+            "gemini",
+            "antigravity",
+            "trae",
+            "docker",
+            "orbstack",
+            "gcloud",
+            "raycast",
+            "gitkraken-cli",
+            "apifox",
         ]
     );
     for app in &catalog.apps()[..6] {
@@ -47,7 +84,12 @@ fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch()
                 .any(|value| value == "WRITE_CONFIG")
         );
     }
-    for app in &catalog.apps()[6..] {
+    for app in catalog
+        .apps()
+        .iter()
+        .skip(6)
+        .filter(|app| app.id() != "orbstack")
+    {
         assert_eq!(app.coverage_class(), CatalogCoverageClass::ManagedReadOnly);
         assert!(
             !app.capabilities()
@@ -58,6 +100,284 @@ fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch()
             app.config_documents()
                 .iter()
                 .all(|document| document.is_read_only())
+        );
+    }
+    let orbstack = catalog
+        .apps()
+        .iter()
+        .find(|app| app.id() == "orbstack")
+        .expect("OrbStack definition");
+    assert_eq!(orbstack.coverage_class(), CatalogCoverageClass::Excluded);
+    assert_eq!(orbstack.capabilities(), ["DETECT"]);
+    assert!(orbstack.config_documents().is_empty());
+    assert!(orbstack.support_requirement().is_some());
+    assert!(
+        orbstack
+            .description()
+            .contains("stable bounded settings-file contract")
+    );
+
+    let existing_read_only_documents = [
+        (
+            "visual-studio-code",
+            vec![
+                (
+                    "visual-studio-code-settings",
+                    "~/Library/Application Support/Code/User/settings.json",
+                ),
+                (
+                    "visual-studio-code-insiders-settings",
+                    "~/Library/Application Support/Code - Insiders/User/settings.json",
+                ),
+            ],
+        ),
+        (
+            "cursor",
+            vec![(
+                "cursor-settings",
+                "~/Library/Application Support/Cursor/User/settings.json",
+            )],
+        ),
+        (
+            "ghostty",
+            vec![
+                (
+                    "ghostty-macos-config",
+                    "~/Library/Application Support/com.mitchellh.ghostty/config",
+                ),
+                ("ghostty-xdg-config", "~/.config/ghostty/config"),
+            ],
+        ),
+        (
+            "starship",
+            vec![("starship-config", "~/.config/starship.toml")],
+        ),
+        (
+            "tmux",
+            vec![
+                ("tmux-config", "~/.tmux.conf"),
+                ("tmux-xdg-config", "~/.config/tmux/tmux.conf"),
+            ],
+        ),
+        (
+            "vim",
+            vec![
+                ("vimrc", "~/.vimrc"),
+                ("vim-runtime-config", "~/.vim/vimrc"),
+            ],
+        ),
+    ];
+    for (app_id, expected_documents) in existing_read_only_documents {
+        let app = catalog
+            .apps()
+            .iter()
+            .find(|app| app.id() == app_id)
+            .expect("existing read-only application");
+        let actual_documents = app
+            .config_documents()
+            .iter()
+            .map(|document| (document.config_id(), document.path_template()))
+            .collect::<Vec<_>>();
+        assert_eq!(actual_documents, expected_documents);
+    }
+
+    let expected_new_documents = [
+        (
+            "zed",
+            vec![("zed-settings", "zed/settings.json", "JSONC")],
+            "SECRET",
+        ),
+        (
+            "neovim",
+            vec![
+                ("neovim-init-lua", "nvim/init.lua", "TEXT"),
+                ("neovim-init-vim", "nvim/init.vim", "TEXT"),
+            ],
+            "SENSITIVE",
+        ),
+        (
+            "iterm2",
+            vec![(
+                "iterm2-preferences",
+                "Library/Preferences/com.googlecode.iterm2.plist",
+                "PLIST",
+            )],
+            "SENSITIVE",
+        ),
+    ];
+    for (app_id, expected_documents, expected_sensitivity) in expected_new_documents {
+        let app = catalog
+            .apps()
+            .iter()
+            .find(|app| app.id() == app_id)
+            .expect("new read-only application");
+        assert!(
+            app.detection_rules()
+                .iter()
+                .any(|rule| rule.kind() == "HOME_PATH")
+        );
+        let actual_documents = app
+            .config_documents()
+            .iter()
+            .map(|document| {
+                (
+                    document.config_id(),
+                    document.path_variants()[0].relative_path(),
+                    document.format(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(actual_documents, expected_documents);
+        assert!(
+            app.config_documents()
+                .iter()
+                .all(|document| document.sensitivity() == expected_sensitivity)
+        );
+    }
+
+    let t59_managed_documents = [
+        (
+            "claude",
+            vec![
+                (
+                    "claude-code-settings",
+                    ".claude/settings.json",
+                    "JSON",
+                    "SECRET",
+                ),
+                (
+                    "claude-desktop-config",
+                    "Claude/claude_desktop_config.json",
+                    "JSON",
+                    "SECRET",
+                ),
+            ],
+        ),
+        (
+            "codex",
+            vec![("codex-config", ".codex/config.toml", "TOML", "SECRET")],
+        ),
+        (
+            "gemini",
+            vec![("gemini-settings", ".gemini/settings.json", "JSON", "SECRET")],
+        ),
+        (
+            "antigravity",
+            vec![(
+                "antigravity-settings",
+                "Antigravity/User/settings.json",
+                "JSONC",
+                "SECRET",
+            )],
+        ),
+        (
+            "trae",
+            vec![
+                (
+                    "trae-settings",
+                    "Trae/User/settings.json",
+                    "JSONC",
+                    "SECRET",
+                ),
+                (
+                    "trae-cn-settings",
+                    "Trae CN/User/settings.json",
+                    "JSONC",
+                    "SECRET",
+                ),
+            ],
+        ),
+        (
+            "docker",
+            vec![(
+                "docker-desktop-settings",
+                "Library/Group Containers/group.com.docker/settings-store.json",
+                "JSON",
+                "SECRET",
+            )],
+        ),
+        (
+            "gcloud",
+            vec![(
+                "gcloud-default-config",
+                "gcloud/configurations/config_default",
+                "INI",
+                "SENSITIVE",
+            )],
+        ),
+        (
+            "raycast",
+            vec![(
+                "raycast-preferences",
+                "Library/Preferences/com.raycast.macos.plist",
+                "PLIST",
+                "SENSITIVE",
+            )],
+        ),
+        (
+            "gitkraken-cli",
+            vec![(
+                "gitkraken-cli-settings",
+                "GitKrakenCLI/settings.json",
+                "JSON",
+                "SECRET",
+            )],
+        ),
+        (
+            "apifox",
+            vec![(
+                "apifox-preferences",
+                "Library/Preferences/cn.apifox.app.plist",
+                "PLIST",
+                "SENSITIVE",
+            )],
+        ),
+    ];
+    for (app_id, expected_documents) in t59_managed_documents {
+        let app = catalog
+            .apps()
+            .iter()
+            .find(|app| app.id() == app_id)
+            .expect("T59 managed application");
+        let actual_documents = app
+            .config_documents()
+            .iter()
+            .map(|document| {
+                (
+                    document.config_id(),
+                    document.path_variants()[0].relative_path(),
+                    document.format(),
+                    document.sensitivity(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(actual_documents, expected_documents);
+    }
+    let docker = catalog
+        .apps()
+        .iter()
+        .find(|app| app.id() == "docker")
+        .expect("Docker definition");
+    assert_eq!(
+        docker.config_documents()[0]
+            .path_variants()
+            .iter()
+            .map(|variant| variant.relative_path())
+            .collect::<Vec<_>>(),
+        [
+            "Library/Group Containers/group.com.docker/settings-store.json",
+            "Library/Group Containers/group.com.docker/settings.json",
+        ]
+    );
+    for app in &catalog.apps()[15..] {
+        assert!(app.executables().is_empty());
+        assert!(app.brew_formulae().is_empty());
+        assert!(app.brew_casks().is_empty());
+        assert!(app.services().is_empty());
+        assert!(
+            app.capabilities()
+                .iter()
+                .all(|capability| matches!(capability.as_str(), "DETECT" | "READ_CONFIG"))
         );
     }
     assert!(
@@ -95,21 +415,35 @@ fn catalog_preserves_the_six_baseline_definitions_and_adds_the_read_only_batch()
 }
 
 #[test]
-fn catalog_ipc_summary_omits_authoritative_paths() {
+fn catalog_ipc_summary_exposes_only_sanitized_path_variants() {
     let response = list_managed_apps().expect("catalog command should succeed");
     let serialized = serde_json::to_value(response).expect("catalog response should serialize");
+    let encoded = serialized.to_string();
 
     assert_eq!(serialized["schemaVersion"], json!(CATALOG_SCHEMA_VERSION));
+    assert_eq!(serialized["coveragePolicy"]["priorityATotal"], json!(6));
+    assert_eq!(serialized["coveragePolicy"]["priorityAUsable"], json!(6));
+    assert_eq!(serialized["coveragePolicy"]["priorityBTotal"], json!(20));
+    assert_eq!(serialized["coveragePolicy"]["priorityBCovered"], json!(20));
+    assert_eq!(
+        serialized["coveragePolicy"]["minimumEligibleTextPercent"],
+        json!(90)
+    );
     assert_eq!(
         serialized["applications"]
             .as_array()
             .expect("applications should be an array")
             .len(),
-        12
+        26
     );
-    assert!(!serialized.to_string().contains("pathTemplate"));
-    assert!(!serialized.to_string().contains("HOMEBREW_PREFIX"));
-    assert!(!serialized.to_string().contains("~/."));
+    assert!(encoded.contains("pathVariants"));
+    assert!(encoded.contains("detectionEvidence"));
+    assert!(encoded.contains("support"));
+    assert!(encoded.contains("HOMEBREW_PREFIX"));
+    assert!(!encoded.contains("pathTemplate"));
+    assert!(!encoded.contains("~/."));
+    assert!(!encoded.contains("~/"));
+    assert!(!encoded.contains("/Users/"));
 }
 
 #[test]
@@ -132,13 +466,62 @@ fn catalog_rejects_duplicate_application_and_config_ids() {
 }
 
 #[test]
+fn catalog_requires_complete_priority_a_and_priority_b_coverage() {
+    let missing_priority_a = mutate_catalog(|document| {
+        document["apps"]
+            .as_array_mut()
+            .expect("applications")
+            .remove(0);
+    });
+    assert_eq!(
+        parse_catalog(&missing_priority_a),
+        Err(CatalogValidationError::IncompletePriorityCoverage)
+    );
+
+    let unsupported_priority_b = mutate_catalog(|document| {
+        let orbstack = document["apps"]
+            .as_array_mut()
+            .expect("applications")
+            .iter_mut()
+            .find(|app| app["id"] == "orbstack")
+            .expect("OrbStack definition");
+        orbstack["coverageClass"] = json!("DETECTED_UNSUPPORTED");
+        orbstack
+            .as_object_mut()
+            .expect("application object")
+            .remove("supportRequirement");
+    });
+    assert_eq!(
+        parse_catalog(&unsupported_priority_b),
+        Err(CatalogValidationError::IncompletePriorityCoverage)
+    );
+}
+
+#[test]
 fn catalog_rejects_unsafe_paths_and_missing_adapters() {
+    let missing_detection_evidence = mutate_catalog(|document| {
+        document["apps"][0]["detectionRules"] = json!([]);
+    });
+    assert_eq!(
+        parse_catalog(&missing_detection_evidence),
+        Err(CatalogValidationError::UnsupportedValue)
+    );
+
     let unsafe_path = mutate_catalog(|document| {
         document["apps"][0]["configDocuments"][0]["pathTemplate"] =
             json!("~/.copilot/../../.ssh/id_rsa");
     });
     assert_eq!(
         parse_catalog(&unsafe_path),
+        Err(CatalogValidationError::UnsafePath)
+    );
+
+    let absolute_variant = mutate_catalog(|document| {
+        document["apps"][0]["configDocuments"][0]["pathVariants"][0]["relativePath"] =
+            json!("/Users/example/.copilot/config.json");
+    });
+    assert_eq!(
+        parse_catalog(&absolute_variant),
         Err(CatalogValidationError::UnsafePath)
     );
 
@@ -149,6 +532,55 @@ fn catalog_rejects_unsafe_paths_and_missing_adapters() {
         parse_catalog(&missing_adapter),
         Err(CatalogValidationError::MissingAdapter)
     );
+}
+
+#[test]
+fn catalog_accepts_bounded_variants_for_every_approved_root() {
+    let source = mutate_catalog(|catalog| {
+        catalog["apps"][9]["configDocuments"][0]["pathVariants"] = json!([
+            {
+                "variantId": "xdg",
+                "root": "XDG_CONFIG_HOME",
+                "relativePath": "starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 0
+            },
+            {
+                "variantId": "home",
+                "root": "HOME",
+                "relativePath": ".starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 1
+            },
+            {
+                "variantId": "application-support",
+                "root": "APPLICATION_SUPPORT",
+                "relativePath": "Starship/config.toml",
+                "existenceRule": "FILE",
+                "precedence": 2
+            },
+            {
+                "variantId": "homebrew",
+                "root": "HOMEBREW_PREFIX",
+                "relativePath": "etc/starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 3
+            },
+            {
+                "variantId": "app-support",
+                "root": "APP_SUPPORT",
+                "relativePath": "catalog/starship.toml",
+                "existenceRule": "FILE",
+                "precedence": 4
+            }
+        ]);
+    });
+
+    let catalog = parse_catalog(&source).expect("approved roots should validate");
+    let variants = catalog.apps()[9].config_documents()[0].path_variants();
+    assert_eq!(variants.len(), 5);
+    assert_eq!(variants[0].precedence(), 0);
+    assert_eq!(variants[4].precedence(), 4);
 }
 
 #[test]
@@ -176,6 +608,123 @@ fn catalog_rejects_unbounded_documents_and_unknown_write_policies() {
     assert_eq!(
         parse_catalog(&unknown_policy),
         Err(CatalogValidationError::UnsupportedWritePolicy)
+    );
+}
+
+#[test]
+fn catalog_rejects_unknown_document_capability_classes() {
+    let cases = [
+        (
+            "pathVariants",
+            "root",
+            json!("ARBITRARY_ROOT"),
+            CatalogValidationError::UnsupportedRoot,
+        ),
+        (
+            "pathVariants",
+            "existenceRule",
+            json!("MAYBE"),
+            CatalogValidationError::UnsupportedExistenceRule,
+        ),
+        (
+            "document",
+            "format",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedFormat,
+        ),
+        (
+            "document",
+            "formatFamily",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedFormatFamily,
+        ),
+        (
+            "document",
+            "sensitivity",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedSensitivity,
+        ),
+        (
+            "document",
+            "accessMode",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedAccessMode,
+        ),
+        (
+            "document",
+            "adapterId",
+            json!("arbitrary"),
+            CatalogValidationError::UnsupportedAdapter,
+        ),
+        (
+            "document",
+            "validatorId",
+            json!("arbitrary"),
+            CatalogValidationError::UnsupportedValidator,
+        ),
+        (
+            "document",
+            "editorKey",
+            json!("arbitrary"),
+            CatalogValidationError::UnsupportedEditor,
+        ),
+        (
+            "document",
+            "writePolicy",
+            json!("ARBITRARY"),
+            CatalogValidationError::UnsupportedWritePolicy,
+        ),
+    ];
+    let known_valid = parse_catalog(BUILTIN_CATALOG_JSON).expect("known valid catalog");
+
+    for (scope, field, value, expected) in cases {
+        let source = mutate_catalog(|catalog| {
+            let document = &mut catalog["apps"][0]["configDocuments"][0];
+            if scope == "pathVariants" {
+                document["pathVariants"][0][field] = value;
+            } else {
+                document[field] = value;
+            }
+        });
+        assert_eq!(parse_catalog(&source), Err(expected));
+    }
+
+    assert_eq!(known_valid.apps()[0].id(), "github-copilot");
+}
+
+#[test]
+fn catalog_recognizes_read_only_format_families_without_write_authority() {
+    for (format, family) in [
+        ("JSON", "JSON"),
+        ("JSONC", "JSONC"),
+        ("TOML", "TOML"),
+        ("YAML", "YAML"),
+        ("INI", "INI"),
+        ("GIT_CONFIG", "GIT_CONFIG"),
+        ("KEY_VALUE", "KEY_VALUE"),
+        ("PLIST", "PLIST"),
+        ("SSH_CONFIG", "COMMAND"),
+        ("TEXT", "PLAIN_TEXT"),
+    ] {
+        let source = mutate_catalog(|catalog| {
+            let document = &mut catalog["apps"][9]["configDocuments"][0];
+            document["format"] = json!(format);
+            document["formatFamily"] = json!(family);
+        });
+        let catalog = parse_catalog(&source).expect("read-only format should validate");
+        let document = &catalog.apps()[9].config_documents()[0];
+        assert!(document.is_read_only());
+        assert_eq!(document.format(), format);
+    }
+
+    let writable_mismatch = mutate_catalog(|catalog| {
+        let document = &mut catalog["apps"][0]["configDocuments"][0];
+        document["format"] = json!("TOML");
+        document["formatFamily"] = json!("TOML");
+    });
+    assert_eq!(
+        parse_catalog(&writable_mismatch),
+        Err(CatalogValidationError::UnsupportedAdapterFormat)
     );
 }
 
@@ -212,7 +761,7 @@ fn catalog_rejects_unsupported_versions_and_excessive_app_counts() {
     );
 
     let too_many_apps = mutate_catalog(|document| {
-        let template = document["apps"][0].clone();
+        let template = document["apps"][1].clone();
         document["apps"] = Value::Array(
             (0..33)
                 .map(|index| {

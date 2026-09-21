@@ -2,7 +2,7 @@ use tauri::{AppHandle, State};
 
 use crate::{
     discovery::{
-        candidates::ConfigurationCoverage,
+        candidates::{BaselineInventory, SanitizedBaselineManifest},
         refresh::{DiscoveryCoordinator, DiscoverySnapshot},
     },
     error::AppError,
@@ -40,10 +40,22 @@ pub async fn refresh_system_snapshot(
 #[tauri::command]
 pub async fn list_unmanaged_candidates(
     coordinator: State<'_, DiscoveryCoordinator>,
-) -> Result<ConfigurationCoverage, AppError> {
+) -> Result<BaselineInventory, AppError> {
     let coordinator = coordinator.inner().clone();
     tauri::async_runtime::spawn_blocking(move || coordinator.candidates())
         .await
         .map_err(|_| AppError::internal())?
         .map_err(|_| AppError::process_failed("Candidate discovery failed.", true))
+}
+
+#[tauri::command]
+pub async fn export_sanitized_baseline(
+    coordinator: State<'_, DiscoveryCoordinator>,
+) -> Result<SanitizedBaselineManifest, AppError> {
+    let coordinator = coordinator.inner().clone();
+    let inventory = tauri::async_runtime::spawn_blocking(move || coordinator.candidates())
+        .await
+        .map_err(|_| AppError::internal())?
+        .map_err(|_| AppError::process_failed("Candidate discovery failed.", true))?;
+    Ok(inventory.sanitized_manifest())
 }

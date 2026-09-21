@@ -146,6 +146,40 @@ pub fn redact_assignment_lines(content: &str, is_secret: impl Fn(&str) -> bool) 
     )
 }
 
+pub fn redact_assignment_document(content: &str) -> Option<String> {
+    let trailing_newline = content.ends_with('\n');
+    let mut output = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            output.push(String::new());
+        } else if trimmed.starts_with('#') || trimmed.starts_with(';') {
+            output.push("# [REDACTED]".to_owned());
+        } else if trimmed.starts_with('[') && trimmed.ends_with(']') {
+            output.push("[REDACTED]".to_owned());
+        } else {
+            let separator = line
+                .find('=')
+                .map(|index| (index, '='))
+                .or_else(|| line.find(':').map(|index| (index, ':')))?;
+            let key = line[..separator.0].trim();
+            if key.is_empty()
+                || !key
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
+            {
+                return None;
+            }
+            output.push(format!("{key}{}{REDACTED_VALUE}", separator.1));
+        }
+    }
+    let mut redacted = output.join("\n");
+    if trailing_newline {
+        redacted.push('\n');
+    }
+    Some(redacted)
+}
+
 pub fn restore_assignment_lines(
     current: &str,
     proposed: &str,

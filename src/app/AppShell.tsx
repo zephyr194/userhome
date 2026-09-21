@@ -90,6 +90,22 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
     };
   }, []);
 
+  const preferencesNotice =
+    state.preferences.status === "loading" ? (
+      <p
+        className="m-0 px-4 py-2 text-xs text-muted-foreground"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        正在加载本机偏好设置…
+      </p>
+    ) : state.preferences.status === "safe-default" ? (
+      <p className="m-0 px-4 py-2 text-xs text-warning" role="alert">
+        安全默认值：{state.preferences.diagnostic.message}
+      </p>
+    ) : undefined;
+
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -126,10 +142,15 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
             />
           }
           banner={
-            commandError ? (
-              <p className="m-0 px-4 py-2 text-xs text-danger" role="alert">
-                {commandError}
-              </p>
+            commandError || preferencesNotice ? (
+              <div className="divide-y divide-border">
+                {commandError ? (
+                  <p className="m-0 px-4 py-2 text-xs text-danger" role="alert">
+                    {commandError}
+                  </p>
+                ) : null}
+                {preferencesNotice}
+              </div>
             ) : undefined
           }
           toolbar={
@@ -137,7 +158,10 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
               <Button
                 className="toolbar-refresh-button"
                 size="sm"
-                disabled={state.refresh.status === "refreshing"}
+                disabled={
+                  state.preferences.status === "loading" ||
+                  state.refresh.status === "refreshing"
+                }
                 onClick={onRefresh}
                 aria-label={
                   state.refresh.status === "refreshing"

@@ -9,7 +9,11 @@ describe("NpmEditor", () => {
         document={{
           appId: "npm",
           configId: "npm-user-config",
+          variantId: "primary",
           displayPath: "~/.npmrc",
+          state: "REDACTED",
+          retryable: false,
+          nextAction: "VIEW_REDACTED",
           format: "INI",
           sensitivity: "SECRET",
           writePolicy: "STRUCTURED_AND_RAW",

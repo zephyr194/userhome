@@ -13,6 +13,10 @@ import {
   listOperations,
   type OperationDetails,
 } from "./ipc/operations";
+import {
+  DEFAULT_USER_PREFERENCES,
+  getPreferences,
+} from "./ipc/settings";
 
 async function getRecentOperation(): Promise<OperationDetails | null> {
   const operations = await listOperations();
@@ -22,8 +26,12 @@ async function getRecentOperation(): Promise<OperationDetails | null> {
 function App() {
   const [state, dispatch] = useReducer(shellReducer, initialShellState);
   const refreshInFlight = useRef<Promise<void> | null>(null);
+  const preferencesHydrated = state.preferences.status !== "loading";
 
   const reloadShell = useCallback((): Promise<void> => {
+    if (!preferencesHydrated) {
+      return Promise.resolve();
+    }
     if (refreshInFlight.current) {
       return refreshInFlight.current;
     }
@@ -120,11 +128,45 @@ function App() {
 
     refreshInFlight.current = request;
     return request;
-  }, []);
+  }, [preferencesHydrated]);
 
   useEffect(() => {
     void reloadShell();
   }, [reloadShell]);
+
+  useEffect(() => {
+    let active = true;
+    void getPreferences()
+      .then((loaded) => {
+        if (!active) return;
+        dispatch(
+          loaded.diagnostic
+            ? {
+                type: "preferences-safe-default",
+                preferences: loaded.preferences,
+                diagnostic: loaded.diagnostic,
+              }
+            : {
+                type: "preferences-ready",
+                preferences: loaded.preferences,
+              },
+        );
+      })
+      .catch(() => {
+        if (!active) return;
+        dispatch({
+          type: "preferences-safe-default",
+          preferences: DEFAULT_USER_PREFERENCES,
+          diagnostic: {
+            code: "READ_FAILED",
+            message: "偏好设置不可用，已启用安全默认值。",
+          },
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let disposed = false;

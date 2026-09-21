@@ -20,6 +20,7 @@ import type {
   UnmanagedCandidate,
 } from "../../ipc/discovery";
 import { ApplicationIcon } from "./ApplicationIcon";
+import { CatalogCoverageSummary } from "./CatalogCoverageSummary";
 import { ConfigWorkspace } from "./ConfigWorkspace";
 import { UnmanagedCandidates } from "./UnmanagedCandidates";
 
@@ -117,6 +118,46 @@ function keyboardTargetIndex(
   return undefined;
 }
 
+function entrySearchText(entry: ApplicationEntry): string {
+  const common = [
+    entry.displayName,
+    entry.description,
+    entry.category,
+    entry.coverageClass,
+  ];
+  if (entry.kind === "candidate") {
+    return [
+      ...common,
+      entry.candidate.relativePath,
+      entry.candidate.classificationReason,
+      ...entry.candidate.evidence,
+      ...entry.candidate.formatHints,
+    ]
+      .join(" ")
+      .toLocaleLowerCase();
+  }
+  return [
+    ...common,
+    entry.application.priority,
+    ...entry.application.detectionEvidence.flatMap((evidence) => [
+      evidence.kind,
+      evidence.value,
+    ]),
+    ...entry.application.presentation.configDocuments.flatMap((document) => [
+      document.configId,
+      document.purpose,
+      document.format,
+      document.formatFamily,
+      ...document.pathVariants.map((variant) => variant.relativePath),
+    ]),
+    ...entry.application.support.limitations,
+    ...entry.application.support.exclusions,
+    entry.application.support.requirement,
+  ]
+    .join(" ")
+    .toLocaleLowerCase();
+}
+
 function ApplicationsWorkspace({
   candidates,
   onOperationChanged,
@@ -157,12 +198,22 @@ function ApplicationsWorkspace({
         (category === "ALL" || entry.category === category) &&
         (coverage === "ALL" || entry.coverageClass === coverage) &&
         (normalizedQuery.length === 0 ||
-          entry.displayName.toLocaleLowerCase().includes(normalizedQuery) ||
-          entry.description.toLocaleLowerCase().includes(normalizedQuery) ||
-          entry.category.toLocaleLowerCase().includes(normalizedQuery)),
+          entrySearchText(entry).includes(normalizedQuery)),
     );
   }, [category, coverage, entries, query]);
 
+  const groupedEntries = useMemo(
+    () =>
+      categories
+        .map((value) => ({
+          category: value,
+          entries: filteredEntries
+            .map((entry, index) => ({ entry, index }))
+            .filter(({ entry }) => entry.category === value),
+        }))
+        .filter((group) => group.entries.length > 0),
+    [categories, filteredEntries],
+  );
   const selectedEntry =
     filteredEntries.find((entry) => entry.key === selectedKey) ??
     filteredEntries[0];
@@ -244,6 +295,8 @@ function ApplicationsWorkspace({
         </div>
       </header>
 
+      {catalog ? <CatalogCoverageSummary catalog={catalog} /> : null}
+
       <div className="applications-workspace__filters" aria-label="应用筛选">
         <label className="min-w-0 flex-1">
           <span>搜索</span>
@@ -322,75 +375,91 @@ function ApplicationsWorkspace({
               <AsyncState kind="empty">没有符合筛选条件的条目。</AsyncState>
             </div>
           ) : (
-            <ul role="listbox" aria-label="应用与配置候选列表">
-              {filteredEntries.map((entry, index) => {
-                const isSelected = selectedEntry?.key === entry.key;
-                const coverageValue =
-                  COVERAGE_PRESENTATION[entry.coverageClass];
-                return (
-                  <li key={entry.key} role="presentation">
-                    <button
-                      ref={(button) => {
-                        if (button) {
-                          buttonRefs.current.set(entry.key, button);
-                        } else {
-                          buttonRefs.current.delete(entry.key);
-                        }
-                      }}
-                      type="button"
-                      role="option"
-                      className={classNames(
-                        "flex w-full items-start gap-3 border-b border-border px-3 py-3 text-left transition-colors",
-                        "hover:bg-surface-muted focus-visible:relative focus-visible:z-10",
-                        isSelected
-                          ? "bg-primary-soft text-foreground"
-                          : "bg-surface",
-                      )}
-                      aria-selected={isSelected}
-                      tabIndex={isSelected ? 0 : -1}
-                      onClick={() => setSelectedKey(entry.key)}
-                      onFocus={() => {
-                        focusedKey.current = entry.key;
-                      }}
-                      onKeyDown={(event) => moveSelection(event, index)}
-                    >
-                      <span
-                        className={classNames(
-                          "grid size-9 shrink-0 place-items-center rounded-md border",
-                          isSelected
-                            ? "border-primary/30 bg-surface text-primary"
-                            : "border-border bg-surface-muted text-muted-foreground",
-                        )}
-                      >
-                        <ApplicationIcon
-                          className="size-5"
-                          iconKey={entry.iconKey}
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex min-w-0 items-start justify-between gap-2">
-                          <strong className="truncate text-sm font-semibold">
-                            {entry.displayName}
-                          </strong>
-                          <StatusBadge
-                            className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
-                            tone={coverageValue.tone}
+            <div role="listbox" aria-label="应用与配置候选列表">
+              {groupedEntries.map((group, groupIndex) => (
+              <section
+                key={group.category}
+                role="group"
+                aria-labelledby={`application-group-${groupIndex}`}
+              >
+                <h3
+                  id={`application-group-${groupIndex}`}
+                  className="sticky top-0 z-[1] border-b border-border bg-surface-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground"
+                >
+                  {group.category} · {group.entries.length}
+                </h3>
+                <ul role="presentation">
+                  {group.entries.map(({ entry, index }) => {
+                    const isSelected = selectedEntry?.key === entry.key;
+                    const coverageValue =
+                      COVERAGE_PRESENTATION[entry.coverageClass];
+                    return (
+                      <li key={entry.key} role="presentation">
+                        <button
+                          ref={(button) => {
+                            if (button) {
+                              buttonRefs.current.set(entry.key, button);
+                            } else {
+                              buttonRefs.current.delete(entry.key);
+                            }
+                          }}
+                          type="button"
+                          role="option"
+                          className={classNames(
+                            "flex w-full items-start gap-3 border-b border-border px-3 py-3 text-left transition-colors",
+                            "hover:bg-surface-muted focus-visible:relative focus-visible:z-10",
+                            isSelected
+                              ? "bg-primary-soft text-foreground"
+                              : "bg-surface",
+                          )}
+                          aria-selected={isSelected}
+                          tabIndex={isSelected ? 0 : -1}
+                          onClick={() => setSelectedKey(entry.key)}
+                          onFocus={() => {
+                            focusedKey.current = entry.key;
+                          }}
+                          onKeyDown={(event) => moveSelection(event, index)}
+                        >
+                          <span
+                            className={classNames(
+                              "grid size-9 shrink-0 place-items-center rounded-md border",
+                              isSelected
+                                ? "border-primary/30 bg-surface text-primary"
+                                : "border-border bg-surface-muted text-muted-foreground",
+                            )}
                           >
-                            {coverageValue.label}
-                          </StatusBadge>
-                        </span>
-                        <span className="mt-1 block truncate text-xs text-muted-foreground">
-                          {entry.category}
-                        </span>
-                        <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
-                          {entry.description}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                            <ApplicationIcon
+                              className="size-5"
+                              iconKey={entry.iconKey}
+                            />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex min-w-0 items-start justify-between gap-2">
+                              <strong className="truncate text-sm font-semibold">
+                                {entry.displayName}
+                              </strong>
+                              <StatusBadge
+                                className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                                tone={coverageValue.tone}
+                              >
+                                {coverageValue.label}
+                              </StatusBadge>
+                            </span>
+                            <span className="mt-1 block truncate text-xs text-muted-foreground">
+                              {entry.category}
+                            </span>
+                            <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
+                              {entry.description}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+              ))}
+            </div>
           )}
 
           {candidates.status === "LOADING" ? (

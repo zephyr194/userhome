@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AppError, AppStatus } from "../ipc/core";
 import type { OperationDetails } from "../ipc/operations";
+import { DEFAULT_USER_PREFERENCES } from "../ipc/settings";
 import { initialShellState, shellReducer } from "./shellState";
 
 const appStatus: AppStatus = {
@@ -10,6 +11,13 @@ const appStatus: AppStatus = {
 
 const applications = {
   schemaVersion: 1 as const,
+  coveragePolicy: {
+    priorityATotal: 6,
+    priorityAUsable: 6,
+    priorityBTotal: 20,
+    priorityBCovered: 20,
+    minimumEligibleTextPercent: 90,
+  },
   applications: [],
 };
 
@@ -96,6 +104,28 @@ describe("shellReducer", () => {
     expect(ready.refresh).toEqual({
       status: "ready",
       completedAt: "2026-09-20T09:30:00Z",
+    });
+  });
+
+  it("exposes validated and safe-default preference hydration states", () => {
+    const ready = shellReducer(initialShellState, {
+      type: "preferences-ready",
+      preferences: DEFAULT_USER_PREFERENCES,
+    });
+    const recovered = shellReducer(initialShellState, {
+      type: "preferences-safe-default",
+      preferences: DEFAULT_USER_PREFERENCES,
+      diagnostic: {
+        code: "INVALID_DOCUMENT",
+        message: "Preferences are invalid; safe defaults are active.",
+      },
+    });
+
+    expect(ready.preferences.status).toBe("ready");
+    expect(recovered.preferences).toMatchObject({
+      status: "safe-default",
+      preferences: DEFAULT_USER_PREFERENCES,
+      diagnostic: { code: "INVALID_DOCUMENT" },
     });
   });
 });

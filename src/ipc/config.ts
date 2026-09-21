@@ -1,5 +1,6 @@
 import {
   createInternalError,
+  hasControlCharacters,
   invokeCommand,
   isRecord,
 } from "./core";
@@ -9,20 +10,48 @@ import {
   type OperationDetails,
   type OperationPreview,
 } from "./operations";
+import { CONFIG_FORMATS, type ConfigFormat } from "./catalog";
 
 export type ConfigSensitivity = "STANDARD" | "SENSITIVE" | "SECRET";
 export type ConfigEntryKind = "FILE" | "DIRECTORY";
+export type ConfigDocumentState =
+  | "MISSING"
+  | "READY"
+  | "INVALID"
+  | "REDACTED"
+  | "TOO_LARGE"
+  | "PERMISSION_DENIED"
+  | "UNSAFE_SYMLINK"
+  | "UNSUPPORTED_FORMAT"
+  | "IO_ERROR";
+export type ConfigNextAction =
+  | "NONE"
+  | "CREATE_FILE"
+  | "FIX_CONTENT"
+  | "VIEW_REDACTED"
+  | "REDUCE_SIZE"
+  | "REVIEW_PERMISSIONS"
+  | "REPAIR_SYMLINK"
+  | "UPDATE_CATALOG"
+  | "RETRY";
 export type ConfigWritePolicy =
   | "MANAGED_BLOCK"
   | "READ_ONLY"
   | "STRUCTURED_AND_RAW"
   | "RAW_VALIDATED";
 
-export interface ConfigSummary {
+export interface ConfigDiagnostic {
   appId: string;
   configId: string;
+  variantId: string;
   displayPath: string;
-  format: string;
+  state: ConfigDocumentState;
+  retryable: boolean;
+  nextAction: ConfigNextAction;
+}
+
+export interface ConfigSummary extends ConfigDiagnostic {
+  format: ConfigFormat;
   sensitivity: ConfigSensitivity;
   writePolicy: ConfigWritePolicy;
   exists: boolean;
@@ -38,6 +67,10 @@ export interface ConfigDocument extends ConfigSummary {
   content?: string;
   contentRedacted: boolean;
   structured?: Record<string, unknown>;
+}
+
+export interface ConfigVariantResolution extends ConfigSummary {
+  selected: boolean;
 }
 
 export interface ConfigDiffLine {
@@ -69,6 +102,30 @@ export interface BackupSummary {
 
 const SENSITIVITIES: readonly string[] = ["STANDARD", "SENSITIVE", "SECRET"];
 const ENTRY_KINDS: readonly string[] = ["FILE", "DIRECTORY"];
+const DOCUMENT_STATES: readonly ConfigDocumentState[] = [
+  "MISSING",
+  "READY",
+  "INVALID",
+  "REDACTED",
+  "TOO_LARGE",
+  "PERMISSION_DENIED",
+  "UNSAFE_SYMLINK",
+  "UNSUPPORTED_FORMAT",
+  "IO_ERROR",
+];
+const NEXT_ACTION_BY_STATE: Readonly<
+  Record<ConfigDocumentState, ConfigNextAction>
+> = {
+  MISSING: "CREATE_FILE",
+  READY: "NONE",
+  INVALID: "FIX_CONTENT",
+  REDACTED: "VIEW_REDACTED",
+  TOO_LARGE: "REDUCE_SIZE",
+  PERMISSION_DENIED: "REVIEW_PERMISSIONS",
+  UNSAFE_SYMLINK: "REPAIR_SYMLINK",
+  UNSUPPORTED_FORMAT: "UPDATE_CATALOG",
+  IO_ERROR: "RETRY",
+};
 const WRITE_POLICIES: readonly string[] = [
   "MANAGED_BLOCK",
   "READ_ONLY",
@@ -88,13 +145,78 @@ function decodeOptionalSafeInteger(value: unknown): number | undefined {
   return value;
 }
 
-function decodeConfigSummary(value: unknown): ConfigSummary {
+function decodeSafeDisplayPath(value: unknown): string {
+  const prefix =
+    typeof value === "string"
+      ? [
+          "~/",
+          "XDG_CONFIG_HOME/",
+          "APPLICATION_SUPPORT/",
+          "HOMEBREW_PREFIX/",
+          "APP_SUPPORT/",
+        ].find((candidate) => value.startsWith(candidate))
+      : undefined;
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > 512 ||
+    value.startsWith("/") ||
+    value.includes("\\") ||
+    hasControlCharacters(value) ||
+    !prefix
+  ) {
+    throw createInternalError();
+  }
+  const segments = value.slice(prefix.length).split("/");
+  if (
+    segments.some(
+      (segment) => segment.length === 0 || segment === "." || segment === "..",
+    )
+  ) {
+    throw createInternalError();
+  }
+  return value;
+}
+
+function decodeConfigDiagnostic(value: unknown): ConfigDiagnostic {
   if (
     !isRecord(value) ||
     typeof value.appId !== "string" ||
     typeof value.configId !== "string" ||
-    typeof value.displayPath !== "string" ||
+    typeof value.variantId !== "string" ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.appId) ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.configId) ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.variantId) ||
+    !DOCUMENT_STATES.includes(value.state as ConfigDocumentState) ||
+    typeof value.retryable !== "boolean" ||
+    typeof value.nextAction !== "string"
+  ) {
+    throw createInternalError();
+  }
+  const state = value.state as ConfigDocumentState;
+  if (
+    value.nextAction !== NEXT_ACTION_BY_STATE[state] ||
+    value.retryable !== (state === "IO_ERROR")
+  ) {
+    throw createInternalError();
+  }
+  return {
+    appId: value.appId,
+    configId: value.configId,
+    variantId: value.variantId,
+    displayPath: decodeSafeDisplayPath(value.displayPath),
+    state,
+    retryable: value.retryable,
+    nextAction: value.nextAction as ConfigNextAction,
+  };
+}
+
+function decodeConfigSummary(value: unknown): ConfigSummary {
+  const diagnostic = decodeConfigDiagnostic(value);
+  if (
+    !isRecord(value) ||
     typeof value.format !== "string" ||
+    !CONFIG_FORMATS.includes(value.format) ||
     typeof value.writePolicy !== "string" ||
     !WRITE_POLICIES.includes(value.writePolicy) ||
     typeof value.exists !== "boolean" ||
@@ -118,6 +240,21 @@ function decodeConfigSummary(value: unknown): ConfigSummary {
   ) {
     throw createInternalError();
   }
+  if (
+    (!["READY", "REDACTED"].includes(diagnostic.state) &&
+      value.contentHash != null) ||
+    (["READY", "REDACTED"].includes(diagnostic.state) &&
+      (!value.exists || value.entryKind == null)) ||
+    (diagnostic.state === "MISSING" &&
+      (value.exists ||
+        value.entryKind != null ||
+        value.sizeBytes != null ||
+        value.modifiedAtEpochMs != null ||
+        value.mode != null ||
+        value.symlink != null))
+  ) {
+    throw createInternalError();
+  }
   let symlink: ConfigSummary["symlink"];
   if (value.symlink !== undefined && value.symlink !== null) {
     if (
@@ -126,14 +263,16 @@ function decodeConfigSummary(value: unknown): ConfigSummary {
     ) {
       throw createInternalError();
     }
-    symlink = { targetDisplayPath: value.symlink.targetDisplayPath };
+    symlink = {
+      targetDisplayPath: decodeSafeDisplayPath(
+        value.symlink.targetDisplayPath,
+      ),
+    };
   }
 
   return {
-    appId: value.appId,
-    configId: value.configId,
-    displayPath: value.displayPath,
-    format: value.format,
+    ...diagnostic,
+    format: value.format as ConfigFormat,
     sensitivity: value.sensitivity as ConfigSensitivity,
     writePolicy: value.writePolicy as ConfigWritePolicy,
     exists: value.exists,
@@ -170,6 +309,19 @@ function decodeConfigDocument(value: unknown): ConfigDocument {
   ) {
     throw createInternalError();
   }
+  if (
+    ((summary.state === "READY" || summary.state === "REDACTED") &&
+      !summary.exists) ||
+    (summary.state === "MISSING" && summary.exists) ||
+    (summary.state === "REDACTED" && value.contentRedacted !== true) ||
+    (summary.state === "READY" && value.contentRedacted !== false) ||
+    (!["READY", "REDACTED"].includes(summary.state) &&
+      (value.content != null ||
+        value.structured != null ||
+        value.contentRedacted !== false))
+  ) {
+    throw createInternalError();
+  }
   return {
     ...summary,
     ...(typeof value.content === "string" ? { content: value.content } : {}),
@@ -190,9 +342,46 @@ export function listConfigs(appId: string): Promise<ConfigSummary[]> {
 export function readConfig(
   appId: string,
   configId: string,
+  variantId?: string,
 ): Promise<ConfigDocument> {
   return invokeCommand("read_config", decodeConfigDocument, {
-    key: { appId, configId },
+    key: { appId, configId, ...(variantId ? { variantId } : {}) },
+  });
+}
+
+export function resolveConfigVariants(
+  appId: string,
+  configId: string,
+): Promise<ConfigVariantResolution[]> {
+  return invokeCommand("resolve_config_variants", (value) => {
+    if (!Array.isArray(value) || value.length === 0 || value.length > 8) {
+      throw createInternalError();
+    }
+    const variants = value.map((variant) => {
+      const summary = decodeConfigSummary(variant);
+      if (!isRecord(variant) || typeof variant.selected !== "boolean") {
+        throw createInternalError();
+      }
+      return { ...summary, selected: variant.selected };
+    });
+    if (
+      new Set(variants.map((variant) => variant.variantId)).size !==
+        variants.length ||
+      variants.filter((variant) => variant.selected).length !== 1
+    ) {
+      throw createInternalError();
+    }
+    return variants;
+  }, { key: { appId, configId } });
+}
+
+export function diagnoseConfig(
+  appId: string,
+  configId: string,
+  variantId?: string,
+): Promise<ConfigDiagnostic> {
+  return invokeCommand("diagnose_config", decodeConfigDiagnostic, {
+    key: { appId, configId, ...(variantId ? { variantId } : {}) },
   });
 }
 

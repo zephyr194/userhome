@@ -1705,14 +1705,21 @@ entry type, evidence, format hints, sensitivity, coverage, reason, and optional
 catalog ownership without exposing absolute private paths.
 
 **Acceptance criteria:**
-- [ ] Candidate IDs are deterministic and independent of the absolute home path.
-- [ ] Every candidate has exactly one coverage class and human-readable reason.
-- [ ] Counts, limits, permission, symlink, and timeout outcomes are explicit.
+- [x] Candidate IDs are deterministic and independent of the absolute home path.
+- [x] Every candidate has exactly one coverage class and human-readable reason.
+- [x] Counts, limits, permission, symlink, and timeout outcomes are explicit.
 
 **Verification:**
-- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `pnpm typecheck`
+- [x] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `pnpm typecheck`
+
+**Evidence:** Candidate discovery now emits stable IDs derived from typed root
+aliases and normalized relative paths, catalog format and sensitivity hints,
+metadata-only evidence, classification reasons, optional catalog ownership, and
+bounded scan counts, limits, and typed outcomes without absolute private paths.
+The targeted discovery suite, full Rust suite, formatting check, and frontend
+typecheck pass.
 
 **Dependencies:** T39
 
@@ -1737,16 +1744,25 @@ HOME dot entries, XDG configuration, Application Support, catalog-owned home
 files, trusted Homebrew prefixes, and catalog service locations.
 
 **Acceptance criteria:**
-- [ ] Unknown candidates are inspected through metadata only and never cause
+- [x] Unknown candidates are inspected through metadata only and never cause
       content reads.
-- [ ] Root depth, entry count, metadata count, and timeout limits are enforced.
-- [ ] Repeated unchanged scans return stable IDs and classifications within two
+- [x] Root depth, entry count, metadata count, and timeout limits are enforced.
+- [x] Repeated unchanged scans return stable IDs and classifications within two
       seconds on the baseline Mac.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
-- [ ] Manual: compare elapsed time and bounded counts against approved roots.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
+- [x] Manual: compare elapsed time and bounded counts against approved roots.
+
+**Evidence:** Candidate discovery now probes catalog documents and service
+locations before deterministically scanning direct children under HOME, XDG,
+Application Support, and trusted Homebrew `etc` roots. Scans never open candidate
+contents, reject traversal through root symlinks, sort bounded entries before
+classification, and enforce 128 candidates, 128 entries per root, 512 metadata
+operations, one enumerated level, and a 1.5 second deadline. Baseline root counts
+were 93, 11, 128, 16, and 1 respectively and were counted in 1 ms without
+printing names or paths.
 
 **Dependencies:** T51
 
@@ -1771,17 +1787,25 @@ that can drive catalog work without committing usernames, contents, credential
 names, or unrestricted listings.
 
 **Acceptance criteria:**
-- [ ] The exported total equals managed, unsupported, and excluded counts.
-- [ ] The export contains normalized root aliases and no absolute username,
+- [x] The exported total equals managed, unsupported, and excluded counts.
+- [x] The export contains normalized root aliases and no absolute username,
       configuration content, secrets, cache/log/database entries, or runtime
       state.
-- [ ] Raw baseline artifacts remain outside version control.
+- [x] Raw baseline artifacts remain outside version control.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `pnpm typecheck`
-- [ ] Manual: inspect a sanitized export and compare counts with runtime
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `pnpm typecheck`
+- [x] Manual: inspect a sanitized export and compare counts with runtime
       coverage.
+
+**Evidence:** The versioned `export_sanitized_baseline` IPC returns aggregate
+coverage plus safe candidate rows, omitting excluded and secret paths while
+retaining their counts. The inspected baseline contained 128 total candidates:
+15 managed, 110 unsupported, and 3 excluded; 119 rows were exported and 9 were
+omitted, with 159 metadata operations across 3 completed roots in 9 ms. The raw
+JSON was streamed through local validation, passed alias and privacy checks, and
+was not written into the repository.
 
 **Dependencies:** T52
 
@@ -1806,17 +1830,28 @@ precedence rules, format families, purpose, sensitivity, access mode, adapter,
 validator, editor, and size limits to catalog documents.
 
 **Acceptance criteria:**
-- [ ] Documents can declare bounded HOME, XDG, Application Support, Homebrew,
+- [x] Documents can declare bounded HOME, XDG, Application Support, Homebrew,
       and app-support variants without absolute user-specific paths.
-- [ ] JSON/JSONC, TOML, YAML, INI/Git config, key/value, plist, command-oriented,
+- [x] JSON/JSONC, TOML, YAML, INI/Git config, key/value, plist, command-oriented,
       and plain-text families are recognized independently of write authority.
-- [ ] Unknown roots, formats, adapters, validators, editors, and policies reject
+- [x] Unknown roots, formats, adapters, validators, editors, and policies reject
       the candidate catalog while the last known valid catalog remains usable.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm typecheck`
-- [ ] Inspect catalog validation errors for every unknown capability class.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm typecheck`
+- [x] Inspect catalog validation errors for every unknown capability class.
+
+**Evidence:** Schema version 1 now carries additive typed root-relative
+variants, deterministic precedence, format families, purpose, sensitivity,
+access mode, and bounded presentation metadata while retaining each legacy
+`pathTemplate` as an authorization compatibility anchor. The built-in catalog
+was migrated without changing Priority A app/config IDs or paths; IPC emits
+only root aliases and normalized relative paths, never absolute user paths.
+Catalog tests cover all approved roots, every requested read-only format family,
+and explicit rejection for unknown roots, existence rules, formats, format
+families, sensitivities, access modes, adapters, validators, editors, and write
+policies; strict Clippy and TypeScript type checking also passed.
 
 **Dependencies:** T38, T51
 
@@ -1841,15 +1876,25 @@ safe display path, retryability, and next action for missing, invalid,
 redacted, oversized, denied, unsafe, unsupported, and I/O outcomes.
 
 **Acceptance criteria:**
-- [ ] `resolve_config_variants`, `read_config`, and `diagnose_config` expose
+- [x] `resolve_config_variants`, `read_config`, and `diagnose_config` expose
       stable typed contracts.
-- [ ] Failed reads never appear as empty successful documents.
-- [ ] One malformed document does not block unrelated documents or applications.
+- [x] Failed reads never appear as empty successful documents.
+- [x] One malformed document does not block unrelated documents or applications.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test`
-- [ ] Manual: inspect every diagnostic state without exposing a private path.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [x] `pnpm lint && pnpm typecheck && pnpm test`
+- [x] Manual: inspect every diagnostic state without exposing a private path.
+
+**Evidence:** Configuration resolution now evaluates bounded root-relative
+variants in precedence order, selects the first non-missing entry, and exposes
+typed resolution, read, and diagnostic commands with optional exact
+`variantId` selection. All nine document states serialize only catalog IDs,
+safe `~` or root-alias display paths, retryability, and a fixed next action;
+failed states contain no content, structured values, or writable hash. The
+targeted Rust run passed 37 config tests, including fallback selection and
+malformed-document isolation, while frontend lint, typecheck, and all 51 Vitest
+tests passed.
 
 **Dependencies:** T54
 
@@ -1873,17 +1918,27 @@ redacted UTF-8 content or metadata-only diagnostics for reusable format
 families, without granting generic write access.
 
 **Acceptance criteria:**
-- [ ] Safe JSON/JSONC, INI/key-value, and declared non-sensitive text documents
+- [x] Safe JSON/JSONC, INI/key-value, and declared non-sensitive text documents
       reuse shared handlers.
-- [ ] Sensitive command-oriented, unsupported, binary, database, credential,
+- [x] Sensitive command-oriented, unsupported, binary, database, credential,
       cache, log, socket, and runtime formats never return raw content.
-- [ ] Structured writes remain limited to an approved parser, round-trip
+- [x] Structured writes remain limited to an approved parser, round-trip
       strategy, validator, sensitivity policy, and editor capability.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
-- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
-- [ ] Confirm no parser dependency was added without separate approval.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [x] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
+- [x] Confirm no parser dependency was added without separate approval.
+
+**Evidence:** The generic read-only adapter now dispatches through a typed
+format registry: JSON and bounded JSONC are parsed before recursive secret-key
+redaction, strict INI/Git-config/key-value documents redact every value and
+fall back to metadata-only on ambiguous lines, and only explicitly
+`STANDARD` plain text returns raw UTF-8. Sensitive command, unparsed
+TOML/YAML/plist/plain text, secret, invalid UTF-8, and unsupported content
+never returns raw bytes; the registry is absent from both raw and structured
+write dispatch. The targeted Rust run passed 40 config tests, strict Clippy
+passed, and `Cargo.toml` plus `Cargo.lock` remained unchanged.
 
 **Dependencies:** T55
 
@@ -1909,16 +1964,27 @@ capability, format, and `editorKey`, including path variants and diagnostics,
 without central `appId` branches.
 
 **Acceptance criteria:**
-- [ ] Read-only, writable, metadata-only, excluded, and diagnostic states have
+- [x] Read-only, writable, metadata-only, excluded, and diagnostic states have
       distinct actions.
-- [ ] Variant selection and large content remain inside bounded panes.
-- [ ] Existing write, preview, backup, restore, validation, and redaction order
+- [x] Variant selection and large content remain inside bounded panes.
+- [x] Existing write, preview, backup, restore, validation, and redaction order
       remains unchanged.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: inspect writable, read-only, redacted, invalid, and unsupported
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Manual: inspect writable, read-only, redacted, invalid, and unsupported
       documents.
+
+**Evidence:** The configuration workspace now derives every action from typed
+application capability, document `accessMode`, resolved variant priority,
+write policy, content hash, format family, and an explicit `editorKey`
+registry, without `appId` branches. Up to eight safe display-path variants are
+selectable inside the detail pane; alternate variants remain read-only, large
+content and raw drafts remain scroll-bounded, and metadata-only or excluded
+definitions never call `read_config`. Rendered-state inspection covers
+writable/redacted, read-only, metadata-only, invalid, unsupported, and unknown
+editor cases; lint, typecheck, all 66 Vitest tests, and the production Vite
+build passed.
 
 **Dependencies:** T48, T55, T56
 
@@ -1952,16 +2018,28 @@ editor.
 Code channels, Cursor, Zed, Vim, Neovim, Ghostty, iTerm2, tmux, and Starship.
 
 **Acceptance criteria:**
-- [ ] Each application has detection evidence and at least one managed document
+- [x] Each application has detection evidence and at least one managed document
       or a precise safe exclusion.
-- [ ] Product channels share identities only when configuration semantics match.
-- [ ] Existing six writable and six read-only definitions remain unchanged in
+- [x] Product channels share identities only when configuration semantics match.
+- [x] Existing six writable and six read-only definitions remain unchanged in
       authorization and behavior.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test`
-- [ ] Manual: compare this batch with the sanitized baseline manifest.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm lint && pnpm typecheck && pnpm test`
+- [x] Manual: compare this batch with the sanitized baseline manifest.
+
+**Evidence:** The catalog retains the original six writable and six read-only
+application definitions, then adds bounded read-only definitions for Zed,
+Neovim, and iTerm2. VS Code stable and Insiders remain distinct documents
+under one identity because their settings semantics match; Cursor, Vim, and
+Neovim remain separate product identities, and Neovim's Lua and Vimscript
+entry points remain separate metadata-only documents. Existing catalog tests
+now lock the original application order, document IDs, paths, and write
+prohibition while checking the new exact detection evidence, formats, and
+sensitivity; all 11 targeted catalog tests, lint, typecheck, and all 66 Vitest
+tests passed, and the existence-only baseline comparison is recorded without
+absolute paths in `docs/home-baseline-coverage.md`.
 
 **Dependencies:** T53, T54, T56
 
@@ -1984,17 +2062,30 @@ Antigravity, Trae, Docker, OrbStack, gcloud, Raycast, GitKraken CLI, and Apifox
 where settings can be separated from credentials and runtime state.
 
 **Acceptance criteria:**
-- [ ] Every definition separates settings from credentials, sessions, logs,
+- [x] Every definition separates settings from credentials, sessions, logs,
       caches, databases, telemetry, and runtime state.
-- [ ] Unsupported entries name the missing parser, redactor, path contract, or
+- [x] Unsupported entries name the missing parser, redactor, path contract, or
       product knowledge required.
-- [ ] No definition grants write, executable, service, privileged, or broad
+- [x] No definition grants write, executable, service, privileged, or broad
       filesystem authority.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test`
-- [ ] Manual: compare this batch with sanitized baseline evidence.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm lint && pnpm typecheck && pnpm test`
+- [x] Manual: compare this batch with sanitized baseline evidence.
+
+**Evidence:** The catalog now adds exact-path, data-only coverage for Claude,
+Codex, Gemini, Antigravity, Trae, Docker, OrbStack, Google Cloud CLI, Raycast,
+GitKraken CLI, and Apifox while preserving the complete T58-and-earlier prefix.
+Ten applications expose only bounded read-only documents; AI and integration
+JSON/TOML settings are `SECRET`, plist formats remain metadata-only, and
+gcloud INI values are strictly redacted. OrbStack is `EXCLUDED` because its
+documented group container mixes settings
+with machines, containers, images, credentials, databases, and runtime state
+without a stable bounded settings-file contract. Every new executable,
+Homebrew, service, elevation, and write surface is empty; all 11 targeted
+catalog tests, lint, typecheck, and all 66 Vitest tests passed, and the
+existence-only baseline comparison is recorded without absolute paths.
 
 **Dependencies:** T58
 
@@ -2017,16 +2108,16 @@ show grouped, searchable detection evidence, managed documents, unsupported
 areas, exclusions, and completeness counts in Applications.
 
 **Acceptance criteria:**
-- [ ] All candidates are classified, Priority A remains usable, and Priority B
+- [x] All candidates are classified, Priority A remains usable, and Priority B
       meets the approved managed-or-excluded rule.
-- [ ] At least 90% of eligible text roots are managed read-only or writable.
-- [ ] Application detail explains evidence, limitations, exclusions, and the
+- [x] At least 90% of eligible text roots are managed read-only or writable.
+- [x] Application detail explains evidence, limitations, exclusions, and the
       concrete requirement for increased support.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: reconcile displayed totals with the sanitized manifest.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Manual: reconcile displayed totals with the sanitized manifest.
 
 **Dependencies:** T53, T57, T59
 
@@ -2044,13 +2135,26 @@ reason and preserve the eligible-text denominator.
 
 **Estimated scope:** M
 
+**Evidence:** Catalog validation fixes Priority A at six writable integrations
+and requires all twenty Priority B applications to be managed or specifically
+excluded; OrbStack now carries the concrete settings-contract requirement
+needed for that exclusion. The sanitized manifest computes the eligible-text
+numerator and denominator before export filtering, and the current bounded
+baseline reports 128 / 128 classified candidates, 25 / 25 managed eligible
+text roots (100%), 6 / 6 usable Priority A applications, and 20 / 20 covered
+Priority B applications while retaining 19 omitted and 3 excluded counts.
+Applications now groups entries by category, searches detection evidence,
+managed document paths and support explanations, and renders evidence,
+limitations, exclusions, support requirements, and completeness totals without
+exposing absolute private paths or raw catalog authorization templates.
+
 ## Checkpoint Q: Catalog Coverage
 
-- [ ] T58-T60 acceptance criteria pass.
-- [ ] Every sanitized candidate maps to one coverage class and all counts agree.
-- [ ] Priority A behavior remains compatible and Priority B coverage is
+- [x] T58-T60 acceptance criteria pass.
+- [x] Every sanitized candidate maps to one coverage class and all counts agree.
+- [x] Priority A behavior remains compatible and Priority B coverage is
       evidence-based.
-- [ ] No catalog-only addition requires an `appId` branch or grants new write
+- [x] No catalog-only addition requires an `appId` branch or grants new write
       authority.
 
 ## T61: Add versioned atomic preference persistence
@@ -2060,16 +2164,16 @@ the app-owned application support directory with additive migration,
 safe-default recovery, and atomic replacement.
 
 **Acceptance criteria:**
-- [ ] The persisted schema contains only approved appearance, lifecycle,
+- [x] The persisted schema contains only approved appearance, lifecycle,
       refresh, editor, backup, and optional discovery-root values.
-- [ ] Invalid or unknown values fall back safely and produce a non-secret
+- [x] Invalid or unknown values fall back safely and produce a non-secret
       diagnostic.
-- [ ] Preference writes preserve the previous valid file on failure.
+- [x] Preference writes preserve the previous valid file on failure.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
-- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
-- [ ] Inspect the stored JSON contract for paths, content, secrets, or authority.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [x] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- [x] Inspect the stored JSON contract for paths, content, secrets, or authority.
 
 **Dependencies:** None
 
@@ -2086,19 +2190,33 @@ through explicit typed fields and reject invalid updates.
 
 **Estimated scope:** M
 
+**Evidence:** Added a strict schema-v1 store at the Tauri-owned application
+configuration directory using the fixed `preferences.json` filename, private
+`0700` directory and `0600` file modes, a 16 KiB read/write bound, and
+same-directory atomic replacement. The exact persisted keys are
+`schemaVersion`, `appearance`, `openWindowOnLaunch`, `closeBehavior`,
+`restoreSelection`, `refreshOnLaunch`, `refreshOnReopen`,
+`providerTimeoutPreset`, `preferredEditorMode`, `backupRetention`, and
+`optionalDiscoveryRoots`; root choices are typed IDs rather than paths, and no
+configuration content, secret, command, service, elevation, or arbitrary
+authority field is accepted. Strict `deny_unknown_fields` decoding, bounded
+presets, duplicate-root validation, v0-to-v1 additive migration, and
+non-secret diagnostics recover to safe defaults; injected pre-rename failure
+testing confirms the previous valid file remains unchanged.
+
 ## T62: Expose typed settings IPC and application hydration
 
 **Description:** Add typed get, update, and reset preference commands and load
 preferences before applying route, appearance, refresh, or lifecycle behavior.
 
 **Acceptance criteria:**
-- [ ] The frontend sends typed values and never a storage path or arbitrary form.
-- [ ] Startup exposes loading, ready, and safe-default diagnostic states.
-- [ ] Concurrent patches serialize without silently losing recognized values.
+- [x] The frontend sends typed values and never a storage path or arbitrary form.
+- [x] Startup exposes loading, ready, and safe-default diagnostic states.
+- [x] Concurrent patches serialize without silently losing recognized values.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 
 **Dependencies:** T61
 
@@ -2114,6 +2232,18 @@ preference-dependent behavior while retaining a responsive shell.
 `src/ipc/settings.ts`, `src/App.tsx`
 
 **Estimated scope:** M
+
+**Evidence:** Added typed `get_preferences`, `update_preferences`, and
+`reset_preferences` commands backed by a single `SettingsCoordinator` mutex.
+Each patch is deserialized with `deny_unknown_fields`, merges only recognized
+typed fields inside the lock, validates the complete result, and atomically
+saves it; concurrent appearance and refresh patches retain both values.
+Malformed, unreadable, and unsupported-version files hydrate the frontend with
+safe defaults plus a bounded diagnostic, while ordinary patches refuse to
+overwrite diagnostic recovery files until an explicit reset. The React shell
+renders loading, ready, and safe-default preference states, disables manual
+refresh while loading, and delays initial provider refresh until hydration
+finishes.
 
 ## T63: Replace the Settings placeholder with grouped detail panes
 
