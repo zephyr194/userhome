@@ -1,329 +1,311 @@
-import { useState } from "react";
+import {
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge } from "../../components/ui";
 import {
-  executeBrewAction,
-  getBrewPackage,
-  previewBrewAction,
   searchBrewPackages,
-  type BrewPackageAction,
-  type BrewPackageDetails as BrewPackageDetailsValue,
-  type BrewPackageKind,
   type BrewSearchPage,
+  type BrewSearchResult,
 } from "../../ipc/brew";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import {
-  getOperation,
-  type OperationDetails,
-  type OperationPreview,
-} from "../../ipc/operations";
-import { BrewActionDialog } from "./BrewActionDialog";
-import { BrewPackageDetails } from "./BrewPackageDetails";
+import { BrewPackageInspector } from "./BrewPackageDetails";
 
 type SearchState =
   | { status: "idle" }
-  | { status: "loading" }
-  | { status: "ready"; page: BrewSearchPage }
-  | { status: "error"; error: AppError };
-
-type DetailsState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "ready"; details: BrewPackageDetailsValue }
-  | { status: "error"; error: AppError };
+  | { status: "loading"; requestId: number }
+  | { status: "ready"; requestId: number; page: BrewSearchPage }
+  | { status: "error"; requestId: number; error: AppError };
 
 const SEARCH_INPUT_CLASSES =
   "min-h-9 min-w-0 flex-1 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20";
 
-export function BrewSearch({ onChanged }: { onChanged: () => void }) {
+function targetIndex(
+  event: KeyboardEvent<HTMLButtonElement>,
+  currentIndex: number,
+  itemCount: number,
+): number | undefined {
+  if (event.key === "ArrowDown") return Math.min(currentIndex + 1, itemCount - 1);
+  if (event.key === "ArrowUp") return Math.max(currentIndex - 1, 0);
+  if (event.key === "Home") return 0;
+  if (event.key === "End") return itemCount - 1;
+  return undefined;
+}
+
+function packageKey(selection: BrewSearchResult): string {
+  return `${selection.kind}:${selection.identifier}`;
+}
+
+export function BrewSearch({
+  onChanged,
+  onShowInstalled,
+  refreshId,
+}: {
+  onChanged: () => void;
+  onShowInstalled?: () => void;
+  refreshId?: string;
+}) {
   const [query, setQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
   const [searchState, setSearchState] = useState<SearchState>({
     status: "idle",
   });
-  const [detailsState, setDetailsState] = useState<DetailsState>({
-    status: "idle",
-  });
-  const [preview, setPreview] = useState<OperationPreview>();
-  const [operation, setOperation] = useState<OperationDetails>();
-  const [actionError, setActionError] = useState<AppError>();
-  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<BrewSearchResult>();
+  const requestRef = useRef(0);
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
 
   async function runSearch(searchQuery: string, page: number) {
-    setSearchState({ status: "loading" });
-    setDetailsState({ status: "idle" });
-    setPreview(undefined);
-    setOperation(undefined);
-    setActionError(undefined);
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
+    setSearchState({ status: "loading", requestId });
     try {
       const result = await searchBrewPackages({
         query: searchQuery,
         page,
         pageSize: 25,
       });
-      setSearchState({ status: "ready", page: result });
-    } catch (error) {
-      setSearchState({ status: "error", error: decodeAppError(error) });
-    }
-  }
-
-  async function loadDetails(kind: BrewPackageKind, identifier: string) {
-    setDetailsState({ status: "loading" });
-    setPreview(undefined);
-    setOperation(undefined);
-    setActionError(undefined);
-    try {
-      setDetailsState({
-        status: "ready",
-        details: await getBrewPackage(kind, identifier),
-      });
-    } catch (error) {
-      setDetailsState({ status: "error", error: decodeAppError(error) });
-    }
-  }
-
-  async function createPreview(action: BrewPackageAction) {
-    if (detailsState.status !== "ready") return;
-    setActionError(undefined);
-    setOperation(undefined);
-    try {
-      setPreview(
-        await previewBrewAction({
-          action,
-          kind: detailsState.details.kind,
-          identifier: detailsState.details.identifier,
-        }),
-      );
-    } catch (error) {
-      setActionError(decodeAppError(error));
-    }
-  }
-
-  async function confirmAction() {
-    if (!preview) return;
-    const selectedDetails =
-      detailsState.status === "ready" ? detailsState.details : undefined;
-    setBusy(true);
-    setActionError(undefined);
-    try {
-      const result = await executeBrewAction(preview.operationId);
-      setOperation(result);
-      onChanged();
-      if (selectedDetails) {
-        try {
-          setDetailsState({
-            status: "ready",
-            details: await getBrewPackage(
-              selectedDetails.kind,
-              selectedDetails.identifier,
-            ),
-          });
-        } catch (error) {
-          setActionError(decodeAppError(error));
-        }
+      if (requestRef.current === requestId) {
+        setSearchState({ status: "ready", requestId, page: result });
       }
     } catch (error) {
-      setActionError(decodeAppError(error));
-      try {
-        setOperation(await getOperation(preview.operationId));
-      } catch {
-        setOperation(undefined);
+      if (requestRef.current === requestId) {
+        setSearchState({
+          status: "error",
+          requestId,
+          error: decodeAppError(error),
+        });
       }
-      onChanged();
-    } finally {
-      setBusy(false);
     }
   }
 
-  const selectedPackage =
-    detailsState.status === "ready" ? detailsState.details : undefined;
+  function clearSearch() {
+    requestRef.current += 1;
+    setQuery("");
+    setActiveQuery("");
+    setSearchState({ status: "idle" });
+    setSelected(undefined);
+  }
+
+  const items = searchState.status === "ready" ? searchState.page.items : [];
+  const selectedKey = selected ? packageKey(selected) : undefined;
+  const selectedIsVisible = items.some(
+    (item) => packageKey(item) === selectedKey,
+  );
+
+  function moveSelection(
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentIndex: number,
+  ) {
+    const nextIndex = targetIndex(event, currentIndex, items.length);
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    if (nextIndex === currentIndex) return;
+    const next = items[nextIndex];
+    const nextSelection = {
+      kind: next.kind,
+      identifier: next.identifier,
+    };
+    setSelected(nextSelection);
+    buttonRefs.current.get(packageKey(nextSelection))?.focus();
+  }
 
   return (
-    <section
-      className="min-w-0 border-b border-border bg-surface-muted/60 px-5 py-5"
-      aria-labelledby="brew-search-heading"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
-            Homebrew 搜索
-          </p>
-          <h3
-            className="mt-1 text-base font-semibold"
-            id="brew-search-heading"
-          >
-            查找 Formula 或 Cask
-          </h3>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          搜索远程目录后选择软件包查看详情
-        </p>
-      </div>
-
+    <div className="brew-workspace__view">
       <form
-        className="mt-4 flex min-w-0 flex-col gap-2 sm:flex-row"
+        className="brew-workspace__toolbar"
         onSubmit={(event) => {
           event.preventDefault();
           const searchQuery = query.trim();
+          if (!searchQuery) {
+            clearSearch();
+            return;
+          }
+          if (searchQuery !== activeQuery) {
+            setSelected(undefined);
+          }
           setActiveQuery(searchQuery);
           void runSearch(searchQuery, 1);
         }}
       >
+        <div
+          className="brew-workspace__mode"
+          role="group"
+          aria-label="Homebrew 数据源"
+        >
+          <Button
+            size="sm"
+            aria-pressed="false"
+            onClick={onShowInstalled}
+          >
+            已安装
+          </Button>
+          <Button size="sm" variant="primary" aria-pressed="true">
+            搜索目录
+          </Button>
+        </div>
         <label className="sr-only" htmlFor="brew-package-search">
-          搜索词
+          Homebrew 搜索
         </label>
         <input
           className={SEARCH_INPUT_CLASSES}
           id="brew-package-search"
           type="search"
           maxLength={128}
-          placeholder="输入软件包名称，例如 caddy"
-          required
+          placeholder="输入 Formula 或 Cask 名称"
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            const value = event.currentTarget.value;
+            setQuery(value);
+            if (value.length === 0) {
+              clearSearch();
+            }
+          }}
         />
         <Button
-          className="w-full sm:w-auto"
-          variant="primary"
           type="submit"
+          variant="primary"
           disabled={searchState.status === "loading"}
         >
           {searchState.status === "loading" ? "正在搜索…" : "搜索"}
         </Button>
       </form>
 
-      {searchState.status === "loading" ? (
-        <AsyncState kind="loading">正在搜索 Homebrew 目录…</AsyncState>
-      ) : searchState.status === "error" ? (
-        <AsyncState kind="error">{searchState.error.message}</AsyncState>
-      ) : searchState.status === "ready" &&
-        searchState.page.items.length === 0 ? (
-        <AsyncState kind="empty">没有找到匹配的软件。</AsyncState>
-      ) : searchState.status === "ready" ? (
-        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[minmax(16rem,0.85fr)_minmax(18rem,1.15fr)]">
-          <section
-            className="min-w-0 overflow-hidden rounded-md border border-border bg-surface"
-            aria-labelledby="brew-search-results-heading"
-          >
-            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-              <h4
-                className="text-sm font-semibold"
-                id="brew-search-results-heading"
-              >
-                搜索结果
-              </h4>
-              <span className="text-xs text-muted-foreground">
-                {searchState.page.totalItems} 项
-              </span>
-            </header>
-            <ul
-              className="max-h-72 divide-y divide-border overflow-y-auto"
-              aria-label="Homebrew 搜索结果"
-            >
-              {searchState.page.items.map((item) => {
-                const selected =
-                  selectedPackage?.kind === item.kind &&
-                  selectedPackage.identifier === item.identifier;
-                return (
-                  <li
-                    className="flex min-w-0 items-center justify-between gap-3 px-3 py-2.5"
-                    key={`${item.kind}-${item.identifier}`}
-                  >
-                    <span className="min-w-0">
-                      <strong className="block truncate font-mono text-xs font-semibold">
-                        {item.identifier}
-                      </strong>
-                      <StatusBadge className="mt-1">
-                        {item.kind === "FORMULA" ? "Formula" : "Cask"}
-                      </StatusBadge>
-                    </span>
-                    <Button
-                      size="sm"
-                      variant={selected ? "primary" : "secondary"}
-                      onClick={() =>
-                        void loadDetails(item.kind, item.identifier)
-                      }
-                    >
-                      {selected ? "已选择" : "查看详情"}
-                    </Button>
-                  </li>
-                );
-              })}
-            </ul>
-            <nav
-              className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2.5"
-              aria-label="搜索结果分页"
-            >
-              <Button
-                size="sm"
-                disabled={searchState.page.page <= 1}
-                onClick={() =>
-                  void runSearch(activeQuery, searchState.page.page - 1)
-                }
-              >
-                上一页
-              </Button>
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {searchState.page.page} /{" "}
-                {Math.max(searchState.page.totalPages, 1)}
-              </span>
-              <Button
-                size="sm"
-                disabled={
-                  searchState.page.page >= searchState.page.totalPages
-                }
-                onClick={() =>
-                  void runSearch(activeQuery, searchState.page.page + 1)
-                }
-              >
-                下一页
-              </Button>
-            </nav>
-          </section>
+      <div className="brew-workspace__body">
+        <section
+          className="brew-workspace__list"
+          aria-labelledby="brew-search-results-heading"
+        >
+          <header className="brew-workspace__pane-heading">
+            <h3 id="brew-search-results-heading">Homebrew 搜索</h3>
+            <span>
+              {searchState.status === "ready"
+                ? `${searchState.page.totalItems} 项`
+                : "远程目录"}
+            </span>
+          </header>
 
-          <div className="min-w-0">
-            {detailsState.status === "loading" ? (
-              <AsyncState kind="loading">正在加载详情…</AsyncState>
-            ) : detailsState.status === "error" ? (
-              <AsyncState kind="error">
-                {detailsState.error.message}
+          {searchState.status === "idle" ? (
+            <div className="p-3">
+              <AsyncState kind="empty">
+                输入名称搜索 Homebrew Formula 与 Cask。
               </AsyncState>
-            ) : detailsState.status === "ready" ? (
-              <BrewPackageDetails
-                details={detailsState.details}
-                onAction={(action) => void createPreview(action)}
-              />
-            ) : (
-              <div
-                className="grid min-h-40 place-items-center rounded-md border border-dashed border-border bg-surface px-4 text-center text-sm text-muted-foreground"
-                role="status"
+            </div>
+          ) : searchState.status === "loading" ? (
+            <div className="p-3">
+              <AsyncState kind="loading">
+                正在搜索 Homebrew 目录…
+              </AsyncState>
+            </div>
+          ) : searchState.status === "error" ? (
+            <div className="p-3">
+              <AsyncState kind="error">{searchState.error.message}</AsyncState>
+            </div>
+          ) : searchState.page.items.length === 0 ? (
+            <div className="p-3">
+              <AsyncState kind="empty">没有找到匹配的软件。</AsyncState>
+            </div>
+          ) : (
+            <>
+              <ul role="listbox" aria-label="Homebrew 搜索结果">
+                {items.map((item, index) => {
+                  const itemSelection = {
+                    kind: item.kind,
+                    identifier: item.identifier,
+                  };
+                  const key = packageKey(itemSelection);
+                  const isSelected = selectedKey === key;
+                  const isTabStop =
+                    isSelected || (!selectedIsVisible && index === 0);
+                  return (
+                    <li key={key} role="presentation">
+                      <button
+                        ref={(button) => {
+                          if (button) {
+                            buttonRefs.current.set(key, button);
+                          } else {
+                            buttonRefs.current.delete(key);
+                          }
+                        }}
+                        className={
+                          isSelected
+                            ? "brew-package-row brew-package-row--selected"
+                            : "brew-package-row"
+                        }
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        tabIndex={isTabStop ? 0 : -1}
+                        onClick={() => setSelected(itemSelection)}
+                        onKeyDown={(event) => moveSelection(event, index)}
+                      >
+                        <span className="min-w-0">
+                          <strong>{item.identifier}</strong>
+                          <span>Homebrew 远程目录</span>
+                        </span>
+                        <StatusBadge>
+                          {item.kind === "FORMULA" ? "Formula" : "Cask"}
+                        </StatusBadge>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <nav
+                className="brew-workspace__pagination"
+                aria-label="搜索结果分页"
               >
-                选择一个搜索结果以查看版本、安装状态和可用操作。
-              </div>
-            )}
-          </div>
-        </div>
-      ) : null}
+                <Button
+                  size="sm"
+                  disabled={searchState.page.page <= 1}
+                  onClick={() => {
+                    const page = searchState.page.page - 1;
+                    void runSearch(activeQuery, page);
+                  }}
+                >
+                  上一页
+                </Button>
+                <span>
+                  {searchState.page.page} /{" "}
+                  {Math.max(searchState.page.totalPages, 1)}
+                </span>
+                <Button
+                  size="sm"
+                  disabled={
+                    searchState.page.page >= searchState.page.totalPages
+                  }
+                  onClick={() => {
+                    const page = searchState.page.page + 1;
+                    void runSearch(activeQuery, page);
+                  }}
+                >
+                  下一页
+                </Button>
+              </nav>
+            </>
+          )}
+        </section>
 
-      {actionError && !preview ? (
-        <div className="mt-4">
-          <AsyncState kind="error">{actionError.message}</AsyncState>
-        </div>
-      ) : null}
-      {preview ? (
-        <BrewActionDialog
-          preview={preview}
-          operation={operation}
-          error={actionError}
-          busy={busy}
-          onConfirm={() => void confirmAction()}
-          onCancel={() => {
-            setPreview(undefined);
-            setOperation(undefined);
-            setActionError(undefined);
-          }}
-        />
-      ) : null}
-    </section>
+        <section
+          className="brew-workspace__detail"
+          aria-label="Homebrew 软件包详情"
+        >
+          {selected ? (
+            <BrewPackageInspector
+              idPrefix="brew-search-package"
+              key={packageKey(selected)}
+              onChanged={onChanged}
+              refreshId={refreshId}
+              selected={selected}
+            />
+          ) : (
+            <AsyncState kind="empty">
+              选择一个搜索结果以查看版本、安装状态和可用操作。
+            </AsyncState>
+          )}
+        </section>
+      </div>
+    </div>
   );
 }

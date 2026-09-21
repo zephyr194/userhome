@@ -391,7 +391,6 @@ a {
 .placeholder-panel,
 .applications-panel,
 .operation-history,
-.brew-panel,
 .services-panel,
 .candidate-panel {
   background: var(--surface);
@@ -403,7 +402,6 @@ a {
 .placeholder-panel,
 .applications-panel,
 .operation-history,
-.brew-panel,
 .services-panel,
 .candidate-panel {
   min-height: 240px;
@@ -413,7 +411,6 @@ a {
 .welcome-panel h2,
 .placeholder-panel h2,
 .applications-panel h2,
-.brew-panel h2,
 .services-panel h2,
 .candidate-panel h2 {
   max-width: 560px;
@@ -612,7 +609,6 @@ a {
 .dashboard-application-rows,
 .dashboard-application-rows ul,
 .candidate-list,
-.inventory-list,
 .search-results,
 .service-list {
   margin: 0;
@@ -657,21 +653,18 @@ a {
   font-weight: 650;
 }
 
-.candidate-panel > p,
-.brew-panel > p {
+.candidate-panel > p {
   color: var(--muted);
   line-height: 1.55;
 }
 
-.candidate-list,
-.inventory-list {
+.candidate-list {
   margin-top: 18px;
   display: grid;
   gap: 10px;
 }
 
 .candidate-list li,
-.inventory-list li,
 .search-results li,
 .service-list li {
   padding: 14px;
@@ -711,30 +704,17 @@ a {
   color: var(--muted);
 }
 
-.candidate-list li > span:first-child > span,
-.inventory-list small {
+.candidate-list li > span:first-child > span {
   color: var(--muted);
   font-size: 12px;
 }
 
-.inventory-filters {
-  margin-top: 20px;
-  display: flex;
-  align-items: end;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.brew-search,
-.package-details,
 .service-details {
   margin-top: 22px;
   padding-top: 20px;
   border-top: 1px solid var(--border);
 }
 
-.brew-search h3,
-.package-details h3,
 .service-details h3 {
   margin: 6px 0 10px;
 }
@@ -777,46 +757,6 @@ a {
   border: 1px solid var(--danger);
   border-radius: 7px;
   cursor: pointer;
-}
-
-.inventory-filters label {
-  display: grid;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.inventory-filters input,
-.inventory-filters select {
-  min-height: 34px;
-  padding: 6px 9px;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-}
-
-.inventory-list li > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.inventory-list p {
-  margin: 7px 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.pagination {
-  margin-top: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--muted);
-  font-size: 13px;
 }
 
 .welcome-panel p:last-child,
@@ -1087,6 +1027,228 @@ a {
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+}
+
+.brew-workspace {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.brew-workspace__header {
+  min-width: 0;
+  padding: 14px 16px 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brew-workspace__header h2,
+.brew-workspace__header p {
+  margin: 0;
+}
+
+.brew-workspace__header h2 {
+  margin-top: 3px;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.brew-workspace__header p:last-child {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.brew-workspace__provider-state {
+  min-height: 0;
+  padding: 0 16px 16px;
+  overflow-y: auto;
+}
+
+.brew-workspace__view,
+.brew-workspace__search-view {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.brew-workspace__view {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.brew-workspace__search-view > .brew-workspace__view {
+  height: 100%;
+}
+
+.brew-workspace__view[hidden],
+.brew-workspace__search-view[hidden] {
+  display: none;
+}
+
+.brew-workspace__toolbar {
+  min-width: 0;
+  padding: 9px 12px;
+  display: grid;
+  grid-template-columns: auto minmax(108px, 132px) minmax(160px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.brew-workspace__search-view .brew-workspace__toolbar {
+  grid-template-columns: auto minmax(160px, 1fr) auto;
+}
+
+.brew-workspace__mode {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.brew-workspace__body {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+  overflow: hidden;
+}
+
+.brew-workspace__list,
+.brew-workspace__detail {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.brew-workspace__list {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-right: 1px solid var(--border);
+}
+
+.brew-workspace__pane-heading {
+  min-width: 0;
+  min-height: 38px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--surface-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.brew-workspace__pane-heading h3,
+.brew-workspace__pane-heading span {
+  margin: 0;
+  font-size: 11px;
+}
+
+.brew-workspace__pane-heading h3 {
+  font-weight: 650;
+}
+
+.brew-workspace__pane-heading span,
+.brew-workspace__pagination {
+  color: var(--muted);
+}
+
+.brew-workspace__list > ul {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  scrollbar-gutter: stable;
+}
+
+.brew-package-row {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text);
+  background: var(--surface);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+
+.brew-package-row:hover {
+  background: var(--surface-subtle);
+}
+
+.brew-package-row--selected {
+  background: var(--accent-soft);
+}
+
+.brew-package-row strong,
+.brew-package-row > span:first-child > span,
+.brew-package-row__status > span:first-child {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brew-package-row strong {
+  font-size: 12px;
+}
+
+.brew-package-row > span:first-child > span,
+.brew-package-row__status > span:first-child {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.brew-package-row__status {
+  min-width: 0;
+  max-width: 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.brew-workspace__pagination {
+  min-height: 42px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.brew-workspace__detail {
+  padding: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.brew-package-inspector {
+  min-width: 0;
 }
 
 .structured-editor {
