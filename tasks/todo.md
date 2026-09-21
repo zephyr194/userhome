@@ -1813,17 +1813,27 @@ redacted UTF-8 content or metadata-only diagnostics for reusable format
 families, without granting generic write access.
 
 **Acceptance criteria:**
-- [ ] Safe JSON/JSONC, INI/key-value, and declared non-sensitive text documents
+- [x] Safe JSON/JSONC, INI/key-value, and declared non-sensitive text documents
       reuse shared handlers.
-- [ ] Sensitive command-oriented, unsupported, binary, database, credential,
+- [x] Sensitive command-oriented, unsupported, binary, database, credential,
       cache, log, socket, and runtime formats never return raw content.
-- [ ] Structured writes remain limited to an approved parser, round-trip
+- [x] Structured writes remain limited to an approved parser, round-trip
       strategy, validator, sensitivity policy, and editor capability.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config`
-- [ ] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
-- [ ] Confirm no parser dependency was added without separate approval.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [x] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
+- [x] Confirm no parser dependency was added without separate approval.
+
+**Evidence:** The generic read-only adapter now dispatches through a typed
+format registry: JSON and bounded JSONC are parsed before recursive secret-key
+redaction, strict INI/Git-config/key-value documents redact every value and
+fall back to metadata-only on ambiguous lines, and only explicitly
+`STANDARD` plain text returns raw UTF-8. Sensitive command, unparsed
+TOML/YAML/plist/plain text, secret, invalid UTF-8, and unsupported content
+never returns raw bytes; the registry is absent from both raw and structured
+write dispatch. The targeted Rust run passed 40 config tests, strict Clippy
+passed, and `Cargo.toml` plus `Cargo.lock` remained unchanged.
 
 **Dependencies:** T55
 

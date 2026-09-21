@@ -89,6 +89,26 @@ format family, sensitivity, access mode, adapter, validator, editor, or write
 policy rejects only the candidate parse; an already loaded valid `Catalog`
 value remains usable.
 
+### Generic read-only format capabilities
+
+The generic `read-only-text` adapter delegates inspection to a typed format
+registry. The registry never participates in `prepare_raw` or
+`prepare_structured`, so recognizing a readable syntax cannot grant write
+authority.
+
+| Family | `STANDARD` | `SENSITIVE` / `SECRET` |
+|---|---|---|
+| `JSON` / `JSONC` | Parse and return normalized UTF-8 JSON | Parse and recursively redact known secret fields; comments are discarded; `SECRET` is metadata-only |
+| `INI` / `GIT_CONFIG` / `KEY_VALUE` | Return declared non-sensitive UTF-8 text | Redact every assignment value, comment, and section; any unrecognized line makes the whole document metadata-only; `SECRET` is metadata-only |
+| `PLAIN_TEXT` | Return declared non-sensitive UTF-8 text | Metadata-only |
+| `TOML` / `YAML` / `PLIST` / `COMMAND` | Metadata-only | Metadata-only |
+
+JSONC support is deliberately bounded to JSON values with line comments, block
+comments, and trailing commas. Malformed JSON/JSONC returns an invalid
+diagnostic rather than raw text. Binary input fails UTF-8 validation before
+format handling; unsupported, database, credential, cache, log, socket, and
+runtime-state documents have no generic raw-content capability.
+
 ## Current bounded read-only batch
 
 The T41 batch adds six locally relevant definitions. Every detection rule is an
@@ -108,10 +128,10 @@ generic `read-only-text` adapter, `text` validator, a finite size limit, and
 | `vim` | `~/.vimrc`; `~/.vim/vimrc` | `SENSITIVE` | `TEXT` | `vim`, 编辑器 | `MANAGED_READ_ONLY` |
 
 `TEXT` describes a generic UTF-8 text document; it does not imply a
-format-specific parser or validator. `SENSITIVE` content is returned only
-through the generic line-oriented secret redaction path. Known credential,
-token, key, history, cache, log, database, socket, and runtime-state paths
-remain outside this batch.
+format-specific parser or validator. The current `SENSITIVE` plain-text
+documents are metadata-only because no reliable parser and redactor has been
+approved. Known credential, token, key, history, cache, log, database, socket,
+and runtime-state paths remain outside this batch.
 
 ## Runtime presentation and authorization
 

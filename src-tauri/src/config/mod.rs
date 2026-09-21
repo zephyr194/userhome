@@ -1,6 +1,7 @@
 pub mod adapters;
 pub mod backup;
 pub mod diff;
+pub mod formats;
 pub mod read;
 pub mod redaction;
 pub mod resolution;

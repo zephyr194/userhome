@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use crate::{catalog::ConfigDocumentDefinition, error::AppError};
 
-use super::redaction::redact_json;
+use super::formats;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +31,14 @@ pub fn inspect(
         "ssh-config" => ssh::inspect(content),
         "zsh-managed-block" => zsh::inspect(content),
         "npmrc" => npm::inspect(content),
-        "read-only-text" => inspect_read_only_text(definition, content),
+        "read-only-text" => {
+            let view = formats::inspect_read_only(definition, content)?;
+            Ok(AdapterView {
+                content: view.content,
+                content_redacted: view.redacted,
+                structured: None,
+            })
+        }
         _ => Err(AppError::not_supported(
             "Configuration adapter is not supported.",
         )),
@@ -57,51 +64,6 @@ pub fn prepare_raw(
     }
 }
 
-fn inspect_read_only_text(
-    definition: &ConfigDocumentDefinition,
-    content: &str,
-) -> Result<AdapterView, AppError> {
-    if !definition.is_read_only() || definition.format() == "MARKDOWN_DIRECTORY" {
-        return Err(AppError::not_supported(
-            "Generic text inspection is only available for read-only files.",
-        ));
-    }
-
-    match definition.sensitivity() {
-        "STANDARD" => Ok(AdapterView {
-            content: Some(content.to_owned()),
-            content_redacted: false,
-            structured: None,
-        }),
-        "SENSITIVE" if definition.format() == "JSON" => {
-            let value: Value = serde_json::from_str(content).map_err(|_| {
-                AppError::validation_failed("Read-only configuration JSON is invalid.")
-            })?;
-            let redacted = redact_json(&value);
-            let content =
-                serde_json::to_string_pretty(&redacted).map_err(|_| AppError::internal())?;
-            Ok(AdapterView {
-                content: Some(format!("{content}\n")),
-                content_redacted: redacted != value,
-                structured: None,
-            })
-        }
-        "SENSITIVE" => Ok(AdapterView {
-            content: None,
-            content_redacted: true,
-            structured: None,
-        }),
-        "SECRET" => Ok(AdapterView {
-            content: None,
-            content_redacted: true,
-            structured: None,
-        }),
-        _ => Err(AppError::not_supported(
-            "Configuration sensitivity is not supported.",
-        )),
-    }
-}
-
 pub fn prepare_structured(
     definition: &ConfigDocumentDefinition,
     current: &str,
@@ -120,5 +82,28 @@ pub fn prepare_structured(
         _ => Err(AppError::not_supported(
             "Configuration adapter is not supported.",
         )),
+    }
+}
+
+#[cfg(test)]
+mod registry_tests {
+    use serde_json::json;
+
+    use crate::catalog::load_builtin_catalog;
+
+    use super::{prepare_raw, prepare_structured};
+
+    #[test]
+    fn generic_read_only_format_registry_never_grants_write_access() {
+        let catalog = load_builtin_catalog().expect("built-in catalog");
+        let definition = catalog
+            .apps()
+            .iter()
+            .flat_map(|app| app.config_documents())
+            .find(|definition| definition.adapter_id() == "read-only-text")
+            .expect("read-only document");
+
+        assert!(prepare_raw(definition, "current", "proposed").is_err());
+        assert!(prepare_structured(definition, "current", json!({})).is_err());
     }
 }
