@@ -32,7 +32,9 @@ pub fn run() {
         .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
             let settings_directory = app.path().app_config_dir()?;
-            app.manage(settings::SettingsStore::new(settings_directory));
+            app.manage(settings::SettingsCoordinator::new(
+                settings::SettingsStore::new(settings_directory),
+            ));
             tray::setup(app)?;
             Ok(())
         })
@@ -82,7 +84,10 @@ pub fn run() {
             commands::elevation::e2e_fake_elevation_roundtrip,
             commands::operations::list_operations,
             commands::operations::get_operation,
-            commands::operations::cancel_operation
+            commands::operations::cancel_operation,
+            commands::settings::get_preferences,
+            commands::settings::update_preferences,
+            commands::settings::reset_preferences
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

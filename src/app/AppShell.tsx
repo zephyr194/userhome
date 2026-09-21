@@ -7,6 +7,7 @@ import { RoutePanel } from "./routes";
 import type {
   ConnectionState,
   DiscoveryState,
+  PreferencesState,
   RefreshState,
   ShellState,
 } from "./shellState";
@@ -100,6 +101,71 @@ function RailIcon({
       <circle cx="10" cy="10" r="7" />
       <path d="M10 9.5v4M10 6.5h.01" />
     </svg>
+  );
+}
+
+function PreferencesStatus({ state }: { state: PreferencesState }) {
+  if (state.status === "loading") {
+    return (
+      <section className="px-4 py-4" aria-labelledby="preferences-heading">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <RailIcon tone="neutral" pending />
+            <h3 id="preferences-heading" className="text-xs font-semibold">
+              偏好设置
+            </h3>
+          </div>
+          <StatusBadge>加载中</StatusBadge>
+        </div>
+        <p
+          className="mt-2 text-xs text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          正在加载本机偏好设置…
+        </p>
+      </section>
+    );
+  }
+
+  if (state.status === "safe-default") {
+    return (
+      <section className="px-4 py-4" aria-labelledby="preferences-heading">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <RailIcon tone="warning" />
+            <h3 id="preferences-heading" className="text-xs font-semibold">
+              偏好设置
+            </h3>
+          </div>
+          <StatusBadge tone="warning">安全默认值</StatusBadge>
+        </div>
+        <p
+          className="mt-2 text-xs text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          {state.diagnostic.message}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="px-4 py-4" aria-labelledby="preferences-heading">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <RailIcon tone="success" />
+          <h3 id="preferences-heading" className="text-xs font-semibold">
+            偏好设置
+          </h3>
+        </div>
+        <StatusBadge tone="success">已加载</StatusBadge>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground" role="status">
+        已验证本机偏好设置。
+      </p>
+    </section>
   );
 }
 
@@ -538,7 +604,10 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
                 <Button
                   className="toolbar-refresh-button"
                   size="sm"
-                  disabled={state.refresh.status === "refreshing"}
+                  disabled={
+                    state.preferences.status === "loading" ||
+                    state.refresh.status === "refreshing"
+                  }
                   onClick={onRefresh}
                   aria-label={
                     state.refresh.status === "refreshing"
@@ -579,6 +648,7 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
                       <h2 className="mt-1 text-sm font-semibold">系统状态轨</h2>
                     </header>
                     <div className="divide-y divide-border">
+                      <PreferencesStatus state={state.preferences} />
                       <DiscoveryStatus state={state.discovery} />
                       <ConnectionStatus state={state.connection} />
                       <RefreshStatus state={state.refresh} />

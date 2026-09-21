@@ -2105,13 +2105,13 @@ testing confirms the previous valid file remains unchanged.
 preferences before applying route, appearance, refresh, or lifecycle behavior.
 
 **Acceptance criteria:**
-- [ ] The frontend sends typed values and never a storage path or arbitrary form.
-- [ ] Startup exposes loading, ready, and safe-default diagnostic states.
-- [ ] Concurrent patches serialize without silently losing recognized values.
+- [x] The frontend sends typed values and never a storage path or arbitrary form.
+- [x] Startup exposes loading, ready, and safe-default diagnostic states.
+- [x] Concurrent patches serialize without silently losing recognized values.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 
 **Dependencies:** T61
 
@@ -2127,6 +2127,18 @@ preference-dependent behavior while retaining a responsive shell.
 `src/ipc/settings.ts`, `src/App.tsx`
 
 **Estimated scope:** M
+
+**Evidence:** Added typed `get_preferences`, `update_preferences`, and
+`reset_preferences` commands backed by a single `SettingsCoordinator` mutex.
+Each patch is deserialized with `deny_unknown_fields`, merges only recognized
+typed fields inside the lock, validates the complete result, and atomically
+saves it; concurrent appearance and refresh patches retain both values.
+Malformed, unreadable, and unsupported-version files hydrate the frontend with
+safe defaults plus a bounded diagnostic, while ordinary patches refuse to
+overwrite diagnostic recovery files until an explicit reset. The React shell
+renders loading, ready, and safe-default preference states, disables manual
+refresh while loading, and delays initial provider refresh until hydration
+finishes.
 
 ## T63: Replace the Settings placeholder with grouped detail panes
 

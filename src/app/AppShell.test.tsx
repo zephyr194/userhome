@@ -7,6 +7,7 @@ const loadingState: ShellState = {
   applications: { status: "loading" },
   connection: { status: "loading" },
   discovery: { status: "loading" },
+  preferences: { status: "loading" },
   recentOperation: { status: "empty" },
   refresh: { status: "refreshing" },
 };
@@ -42,6 +43,26 @@ describe("AppShell", () => {
         },
       },
       discovery: { status: "loading" },
+      preferences: {
+        status: "safe-default",
+        preferences: {
+          schemaVersion: 1,
+          appearance: "SYSTEM",
+          openWindowOnLaunch: true,
+          closeBehavior: "KEEP_RUNNING_IN_TRAY",
+          restoreSelection: true,
+          refreshOnLaunch: true,
+          refreshOnReopen: true,
+          providerTimeoutPreset: "STANDARD",
+          preferredEditorMode: "STRUCTURED",
+          backupRetention: 20,
+          optionalDiscoveryRoots: [],
+        },
+        diagnostic: {
+          code: "INVALID_DOCUMENT",
+          message: "偏好设置无效，已启用安全默认值。",
+        },
+      },
       recentOperation: { status: "empty" },
       refresh: {
         status: "error",
@@ -57,5 +78,7 @@ describe("AppShell", () => {
     expect(markup).toContain("无法连接本地服务。");
     expect(markup).toContain("暂无操作记录。");
     expect(markup).toContain("刷新完成，但部分信息不可用。");
+    expect(markup).toContain("安全默认值");
+    expect(markup).toContain("偏好设置无效，已启用安全默认值。");
   });
 });

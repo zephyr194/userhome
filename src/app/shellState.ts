@@ -2,6 +2,7 @@ import type { AppError, AppStatus } from "../ipc/core";
 import type { ManagedAppCatalog } from "../ipc/catalog";
 import type { DiscoverySnapshot } from "../ipc/discovery";
 import type { OperationDetails } from "../ipc/operations";
+import type { SettingsDiagnostic, UserPreferences } from "../ipc/settings";
 
 export type ConnectionState =
   | { status: "loading" }
@@ -30,10 +31,20 @@ export type DiscoveryState =
   | { status: "ready"; snapshot: DiscoverySnapshot }
   | { status: "error"; error: AppError };
 
+export type PreferencesState =
+  | { status: "loading" }
+  | { status: "ready"; preferences: UserPreferences }
+  | {
+      status: "safe-default";
+      preferences: UserPreferences;
+      diagnostic: SettingsDiagnostic;
+    };
+
 export interface ShellState {
   applications: ApplicationsState;
   connection: ConnectionState;
   discovery: DiscoveryState;
+  preferences: PreferencesState;
   recentOperation: RecentOperationState;
   refresh: RefreshState;
 }
@@ -42,6 +53,7 @@ export const initialShellState: ShellState = {
   applications: { status: "loading" },
   connection: { status: "loading" },
   discovery: { status: "loading" },
+  preferences: { status: "loading" },
   recentOperation: { status: "loading" },
   refresh: { status: "idle" },
 };
@@ -56,6 +68,12 @@ export type ShellAction =
   | { type: "discovery-loading" }
   | { type: "discovery-ready"; snapshot: DiscoverySnapshot }
   | { type: "discovery-error"; error: AppError }
+  | { type: "preferences-ready"; preferences: UserPreferences }
+  | {
+      type: "preferences-safe-default";
+      preferences: UserPreferences;
+      diagnostic: SettingsDiagnostic;
+    }
   | { type: "operation-loading" }
   | { type: "operation-ready"; operation: OperationDetails }
   | { type: "operation-empty" }
@@ -104,6 +122,20 @@ export function shellReducer(
       return {
         ...state,
         discovery: { status: "error", error: action.error },
+      };
+    case "preferences-ready":
+      return {
+        ...state,
+        preferences: { status: "ready", preferences: action.preferences },
+      };
+    case "preferences-safe-default":
+      return {
+        ...state,
+        preferences: {
+          status: "safe-default",
+          preferences: action.preferences,
+          diagnostic: action.diagnostic,
+        },
       };
     case "operation-loading":
       return { ...state, recentOperation: { status: "loading" } };

@@ -1,6 +1,11 @@
-use std::collections::BTreeSet;
+use std::{
+    collections::BTreeSet,
+    sync::{Mutex, MutexGuard},
+};
 
 use serde::{Deserialize, Serialize};
+
+use crate::error::AppError;
 
 mod migration;
 mod store;
@@ -179,6 +184,57 @@ impl UserPreferences {
                     .collect::<BTreeSet<_>>()
                     .len()
     }
+
+    fn apply_patch(&mut self, patch: UpdatePreferencesRequest) -> Result<(), AppError> {
+        if let Some(value) = patch.appearance {
+            self.appearance = value;
+        }
+        if let Some(value) = patch.open_window_on_launch {
+            self.open_window_on_launch = value;
+        }
+        if let Some(value) = patch.close_behavior {
+            self.close_behavior = value;
+        }
+        if let Some(value) = patch.restore_selection {
+            self.restore_selection = value;
+        }
+        if let Some(value) = patch.refresh_on_launch {
+            self.refresh_on_launch = value;
+        }
+        if let Some(value) = patch.refresh_on_reopen {
+            self.refresh_on_reopen = value;
+        }
+        if let Some(value) = patch.provider_timeout_preset {
+            self.provider_timeout_preset = value;
+        }
+        if let Some(value) = patch.preferred_editor_mode {
+            self.preferred_editor_mode = value;
+        }
+        if let Some(value) = patch.backup_retention {
+            self.backup_retention = value;
+        }
+        if let Some(value) = patch.optional_discovery_roots {
+            self.optional_discovery_roots = value;
+        }
+        self.validate()
+            .then_some(())
+            .ok_or_else(|| AppError::invalid_input("Preference update is invalid."))
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdatePreferencesRequest {
+    appearance: Option<Appearance>,
+    open_window_on_launch: Option<bool>,
+    close_behavior: Option<CloseBehavior>,
+    restore_selection: Option<bool>,
+    refresh_on_launch: Option<bool>,
+    refresh_on_reopen: Option<bool>,
+    provider_timeout_preset: Option<ProviderTimeoutPreset>,
+    preferred_editor_mode: Option<PreferredEditorMode>,
+    backup_retention: Option<BackupRetention>,
+    optional_discovery_roots: Option<Vec<OptionalDiscoveryRoot>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -258,9 +314,53 @@ impl LoadedPreferences {
     }
 }
 
+pub struct SettingsCoordinator {
+    store: Mutex<SettingsStore>,
+}
+
+impl SettingsCoordinator {
+    pub(crate) fn new(store: SettingsStore) -> Self {
+        Self {
+            store: Mutex::new(store),
+        }
+    }
+
+    pub fn get(&self) -> Result<LoadedPreferences, AppError> {
+        Ok(self.lock_store()?.load())
+    }
+
+    pub fn update(&self, patch: UpdatePreferencesRequest) -> Result<LoadedPreferences, AppError> {
+        let store = self.lock_store()?;
+        let loaded = store.load();
+        if loaded.diagnostic().is_some() {
+            return Err(AppError::conflict(
+                "Preferences must be reset before they can be updated.",
+            ));
+        }
+        let mut preferences = loaded.preferences().clone();
+        preferences.apply_patch(patch)?;
+        store.save(&preferences)?;
+        Ok(LoadedPreferences::ready(preferences))
+    }
+
+    pub fn reset(&self) -> Result<LoadedPreferences, AppError> {
+        let store = self.lock_store()?;
+        let preferences = UserPreferences::default();
+        store.save(&preferences)?;
+        Ok(LoadedPreferences::ready(preferences))
+    }
+
+    fn lock_store(&self) -> Result<MutexGuard<'_, SettingsStore>, AppError> {
+        self.store.lock().map_err(|_| AppError::internal())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
+    use std::{fs, sync::Arc};
+
+    use serde_json::{Value, json};
+    use uuid::Uuid;
 
     use super::*;
 
@@ -289,5 +389,92 @@ mod tests {
                 ]
             })
         );
+    }
+
+    #[test]
+    fn settings_patch_rejects_unknown_fields_and_duplicate_roots() {
+        let unknown = serde_json::from_value::<UpdatePreferencesRequest>(json!({
+            "appearance": "DARK",
+            "storagePath": "/tmp/preferences.json"
+        }));
+        assert!(unknown.is_err());
+
+        let root = std::env::temp_dir().join(format!("userhome-settings-patch-{}", Uuid::new_v4()));
+        let coordinator = SettingsCoordinator::new(SettingsStore::new(root.clone()));
+        let duplicate_roots = serde_json::from_value(json!({
+            "optionalDiscoveryRoots": ["HOME", "HOME"]
+        }))
+        .expect("decode typed duplicate roots");
+        let error = coordinator
+            .update(duplicate_roots)
+            .expect_err("duplicate roots must be rejected");
+
+        assert_eq!(error.code(), crate::error::AppErrorCode::InvalidInput);
+        assert!(!root.join("preferences.json").exists());
+
+        fs::create_dir_all(&root).expect("create preferences directory");
+        let future_preferences = br#"{"schemaVersion":99,"recognized":"future"}"#;
+        fs::write(root.join("preferences.json"), future_preferences)
+            .expect("write future preferences");
+        let error = coordinator
+            .update(UpdatePreferencesRequest {
+                appearance: Some(Appearance::Dark),
+                ..UpdatePreferencesRequest::default()
+            })
+            .expect_err("future preferences must not be overwritten by a patch");
+        assert_eq!(error.code(), crate::error::AppErrorCode::Conflict);
+        assert_eq!(
+            fs::read(root.join("preferences.json")).expect("read preserved future preferences"),
+            future_preferences
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn settings_coordinator_serializes_concurrent_patches_without_lost_values() {
+        let root = std::env::temp_dir().join(format!("userhome-settings-race-{}", Uuid::new_v4()));
+        let coordinator = Arc::new(SettingsCoordinator::new(SettingsStore::new(root.clone())));
+        let appearance = Arc::clone(&coordinator);
+        let refresh = Arc::clone(&coordinator);
+
+        let appearance_update = std::thread::spawn(move || {
+            appearance.update(UpdatePreferencesRequest {
+                appearance: Some(Appearance::Dark),
+                ..UpdatePreferencesRequest::default()
+            })
+        });
+        let refresh_update = std::thread::spawn(move || {
+            refresh.update(UpdatePreferencesRequest {
+                refresh_on_launch: Some(false),
+                ..UpdatePreferencesRequest::default()
+            })
+        });
+        appearance_update
+            .join()
+            .expect("appearance thread")
+            .expect("appearance update");
+        refresh_update
+            .join()
+            .expect("refresh thread")
+            .expect("refresh update");
+
+        let loaded = coordinator.get().expect("load merged preferences");
+        assert_eq!(loaded.preferences().appearance(), Appearance::Dark);
+        assert!(!loaded.preferences().refresh_on_launch());
+        assert_eq!(
+            serde_json::to_value(loaded.preferences())
+                .expect("serialize merged preferences")
+                .get("schemaVersion"),
+            Some(&Value::from(SETTINGS_SCHEMA_VERSION))
+        );
+
+        assert_eq!(
+            coordinator
+                .reset()
+                .expect("reset preferences")
+                .preferences(),
+            &UserPreferences::default()
+        );
+        let _ = fs::remove_dir_all(root);
     }
 }

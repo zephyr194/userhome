@@ -5,4 +5,5 @@ pub mod discovery;
 pub mod elevation;
 pub mod operations;
 pub mod services;
+pub mod settings;
 pub mod status;
