@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
-import { AsyncState } from "../../components/AsyncState";
 import {
-  Button,
-  Panel,
-  StatusBadge,
-  type StatusBadgeProps,
-} from "../../components/ui";
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { AsyncState } from "../../components/AsyncState";
+import { StatusBadge, type StatusBadgeProps } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import { getOperation, type OperationDetails, type OperationPreview } from "../../ipc/operations";
+import {
+  getOperation,
+  type OperationDetails,
+  type OperationPreview,
+} from "../../ipc/operations";
 import {
   executeServiceAction,
   getService,
@@ -24,6 +28,16 @@ type ListState =
   | { status: "loading" }
   | { status: "ready"; services: readonly ServiceSummary[] }
   | { status: "error"; error: AppError };
+
+type DetailsState =
+  | { status: "idle" }
+  | { status: "loading"; serviceId: string }
+  | {
+      status: "ready";
+      serviceId: string;
+      details: ServiceDetailsValue;
+    }
+  | { status: "error"; serviceId: string; error: AppError };
 
 const STATE_LABELS: Record<ServiceSummary["state"], string> = {
   STARTED: "运行中",
@@ -48,6 +62,18 @@ const SCOPE_LABELS: Record<ServiceSummary["scope"], string> = {
   UNKNOWN: "未知作用域",
 };
 
+function targetIndex(
+  event: KeyboardEvent<HTMLButtonElement>,
+  currentIndex: number,
+  itemCount: number,
+): number | undefined {
+  if (event.key === "ArrowDown") return Math.min(currentIndex + 1, itemCount - 1);
+  if (event.key === "ArrowUp") return Math.max(currentIndex - 1, 0);
+  if (event.key === "Home") return 0;
+  if (event.key === "End") return itemCount - 1;
+  return undefined;
+}
+
 export function ServicesPage({
   onOperationChanged,
   refreshId,
@@ -56,70 +82,116 @@ export function ServicesPage({
   refreshId?: string;
 }) {
   const [listState, setListState] = useState<ListState>({ status: "loading" });
-  const [details, setDetails] = useState<ServiceDetailsValue>();
-  const [detailsError, setDetailsError] = useState<AppError>();
-  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>();
+  const [detailsState, setDetailsState] = useState<DetailsState>({
+    status: "idle",
+  });
+  const [mutationRefresh, setMutationRefresh] = useState(0);
   const [preview, setPreview] = useState<OperationPreview>();
   const [operation, setOperation] = useState<OperationDetails>();
   const [actionError, setActionError] = useState<AppError>();
   const [busy, setBusy] = useState(false);
-
-  async function refreshServices() {
-    setListState({ status: "loading" });
-    try {
-      const services = await listServices();
-      setListState({ status: "ready", services });
-      if (details) {
-        try {
-          setDetails(await getService(details.serviceId));
-          setDetailsError(undefined);
-        } catch (error) {
-          setDetailsError(decodeAppError(error));
-        }
-      }
-    } catch (error) {
-      setListState({ status: "error", error: decodeAppError(error) });
-    }
-  }
+  const listRequestRef = useRef(0);
+  const detailsRequestRef = useRef(0);
+  const operationInFlightRef = useRef(false);
+  const selectedServiceIdRef = useRef<string | undefined>(undefined);
+  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 
   useEffect(() => {
-    let cancelled = false;
+    const requestId = listRequestRef.current + 1;
+    listRequestRef.current = requestId;
     void listServices()
       .then((services) => {
-        if (!cancelled) {
-          setListState({ status: "ready", services });
+        if (listRequestRef.current !== requestId) return;
+        setListState({ status: "ready", services });
+        const current = selectedServiceIdRef.current;
+        const next =
+          current &&
+          services.some((service) => service.serviceId === current)
+            ? current
+            : services[0]?.serviceId;
+        if (next !== current) {
+          selectedServiceIdRef.current = next;
+          setSelectedServiceId(next);
+          setPreview(undefined);
+          setOperation(undefined);
+          setActionError(undefined);
         }
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
+        if (listRequestRef.current === requestId) {
           setListState({ status: "error", error: decodeAppError(error) });
         }
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshId]);
+  }, [mutationRefresh, refreshId]);
 
-  async function loadDetails(serviceId: string) {
-    setDetailsError(undefined);
-    setDetailsLoading(true);
+  useEffect(() => {
+    if (!selectedServiceId) return;
+    const requestId = detailsRequestRef.current + 1;
+    detailsRequestRef.current = requestId;
+    void getService(selectedServiceId)
+      .then((details) => {
+        if (detailsRequestRef.current === requestId) {
+          setDetailsState({
+            status: "ready",
+            serviceId: selectedServiceId,
+            details,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (detailsRequestRef.current === requestId) {
+          setDetailsState({
+            status: "error",
+            serviceId: selectedServiceId,
+            error: decodeAppError(error),
+          });
+        }
+      });
+  }, [mutationRefresh, refreshId, selectedServiceId]);
+
+  function selectService(serviceId: string) {
+    selectedServiceIdRef.current = serviceId;
+    setSelectedServiceId(serviceId);
     setPreview(undefined);
-    try {
-      setDetails(await getService(serviceId));
-    } catch (error) {
-      setDetailsError(decodeAppError(error));
-    } finally {
-      setDetailsLoading(false);
-    }
+    setOperation(undefined);
+    setActionError(undefined);
+  }
+
+  const services = listState.status === "ready" ? listState.services : [];
+  const selectedIsVisible = services.some(
+    (service) => service.serviceId === selectedServiceId,
+  );
+  const visibleDetailsState: DetailsState = selectedServiceId
+    ? detailsState.status !== "idle" &&
+      detailsState.serviceId === selectedServiceId
+      ? detailsState
+      : { status: "loading", serviceId: selectedServiceId }
+    : { status: "idle" };
+
+  function moveSelection(
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentIndex: number,
+  ) {
+    const nextIndex = targetIndex(event, currentIndex, services.length);
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    if (nextIndex === currentIndex) return;
+    const nextServiceId = services[nextIndex].serviceId;
+    selectService(nextServiceId);
+    rowRefs.current.get(nextServiceId)?.focus();
   }
 
   async function createPreview(action: ServiceAction) {
-    if (!details) return;
+    if (visibleDetailsState.status !== "ready") return;
     setActionError(undefined);
     setOperation(undefined);
     try {
       setPreview(
-        await previewServiceAction({ action, serviceId: details.serviceId }),
+        await previewServiceAction({
+          action,
+          serviceId: visibleDetailsState.details.serviceId,
+        }),
       );
     } catch (error) {
       setActionError(decodeAppError(error));
@@ -127,47 +199,46 @@ export function ServicesPage({
   }
 
   async function confirmAction() {
-    if (!preview) return;
+    if (!preview || operationInFlightRef.current) return;
+    operationInFlightRef.current = true;
     setBusy(true);
     setActionError(undefined);
     try {
       setOperation(await executeServiceAction(preview.operationId));
     } catch (error) {
-      setActionError(decodeAppError(error));
+      const executionError = decodeAppError(error);
+      setActionError(executionError);
       try {
         setOperation(await getOperation(preview.operationId));
-      } catch {
+      } catch (operationError) {
+        const lookupError = decodeAppError(operationError);
         setOperation(undefined);
+        setActionError({
+          ...lookupError,
+          message: `${executionError.message} 无法读取操作结果：${lookupError.message}`,
+          retryable: executionError.retryable || lookupError.retryable,
+        });
       }
     } finally {
-      await refreshServices();
+      operationInFlightRef.current = false;
+      setMutationRefresh((current) => current + 1);
       onOperationChanged?.();
       setBusy(false);
     }
   }
 
   return (
-    <Panel
-      className="min-h-0 overflow-hidden p-5"
-      aria-labelledby="services-heading"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-            Homebrew services
-          </p>
-          <h2
-            id="services-heading"
-            className="mt-1 text-xl font-semibold tracking-tight"
-          >
-            服务清单
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            查看用户级和系统级服务；只读服务不会提供变更操作。
-          </p>
+    <section className="services-workspace" aria-labelledby="services-heading">
+      <header className="services-workspace__header">
+        <div className="min-w-0">
+          <h2 id="services-heading">服务清单</h2>
+          <p>Homebrew 用户级与系统级服务</p>
         </div>
         {listState.status === "ready" ? (
-          <div className="flex flex-wrap justify-end gap-2" aria-label="服务统计">
+          <div
+            className="flex flex-wrap items-center justify-end gap-2"
+            aria-label="服务统计"
+          >
             <StatusBadge>
               用户级{" "}
               {
@@ -192,91 +263,114 @@ export function ServicesPage({
             </StatusBadge>
           </div>
         ) : null}
-      </div>
+      </header>
 
-      {listState.status === "loading" ? (
-        <AsyncState kind="loading">正在刷新服务状态…</AsyncState>
-      ) : listState.status === "error" ? (
-        <AsyncState kind="error">{listState.error.message}</AsyncState>
-      ) : listState.services.length === 0 ? (
-        <AsyncState kind="empty">没有发现 Homebrew 服务。</AsyncState>
-      ) : (
-        <div className="mt-5 grid min-h-0 gap-4 lg:grid-cols-2">
-          <section
-            className="min-w-0 overflow-hidden rounded-lg border border-border bg-surface-muted"
-            aria-labelledby="service-inventory-heading"
-          >
-            <div className="border-b border-border px-4 py-3">
-              <h3
-                id="service-inventory-heading"
-                className="text-sm font-semibold"
-              >
-                已发现 {listState.services.length} 项服务
-              </h3>
+      <div className="services-workspace__body">
+        <section
+          className="services-workspace__list"
+          aria-labelledby="service-inventory-heading"
+        >
+          <header className="services-workspace__pane-heading">
+            <h3 id="service-inventory-heading">已发现服务</h3>
+            <span>
+              {listState.status === "ready"
+                ? `${listState.services.length} 项`
+                : "本机状态"}
+            </span>
+          </header>
+
+          {listState.status === "loading" ? (
+            <div className="p-3">
+              <AsyncState kind="loading">正在刷新服务状态…</AsyncState>
             </div>
-            <ul className="max-h-96 divide-y divide-border overflow-y-auto overscroll-contain">
-              {listState.services.map((service) => {
-                const selected = details?.serviceId === service.serviceId;
+          ) : listState.status === "error" ? (
+            <div className="p-3">
+              <AsyncState kind="error">{listState.error.message}</AsyncState>
+            </div>
+          ) : listState.services.length === 0 ? (
+            <div className="p-3">
+              <AsyncState kind="empty">没有发现 Homebrew 服务。</AsyncState>
+            </div>
+          ) : (
+            <ul role="listbox" aria-label="Homebrew 服务清单">
+              {services.map((service, index) => {
+                const isSelected =
+                  service.serviceId === selectedServiceId;
+                const isTabStop =
+                  isSelected || (!selectedIsVisible && index === 0);
                 return (
-                  <li
-                    key={service.serviceId}
-                    className={selected ? "bg-primary-soft" : "bg-surface"}
-                  >
-                    <div className="flex items-center justify-between gap-3 px-4 py-3">
-                      <div className="min-w-0">
-                        <strong className="block truncate text-sm">
-                          {service.displayName}
-                        </strong>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
-                          {service.user ?? service.status}
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          <StatusBadge tone={STATE_TONES[service.state]}>
-                            {STATE_LABELS[service.state]}
-                          </StatusBadge>
-                          <StatusBadge>
-                            {SCOPE_LABELS[service.scope]}
-                          </StatusBadge>
-                          {!service.manageable ? (
-                            <StatusBadge tone="warning">只读</StatusBadge>
-                          ) : null}
-                        </div>
-                      </div>
-                      <Button
-                        aria-pressed={selected}
-                        size="sm"
-                        onClick={() => void loadDetails(service.serviceId)}
-                      >
-                        查看详情
-                      </Button>
-                    </div>
+                  <li key={service.serviceId} role="presentation">
+                    <button
+                      ref={(button) => {
+                        if (button) {
+                          rowRefs.current.set(service.serviceId, button);
+                        } else {
+                          rowRefs.current.delete(service.serviceId);
+                        }
+                      }}
+                      className={
+                        isSelected
+                          ? "service-row service-row--selected"
+                          : "service-row"
+                      }
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      tabIndex={isTabStop ? 0 : -1}
+                      onClick={() => selectService(service.serviceId)}
+                      onKeyDown={(event) => moveSelection(event, index)}
+                    >
+                      <span className="min-w-0">
+                        <strong>{service.displayName}</strong>
+                        <span>{service.user ?? service.status}</span>
+                      </span>
+                      <span className="service-row__status">
+                        <StatusBadge tone={STATE_TONES[service.state]}>
+                          {STATE_LABELS[service.state]}
+                        </StatusBadge>
+                        <StatusBadge>
+                          {SCOPE_LABELS[service.scope]}
+                        </StatusBadge>
+                        <StatusBadge
+                          tone={service.manageable ? "success" : "warning"}
+                        >
+                          {service.manageable ? "可管理" : "只读"}
+                        </StatusBadge>
+                      </span>
+                    </button>
                   </li>
                 );
               })}
             </ul>
-          </section>
+          )}
+        </section>
 
-          <div className="min-w-0">
-            {detailsLoading ? (
-              <AsyncState kind="loading">正在加载服务详情…</AsyncState>
-            ) : detailsError ? (
-              <AsyncState kind="error">{detailsError.message}</AsyncState>
-            ) : details ? (
-              <ServiceDetails
-                details={details}
-                onAction={(action) => void createPreview(action)}
-              />
-            ) : (
-              <AsyncState kind="empty">
-                从服务清单中选择一项以查看作用域、状态和可用操作。
-              </AsyncState>
-            )}
-          </div>
-        </div>
-      )}
-      {actionError && !preview ? (
-        <AsyncState kind="error">{actionError.message}</AsyncState>
-      ) : null}
+        <section
+          className="services-workspace__detail"
+          aria-label="服务详情与操作"
+        >
+          {visibleDetailsState.status === "idle" ? (
+            <AsyncState kind="empty">
+              从服务清单中选择一项以查看作用域、状态和可用操作。
+            </AsyncState>
+          ) : visibleDetailsState.status === "loading" ? (
+            <AsyncState kind="loading">正在加载服务详情…</AsyncState>
+          ) : visibleDetailsState.status === "error" ? (
+            <AsyncState kind="error">
+              {visibleDetailsState.error.message}
+            </AsyncState>
+          ) : (
+            <ServiceDetails
+              details={visibleDetailsState.details}
+              onAction={(action) => void createPreview(action)}
+            />
+          )}
+          {actionError && !preview ? (
+            <AsyncState kind="error">{actionError.message}</AsyncState>
+          ) : null}
+        </section>
+      </div>
+
       {preview ? (
         <ServiceActionDialog
           preview={preview}
@@ -291,6 +385,6 @@ export function ServicesPage({
           }}
         />
       ) : null}
-    </Panel>
+    </section>
   );
 }

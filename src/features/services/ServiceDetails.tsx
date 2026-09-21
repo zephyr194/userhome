@@ -1,6 +1,5 @@
 import {
   Button,
-  Panel,
   StatusBadge,
   type StatusBadgeProps,
 } from "../../components/ui";
@@ -55,21 +54,14 @@ export function ServiceDetails({
   onAction: (action: ServiceAction) => void;
 }) {
   return (
-    <Panel
-      className="min-h-full p-4"
+    <section
+      className="service-details-pane"
       aria-labelledby="service-details-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-            服务详情
-          </p>
-          <h3
-            id="service-details-heading"
-            className="mt-1 text-lg font-semibold tracking-tight"
-          >
-            {details.displayName}
-          </h3>
+      <header className="service-details-pane__header">
+        <div className="min-w-0">
+          <h3 id="service-details-heading">{details.displayName}</h3>
+          <p>{details.serviceId}</p>
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
           <StatusBadge tone={STATE_TONES[details.state]}>
@@ -80,20 +72,20 @@ export function ServiceDetails({
             <StatusBadge tone="warning">只读</StatusBadge>
           ) : null}
         </div>
-      </div>
+      </header>
 
-      <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-        <div className="rounded-md border border-border bg-surface-muted p-3">
+      <dl className="service-details-pane__metadata">
+        <div>
           <dt>作用域</dt>
           <dd className="mt-1 font-medium">{SCOPE_LABELS[details.scope]}</dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted p-3">
+        <div>
           <dt>软件版本</dt>
           <dd className="mt-1 font-medium">
             {details.packageVersion ?? "未知"}
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted p-3">
+        <div>
           <dt>Caddyfile</dt>
           <dd className="mt-1">
             <StatusBadge tone={VALIDITY_TONES[details.configValidity]}>
@@ -101,7 +93,7 @@ export function ServiceDetails({
             </StatusBadge>
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted p-3">
+        <div>
           <dt>运行身份</dt>
           <dd className="mt-1 font-medium">{details.user ?? "不可用"}</dd>
         </div>
@@ -109,7 +101,7 @@ export function ServiceDetails({
 
       {details.configIssue ? (
         <p
-          className="mt-3 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning"
+          className="service-details-pane__warning"
           role="status"
         >
           {details.configIssue}
@@ -118,7 +110,7 @@ export function ServiceDetails({
 
       {details.manageable ? (
         <div
-          className="mt-4 flex flex-wrap justify-end gap-2 border-t border-border pt-4"
+          className="service-details-pane__actions"
           aria-label={`${SCOPE_LABELS[details.scope]}服务操作`}
         >
           <Button
@@ -143,12 +135,12 @@ export function ServiceDetails({
           </Button>
         </div>
       ) : (
-        <div className="mt-4 rounded-md border border-dashed border-border bg-surface-muted p-3">
+        <div className="service-details-pane__readonly">
           <p className="text-sm text-muted-foreground">
             此服务仅供查看，不提供启动、停止或重启操作。
           </p>
         </div>
       )}
-    </Panel>
+    </section>
   );
 }
