@@ -1600,14 +1600,21 @@ entry type, evidence, format hints, sensitivity, coverage, reason, and optional
 catalog ownership without exposing absolute private paths.
 
 **Acceptance criteria:**
-- [ ] Candidate IDs are deterministic and independent of the absolute home path.
-- [ ] Every candidate has exactly one coverage class and human-readable reason.
-- [ ] Counts, limits, permission, symlink, and timeout outcomes are explicit.
+- [x] Candidate IDs are deterministic and independent of the absolute home path.
+- [x] Every candidate has exactly one coverage class and human-readable reason.
+- [x] Counts, limits, permission, symlink, and timeout outcomes are explicit.
 
 **Verification:**
-- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `pnpm typecheck`
+- [x] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `pnpm typecheck`
+
+**Evidence:** Candidate discovery now emits stable IDs derived from typed root
+aliases and normalized relative paths, catalog format and sensitivity hints,
+metadata-only evidence, classification reasons, optional catalog ownership, and
+bounded scan counts, limits, and typed outcomes without absolute private paths.
+The targeted discovery suite, full Rust suite, formatting check, and frontend
+typecheck pass.
 
 **Dependencies:** T39
 

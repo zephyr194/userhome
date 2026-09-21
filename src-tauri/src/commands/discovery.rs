@@ -2,7 +2,7 @@ use tauri::{AppHandle, State};
 
 use crate::{
     discovery::{
-        candidates::ConfigurationCoverage,
+        candidates::BaselineInventory,
         refresh::{DiscoveryCoordinator, DiscoverySnapshot},
     },
     error::AppError,
@@ -40,7 +40,7 @@ pub async fn refresh_system_snapshot(
 #[tauri::command]
 pub async fn list_unmanaged_candidates(
     coordinator: State<'_, DiscoveryCoordinator>,
-) -> Result<ConfigurationCoverage, AppError> {
+) -> Result<BaselineInventory, AppError> {
     let coordinator = coordinator.inner().clone();
     tauri::async_runtime::spawn_blocking(move || coordinator.candidates())
         .await

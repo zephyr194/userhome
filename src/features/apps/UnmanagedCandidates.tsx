@@ -2,7 +2,10 @@ import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge } from "../../components/ui";
 import type { ManagedAppCoverageClass } from "../../ipc/catalog";
 import type {
+  CandidateEvidence,
   CandidateKind,
+  CandidateRootKind,
+  CandidateSensitivityHint,
   ModuleSnapshot,
   UnmanagedCandidate,
 } from "../../ipc/discovery";
@@ -26,6 +29,29 @@ const KIND_LABELS: Record<CandidateKind, string> = {
   OTHER: "其他",
 };
 
+const ROOT_LABELS: Record<CandidateRootKind, string> = {
+  HOME: "用户主目录",
+  XDG_CONFIG_HOME: "XDG 配置目录",
+  APPLICATION_SUPPORT: "Application Support",
+  HOMEBREW_PREFIX: "Homebrew 前缀",
+  APP_SUPPORT: "应用支持目录",
+};
+
+const SENSITIVITY_LABELS: Record<CandidateSensitivityHint, string> = {
+  STANDARD: "标准",
+  SENSITIVE: "敏感",
+  SECRET: "机密",
+  UNKNOWN: "未确定",
+};
+
+const EVIDENCE_LABELS: Record<CandidateEvidence, string> = {
+  METADATA_PRESENT: "元数据存在",
+  CATALOG_DOCUMENT: "Catalog 文档匹配",
+  BOUNDED_ROOT_ENTRY: "受限根目录条目",
+  SYMLINK_METADATA_ONLY: "仅检查符号链接元数据",
+  EXCLUSION_RULE: "命中排除规则",
+};
+
 function formatModifiedTime(value?: number) {
   return value
     ? new Intl.DateTimeFormat("zh-CN", {
@@ -47,7 +73,7 @@ function CandidateDetails({ candidate }: { candidate: UnmanagedCandidate }) {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="break-all text-lg font-semibold tracking-tight">
-                {candidate.name}
+                {candidate.displayName}
               </h2>
               <StatusBadge tone={coverage.tone}>{coverage.label}</StatusBadge>
             </div>
@@ -67,16 +93,34 @@ function CandidateDetails({ candidate }: { candidate: UnmanagedCandidate }) {
             元数据边界
           </h3>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            此候选项没有 catalog 内容读取或写入授权。UserHome
-            仅保留名称、类型、覆盖分类与修改时间。
+            此候选项没有超出 catalog 授权的内容读取或写入能力。UserHome
+            仅显示名称、类型、覆盖分类与修改时间，并补充安全根别名和分类证据。
           </p>
         </section>
 
         <dl className="grid grid-cols-2 gap-3">
           <div className="rounded-md border border-border bg-surface-muted p-3">
+            <dt className="text-xs text-muted-foreground">候选 ID</dt>
+            <dd className="mt-1 break-all font-mono text-xs">
+              {candidate.candidateId}
+            </dd>
+          </div>
+          <div className="rounded-md border border-border bg-surface-muted p-3">
+            <dt className="text-xs text-muted-foreground">发现根</dt>
+            <dd className="mt-1 text-sm font-medium">
+              {ROOT_LABELS[candidate.rootKind]}
+            </dd>
+          </div>
+          <div className="col-span-2 rounded-md border border-border bg-surface-muted p-3">
+            <dt className="text-xs text-muted-foreground">安全相对路径</dt>
+            <dd className="mt-1 break-all font-mono text-xs">
+              {candidate.relativePath}
+            </dd>
+          </div>
+          <div className="rounded-md border border-border bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">条目类型</dt>
             <dd className="mt-1 text-sm font-medium">
-              {KIND_LABELS[candidate.kind]}
+              {KIND_LABELS[candidate.entryType]}
             </dd>
           </div>
           <div className="rounded-md border border-border bg-surface-muted p-3">
@@ -85,11 +129,40 @@ function CandidateDetails({ candidate }: { candidate: UnmanagedCandidate }) {
               {formatModifiedTime(candidate.modifiedAtEpochMs)}
             </dd>
           </div>
+          <div className="rounded-md border border-border bg-surface-muted p-3">
+            <dt className="text-xs text-muted-foreground">敏感度提示</dt>
+            <dd className="mt-1 text-sm font-medium">
+              {SENSITIVITY_LABELS[candidate.sensitivityHint]}
+            </dd>
+          </div>
+          <div className="rounded-md border border-border bg-surface-muted p-3">
+            <dt className="text-xs text-muted-foreground">Catalog 归属</dt>
+            <dd className="mt-1 text-sm font-medium">
+              {candidate.catalogAppId ?? "无"}
+            </dd>
+          </div>
           <div className="col-span-2 rounded-md border border-border bg-surface-muted p-3">
-            <dt className="text-xs text-muted-foreground">访问级别</dt>
-            <dd className="mt-1 text-sm font-medium">仅元数据</dd>
+            <dt className="text-xs text-muted-foreground">格式提示</dt>
+            <dd className="mt-1 text-sm font-medium">
+              {candidate.formatHints.length > 0
+                ? candidate.formatHints.join("、")
+                : "未识别"}
+            </dd>
+          </div>
+          <div className="col-span-2 rounded-md border border-border bg-surface-muted p-3">
+            <dt className="text-xs text-muted-foreground">分类证据</dt>
+            <dd className="mt-1 text-sm font-medium">
+              {candidate.evidence.map((item) => EVIDENCE_LABELS[item]).join("、")}
+            </dd>
           </div>
         </dl>
+
+        <section className="rounded-md border border-border bg-surface-muted p-3">
+          <h3 className="text-xs text-muted-foreground">分类原因</h3>
+          <p className="mt-1 text-sm leading-relaxed">
+            {candidate.classificationReason}
+          </p>
+        </section>
 
         <AsyncState kind="empty">
           此处没有打开、读取、编辑、备份或服务管理操作。
@@ -133,17 +206,18 @@ export function UnmanagedCandidates({
         <>
           <p className="panel-note">
             仅显示名称、类型、覆盖分类与修改时间；UserHome
-            不读取候选条目内容。
+            同时提供安全根别名、分类证据与原因，但不读取候选条目内容。
           </p>
           <ul className="candidate-list">
             {state.data.map((candidate) => {
               const coverage = COVERAGE_PRESENTATION[candidate.coverageClass];
               return (
-                <li key={candidate.name}>
+                <li key={candidate.candidateId}>
                   <span>
-                    <strong>{candidate.name}</strong>
+                    <strong>{candidate.displayName}</strong>
                     <span>
-                      {KIND_LABELS[candidate.kind]} ·{" "}
+                      {KIND_LABELS[candidate.entryType]} ·{" "}
+                      {ROOT_LABELS[candidate.rootKind]} ·{" "}
                       {formatModifiedTime(candidate.modifiedAtEpochMs)}
                     </span>
                   </span>

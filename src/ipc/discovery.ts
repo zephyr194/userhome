@@ -6,6 +6,46 @@ const MAX_APPLICATIONS = 32;
 const MAX_EVIDENCE = 32;
 const MAX_ISSUES = 32;
 const MAX_CANDIDATES = 128;
+const MAX_CANDIDATE_EVIDENCE = 8;
+const MAX_FORMAT_HINTS = 8;
+const MAX_SCAN_OUTCOMES = 32;
+const CANDIDATE_KINDS = [
+  "FILE",
+  "DIRECTORY",
+  "SYMLINK",
+  "SOCKET",
+  "OTHER",
+] as const;
+const CANDIDATE_ROOT_KINDS = [
+  "HOME",
+  "XDG_CONFIG_HOME",
+  "APPLICATION_SUPPORT",
+  "HOMEBREW_PREFIX",
+  "APP_SUPPORT",
+] as const;
+const CANDIDATE_EVIDENCE_KINDS = [
+  "METADATA_PRESENT",
+  "CATALOG_DOCUMENT",
+  "BOUNDED_ROOT_ENTRY",
+  "SYMLINK_METADATA_ONLY",
+  "EXCLUSION_RULE",
+] as const;
+const CANDIDATE_SENSITIVITY_HINTS = [
+  "STANDARD",
+  "SENSITIVE",
+  "SECRET",
+  "UNKNOWN",
+] as const;
+const CANDIDATE_SCAN_OUTCOME_KINDS = [
+  "COMPLETE",
+  "CANDIDATE_LIMIT_REACHED",
+  "ENTRY_LIMIT_REACHED",
+  "PERMISSION_DENIED",
+  "SYMLINK_METADATA_ONLY",
+  "TIMEOUT",
+  "METADATA_UNAVAILABLE",
+  "INVALID_ROOT",
+] as const;
 
 export type ModuleStatus = "LOADING" | "READY" | "ERROR";
 export type DiscoveryCompleteness = "COMPLETE" | "PARTIAL";
@@ -18,6 +58,32 @@ export type CandidateKind =
   | "SYMLINK"
   | "SOCKET"
   | "OTHER";
+export type CandidateRootKind =
+  | "HOME"
+  | "XDG_CONFIG_HOME"
+  | "APPLICATION_SUPPORT"
+  | "HOMEBREW_PREFIX"
+  | "APP_SUPPORT";
+export type CandidateEvidence =
+  | "METADATA_PRESENT"
+  | "CATALOG_DOCUMENT"
+  | "BOUNDED_ROOT_ENTRY"
+  | "SYMLINK_METADATA_ONLY"
+  | "EXCLUSION_RULE";
+export type CandidateSensitivityHint =
+  | "STANDARD"
+  | "SENSITIVE"
+  | "SECRET"
+  | "UNKNOWN";
+export type CandidateScanOutcomeKind =
+  | "COMPLETE"
+  | "CANDIDATE_LIMIT_REACHED"
+  | "ENTRY_LIMIT_REACHED"
+  | "PERMISSION_DENIED"
+  | "SYMLINK_METADATA_ONLY"
+  | "TIMEOUT"
+  | "METADATA_UNAVAILABLE"
+  | "INVALID_ROOT";
 
 export interface DiscoveryIssue {
   module: string;
@@ -64,15 +130,43 @@ export interface BrewInventorySummary {
 }
 
 export interface UnmanagedCandidate {
+  candidateId: string;
+  displayName: string;
+  rootKind: CandidateRootKind;
+  relativePath: string;
+  entryType: CandidateKind;
+  evidence: readonly CandidateEvidence[];
+  formatHints: readonly string[];
+  sensitivityHint: CandidateSensitivityHint;
+  classificationReason: string;
+  catalogAppId?: string;
   name: string;
   kind: CandidateKind;
   coverageClass: ManagedAppCoverageClass;
   modifiedAtEpochMs?: number;
 }
 
+export interface CandidateScanOutcome {
+  kind: CandidateScanOutcomeKind;
+  message: string;
+  retryable: boolean;
+}
+
+export interface CandidateScanSummary {
+  candidateCount: number;
+  metadataCount: number;
+  limits: {
+    maxCandidates: number;
+    maxEntriesPerRoot: number;
+    timeoutMs: number;
+  };
+  outcomes: readonly CandidateScanOutcome[];
+}
+
 export interface ConfigurationCoverage {
   completeness: DiscoveryCompleteness;
   candidates: readonly UnmanagedCandidate[];
+  summary: CandidateScanSummary;
   issues: readonly DiscoveryIssue[];
 }
 
@@ -225,9 +319,6 @@ function decodeBrewSummary(value: unknown): BrewInventorySummary {
 function decodeCandidate(value: unknown): UnmanagedCandidate {
   if (
     !isRecord(value) ||
-    !["FILE", "DIRECTORY", "SYMLINK", "SOCKET", "OTHER"].includes(
-      String(value.kind),
-    ) ||
     ![
       "MANAGED_WRITABLE",
       "MANAGED_READ_ONLY",
@@ -237,14 +328,216 @@ function decodeCandidate(value: unknown): UnmanagedCandidate {
   ) {
     throw createInternalError();
   }
+  const legacyName = decodeText(value.name ?? value.displayName);
+  if (legacyName.startsWith("/")) {
+    throw createInternalError();
+  }
+  const entryType = value.entryType ?? value.kind;
+  if (!CANDIDATE_KINDS.includes(entryType as CandidateKind)) {
+    throw createInternalError();
+  }
+  const inferredLocation = inferLegacyCandidateLocation(legacyName);
+  const rootKind = value.rootKind ?? inferredLocation.rootKind;
+  if (!CANDIDATE_ROOT_KINDS.includes(rootKind as CandidateRootKind)) {
+    throw createInternalError();
+  }
+  const relativePath =
+    value.relativePath === undefined || value.relativePath === null
+      ? inferredLocation.relativePath
+      : decodeCandidatePath(value.relativePath, rootKind as CandidateRootKind);
+  const evidence =
+    value.evidence === undefined || value.evidence === null
+      ? ["METADATA_PRESENT"]
+      : decodeCandidateStringList(
+          value.evidence,
+          CANDIDATE_EVIDENCE_KINDS,
+          MAX_CANDIDATE_EVIDENCE,
+        );
+  const formatHints =
+    value.formatHints === undefined || value.formatHints === null
+      ? []
+      : decodeCandidateStringList(value.formatHints, undefined, MAX_FORMAT_HINTS);
+  const sensitivityHint = value.sensitivityHint ?? "UNKNOWN";
+  if (
+    !CANDIDATE_SENSITIVITY_HINTS.includes(
+      sensitivityHint as CandidateSensitivityHint,
+    )
+  ) {
+    throw createInternalError();
+  }
+  const coverageClass = (value.coverageClass ??
+    "DETECTED_UNSUPPORTED") as ManagedAppCoverageClass;
+  const displayName =
+    value.displayName === undefined || value.displayName === null
+      ? relativePath
+      : decodeText(value.displayName);
+  if (displayName.startsWith("/")) {
+    throw createInternalError();
+  }
   return {
-    name: decodeText(value.name),
-    kind: value.kind as CandidateKind,
-    coverageClass: (value.coverageClass ??
-      "DETECTED_UNSUPPORTED") as ManagedAppCoverageClass,
+    candidateId:
+      value.candidateId === undefined || value.candidateId === null
+        ? `legacy:${String(rootKind)}:${relativePath}`
+        : decodeText(value.candidateId),
+    displayName,
+    rootKind: rootKind as CandidateRootKind,
+    relativePath,
+    entryType: entryType as CandidateKind,
+    evidence: evidence as CandidateEvidence[],
+    formatHints,
+    sensitivityHint: sensitivityHint as CandidateSensitivityHint,
+    classificationReason:
+      value.classificationReason === undefined ||
+      value.classificationReason === null
+        ? legacyClassificationReason(coverageClass)
+        : decodeText(value.classificationReason),
+    ...(value.catalogAppId === undefined || value.catalogAppId === null
+      ? {}
+      : { catalogAppId: decodeText(value.catalogAppId) }),
+    name: legacyName,
+    kind: entryType as CandidateKind,
+    coverageClass,
     ...(value.modifiedAtEpochMs === undefined || value.modifiedAtEpochMs === null
       ? {}
       : { modifiedAtEpochMs: decodeCount(value.modifiedAtEpochMs) }),
+  };
+}
+
+function inferLegacyCandidateLocation(name: string): {
+  rootKind: CandidateRootKind;
+  relativePath: string;
+} {
+  if (name.startsWith("XDG_CONFIG_HOME/")) {
+    return { rootKind: "XDG_CONFIG_HOME", relativePath: name };
+  }
+  if (name.startsWith("Library/Application Support/")) {
+    return {
+      rootKind: "APPLICATION_SUPPORT",
+      relativePath: name.replace(
+        "Library/Application Support/",
+        "APPLICATION_SUPPORT/",
+      ),
+    };
+  }
+  return {
+    rootKind: "HOME",
+    relativePath: name.startsWith("~/") ? name : `~/${name}`,
+  };
+}
+
+function decodeCandidatePath(
+  value: unknown,
+  rootKind: CandidateRootKind,
+): string {
+  const path = decodeText(value);
+  const expectedPrefix =
+    rootKind === "HOME" ? "~/" : `${rootKind}/`;
+  if (
+    !path.startsWith(expectedPrefix) ||
+    path.startsWith("/") ||
+    path.split("/").includes("..")
+  ) {
+    throw createInternalError();
+  }
+  return path;
+}
+
+function decodeCandidateStringList(
+  value: unknown,
+  allowed: readonly string[] | undefined,
+  maximum: number,
+): string[] {
+  if (!Array.isArray(value) || value.length > maximum) {
+    throw createInternalError();
+  }
+  return value.map((entry) => {
+    const decoded = decodeText(entry);
+    if (allowed && !allowed.includes(decoded)) {
+      throw createInternalError();
+    }
+    return decoded;
+  });
+}
+
+function legacyClassificationReason(
+  coverageClass: ManagedAppCoverageClass,
+): string {
+  switch (coverageClass) {
+    case "MANAGED_WRITABLE":
+      return "The catalog grants managed read and write support for this document.";
+    case "MANAGED_READ_ONLY":
+      return "The catalog grants bounded read-only support for this document.";
+    case "EXCLUDED":
+      return "The entry is excluded from configuration access.";
+    default:
+      return "The entry was found by bounded metadata discovery without catalog ownership.";
+  }
+}
+
+function decodeCandidateScanOutcome(value: unknown): CandidateScanOutcome {
+  if (
+    !isRecord(value) ||
+    !CANDIDATE_SCAN_OUTCOME_KINDS.includes(
+      value.kind as CandidateScanOutcomeKind,
+    ) ||
+    typeof value.retryable !== "boolean"
+  ) {
+    throw createInternalError();
+  }
+  return {
+    kind: value.kind as CandidateScanOutcomeKind,
+    message: decodeText(value.message),
+    retryable: value.retryable,
+  };
+}
+
+function legacyCandidateScanSummary(
+  candidateCount: number,
+): CandidateScanSummary {
+  return {
+    candidateCount,
+    metadataCount: candidateCount,
+    limits: {
+      maxCandidates: MAX_CANDIDATES,
+      maxEntriesPerRoot: MAX_CANDIDATES,
+      timeoutMs: 1_500,
+    },
+    outcomes: [],
+  };
+}
+
+function decodeCandidateScanSummary(
+  value: unknown,
+  candidateCount: number,
+): CandidateScanSummary {
+  if (
+    !isRecord(value) ||
+    !isRecord(value.limits) ||
+    !Array.isArray(value.outcomes) ||
+    value.outcomes.length > MAX_SCAN_OUTCOMES
+  ) {
+    throw createInternalError();
+  }
+  const decodedCandidateCount = decodeCount(
+    value.candidateCount,
+    MAX_CANDIDATES,
+  );
+  const maxCandidates = decodeCount(value.limits.maxCandidates);
+  if (
+    decodedCandidateCount !== candidateCount ||
+    maxCandidates < decodedCandidateCount
+  ) {
+    throw createInternalError();
+  }
+  return {
+    candidateCount: decodedCandidateCount,
+    metadataCount: decodeCount(value.metadataCount),
+    limits: {
+      maxCandidates,
+      maxEntriesPerRoot: decodeCount(value.limits.maxEntriesPerRoot),
+      timeoutMs: decodeCount(value.limits.timeoutMs),
+    },
+    outcomes: value.outcomes.map(decodeCandidateScanOutcome),
   };
 }
 
@@ -253,9 +546,11 @@ function decodeConfigurationCoverage(value: unknown): ConfigurationCoverage {
     if (value.length > MAX_CANDIDATES) {
       throw createInternalError();
     }
+    const candidates = value.map(decodeCandidate);
     return {
       completeness: "COMPLETE",
-      candidates: value.map(decodeCandidate),
+      candidates,
+      summary: legacyCandidateScanSummary(candidates.length),
       issues: [],
     };
   }
@@ -269,9 +564,14 @@ function decodeConfigurationCoverage(value: unknown): ConfigurationCoverage {
   ) {
     throw createInternalError();
   }
+  const candidates = value.candidates.map(decodeCandidate);
   return {
     completeness: value.completeness as DiscoveryCompleteness,
-    candidates: value.candidates.map(decodeCandidate),
+    candidates,
+    summary:
+      value.summary === undefined || value.summary === null
+        ? legacyCandidateScanSummary(candidates.length)
+        : decodeCandidateScanSummary(value.summary, candidates.length),
     issues: value.issues.map(decodeIssue),
   };
 }
