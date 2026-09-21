@@ -145,7 +145,7 @@ function decodeOptionalSafeInteger(value: unknown): number | undefined {
   return value;
 }
 
-function decodeSafeDisplayPath(value: unknown): string {
+export function decodeSafeDisplayPath(value: unknown): string {
   const prefix =
     typeof value === "string"
       ? [

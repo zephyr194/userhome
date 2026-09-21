@@ -3,6 +3,7 @@ import type {
   UpdatePreferencesRequest,
   UserPreferences,
 } from "../../ipc/settings";
+import { BackupSettings } from "./BackupSettings";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 export function ConfigurationSettings({
@@ -57,15 +58,10 @@ export function ConfigurationSettings({
         ))}
       </fieldset>
 
-      <dl className="settings-summary-list settings-summary-list--compact">
-        <div>
-          <dt>备份保留</dt>
-          <dd>
-            <strong>{form.values.backupRetention} 份</strong>
-            <span>每个受管配置独立计算；恢复前仍需预览与确认。</span>
-          </dd>
-        </div>
-      </dl>
+      <BackupSettings
+        onChange={onChange}
+        preferences={preferences}
+      />
 
       {form.error ? (
         <p className="settings-form__error" role="alert">

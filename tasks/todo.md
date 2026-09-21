@@ -2352,21 +2352,23 @@ selection.
 
 ## T66: Integrate backup retention and confirmed clearing
 
+**Status:** Done on 2026-09-21
+
 **Description:** Apply bounded backup-retention presets, report app-owned backup
 size/location, and clear only app-owned backups through preview and explicit
 confirmation.
 
 **Acceptance criteria:**
-- [ ] Retention accepts only approved presets and deletes only owned backups
+- [x] Retention accepts only approved presets and deletes only owned backups
       beyond the selected limit.
-- [ ] Clear preview names the exact safe display location and backup count.
-- [ ] Preference reset does not clear backups, and backup clearing does not
+- [x] Clear preview names the exact safe display location and backup count.
+- [x] Preference reset does not clear backups, and backup clearing does not
       alter managed configuration.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml config::retention`
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config::retention`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 
 **Dependencies:** T12, T61, T62, T63
 

@@ -1783,6 +1783,28 @@ a {
   color: var(--danger);
 }
 
+.settings-backup {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-backup > div > h3,
+.settings-backup > div > p {
+  margin: 0;
+}
+
+.settings-backup > div > h3 {
+  font-size: 13px;
+}
+
+.settings-backup > div > p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .appearance-settings {
   display: grid;
   gap: 14px;

@@ -4,6 +4,13 @@ import {
   invokeCommand,
   isRecord,
 } from "./core";
+import { decodeSafeDisplayPath } from "./config";
+import {
+  decodeOperationDetails,
+  decodeOperationPreview,
+  type OperationDetails,
+  type OperationPreview,
+} from "./operations";
 
 export const SETTINGS_SCHEMA_VERSION = 1 as const;
 
@@ -58,6 +65,12 @@ export interface SettingsDiagnostic {
 export interface LoadedPreferences {
   preferences: UserPreferences;
   diagnostic?: SettingsDiagnostic;
+}
+
+export interface BackupStorageSummary {
+  displayLocation: string;
+  backupCount: number;
+  sizeBytes: number;
 }
 
 export const DEFAULT_USER_PREFERENCES = {
@@ -208,6 +221,25 @@ function decodeLoadedPreferences(value: unknown): LoadedPreferences {
   };
 }
 
+function decodeBackupStorageSummary(value: unknown): BackupStorageSummary {
+  if (
+    !isRecord(value) ||
+    typeof value.backupCount !== "number" ||
+    !Number.isSafeInteger(value.backupCount) ||
+    value.backupCount < 0 ||
+    typeof value.sizeBytes !== "number" ||
+    !Number.isSafeInteger(value.sizeBytes) ||
+    value.sizeBytes < 0
+  ) {
+    throw createInternalError();
+  }
+  return {
+    displayLocation: decodeSafeDisplayPath(value.displayLocation),
+    backupCount: value.backupCount,
+    sizeBytes: value.sizeBytes,
+  };
+}
+
 export function getPreferences(): Promise<LoadedPreferences> {
   return invokeCommand("get_preferences", decodeLoadedPreferences);
 }
@@ -222,4 +254,20 @@ export function updatePreferences(
 
 export function resetPreferences(): Promise<LoadedPreferences> {
   return invokeCommand("reset_preferences", decodeLoadedPreferences);
+}
+
+export function getBackupStorage(): Promise<BackupStorageSummary> {
+  return invokeCommand("get_backup_storage", decodeBackupStorageSummary);
+}
+
+export function previewClearBackups(): Promise<OperationPreview> {
+  return invokeCommand("preview_clear_backups", decodeOperationPreview);
+}
+
+export function executeClearBackups(
+  operationId: string,
+): Promise<OperationDetails> {
+  return invokeCommand("execute_clear_backups", decodeOperationDetails, {
+    operationId,
+  });
 }
