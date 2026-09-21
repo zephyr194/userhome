@@ -1400,6 +1400,223 @@ a {
   gap: 12px;
 }
 
+.settings-workspace {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.settings-workspace__sidebar,
+.settings-workspace__detail {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.settings-workspace__sidebar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--surface-subtle);
+  border-right: 1px solid var(--border);
+}
+
+.settings-workspace__sidebar-header {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-workspace__sidebar-header h2,
+.settings-workspace__sidebar-header p,
+.settings-workspace__detail-header h2,
+.settings-workspace__detail-header p {
+  margin: 0;
+}
+
+.settings-workspace__sidebar-header h2 {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.settings-workspace__sidebar-header p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.settings-sidebar {
+  min-height: 0;
+  margin: 0;
+  padding: 6px;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  list-style: none;
+}
+
+.settings-group-row {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  text-align: left;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.settings-group-row:hover {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+.settings-group-row--selected {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
+}
+
+.settings-group-row__index {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.settings-group-row--selected .settings-group-row__index {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+}
+
+.settings-group-row strong,
+.settings-group-row > span:last-child > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-group-row strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.settings-group-row > span:last-child > span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.settings-workspace__detail {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--surface);
+}
+
+.settings-workspace__detail-header {
+  min-width: 0;
+  padding: 16px 18px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-workspace__detail-header h2 {
+  margin-top: 4px;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.settings-workspace__detail-header p:last-child {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.settings-workspace__detail-content {
+  min-width: 0;
+  min-height: 0;
+  padding: 14px 18px 18px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.settings-summary-list {
+  margin: 0;
+  overflow: hidden;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.settings-summary-list > div {
+  min-width: 0;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: minmax(140px, 0.55fr) minmax(0, 1fr);
+  gap: 16px;
+  background: var(--surface);
+}
+
+.settings-summary-list > div + div {
+  border-top: 1px solid var(--border);
+}
+
+.settings-summary-list dt {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.settings-summary-list dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.settings-summary-list dd strong,
+.settings-summary-list dd span {
+  display: block;
+}
+
+.settings-summary-list dd strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.settings-summary-list dd span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .service-details-pane {
   min-width: 0;
   overflow: hidden;

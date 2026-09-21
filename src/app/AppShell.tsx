@@ -7,6 +7,7 @@ import {
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button } from "../components/ui";
+import type { SettingsGroupId } from "../features/settings/settingsGroups";
 import { registerSettingsRequestListener } from "./refreshEvents";
 import { APP_ROUTES, type AppRouteId } from "./routeDefinitions";
 import { RoutePanel } from "./routes";
@@ -52,6 +53,8 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
   const [commandError, setCommandError] = useState<string>();
   const [activeRouteId, setActiveRouteId] =
     useState<AppRouteId>("dashboard");
+  const [settingsGroup, setSettingsGroup] =
+    useState<SettingsGroupId>("appearance");
   const activeRoute =
     APP_ROUTES.find((route) => route.id === activeRouteId) ?? APP_ROUTES[0];
 
@@ -191,9 +194,12 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
               connection={state.connection}
               discovery={state.discovery}
               onOperationChanged={onRefresh}
+              onSettingsGroupChange={setSettingsGroup}
+              preferences={state.preferences}
               recentOperation={state.recentOperation}
               refresh={state.refresh}
               route={activeRoute}
+              settingsGroup={settingsGroup}
             />
           }
         />

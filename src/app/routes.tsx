@@ -2,10 +2,13 @@ import { ApplicationsPage } from "../features/apps/ApplicationsPage";
 import { BrewInventoryPage } from "../features/brew/BrewInventoryPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { ServicesPage } from "../features/services/ServicesPage";
+import { SettingsPage } from "../features/settings/SettingsPage";
+import type { SettingsGroupId } from "../features/settings/settingsGroups";
 import type {
   ApplicationsState,
   ConnectionState,
   DiscoveryState,
+  PreferencesState,
   RecentOperationState,
   RefreshState,
 } from "./shellState";
@@ -16,9 +19,12 @@ interface RoutePanelProps {
   connection: ConnectionState;
   discovery: DiscoveryState;
   onOperationChanged: () => void;
+  onSettingsGroupChange: (group: SettingsGroupId) => void;
+  preferences: PreferencesState;
   recentOperation: RecentOperationState;
   refresh: RefreshState;
   route: AppRoute;
+  settingsGroup: SettingsGroupId;
 }
 
 export function RoutePanel({
@@ -26,9 +32,12 @@ export function RoutePanel({
   connection,
   discovery,
   onOperationChanged,
+  onSettingsGroupChange,
+  preferences,
   recentOperation,
   refresh,
   route,
+  settingsGroup,
 }: RoutePanelProps) {
   if (route.id === "dashboard") {
     return (
@@ -96,6 +105,16 @@ export function RoutePanel({
             ? discovery.snapshot.refreshId
             : undefined
         }
+      />
+    );
+  }
+
+  if (route.id === "settings") {
+    return (
+      <SettingsPage
+        onSelectedGroupChange={onSettingsGroupChange}
+        preferences={preferences}
+        selectedGroup={settingsGroup}
       />
     );
   }
