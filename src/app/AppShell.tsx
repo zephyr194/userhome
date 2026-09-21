@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button, StatusBadge } from "../components/ui";
 import { OperationStatus } from "../features/operations/OperationStatus";
+import { registerSettingsRequestListener } from "./refreshEvents";
 import { APP_ROUTES, type AppRouteId } from "./routeDefinitions";
 import { RoutePanel } from "./routes";
 import type {
@@ -15,6 +21,35 @@ import type {
 interface AppShellProps {
   onRefresh: () => void;
   state: ShellState;
+}
+
+function clearSearchOnEscape(event: KeyboardEvent<HTMLDivElement>) {
+  if (event.key !== "Escape" || event.defaultPrevented) {
+    return;
+  }
+
+  const input = event.target;
+  if (
+    !(input instanceof HTMLInputElement) ||
+    input.type !== "search" ||
+    input.value.length === 0
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  )?.set;
+  if (valueSetter) {
+    valueSetter.call(input, "");
+  } else {
+    input.value = "";
+  }
+  input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 type RailTone = "neutral" | "success" | "warning" | "danger";
@@ -471,6 +506,7 @@ function RefreshStatus({ state }: { state: RefreshState }) {
 export function AppShell({ onRefresh, state }: AppShellProps) {
   const hasMounted = useRef(false);
   const mainRef = useRef<HTMLElement>(null);
+  const [commandError, setCommandError] = useState<string>();
   const [activeRouteId, setActiveRouteId] =
     useState<AppRouteId>("dashboard");
   const activeRoute =
@@ -484,12 +520,39 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
     }
   }, [activeRouteId]);
 
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    void registerSettingsRequestListener(() => {
+      setCommandError(undefined);
+      setActiveRouteId("settings");
+    })
+      .then((cleanup) => {
+        if (disposed) {
+          cleanup();
+        } else {
+          unlisten = cleanup;
+        }
+      })
+      .catch(() => {
+        if (!disposed) {
+          setCommandError("无法监听应用菜单命令。");
+        }
+      });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
+
   return (
     <>
       <a className="skip-link" href="#main-content">
         跳到主要内容
       </a>
-      <div className="app-shell">
+      <div className="app-shell" onKeyDownCapture={clearSearchOnEscape}>
         <header className="titlebar" data-tauri-drag-region>
           <div className="titlebar__brand" data-tauri-drag-region>
             <span
@@ -518,6 +581,13 @@ export function AppShell({ onRefresh, state }: AppShellProps) {
               onNavigate={setActiveRouteId}
               routes={APP_ROUTES}
             />
+          }
+          banner={
+            commandError ? (
+              <p className="m-0 px-4 py-2 text-xs text-danger" role="alert">
+                {commandError}
+              </p>
+            ) : undefined
           }
           toolbar={
             <div className="refresh-controls">

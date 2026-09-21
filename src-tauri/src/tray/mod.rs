@@ -1,6 +1,6 @@
 use tauri::{
     AppHandle, Emitter, Manager, Wry,
-    menu::{MenuBuilder, MenuItem},
+    menu::{Menu, MenuBuilder, MenuItem, SubmenuBuilder},
     tray::TrayIconBuilder,
 };
 
@@ -16,6 +16,12 @@ const REFRESH_MENU_ID: &str = "userhome.tray.refresh";
 const APPLICATIONS_MENU_ID: &str = "userhome.tray.applications";
 const SERVICES_MENU_ID: &str = "userhome.tray.services";
 const QUIT_MENU_ID: &str = "userhome.tray.quit";
+const SETTINGS_MENU_ID: &str = "userhome.app.settings";
+const APP_REFRESH_MENU_ID: &str = "userhome.app.refresh";
+const HIDE_MENU_ID: &str = "userhome.app.hide";
+const SHOW_MENU_ID: &str = "userhome.app.show";
+const APP_QUIT_MENU_ID: &str = "userhome.app.quit";
+const SETTINGS_REQUESTED_EVENT: &str = "userhome://settings-requested";
 const REFRESH_REQUESTED_EVENT: &str = "userhome://refresh-requested";
 const TRAY_ICON_BYTES: &[u8] = include_bytes!("../../icons/tray-template.png");
 
@@ -27,7 +33,9 @@ struct TraySummary {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TrayAction {
     Open,
+    Settings,
     Refresh,
+    Hide,
     Quit,
     Ignore,
 }
@@ -35,14 +43,65 @@ pub enum TrayAction {
 pub fn menu_action(menu_id: &str) -> TrayAction {
     match menu_id {
         OPEN_MENU_ID => TrayAction::Open,
-        REFRESH_MENU_ID => TrayAction::Refresh,
-        QUIT_MENU_ID => TrayAction::Quit,
+        SETTINGS_MENU_ID => TrayAction::Settings,
+        REFRESH_MENU_ID | APP_REFRESH_MENU_ID => TrayAction::Refresh,
+        HIDE_MENU_ID => TrayAction::Hide,
+        SHOW_MENU_ID => TrayAction::Open,
+        QUIT_MENU_ID | APP_QUIT_MENU_ID => TrayAction::Quit,
         _ => TrayAction::Ignore,
     }
 }
 
 pub fn should_hide_window_on_close(window_label: &str, is_close_requested: bool) -> bool {
     window_label == MAIN_WINDOW_LABEL && is_close_requested
+}
+
+pub fn application_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
+    let settings = MenuItem::with_id(
+        app,
+        SETTINGS_MENU_ID,
+        "Settings…",
+        true,
+        Some("CmdOrCtrl+,"),
+    )?;
+    let refresh = MenuItem::with_id(
+        app,
+        APP_REFRESH_MENU_ID,
+        "Refresh",
+        true,
+        Some("CmdOrCtrl+R"),
+    )?;
+    let hide = MenuItem::with_id(
+        app,
+        HIDE_MENU_ID,
+        "Hide UserHome",
+        true,
+        Some("CmdOrCtrl+H"),
+    )?;
+    let show = MenuItem::with_id(app, SHOW_MENU_ID, "Show UserHome", true, None::<&str>)?;
+    let quit = MenuItem::with_id(
+        app,
+        APP_QUIT_MENU_ID,
+        "Quit UserHome",
+        true,
+        Some("CmdOrCtrl+Q"),
+    )?;
+
+    let application = SubmenuBuilder::new(app, "UserHome")
+        .item(&settings)
+        .separator()
+        .item(&hide)
+        .item(&show)
+        .separator()
+        .item(&quit)
+        .build()?;
+    let view = SubmenuBuilder::new(app, "View").item(&refresh).build()?;
+
+    MenuBuilder::new(app).item(&application).item(&view).build()
+}
+
+pub fn handle_menu_event(app: &AppHandle, menu_id: &str) {
+    handle_action(app, menu_action(menu_id));
 }
 
 pub fn setup(app: &mut tauri::App) -> tauri::Result<()> {
@@ -132,36 +191,51 @@ fn service_summary_label(counts: Option<(usize, usize)>) -> String {
 fn handle_action(app: &tauri::AppHandle, action: TrayAction) {
     match action {
         TrayAction::Open => {
-            let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) else {
-                eprintln!("failed to open the main window: window not found");
-                return;
-            };
-
-            if let Err(error) = window.show() {
-                eprintln!("failed to show the main window: {error}");
-                return;
-            }
-            if let Err(error) = window.unminimize() {
-                eprintln!("failed to restore the main window: {error}");
-                return;
-            }
-            if let Err(error) = window.set_focus() {
-                eprintln!("failed to focus the main window: {error}");
-            }
+            show_main_window(app);
         }
-
+        TrayAction::Settings => {
+            show_main_window(app);
+            emit_command(app, SETTINGS_REQUESTED_EVENT, "settings");
+        }
         TrayAction::Refresh => {
+            emit_command(app, REFRESH_REQUESTED_EVENT, "refresh");
+        }
+        TrayAction::Hide => {
             let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) else {
-                eprintln!("failed to refresh the main window: window not found");
+                eprintln!("failed to hide the main window: window not found");
                 return;
             };
-
-            if let Err(error) = window.emit(REFRESH_REQUESTED_EVENT, ()) {
-                eprintln!("failed to emit the refresh request: {error}");
+            if let Err(error) = window.hide() {
+                eprintln!("failed to hide the main window: {error}");
             }
         }
         TrayAction::Quit => app.exit(0),
         TrayAction::Ignore => {}
+    }
+}
+
+fn show_main_window(app: &AppHandle) {
+    let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) else {
+        eprintln!("failed to show the main window: window not found");
+        return;
+    };
+
+    if let Err(error) = window.show() {
+        eprintln!("failed to show the main window: {error}");
+        return;
+    }
+    if let Err(error) = window.unminimize() {
+        eprintln!("failed to restore the main window: {error}");
+        return;
+    }
+    if let Err(error) = window.set_focus() {
+        eprintln!("failed to focus the main window: {error}");
+    }
+}
+
+fn emit_command(app: &AppHandle, event_name: &str, command_name: &str) {
+    if let Err(error) = app.emit(event_name, ()) {
+        eprintln!("failed to emit the {command_name} request: {error}");
     }
 }
 

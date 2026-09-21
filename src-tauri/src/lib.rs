@@ -20,6 +20,8 @@ pub fn run() {
         .plugin(tauri_plugin_wdio_webdriver::init());
 
     builder
+        .menu(tray::application_menu)
+        .on_menu_event(|app, event| tray::handle_menu_event(app, event.id().as_ref()))
         .manage(discovery::refresh::DiscoveryCoordinator::default())
         .manage(config::ConfigCoordinator::default())
         .manage(operations::OperationCoordinator::default())

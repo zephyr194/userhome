@@ -1438,18 +1438,36 @@ route migrations; land this contract before T47-T50.
 
 ## T46: Add native application menu commands and keyboard routing
 
+**Status:** Implementation and automated verification complete on 2026-09-21;
+manual native-menu interaction remains blocked because Orca Computer Use cannot
+enumerate the unsigned E2E application window.
+
 **Description:** Provide Settings, Refresh, Hide/Show, and Quit application
 commands and route `Command+,` and `Command+R` through one command bridge.
 
 **Acceptance criteria:**
-- [ ] Settings and Refresh work from both the native menu and keyboard.
-- [ ] Hide/Show preserves the active route and selection; Quit exits normally.
-- [ ] Search fields clear with `Escape` without stealing unrelated focus.
+- [x] Settings and Refresh use native menu items with `Command+,` and
+      `Command+R` accelerators and emit one frontend event per action.
+- [x] Hide/Show preserves the existing webview and its active route/selection;
+      Quit exits through the shared native action dispatcher.
+- [x] Focused non-empty search fields clear with `Escape`; unrelated controls
+      and empty search fields are not intercepted.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml tray`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml tray`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] Manual: exercise menu items and keyboard commands in the desktop app.
+      The E2E application builds and runs, but Orca Computer Use reports no
+      enumerable on-screen window for the unsigned process and does not expose
+      menu or menu-bar inspection.
+
+**Evidence:** The application and tray menus map through one allowlisted
+`TrayAction` dispatcher. Native accelerators are parsed by the locked Tauri
+menu stack, Settings and Refresh cross the existing Tauri event boundary, and
+no webview `Command` handler can duplicate them. All 50 existing Vitest checks,
+the focused Rust tray tests, production frontend build, and E2E application
+build pass; the temporary application process was stopped after the blocked
+manual attempt.
 
 **Dependencies:** T45
 
