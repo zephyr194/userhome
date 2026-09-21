@@ -2059,16 +2059,16 @@ the app-owned application support directory with additive migration,
 safe-default recovery, and atomic replacement.
 
 **Acceptance criteria:**
-- [ ] The persisted schema contains only approved appearance, lifecycle,
+- [x] The persisted schema contains only approved appearance, lifecycle,
       refresh, editor, backup, and optional discovery-root values.
-- [ ] Invalid or unknown values fall back safely and produce a non-secret
+- [x] Invalid or unknown values fall back safely and produce a non-secret
       diagnostic.
-- [ ] Preference writes preserve the previous valid file on failure.
+- [x] Preference writes preserve the previous valid file on failure.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml settings`
-- [ ] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
-- [ ] Inspect the stored JSON contract for paths, content, secrets, or authority.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml settings`
+- [x] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- [x] Inspect the stored JSON contract for paths, content, secrets, or authority.
 
 **Dependencies:** None
 
@@ -2084,6 +2084,20 @@ through explicit typed fields and reject invalid updates.
 `src-tauri/src/settings/migration.rs`, `src-tauri/src/lib.rs`
 
 **Estimated scope:** M
+
+**Evidence:** Added a strict schema-v1 store at the Tauri-owned application
+configuration directory using the fixed `preferences.json` filename, private
+`0700` directory and `0600` file modes, a 16 KiB read/write bound, and
+same-directory atomic replacement. The exact persisted keys are
+`schemaVersion`, `appearance`, `openWindowOnLaunch`, `closeBehavior`,
+`restoreSelection`, `refreshOnLaunch`, `refreshOnReopen`,
+`providerTimeoutPreset`, `preferredEditorMode`, `backupRetention`, and
+`optionalDiscoveryRoots`; root choices are typed IDs rather than paths, and no
+configuration content, secret, command, service, elevation, or arbitrary
+authority field is accepted. Strict `deny_unknown_fields` decoding, bounded
+presets, duplicate-root validation, v0-to-v1 additive migration, and
+non-secret diagnostics recover to safe defaults; injected pre-rename failure
+testing confirms the previous valid file remains unchanged.
 
 ## T62: Expose typed settings IPC and application hydration
 

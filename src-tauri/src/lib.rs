@@ -1,3 +1,5 @@
+use tauri::Manager;
+
 pub mod brew;
 pub mod catalog;
 pub mod commands;
@@ -8,6 +10,7 @@ pub mod operations;
 mod process;
 pub mod security;
 pub mod services;
+pub mod settings;
 pub mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -28,6 +31,8 @@ pub fn run() {
         .manage(security::elevation::ElevationCoordinator::default())
         .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
+            let settings_directory = app.path().app_config_dir()?;
+            app.manage(settings::SettingsStore::new(settings_directory));
             tray::setup(app)?;
             Ok(())
         })
