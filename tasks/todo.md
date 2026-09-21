@@ -1536,20 +1536,39 @@ operation visibility in the toolbar or Dashboard summary.
 
 ## T48: Complete persistent Applications list/detail interaction
 
+**Status:** Implementation and automated verification complete on 2026-09-21;
+manual keyboard and refresh inspection remains blocked because Orca Computer
+Use cannot enumerate the unsigned E2E application window.
+
 **Description:** Make Applications a selection-based list/detail workspace with
 keyboard navigation, stable selection, coverage filters, and an optional
 configuration inspector.
 
 **Acceptance criteria:**
-- [ ] Selection remains stable while catalog, discovery, or configuration data
+- [x] Selection remains stable while catalog, discovery, or configuration data
       refreshes.
-- [ ] Arrow keys move list selection and focus remains predictable.
-- [ ] Empty, unsupported, excluded, loading, and error states occupy only the
+- [x] Arrow keys move list selection and focus remains predictable.
+- [x] Empty, unsupported, excluded, loading, and error states occupy only the
       affected pane.
 
 **Verification:**
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
 - [ ] Manual: verify keyboard navigation and selection retention across refresh.
+      The E2E application builds and runs, but Orca Computer Use reports no
+      accessibility window for the unsigned process, so interactive inspection
+      remains an external/manual gate.
+
+**Evidence:** Applications and configuration documents use stable catalog,
+candidate, and config IDs rather than array indexes. Both lists implement
+roving focus with Arrow Up/Down and Home/End, catalog and discovery failures
+remain in the application-list pane, and configuration list/document failures
+remain in their respective document or inspector pane. Config selection is
+retained per application while catalog providers disappear and return, while
+`refreshId` refreshes configuration metadata without discarding a valid
+selection or draft. ESLint, TypeScript, all 50 existing Vitest checks,
+production Vite build, and E2E desktop build pass under the repository's
+current Node 20.20.2 engine warning; the temporary application process was
+stopped after the blocked manual attempt.
 
 **Dependencies:** T45, T47
 

@@ -47,10 +47,24 @@ export function RoutePanel({
         candidates={
           discovery.status === "ready"
             ? discovery.snapshot.candidates
-            : { status: "LOADING" }
+            : discovery.status === "error"
+              ? {
+                  status: "ERROR",
+                  error: {
+                    module: "candidates",
+                    message: discovery.error.message,
+                    retryable: discovery.error.retryable,
+                  },
+                }
+              : { status: "LOADING" }
         }
         state={applications}
         onOperationChanged={onOperationChanged}
+        refreshId={
+          discovery.status === "ready"
+            ? discovery.snapshot.refreshId
+            : undefined
+        }
       />
     );
   }

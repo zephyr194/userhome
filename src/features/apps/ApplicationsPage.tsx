@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -119,10 +120,12 @@ function keyboardTargetIndex(
 function ApplicationsWorkspace({
   candidates,
   onOperationChanged,
+  refreshId,
   state,
 }: {
   candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
   onOperationChanged?: () => void;
+  refreshId?: string;
   state: ApplicationsState;
 }) {
   const catalog = state.status === "ready" ? state.catalog : undefined;
@@ -140,8 +143,12 @@ function ApplicationsWorkspace({
   const [coverage, setCoverage] = useState<
     "ALL" | ManagedAppCoverageClass
   >("ALL");
+  const [selectedConfigIds, setSelectedConfigIds] = useState<
+    Record<string, string | undefined>
+  >({});
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
   const focusedKey = useRef<string | undefined>(undefined);
+  const listHasFocus = useRef(false);
 
   const filteredEntries = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -163,18 +170,35 @@ function ApplicationsWorkspace({
   useEffect(() => {
     if (
       !focusedKey.current ||
-      filteredEntries.some((entry) => entry.key === focusedKey.current)
+      !listHasFocus.current ||
+      !selectedEntry ||
+      focusedKey.current === selectedEntry.key
     ) {
       return;
     }
 
-    const fallback = selectedEntry;
-    focusedKey.current = fallback?.key;
-    if (fallback) {
-      setSelectedKey(fallback.key);
-      requestAnimationFrame(() => buttonRefs.current.get(fallback.key)?.focus());
-    }
-  }, [filteredEntries, selectedEntry]);
+    focusedKey.current = selectedEntry.key;
+    requestAnimationFrame(() =>
+      buttonRefs.current.get(selectedEntry.key)?.focus(),
+    );
+  }, [selectedEntry]);
+
+  const updateConfigSelection = useCallback(
+    (applicationId: string, configId?: string) => {
+      setSelectedConfigIds((current) => {
+        if (current[applicationId] === configId) {
+          return current;
+        }
+        if (configId === undefined) {
+          const next = { ...current };
+          delete next[applicationId];
+          return next;
+        }
+        return { ...current, [applicationId]: configId };
+      });
+    },
+    [],
+  );
 
   function moveSelection(
     event: KeyboardEvent<HTMLButtonElement>,
@@ -185,11 +209,14 @@ function ApplicationsWorkspace({
       currentIndex,
       filteredEntries.length,
     );
-    if (nextIndex === undefined || nextIndex === currentIndex) {
+    if (nextIndex === undefined) {
       return;
     }
 
     event.preventDefault();
+    if (nextIndex === currentIndex) {
+      return;
+    }
     const nextEntry = filteredEntries[nextIndex];
     setSelectedKey(nextEntry.key);
     focusedKey.current = nextEntry.key;
@@ -266,6 +293,14 @@ function ApplicationsWorkspace({
         <aside
           className="applications-workspace__list"
           aria-label="应用与配置候选列表"
+          onFocusCapture={() => {
+            listHasFocus.current = true;
+          }}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              listHasFocus.current = false;
+            }
+          }}
         >
           <div className="flex items-center justify-between border-b border-border px-3 py-2 text-xs text-muted-foreground">
             <span>结果</span>
@@ -381,6 +416,11 @@ function ApplicationsWorkspace({
               key={selectedEntry.application.id}
               application={selectedEntry.application}
               onOperationChanged={onOperationChanged}
+              onSelectedConfigChange={updateConfigSelection}
+              refreshId={refreshId}
+              selectedConfigId={
+                selectedConfigIds[selectedEntry.application.id]
+              }
             />
           ) : (
             <UnmanagedCandidates
@@ -397,18 +437,21 @@ function ApplicationsWorkspace({
 interface ApplicationsPageProps {
   candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
   onOperationChanged?: () => void;
+  refreshId?: string;
   state: ApplicationsState;
 }
 
 export function ApplicationsPage({
   candidates,
   onOperationChanged,
+  refreshId,
   state,
 }: ApplicationsPageProps) {
   return (
     <ApplicationsWorkspace
       candidates={candidates}
       onOperationChanged={onOperationChanged}
+      refreshId={refreshId}
       state={state}
     />
   );

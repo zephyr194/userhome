@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge } from "../../components/ui";
+import { classNames } from "../../components/ui/classNames";
 import type {
   ManagedAppCapability,
   ManagedAppCoverageClass,
@@ -99,17 +106,49 @@ function configEditorKey(
   )?.editorKey;
 }
 
+function documentTargetIndex(
+  event: KeyboardEvent<HTMLButtonElement>,
+  currentIndex: number,
+  documentCount: number,
+): number | undefined {
+  if (event.key === "ArrowDown") {
+    return Math.min(currentIndex + 1, documentCount - 1);
+  }
+  if (event.key === "ArrowUp") {
+    return Math.max(currentIndex - 1, 0);
+  }
+  if (event.key === "Home") {
+    return 0;
+  }
+  if (event.key === "End") {
+    return documentCount - 1;
+  }
+  return undefined;
+}
+
 export function ConfigWorkspace({
   application,
   onOperationChanged,
+  onSelectedConfigChange,
+  refreshId,
+  selectedConfigId,
 }: {
   application: ManagedAppSummary;
   onOperationChanged?: () => void;
+  onSelectedConfigChange: (
+    applicationId: string,
+    configId?: string,
+  ) => void;
+  refreshId?: string;
+  selectedConfigId?: string;
 }) {
+  const canRead = application.capabilities.includes("READ_CONFIG");
+  const canWrite =
+    application.coverageClass === "MANAGED_WRITABLE" &&
+    application.capabilities.includes("WRITE_CONFIG");
+  const coverage = COVERAGE_PRESENTATION[application.coverageClass];
   const [configs, setConfigs] = useState<ConfigListState>(() =>
-    application.capabilities.includes("READ_CONFIG")
-      ? { status: "loading" }
-      : { status: "idle" },
+    canRead ? { status: "loading" } : { status: "idle" },
   );
   const [document, setDocument] = useState<DocumentState>({ status: "idle" });
   const [draft, setDraft] = useState("");
@@ -119,12 +158,52 @@ export function ConfigWorkspace({
   const [operation, setOperation] = useState<OperationDetails>();
   const [actionError, setActionError] = useState<AppError>();
   const [executing, setExecuting] = useState(false);
+  const selectedConfigIdRef = useRef<string | undefined>(undefined);
+  const loadedConfigIdRef = useRef<string | undefined>(undefined);
+  const documentRequestRef = useRef(0);
+  const configButtonRefs = useRef(new Map<string, HTMLButtonElement>());
 
-  const canRead = application.capabilities.includes("READ_CONFIG");
-  const canWrite =
-    application.coverageClass === "MANAGED_WRITABLE" &&
-    application.capabilities.includes("WRITE_CONFIG");
-  const coverage = COVERAGE_PRESENTATION[application.coverageClass];
+  useEffect(() => {
+    selectedConfigIdRef.current = selectedConfigId;
+  }, [selectedConfigId]);
+
+  const loadDocument = useCallback(
+    async (summary: ConfigSummary, resetPreview = true) => {
+      const requestId = documentRequestRef.current + 1;
+      documentRequestRef.current = requestId;
+      selectedConfigIdRef.current = summary.configId;
+      loadedConfigIdRef.current = summary.configId;
+      onSelectedConfigChange(application.id, summary.configId);
+      setDocument({ status: "loading" });
+      if (resetPreview) {
+        setPreview({ status: "idle" });
+        setOperation(undefined);
+        setActionError(undefined);
+      }
+      try {
+        const [value, backupValues, operationValues] = await Promise.all([
+          readConfig(summary.appId, summary.configId),
+          canWrite
+            ? listConfigBackups(summary.appId, summary.configId)
+            : Promise.resolve([]),
+          canWrite ? listOperations() : Promise.resolve([]),
+        ]);
+        if (documentRequestRef.current !== requestId) return;
+        setDocument({ status: "ready", document: value });
+        setDraft(value.content ?? "");
+        setBackups(backupValues);
+        setOperations(
+          operationValues.filter((item) =>
+            item.summary.includes("configuration"),
+          ),
+        );
+      } catch (error) {
+        if (documentRequestRef.current !== requestId) return;
+        setDocument({ status: "error", error: decodeAppError(error) });
+      }
+    },
+    [application.id, canWrite, onSelectedConfigChange],
+  );
 
   useEffect(() => {
     let active = true;
@@ -137,7 +216,27 @@ export function ConfigWorkspace({
 
     void listConfigs(application.id)
       .then((values) => {
-        if (active) setConfigs({ status: "ready", configs: values });
+        if (!active) return;
+        setConfigs({ status: "ready", configs: values });
+        const selectedId = selectedConfigIdRef.current;
+        const selectedConfig = values.find(
+          (config) => config.configId === selectedId && config.exists,
+        );
+        if (selectedId && !selectedConfig) {
+          documentRequestRef.current += 1;
+          selectedConfigIdRef.current = undefined;
+          loadedConfigIdRef.current = undefined;
+          onSelectedConfigChange(application.id, undefined);
+          setDocument({ status: "idle" });
+          setPreview({ status: "idle" });
+          setOperation(undefined);
+          setActionError(undefined);
+        } else if (
+          selectedConfig &&
+          loadedConfigIdRef.current !== selectedConfig.configId
+        ) {
+          void loadDocument(selectedConfig, false);
+        }
       })
       .catch((error: AppError) => {
         if (active) setConfigs({ status: "error", error });
@@ -146,35 +245,13 @@ export function ConfigWorkspace({
     return () => {
       active = false;
     };
-  }, [application.id, canRead]);
-
-  async function loadDocument(summary: ConfigSummary, resetPreview = true) {
-    setDocument({ status: "loading" });
-    if (resetPreview) {
-      setPreview({ status: "idle" });
-      setOperation(undefined);
-      setActionError(undefined);
-    }
-    try {
-      const [value, backupValues, operationValues] = await Promise.all([
-        readConfig(summary.appId, summary.configId),
-        canWrite
-          ? listConfigBackups(summary.appId, summary.configId)
-          : Promise.resolve([]),
-        canWrite ? listOperations() : Promise.resolve([]),
-      ]);
-      setDocument({ status: "ready", document: value });
-      setDraft(value.content ?? "");
-      setBackups(backupValues);
-      setOperations(
-        operationValues.filter((operation) =>
-          operation.summary.includes("configuration"),
-        ),
-      );
-    } catch (error) {
-      setDocument({ status: "error", error: decodeAppError(error) });
-    }
-  }
+  }, [
+    application.id,
+    canRead,
+    loadDocument,
+    onSelectedConfigChange,
+    refreshId,
+  ]);
 
   async function createWritePreview(value: ConfigDocument) {
     if (!canWrite || !value.contentHash || value.writePolicy === "READ_ONLY") {
@@ -255,7 +332,10 @@ export function ConfigWorkspace({
           ? await executeConfigWrite(operationId)
           : await executeRestoreBackup(operationId);
       setOperation(result);
-      if (document.status === "ready") {
+      if (
+        document.status === "ready" &&
+        selectedConfigIdRef.current === document.document.configId
+      ) {
         await loadDocument(document.document, false);
       }
     } catch (error) {
@@ -277,6 +357,32 @@ export function ConfigWorkspace({
     setActionError(undefined);
   }
 
+  function moveDocumentSelection(
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentConfigId: string,
+    selectableConfigs: ConfigSummary[],
+  ) {
+    const currentIndex = selectableConfigs.findIndex(
+      (config) => config.configId === currentConfigId,
+    );
+    const nextIndex = documentTargetIndex(
+      event,
+      currentIndex,
+      selectableConfigs.length,
+    );
+    if (nextIndex === undefined) {
+      return;
+    }
+
+    event.preventDefault();
+    if (nextIndex === currentIndex) {
+      return;
+    }
+    const nextConfig = selectableConfigs[nextIndex];
+    configButtonRefs.current.get(nextConfig.configId)?.focus();
+    void loadDocument(nextConfig);
+  }
+
   const selectedDocument =
     document.status === "ready" ? document.document : undefined;
   const selectedEditorKey = selectedDocument
@@ -286,27 +392,38 @@ export function ConfigWorkspace({
     canWrite &&
     selectedDocument?.writePolicy !== "READ_ONLY" &&
     Boolean(selectedDocument?.contentHash);
+  const selectableConfigs =
+    configs.status === "ready"
+      ? configs.configs.filter((config) => config.exists)
+      : [];
+  const firstSelectableId = selectableConfigs[0]?.configId;
 
   return (
-    <article className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-surface">
-      <header className="border-b border-border bg-surface px-5 py-4">
+    <article className="config-workspace">
+      <header className="config-workspace__header">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-border bg-surface-muted text-foreground">
             <ApplicationIcon className="size-7" iconKey={application.iconKey} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-semibold tracking-tight">
+              <h3 className="text-lg font-semibold tracking-tight">
                 {application.displayName}
-              </h2>
+              </h3>
               <StatusBadge tone={coverage.tone}>{coverage.label}</StatusBadge>
             </div>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
               {application.description}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              <strong className="font-semibold text-foreground">
+                覆盖与授权：
+              </strong>
+              {coverage.description}
             </p>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <div className="config-workspace__metadata">
           <span>{application.presentation.category}</span>
           <span aria-hidden="true">·</span>
           <span>{application.managedDocumentCount} 个配置定义</span>
@@ -317,147 +434,185 @@ export function ConfigWorkspace({
             </>
           ) : null}
         </div>
+        <ul
+          className="config-workspace__capabilities"
+          aria-label={`${application.displayName} 能力`}
+        >
+          {application.capabilities.map((capability) => (
+            <li key={capability}>
+              <StatusBadge>{CAPABILITY_LABELS[capability]}</StatusBadge>
+            </li>
+          ))}
+        </ul>
       </header>
 
-      <div className="grid min-h-0 gap-4 overflow-y-auto overscroll-contain p-5 [scrollbar-gutter:stable]">
+      <div
+        className={classNames(
+          "config-workspace__body",
+          canRead && "config-workspace__body--with-inspector",
+        )}
+      >
         <section
-          className="rounded-md border border-border bg-surface-muted px-4 py-3"
-          aria-labelledby="coverage-heading"
+          className="config-workspace__documents"
+          aria-labelledby="config-documents-heading"
         >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h3 id="coverage-heading" className="text-sm font-semibold">
-                覆盖与授权
-              </h3>
-              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                {coverage.description}
-              </p>
-            </div>
-            <ul
-              className="flex flex-wrap gap-1.5"
-              aria-label={`${application.displayName} 能力`}
-            >
-              {application.capabilities.map((capability) => (
-                <li key={capability}>
-                  <StatusBadge>{CAPABILITY_LABELS[capability]}</StatusBadge>
-                </li>
-              ))}
-            </ul>
+          <div className="config-workspace__pane-heading">
+            <h4 id="config-documents-heading">配置文档</h4>
+            {configs.status === "ready" ? (
+              <span>{configs.configs.length} 项</span>
+            ) : null}
           </div>
-        </section>
 
-        {!canRead ? (
-          <AsyncState kind="empty">
-            此定义仅用于分类和检测；catalog 未授权读取配置内容。
-          </AsyncState>
-        ) : configs.status === "loading" ? (
-          <AsyncState kind="loading">正在读取配置列表…</AsyncState>
-        ) : configs.status === "error" ? (
-          <AsyncState kind="error">{configs.error.message}</AsyncState>
-        ) : configs.status === "ready" && configs.configs.length === 0 ? (
-          <AsyncState kind="empty">此应用暂无可展示的配置文档。</AsyncState>
-        ) : configs.status === "ready" ? (
-          <section aria-labelledby="config-documents-heading">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h3 id="config-documents-heading" className="text-sm font-semibold">
-                配置文档
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {configs.configs.length} 项
-              </span>
+          {!canRead ? (
+            <div className="p-4">
+              <AsyncState kind="empty">
+                此定义仅用于分类和检测；catalog 未授权读取配置内容。
+              </AsyncState>
             </div>
-            <ul className="grid gap-2">
+          ) : configs.status === "idle" || configs.status === "loading" ? (
+            <div className="p-4">
+              <AsyncState kind="loading">正在读取配置列表…</AsyncState>
+            </div>
+          ) : configs.status === "error" ? (
+            <div className="p-4">
+              <AsyncState kind="error">{configs.error.message}</AsyncState>
+            </div>
+          ) : configs.status === "ready" && configs.configs.length === 0 ? (
+            <div className="p-4">
+              <AsyncState kind="empty">
+                此应用暂无可展示的配置文档。
+              </AsyncState>
+            </div>
+          ) : configs.status === "ready" ? (
+            <ul role="listbox" aria-label={`${application.displayName} 配置文档`}>
               {configs.configs.map((config) => {
                 const editorKey = configEditorKey(application, config.configId);
-                const isSelected =
-                  selectedDocument?.configId === config.configId;
+                const isSelected = selectedConfigId === config.configId;
+                const isTabStop =
+                  config.exists &&
+                  (isSelected ||
+                    (!selectedConfigId &&
+                      config.configId === firstSelectableId));
                 return (
-                  <li key={config.configId}>
+                  <li key={config.configId} role="presentation">
                     <button
-                      className="flex w-full items-center justify-between gap-4 rounded-md border border-border bg-surface px-3 py-2.5 text-left transition-colors enabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
+                      ref={(button) => {
+                        if (button) {
+                          configButtonRefs.current.set(config.configId, button);
+                        } else {
+                          configButtonRefs.current.delete(config.configId);
+                        }
+                      }}
+                      className={classNames(
+                        "config-workspace__document",
+                        isSelected && "config-workspace__document--selected",
+                      )}
                       type="button"
+                      role="option"
                       disabled={!config.exists}
-                      aria-pressed={isSelected}
+                      aria-selected={isSelected}
+                      tabIndex={isTabStop ? 0 : -1}
                       onClick={() => void loadDocument(config)}
+                      onKeyDown={(event) =>
+                        moveDocumentSelection(
+                          event,
+                          config.configId,
+                          selectableConfigs,
+                        )
+                      }
                     >
                       <span className="min-w-0">
-                        <strong className="block truncate text-sm">
-                          {config.configId}
-                        </strong>
-                        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                          {config.displayPath}
-                        </span>
+                        <strong>{config.configId}</strong>
+                        <span>{config.displayPath}</span>
                       </span>
-                      <span className="shrink-0 text-right text-xs text-muted-foreground">
-                        <span className="block">
-                          {editorKey ?? "通用元数据视图"}
-                        </span>
-                        <span className="mt-0.5 block">
-                          {config.exists ? "打开" : "不存在"}
-                        </span>
+                      <span className="shrink-0 text-right">
+                        <span>{editorKey ?? "通用元数据视图"}</span>
+                        <span>{config.exists ? "打开" : "不存在"}</span>
                       </span>
                     </button>
                   </li>
                 );
               })}
             </ul>
-          </section>
-        ) : null}
+          ) : null}
+        </section>
 
-        {document.status === "loading" ? (
-          <AsyncState kind="loading">正在读取配置…</AsyncState>
-        ) : document.status === "error" ? (
-          <AsyncState kind="error">{document.error.message}</AsyncState>
-        ) : document.status === "ready" ? (
-          <div className="grid min-w-0 gap-3">
-            <ConfigDetails document={document.document} />
-            {canWriteDocument ? (
-              <>
-                <ConfigAdapterEditor
-                  document={document.document}
-                  editorKey={selectedEditorKey}
-                  onPreview={(fields) =>
-                    void createStructuredWritePreview(document.document, fields)
-                  }
-                />
-                {document.document.content !== undefined ? (
-                  <RawTextEditor
-                    content={draft}
-                    redacted={document.document.contentRedacted}
-                    disabled={preview.status === "loading" || executing}
-                    onChange={setDraft}
-                    onPreview={() => void createWritePreview(document.document)}
-                  />
-                ) : null}
-                <BackupHistory
-                  backups={backups}
-                  disabled={preview.status === "loading" || executing}
-                  onPreviewRestore={createRestorePreview}
-                />
-                <OperationHistory operations={operations} />
-              </>
-            ) : (
-              <AsyncState kind="empty">
-                此文档为只读视图；catalog 与文档策略均未授权写入。
-              </AsyncState>
-            )}
-          </div>
-        ) : null}
+        {canRead ? (
+          <aside
+            className="config-workspace__inspector"
+            aria-labelledby="config-inspector-heading"
+          >
+            <div className="config-workspace__pane-heading">
+              <h4 id="config-inspector-heading">配置详情</h4>
+              {selectedConfigId ? <span>{selectedConfigId}</span> : null}
+            </div>
+            <div className="config-workspace__inspector-content">
+              {document.status === "idle" ? (
+                <AsyncState kind="empty">
+                  选择一个存在的配置文档以查看详情。
+                </AsyncState>
+              ) : document.status === "loading" ? (
+                <AsyncState kind="loading">正在读取配置…</AsyncState>
+              ) : document.status === "error" ? (
+                <AsyncState kind="error">{document.error.message}</AsyncState>
+              ) : (
+                <div className="grid min-w-0 gap-3">
+                  <ConfigDetails document={document.document} />
+                  {canWriteDocument ? (
+                    <>
+                      <ConfigAdapterEditor
+                        document={document.document}
+                        editorKey={selectedEditorKey}
+                        onPreview={(fields) =>
+                          void createStructuredWritePreview(
+                            document.document,
+                            fields,
+                          )
+                        }
+                      />
+                      {document.document.content !== undefined ? (
+                        <RawTextEditor
+                          content={draft}
+                          redacted={document.document.contentRedacted}
+                          disabled={preview.status === "loading" || executing}
+                          onChange={setDraft}
+                          onPreview={() =>
+                            void createWritePreview(document.document)
+                          }
+                        />
+                      ) : null}
+                      <BackupHistory
+                        backups={backups}
+                        disabled={preview.status === "loading" || executing}
+                        onPreviewRestore={createRestorePreview}
+                      />
+                      <OperationHistory operations={operations} />
+                    </>
+                  ) : (
+                    <AsyncState kind="empty">
+                      此文档为只读视图；catalog 与文档策略均未授权写入。
+                    </AsyncState>
+                  )}
+                </div>
+              )}
 
-        {preview.status === "loading" ? (
-          <AsyncState kind="loading">正在生成安全预览…</AsyncState>
-        ) : preview.status === "error" ? (
-          <AsyncState kind="error">{preview.error.message}</AsyncState>
-        ) : preview.status === "ready" && canWrite ? (
-          <ConfigWritePreview
-            busy={executing}
-            error={actionError}
-            kind={preview.kind}
-            operation={operation}
-            preview={preview.preview}
-            onConfirm={() => void confirmPreview()}
-            onCancel={closePreview}
-          />
+              {preview.status === "loading" ? (
+                <AsyncState kind="loading">正在生成安全预览…</AsyncState>
+              ) : preview.status === "error" ? (
+                <AsyncState kind="error">{preview.error.message}</AsyncState>
+              ) : preview.status === "ready" && canWrite ? (
+                <ConfigWritePreview
+                  busy={executing}
+                  error={actionError}
+                  kind={preview.kind}
+                  operation={operation}
+                  preview={preview.preview}
+                  onConfirm={() => void confirmPreview()}
+                  onCancel={closePreview}
+                />
+              ) : null}
+            </div>
+          </aside>
         ) : null}
       </div>
     </article>
