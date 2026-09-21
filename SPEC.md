@@ -1,6 +1,43 @@
 # Spec: UserHome
 
-Status: Approved on 2026-09-20; desktop-experience revision approved on 2026-09-20
+Status: Approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21
+
+## 2026-09-21 Desktop-completeness revision
+
+The original implementation established the secure provider foundation but did
+not satisfy the complete desktop-product objective. The remaining gaps are:
+
+- The application still composes routes as web pages with page headings,
+  cards, and a persistent dashboard-style status rail.
+- The current catalog contains 12 application definitions and does not model
+  most configuration roots present on the baseline Mac.
+- The Settings route is a placeholder rather than a functional product module.
+- Path variants, format handling, diagnostics, and catalog definitions are too
+  application-specific to expand reliably.
+
+The approved revision uses the module map in
+[`CAPABILITY-MAP.md`](CAPABILITY-MAP.md):
+
+1. [`native-desktop-shell`](SPEC-native-desktop-shell.md)
+2. [`home-baseline-inventory`](SPEC-home-baseline-inventory.md)
+3. [`configuration-platform`](SPEC-configuration-platform.md)
+4. [`catalog-expansion`](SPEC-catalog-expansion.md)
+5. [`application-settings`](SPEC-application-settings.md)
+
+The primary UX direction is macOS System Settings rather than a responsive web
+dashboard. The completeness contract is not unrestricted recursive access or
+write support for every file. It is:
+
+- 100% classification of safely identifiable baseline configuration roots.
+- Managed write support only where paths, formats, validation, redaction, and
+  rollback are reliable.
+- Bounded read-only support for safe text configuration that cannot yet be
+  edited safely.
+- Explicit exclusion or unsupported rationale for everything else.
+
+The five revision specifications were approved on 2026-09-21. Planning may
+proceed against their module IDs and dependency order; implementation still
+requires an approved plan.
 
 ## Objective
 
@@ -510,6 +547,11 @@ Required quality bar:
 
 ## Module Index
 
+- [`SPEC-native-desktop-shell.md`](SPEC-native-desktop-shell.md)
+- [`SPEC-home-baseline-inventory.md`](SPEC-home-baseline-inventory.md)
+- [`SPEC-configuration-platform.md`](SPEC-configuration-platform.md)
+- [`SPEC-catalog-expansion.md`](SPEC-catalog-expansion.md)
+- [`SPEC-application-settings.md`](SPEC-application-settings.md)
 - [`SPEC-platform-foundation.md`](SPEC-platform-foundation.md)
 - [`SPEC-app-catalog.md`](SPEC-app-catalog.md)
 - [`SPEC-system-discovery.md`](SPEC-system-discovery.md)
