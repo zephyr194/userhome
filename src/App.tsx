@@ -8,6 +8,7 @@ import {
 } from "react";
 import { AppShell } from "./app/AppShell";
 import { applyAppearance } from "./app/appearance";
+import { createRefreshCoordinator } from "./app/refreshCoordinator";
 import { registerRefreshRequestListener } from "./app/refreshEvents";
 import {
   initialShellState,
@@ -37,42 +38,6 @@ import {
 async function getRecentOperation(): Promise<OperationDetails | null> {
   const operations = await listOperations();
   return operations[0] ? getOperation(operations[0].operationId) : null;
-}
-
-export function createRefreshCoordinator(
-  run: (refreshProviders: boolean) => Promise<void>,
-): (refreshProviders: boolean) => Promise<void> {
-  let inFlight: Promise<void> | null = null;
-  let forcedRefreshPending = false;
-
-  return (refreshProviders: boolean): Promise<void> => {
-    if (inFlight) {
-      if (refreshProviders) {
-        forcedRefreshPending = true;
-      }
-      return inFlight;
-    }
-
-    inFlight = (async () => {
-      let forceProviders = refreshProviders;
-      let firstError: unknown;
-      do {
-        forcedRefreshPending = false;
-        try {
-          await run(forceProviders);
-        } catch (error) {
-          firstError ??= error;
-        }
-        forceProviders = forcedRefreshPending;
-      } while (forceProviders);
-      if (firstError !== undefined) {
-        throw firstError;
-      }
-    })().finally(() => {
-      inFlight = null;
-    });
-    return inFlight;
-  };
 }
 
 function loadedPreferencesAction(
