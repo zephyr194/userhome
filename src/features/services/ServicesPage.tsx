@@ -105,6 +105,7 @@ export function ServicesPage({
   const listRequestRef = useRef(0);
   const detailsRequestRef = useRef(0);
   const historyRequestRef = useRef(0);
+  const previewRequestRef = useRef(0);
   const operationInFlightRef = useRef(false);
   const selectedServiceIdRef = useRef<string | undefined>(undefined);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -124,6 +125,7 @@ export function ServicesPage({
             : services[0]?.serviceId;
         if (next !== current) {
           selectedServiceIdRef.current = next;
+          previewRequestRef.current += 1;
           setSelectedServiceId(next);
           setPreview(undefined);
           setOperation(undefined);
@@ -180,6 +182,7 @@ export function ServicesPage({
 
   function selectService(serviceId: string) {
     selectedServiceIdRef.current = serviceId;
+    previewRequestRef.current += 1;
     setSelectedServiceId(serviceId);
     setPreview(undefined);
     setOperation(undefined);
@@ -212,17 +215,26 @@ export function ServicesPage({
 
   async function createPreview(action: ServiceAction) {
     if (visibleDetailsState.status !== "ready") return;
+    const serviceId = visibleDetailsState.details.serviceId;
+    const requestId = previewRequestRef.current + 1;
+    previewRequestRef.current = requestId;
     setActionError(undefined);
     setOperation(undefined);
     try {
-      setPreview(
-        await previewServiceAction({
-          action,
-          serviceId: visibleDetailsState.details.serviceId,
-        }),
-      );
+      const nextPreview = await previewServiceAction({ action, serviceId });
+      if (
+        previewRequestRef.current === requestId &&
+        selectedServiceIdRef.current === serviceId
+      ) {
+        setPreview(nextPreview);
+      }
     } catch (error) {
-      setActionError(decodeAppError(error));
+      if (
+        previewRequestRef.current === requestId &&
+        selectedServiceIdRef.current === serviceId
+      ) {
+        setActionError(decodeAppError(error));
+      }
     }
   }
 
