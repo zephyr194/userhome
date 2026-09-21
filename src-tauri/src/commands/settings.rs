@@ -34,19 +34,40 @@ pub fn update_preferences(
     patch: UpdatePreferencesRequest,
 ) -> Result<LoadedPreferences, AppError> {
     let requested_retention = patch.backup_retention();
-    let loaded = coordinator.update_with(patch, |preferences| {
+    let result = coordinator.update_with(patch, |preferences| {
         if requested_retention.is_some() {
             enforce_all(
                 &builtin_catalog()?,
                 config.environment()?,
                 preferences.backup_retention(),
-            )?;
+            )
+            .map_err(backup_retention_cleanup_error)?;
         }
         Ok(())
-    })?;
+    });
+    match result {
+        Ok(loaded) => {
+            apply_discovery_preferences(&discovery, &loaded);
+            Ok(loaded)
+        }
+        Err(error) if error.code() == crate::error::AppErrorCode::PartialFailure => {
+            apply_discovery_preferences(&discovery, &coordinator.get()?);
+            Err(error)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn backup_retention_cleanup_error(_: AppError) -> AppError {
+    AppError::partial_failure(
+        "Backup retention was saved, but older backups could not be removed. Retry this setting to finish cleanup.",
+        true,
+    )
+}
+
+fn apply_discovery_preferences(discovery: &DiscoveryCoordinator, loaded: &LoadedPreferences) {
     discovery.set_timeout_preset(loaded.preferences().provider_timeout_preset());
     discovery.set_optional_discovery_roots(loaded.preferences().optional_discovery_roots());
-    Ok(loaded)
 }
 
 #[tauri::command]

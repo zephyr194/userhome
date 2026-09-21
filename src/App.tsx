@@ -15,7 +15,7 @@ import {
   type ShellAction,
 } from "./app/shellState";
 import { listManagedApps } from "./ipc/catalog";
-import { type AppError, getAppStatus } from "./ipc/core";
+import { decodeAppError, type AppError, getAppStatus } from "./ipc/core";
 import {
   getSystemSnapshot,
   refreshSystemSnapshot,
@@ -210,9 +210,27 @@ function App({
 
   const changePreferences = useCallback(
     async (patch: UpdatePreferencesRequest): Promise<void> => {
-      dispatch(loadedPreferencesAction(await updatePreferences(patch)));
+      try {
+        dispatch(loadedPreferencesAction(await updatePreferences(patch)));
+      } catch (caught) {
+        const error = decodeAppError(caught);
+        if (
+          error.code === "PARTIAL_FAILURE" &&
+          patch.backupRetention !== undefined &&
+          state.preferences.status !== "loading"
+        ) {
+          dispatch({
+            type: "preferences-ready",
+            preferences: {
+              ...state.preferences.preferences,
+              backupRetention: patch.backupRetention,
+            },
+          });
+        }
+        throw error;
+      }
     },
-    [],
+    [state.preferences],
   );
 
   const changeAppearance = useCallback(

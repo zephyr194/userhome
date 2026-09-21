@@ -347,7 +347,7 @@ impl SettingsCoordinator {
     pub(crate) fn update_with<F>(
         &self,
         patch: UpdatePreferencesRequest,
-        before_save: F,
+        after_save: F,
     ) -> Result<LoadedPreferences, AppError>
     where
         F: FnOnce(&UserPreferences) -> Result<(), AppError>,
@@ -361,8 +361,8 @@ impl SettingsCoordinator {
         }
         let mut preferences = loaded.preferences().clone();
         preferences.apply_patch(patch)?;
-        before_save(&preferences)?;
         store.save(&preferences)?;
+        after_save(&preferences)?;
         Ok(LoadedPreferences::ready(preferences))
     }
 
@@ -503,6 +503,49 @@ mod tests {
                 .expect("reset preferences")
                 .preferences(),
             &UserPreferences::default()
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn settings_coordinator_persists_before_retryable_follow_up_work() {
+        let root =
+            std::env::temp_dir().join(format!("userhome-settings-follow-up-{}", Uuid::new_v4()));
+        let coordinator = SettingsCoordinator::new(SettingsStore::new(root.clone()));
+
+        let error = coordinator
+            .update_with(
+                UpdatePreferencesRequest {
+                    backup_retention: Some(BackupRetention::FIVE),
+                    ..UpdatePreferencesRequest::default()
+                },
+                |_| {
+                    let stored = fs::read(root.join("preferences.json"))
+                        .map_err(|_| AppError::conflict("Preferences were not saved first."))?;
+                    let value: Value = serde_json::from_slice(&stored)
+                        .map_err(|_| AppError::conflict("Saved preferences are invalid."))?;
+                    if value.get("backupRetention") != Some(&Value::from(5)) {
+                        return Err(AppError::conflict(
+                            "The saved retention policy is not active.",
+                        ));
+                    }
+                    Err(AppError::partial_failure(
+                        "Preferences were saved, but follow-up work failed.",
+                        true,
+                    ))
+                },
+            )
+            .expect_err("follow-up failure must be reported");
+
+        assert_eq!(error.code(), crate::error::AppErrorCode::PartialFailure);
+        assert!(error.retryable());
+        assert_eq!(
+            coordinator
+                .get()
+                .expect("reload saved preferences")
+                .preferences()
+                .backup_retention(),
+            BackupRetention::FIVE
         );
         let _ = fs::remove_dir_all(root);
     }
