@@ -25,7 +25,7 @@ export function SettingsPage({
   selectedGroup,
 }: {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
-  onDiscoveryRefresh: () => void;
+  onDiscoveryRefresh: () => void | Promise<void>;
   onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
   onPreferencesReset: () => Promise<void>;
   onSelectedGroupChange: (group: SettingsGroupId) => void;

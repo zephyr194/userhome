@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useReducer,
   useRef,
 } from "react";
@@ -36,6 +37,42 @@ import {
 async function getRecentOperation(): Promise<OperationDetails | null> {
   const operations = await listOperations();
   return operations[0] ? getOperation(operations[0].operationId) : null;
+}
+
+export function createRefreshCoordinator(
+  run: (refreshProviders: boolean) => Promise<void>,
+): (refreshProviders: boolean) => Promise<void> {
+  let inFlight: Promise<void> | null = null;
+  let forcedRefreshPending = false;
+
+  return (refreshProviders: boolean): Promise<void> => {
+    if (inFlight) {
+      if (refreshProviders) {
+        forcedRefreshPending = true;
+      }
+      return inFlight;
+    }
+
+    inFlight = (async () => {
+      let forceProviders = refreshProviders;
+      let firstError: unknown;
+      do {
+        forcedRefreshPending = false;
+        try {
+          await run(forceProviders);
+        } catch (error) {
+          firstError ??= error;
+        }
+        forceProviders = forcedRefreshPending;
+      } while (forceProviders);
+      if (firstError !== undefined) {
+        throw firstError;
+      }
+    })().finally(() => {
+      inFlight = null;
+    });
+    return inFlight;
+  };
 }
 
 function loadedPreferencesAction(
@@ -77,7 +114,6 @@ function App({
     ...initialShellState,
     preferences: loadedPreferencesState(initialPreferences),
   });
-  const refreshInFlight = useRef<Promise<void> | null>(null);
   const initialLoadStarted = useRef(false);
   const preferencesHydrated = state.preferences.status !== "loading";
   const appearance =
@@ -89,12 +125,9 @@ function App({
     applyAppearance(appearance);
   }, [appearance]);
 
-  const loadShell = useCallback((refreshProviders: boolean): Promise<void> => {
+  const runLoadShell = useCallback((refreshProviders: boolean): Promise<void> => {
     if (!preferencesHydrated) {
       return Promise.resolve();
-    }
-    if (refreshInFlight.current) {
-      return refreshInFlight.current;
     }
 
     if (refreshProviders) {
@@ -188,14 +221,13 @@ function App({
             message: "刷新完成，但部分信息不可用。",
           });
         },
-      )
-      .finally(() => {
-        refreshInFlight.current = null;
-      });
-
-    refreshInFlight.current = request;
+      );
     return request;
   }, [preferencesHydrated]);
+  const loadShell = useMemo(
+    () => createRefreshCoordinator(runLoadShell),
+    [runLoadShell],
+  );
 
   useEffect(() => {
     if (initialLoadStarted.current) return;

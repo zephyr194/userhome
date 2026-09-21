@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type {
   OptionalDiscoveryRoot,
   UpdatePreferencesRequest,
@@ -38,10 +39,11 @@ export function PrivacySettings({
   preferences,
 }: {
   onChange: (patch: UpdatePreferencesRequest) => Promise<void>;
-  onDiscoveryRefresh: () => void;
+  onDiscoveryRefresh: () => void | Promise<void>;
   preferences: UserPreferences;
 }) {
   const form = usePreferenceForm(preferences, onChange);
+  const [refreshing, setRefreshing] = useState(false);
 
   async function toggleRoot(
     root: OptionalDiscoveryRoot,
@@ -56,17 +58,22 @@ export function PrivacySettings({
     const optionalDiscoveryRoots = ROOTS.map(({ id }) => id).filter((id) =>
       enabledRoots.has(id),
     );
-    if (
-      await form.update("发现根偏好", {
-        optionalDiscoveryRoots,
-      })
-    ) {
-      onDiscoveryRefresh();
+    setRefreshing(true);
+    try {
+      if (
+        await form.update("发现根偏好", {
+          optionalDiscoveryRoots,
+        })
+      ) {
+        await onDiscoveryRefresh();
+      }
+    } finally {
+      setRefreshing(false);
     }
   }
 
   return (
-    <div className="settings-form" aria-busy={form.saving}>
+    <div className="settings-form" aria-busy={form.saving || refreshing}>
       <fieldset className="settings-choice-group">
         <legend>元数据发现根</legend>
         <p>
@@ -77,7 +84,7 @@ export function PrivacySettings({
             <input
               type="checkbox"
               checked={form.values.optionalDiscoveryRoots.includes(root.id)}
-              disabled={form.saving}
+              disabled={form.saving || refreshing}
               onChange={(event) =>
                 void toggleRoot(root.id, event.currentTarget.checked)
               }
