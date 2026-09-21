@@ -19,6 +19,31 @@ const MAX_PATH_VARIANTS_PER_DOCUMENT: usize = 8;
 const MAX_LIST_ENTRIES: usize = 32;
 const MAX_STRING_BYTES: usize = 512;
 const DEFAULT_PRESENTATION_CATEGORY: &str = "Other";
+pub const MINIMUM_ELIGIBLE_TEXT_COVERAGE_PERCENT: u8 = 90;
+pub const PRIORITY_A_APP_IDS: &[&str] =
+    &["github-copilot", "caddy", "git", "openssh", "zsh", "npm"];
+pub const PRIORITY_B_APP_IDS: &[&str] = &[
+    "visual-studio-code",
+    "cursor",
+    "ghostty",
+    "starship",
+    "tmux",
+    "vim",
+    "zed",
+    "neovim",
+    "iterm2",
+    "claude",
+    "codex",
+    "gemini",
+    "antigravity",
+    "trae",
+    "docker",
+    "orbstack",
+    "gcloud",
+    "raycast",
+    "gitkraken-cli",
+    "apifox",
+];
 const ALLOWED_ADAPTERS: &[&str] = &[
     "caddyfile",
     "copilot-instructions",
@@ -109,6 +134,7 @@ pub enum CatalogValidationError {
     UnboundedDocument,
     UnsupportedWritePolicy,
     UnsupportedValue,
+    IncompletePriorityCoverage,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -147,6 +173,8 @@ pub struct ManagedAppDefinition {
     id: String,
     display_name: String,
     description: String,
+    #[serde(default)]
+    support_requirement: Option<String>,
     icon_key: String,
     #[serde(default)]
     coverage_class: Option<CatalogCoverageClass>,
@@ -172,6 +200,10 @@ impl ManagedAppDefinition {
 
     pub fn description(&self) -> &str {
         &self.description
+    }
+
+    pub fn support_requirement(&self) -> Option<&str> {
+        self.support_requirement.as_deref()
     }
 
     pub fn icon_key(&self) -> &str {
@@ -241,6 +273,24 @@ pub enum CatalogCoverageClass {
     ManagedReadOnly,
     DetectedUnsupported,
     Excluded,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CatalogPriority {
+    PriorityA,
+    PriorityB,
+    PriorityC,
+}
+
+pub fn catalog_priority(app_id: &str) -> CatalogPriority {
+    if PRIORITY_A_APP_IDS.contains(&app_id) {
+        CatalogPriority::PriorityA
+    } else if PRIORITY_B_APP_IDS.contains(&app_id) {
+        CatalogPriority::PriorityB
+    } else {
+        CatalogPriority::PriorityC
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -497,6 +547,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
         }
         validate_text(&app.display_name)?;
         validate_text(&app.description)?;
+        if let Some(requirement) = &app.support_requirement {
+            validate_text(requirement)?;
+        }
         validate_text(app.presentation_category())?;
         validate_list(&app.executables)?;
         validate_list(&app.brew_formulae)?;
@@ -505,6 +558,9 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
         validate_allowed_list(&app.capabilities, ALLOWED_CAPABILITIES)?;
         validate_coverage_class(app)?;
 
+        if app.detection_rules.is_empty() {
+            return Err(CatalogValidationError::UnsupportedValue);
+        }
         if app.detection_rules.len() > MAX_LIST_ENTRIES
             || app.config_documents.len() > MAX_CONFIG_DOCUMENTS_PER_APP
         {
@@ -599,6 +655,37 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
                     || resource_id != crate::security::elevation_protocol::CADDY_CONFIG_RESOURCE_ID)
             {
                 return Err(CatalogValidationError::UnsupportedValue);
+            }
+        }
+    }
+
+    validate_priority_coverage(catalog)?;
+    Ok(())
+}
+
+fn validate_priority_coverage(catalog: &Catalog) -> Result<(), CatalogValidationError> {
+    for app_id in PRIORITY_A_APP_IDS {
+        let app = catalog
+            .apps
+            .iter()
+            .find(|app| app.id == *app_id)
+            .ok_or(CatalogValidationError::IncompletePriorityCoverage)?;
+        if app.coverage_class() != CatalogCoverageClass::ManagedWritable {
+            return Err(CatalogValidationError::IncompletePriorityCoverage);
+        }
+    }
+
+    for app_id in PRIORITY_B_APP_IDS {
+        let app = catalog
+            .apps
+            .iter()
+            .find(|app| app.id == *app_id)
+            .ok_or(CatalogValidationError::IncompletePriorityCoverage)?;
+        match app.coverage_class() {
+            CatalogCoverageClass::ManagedWritable | CatalogCoverageClass::ManagedReadOnly => {}
+            CatalogCoverageClass::Excluded if app.support_requirement.is_some() => {}
+            CatalogCoverageClass::DetectedUnsupported | CatalogCoverageClass::Excluded => {
+                return Err(CatalogValidationError::IncompletePriorityCoverage);
             }
         }
     }

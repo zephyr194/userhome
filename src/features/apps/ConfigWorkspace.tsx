@@ -32,6 +32,7 @@ import {
 } from "../../ipc/operations";
 import { OperationHistory } from "../operations/OperationHistory";
 import { ApplicationIcon } from "./ApplicationIcon";
+import { ApplicationSupportSummary } from "./ApplicationSupportSummary";
 import { BackupHistory } from "./BackupHistory";
 import { ConfigDiagnosticDetails } from "./ConfigDiagnosticDetails";
 import { ConfigDetails } from "./ConfigDetails";
@@ -509,6 +510,8 @@ export function ConfigWorkspace({
             </ul>
           </div>
         </section>
+
+        <ApplicationSupportSummary application={application} />
 
         {!canRead ? (
           <AsyncState

@@ -1974,8 +1974,8 @@ Codex, Gemini, Antigravity, Trae, Docker, OrbStack, Google Cloud CLI, Raycast,
 GitKraken CLI, and Apifox while preserving the complete T58-and-earlier prefix.
 Ten applications expose only bounded read-only documents; AI and integration
 JSON/TOML settings are `SECRET`, plist formats remain metadata-only, and
-gcloud INI values are strictly redacted. OrbStack is
-`DETECTED_UNSUPPORTED` because its documented group container mixes settings
+gcloud INI values are strictly redacted. OrbStack is `EXCLUDED` because its
+documented group container mixes settings
 with machines, containers, images, credentials, databases, and runtime state
 without a stable bounded settings-file contract. Every new executable,
 Homebrew, service, elevation, and write surface is empty; all 11 targeted
@@ -2003,16 +2003,16 @@ show grouped, searchable detection evidence, managed documents, unsupported
 areas, exclusions, and completeness counts in Applications.
 
 **Acceptance criteria:**
-- [ ] All candidates are classified, Priority A remains usable, and Priority B
+- [x] All candidates are classified, Priority A remains usable, and Priority B
       meets the approved managed-or-excluded rule.
-- [ ] At least 90% of eligible text roots are managed read-only or writable.
-- [ ] Application detail explains evidence, limitations, exclusions, and the
+- [x] At least 90% of eligible text roots are managed read-only or writable.
+- [x] Application detail explains evidence, limitations, exclusions, and the
       concrete requirement for increased support.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: reconcile displayed totals with the sanitized manifest.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Manual: reconcile displayed totals with the sanitized manifest.
 
 **Dependencies:** T53, T57, T59
 
@@ -2030,13 +2030,26 @@ reason and preserve the eligible-text denominator.
 
 **Estimated scope:** M
 
+**Evidence:** Catalog validation fixes Priority A at six writable integrations
+and requires all twenty Priority B applications to be managed or specifically
+excluded; OrbStack now carries the concrete settings-contract requirement
+needed for that exclusion. The sanitized manifest computes the eligible-text
+numerator and denominator before export filtering, and the current bounded
+baseline reports 128 / 128 classified candidates, 25 / 25 managed eligible
+text roots (100%), 6 / 6 usable Priority A applications, and 20 / 20 covered
+Priority B applications while retaining 19 omitted and 3 excluded counts.
+Applications now groups entries by category, searches detection evidence,
+managed document paths and support explanations, and renders evidence,
+limitations, exclusions, support requirements, and completeness totals without
+exposing absolute private paths or raw catalog authorization templates.
+
 ## Checkpoint Q: Catalog Coverage
 
-- [ ] T58-T60 acceptance criteria pass.
-- [ ] Every sanitized candidate maps to one coverage class and all counts agree.
-- [ ] Priority A behavior remains compatible and Priority B coverage is
+- [x] T58-T60 acceptance criteria pass.
+- [x] Every sanitized candidate maps to one coverage class and all counts agree.
+- [x] Priority A behavior remains compatible and Priority B coverage is
       evidence-based.
-- [ ] No catalog-only addition requires an `appId` branch or grants new write
+- [x] No catalog-only addition requires an `appId` branch or grants new write
       authority.
 
 ## T61: Add versioned atomic preference persistence

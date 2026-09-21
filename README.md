@@ -109,7 +109,7 @@ Copilot, Caddy, Git, OpenSSH, Zsh, and npm are explicitly managed writable;
 Visual Studio Code, Cursor, Ghostty, Starship, tmux, Vim, Zed, Neovim, and
 iTerm2, Claude, Codex, Gemini, Antigravity, Trae, Docker, Google Cloud CLI,
 Raycast, GitKraken CLI, and Apifox are bounded managed read-only definitions.
-OrbStack is detected but unsupported because its group container co-locates
+OrbStack is explicitly excluded because its group container co-locates
 configuration and runtime data without a stable settings-file contract.
 `MANAGED_READ_ONLY` entries never expose preview, write, backup, restore,
 service, or elevation actions. `DETECTED_UNSUPPORTED` and `EXCLUDED`

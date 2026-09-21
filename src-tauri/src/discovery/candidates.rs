@@ -23,6 +23,27 @@ const MAX_ISSUES: usize = 32;
 const MAX_OUTCOMES: usize = 32;
 const MAX_CANDIDATE_PATH_BYTES: usize = 1024;
 const CANDIDATE_SCAN_TIMEOUT: Duration = Duration::from_millis(1_500);
+const ELIGIBLE_TEXT_FORMAT_HINTS: &[&str] = &[
+    "CADDYFILE",
+    "CONF",
+    "CONFIG",
+    "GIT_CONFIG",
+    "INI",
+    "JSON",
+    "JSONC",
+    "KEY_VALUE",
+    "MARKDOWN",
+    "MD",
+    "SHELL",
+    "SH",
+    "SSH_CONFIG",
+    "TEXT",
+    "TOML",
+    "TXT",
+    "YAML",
+    "YML",
+    "ZSH",
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -187,6 +208,8 @@ pub struct BaselineCoverageSummary {
     excluded_count: usize,
     exported_candidate_count: usize,
     omitted_candidate_count: usize,
+    eligible_text_count: usize,
+    managed_eligible_text_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -284,6 +307,23 @@ impl ConfigurationCoverage {
             .collect::<Vec<_>>();
         let total_candidate_count = self.candidates.len();
         let exported_candidate_count = candidates.len();
+        let eligible_text_count = self
+            .candidates
+            .iter()
+            .filter(|candidate| is_eligible_text_candidate(candidate))
+            .count();
+        let managed_eligible_text_count = self
+            .candidates
+            .iter()
+            .filter(|candidate| {
+                is_eligible_text_candidate(candidate)
+                    && matches!(
+                        candidate.coverage_class,
+                        CatalogCoverageClass::ManagedWritable
+                            | CatalogCoverageClass::ManagedReadOnly
+                    )
+            })
+            .count();
 
         SanitizedBaselineManifest {
             schema_version: SANITIZED_BASELINE_SCHEMA_VERSION,
@@ -297,6 +337,8 @@ impl ConfigurationCoverage {
                 excluded_count,
                 exported_candidate_count,
                 omitted_candidate_count: total_candidate_count - exported_candidate_count,
+                eligible_text_count,
+                managed_eligible_text_count,
             },
             scan: SanitizedCandidateScanSummary {
                 candidate_count: self.summary.candidate_count,
@@ -331,6 +373,16 @@ impl From<&UnmanagedCandidate> for SanitizedBaselineCandidate {
             catalog_app_id: candidate.catalog_app_id.clone(),
         }
     }
+}
+
+fn is_eligible_text_candidate(candidate: &UnmanagedCandidate) -> bool {
+    matches!(
+        candidate.entry_type,
+        CandidateKind::File | CandidateKind::Symlink
+    ) && candidate
+        .format_hints
+        .iter()
+        .any(|hint| ELIGIBLE_TEXT_FORMAT_HINTS.contains(&hint.as_str()))
 }
 
 fn is_export_safe(candidate: &UnmanagedCandidate) -> bool {
@@ -1649,6 +1701,29 @@ mod tests {
         assert_eq!(
             manifest.coverage.exported_candidate_count,
             manifest.candidates.len()
+        );
+        assert_eq!(
+            manifest.coverage.eligible_text_count,
+            candidates
+                .candidates
+                .iter()
+                .filter(|candidate| is_eligible_text_candidate(candidate))
+                .count()
+        );
+        assert_eq!(
+            manifest.coverage.managed_eligible_text_count,
+            candidates
+                .candidates
+                .iter()
+                .filter(|candidate| {
+                    is_eligible_text_candidate(candidate)
+                        && matches!(
+                            candidate.coverage_class,
+                            CatalogCoverageClass::ManagedWritable
+                                | CatalogCoverageClass::ManagedReadOnly
+                        )
+                })
+                .count()
         );
         assert!(manifest.candidates.iter().all(|candidate| {
             candidate.coverage_class != CatalogCoverageClass::Excluded

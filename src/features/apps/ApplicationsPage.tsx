@@ -13,6 +13,7 @@ import type {
   UnmanagedCandidate,
 } from "../../ipc/discovery";
 import { ApplicationIcon } from "./ApplicationIcon";
+import { CatalogCoverageSummary } from "./CatalogCoverageSummary";
 import { ConfigWorkspace } from "./ConfigWorkspace";
 import { UnmanagedCandidates } from "./UnmanagedCandidates";
 
@@ -88,6 +89,46 @@ function candidateEntries(
   }));
 }
 
+function entrySearchText(entry: ApplicationEntry): string {
+  const common = [
+    entry.displayName,
+    entry.description,
+    entry.category,
+    entry.coverageClass,
+  ];
+  if (entry.kind === "candidate") {
+    return [
+      ...common,
+      entry.candidate.relativePath,
+      entry.candidate.classificationReason,
+      ...entry.candidate.evidence,
+      ...entry.candidate.formatHints,
+    ]
+      .join(" ")
+      .toLocaleLowerCase();
+  }
+  return [
+    ...common,
+    entry.application.priority,
+    ...entry.application.detectionEvidence.flatMap((evidence) => [
+      evidence.kind,
+      evidence.value,
+    ]),
+    ...entry.application.presentation.configDocuments.flatMap((document) => [
+      document.configId,
+      document.purpose,
+      document.format,
+      document.formatFamily,
+      ...document.pathVariants.map((variant) => variant.relativePath),
+    ]),
+    ...entry.application.support.limitations,
+    ...entry.application.support.exclusions,
+    entry.application.support.requirement,
+  ]
+    .join(" ")
+    .toLocaleLowerCase();
+}
+
 function ApplicationsWorkspace({
   candidates,
   catalog,
@@ -118,10 +159,14 @@ function ApplicationsWorkspace({
       (category === "ALL" || entry.category === category) &&
       (coverage === "ALL" || entry.coverageClass === coverage) &&
       (normalizedQuery.length === 0 ||
-        entry.displayName.toLocaleLowerCase().includes(normalizedQuery) ||
-        entry.description.toLocaleLowerCase().includes(normalizedQuery) ||
-        entry.category.toLocaleLowerCase().includes(normalizedQuery)),
+        entrySearchText(entry).includes(normalizedQuery)),
   );
+  const groupedEntries = categories
+    .map((value) => ({
+      category: value,
+      entries: filteredEntries.filter((entry) => entry.category === value),
+    }))
+    .filter((group) => group.entries.length > 0);
   const selectedEntry =
     filteredEntries.find((entry) => entry.key === selectedKey) ??
     filteredEntries[0];
@@ -148,6 +193,8 @@ function ApplicationsWorkspace({
           {catalog.applications.length} 个 catalog 定义
         </div>
       </header>
+
+      <CatalogCoverageSummary catalog={catalog} />
 
       <div className="applications-workspace__filters" aria-label="应用筛选">
         <label className="min-w-0 flex-1">
@@ -209,62 +256,75 @@ function ApplicationsWorkspace({
               <AsyncState kind="empty">没有符合筛选条件的条目。</AsyncState>
             </div>
           ) : (
-            <ul>
-              {filteredEntries.map((entry) => {
-                const isSelected = selectedEntry?.key === entry.key;
-                const coverageValue =
-                  COVERAGE_PRESENTATION[entry.coverageClass];
-                return (
-                  <li key={entry.key}>
-                    <button
-                      type="button"
-                      className={classNames(
-                        "flex w-full items-start gap-3 border-b border-border px-3 py-3 text-left transition-colors",
-                        "hover:bg-surface-muted focus-visible:relative focus-visible:z-10",
-                        isSelected
-                          ? "bg-primary-soft text-foreground"
-                          : "bg-surface",
-                      )}
-                      aria-current={isSelected ? "true" : undefined}
-                      onClick={() => setSelectedKey(entry.key)}
-                    >
-                      <span
-                        className={classNames(
-                          "grid size-9 shrink-0 place-items-center rounded-md border",
-                          isSelected
-                            ? "border-primary/30 bg-surface text-primary"
-                            : "border-border bg-surface-muted text-muted-foreground",
-                        )}
-                      >
-                        <ApplicationIcon
-                          className="size-5"
-                          iconKey={entry.iconKey}
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex min-w-0 items-start justify-between gap-2">
-                          <strong className="truncate text-sm font-semibold">
-                            {entry.displayName}
-                          </strong>
-                          <StatusBadge
-                            className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
-                            tone={coverageValue.tone}
+            groupedEntries.map((group, groupIndex) => (
+              <section
+                key={group.category}
+                aria-labelledby={`application-group-${groupIndex}`}
+              >
+                <h3
+                  id={`application-group-${groupIndex}`}
+                  className="sticky top-0 z-[1] border-b border-border bg-surface-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground"
+                >
+                  {group.category} · {group.entries.length}
+                </h3>
+                <ul>
+                  {group.entries.map((entry) => {
+                    const isSelected = selectedEntry?.key === entry.key;
+                    const coverageValue =
+                      COVERAGE_PRESENTATION[entry.coverageClass];
+                    return (
+                      <li key={entry.key}>
+                        <button
+                          type="button"
+                          className={classNames(
+                            "flex w-full items-start gap-3 border-b border-border px-3 py-3 text-left transition-colors",
+                            "hover:bg-surface-muted focus-visible:relative focus-visible:z-10",
+                            isSelected
+                              ? "bg-primary-soft text-foreground"
+                              : "bg-surface",
+                          )}
+                          aria-current={isSelected ? "true" : undefined}
+                          onClick={() => setSelectedKey(entry.key)}
+                        >
+                          <span
+                            className={classNames(
+                              "grid size-9 shrink-0 place-items-center rounded-md border",
+                              isSelected
+                                ? "border-primary/30 bg-surface text-primary"
+                                : "border-border bg-surface-muted text-muted-foreground",
+                            )}
                           >
-                            {coverageValue.label}
-                          </StatusBadge>
-                        </span>
-                        <span className="mt-1 block truncate text-xs text-muted-foreground">
-                          {entry.category}
-                        </span>
-                        <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
-                          {entry.description}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                            <ApplicationIcon
+                              className="size-5"
+                              iconKey={entry.iconKey}
+                            />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex min-w-0 items-start justify-between gap-2">
+                              <strong className="truncate text-sm font-semibold">
+                                {entry.displayName}
+                              </strong>
+                              <StatusBadge
+                                className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                                tone={coverageValue.tone}
+                              >
+                                {coverageValue.label}
+                              </StatusBadge>
+                            </span>
+                            <span className="mt-1 block truncate text-xs text-muted-foreground">
+                              {entry.category}
+                            </span>
+                            <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-muted-foreground">
+                              {entry.description}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))
           )}
 
           {candidates.status === "LOADING" ? (

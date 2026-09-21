@@ -107,12 +107,10 @@ fn catalog_preserves_prior_batches_and_adds_ai_developer_tools() {
         .iter()
         .find(|app| app.id() == "orbstack")
         .expect("OrbStack definition");
-    assert_eq!(
-        orbstack.coverage_class(),
-        CatalogCoverageClass::DetectedUnsupported
-    );
+    assert_eq!(orbstack.coverage_class(), CatalogCoverageClass::Excluded);
     assert_eq!(orbstack.capabilities(), ["DETECT"]);
     assert!(orbstack.config_documents().is_empty());
+    assert!(orbstack.support_requirement().is_some());
     assert!(
         orbstack
             .description()
@@ -423,6 +421,14 @@ fn catalog_ipc_summary_exposes_only_sanitized_path_variants() {
     let encoded = serialized.to_string();
 
     assert_eq!(serialized["schemaVersion"], json!(CATALOG_SCHEMA_VERSION));
+    assert_eq!(serialized["coveragePolicy"]["priorityATotal"], json!(6));
+    assert_eq!(serialized["coveragePolicy"]["priorityAUsable"], json!(6));
+    assert_eq!(serialized["coveragePolicy"]["priorityBTotal"], json!(20));
+    assert_eq!(serialized["coveragePolicy"]["priorityBCovered"], json!(20));
+    assert_eq!(
+        serialized["coveragePolicy"]["minimumEligibleTextPercent"],
+        json!(90)
+    );
     assert_eq!(
         serialized["applications"]
             .as_array()
@@ -431,9 +437,12 @@ fn catalog_ipc_summary_exposes_only_sanitized_path_variants() {
         26
     );
     assert!(encoded.contains("pathVariants"));
+    assert!(encoded.contains("detectionEvidence"));
+    assert!(encoded.contains("support"));
     assert!(encoded.contains("HOMEBREW_PREFIX"));
     assert!(!encoded.contains("pathTemplate"));
     assert!(!encoded.contains("~/."));
+    assert!(!encoded.contains("~/"));
     assert!(!encoded.contains("/Users/"));
 }
 
@@ -457,7 +466,47 @@ fn catalog_rejects_duplicate_application_and_config_ids() {
 }
 
 #[test]
+fn catalog_requires_complete_priority_a_and_priority_b_coverage() {
+    let missing_priority_a = mutate_catalog(|document| {
+        document["apps"]
+            .as_array_mut()
+            .expect("applications")
+            .remove(0);
+    });
+    assert_eq!(
+        parse_catalog(&missing_priority_a),
+        Err(CatalogValidationError::IncompletePriorityCoverage)
+    );
+
+    let unsupported_priority_b = mutate_catalog(|document| {
+        let orbstack = document["apps"]
+            .as_array_mut()
+            .expect("applications")
+            .iter_mut()
+            .find(|app| app["id"] == "orbstack")
+            .expect("OrbStack definition");
+        orbstack["coverageClass"] = json!("DETECTED_UNSUPPORTED");
+        orbstack
+            .as_object_mut()
+            .expect("application object")
+            .remove("supportRequirement");
+    });
+    assert_eq!(
+        parse_catalog(&unsupported_priority_b),
+        Err(CatalogValidationError::IncompletePriorityCoverage)
+    );
+}
+
+#[test]
 fn catalog_rejects_unsafe_paths_and_missing_adapters() {
+    let missing_detection_evidence = mutate_catalog(|document| {
+        document["apps"][0]["detectionRules"] = json!([]);
+    });
+    assert_eq!(
+        parse_catalog(&missing_detection_evidence),
+        Err(CatalogValidationError::UnsupportedValue)
+    );
+
     let unsafe_path = mutate_catalog(|document| {
         document["apps"][0]["configDocuments"][0]["pathTemplate"] =
             json!("~/.copilot/../../.ssh/id_rsa");

@@ -105,7 +105,7 @@ boundary and are never catalog documents.
 | Antigravity | `APPLICATION_SUPPORT/Antigravity/User/settings.json` | Present; agent runtime remains outside the document |
 | Trae | `APPLICATION_SUPPORT/Trae/User/settings.json`; `APPLICATION_SUPPORT/Trae CN/User/settings.json` | Both product settings documents present |
 | Docker | `HOME/Library/Group Containers/group.com.docker/settings-store.json`; legacy `settings.json` | Both Desktop settings variants absent; credential-bearing CLI evidence was present but excluded |
-| OrbStack | `HOME/Library/Group Containers/HUAQ24HBR6.dev.orbstack` | Mixed data container present; no content access authorized |
+| OrbStack | `HOME/Library/Group Containers/HUAQ24HBR6.dev.orbstack` | Mixed data container present; explicitly excluded from content access |
 | Google Cloud CLI | `XDG_CONFIG_HOME/gcloud/configurations/config_default` | Default configuration present |
 | Raycast | `HOME/Library/Preferences/com.raycast.macos.plist` | Present |
 | GitKraken CLI | `APPLICATION_SUPPORT/GitKrakenCLI/settings.json` | Present |
@@ -113,10 +113,37 @@ boundary and are never catalog documents.
 
 The comparison confirms that ten products have an exact settings boundary
 even when the content policy remains metadata-only. OrbStack intentionally
-stays unsupported until a stable settings-file path and schema can be
+stays excluded until a stable settings-file path and schema can be
 separated from its documented persistent data container. No dynamic user ID,
 project, profile, named gcloud configuration, plugin, extension, machine, or
 container directory is enumerated.
+
+## T60 runtime coverage reconciliation
+
+The Applications coverage summary consumes the sanitized manifest rather than
+raw discovery paths. The current baseline produced the following values:
+
+| Metric | Result |
+|---|---:|
+| Classified candidates | 128 / 128 |
+| Managed candidates | 28 |
+| Managed writable | 10 |
+| Managed read-only | 18 |
+| Unsupported | 97 |
+| Excluded | 3 |
+| Exported / omitted | 109 / 19 |
+| Managed eligible text roots | 25 / 25 |
+| Eligible text coverage | 100.0% |
+| Priority A usable | 6 / 6 |
+| Priority B managed or specifically excluded | 20 / 20 |
+
+Eligible text roots are observed `FILE` or `SYMLINK` candidates with a known
+text format hint. Their aggregate numerator and denominator are computed before
+sanitization, so secret, private-name, and explicitly excluded rows cannot
+silently shrink the denominator; omitted and excluded counts remain separately
+visible. The manifest remains `PARTIAL` because the global
+128-candidate limit was reached, but all observed candidates are classified
+and the eligible-text result exceeds the required 90% threshold.
 
 ## Handling exported data
 

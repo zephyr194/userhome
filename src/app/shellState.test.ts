@@ -10,6 +10,13 @@ const appStatus: AppStatus = {
 
 const applications = {
   schemaVersion: 1 as const,
+  coveragePolicy: {
+    priorityATotal: 6,
+    priorityAUsable: 6,
+    priorityBTotal: 20,
+    priorityBCovered: 20,
+    minimumEligibleTextPercent: 90,
+  },
   applications: [],
 };
 

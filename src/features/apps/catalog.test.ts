@@ -2,6 +2,14 @@ import { mockIPC } from "@tauri-apps/api/mocks";
 import { describe, expect, it } from "vitest";
 import { listManagedApps } from "../../ipc/catalog";
 
+const coveragePolicy = {
+  priorityATotal: 0,
+  priorityAUsable: 0,
+  priorityBTotal: 6,
+  priorityBCovered: 6,
+  minimumEligibleTextPercent: 90,
+};
+
 const applications = [
   "github-copilot",
   "caddy",
@@ -14,6 +22,13 @@ const applications = [
   displayName: id,
   description: `${id} description`,
   iconKey: id,
+  priority: "PRIORITY_B",
+  detectionEvidence: [{ kind: "HOME_PATH", value: `HOME/${id}` }],
+  support: {
+    limitations: ["Catalog only."],
+    exclusions: ["Secrets excluded."],
+    requirement: "Review new paths.",
+  },
   capabilities: ["DETECT", "READ_CONFIG"],
   managedDocumentCount: 1,
   serviceCount: id === "caddy" ? 1 : 0,
@@ -27,6 +42,7 @@ describe("listManagedApps", () => {
       expect(payload).toEqual({});
       return {
         schemaVersion: 1,
+        coveragePolicy,
         applications,
       };
     });
@@ -34,6 +50,7 @@ describe("listManagedApps", () => {
     const catalog = await listManagedApps();
 
     expect(catalog.schemaVersion).toBe(1);
+    expect(catalog.coveragePolicy).toEqual(coveragePolicy);
     expect(catalog.applications).toHaveLength(6);
     expect(catalog.applications.map((app) => app.id)).toEqual([
       "github-copilot",
@@ -54,12 +71,14 @@ describe("listManagedApps", () => {
   it("rejects duplicate IDs and oversized application lists", async () => {
     mockIPC(() => ({
       schemaVersion: 1,
+      coveragePolicy,
       applications: [applications[0], applications[0]],
     }));
     await expect(listManagedApps()).rejects.toMatchObject({ code: "INTERNAL" });
 
     mockIPC(() => ({
       schemaVersion: 1,
+      coveragePolicy,
       applications: Array.from({ length: 33 }, (_, index) => ({
         ...applications[0],
         id: `app-${index}`,

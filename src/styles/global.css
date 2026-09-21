@@ -711,7 +711,7 @@ a {
   height: calc(100dvh - 168px);
   min-height: 0;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -743,6 +743,12 @@ a {
   margin-top: 4px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.applications-workspace__coverage {
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .applications-workspace__filters {

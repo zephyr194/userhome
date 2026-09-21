@@ -1436,8 +1436,9 @@
       "id": "orbstack",
       "displayName": "OrbStack",
       "description": "Detected from its exact macOS group container, which co-locates settings with machine, container, image, credential, database, and runtime data; a stable bounded settings-file contract is required before content access.",
+      "supportRequirement": "Document a stable settings-only file path and schema outside the mixed persistent data container.",
       "iconKey": "orbstack",
-      "coverageClass": "DETECTED_UNSUPPORTED",
+      "coverageClass": "EXCLUDED",
       "presentation": {
         "category": "Developer Tools"
       },

@@ -145,8 +145,8 @@ database, socket, and runtime-state paths remain outside this batch.
 
 ## T59 AI and developer-tool batch
 
-T59 adds ten bounded `MANAGED_READ_ONLY` definitions and one
-`DETECTED_UNSUPPORTED` definition. Detection uses exact `HOME_PATH` evidence
+T59 adds ten bounded `MANAGED_READ_ONLY` definitions and one `EXCLUDED`
+definition. Detection uses exact `HOME_PATH` evidence
 only. Every executable, Homebrew formula, Homebrew cask, service, elevation,
 and write list remains empty; recognizing an installed product does not grant
 an action.
@@ -159,7 +159,7 @@ an action.
 | `antigravity` | `APPLICATION_SUPPORT/Antigravity/User/settings.json` | `SECRET` | `JSONC` | `MANAGED_READ_ONLY` |
 | `trae` | `APPLICATION_SUPPORT/Trae/User/settings.json`; `APPLICATION_SUPPORT/Trae CN/User/settings.json` | `SECRET` | `JSONC` | `MANAGED_READ_ONLY` |
 | `docker` | `HOME/Library/Group Containers/group.com.docker/settings-store.json`; legacy `settings.json` variant | `SECRET` | `JSON` | `MANAGED_READ_ONLY` |
-| `orbstack` | Exact group-container detection only; settings share a container with machines, containers, images, credentials, databases, and runtime state, and no stable bounded settings-file contract is approved | N/A | N/A | `DETECTED_UNSUPPORTED` |
+| `orbstack` | Exact group-container detection only; settings share a container with machines, containers, images, credentials, databases, and runtime state, and no stable bounded settings-file contract is approved | N/A | N/A | `EXCLUDED` |
 | `gcloud` | `XDG_CONFIG_HOME/gcloud/configurations/config_default` | `SENSITIVE` | `INI` | `MANAGED_READ_ONLY` |
 | `raycast` | `HOME/Library/Preferences/com.raycast.macos.plist` | `SENSITIVE` | `PLIST` | `MANAGED_READ_ONLY` |
 | `gitkraken-cli` | `APPLICATION_SUPPORT/GitKrakenCLI/settings.json` | `SECRET` | `JSON` | `MANAGED_READ_ONLY` |
@@ -182,8 +182,15 @@ The Applications workspace renders catalog entries from `iconKey`,
 catalog IPC may expose typed root aliases and normalized relative paths, but it
 does not expose absolute filesystem paths. The current catalog contains 26
 definitions: six `MANAGED_WRITABLE`, nineteen `MANAGED_READ_ONLY`, and one
-`DETECTED_UNSUPPORTED`. Search, category, and coverage filters do not change
+`EXCLUDED`. Search, category, and coverage filters do not change
 authorization.
+
+The catalog IPC also exposes a validated priority policy, safe detection
+evidence, and support explanations. Priority A is fixed at six usable writable
+integrations. Priority B is fixed at twenty applications that must be managed
+or have a specific exclusion requirement. Detection paths are converted to
+root aliases before IPC; absolute private paths and raw authorization
+templates remain unavailable.
 
 Runtime behavior is fail-closed:
 

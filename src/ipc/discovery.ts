@@ -200,6 +200,8 @@ export interface BaselineCoverageSummary {
   excludedCount: number;
   exportedCandidateCount: number;
   omittedCandidateCount: number;
+  eligibleTextCount: number;
+  managedEligibleTextCount: number;
 }
 
 export interface SanitizedCandidateScanSummary
@@ -695,6 +697,11 @@ function decodeBaselineCoverageSummary(
       value.omittedCandidateCount,
       MAX_CANDIDATES,
     ),
+    eligibleTextCount: decodeCount(value.eligibleTextCount, MAX_CANDIDATES),
+    managedEligibleTextCount: decodeCount(
+      value.managedEligibleTextCount,
+      MAX_CANDIDATES,
+    ),
   };
   if (
     summary.managedCandidateCount !==
@@ -705,7 +712,9 @@ function decodeBaselineCoverageSummary(
         summary.excludedCount ||
     summary.exportedCandidateCount !== exportedCandidateCount ||
     summary.totalCandidateCount !==
-      summary.exportedCandidateCount + summary.omittedCandidateCount
+      summary.exportedCandidateCount + summary.omittedCandidateCount ||
+    summary.managedEligibleTextCount > summary.eligibleTextCount ||
+    summary.eligibleTextCount > summary.totalCandidateCount
   ) {
     throw createInternalError();
   }

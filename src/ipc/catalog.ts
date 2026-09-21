@@ -25,6 +25,16 @@ export type ManagedAppCoverageClass =
   | "DETECTED_UNSUPPORTED"
   | "EXCLUDED";
 
+export type CatalogPriority = "PRIORITY_A" | "PRIORITY_B" | "PRIORITY_C";
+
+export type DetectionEvidenceKind =
+  | "BREW_CASK"
+  | "BREW_FORMULA"
+  | "EXECUTABLE"
+  | "HOMEBREW_PATH"
+  | "HOME_PATH"
+  | "SERVICE";
+
 export type ConfigPathRoot =
   | "HOME"
   | "XDG_CONFIG_HOME"
@@ -98,20 +108,43 @@ export interface ManagedAppPresentation {
   configDocuments: readonly ManagedConfigDocumentPresentation[];
 }
 
+export interface ManagedAppDetectionEvidence {
+  kind: DetectionEvidenceKind;
+  value: string;
+}
+
+export interface ManagedAppSupportPresentation {
+  limitations: readonly string[];
+  exclusions: readonly string[];
+  requirement: string;
+}
+
 export interface ManagedAppSummary {
   id: string;
   displayName: string;
   description: string;
   iconKey: string;
+  priority: CatalogPriority;
   coverageClass: ManagedAppCoverageClass;
   presentation: ManagedAppPresentation;
+  detectionEvidence: readonly ManagedAppDetectionEvidence[];
+  support: ManagedAppSupportPresentation;
   capabilities: readonly ManagedAppCapability[];
   managedDocumentCount: number;
   serviceCount: number;
 }
 
+export interface CatalogCoveragePolicy {
+  priorityATotal: number;
+  priorityAUsable: number;
+  priorityBTotal: number;
+  priorityBCovered: number;
+  minimumEligibleTextPercent: number;
+}
+
 export interface ManagedAppCatalog {
   schemaVersion: typeof CATALOG_SCHEMA_VERSION;
+  coveragePolicy: CatalogCoveragePolicy;
   applications: readonly ManagedAppSummary[];
 }
 
@@ -126,6 +159,19 @@ const COVERAGE_CLASSES: readonly string[] = [
   "MANAGED_READ_ONLY",
   "DETECTED_UNSUPPORTED",
   "EXCLUDED",
+];
+const PRIORITIES: readonly string[] = [
+  "PRIORITY_A",
+  "PRIORITY_B",
+  "PRIORITY_C",
+];
+const DETECTION_EVIDENCE_KINDS: readonly string[] = [
+  "BREW_CASK",
+  "BREW_FORMULA",
+  "EXECUTABLE",
+  "HOMEBREW_PATH",
+  "HOME_PATH",
+  "SERVICE",
 ];
 const PATH_ROOTS: readonly string[] = [
   "HOME",
@@ -226,6 +272,18 @@ function decodeCount(value: unknown): number {
   return value;
 }
 
+function decodePercentage(value: unknown): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 0 ||
+    value > 100
+  ) {
+    throw createInternalError();
+  }
+  return value;
+}
+
 function decodeBoundedSize(value: unknown): number {
   if (
     typeof value !== "number" ||
@@ -317,6 +375,44 @@ function decodeCapabilities(value: unknown): readonly ManagedAppCapability[] {
     throw createInternalError();
   }
   return [...capabilities];
+}
+
+function decodeTextList(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 8) {
+    throw createInternalError();
+  }
+  return value.map(decodeText);
+}
+
+function decodeDetectionEvidence(
+  value: unknown,
+): readonly ManagedAppDetectionEvidence[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 32) {
+    throw createInternalError();
+  }
+  return value.map((evidence) => {
+    if (!isRecord(evidence)) {
+      throw createInternalError();
+    }
+    return {
+      kind: decodeKnownValue<DetectionEvidenceKind>(
+        evidence.kind,
+        DETECTION_EVIDENCE_KINDS,
+      ),
+      value: decodeText(evidence.value),
+    };
+  });
+}
+
+function decodeSupport(value: unknown): ManagedAppSupportPresentation {
+  if (!isRecord(value)) {
+    throw createInternalError();
+  }
+  return {
+    limitations: decodeTextList(value.limitations),
+    exclusions: decodeTextList(value.exclusions),
+    requirement: decodeText(value.requirement),
+  };
 }
 
 function decodeCoverageClass(
@@ -424,11 +520,39 @@ function decodeManagedApp(value: unknown): ManagedAppSummary {
     displayName: decodeText(value.displayName),
     description: decodeText(value.description),
     iconKey: decodeIdentifier(value.iconKey),
+    priority: decodeKnownValue<CatalogPriority>(value.priority, PRIORITIES),
     coverageClass: decodeCoverageClass(value.coverageClass, capabilities),
     presentation: decodePresentation(value.presentation, managedDocumentCount),
+    detectionEvidence: decodeDetectionEvidence(value.detectionEvidence),
+    support: decodeSupport(value.support),
     capabilities,
     managedDocumentCount,
     serviceCount: decodeCount(value.serviceCount),
+  };
+}
+
+function decodeCoveragePolicy(value: unknown): CatalogCoveragePolicy {
+  if (!isRecord(value)) {
+    throw createInternalError();
+  }
+  const priorityATotal = decodeCount(value.priorityATotal);
+  const priorityAUsable = decodeCount(value.priorityAUsable);
+  const priorityBTotal = decodeCount(value.priorityBTotal);
+  const priorityBCovered = decodeCount(value.priorityBCovered);
+  if (
+    priorityAUsable > priorityATotal ||
+    priorityBCovered > priorityBTotal
+  ) {
+    throw createInternalError();
+  }
+  return {
+    priorityATotal,
+    priorityAUsable,
+    priorityBTotal,
+    priorityBCovered,
+    minimumEligibleTextPercent: decodePercentage(
+      value.minimumEligibleTextPercent,
+    ),
   };
 }
 
@@ -447,9 +571,37 @@ export function decodeManagedAppCatalog(value: unknown): ManagedAppCatalog {
   if (new Set(applications.map((app) => app.id)).size !== applications.length) {
     throw createInternalError();
   }
+  const coveragePolicy = decodeCoveragePolicy(value.coveragePolicy);
+  const priorityAApplications = applications.filter(
+    (application) => application.priority === "PRIORITY_A",
+  );
+  const priorityBApplications = applications.filter(
+    (application) => application.priority === "PRIORITY_B",
+  );
+  const priorityAUsable = priorityAApplications.filter(
+    (application) =>
+      application.coverageClass === "MANAGED_WRITABLE" &&
+      application.capabilities.includes("READ_CONFIG") &&
+      application.capabilities.includes("WRITE_CONFIG"),
+  ).length;
+  const priorityBCovered = priorityBApplications.filter(
+    (application) =>
+      application.coverageClass === "MANAGED_WRITABLE" ||
+      application.coverageClass === "MANAGED_READ_ONLY" ||
+      application.coverageClass === "EXCLUDED",
+  ).length;
+  if (
+    priorityAApplications.length !== coveragePolicy.priorityATotal ||
+    priorityAUsable !== coveragePolicy.priorityAUsable ||
+    priorityBApplications.length !== coveragePolicy.priorityBTotal ||
+    priorityBCovered !== coveragePolicy.priorityBCovered
+  ) {
+    throw createInternalError();
+  }
 
   return {
     schemaVersion: CATALOG_SCHEMA_VERSION,
+    coveragePolicy,
     applications,
   };
 }
