@@ -153,6 +153,7 @@ export function RoutePanel({
     return (
       <SettingsPage
         onAppearanceChange={onAppearanceChange}
+        onDiscoveryRefresh={onOperationChanged}
         onPreferencesChange={onPreferencesChange}
         onSelectedGroupChange={onSettingsGroupChange}
         preferences={preferences}

@@ -11,6 +11,7 @@ use serde::Serialize;
 use crate::{
     catalog::{Catalog, CatalogCoverageClass, load_builtin_catalog},
     security::paths::TRUSTED_BREW_PREFIXES,
+    settings::OptionalDiscoveryRoot,
 };
 
 use super::system::{DiscoveryCompleteness, DiscoveryIssue};
@@ -443,6 +444,12 @@ struct ScanState {
 }
 
 pub fn discover_candidates() -> Result<ConfigurationCoverage, DiscoveryIssue> {
+    discover_candidates_with_roots(&OptionalDiscoveryRoot::ALL)
+}
+
+pub fn discover_candidates_with_roots(
+    optional_roots: &[OptionalDiscoveryRoot],
+) -> Result<ConfigurationCoverage, DiscoveryIssue> {
     let home = env::var_os("HOME")
         .filter(|value| !value.is_empty())
         .map(PathBuf::from)
@@ -456,13 +463,19 @@ pub fn discover_candidates() -> Result<ConfigurationCoverage, DiscoveryIssue> {
         .iter()
         .map(PathBuf::from)
         .collect::<Vec<_>>();
-    discover_candidates_in(&home, xdg_config_home.as_deref(), &brew_prefixes)
+    discover_candidates_in(
+        &home,
+        xdg_config_home.as_deref(),
+        &brew_prefixes,
+        optional_roots,
+    )
 }
 
 fn discover_candidates_in(
     home: &Path,
     xdg_config_home: Option<&Path>,
     brew_prefixes: &[PathBuf],
+    optional_roots: &[OptionalDiscoveryRoot],
 ) -> Result<ConfigurationCoverage, DiscoveryIssue> {
     let started_at = Instant::now();
     let catalog = load_builtin_catalog().map_err(|_| {
@@ -604,75 +617,83 @@ fn discover_candidates_in(
         );
     }
 
-    scan_direct_root(
-        DirectScanRoot {
-            path: home.to_path_buf(),
-            root_kind: CandidateRootKind::Home,
-            relative_prefix: PathBuf::new(),
-            catalog_prefix: PathBuf::new(),
-            legacy_prefix: PathBuf::new(),
-            filter: RootEntryFilter::HomeDotDirectories,
-            xdg_home_entry: xdg_home_entry.clone(),
-        },
-        &catalog_paths.home,
-        deadline,
-        &mut candidates,
-        &mut issues,
-        &mut scan_state,
-    );
-    scan_direct_root(
-        DirectScanRoot {
-            path: effective_xdg_root.to_path_buf(),
-            root_kind: CandidateRootKind::XdgConfigHome,
-            relative_prefix: PathBuf::new(),
-            catalog_prefix: PathBuf::from(".config"),
-            legacy_prefix: if effective_xdg_root == default_xdg_root {
-                PathBuf::from(".config")
-            } else {
-                PathBuf::from("XDG_CONFIG_HOME")
-            },
-            filter: RootEntryFilter::AllSafeEntries,
-            xdg_home_entry: None,
-        },
-        &catalog_paths.home,
-        deadline,
-        &mut candidates,
-        &mut issues,
-        &mut scan_state,
-    );
-    scan_direct_root(
-        DirectScanRoot {
-            path: home.join("Library/Application Support"),
-            root_kind: CandidateRootKind::ApplicationSupport,
-            relative_prefix: PathBuf::new(),
-            catalog_prefix: PathBuf::from("Library/Application Support"),
-            legacy_prefix: PathBuf::from("Library/Application Support"),
-            filter: RootEntryFilter::AllSafeEntries,
-            xdg_home_entry: None,
-        },
-        &catalog_paths.home,
-        deadline,
-        &mut candidates,
-        &mut issues,
-        &mut scan_state,
-    );
-    for brew_prefix in brew_prefixes {
+    if optional_roots.contains(&OptionalDiscoveryRoot::Home) {
         scan_direct_root(
             DirectScanRoot {
-                path: brew_prefix.join("etc"),
-                root_kind: CandidateRootKind::HomebrewPrefix,
-                relative_prefix: PathBuf::from("etc"),
-                catalog_prefix: PathBuf::from("etc"),
-                legacy_prefix: PathBuf::from("HOMEBREW_PREFIX/etc"),
-                filter: RootEntryFilter::AllSafeEntries,
-                xdg_home_entry: None,
+                path: home.to_path_buf(),
+                root_kind: CandidateRootKind::Home,
+                relative_prefix: PathBuf::new(),
+                catalog_prefix: PathBuf::new(),
+                legacy_prefix: PathBuf::new(),
+                filter: RootEntryFilter::HomeDotDirectories,
+                xdg_home_entry: xdg_home_entry.clone(),
             },
-            &catalog_paths.homebrew,
+            &catalog_paths.home,
             deadline,
             &mut candidates,
             &mut issues,
             &mut scan_state,
         );
+    }
+    if optional_roots.contains(&OptionalDiscoveryRoot::XdgConfigHome) {
+        scan_direct_root(
+            DirectScanRoot {
+                path: effective_xdg_root.to_path_buf(),
+                root_kind: CandidateRootKind::XdgConfigHome,
+                relative_prefix: PathBuf::new(),
+                catalog_prefix: PathBuf::from(".config"),
+                legacy_prefix: if effective_xdg_root == default_xdg_root {
+                    PathBuf::from(".config")
+                } else {
+                    PathBuf::from("XDG_CONFIG_HOME")
+                },
+                filter: RootEntryFilter::AllSafeEntries,
+                xdg_home_entry: None,
+            },
+            &catalog_paths.home,
+            deadline,
+            &mut candidates,
+            &mut issues,
+            &mut scan_state,
+        );
+    }
+    if optional_roots.contains(&OptionalDiscoveryRoot::ApplicationSupport) {
+        scan_direct_root(
+            DirectScanRoot {
+                path: home.join("Library/Application Support"),
+                root_kind: CandidateRootKind::ApplicationSupport,
+                relative_prefix: PathBuf::new(),
+                catalog_prefix: PathBuf::from("Library/Application Support"),
+                legacy_prefix: PathBuf::from("Library/Application Support"),
+                filter: RootEntryFilter::AllSafeEntries,
+                xdg_home_entry: None,
+            },
+            &catalog_paths.home,
+            deadline,
+            &mut candidates,
+            &mut issues,
+            &mut scan_state,
+        );
+    }
+    if optional_roots.contains(&OptionalDiscoveryRoot::HomebrewPrefix) {
+        for brew_prefix in brew_prefixes {
+            scan_direct_root(
+                DirectScanRoot {
+                    path: brew_prefix.join("etc"),
+                    root_kind: CandidateRootKind::HomebrewPrefix,
+                    relative_prefix: PathBuf::from("etc"),
+                    catalog_prefix: PathBuf::from("etc"),
+                    legacy_prefix: PathBuf::from("HOMEBREW_PREFIX/etc"),
+                    filter: RootEntryFilter::AllSafeEntries,
+                    xdg_home_entry: None,
+                },
+                &catalog_paths.homebrew,
+                deadline,
+                &mut candidates,
+                &mut issues,
+                &mut scan_state,
+            );
+        }
     }
 
     if issues.is_empty() {
@@ -1570,9 +1591,13 @@ mod tests {
             .expect("secret catalog config should be written");
         fs::write(home.join(".not-a-directory"), "ignored").expect("hidden file should be written");
 
-        let candidates =
-            discover_candidates_in(&home, Some(&home.join(".xdg")), std::slice::from_ref(&brew))
-                .expect("candidate scan should succeed");
+        let candidates = discover_candidates_in(
+            &home,
+            Some(&home.join(".xdg")),
+            std::slice::from_ref(&brew),
+            &OptionalDiscoveryRoot::ALL,
+        )
+        .expect("candidate scan should succeed");
         let candidate = |relative_path: &str| {
             candidates
                 .candidates
@@ -1672,9 +1697,13 @@ mod tests {
                     | CatalogCoverageClass::Excluded
             )
         }));
-        let repeated =
-            discover_candidates_in(&home, Some(&home.join(".xdg")), std::slice::from_ref(&brew))
-                .expect("repeated candidate scan should succeed");
+        let repeated = discover_candidates_in(
+            &home,
+            Some(&home.join(".xdg")),
+            std::slice::from_ref(&brew),
+            &OptionalDiscoveryRoot::ALL,
+        )
+        .expect("repeated candidate scan should succeed");
         assert_eq!(
             candidates
                 .candidates
@@ -1747,6 +1776,62 @@ mod tests {
         assert!(!serialized.contains("must not be read"));
         assert!(!serialized.contains(home.to_string_lossy().as_ref()));
         assert!(!serialized.contains(brew.to_string_lossy().as_ref()));
+
+        let catalog_only = discover_candidates_in(
+            &home,
+            Some(&home.join(".xdg")),
+            std::slice::from_ref(&brew),
+            &[],
+        )
+        .expect("catalog-only candidate scan should succeed");
+        assert_eq!(catalog_only.summary.root_count, 0);
+        assert!(catalog_only.candidates.iter().all(|candidate| {
+            !candidate
+                .evidence
+                .contains(&CandidateEvidence::BoundedRootEntry)
+        }));
+        assert!(catalog_only.candidates.iter().any(|candidate| {
+            candidate.relative_path == "~/.copilot/config.json"
+                && candidate.coverage_class == CatalogCoverageClass::ManagedWritable
+        }));
+        assert!(catalog_only.candidates.iter().any(|candidate| {
+            candidate.relative_path == "XDG_CONFIG_HOME/ghostty/config"
+                && candidate.coverage_class == CatalogCoverageClass::ManagedReadOnly
+        }));
+        assert!(catalog_only.candidates.iter().any(|candidate| {
+            candidate.relative_path == "APPLICATION_SUPPORT/Code/User/settings.json"
+                && candidate.coverage_class == CatalogCoverageClass::ManagedReadOnly
+        }));
+        assert!(catalog_only.candidates.iter().any(|candidate| {
+            candidate.relative_path == "HOMEBREW_PREFIX/etc/Caddyfile"
+                && candidate.catalog_app_id.as_deref() == Some("caddy")
+        }));
+        assert!(
+            catalog_only
+                .candidates
+                .iter()
+                .all(|candidate| candidate.relative_path != "~/.unknown")
+        );
+
+        let home_only = discover_candidates_in(
+            &home,
+            Some(&home.join(".xdg")),
+            std::slice::from_ref(&brew),
+            &[OptionalDiscoveryRoot::Home],
+        )
+        .expect("home-only candidate scan should succeed");
+        assert_eq!(home_only.summary.root_count, 1);
+        assert!(
+            home_only
+                .candidates
+                .iter()
+                .any(|candidate| candidate.relative_path == "~/.unknown")
+        );
+        assert!(home_only.candidates.iter().all(|candidate| {
+            candidate.relative_path != "XDG_CONFIG_HOME/not-catalog"
+                && candidate.relative_path != "APPLICATION_SUPPORT/Not Catalog"
+                && candidate.relative_path != "HOMEBREW_PREFIX/etc/tool.conf"
+        }));
 
         fs::remove_dir_all(home).expect("fixture home should be removed");
     }

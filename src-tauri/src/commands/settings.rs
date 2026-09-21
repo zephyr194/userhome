@@ -41,6 +41,7 @@ pub fn update_preferences(
         Ok(())
     })?;
     discovery.set_timeout_preset(loaded.preferences().provider_timeout_preset());
+    discovery.set_optional_discovery_roots(loaded.preferences().optional_discovery_roots());
     Ok(loaded)
 }
 
@@ -51,6 +52,7 @@ pub fn reset_preferences(
 ) -> Result<LoadedPreferences, AppError> {
     let loaded = coordinator.reset()?;
     discovery.set_timeout_preset(loaded.preferences().provider_timeout_preset());
+    discovery.set_optional_discovery_roots(loaded.preferences().optional_discovery_roots());
     Ok(loaded)
 }
 

@@ -65,12 +65,7 @@ fn migrate_v0(legacy: UserPreferencesV0) -> Result<UserPreferences, MigrationErr
         provider_timeout_preset: legacy.provider_timeout_preset,
         preferred_editor_mode: legacy.preferred_editor_mode,
         backup_retention: legacy.backup_retention,
-        optional_discovery_roots: vec![
-            OptionalDiscoveryRoot::Home,
-            OptionalDiscoveryRoot::XdgConfigHome,
-            OptionalDiscoveryRoot::ApplicationSupport,
-            OptionalDiscoveryRoot::HomebrewPrefix,
-        ],
+        optional_discovery_roots: OptionalDiscoveryRoot::ALL.to_vec(),
     })
 }
 

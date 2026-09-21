@@ -2394,16 +2394,23 @@ roots to be disabled, and display paths through aliases without changing
 catalog authorization.
 
 **Acceptance criteria:**
-- [ ] Users can disable only predefined optional roots; no arbitrary path input
+- [x] Users can disable only predefined optional roots; no arbitrary path input
       is accepted.
-- [ ] Disabling discovery evidence does not grant or revoke catalog read/write
+- [x] Disabling discovery evidence does not grant or revoke catalog read/write
       authority.
-- [ ] Displayed paths use `~` or root aliases and reveal no absolute username.
+- [x] Displayed paths use `~` or root aliases and reveal no absolute username.
 
 **Verification:**
-- [ ] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
-- [ ] Manual: toggle optional roots and compare bounded coverage results.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml discovery`
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build`
+- [x] Manual: toggle optional roots and compare bounded coverage results.
+
+**Evidence:** The Settings privacy pane exposes only four typed root toggles,
+uses `~` and fixed aliases, and refreshes discovery after a saved change.
+Candidate tests verify disabling all optional roots removes bounded unknown
+evidence while preserving catalog-owned writable/read-only classifications;
+the 1120×720 keyboard pass covered all seven groups, focus visibility,
+pane-owned scrolling, and Light/Dark rendering.
 
 **Dependencies:** T52, T62, T63
 

@@ -180,7 +180,13 @@ fn discover_with(
     });
     let shell = shell.and_then(|value| {
         let trimmed = value.trim();
-        (!trimmed.is_empty() && trimmed.len() <= 512).then(|| trimmed.to_owned())
+        let name = Path::new(trimmed).file_name()?.to_str()?;
+        (!name.is_empty()
+            && name.len() <= 128
+            && name
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b"._+-".contains(&byte)))
+        .then(|| format!("PATH/{name}"))
     });
     if shell.is_none() {
         issues.push(DiscoveryIssue::new(
@@ -225,7 +231,7 @@ fn discover_with(
         },
         os_version,
         architecture,
-        home_directory: home.to_string_lossy().into_owned(),
+        home_directory: "~".to_owned(),
         shell,
         applications,
         issues,
@@ -243,25 +249,26 @@ fn discover_local_evidence(
             let path = home.join(relative);
             Some(path_evidence(rule.value(), &path))
         }
-        "HOMEBREW_PATH" => TRUSTED_BREW_PREFIXES
-            .iter()
-            .map(|prefix| {
-                let relative = rule
-                    .value()
-                    .strip_prefix("${HOMEBREW_PREFIX}/")
-                    .unwrap_or_default();
-                let path = Path::new(prefix).join(relative);
-                path_evidence(&format!("{prefix}/{}", relative), &path)
-            })
-            .find(|evidence| evidence.present)
-            .or_else(|| {
-                Some(DetectionEvidence {
+        "HOMEBREW_PATH" => {
+            let relative = rule
+                .value()
+                .strip_prefix("${HOMEBREW_PREFIX}/")
+                .unwrap_or_default();
+            let display_path = format!("HOMEBREW_PREFIX/{relative}");
+            TRUSTED_BREW_PREFIXES
+                .iter()
+                .map(|prefix| {
+                    let path = Path::new(prefix).join(relative);
+                    path_evidence(&display_path, &path)
+                })
+                .find(|evidence| evidence.present)
+                .or(Some(DetectionEvidence {
                     kind: EvidenceKind::ConfigPresent,
                     present: false,
-                    label: rule.value().to_owned(),
+                    label: display_path,
                     path: None,
-                })
-            }),
+                }))
+        }
         "EXECUTABLE" => Some(executable_evidence(rule.value(), executable_directories)),
         _ => None,
     }
@@ -296,7 +303,7 @@ fn executable_evidence(name: &str, executable_directories: &[PathBuf]) -> Detect
         present: path.is_some(),
         label: name.to_owned(),
         path: path.map(|path| PathMetadata {
-            display_path: path.to_string_lossy().into_owned(),
+            display_path: format!("PATH/{name}"),
             kind: PathEntryKind::File,
             modified_at_epoch_ms: fs::metadata(&path)
                 .ok()
@@ -365,7 +372,7 @@ mod tests {
 
         let summary = discover_with(
             &home,
-            Some("/bin/zsh".to_owned()),
+            Some(home.join("bin/zsh").to_string_lossy().into_owned()),
             Ok("15.0".to_owned()),
             Ok("arm64".to_owned()),
             &catalog,
@@ -375,6 +382,8 @@ mod tests {
         assert_eq!(summary.completeness, DiscoveryCompleteness::Complete);
         assert_eq!(summary.os_version.as_deref(), Some("15.0"));
         assert_eq!(summary.architecture.as_deref(), Some("arm64"));
+        assert_eq!(summary.home_directory, "~");
+        assert_eq!(summary.shell.as_deref(), Some("PATH/zsh"));
         let git = summary
             .applications
             .iter()
@@ -385,6 +394,8 @@ mod tests {
                 evidence.kind == EvidenceKind::ConfigPresent && evidence.present
             })
         );
+        let serialized = serde_json::to_string(&summary).expect("system summary should serialize");
+        assert!(!serialized.contains(home.to_string_lossy().as_ref()));
 
         fs::remove_dir_all(home).expect("fixture home should be removed");
     }

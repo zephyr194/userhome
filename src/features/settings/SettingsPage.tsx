@@ -8,6 +8,7 @@ import type {
 import { AppearanceSettings } from "./AppearanceSettings";
 import { ConfigurationSettings } from "./ConfigurationSettings";
 import { GeneralSettings } from "./GeneralSettings";
+import { PrivacySettings } from "./PrivacySettings";
 import { RefreshSettings } from "./RefreshSettings";
 import { SettingsSidebar } from "./SettingsSidebar";
 import { SETTINGS_GROUPS, type SettingsGroupId } from "./settingsGroups";
@@ -15,12 +16,14 @@ import { getSettingsSummaries } from "./settingsSummaries";
 
 export function SettingsPage({
   onAppearanceChange,
+  onDiscoveryRefresh,
   onPreferencesChange,
   onSelectedGroupChange,
   preferences,
   selectedGroup,
 }: {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
+  onDiscoveryRefresh: () => void;
   onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
   onSelectedGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
@@ -89,6 +92,12 @@ export function SettingsPage({
           ) : group.id === "configuration" ? (
             <ConfigurationSettings
               onChange={onPreferencesChange}
+              preferences={preferences.preferences}
+            />
+          ) : group.id === "privacy" ? (
+            <PrivacySettings
+              onChange={onPreferencesChange}
+              onDiscoveryRefresh={onDiscoveryRefresh}
               preferences={preferences.preferences}
             />
           ) : (

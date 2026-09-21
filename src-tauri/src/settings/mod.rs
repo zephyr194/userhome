@@ -91,6 +91,15 @@ pub enum OptionalDiscoveryRoot {
     HomebrewPrefix,
 }
 
+impl OptionalDiscoveryRoot {
+    pub const ALL: [Self; 4] = [
+        Self::Home,
+        Self::XdgConfigHome,
+        Self::ApplicationSupport,
+        Self::HomebrewPrefix,
+    ];
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UserPreferences {
@@ -120,12 +129,7 @@ impl Default for UserPreferences {
             provider_timeout_preset: ProviderTimeoutPreset::Standard,
             preferred_editor_mode: PreferredEditorMode::Structured,
             backup_retention: BackupRetention::TWENTY,
-            optional_discovery_roots: vec![
-                OptionalDiscoveryRoot::Home,
-                OptionalDiscoveryRoot::XdgConfigHome,
-                OptionalDiscoveryRoot::ApplicationSupport,
-                OptionalDiscoveryRoot::HomebrewPrefix,
-            ],
+            optional_discovery_roots: OptionalDiscoveryRoot::ALL.to_vec(),
         }
     }
 }

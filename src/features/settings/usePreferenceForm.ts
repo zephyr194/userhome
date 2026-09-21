@@ -18,8 +18,8 @@ export function usePreferenceForm(
   async function update(
     label: string,
     patch: UpdatePreferencesRequest,
-  ): Promise<void> {
-    if (inFlight.current) return;
+  ): Promise<boolean> {
+    if (inFlight.current) return false;
     inFlight.current = true;
     setPending(patch);
     setStatus(undefined);
@@ -27,8 +27,10 @@ export function usePreferenceForm(
     try {
       await onChange(patch);
       setStatus(`${label}已保存。`);
+      return true;
     } catch (caught) {
       setError(decodeAppError(caught).message);
+      return false;
     } finally {
       inFlight.current = false;
       setPending(undefined);

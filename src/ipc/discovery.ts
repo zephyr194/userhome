@@ -1,5 +1,6 @@
 import { createInternalError, invokeCommand, isRecord } from "./core";
 import type { ManagedAppCoverageClass } from "./catalog";
+import { decodeSafeDisplayPath } from "./config";
 
 const MAX_TEXT_BYTES = 2 * 1024;
 const MAX_APPLICATIONS = 32;
@@ -251,6 +252,20 @@ function decodeOptionalText(value: unknown): string | undefined {
   return value === undefined || value === null ? undefined : decodeText(value);
 }
 
+function decodeHomeDirectory(value: unknown): string {
+  if (value !== "~") {
+    throw createInternalError();
+  }
+  return value;
+}
+
+function decodeExecutableAlias(value: unknown): string {
+  if (typeof value !== "string" || !/^PATH\/[A-Za-z0-9._+-]+$/.test(value)) {
+    throw createInternalError();
+  }
+  return value;
+}
+
 function decodeCount(value: unknown, maximum = Number.MAX_SAFE_INTEGER): number {
   if (
     typeof value !== "number" ||
@@ -285,7 +300,11 @@ function decodePath(value: unknown): PathMetadata {
     throw createInternalError();
   }
   return {
-    displayPath: decodeText(value.displayPath),
+    displayPath:
+      typeof value.displayPath === "string" &&
+      value.displayPath.startsWith("PATH/")
+        ? decodeExecutableAlias(value.displayPath)
+        : decodeSafeDisplayPath(value.displayPath),
     kind: value.kind as PathEntryKind,
     ...(value.modifiedAtEpochMs === undefined || value.modifiedAtEpochMs === null
       ? {}
@@ -343,8 +362,11 @@ function decodeSystem(value: unknown): SystemSummary {
     completeness: value.completeness as DiscoveryCompleteness,
     osVersion: decodeOptionalText(value.osVersion),
     architecture: decodeOptionalText(value.architecture),
-    homeDirectory: decodeText(value.homeDirectory),
-    shell: decodeOptionalText(value.shell),
+    homeDirectory: decodeHomeDirectory(value.homeDirectory),
+    shell:
+      value.shell === undefined || value.shell === null
+        ? undefined
+        : decodeExecutableAlias(value.shell),
     applications: value.applications.map(decodeApplication),
     issues: value.issues.map(decodeIssue),
   };

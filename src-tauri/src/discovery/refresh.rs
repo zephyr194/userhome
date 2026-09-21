@@ -14,10 +14,10 @@ use crate::brew::inventory::{
     BrewInventory, BrewInventorySummary, BrewPackagePage, BrewPackageQuery, InventoryError,
     discover_inventory,
 };
-use crate::settings::ProviderTimeoutPreset;
+use crate::settings::{OptionalDiscoveryRoot, ProviderTimeoutPreset};
 
 use super::{
-    candidates::{ConfigurationCoverage, discover_candidates},
+    candidates::{ConfigurationCoverage, discover_candidates_with_roots},
     system::{DiscoveryIssue, SystemSummary, discover_system},
 };
 
@@ -89,7 +89,9 @@ struct CoordinatorState {
 
 type SystemRunner = Arc<dyn Fn() -> Result<SystemSummary, DiscoveryIssue> + Send + Sync>;
 type BrewRunner = Arc<dyn Fn() -> Result<BrewInventory, InventoryError> + Send + Sync>;
-type CandidateRunner = Arc<dyn Fn() -> Result<ConfigurationCoverage, DiscoveryIssue> + Send + Sync>;
+type CandidateRunner = Arc<
+    dyn Fn(&[OptionalDiscoveryRoot]) -> Result<ConfigurationCoverage, DiscoveryIssue> + Send + Sync,
+>;
 
 #[derive(Clone)]
 struct DiscoveryRunners {
@@ -137,6 +139,7 @@ pub struct DiscoveryCoordinator {
     inner: Arc<CoordinatorInner>,
     runners: DiscoveryRunners,
     timeouts: Arc<RwLock<ModuleTimeouts>>,
+    optional_discovery_roots: Arc<RwLock<Vec<OptionalDiscoveryRoot>>>,
 }
 
 impl Default for DiscoveryCoordinator {
@@ -145,7 +148,7 @@ impl Default for DiscoveryCoordinator {
             DiscoveryRunners {
                 system: Arc::new(discover_system),
                 brew: Arc::new(discover_inventory),
-                candidates: Arc::new(discover_candidates),
+                candidates: Arc::new(discover_candidates_with_roots),
             },
             ModuleTimeouts::from_preset(ProviderTimeoutPreset::Standard),
         )
@@ -184,6 +187,7 @@ impl DiscoveryCoordinator {
             }),
             runners,
             timeouts: Arc::new(RwLock::new(timeouts)),
+            optional_discovery_roots: Arc::new(RwLock::new(OptionalDiscoveryRoot::ALL.to_vec())),
         }
     }
 
@@ -200,6 +204,22 @@ impl DiscoveryCoordinator {
             .timeouts
             .read()
             .unwrap_or_else(|error| error.into_inner())
+    }
+
+    pub fn set_optional_discovery_roots(&self, roots: &[OptionalDiscoveryRoot]) {
+        let mut configured_roots = self
+            .optional_discovery_roots
+            .write()
+            .unwrap_or_else(|error| error.into_inner());
+        configured_roots.clear();
+        configured_roots.extend_from_slice(roots);
+    }
+
+    fn optional_discovery_roots(&self) -> Vec<OptionalDiscoveryRoot> {
+        self.optional_discovery_roots
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .clone()
     }
 
     pub fn snapshot_after_local(&self) -> DiscoverySnapshot {
@@ -275,7 +295,9 @@ impl DiscoveryCoordinator {
 
         let started_at = Instant::now();
         let system = spawn_module(self.runners.system.clone());
-        let candidates = spawn_module(self.runners.candidates.clone());
+        let candidate_runner = self.runners.candidates.clone();
+        let optional_roots = self.optional_discovery_roots();
+        let candidates = spawn_module(Arc::new(move || candidate_runner(&optional_roots)));
         let brew = spawn_module(self.runners.brew.clone());
 
         let system_result = receive_before(system, started_at, timeouts.system);
@@ -541,7 +563,10 @@ fn now_epoch_ms() -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::{
+        Mutex,
+        atomic::{AtomicUsize, Ordering},
+    };
 
     use crate::discovery::system::DiscoveryCompleteness;
 
@@ -571,7 +596,7 @@ mod tests {
                     Ok(sample_system())
                 }),
                 brew: Arc::new(|| Err(InventoryError::NotFound)),
-                candidates: Arc::new(|| Ok(ConfigurationCoverage::empty())),
+                candidates: Arc::new(|_| Ok(ConfigurationCoverage::empty())),
             },
             ModuleTimeouts {
                 system: Duration::from_secs(1),
@@ -601,7 +626,7 @@ mod tests {
                     thread::sleep(Duration::from_millis(100));
                     Err(InventoryError::NotFound)
                 }),
-                candidates: Arc::new(|| Ok(ConfigurationCoverage::empty())),
+                candidates: Arc::new(|_| Ok(ConfigurationCoverage::empty())),
             },
             ModuleTimeouts {
                 system: Duration::from_millis(50),
@@ -623,6 +648,45 @@ mod tests {
                 .expect("brew error should be present")
                 .module,
             "homebrew"
+        );
+    }
+
+    #[test]
+    fn configured_optional_roots_reach_candidate_discovery() {
+        let observed_roots = Arc::new(Mutex::new(Vec::new()));
+        let candidate_roots = observed_roots.clone();
+        let coordinator = DiscoveryCoordinator::new(
+            DiscoveryRunners {
+                system: Arc::new(|| Ok(sample_system())),
+                brew: Arc::new(|| Err(InventoryError::NotFound)),
+                candidates: Arc::new(move |roots| {
+                    *candidate_roots
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner()) = roots.to_vec();
+                    Ok(ConfigurationCoverage::empty())
+                }),
+            },
+            ModuleTimeouts {
+                system: Duration::from_secs(1),
+                brew: Duration::from_secs(1),
+                candidates: Duration::from_secs(1),
+            },
+        );
+        coordinator.set_optional_discovery_roots(&[
+            OptionalDiscoveryRoot::XdgConfigHome,
+            OptionalDiscoveryRoot::HomebrewPrefix,
+        ]);
+
+        coordinator.refresh();
+
+        assert_eq!(
+            *observed_roots
+                .lock()
+                .unwrap_or_else(|error| error.into_inner()),
+            [
+                OptionalDiscoveryRoot::XdgConfigHome,
+                OptionalDiscoveryRoot::HomebrewPrefix,
+            ]
         );
     }
 }

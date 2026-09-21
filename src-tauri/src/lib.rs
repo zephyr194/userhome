@@ -46,8 +46,9 @@ pub fn run() {
                     eprintln!("failed to load startup preferences: {error:?}");
                     settings::UserPreferences::default()
                 });
-            app.state::<discovery::refresh::DiscoveryCoordinator>()
-                .set_timeout_preset(preferences.provider_timeout_preset());
+            let discovery = app.state::<discovery::refresh::DiscoveryCoordinator>();
+            discovery.set_timeout_preset(preferences.provider_timeout_preset());
+            discovery.set_optional_discovery_roots(preferences.optional_discovery_roots());
             app.manage(settings);
             WebviewWindowBuilder::new(
                 app,

@@ -13,8 +13,8 @@ const partialSnapshot: DiscoverySnapshot = {
       completeness: "PARTIAL",
       osVersion: "15.0",
       architecture: "arm64",
-      homeDirectory: "/Users/example",
-      shell: "/bin/zsh",
+      homeDirectory: "~",
+      shell: "PATH/zsh",
       applications: [
         {
           appId: "git",
@@ -59,7 +59,7 @@ describe("DashboardPage", () => {
 
     expect(markup).toContain("15.0");
     expect(markup).toContain("arm64");
-    expect(markup).toContain("/Users/example");
+    expect(markup).toContain("~");
     expect(markup).toContain("配置存在");
     expect(markup).toContain("未发现命令");
     expect(markup).toContain("部分结果");
