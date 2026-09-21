@@ -2339,6 +2339,17 @@ selection.
 
 **Estimated scope:** M
 
+### Sidebar focus-state follow-up
+
+**Status:** Done on 2026-09-21
+
+- [x] Route changes no longer move focus to the main pane and leave a
+      sidebar-edge outline.
+- [x] Main and Settings sidebar rows use distinct selected, hover, pointer
+      focus, and inset keyboard `focus-visible` states.
+- [x] The keyboard focus indicator remains visible in System, Light, and Dark
+      appearance without relying on the selected background alone.
+
 ## T66: Integrate backup retention and confirmed clearing
 
 **Description:** Apply bounded backup-retention presets, report app-owned backup

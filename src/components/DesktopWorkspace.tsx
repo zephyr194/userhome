@@ -1,4 +1,4 @@
-import type { ReactNode, Ref } from "react";
+import type { ReactNode } from "react";
 
 interface DesktopWorkspaceProps {
   banner?: ReactNode;
@@ -8,7 +8,6 @@ interface DesktopWorkspaceProps {
   inspectorLabel?: string;
   list?: ReactNode;
   listLabel?: string;
-  mainRef?: Ref<HTMLElement>;
   operationProgress?: ReactNode;
   sidebar: ReactNode;
   toolbar: ReactNode;
@@ -22,7 +21,6 @@ export function DesktopWorkspace({
   inspectorLabel = "检查器",
   list,
   listLabel = "项目列表",
-  mainRef,
   operationProgress,
   sidebar,
   toolbar,
@@ -39,7 +37,6 @@ export function DesktopWorkspace({
     <div className="desktop-workspace">
       <div className="desktop-workspace__sidebar">{sidebar}</div>
       <main
-        ref={mainRef}
         id="main-content"
         className="desktop-workspace__main"
         tabIndex={-1}

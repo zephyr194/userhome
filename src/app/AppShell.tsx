@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
   type KeyboardEvent,
 } from "react";
@@ -62,8 +61,6 @@ export function AppShell({
   onRefresh,
   state,
 }: AppShellProps) {
-  const hasMounted = useRef(false);
-  const mainRef = useRef<HTMLElement>(null);
   const [commandError, setCommandError] = useState<string>();
   const restoreSelection =
     state.preferences.status !== "loading" &&
@@ -87,14 +84,6 @@ export function AppShell({
   const navigate = useCallback((routeId: AppRouteId) => {
     updateSelection({ routeId });
   }, [updateSelection]);
-
-  useEffect(() => {
-    if (hasMounted.current) {
-      mainRef.current?.focus();
-    } else {
-      hasMounted.current = true;
-    }
-  }, [activeRouteId]);
 
   useEffect(() => {
     let disposed = false;
@@ -166,7 +155,6 @@ export function AppShell({
         </header>
 
         <DesktopWorkspace
-          mainRef={mainRef}
           sidebar={
             <NavigationRail
               activeRouteId={activeRouteId}

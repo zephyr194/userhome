@@ -297,6 +297,17 @@ a {
   background: var(--app-sidebar-hover);
 }
 
+.navigation-rail a:focus:not(:focus-visible),
+.settings-group-row:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.navigation-rail a:focus-visible,
+.settings-group-row:focus-visible {
+  outline: 2px solid var(--app-focus-ring);
+  outline-offset: -2px;
+}
+
 .navigation-rail a[aria-current="page"] {
   color: var(--app-sidebar-current-foreground);
   background: var(--accent-soft);

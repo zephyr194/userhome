@@ -35,6 +35,10 @@ describe("AppShell", () => {
     expect(markup).toContain('aria-busy="true"');
   });
 
+  it("does not programmatically move navigation focus into the main pane", () => {
+    expect(AppShell.toString()).not.toContain(".focus(");
+  });
+
   it("keeps connection failures separate from an empty operation history", () => {
     const state: ShellState = {
       applications: { status: "loading" },
