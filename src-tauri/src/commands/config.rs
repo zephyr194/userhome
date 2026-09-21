@@ -28,6 +28,7 @@ use crate::{
         elevated_actions::execute_protected_config_write,
         elevation::{ElevationCoordinator, confirmation_timestamp},
     },
+    settings::SettingsCoordinator,
 };
 
 #[derive(Debug, Deserialize)]
@@ -175,6 +176,7 @@ pub fn execute_config_write(
     config: State<'_, ConfigCoordinator>,
     operations: State<'_, OperationCoordinator>,
     elevation: State<'_, ElevationCoordinator>,
+    settings: State<'_, SettingsCoordinator>,
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
     let mutation = config.pending(&operation_id)?;
@@ -201,7 +203,8 @@ pub fn execute_config_write(
         })
     } else {
         operations.record_progress(&operation_id, "Creating protected backup.")?;
-        execute_write(&catalog, config.environment()?, &mutation)
+        let retention = settings.get()?.preferences().backup_retention();
+        execute_write(&catalog, config.environment()?, &mutation, retention)
             .map(|backup| backup.metadata.backup_id)
     };
     config.forget(&operation_id);
@@ -269,6 +272,7 @@ pub fn execute_restore_backup(
     config: State<'_, ConfigCoordinator>,
     operations: State<'_, OperationCoordinator>,
     elevation: State<'_, ElevationCoordinator>,
+    settings: State<'_, SettingsCoordinator>,
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
     let mutation = config.pending(&operation_id)?;
@@ -301,7 +305,8 @@ pub fn execute_restore_backup(
         }
     } else {
         operations.record_progress(&operation_id, "Creating protected backup.")?;
-        execute_restore(&catalog, config.environment()?, &mutation)
+        let retention = settings.get()?.preferences().backup_retention();
+        execute_restore(&catalog, config.environment()?, &mutation, retention)
             .map(|()| "local-restore".to_owned())
     };
     config.forget(&operation_id);

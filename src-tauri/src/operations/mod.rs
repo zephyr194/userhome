@@ -23,6 +23,7 @@ pub const MAX_OPERATION_EVENTS: usize = 128;
 pub enum OperationKind {
     ConfigurationWrite,
     ConfigurationRestore,
+    BackupClear,
     BrewInstall,
     BrewUpgrade,
     BrewUninstall,

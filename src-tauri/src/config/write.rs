@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::{catalog::Catalog, error::AppError};
+use crate::{catalog::Catalog, error::AppError, settings::BackupRetention};
 
 use super::{
     ConfigEnvironment,
@@ -172,10 +172,15 @@ pub fn execute_write(
     catalog: &Catalog,
     environment: &ConfigEnvironment,
     mutation: &PendingConfigMutation,
+    retention: BackupRetention,
 ) -> Result<BackupRecord, AppError> {
-    execute_write_with_post_validator(catalog, environment, mutation, |definition, bytes| {
-        validate_bytes(definition, environment, bytes)
-    })
+    execute_write_with_post_validator(
+        catalog,
+        environment,
+        mutation,
+        retention,
+        |definition, bytes| validate_bytes(definition, environment, bytes),
+    )
 }
 
 pub fn validate_pending_write(
@@ -214,6 +219,7 @@ fn execute_write_with_post_validator<F>(
     catalog: &Catalog,
     environment: &ConfigEnvironment,
     mutation: &PendingConfigMutation,
+    retention: BackupRetention,
     post_validate: F,
 ) -> Result<BackupRecord, AppError>
 where
@@ -233,6 +239,7 @@ where
         &mutation.config_id,
         &current,
         current_mode,
+        retention,
     )?;
 
     atomic_replace(
@@ -319,7 +326,7 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::{catalog::load_builtin_catalog, error::AppErrorCode};
+    use crate::{catalog::load_builtin_catalog, error::AppErrorCode, settings::BackupRetention};
 
     use super::{
         super::ConfigEnvironment, ConfigWriteInput, execute_write_with_post_validator,
@@ -377,8 +384,13 @@ mod tests {
         )
         .expect("prepare write");
 
-        let backup =
-            super::execute_write(&catalog, &fixture.environment, &mutation).expect("execute write");
+        let backup = super::execute_write(
+            &catalog,
+            &fixture.environment,
+            &mutation,
+            BackupRetention::TWENTY,
+        )
+        .expect("execute write");
 
         assert!(logical.is_symlink());
         assert_eq!(
@@ -418,8 +430,13 @@ mod tests {
         .expect("prepare write");
         fs::write(&target, b"[user]\nname = External\n").expect("external edit");
 
-        let error = super::execute_write(&catalog, &fixture.environment, &mutation)
-            .expect_err("reject stale write");
+        let error = super::execute_write(
+            &catalog,
+            &fixture.environment,
+            &mutation,
+            BackupRetention::TWENTY,
+        )
+        .expect_err("reject stale write");
 
         assert_eq!(error.code(), AppErrorCode::Conflict);
         assert_eq!(
@@ -449,11 +466,14 @@ mod tests {
         )
         .expect("prepare write");
 
-        let error =
-            execute_write_with_post_validator(&catalog, &fixture.environment, &mutation, |_, _| {
-                Err(crate::error::AppError::validation_failed("forced failure"))
-            })
-            .expect_err("post validation must fail");
+        let error = execute_write_with_post_validator(
+            &catalog,
+            &fixture.environment,
+            &mutation,
+            BackupRetention::TWENTY,
+            |_, _| Err(crate::error::AppError::validation_failed("forced failure")),
+        )
+        .expect_err("post validation must fail");
 
         assert_eq!(error.code(), AppErrorCode::ValidationFailed);
         assert_eq!(fs::read(&target).expect("read target"), original);

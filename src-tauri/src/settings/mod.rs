@@ -237,6 +237,12 @@ pub struct UpdatePreferencesRequest {
     optional_discovery_roots: Option<Vec<OptionalDiscoveryRoot>>,
 }
 
+impl UpdatePreferencesRequest {
+    pub fn backup_retention(&self) -> Option<BackupRetention> {
+        self.backup_retention
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SettingsDiagnosticCode {
@@ -330,6 +336,17 @@ impl SettingsCoordinator {
     }
 
     pub fn update(&self, patch: UpdatePreferencesRequest) -> Result<LoadedPreferences, AppError> {
+        self.update_with(patch, |_| Ok(()))
+    }
+
+    pub(crate) fn update_with<F>(
+        &self,
+        patch: UpdatePreferencesRequest,
+        before_save: F,
+    ) -> Result<LoadedPreferences, AppError>
+    where
+        F: FnOnce(&UserPreferences) -> Result<(), AppError>,
+    {
         let store = self.lock_store()?;
         let loaded = store.load();
         if loaded.diagnostic().is_some() {
@@ -339,6 +356,7 @@ impl SettingsCoordinator {
         }
         let mut preferences = loaded.preferences().clone();
         preferences.apply_patch(patch)?;
+        before_save(&preferences)?;
         store.save(&preferences)?;
         Ok(LoadedPreferences::ready(preferences))
     }
@@ -398,6 +416,12 @@ mod tests {
             "storagePath": "/tmp/preferences.json"
         }));
         assert!(unknown.is_err());
+        assert!(
+            serde_json::from_value::<UpdatePreferencesRequest>(json!({
+                "backupRetention": 7
+            }))
+            .is_err()
+        );
 
         let root = std::env::temp_dir().join(format!("userhome-settings-patch-{}", Uuid::new_v4()));
         let coordinator = SettingsCoordinator::new(SettingsStore::new(root.clone()));
@@ -474,6 +498,40 @@ mod tests {
                 .expect("reset preferences")
                 .preferences(),
             &UserPreferences::default()
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn resetting_preferences_preserves_owned_backups() {
+        let root = std::env::temp_dir().join(format!("userhome-settings-reset-{}", Uuid::new_v4()));
+        let home = root.join("home");
+        let app_support = home.join("Library/Application Support/UserHome");
+        fs::create_dir_all(&home).expect("create home");
+        let environment = crate::config::ConfigEnvironment::new(
+            home,
+            root.join("brew"),
+            app_support.join("backups"),
+        );
+        fs::create_dir_all(environment.brew_prefix()).expect("create brew");
+        crate::config::backup::create_backup(
+            &environment,
+            "git",
+            "git-global-config",
+            b"owned backup",
+            0o600,
+            BackupRetention::TWENTY,
+        )
+        .expect("create backup");
+        let coordinator = SettingsCoordinator::new(SettingsStore::new(app_support));
+
+        coordinator.reset().expect("reset preferences");
+
+        assert_eq!(
+            crate::config::backup::list_backups(&environment, "git", "git-global-config",)
+                .expect("list backups")
+                .len(),
+            1
         );
         let _ = fs::remove_dir_all(root);
     }

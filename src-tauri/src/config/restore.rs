@@ -2,7 +2,7 @@ use std::fs;
 
 use serde::Deserialize;
 
-use crate::{catalog::Catalog, error::AppError};
+use crate::{catalog::Catalog, error::AppError, settings::BackupRetention};
 
 use super::{
     ConfigEnvironment,
@@ -85,13 +85,14 @@ pub fn execute_restore(
     catalog: &Catalog,
     environment: &ConfigEnvironment,
     mutation: &PendingConfigMutation,
+    retention: BackupRetention,
 ) -> Result<(), AppError> {
     if mutation.source_id.is_none() {
         return Err(AppError::conflict(
             "Restore preview does not reference a backup.",
         ));
     }
-    execute_write(catalog, environment, mutation).map(|_| ())
+    execute_write(catalog, environment, mutation, retention).map(|_| ())
 }
 
 #[cfg(test)]
@@ -104,7 +105,7 @@ mod tests {
 
     use uuid::Uuid;
 
-    use crate::catalog::load_builtin_catalog;
+    use crate::{catalog::load_builtin_catalog, settings::BackupRetention};
 
     use super::{
         super::{ConfigEnvironment, backup::create_backup, read::hash_bytes},
@@ -156,6 +157,7 @@ mod tests {
             "git-global-config",
             original,
             0o600,
+            BackupRetention::TWENTY,
         )
         .expect("create backup");
         let catalog = load_builtin_catalog().expect("catalog");
@@ -171,7 +173,13 @@ mod tests {
         )
         .expect("prepare restore");
 
-        execute_restore(&catalog, &fixture.environment, &mutation).expect("restore");
+        execute_restore(
+            &catalog,
+            &fixture.environment,
+            &mutation,
+            BackupRetention::TWENTY,
+        )
+        .expect("restore");
 
         assert!(logical.is_symlink());
         assert_eq!(fs::read(&target).expect("read restored"), original);

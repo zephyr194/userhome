@@ -122,7 +122,10 @@ pub fn run() {
             commands::operations::cancel_operation,
             commands::settings::get_preferences,
             commands::settings::update_preferences,
-            commands::settings::reset_preferences
+            commands::settings::reset_preferences,
+            commands::settings::get_backup_storage,
+            commands::settings::preview_clear_backups,
+            commands::settings::execute_clear_backups
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

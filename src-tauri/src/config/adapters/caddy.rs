@@ -127,6 +127,7 @@ mod tests {
             read::hash_bytes,
             write::{ConfigWriteInput, execute_write, prepare_write},
         },
+        settings::BackupRetention,
     };
 
     use super::*;
@@ -226,7 +227,13 @@ mod tests {
             },
         )
         .expect("prepare");
-        execute_write(&catalog, &fixture.environment, &mutation).expect("write");
+        execute_write(
+            &catalog,
+            &fixture.environment,
+            &mutation,
+            BackupRetention::TWENTY,
+        )
+        .expect("write");
         assert!(fixture.logical.is_symlink());
         assert_eq!(
             fs::read_to_string(&fixture.target).expect("target"),

@@ -1,7 +1,7 @@
 use std::{
-    fs::{self, OpenOptions},
+    fs::{self, DirBuilder, OpenOptions},
     io::Write,
-    os::unix::fs::{OpenOptionsExt, PermissionsExt},
+    os::unix::fs::{DirBuilderExt, OpenOptionsExt, PermissionsExt},
     path::{Component, Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -9,13 +9,12 @@ use std::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::error::AppError;
+use crate::{error::AppError, settings::BackupRetention};
 
-use super::{ConfigEnvironment, read::hash_bytes};
+use super::{ConfigEnvironment, read::hash_bytes, retention::enforce_document};
 
 const BACKUP_CONTENT_FILE: &str = "content";
 const BACKUP_METADATA_FILE: &str = "metadata.json";
-const MAX_BACKUPS_PER_DOCUMENT: usize = 20;
 const MAX_BACKUP_METADATA_BYTES: u64 = 16 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +53,7 @@ pub fn create_backup(
     config_id: &str,
     bytes: &[u8],
     mode: u32,
+    retention: BackupRetention,
 ) -> Result<BackupRecord, AppError> {
     let root = ensure_backup_root(environment)?;
     let app_root = create_owned_child_dir(&root, app_id)?;
@@ -79,7 +79,7 @@ pub fn create_backup(
     write_protected_file(&content_path, bytes)?;
     let encoded = serde_json::to_vec(&metadata).map_err(|_| AppError::internal())?;
     write_protected_file(&backup_root.join(BACKUP_METADATA_FILE), &encoded)?;
-    enforce_retention(environment, app_id, config_id)?;
+    enforce_document(environment, app_id, config_id, retention)?;
 
     Ok(BackupRecord {
         metadata,
@@ -121,40 +121,78 @@ pub fn load_backup(
         .ok_or_else(|| AppError::not_found("Backup was not found."))
 }
 
-pub fn enforce_retention(
-    environment: &ConfigEnvironment,
-    app_id: &str,
-    config_id: &str,
-) -> Result<(), AppError> {
-    let records = list_records(environment, app_id, config_id)?;
-    for record in records.into_iter().skip(MAX_BACKUPS_PER_DOCUMENT) {
-        let backup_dir = record
-            .content_path
-            .parent()
-            .ok_or_else(AppError::internal)?;
-        fs::remove_dir_all(backup_dir)
-            .map_err(|_| AppError::permission_denied("Old backup cannot be removed."))?;
-    }
-    Ok(())
+fn ensure_backup_root(environment: &ConfigEnvironment) -> Result<PathBuf, AppError> {
+    resolve_backup_root(environment, true)?
+        .ok_or_else(|| AppError::permission_denied("Backup root is not authorized."))
 }
 
-fn ensure_backup_root(environment: &ConfigEnvironment) -> Result<PathBuf, AppError> {
+pub(super) fn existing_backup_root(
+    environment: &ConfigEnvironment,
+) -> Result<Option<PathBuf>, AppError> {
+    resolve_backup_root(environment, false)
+}
+
+fn resolve_backup_root(
+    environment: &ConfigEnvironment,
+    create: bool,
+) -> Result<Option<PathBuf>, AppError> {
     let canonical_home = fs::canonicalize(environment.home())
         .map_err(|_| AppError::permission_denied("Backup root is not authorized."))?;
     let relative = environment
         .backup_root()
         .strip_prefix(environment.home())
         .map_err(|_| AppError::permission_denied("Backup root is not authorized."))?;
+    let components = relative.components().collect::<Vec<_>>();
+    if components.is_empty() {
+        return Err(AppError::permission_denied(
+            "Backup root is not authorized.",
+        ));
+    }
     let mut current = canonical_home;
-    for component in relative.components() {
+    for (index, component) in components.iter().enumerate() {
         let Component::Normal(name) = component else {
             return Err(AppError::permission_denied(
                 "Backup root is not authorized.",
             ));
         };
-        current = create_owned_child_dir(&current, name)?;
+        let path = current.join(name);
+        match fs::symlink_metadata(&path) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                    return Err(AppError::permission_denied(
+                        "Backup root is not authorized.",
+                    ));
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && create => {
+                let mut builder = DirBuilder::new();
+                builder.mode(0o700);
+                builder.create(&path).map_err(|_| {
+                    AppError::permission_denied("Backup directory cannot be created.")
+                })?;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(_) => {
+                return Err(AppError::permission_denied(
+                    "Backup directory is unavailable.",
+                ));
+            }
+        }
+        let canonical_path = fs::canonicalize(&path)
+            .map_err(|_| AppError::permission_denied("Backup root is not authorized."))?;
+        if canonical_path.parent() != Some(current.as_path()) {
+            return Err(AppError::permission_denied(
+                "Backup root is not authorized.",
+            ));
+        }
+        if create && index + 1 == components.len() {
+            fs::set_permissions(&canonical_path, fs::Permissions::from_mode(0o700)).map_err(
+                |_| AppError::permission_denied("Backup permissions cannot be protected."),
+            )?;
+        }
+        current = canonical_path;
     }
-    Ok(current)
+    Ok(Some(current))
 }
 
 fn create_owned_child_dir(
@@ -208,17 +246,14 @@ fn write_protected_file(path: &Path, bytes: &[u8]) -> Result<(), AppError> {
         .map_err(|_| AppError::permission_denied("Backup permissions cannot be protected."))
 }
 
-fn list_records(
+pub(super) fn list_records(
     environment: &ConfigEnvironment,
     app_id: &str,
     config_id: &str,
 ) -> Result<Vec<BackupRecord>, AppError> {
-    let root = environment.backup_root();
-    if !root.exists() {
+    let Some(canonical_root) = existing_backup_root(environment)? else {
         return Ok(Vec::new());
-    }
-    let canonical_root = fs::canonicalize(root)
-        .map_err(|_| AppError::permission_denied("Backup root is not authorized."))?;
+    };
     let document_root = canonical_root.join(app_id).join(config_id);
     if !document_root.exists() {
         return Ok(Vec::new());
@@ -275,18 +310,25 @@ fn list_records(
             Ok(value) => value,
             Err(_) => continue,
         };
+        let content_path = canonical_backup_dir.join(BACKUP_CONTENT_FILE);
+        let content_file = match fs::symlink_metadata(&content_path) {
+            Ok(value) if value.is_file() && !value.file_type().is_symlink() => value,
+            _ => continue,
+        };
         if metadata.backup_id != backup_id
             || metadata.app_id != app_id
             || metadata.config_id != config_id
             || metadata.mode > 0o777
+            || content_file.len() != metadata.size_bytes
         {
             continue;
         }
         records.push(BackupRecord {
             metadata,
-            content_path: canonical_backup_dir.join(BACKUP_CONTENT_FILE),
+            content_path,
         });
     }
+
     records.sort_by(|left, right| {
         right
             .metadata
@@ -295,6 +337,43 @@ fn list_records(
             .then_with(|| right.metadata.backup_id.cmp(&left.metadata.backup_id))
     });
     Ok(records)
+}
+
+pub(super) fn backup_storage_bytes(record: &BackupRecord) -> Result<u64, AppError> {
+    let backup_root = record
+        .content_path
+        .parent()
+        .ok_or_else(AppError::internal)?;
+    let metadata = fs::symlink_metadata(backup_root.join(BACKUP_METADATA_FILE))
+        .map_err(|_| AppError::permission_denied("Backup metadata is unavailable."))?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(AppError::permission_denied(
+            "Backup metadata is not authorized.",
+        ));
+    }
+    let metadata_size = metadata.len();
+    Ok(record.metadata.size_bytes.saturating_add(metadata_size))
+}
+
+pub(super) fn remove_backup(
+    environment: &ConfigEnvironment,
+    record: &BackupRecord,
+) -> Result<(), AppError> {
+    let current = load_backup(
+        environment,
+        &record.metadata.app_id,
+        &record.metadata.config_id,
+        &record.metadata.backup_id,
+    )?;
+    if current.content_path != record.content_path || current.metadata != record.metadata {
+        return Err(AppError::conflict("Backup changed after it was listed."));
+    }
+    let backup_dir = current
+        .content_path
+        .parent()
+        .ok_or_else(AppError::internal)?;
+    fs::remove_dir_all(backup_dir)
+        .map_err(|_| AppError::permission_denied("Backup cannot be removed."))
 }
 
 fn is_backup_id(value: &str) -> bool {
@@ -337,6 +416,8 @@ mod tests {
 
     use uuid::Uuid;
 
+    use crate::settings::BackupRetention;
+
     use super::{super::ConfigEnvironment, create_backup};
 
     struct Fixture {
@@ -373,6 +454,7 @@ mod tests {
             "git-global-config",
             bytes,
             0o640,
+            BackupRetention::TWENTY,
         )
         .expect("create backup");
 
@@ -409,6 +491,7 @@ mod tests {
             "git-global-config",
             b"secret",
             0o600,
+            BackupRetention::TWENTY,
         )
         .expect_err("reject escaping backup root");
 
