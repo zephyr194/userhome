@@ -4374,18 +4374,25 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T119：以 Settings 完成参考布局
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**保留七组设置和危险边界，建立无重复标题的 list/detail 参考布局。
 
 **验收：**
-- [ ] 七组、选择恢复、外观、隐私、备份、诊断和重置行为保留。
-- [ ] list/detail 各自滚动，200% 可到最后操作且不隐藏帮助文案。
+- [x] 七组、选择恢复、外观、隐私、备份、诊断和重置行为保留。
+- [x] list/detail 具备各自滚动与收缩边界，不以组件类隐藏帮助文案；真实 200% 最后操作可达性留 T124。
 
 **验证：**现有 settings/shell tests；前端完整门禁；人工滚动检查。
 **依赖：**T114、T115。
 **文件归属：**Settings page/sidebar/primitives/groups、global CSS。
 **规模：**M。
+
+**T119 实施证据（2026-10-10）：**
+
+- 移除重复“设置”页面标题、品牌 kicker 与整页卡片语义；左侧仅保留分组 label，右侧仅保留当前设置组 h2 与摘要。
+- `settings-pane__groups/tabs/detail/detail-content` 均具备 min-width/min-height 与明确滚动语义；七组、appearance 三选一、reset 危险区、help 文案保持。
+- RED：结构测试中 root/list 收缩边界及单一 h2 断言失败；GREEN：Settings 定向 9 项与 scoped lint 通过，独立快照 typecheck 通过。三主题文案恢复“外观/主题”中性表述。
+- 窄逻辑 viewport 的旧 CSS 隐藏规则仍由 T123 清理；真实 200% 与末尾危险操作键盘可达性留 T124。
 
 ## T120：完成 Homebrew 工作台迁移
 

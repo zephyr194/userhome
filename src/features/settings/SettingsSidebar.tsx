@@ -51,7 +51,7 @@ export function SettingsSidebar({
 
   return (
     <ul
-      className="settings-pane__tabs m-0 grid min-h-0 list-none content-start gap-ui-xs overflow-x-hidden overflow-y-auto p-ui-md [overscroll-behavior:contain] [scrollbar-gutter:stable]"
+      className="settings-pane__tabs m-0 grid min-h-0 min-w-0 list-none content-start gap-ui-xs overflow-x-hidden overflow-y-auto p-ui-md [overscroll-behavior:contain] [scrollbar-gutter:stable]"
       role="listbox"
       aria-label="设置分组"
     >

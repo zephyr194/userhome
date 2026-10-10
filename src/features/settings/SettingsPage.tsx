@@ -39,20 +39,20 @@ export function SettingsPage({
 
   return (
     <section
-      className="settings-pane grid h-full min-h-0 grid-rows-[minmax(8rem,11rem)_minmax(0,1fr)] overflow-hidden rounded-panel border border-border bg-surface md:grid-cols-[14.5rem_minmax(0,1fr)] md:grid-rows-1"
+      className="settings-pane grid h-full min-h-0 min-w-0 grid-rows-[minmax(8rem,11rem)_minmax(0,1fr)] overflow-hidden md:grid-cols-[14.5rem_minmax(0,1fr)] md:grid-rows-1"
       aria-label="设置"
     >
       <section
-        className="settings-pane__groups grid min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-b border-border bg-surface-muted md:border-r md:border-b-0"
+        className="settings-pane__groups grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-b border-border bg-surface-muted md:border-r md:border-b-0"
         aria-labelledby="settings-groups-heading"
       >
-        <header className="settings-pane__groups-header border-b border-border px-ui-2xl py-ui-xl">
-          <h2 className="m-0 text-base font-semibold" id="settings-groups-heading">
-            设置
-          </h2>
-          <p className="mt-ui-xs mb-0 text-xs text-muted-foreground">
-            本机偏好与应用行为
-          </p>
+        <header className="settings-pane__groups-header min-w-0 border-b border-border px-ui-2xl py-ui-xl">
+          <span
+            className="block break-words text-xs font-semibold tracking-widest text-muted-foreground uppercase"
+            id="settings-groups-heading"
+          >
+            分组
+          </span>
         </header>
         <SettingsSidebar
           onSelect={onSelectedGroupChange}
@@ -61,18 +61,14 @@ export function SettingsPage({
       </section>
 
       <section
-        className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-surface"
+        className="settings-pane__detail grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-surface"
         id={`settings-panel-${group.id}`}
         aria-labelledby={headingId}
         tabIndex={0}
       >
         <header className="settings-pane__detail-header flex min-w-0 flex-wrap items-start justify-between gap-ui-xl border-b border-border px-ui-3xl py-ui-2xl">
           <div className="min-w-0">
-            <p className="section-kicker m-0">UserHome 偏好</p>
-            <h2
-              className="mt-ui-xs mb-0 break-words text-xl font-semibold"
-              id={headingId}
-            >
+            <h2 className="m-0 break-words text-xl font-semibold" id={headingId}>
               {group.label}
             </h2>
             <p className="mt-ui-xs mb-0 break-words text-xs leading-relaxed text-muted-foreground">
