@@ -61,10 +61,10 @@ export function SettingsField({
   return (
     <label className={classNames(FIELD_CLASSES, className)} {...props}>
       <span className="min-w-0">
-        <strong className="block break-words text-sm font-semibold">
+        <strong className="block break-words text-body font-semibold">
           {label}
         </strong>
-        <small className="mt-ui-xs block break-words text-xs leading-relaxed text-muted-foreground">
+        <small className="mt-ui-xs block break-words text-aux leading-relaxed text-muted-foreground">
           {description}
         </small>
       </span>
@@ -88,14 +88,14 @@ export function SettingsValueField({
   return (
     <div className={classNames(FIELD_CLASSES, className)} {...props}>
       <span className="min-w-0">
-        <strong className="block break-words text-sm font-semibold">
+        <strong className="block break-words text-body font-semibold">
           {label}
         </strong>
-        <small className="mt-ui-xs block break-words text-xs leading-relaxed text-muted-foreground">
+        <small className="mt-ui-xs block break-words text-aux leading-relaxed text-muted-foreground">
           {description}
         </small>
       </span>
-      <span className="flex min-w-0 shrink-0 items-center text-xs font-semibold text-muted-foreground sm:justify-end">
+      <span className="flex min-w-0 shrink-0 items-center text-aux font-semibold text-muted-foreground sm:justify-end">
         {children}
       </span>
     </div>
@@ -120,8 +120,8 @@ export function SettingsChoiceGroup({
       )}
       {...props}
     >
-      <legend className="text-sm font-semibold">{legend}</legend>
-      <p className="m-0 break-words text-xs leading-relaxed text-muted-foreground">
+      <legend className="text-group font-semibold">{legend}</legend>
+      <p className="m-0 break-words text-aux leading-relaxed text-muted-foreground">
         {description}
       </p>
       {children}
@@ -150,10 +150,10 @@ export function SettingsChoice({
     >
       {children}
       <span className="min-w-0">
-        <strong className="block break-words text-sm font-semibold">
+        <strong className="block break-words text-body font-semibold">
           {label}
         </strong>
-        <small className="mt-ui-xs block break-words text-xs leading-relaxed text-muted-foreground">
+        <small className="mt-ui-xs block break-words text-aux leading-relaxed text-muted-foreground">
           {description}
         </small>
       </span>
@@ -181,13 +181,13 @@ export function SettingsSection({
     >
       <div className="min-w-0">
         <h3
-          className="m-0 break-words text-sm font-semibold"
+          className="m-0 break-words text-group font-semibold"
           id={headingId}
         >
           {title}
         </h3>
         {description ? (
-          <p className="mt-ui-xs mb-0 break-words text-xs leading-relaxed text-muted-foreground">
+          <p className="mt-ui-xs mb-0 break-words text-aux leading-relaxed text-muted-foreground">
             {description}
           </p>
         ) : null}
@@ -211,7 +211,7 @@ export function SettingsFeedback({
   return (
     <p
       className={classNames(
-        "m-0 rounded-control border px-ui-xl py-ui-lg text-xs leading-relaxed",
+        "m-0 rounded-control border px-ui-xl py-ui-lg text-aux leading-relaxed",
         error
           ? "border-danger-border bg-danger-soft text-danger"
           : statusTone === "success"
@@ -255,8 +255,8 @@ export function SettingsDangerZone({
 }) {
   return (
     <section className="rounded-panel border border-danger-border bg-danger-soft p-ui-2xl">
-      <h3 className="m-0 text-sm font-semibold text-danger">{title}</h3>
-      <p className="mt-ui-xs mb-0 break-words text-xs leading-relaxed text-muted-foreground">
+      <h3 className="m-0 text-group font-semibold text-danger">{title}</h3>
+      <p className="mt-ui-xs mb-0 break-words text-aux leading-relaxed text-muted-foreground">
         {description}
       </p>
       <SettingsActions className="border-danger-border">
@@ -314,11 +314,11 @@ export function SettingsConfirmationDialog({
       title={
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl">
           <div className="min-w-0">
-            <p className="m-0 break-words text-xs font-semibold uppercase tracking-widest text-danger">
+            <p className="m-0 break-words text-meta font-semibold uppercase tracking-widest text-danger">
               {eyebrow}
             </p>
             <h3
-              className="m-0 break-words text-base font-semibold leading-snug"
+              className="m-0 break-words text-group font-semibold leading-snug"
               id={titleId}
             >
               {title}

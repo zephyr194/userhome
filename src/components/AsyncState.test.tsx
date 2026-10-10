@@ -16,4 +16,14 @@ describe("AsyncState", () => {
     expect(error).toContain('role="alert"');
     expect(error).toContain('aria-live="assertive"');
   });
+
+  it("uses body typography and never hides shared content", () => {
+    const markup = renderToStaticMarkup(
+      <AsyncState kind="partial">部分数据可用。</AsyncState>,
+    );
+
+    expect(markup).toContain("text-body");
+    expect(markup).not.toContain("truncate");
+    expect(markup).not.toContain("line-clamp");
+  });
 });

@@ -20,7 +20,7 @@ export function AsyncState({
   return (
     <div
       className={classNames(
-        "mt-ui-3xl rounded-control border px-ui-xl py-ui-lg text-sm leading-relaxed",
+        "mt-ui-3xl rounded-control border px-ui-xl py-ui-lg text-body leading-relaxed",
         STATE_CLASSES[kind],
       )}
       role={kind === "error" ? "alert" : "status"}

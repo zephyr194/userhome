@@ -32,6 +32,36 @@ export function Modal({
       ) ?? null;
   }, []);
 
+  if (typeof document === "undefined") {
+    return (
+      <div className="fixed inset-0 z-50 grid place-items-center bg-backdrop p-ui-xl sm:p-ui-3xl">
+        <section
+          aria-busy={busy || undefined}
+          aria-modal="true"
+          className={classNames(
+            "max-h-full w-full max-w-xl overflow-y-auto rounded-panel border border-border bg-surface text-foreground shadow-sm",
+            className,
+          )}
+          role="dialog"
+        >
+          <div className="border-b border-border px-ui-3xl py-ui-2xl">
+            <div className="min-w-0 break-words text-group font-semibold">
+              {title}
+            </div>
+          </div>
+          <div className="min-w-0 break-words px-ui-3xl py-ui-2xl text-body">
+            {children}
+          </div>
+          {footer ? (
+            <div className="flex flex-wrap justify-end gap-ui-md border-t border-border px-ui-3xl py-ui-2xl">
+              {footer}
+            </div>
+          ) : null}
+        </section>
+      </div>
+    );
+  }
+
   return (
     <Dialog
       className="relative z-50"
@@ -42,7 +72,7 @@ export function Modal({
       open={open}
     >
       <DialogBackdrop
-        className="fixed inset-0 bg-neutral-950/55 transition-opacity data-closed:opacity-0"
+        className="fixed inset-0 bg-backdrop transition-opacity data-closed:opacity-0"
         transition
       />
       <div className="fixed inset-0 overflow-hidden p-ui-xl sm:p-ui-3xl">
@@ -63,11 +93,11 @@ export function Modal({
             transition
           >
             <div className="border-b border-border px-ui-3xl py-ui-2xl">
-              <DialogTitle as="div" className="text-base font-semibold">
+              <DialogTitle as="div" className="min-w-0 break-words text-group font-semibold">
                 {title}
               </DialogTitle>
             </div>
-            <div className="px-ui-3xl py-ui-2xl text-sm">{children}</div>
+            <div className="min-w-0 break-words px-ui-3xl py-ui-2xl text-body">{children}</div>
             {footer ? (
               <div className="flex flex-wrap justify-end gap-ui-md border-t border-border px-ui-3xl py-ui-2xl">
                 {footer}

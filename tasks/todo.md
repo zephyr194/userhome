@@ -4257,21 +4257,35 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T114：收敛全局 token 与共享控件
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**统一三主题语义颜色、13/12/11/14/20px 文字层级、32–36px
 控件、间距和可自然增高的资源行。
 
 **验收：**
-- [ ] 页面不再维护私有色板、装饰渐变或不可核验正文叠色。
-- [ ] 相同语义控件的尺寸、边界、状态和焦点一致。
-- [ ] 200% 时必要内容不被 9/10px、ellipsis、clamp 或固定高度隐藏。
-- [ ] 兼容 CSS 暂留至全部路由完成。
+- [x] 共享视觉基线不再发放私有色板、装饰渐变或不可核验正文叠色；路由兼容债务留 T115–T123。
+- [x] 相同语义控件的尺寸、边界、状态和焦点一致。
+- [x] 共享组件允许 200% 自然增高，不使用 9/10px、ellipsis、clamp 或固定高度隐藏内容。
+- [x] 兼容 CSS 暂留至全部路由完成。
 
 **验证：**共享组件测试；lint、typecheck、test、build。
 **依赖：**T111。
 **文件归属：**global CSS、shared UI、AsyncState、Settings primitives。
 **规模：**L。
+
+**T114 实施证据（2026-10-10）：**
+
+- `--app-*` 增加 light/dark/system 一致的 raised surface、control border、
+  tertiary text、backdrop、scrollbar、11/12/13/14/20px 字体及行高 token；
+  controls 为 32/36px，resource rows 为 36/40/52px 且使用 min-height。
+- Button、StatusBadge、Modal、AsyncState 与 Settings primitives 改用语义字体、
+  backdrop、focus 和 wrapping；共享组件无 truncate/line-clamp/ellipsis/fixed height。
+- RED：共享测试缺少 `text-body/aux/meta/group`、`bg-backdrop`、focus token 与
+  三主题断言，共 10 项失败。GREEN：共享定向 13 项通过，`pnpm lint`、
+  `pnpm typecheck`、完整测试和 build 通过；主题 token 集静态对比通过。
+- `global.css` 的既有路由兼容/Control Lab 工作树改动未纳入本任务提交，继续由
+  T115–T123 串行处理；当前工作树仍有 12 处 ellipsis、5 处渐变和路由私有
+  硬编码颜色，不能据此宣称五路由已完成。
 
 ## T115：统一 Shell、route host 与滚动所有权
 

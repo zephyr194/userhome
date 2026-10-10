@@ -16,8 +16,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "min-h-control-sm px-ui-lg py-ui-sm text-xs",
-  md: "min-h-control-md px-ui-2xl py-ui-md text-sm",
+  sm: "min-h-control-sm px-ui-lg py-ui-sm text-aux",
+  md: "min-h-control-md px-ui-2xl py-ui-md text-body",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -36,6 +36,7 @@ export function Button({
     <button
       className={classNames(
         "inline-flex items-center justify-center gap-ui-md rounded-control border font-medium transition-colors",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],

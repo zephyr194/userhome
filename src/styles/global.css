@@ -26,6 +26,10 @@
   --color-selection: var(--app-selection);
   --color-selection-border: var(--app-selection-border);
   --color-selection-foreground: var(--app-selection-foreground);
+  --color-surface-raised: var(--app-surface-raised);
+  --color-control-border: var(--app-control-border);
+  --color-tertiary-foreground: var(--app-tertiary-foreground);
+  --color-backdrop: var(--app-backdrop);
   --font-sans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
@@ -46,6 +50,16 @@
   --spacing-control-sm: var(--app-control-height-sm);
   --spacing-control-md: var(--app-control-height-md);
   --spacing-status-badge: var(--app-status-badge-height);
+  --text-meta: var(--app-font-size-meta);
+  --text-meta--line-height: var(--app-line-height-meta);
+  --text-aux: var(--app-font-size-aux);
+  --text-aux--line-height: var(--app-line-height-aux);
+  --text-body: var(--app-font-size-body);
+  --text-body--line-height: var(--app-line-height-body);
+  --text-group: var(--app-font-size-group);
+  --text-group--line-height: var(--app-line-height-group);
+  --text-page-title: var(--app-font-size-page-title);
+  --text-page-title--line-height: var(--app-line-height-page-title);
 }
 
 :root {
@@ -60,9 +74,12 @@
   --app-canvas: #f5f6f8;
   --app-surface: #ffffff;
   --app-surface-muted: #f2f5f9;
+  --app-surface-raised: #ffffff;
   --app-border: #7f8b9c;
+  --app-control-border: #5b6b7e;
   --app-foreground: #17212e;
   --app-muted-foreground: #536174;
+  --app-tertiary-foreground: #6b7a8d;
   --app-primary: #1663b7;
   --app-primary-hover: #12529b;
   --app-primary-soft: #e9f2ff;
@@ -79,6 +96,9 @@
   --app-selection: var(--app-primary-soft);
   --app-selection-foreground: #16579e;
   --app-selection-border: #6087b4;
+  --app-backdrop: rgb(23 33 46 / 0.45);
+  --app-scrollbar-thumb: #b6c0cc;
+  --app-scrollbar-thumb-hover: #94a2b3;
   --app-sidebar-current-foreground: var(--app-selection-foreground);
   --app-sidebar-current-border: var(--app-selection-border);
   --app-success-soft: color-mix(
@@ -117,20 +137,30 @@
   --app-inspector-width: 232px;
   --app-space-xxs: 2px;
   --app-space-xs: 4px;
-  --app-space-sm: 6px;
+  --app-space-sm: 8px;
   --app-space-md: 8px;
-  --app-space-lg: 10px;
+  --app-space-lg: 12px;
   --app-space-xl: 12px;
-  --app-space-2xl: 14px;
-  --app-space-3xl: 16px;
-  --app-radius-control: 8px;
+  --app-space-2xl: 16px;
+  --app-space-3xl: 20px;
+  --app-radius-control: 7px;
   --app-radius-panel: 10px;
   --app-control-height-sm: 32px;
   --app-control-height-md: 36px;
   --app-status-badge-height: 24px;
-  --app-row-height-compact: 32px;
-  --app-row-height-standard: 38px;
-  --app-row-height-two-line: 48px;
+  --app-row-height-compact: 36px;
+  --app-row-height-standard: 40px;
+  --app-row-height-two-line: 52px;
+  --app-font-size-meta: 11px;
+  --app-line-height-meta: 1.45;
+  --app-font-size-aux: 12px;
+  --app-line-height-aux: 1.5;
+  --app-font-size-body: 13px;
+  --app-line-height-body: 1.5;
+  --app-font-size-group: 14px;
+  --app-line-height-group: 1.4;
+  --app-font-size-page-title: 20px;
+  --app-line-height-page-title: 1.25;
   --app-focus-ring-width: 3px;
   --app-focus-ring-offset: 3px;
   --app-focus-ring-inset-width: 2px;
@@ -166,7 +196,8 @@ body {
   min-width: 320px;
   height: 100%;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--app-font-size-body);
+  line-height: var(--app-line-height-body);
   color: var(--text);
   background: var(--app-canvas);
   overflow: hidden;
@@ -2699,6 +2730,12 @@ a {
   --app-sidebar-hover: #283545;
   --app-selection-foreground: #b6d7ff;
   --app-selection-border: #719ed1;
+  --app-surface-raised: #182432;
+  --app-control-border: #566a84;
+  --app-tertiary-foreground: #8797aa;
+  --app-backdrop: rgb(0 0 0 / 0.6);
+  --app-scrollbar-thumb: #39495d;
+  --app-scrollbar-thumb-hover: #566a84;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -2728,6 +2765,12 @@ a {
     --app-sidebar-hover: #283545;
     --app-selection-foreground: #b6d7ff;
     --app-selection-border: #719ed1;
+    --app-surface-raised: #182432;
+    --app-control-border: #566a84;
+    --app-tertiary-foreground: #8797aa;
+    --app-backdrop: rgb(0 0 0 / 0.6);
+    --app-scrollbar-thumb: #39495d;
+    --app-scrollbar-thumb-hover: #566a84;
   }
 }
 
