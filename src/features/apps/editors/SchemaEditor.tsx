@@ -162,7 +162,18 @@ export function SchemaEditor({
           disabled={disabled || !canPreview}
           onClick={() =>
             onPreview(
-              [...draft].map(([fieldId, value]) => ({ fieldId, value })),
+              [...draft].map(([fieldId, value]) => ({
+                fieldId,
+                value:
+                  value.kind === "STRING_LIST"
+                    ? {
+                        ...value,
+                        value: value.value
+                          .map((entry) => entry.trim())
+                          .filter(Boolean),
+                      }
+                    : value,
+              })),
               completeTemplate,
             )
           }

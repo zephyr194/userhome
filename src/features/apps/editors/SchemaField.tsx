@@ -143,13 +143,9 @@ export function SchemaField({
           }
           placeholder="每行一个值"
           onChange={(event) => {
-            const values = event.target.value
-              .split("\n")
-              .map((entry) => entry.trim())
-              .filter(Boolean);
             onChange({
               kind: "STRING_LIST",
-              value: values,
+              value: event.target.value.split("\n"),
             });
           }}
         />
