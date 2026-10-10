@@ -10,7 +10,6 @@ import type {
 } from "../ipc/settings";
 import type { AppError } from "../ipc/core";
 import type {
-  DiscoverySnapshot,
   ModuleSnapshot,
   UnmanagedCandidate,
 } from "../ipc/discovery";
@@ -22,17 +21,19 @@ import type {
   RecentOperationState,
   RefreshState,
 } from "./shellState";
-import type { AppRoute } from "./routeDefinitions";
+import type {
+  AppRoute,
+  ApplicationsScope,
+  NavigationIntent,
+} from "./routeDefinitions";
+import {
+  activeDiscoverySnapshot,
+  candidateSelectionKey,
+  type ApplicationNavigationContext,
+  type StaleApplicationNavigation,
+} from "./applicationNavigation";
 import type { SelectionMemory } from "./selectionMemory";
 import { selectCandidateListModule } from "./discoverySelectors";
-
-function activeDiscoverySnapshot(
-  discovery: DiscoveryState,
-): DiscoverySnapshot | undefined {
-  if (discovery.status === "ready") return discovery.snapshot;
-  if (discovery.status === "error") return discovery.previousSnapshot;
-  return undefined;
-}
 
 function detectedApplicationIds(
   discovery: DiscoveryState,
@@ -50,7 +51,9 @@ function candidateListModule(
   discovery: DiscoveryState,
 ): ModuleSnapshot<readonly UnmanagedCandidate[]> {
   const snapshot = activeDiscoverySnapshot(discovery);
-  if (snapshot) return selectCandidateListModule(snapshot.candidates);
+  if (snapshot) {
+    return selectCandidateListModule(snapshot.candidates);
+  }
   if (discovery.status === "error") {
     return {
       status: "ERROR",
@@ -84,10 +87,16 @@ function applicationDetectionError(
 }
 
 interface RoutePanelProps {
+  applicationNavigation?: {
+    context?: ApplicationNavigationContext;
+    stale?: StaleApplicationNavigation;
+  };
   applications: ApplicationsState;
+  applicationsScope: ApplicationsScope;
   connection: ConnectionState;
   discovery: DiscoveryState;
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
+  onNavigate: (intent: NavigationIntent) => void;
   onOperationChanged: () => void;
   onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
   onPreferencesReset: () => Promise<void>;
@@ -102,10 +111,13 @@ interface RoutePanelProps {
 }
 
 export function RoutePanel({
+  applicationNavigation,
   applications,
+  applicationsScope,
   connection,
   discovery,
   onAppearanceChange,
+  onNavigate,
   onOperationChanged,
   onPreferencesChange,
   onPreferencesReset,
@@ -118,6 +130,10 @@ export function RoutePanel({
   selection,
   settingsGroup,
 }: RoutePanelProps) {
+  // T117 consumes this callback from the Dashboard; T116 establishes the
+  // validated navigation contract and keeps the route boundary type-safe.
+  void onNavigate;
+
   if (route.id === "dashboard") {
     return (
       <DashboardPage
@@ -132,12 +148,20 @@ export function RoutePanel({
   if (route.id === "applications") {
     return (
       <ApplicationsPage
+        applicationsScope={applicationsScope}
         candidates={candidateListModule(discovery)}
+        candidateId={applicationNavigation?.context?.candidateId}
+        sourceRefreshId={applicationNavigation?.context?.sourceRefreshId}
+        staleReason={applicationNavigation?.stale?.reason}
         state={applications}
         detectedAppIds={detectedApplicationIds(discovery)}
         detectionError={applicationDetectionError(discovery)}
         initialSelectedConfigIds={selection.applicationConfigIds}
-        initialSelectedKey={selection.applicationKey}
+        initialSelectedKey={
+          applicationNavigation?.context?.candidateId
+            ? candidateSelectionKey(applicationNavigation.context.candidateId)
+            : selection.applicationKey
+        }
         initialQuery={selection.applicationQuery}
         initialCategory={selection.applicationCategory}
         initialCoverage={selection.applicationCoverage}
@@ -174,11 +198,7 @@ export function RoutePanel({
             ? "STRUCTURED"
             : preferences.preferences.preferredEditorMode
         }
-        refreshId={
-          discovery.status === "ready"
-            ? discovery.snapshot.refreshId
-            : undefined
-        }
+        refreshId={activeDiscoverySnapshot(discovery)?.refreshId}
       />
     );
   }

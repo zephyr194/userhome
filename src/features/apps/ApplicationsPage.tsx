@@ -8,6 +8,8 @@ import {
   type KeyboardEvent,
 } from "react";
 import type { ApplicationsState } from "../../app/shellState";
+import type { StaleApplicationReason } from "../../app/applicationNavigation";
+import type { ApplicationsScope } from "../../app/routeDefinitions";
 import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
@@ -1188,6 +1190,15 @@ function ApplicationsWorkspace({
 }
 
 interface ApplicationsPageProps {
+  /**
+   * T116 wires these through for the applications scope and candidate
+   * navigation. T118 renders the formal scope UI; until then they are accepted
+   * for type-safe forwarding and selection, not displayed.
+   */
+  applicationsScope?: ApplicationsScope;
+  candidateId?: string;
+  sourceRefreshId?: string;
+  staleReason?: StaleApplicationReason;
   candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
   detectedAppIds?: readonly string[];
   detectionError?: AppError;

@@ -57,3 +57,21 @@ export const APP_ROUTES: readonly AppRoute[] = [
     description: "管理 UserHome 的本地偏好。",
   },
 ];
+
+export type ApplicationsScope = "LOCAL_RECOGNIZED" | "CATALOG";
+
+export interface ApplicationsNavigationIntent {
+  routeId: "applications";
+  scope?: ApplicationsScope;
+  candidateId?: string;
+  sourceRefreshId?: string;
+  applicationId?: string;
+  configId?: string;
+}
+
+export type NavigationIntent =
+  | { routeId: "dashboard" }
+  | ApplicationsNavigationIntent
+  | { routeId: "homebrew" }
+  | { routeId: "services"; serviceId?: string }
+  | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId };

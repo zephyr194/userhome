@@ -3,7 +3,15 @@ import type {
   ManagedAppCapability,
   ManagedAppCoverageClass,
 } from "../ipc/catalog";
-import { APP_ROUTES, type AppRouteId } from "./routeDefinitions";
+import {
+  APP_ROUTES,
+  type AppRouteId,
+  type ApplicationsScope,
+} from "./routeDefinitions";
+import {
+  decodeApplicationsScope,
+  DEFAULT_APPLICATIONS_SCOPE,
+} from "./applicationNavigation";
 import {
   SETTINGS_GROUPS,
   type SettingsGroupId,
@@ -31,6 +39,7 @@ const APPLICATION_CAPABILITIES: readonly ManagedAppCapability[] = [
 export interface SelectionMemory {
   routeId: AppRouteId;
   settingsGroup: SettingsGroupId;
+  applicationsScope: ApplicationsScope;
   applicationKey?: string;
   applicationConfigIds: Record<string, string>;
   applicationQuery: string;
@@ -47,6 +56,7 @@ export interface SelectionMemory {
 export const DEFAULT_SELECTION_MEMORY: SelectionMemory = {
   routeId: "dashboard",
   settingsGroup: "appearance",
+  applicationsScope: DEFAULT_APPLICATIONS_SCOPE,
   applicationConfigIds: {},
   applicationQuery: "",
   applicationPage: 1,
@@ -111,7 +121,7 @@ function decodeConfigSelections(value: unknown): Record<string, string> {
   );
 }
 
-function decodeSelection(value: unknown): SelectionMemory {
+export function decodeSelectionMemory(value: unknown): SelectionMemory {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return DEFAULT_SELECTION_MEMORY;
   }
@@ -142,6 +152,7 @@ function decodeSelection(value: unknown): SelectionMemory {
     settingsGroup: safeSettingsGroup(stored.settingsGroup)
       ? stored.settingsGroup
       : "appearance",
+    applicationsScope: decodeApplicationsScope(stored.applicationsScope),
     applicationConfigIds: decodeConfigSelections(
       stored.applicationConfigIds,
     ),
@@ -193,11 +204,20 @@ function decodeSelection(value: unknown): SelectionMemory {
   };
 }
 
+/**
+ * The exact persisted shape. Unknown or transient fields (such as a
+ * `candidateId`/`sourceRefreshId` that a caller might attach) are stripped by
+ * the strict decoder, so they can never reach `localStorage`.
+ */
+export function encodeSelectionMemory(selection: SelectionMemory): string {
+  return JSON.stringify(decodeSelectionMemory(selection));
+}
+
 export function loadSelectionMemory(enabled: boolean): SelectionMemory {
   if (!enabled) return DEFAULT_SELECTION_MEMORY;
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? decodeSelection(JSON.parse(stored)) : DEFAULT_SELECTION_MEMORY;
+    return stored ? decodeSelectionMemory(JSON.parse(stored)) : DEFAULT_SELECTION_MEMORY;
   } catch {
     warnSelectionStorage("Unable to restore the saved UI selection.");
     try {
@@ -218,10 +238,7 @@ export function saveSelectionMemory(
       window.localStorage.removeItem(STORAGE_KEY);
       return;
     }
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(decodeSelection(selection)),
-    );
+    window.localStorage.setItem(STORAGE_KEY, encodeSelectionMemory(selection));
   } catch {
     warnSelectionStorage("Unable to persist the current UI selection.");
   }

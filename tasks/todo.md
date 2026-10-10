@@ -4315,19 +4315,26 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T116：建立 Dashboard→Applications 本机上下文
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**增加 local/catalog scope 及经当前 snapshot 验证的会话级候选导航。
 
 **验收：**
-- [ ] Dashboard 可携带 candidateId/sourceRefreshId 进入本机识别。
-- [ ] stale/removed candidate 安全回退并显示说明。
-- [ ] candidateId/refreshId 不写入 localStorage；现有导航不回退。
+- [x] Dashboard 可携带 candidateId/sourceRefreshId 进入本机识别。
+- [x] stale/removed candidate 安全回退并提供下游可显示的 stale reason。
+- [x] candidateId/refreshId 不写入 localStorage；现有导航不回退。
 
 **验证：**route/selection/AppShell 定向测试；前端完整门禁。
 **依赖：**T112、T115。
 **文件归属：**routeDefinitions、selectionMemory、AppShell、routes。
 **规模：**M。
+
+**T116 实施证据（2026-10-10）：**
+
+- 新增 LOCAL_RECOGNIZED/CATALOG scope、严格 decode/encode 与会话级 transient candidate context。scope 默认本机识别并可持久化；candidateId/sourceRefreshId 经白名单编码器剔除。
+- local intent 以 ready 或 error.previousSnapshot 校验 refreshId/candidate；catalog intent 清除 transient context。有效候选绑定实际 snapshot refreshId，后续 refresh 即使同 ID 仍存在也标记 stale，阻止幽灵选择复活。
+- RED：selection encode/decode 与 navigation helper 缺失；GREEN：17 项纯函数测试及 AppShell 定向合计 23 项通过，lint/typecheck、完整测试/build 通过。
+- Applications 仅接收 scope/context/stale 的最小 props，正式 UI 留 T118；Dashboard 调用点留 T117。
 
 ## T117：实现 Dashboard 首要“用户目录配置”分组
 

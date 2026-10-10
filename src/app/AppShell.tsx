@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
   type KeyboardEvent,
   type MouseEvent,
@@ -9,10 +10,15 @@ import {
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button, StatusBadge } from "../components/ui";
-import type { Appearance } from "../ipc/settings";
-import type { UpdatePreferencesRequest } from "../ipc/settings";
+import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
-import { APP_ROUTES, type AppRouteId } from "./routeDefinitions";
+import { APP_ROUTES, type AppRouteId, type NavigationIntent } from "./routeDefinitions";
+import {
+  activeDiscoverySnapshot,
+  resolveApplicationsNavigation,
+  type ApplicationNavigationContext,
+  type StaleApplicationNavigation,
+} from "./applicationNavigation";
 import { RoutePanel } from "./routes";
 import {
   loadSelectionMemory,
@@ -107,6 +113,13 @@ export function AppShell({
   state,
 }: AppShellProps) {
   const [commandError, setCommandError] = useState<string>();
+  // Transient, session-only application navigation context. Candidates and
+  // refresh ids validate against a live discovery snapshot; they are never
+  // written to selection memory (and so never reach localStorage).
+  const [applicationNavigation, setApplicationNavigation] = useState<{
+    context?: ApplicationNavigationContext;
+    stale?: StaleApplicationNavigation;
+  }>({});
   const restoreSelection =
     state.preferences.status !== "loading" &&
     state.preferences.preferences.restoreSelection;
@@ -129,6 +142,84 @@ export function AppShell({
   const navigate = useCallback((routeId: AppRouteId) => {
     updateSelection({ routeId });
   }, [updateSelection]);
+
+  const navigateTo = useCallback((intent: NavigationIntent) => {
+    if (intent.routeId === "applications") {
+      const resolved = resolveApplicationsNavigation(
+        intent,
+        activeDiscoverySnapshot(state.discovery),
+      );
+      // A catalog navigation clears any transient local candidate context; a
+      // stale local navigation drops the candidate selection so no ghost
+      // selection is produced.
+      setApplicationNavigation({
+        ...(resolved.context ? { context: resolved.context } : {}),
+        ...(resolved.stale ? { stale: resolved.stale } : {}),
+      });
+      if (resolved.scope === "CATALOG") {
+        const applicationKey = intent.applicationId
+          ? `catalog:${intent.applicationId}`
+          : undefined;
+        const applicationConfigIds =
+          intent.applicationId && intent.configId
+            ? { ...selection.applicationConfigIds, [intent.applicationId]: intent.configId }
+            : selection.applicationConfigIds;
+        updateSelection({
+          routeId: intent.routeId,
+          applicationsScope: "CATALOG",
+          ...(applicationKey ? { applicationKey } : {}),
+          applicationConfigIds,
+        });
+        return;
+      }
+      // Local scope keeps the recognized list; the candidate itself lives only
+      // in transient state and is forwarded to the applications workspace.
+      updateSelection({
+        routeId: intent.routeId,
+        applicationsScope: "LOCAL_RECOGNIZED",
+      });
+      return;
+    }
+    if (intent.routeId === "services") {
+      updateSelection({
+        routeId: intent.routeId,
+        ...(intent.serviceId ? { serviceId: intent.serviceId } : {}),
+      });
+      return;
+    }
+    if (intent.routeId === "settings") {
+      updateSelection({
+        routeId: intent.routeId,
+        ...(intent.group ? { settingsGroup: intent.group } : {}),
+      });
+      return;
+    }
+    updateSelection({ routeId: intent.routeId });
+  }, [selection.applicationConfigIds, state.discovery, updateSelection]);
+
+  // When a refresh removes the currently selected candidate, derive a stale
+  // context (rather than mutating state in an effect) so the workspace never
+  // shows a vanished candidate.
+  const activeSnapshot = activeDiscoverySnapshot(state.discovery);
+  const effectiveApplicationNavigation = useMemo(() => {
+    const context = applicationNavigation.context;
+    if (!context?.candidateId) {
+      return applicationNavigation;
+    }
+    const resolved = resolveApplicationsNavigation(
+      {
+        routeId: "applications",
+        scope: "LOCAL_RECOGNIZED",
+        candidateId: context.candidateId,
+        sourceRefreshId: context.sourceRefreshId,
+      },
+      activeSnapshot,
+    );
+    return {
+      ...(resolved.context ? { context: resolved.context } : {}),
+      ...(resolved.stale ? { stale: resolved.stale } : {}),
+    };
+  }, [activeSnapshot, applicationNavigation]);
 
   useEffect(() => {
     let disposed = false;
@@ -253,10 +344,13 @@ export function AppShell({
           detailLabel={`${activeRoute.label}内容`}
           detail={
             <RoutePanel
+              applicationNavigation={effectiveApplicationNavigation}
               applications={state.applications}
+              applicationsScope={selection.applicationsScope}
               connection={state.connection}
               discovery={state.discovery}
               onAppearanceChange={onAppearanceChange}
+              onNavigate={navigateTo}
               onOperationChanged={onRefresh}
               onPreferencesChange={
                 onPreferencesChange ??
