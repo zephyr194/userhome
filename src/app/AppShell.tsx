@@ -184,7 +184,7 @@ export function AppShell({
           onDoubleClick={suppressTitlebarDoubleClick}
         >
           <p className="titlebar__title" data-tauri-drag-region>
-            UserHome
+            <span data-tauri-drag-region>UserHome</span>
           </p>
         </header>
 
@@ -192,6 +192,7 @@ export function AppShell({
           sidebar={
             <NavigationRail
               activeRouteId={activeRouteId}
+              connection={state.connection}
               onNavigate={navigate}
               routes={APP_ROUTES}
             />

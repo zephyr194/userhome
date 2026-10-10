@@ -4289,20 +4289,27 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T115：统一 Shell、route host 与滚动所有权
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**只保留原生标题栏、主导航、单一上下文工具栏和明确 pane
 滚动所有权。
 
 **验收：**
-- [ ] 移除副品牌、重复页面标题、hero 和 shell/detail 双重滚动。
-- [ ] document 无滚动；list/detail/inspector 各自唯一滚动。
-- [ ] traffic lights、drag/no-drag、快捷键、导航焦点和窗口约束保留。
+- [x] 移除标题栏副品牌与 shell hero，建立单一工具栏和无滚动 route host；页面内部重复标题留各路由任务。
+- [x] document 无滚动；list/inspector/operation 各自滚动，detail 作为无滚动 route host。
+- [x] traffic lights、drag/no-drag、快捷键、导航焦点和窗口约束保留。
 
 **验证：**AppShell 定向测试；lint、typecheck、test、build。
 **依赖：**T114。
 **文件归属：**AppShell、routes、DesktopWorkspace、NavigationRail、global CSS。
 **规模：**L。
+
+**T115 实施证据（2026-10-10）：**
+
+- 标题栏仅保留可拖拽 UserHome；Control Lab 品牌只在 NavigationRail 一处，连接状态保留。单一 20px 上下文标题与一个刷新动作。
+- `DesktopWorkspace` 所有 pane 增加 `min-w-0/min-h-0`；detail 为无 padding、`overflow:hidden` 的 route host，list/inspector/operation 各自滚动。
+- RED：3 项结构断言失败（副品牌重复、pane 缺少收缩边界）；GREEN：定向 10 项通过，lint/typecheck、完整 34 文件/106 项测试和 build 通过。
+- 保留 traffic lights clearance、drag/no-drag、skip link、快捷键、selection memory、导航焦点；路由内部页头和兼容 CSS 明确留 T117–T123，未宣称真实 200% 人工通过。
 
 ## Phase 31：用户目录配置识别闭环
 

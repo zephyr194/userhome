@@ -44,6 +44,36 @@ describe("AppShell", () => {
     expect(markup).not.toMatch(/<(?:button|a|input)[^>]*data-tauri-drag-region/);
   });
 
+  it("keeps a single brand identity inside the navigation rail", () => {
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={loadingState}
+      />,
+    );
+    expect(markup.match(/CONTROL LAB/g)).toHaveLength(1);
+    const titlebar = markup.match(/<header class="titlebar"[\s\S]*?<\/header>/)?.[0];
+    expect(titlebar).toBeDefined();
+    expect(titlebar).not.toContain("Control Lab");
+    expect(titlebar).not.toContain("CONTROL LAB");
+  });
+
+  it("exposes one context toolbar, one page title, and one refresh action", () => {
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={loadingState}
+      />,
+    );
+    expect(markup.match(/aria-label="当前页面工具栏"/g)).toHaveLength(1);
+    expect(markup.match(/desktop-workspace__page-title/g)).toHaveLength(1);
+    expect(markup.match(/toolbar-refresh-button/g)).toHaveLength(1);
+    expect(markup).not.toContain("interface-preview");
+    expect(markup).not.toContain("welcome-panel");
+  });
+
   it("maps each persisted appearance value to its attribute and color scheme", () => {
     const documentElement = {
       dataset: {} as Record<string, string>,

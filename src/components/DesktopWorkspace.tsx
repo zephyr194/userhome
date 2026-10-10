@@ -57,7 +57,7 @@ export function DesktopWorkspace({
           {list ? (
             <section
               key="list"
-              className="desktop-workspace__list"
+              className="desktop-workspace__list min-w-0 min-h-0"
               aria-label={listLabel}
               tabIndex={0}
             >
@@ -66,7 +66,7 @@ export function DesktopWorkspace({
           ) : null}
           <section
             key="detail"
-            className="desktop-workspace__detail"
+            className="desktop-workspace__detail min-w-0 min-h-0"
             aria-label={detailLabel}
             tabIndex={0}
           >
@@ -75,7 +75,7 @@ export function DesktopWorkspace({
           {inspector ? (
             <aside
               key="inspector"
-              className="desktop-workspace__inspector"
+              className="desktop-workspace__inspector min-w-0 min-h-0"
               aria-label={inspectorLabel}
               tabIndex={0}
             >
@@ -85,7 +85,7 @@ export function DesktopWorkspace({
         </div>
         {operationProgress ? (
           <section
-            className="desktop-workspace__operation-progress"
+            className="desktop-workspace__operation-progress min-w-0 min-h-0"
             aria-label="操作进度"
             tabIndex={0}
           >
