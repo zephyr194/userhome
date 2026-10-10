@@ -2,6 +2,35 @@
 
 Status: Initial map approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21; configuration-discovery-and-editing revision approved on 2026-09-22
 
+## General UI correction (approved on 2026-10-10)
+
+This correction restores home-configuration recognition as the primary product task, completes the layout migration across every primary route, and defines one visual system without forcing a single appearance.
+
+| Module id | Responsibility | Depends on |
+|---|---|---|
+| `ui-visual-system-v3` | Shared typography, dimensions, spacing, semantic colors, and functional System/Light/Dark appearance | — |
+| `ui-layout-completion-v3` | Complete Dashboard, Applications, Homebrew, Services, and Settings migration with explicit pane scroll ownership | `ui-visual-system-v3` |
+| `home-config-recognition-v3` | Present bounded home/configuration discovery as the primary Dashboard result and a direct local-results Applications view | existing `home-baseline-inventory`, `configuration-platform`, `application-browsing`; `ui-layout-completion-v3` |
+| `ui-correction-acceptance-v3` | Cross-route, appearance, zoom, state, overflow, accessibility, and security evidence | all three modules above |
+
+Build order:
+
+```text
+ui-visual-system-v3 + audit existing home discovery contracts
+  -> ui-layout-completion-v3
+  -> home-config-recognition-v3
+  -> ui-correction-acceptance-v3
+```
+
+The discovery-contract audit may run beside visual-system work, but it does not authorize implementation changes. This revision reuses existing approved roots and typed discovery data by default. It does not add filesystem authority, scan depth, arbitrary paths, catalog write access, or dependencies. Approval includes only focused discovery DTO, count-selector, and stale-snapshot unit tests; other new tests still require separate approval.
+
+Approved specifications:
+
+- [`SPEC-ui-visual-system-v3.md`](docs/specs/SPEC-ui-visual-system-v3.md)
+- [`SPEC-ui-layout-completion-v3.md`](docs/specs/SPEC-ui-layout-completion-v3.md)
+- [`SPEC-home-config-recognition-v3.md`](docs/specs/SPEC-home-config-recognition-v3.md)
+- [`SPEC-ui-correction-acceptance-v3.md`](docs/specs/SPEC-ui-correction-acceptance-v3.md)
+
 ## Native visual redesign (approved on 2026-09-23)
 
 This presentation-only revision covers all primary routes. The module boundaries
@@ -68,12 +97,12 @@ desktop-visual-consistency + config-schema-presets
 
 Revision module specifications:
 
-- [`SPEC-desktop-visual-consistency.md`](SPEC-desktop-visual-consistency.md)
-- [`SPEC-config-schema-presets.md`](SPEC-config-schema-presets.md)
-- [`SPEC-native-window-dragging.md`](SPEC-native-window-dragging.md)
-- [`SPEC-open-source-config-sourcing.md`](SPEC-open-source-config-sourcing.md)
-- [`SPEC-schema-driven-config-editing.md`](SPEC-schema-driven-config-editing.md)
-- [`SPEC-application-browsing.md`](SPEC-application-browsing.md)
+- [`SPEC-desktop-visual-consistency.md`](docs/specs/SPEC-desktop-visual-consistency.md)
+- [`SPEC-config-schema-presets.md`](docs/specs/SPEC-config-schema-presets.md)
+- [`SPEC-native-window-dragging.md`](docs/specs/SPEC-native-window-dragging.md)
+- [`SPEC-open-source-config-sourcing.md`](docs/specs/SPEC-open-source-config-sourcing.md)
+- [`SPEC-schema-driven-config-editing.md`](docs/specs/SPEC-schema-driven-config-editing.md)
+- [`SPEC-application-browsing.md`](docs/specs/SPEC-application-browsing.md)
 
 Schemas and presets use two independently versioned packaged files.
 Application browsing uses dependency-free pagination with exactly 50 entries
@@ -111,11 +140,11 @@ native-desktop-shell + home-baseline-inventory
 
 Revision module specifications:
 
-- [`SPEC-native-desktop-shell.md`](SPEC-native-desktop-shell.md)
-- [`SPEC-home-baseline-inventory.md`](SPEC-home-baseline-inventory.md)
-- [`SPEC-configuration-platform.md`](SPEC-configuration-platform.md)
-- [`SPEC-catalog-expansion.md`](SPEC-catalog-expansion.md)
-- [`SPEC-application-settings.md`](SPEC-application-settings.md)
+- [`SPEC-native-desktop-shell.md`](docs/specs/SPEC-native-desktop-shell.md)
+- [`SPEC-home-baseline-inventory.md`](docs/specs/SPEC-home-baseline-inventory.md)
+- [`SPEC-configuration-platform.md`](docs/specs/SPEC-configuration-platform.md)
+- [`SPEC-catalog-expansion.md`](docs/specs/SPEC-catalog-expansion.md)
+- [`SPEC-application-settings.md`](docs/specs/SPEC-application-settings.md)
 
 The approved coverage rule is: classify every safely identifiable configuration
 root, provide write support only for stable and validated formats, provide
@@ -144,10 +173,10 @@ platform-foundation + app-catalog
 
 Module specifications:
 
-- [`SPEC-platform-foundation.md`](SPEC-platform-foundation.md)
-- [`SPEC-app-catalog.md`](SPEC-app-catalog.md)
-- [`SPEC-system-discovery.md`](SPEC-system-discovery.md)
-- [`SPEC-config-management.md`](SPEC-config-management.md)
-- [`SPEC-brew-management.md`](SPEC-brew-management.md)
-- [`SPEC-service-management.md`](SPEC-service-management.md)
-- [`SPEC-desktop-experience.md`](SPEC-desktop-experience.md)
+- [`SPEC-platform-foundation.md`](docs/specs/SPEC-platform-foundation.md)
+- [`SPEC-app-catalog.md`](docs/specs/SPEC-app-catalog.md)
+- [`SPEC-system-discovery.md`](docs/specs/SPEC-system-discovery.md)
+- [`SPEC-config-management.md`](docs/specs/SPEC-config-management.md)
+- [`SPEC-brew-management.md`](docs/specs/SPEC-brew-management.md)
+- [`SPEC-service-management.md`](docs/specs/SPEC-service-management.md)
+- [`SPEC-desktop-experience.md`](docs/specs/SPEC-desktop-experience.md)

@@ -4063,7 +4063,7 @@ Light/Dark/System、1120×720、200% 可达性、签名、公证及 CI
 - [ ] 无法完成的签名、CI、硬件、权限或人工项标记为“待验证/
       阻塞”，不伪称所有旧任务已完成。
 
-**验证：**按 `SPEC-visual-acceptance-v2.md` 的矩阵实际检查，
+**验证：**按 `../docs/specs/SPEC-visual-acceptance-v2.md` 的矩阵实际检查，
 隔离 HOME，记录复测及未完成理由。依赖：T108。
 
 **文件归属：**`docs/release-readiness.md`、`tasks/todo.md`
@@ -4089,3 +4089,297 @@ UserHome PID 3947 的窗口 ID 4032（屏幕像素 1009 × 650），
 - [ ] T98–T109 均以证据关闭，或注明不可跨越的外部/人工阻塞。
 - [ ] 不把已批准新设计误称为已签名/公证/发布。
 - [ ] 旧计划所有未完成项继续真实存在，直至取得相应证据。
+
+## Phase 28：UI 纠偏 v3 受保护基线
+
+## T110：登记 v3 阶段并稳定当前工作树
+
+**状态：**2026-10-10 已完成；仅登记已批准规格、任务和基线证据，
+未改变产品行为。
+
+**目标：**在不覆盖 dirty working tree 的前提下建立 T110–T124 的可执行
+基线，并把批准状态、依赖和排除项写入项目记录。
+
+**验收：**
+- [x] 四份 v3 规格、总规格及能力图记录 2026-10-10 审批状态。
+- [x] `tasks/plan.md` 与 `tasks/todo.md` 登记 T110–T124，T01–T109
+      原状态和证据不变。
+- [x] `package.json`、`pnpm-lock.yaml`、`.nvmrc` 的 pnpm 12 迁移明确
+      排除本轮并记录校验值。
+- [x] 当前前端基线可通过 TypeScript 编译；未发现需要修改的阻断性
+      `AppShell` 结构错误。
+
+**验证：**审批登记断言先因规格仍为草案而失败；更新后复跑该断言、
+本地 Markdown 链接、`git diff --check`、`pnpm typecheck`、完整
+`pnpm test` 与 `pnpm build`。
+
+**依赖：**T109 后的新阶段；不关闭 T103/T109。
+**文件归属：**`docs/specs/SPEC*.md`、`CAPABILITY-MAP.md`、
+`tasks/plan.md`、`tasks/todo.md`。
+**规模：**S。
+
+**证据：**实施前受保护文件 SHA-256：`package.json`
+`b7fae9a917d23bbbc3f5685aebb0e6969be73860496606b808ab57e9f86a5b77`；
+`pnpm-lock.yaml`
+`15e323cdf52a35f28168ff56874df6f369bf63969f7c17f1db055683553afe25`；
+`.nvmrc`
+`73fb1b615e2043a933be1c0895cde4358036acc28d785692509b822aa53c761f`。
+分支 `chore/ui-correction-v3-t110` 上的 RED 审批断言按预期失败；
+实施前 `pnpm typecheck` 已通过，证明规划期看到的重复 `</header>` 已不
+存在，故未重复修改 `AppShell.tsx`。GREEN 后审批/任务登记断言通过，
+96 个本地 Markdown 链接全部可解析，`git diff --check` 通过；完整
+`pnpm test` 通过（29 文件、73 项），`pnpm build` 通过（含 typecheck，
+Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
+警告，不属于 T110 阻断。保护文件复核与实施前 SHA-256 完全一致。
+
+## Phase 29：外观与发现契约
+
+## T111：恢复 System/Light/Dark 协议
+
+**状态：**待执行。
+
+**目标：**恢复默认 System、显式 Light/Dark、即时应用、持久化和失败
+回滚，不改变 settings schema 或当前 UI 状态。
+
+**验收：**
+- [ ] 三个持久化值均正确渲染，System 可跟随系统明/暗。
+- [ ] 切换不丢失路由、选择、筛选、分页或编辑草稿。
+- [ ] 移除 fixed-dark 实现、文案和冲突测试契约。
+
+**验证：**定向 appearance/settings tests；`pnpm lint && pnpm typecheck && pnpm test && pnpm build`。
+**依赖：**T110。
+**文件归属：**appearance、前后端 settings、Appearance Settings、相邻测试。
+**规模：**M。
+
+## T112：保留完整 configuration coverage 与旧 snapshot
+
+**状态：**待执行。
+
+**目标：**停止丢弃 scan summary/outcomes，从同一 snapshot 计算四类计数，
+并在刷新失败时保留上一份可用数据。
+
+**验收：**
+- [ ] `DiscoverySnapshot.candidates` 保留完整 `ConfigurationCoverage`。
+- [ ] 四类计数之和等于 candidateCount，安全路径和 limits/outcomes 保真。
+- [ ] partial/error 显示已取得结果；refresh error 可携带 previous snapshot。
+- [ ] 新增已批准的 DTO、selector、stale snapshot 定向测试。
+
+**验证：**定向 Vitest；`pnpm lint && pnpm typecheck && pnpm test && pnpm build`。
+**依赖：**T110。
+**文件归属：**`src/ipc/discovery.ts`、shell state/App、共享 selector 及测试。
+**规模：**M。
+
+## T113：补齐既有 catalog path variant exact probes
+
+**状态：**待执行。
+
+**目标：**让 discovery exact probe 遍历既有 document path variants，并保持
+批准根、上限、metadata-only 和 wire schema 不变。
+
+**验收：**
+- [ ] secondary variant 可被识别且 ID/安全路径/分类稳定。
+- [ ] 不新增根、深度、内容读取、权限或 IPC 字段。
+- [ ] 现有 Rust fixture 覆盖 variant 去重和 Docker 类路径。
+
+**验证：**Rust discovery 定向测试、fmt、Clippy、cargo test。
+**依赖：**T110。
+**文件归属：**Rust catalog/discovery candidates 及现有测试。
+**规模：**S/M。
+
+## Phase 30：共享视觉系统与 Shell
+
+## T114：收敛全局 token 与共享控件
+
+**状态：**待执行。
+
+**目标：**统一三主题语义颜色、13/12/11/14/20px 文字层级、32–36px
+控件、间距和可自然增高的资源行。
+
+**验收：**
+- [ ] 页面不再维护私有色板、装饰渐变或不可核验正文叠色。
+- [ ] 相同语义控件的尺寸、边界、状态和焦点一致。
+- [ ] 200% 时必要内容不被 9/10px、ellipsis、clamp 或固定高度隐藏。
+- [ ] 兼容 CSS 暂留至全部路由完成。
+
+**验证：**共享组件测试；lint、typecheck、test、build。
+**依赖：**T111。
+**文件归属：**global CSS、shared UI、AsyncState、Settings primitives。
+**规模：**L。
+
+## T115：统一 Shell、route host 与滚动所有权
+
+**状态：**待执行。
+
+**目标：**只保留原生标题栏、主导航、单一上下文工具栏和明确 pane
+滚动所有权。
+
+**验收：**
+- [ ] 移除副品牌、重复页面标题、hero 和 shell/detail 双重滚动。
+- [ ] document 无滚动；list/detail/inspector 各自唯一滚动。
+- [ ] traffic lights、drag/no-drag、快捷键、导航焦点和窗口约束保留。
+
+**验证：**AppShell 定向测试；lint、typecheck、test、build。
+**依赖：**T114。
+**文件归属：**AppShell、routes、DesktopWorkspace、NavigationRail、global CSS。
+**规模：**L。
+
+## Phase 31：用户目录配置识别闭环
+
+## T116：建立 Dashboard→Applications 本机上下文
+
+**状态：**待执行。
+
+**目标：**增加 local/catalog scope 及经当前 snapshot 验证的会话级候选导航。
+
+**验收：**
+- [ ] Dashboard 可携带 candidateId/sourceRefreshId 进入本机识别。
+- [ ] stale/removed candidate 安全回退并显示说明。
+- [ ] candidateId/refreshId 不写入 localStorage；现有导航不回退。
+
+**验证：**route/selection/AppShell 定向测试；前端完整门禁。
+**依赖：**T112、T115。
+**文件归属：**routeDefinitions、selectionMemory、AppShell、routes。
+**规模：**M。
+
+## T117：实现 Dashboard 首要“用户目录配置”分组
+
+**状态：**待执行。
+
+**目标：**让第一主要分组回答识别了什么、在哪里、支持到什么程度和下一步。
+
+**验收：**
+- [ ] 首组显示同一 snapshot 的总数、四类计数、safe path、证据和 outcomes。
+- [ ] loading/empty/disabled/partial/restricted/error 可区分且不清空旧结果。
+- [ ] catalog 总量不冒充本机识别数；导航与 refreshId 一致。
+
+**验证：**Dashboard/selector 定向测试；前端完整门禁。
+**依赖：**T112、T115、T116。
+**文件归属：**Dashboard、SystemSummary、共享 selector/UI、global CSS。
+**规模：**L。
+
+## T118：实现 Applications 本机识别与授权详情
+
+**状态：**待执行。
+
+**目标：**提供“本机识别”和“全部目录”两种明确上下文，并按四类能力展示
+下一步。
+
+**验收：**
+- [ ] local/catalog 计数、筛选、选择和草稿不混用。
+- [ ] 固定显示安全路径、证据、理由、敏感性和扫描状态。
+- [ ] managed 项仅经 catalog/path variant 唯一匹配进入 ConfigWorkspace；
+      unsupported/excluded 无内容或 mutation action。
+
+**验证：**Applications/config/path-match 定向测试；前端完整门禁。
+**依赖：**T112、T113、T116。
+**文件归属：**Applications、candidate details、ConfigWorkspace、matching helper。
+**规模：**L。
+
+## Phase 32：完成五路由布局
+
+## T119：以 Settings 完成参考布局
+
+**状态：**待执行。
+
+**目标：**保留七组设置和危险边界，建立无重复标题的 list/detail 参考布局。
+
+**验收：**
+- [ ] 七组、选择恢复、外观、隐私、备份、诊断和重置行为保留。
+- [ ] list/detail 各自滚动，200% 可到最后操作且不隐藏帮助文案。
+
+**验证：**现有 settings/shell tests；前端完整门禁；人工滚动检查。
+**依赖：**T114、T115。
+**文件归属：**Settings page/sidebar/primitives/groups、global CSS。
+**规模：**M。
+
+## T120：完成 Homebrew 工作台迁移
+
+**状态：**待执行。
+
+**目标：**完成单一工具栏、固定 list footer 和持续 detail operation 反馈。
+
+**验收：**
+- [ ] 搜索、分页、selection、preview/confirm 和错误状态保留。
+- [ ] 长名称/版本/结果不裁切；不执行真实包操作。
+
+**验证：**现有 Homebrew tests；前端完整门禁；人工取消确认。
+**依赖：**T115。
+**文件归属：**Homebrew feature TSX；shared CSS 由单一所有者修改。
+**规模：**M。
+
+## T121：完成 Services 工作台迁移
+
+**状态：**待执行。
+
+**目标：**保持 list/detail、配置有效性、授权和操作结果持续可见。
+
+**验收：**
+- [ ] unknown/system 未授权服务只读，preview/confirm/history 保留。
+- [ ] 长内容在详情 pane 滚动；不执行真实服务操作。
+
+**验证：**现有 Services tests；前端完整门禁；人工取消确认。
+**依赖：**T115。
+**文件归属：**Services feature TSX；shared CSS 由单一所有者修改。
+**规模：**M。
+
+## T122：完成 Applications/Configuration 三 pane 迁移
+
+**状态：**待执行。
+
+**目标：**统一目录/结果、文档和详情/检查器层级，并保留配置安全流程。
+
+**验收：**
+- [ ] 识别证据和安全状态持续可辨，路径/名称可换行。
+- [ ] editor/inspector 独立滚动，预览/确认在 100%/200% 可达。
+- [ ] 50 项分页、generation、selection、草稿、预设、redaction 不回退。
+
+**验证：**Applications/config/editor tests；前端完整门禁；隔离 HOME 人工取消预览。
+**依赖：**T118、T119。
+**文件归属：**Applications、ConfigWorkspace、schema editors/presets、CSS。
+**规模：**L。
+
+## Phase 33：清理与验收
+
+## T123：删除兼容样式并完成自动化门禁
+
+**状态：**待执行。
+
+**目标：**在五路由迁移后删除确认无引用的兼容 CSS，并运行完整自动化。
+
+**验收：**
+- [ ] 删除旧 workspace/appearance/button/card 私有规则，不盲删动态类。
+- [ ] 现有 E2E 覆盖五路由、两窗口、root 无溢出、local scope 和只读边界。
+- [ ] 全门禁通过或如实记录；无 skipped tests、降级断言或权限扩张。
+
+**验证：**`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm check`、
+`pnpm test:e2e`、`pnpm build:unsigned`、`pnpm corpus:validate`、
+`git diff --check`。
+**依赖：**T117、T119–T122。
+**文件归属：**global CSS、相关 tests/E2E、v3 acceptance evidence。
+**规模：**M。
+
+## T124：执行人工矩阵并结算 v3
+
+**状态：**待执行。
+
+**目标：**用前台证据完成五路由、四外观条件、两缩放、两窗口和状态矩阵。
+
+**验收：**
+- [ ] 五路由覆盖 System→Light/System→Dark/Light/Dark、100%/真实 200%、
+      1120×720/放大、正常与至少一个异常状态。
+- [ ] Dashboard 额外覆盖 loading/ready/empty/partial/error/restricted。
+- [ ] 记录 root/pane overflow、键盘、焦点、对比度、drag、VoiceOver、隐私。
+- [ ] 不用模拟缩放或自动化替代真实 200%；阻塞保持阻塞。
+- [ ] 仅在证据等价时更新 T103/T109；发布外部门禁保持独立。
+
+**验证：**按 `SPEC-ui-correction-acceptance-v3.md` 在隔离 HOME 上记录矩阵、
+缺陷和复测。
+**依赖：**T123。
+**文件归属：**v3 acceptance evidence、release readiness、todo、capability map。
+**规模：**M。
+
+### Checkpoint AI：UI 纠偏 v3
+
+- [ ] T110–T124 具有实际实现与验证证据。
+- [ ] 五路由和用户目录配置状态矩阵无阻断性缺陷。
+- [ ] T103/T109 与签名、公证、CI、硬件门禁未被错误关闭。

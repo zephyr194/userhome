@@ -1,12 +1,27 @@
 # Spec: UserHome
 
-Status: Approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21; configuration-discovery-and-editing revision approved on 2026-09-22; native visual redesign approved on 2026-09-23
+Status: Approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21; configuration-discovery-and-editing revision approved on 2026-09-22; native visual redesign approved on 2026-09-23; general UI correction approved on 2026-10-10
+
+## 2026-10-10 一般版本 UI 纠偏（已审批）
+
+本修订纠正当前一般版本 UI 的三个问题：部分路由仍保留旧排版并阻断内容预览；字号、控件尺寸和间距缺乏全局一致性；界面优先级偏离“识别用户目录配置”的初始产品目标。现有安全发现、catalog 授权、配置写入、Homebrew、服务、设置和原生窗口边界继续有效。
+
+本修订不是单一 Dashboard 换肤。它要求五个主路由全部迁移、System/Light/Dark 完整保留，并将真实用户目录配置发现结果恢复为 Dashboard 首要信息及 Applications 的直接入口。不得用固定深色、隐藏识别证据或裁切内容来满足视觉断言。
+
+能力图见 [`CAPABILITY-MAP.md`](../../CAPABILITY-MAP.md)，详细规格如下：
+
+- [`SPEC-ui-visual-system-v3.md`](SPEC-ui-visual-system-v3.md)：全局字型、尺寸、间距、语义颜色与三种外观。
+- [`SPEC-ui-layout-completion-v3.md`](SPEC-ui-layout-completion-v3.md)：五个主路由的完整工作台迁移、分栏与滚动所有权。
+- [`SPEC-home-config-recognition-v3.md`](SPEC-home-config-recognition-v3.md)：用户目录配置识别的首要信息层级、状态和安全展示。
+- [`SPEC-ui-correction-acceptance-v3.md`](SPEC-ui-correction-acceptance-v3.md)：跨路由、外观、缩放、状态与安全验收矩阵。
+
+**范围边界：**不新增依赖、扫描根或 IPC wire 字段；不改变配置授权和写入流程。已批准少量无新依赖的定向单元测试，用于 discovery DTO 保真、分类计数守恒和刷新失败保留旧 snapshot；其他新增测试仍需先确认。若实现发现现有 typed contract 无法表达规格所需状态，必须先提出最小契约变更并征得确认。实施按已批准的 T110–T124 分阶段计划执行。
 
 ## 2026-09-23 原生视觉重设计（已审批）
 
 **已确认的前提：**目标用户是使用 macOS 的开发者及高级用户；范围是仪表盘、应用与配置、Homebrew、服务和设置的整体重设计，而非仅换配色。保留固定 1120×720 窗口、原生交通灯、现有 Tauri 2 / React 19 / TypeScript / Tailwind CSS 4 / Headless UI 技术栈，以及全部功能和安全边界。不引入依赖或新增测试用例。设计方向为克制的原生 macOS 工具：灰白和石墨中性色、蓝色操作强调、紧凑列表，而非卡片式网页或装饰性渐变。
 
-目标是让每个主要页面在信息层级、交互、颜色和留白上形成同一套清楚、可信的桌面语言；优先让资源、状态及下一步操作易于扫描。此次修订的能力图和五份模块规格均于 2026-09-23 获确认，见 [`CAPABILITY-MAP.md`](CAPABILITY-MAP.md)。旧版规格继续有效，视觉要求以本修订为准；实施仍须等待分阶段计划与任务审批：
+目标是让每个主要页面在信息层级、交互、颜色和留白上形成同一套清楚、可信的桌面语言；优先让资源、状态及下一步操作易于扫描。此次修订的能力图和五份模块规格均于 2026-09-23 获确认，见 [`CAPABILITY-MAP.md`](../../CAPABILITY-MAP.md)。旧版规格继续有效，视觉要求以本修订为准；实施仍须等待分阶段计划与任务审批：
 
 - [`SPEC-visual-system-v2.md`](SPEC-visual-system-v2.md)：语义配色、字型、密度、组件状态。
 - [`SPEC-desktop-shell-v2.md`](SPEC-desktop-shell-v2.md)：标题栏、导航、工具栏、分栏与滚动。
@@ -63,7 +78,7 @@ independently verifiable modules:
 6. [`application-browsing`](SPEC-application-browsing.md)
 
 The approved capability map and dependency direction are recorded in
-[`CAPABILITY-MAP.md`](CAPABILITY-MAP.md). The build order is:
+[`CAPABILITY-MAP.md`](../../CAPABILITY-MAP.md). The build order is:
 
 ```text
 desktop-visual-consistency + config-schema-presets
@@ -106,7 +121,7 @@ not satisfy the complete desktop-product objective. The remaining gaps are:
   application-specific to expand reliably.
 
 The approved revision uses the module map in
-[`CAPABILITY-MAP.md`](CAPABILITY-MAP.md):
+[`CAPABILITY-MAP.md`](../../CAPABILITY-MAP.md):
 
 1. [`native-desktop-shell`](SPEC-native-desktop-shell.md)
 2. [`home-baseline-inventory`](SPEC-home-baseline-inventory.md)
@@ -401,12 +416,13 @@ src-tauri/
   release.yml             Tagged universal macOS release
 
 docs/
+  specs/
+    SPEC.md
+    SPEC-*.md
   threat-model.md
   managed-app-schema.md
 
 CAPABILITY-MAP.md
-SPEC.md
-SPEC-*.md
 ```
 
 ## Code Style

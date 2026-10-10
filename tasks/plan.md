@@ -13,15 +13,15 @@ verification.
 
 Specifications:
 
-- [`../SPEC.md`](../SPEC.md)
+- [`../SPEC.md`](../docs/specs/SPEC.md)
 - [`../CAPABILITY-MAP.md`](../CAPABILITY-MAP.md)
-- [`../SPEC-platform-foundation.md`](../SPEC-platform-foundation.md)
-- [`../SPEC-app-catalog.md`](../SPEC-app-catalog.md)
-- [`../SPEC-system-discovery.md`](../SPEC-system-discovery.md)
-- [`../SPEC-config-management.md`](../SPEC-config-management.md)
-- [`../SPEC-brew-management.md`](../SPEC-brew-management.md)
-- [`../SPEC-service-management.md`](../SPEC-service-management.md)
-- [`../SPEC-desktop-experience.md`](../SPEC-desktop-experience.md)
+- [`../SPEC-platform-foundation.md`](../docs/specs/SPEC-platform-foundation.md)
+- [`../SPEC-app-catalog.md`](../docs/specs/SPEC-app-catalog.md)
+- [`../SPEC-system-discovery.md`](../docs/specs/SPEC-system-discovery.md)
+- [`../SPEC-config-management.md`](../docs/specs/SPEC-config-management.md)
+- [`../SPEC-brew-management.md`](../docs/specs/SPEC-brew-management.md)
+- [`../SPEC-service-management.md`](../docs/specs/SPEC-service-management.md)
+- [`../SPEC-desktop-experience.md`](../docs/specs/SPEC-desktop-experience.md)
 
 Tasks are tracked in [`todo.md`](todo.md).
 
@@ -444,11 +444,11 @@ login, or new test files.
 
 Specifications:
 
-- [`../SPEC-native-desktop-shell.md`](../SPEC-native-desktop-shell.md)
-- [`../SPEC-home-baseline-inventory.md`](../SPEC-home-baseline-inventory.md)
-- [`../SPEC-configuration-platform.md`](../SPEC-configuration-platform.md)
-- [`../SPEC-catalog-expansion.md`](../SPEC-catalog-expansion.md)
-- [`../SPEC-application-settings.md`](../SPEC-application-settings.md)
+- [`../SPEC-native-desktop-shell.md`](../docs/specs/SPEC-native-desktop-shell.md)
+- [`../SPEC-home-baseline-inventory.md`](../docs/specs/SPEC-home-baseline-inventory.md)
+- [`../SPEC-configuration-platform.md`](../docs/specs/SPEC-configuration-platform.md)
+- [`../SPEC-catalog-expansion.md`](../docs/specs/SPEC-catalog-expansion.md)
+- [`../SPEC-application-settings.md`](../docs/specs/SPEC-application-settings.md)
 
 ### Extension Decisions
 
@@ -859,12 +859,12 @@ T01-T97 evidence, unfinished manual acceptance, external CI, signing,
 notarization, and hardware prerequisites without claiming their completion.
 Implementation tasks will be recorded in `tasks/todo.md` after plan approval.
 
-Specifications: [`../SPEC.md`](../SPEC.md),
-[`../SPEC-visual-system-v2.md`](../SPEC-visual-system-v2.md),
-[`../SPEC-desktop-shell-v2.md`](../SPEC-desktop-shell-v2.md),
-[`../SPEC-resource-workspaces-v2.md`](../SPEC-resource-workspaces-v2.md),
-[`../SPEC-utility-workspaces-v2.md`](../SPEC-utility-workspaces-v2.md), and
-[`../SPEC-visual-acceptance-v2.md`](../SPEC-visual-acceptance-v2.md).
+Specifications: [`../SPEC.md`](../docs/specs/SPEC.md),
+[`../SPEC-visual-system-v2.md`](../docs/specs/SPEC-visual-system-v2.md),
+[`../SPEC-desktop-shell-v2.md`](../docs/specs/SPEC-desktop-shell-v2.md),
+[`../SPEC-resource-workspaces-v2.md`](../docs/specs/SPEC-resource-workspaces-v2.md),
+[`../SPEC-utility-workspaces-v2.md`](../docs/specs/SPEC-utility-workspaces-v2.md), and
+[`../SPEC-visual-acceptance-v2.md`](../docs/specs/SPEC-visual-acceptance-v2.md).
 
 ### Scope and Architectural Decisions
 
@@ -1002,3 +1002,127 @@ overwrite another worker's uncommitted changes.
 - External signing credentials, a protected GitHub release run, and device /
   accessibility review remain independently necessary to close the earlier
   release tasks. Their absence must not be treated as an agent failure.
+
+## 2026-10-10 General UI Correction v3
+
+Status: Approved for incremental execution on 2026-10-10. The four v3
+specifications and this T110-T124 sequence are approved. The extension preserves
+all T01-T109 evidence and open blockers; it does not claim completion of T103,
+T109, signing, notarization, hosted CI, or hardware/accessibility gates.
+
+Specifications:
+
+- [`../docs/specs/SPEC-ui-visual-system-v3.md`](../docs/specs/SPEC-ui-visual-system-v3.md)
+- [`../docs/specs/SPEC-ui-layout-completion-v3.md`](../docs/specs/SPEC-ui-layout-completion-v3.md)
+- [`../docs/specs/SPEC-home-config-recognition-v3.md`](../docs/specs/SPEC-home-config-recognition-v3.md)
+- [`../docs/specs/SPEC-ui-correction-acceptance-v3.md`](../docs/specs/SPEC-ui-correction-acceptance-v3.md)
+
+### Scope and decisions
+
+- Preserve the dirty working tree and make surgical changes; never reset,
+  checkout, clean, or overwrite unrelated work.
+- Exclude the pnpm 12 migration in `package.json`, `pnpm-lock.yaml`, and `.nvmrc`
+  from this extension. Record their hashes and do not regenerate them.
+- Preserve the existing Rust discovery wire schema. The frontend retains the
+  complete `ConfigurationCoverage`; Rust only expands exact probes across
+  already-approved catalog path variants.
+- Add no dependency, scan root, traversal depth, arbitrary path authority,
+  configuration-content read, write authority, or elevation permission.
+- Focused unit tests for discovery DTO fidelity, coverage-count conservation,
+  and stale snapshot retention are approved without new dependencies.
+- Use temporary HOME/XDG fixtures. Do not mutate real configuration, packages,
+  or services during automated or manual verification.
+
+### Dependency graph
+
+```text
+T110 -> T111 -> T114 -> T115
+T110 -> T112
+T110 -> T113
+T112 + T115 -> T116
+T112 + T115 + T116 -> T117
+T112 + T113 + T116 -> T118
+T114 + T115 -> T119 / T120 / T121
+T118 + T119 -> T122
+T117 + T119 + T120 + T121 + T122 -> T123 -> T124
+```
+
+### Phase 28: Protected executable baseline
+
+- [x] T110 Register the approved v3 extension, record protected-file hashes,
+      and establish a typechecking baseline without absorbing unrelated work.
+
+Checkpoint AD: the v3 specifications, capability map, plan, and detailed tasks
+agree; local Markdown links and whitespace pass; the frontend typechecks; the
+excluded package-manager files remain byte-identical.
+
+### Phase 29: Appearance and discovery contracts
+
+- [ ] T111 Restore functional System/Light/Dark behavior and persisted defaults.
+- [ ] T112 Preserve complete configuration coverage and retain the previous
+      snapshot when a refresh fails.
+- [ ] T113 Probe every existing catalog path variant without expanding roots,
+      traversal, content reads, or the wire schema.
+
+Checkpoint AE: appearance and discovery contracts are independently tested;
+classification totals conserve candidate count; partial/error states retain
+usable local data.
+
+### Phase 30: Shared visual system and shell
+
+- [ ] T114 Consolidate semantic tokens, typography, dimensions, and shared
+      controls while retaining compatibility selectors.
+- [ ] T115 Establish one shell hierarchy and one scroll owner per route pane.
+
+Checkpoint AF: System/Light/Dark share one semantic component system; the shell
+has no document scroll or duplicate brand/page hierarchy at 1120 x 720.
+
+### Phase 31: Home-configuration recognition loop
+
+- [ ] T116 Add validated, session-only Dashboard-to-Applications local context.
+- [ ] T117 Make home-directory configuration recognition the first Dashboard
+      group with truthful counts, safe paths, evidence, and scan outcomes.
+- [ ] T118 Add distinct local-recognition/catalog views and route managed
+      candidates only through existing catalog-authorized configuration flows.
+
+Checkpoint AG: one discovery snapshot supplies Dashboard and Applications;
+local counts never reuse catalog totals; unsupported/excluded candidates expose
+no content or mutation action.
+
+### Phase 32: Complete all route layouts
+
+- [ ] T119 Use Settings as the reference list/detail layout and keep all seven
+      groups and dangerous-action boundaries reachable.
+- [ ] T120 Complete the Homebrew list/detail layout and persistent operation
+      feedback without executing real package operations.
+- [ ] T121 Complete the Services list/detail layout and preserve read-only and
+      confirmation boundaries without executing real service operations.
+- [ ] T122 Complete the Applications/configuration three-pane layout while
+      preserving pagination, drafts, presets, redaction, and safe preview.
+
+Checkpoint AH: all five routes use the same hierarchy and shared control
+semantics; long content wraps or scrolls inside its pane rather than being
+silently clipped.
+
+### Phase 33: Cleanup and acceptance
+
+- [ ] T123 Remove verified-unused compatibility CSS and run focused, full,
+      macOS E2E, unsigned-build, corpus, and whitespace gates.
+- [ ] T124 Execute and record the foreground appearance, true 200% text zoom,
+      window-size, state, keyboard, contrast, drag, VoiceOver, and privacy
+      matrix; retain genuine blockers as blockers.
+
+Checkpoint AI: v3 closes only when every required route/state has evidence and
+no blocking preview, recognition, or primary-action defect remains. T103/T109
+and external release gates change only when equivalent independent evidence
+exists.
+
+### Ownership and verification
+
+- `src/styles/global.css`, `src/app/AppShell.tsx`, `src/app/routes.tsx`,
+  `src/app/routeDefinitions.ts`, `e2e/smoke.spec.ts`, and task/evidence docs
+  always have one serial owner.
+- T111/T112/T113 may proceed on disjoint files. T120/T121 may overlap only for
+  feature-owned TSX; shared CSS changes are serialized.
+- Every task runs focused tests, then lint/typecheck/build. T123 runs the full
+  gates; T124 remains a separate foreground/manual gate.

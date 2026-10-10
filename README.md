@@ -3,7 +3,7 @@
 A local-first macOS desktop and tray application for managing user application
 configuration, Homebrew software, services, and basic machine capabilities.
 
-The approved product specification is in [`SPEC.md`](SPEC.md), and implementation
+The approved product specification is in [`SPEC.md`](docs/specs/SPEC.md), and implementation
 tasks are tracked in [`tasks/todo.md`](tasks/todo.md).
 
 ## Requirements
