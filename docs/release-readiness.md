@@ -162,6 +162,20 @@ One-off harnesses and logs are retained in Copilot session
 visual/interaction matrix; signing, notarization, GitHub-hosted CI, and
 hardware gates retain their existing NO-GO status.
 
+### Native dragging permission correction (2026-10-10)
+
+The main-window capability omitted `core:window:allow-start-dragging`, so the
+existing titlebar drag regions could not invoke Tauri's drag command. Only this
+permission was added; resize, maximize, filesystem, and shell authority remain
+unchanged. The existing IPC allowlist test reproduced the omission before the
+fix, and existing shell tests now check static regions and interactive exclusions.
+The isolated native WebView accepted the drag IPC and consumed primary presses
+on title/blank regions, but not refresh, navigation, or secondary presses.
+Synthetic OS drag attempts did not yield repeatable pointer-to-window movement;
+they are not a completed manual drag matrix. Frontend/Rust contract checks,
+the unchanged fixed-size native smoke, and the final unsigned build passed.
+No real configuration was accessed, and T109's manual gates remain open.
+
 ### T109 foreground acceptance attempt (2026-09-24)
 
 The current `src-tauri/target/release/userhome` binary was launched with

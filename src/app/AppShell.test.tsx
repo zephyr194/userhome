@@ -33,6 +33,13 @@ describe("AppShell", () => {
     expect(markup).toContain('aria-current="page"');
     expect(markup).toContain('role="status"');
     expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain(
+      '<header class="titlebar" data-tauri-drag-region="true">',
+    );
+    expect(markup).toContain(
+      '<p class="titlebar__title" data-tauri-drag-region="true">',
+    );
+    expect(markup).not.toMatch(/<(?:button|a|input)[^>]*data-tauri-drag-region/);
   });
 
   it("does not programmatically move navigation focus into the main pane", () => {

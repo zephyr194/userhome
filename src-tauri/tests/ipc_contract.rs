@@ -34,7 +34,7 @@ fn ipc_internal_error_serializes_without_sensitive_diagnostics() {
 }
 
 #[test]
-fn ipc_capability_only_grants_refresh_event_listener_permissions() {
+fn ipc_capability_only_grants_event_listeners_and_main_window_dragging() {
     let capability_path = concat!(env!("CARGO_MANIFEST_DIR"), "/capabilities/default.json");
     let capability: Value = serde_json::from_str(
         &fs::read_to_string(capability_path).expect("capability file should be readable"),
@@ -44,7 +44,11 @@ fn ipc_capability_only_grants_refresh_event_listener_permissions() {
     assert_eq!(capability["windows"], json!(["main"]));
     assert_eq!(
         capability["permissions"],
-        json!(["core:event:allow-listen", "core:event:allow-unlisten"])
+        json!([
+            "core:event:allow-listen",
+            "core:event:allow-unlisten",
+            "core:window:allow-start-dragging"
+        ])
     );
     assert!(capability.get("remote").is_none());
 }
