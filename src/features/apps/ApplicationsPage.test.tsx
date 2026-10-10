@@ -334,3 +334,131 @@ describe("ApplicationsPage", () => {
     expect(failed).toContain("无法加载应用目录。");
   });
 });
+
+function classTokens(markup: string): string[] {
+  const tokens: string[] = [];
+  for (const [, value] of markup.matchAll(/class="([^"]*)"/g)) {
+    for (const token of value.split(/\s+/)) {
+      if (token) tokens.push(token);
+    }
+  }
+  return tokens;
+}
+
+/** First element that carries `token` as an exact class. */
+function tokensForClass(markup: string, token: string): string[] {
+  for (const [, value] of markup.matchAll(/class="([^"]*)"/g)) {
+    const tokens = value.split(/\s+/).filter(Boolean);
+    if (tokens.includes(token)) return tokens;
+  }
+  throw new Error(`No element carries the class "${token}".`);
+}
+
+function renderCatalog(): string {
+  return renderToStaticMarkup(
+    <ApplicationsPage
+      applicationsScope="CATALOG"
+      candidates={{ status: "READY", data: [] }}
+      state={{ status: "ready", catalog }}
+    />,
+  );
+}
+
+function renderLocal(): string {
+  return renderToStaticMarkup(
+    <ApplicationsPage
+      applicationsScope="LOCAL_RECOGNIZED"
+      candidates={{ status: "READY", data: recognized }}
+      state={{ status: "ready", catalog }}
+    />,
+  );
+}
+
+describe("ApplicationsPage three-pane structure", () => {
+  it("drops the duplicate page heading and the whole-page card shell", () => {
+    const markup = renderCatalog();
+
+    // AppShell owns the page title; the workspace must not repeat an h2 hero.
+    expect(markup).not.toContain("<h2");
+    expect(markup).not.toContain("section-kicker");
+    expect(markup).not.toContain('class="applications-workspace"');
+
+    const root = tokensForClass(markup, "applications-workspace__frame");
+    expect(root).toContain("min-h-0");
+    expect(root).toContain("min-w-0");
+    expect(root).toContain("overflow-hidden");
+    expect(root).not.toContain("rounded-panel");
+    expect(root).not.toContain("border-border");
+  });
+
+  it("keeps scope and filters as the pane header without a page title", () => {
+    const markup = renderCatalog();
+
+    expect(markup).toContain('role="tablist"');
+    expect(markup).toContain('aria-label="应用筛选"');
+    expect(markup).toContain('id="applications-heading"');
+    const header = tokensForClass(markup, "applications-workspace__header");
+    expect(header).toContain("min-w-0");
+  });
+
+  it("pins catalog pagination in the list footer, outside the scrolling body", () => {
+    const markup = renderCatalog();
+
+    const body = tokensForClass(markup, "applications-workspace__list-body");
+    expect(body).toContain("overflow-y-auto");
+    expect(body).toContain("min-h-0");
+
+    const footer = tokensForClass(markup, "applications-workspace__list-footer");
+    expect(footer).toContain("shrink-0");
+    expect(footer).not.toContain("overflow-y-auto");
+    expect(markup).toContain('aria-label="Catalog 分页"');
+
+    const bodyStart = markup.indexOf("applications-workspace__list-body");
+    const footerStart = markup.indexOf("applications-workspace__list-footer");
+    expect(bodyStart).toBeGreaterThanOrEqual(0);
+    expect(footerStart).toBeGreaterThan(bodyStart);
+    expect(markup.slice(bodyStart, footerStart)).not.toContain("Catalog 分页");
+  });
+
+  it("gives the local list and detail their own bounded panes", () => {
+    const markup = renderLocal();
+
+    expect(markup).toContain('aria-label="本机识别项列表"');
+    const pane = tokensForClass(markup, "applications-workspace__list-pane");
+    expect(pane).toContain("min-h-0");
+    expect(pane).toContain("min-w-0");
+    expect(pane).toContain("overflow-hidden");
+    expect(pane).toContain("flex");
+
+    expect(tokensForClass(markup, "applications-workspace__list-body")).toContain(
+      "overflow-y-auto",
+    );
+
+    const detail = tokensForClass(markup, "applications-workspace__detail");
+    expect(detail).toContain("min-h-0");
+    expect(detail).toContain("min-w-0");
+    expect(detail).toContain("overflow-hidden");
+  });
+
+  it("bounds the workspace body and detail as independent scroll owners", () => {
+    const markup = renderCatalog();
+
+    const body = tokensForClass(markup, "applications-workspace__body");
+    expect(body).toContain("min-h-0");
+    expect(body).toContain("min-w-0");
+    expect(body).toContain("overflow-hidden");
+
+    expect(tokensForClass(markup, "applications-workspace__detail")).toContain(
+      "overflow-hidden",
+    );
+  });
+
+  it("never truncates names, paths, or errors", () => {
+    for (const markup of [renderCatalog(), renderLocal()]) {
+      const tokens = new Set(classTokens(markup));
+      expect(tokens.has("truncate")).toBe(false);
+      expect(tokens.has("text-ellipsis")).toBe(false);
+      expect(tokens.has("whitespace-nowrap")).toBe(false);
+    }
+  });
+});

@@ -64,7 +64,7 @@ export function CatalogCoverageSummary({
           <h3 id="catalog-coverage-heading" className="text-sm font-semibold">
             Catalog 覆盖完整性
           </h3>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          <p className="mt-0.5 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
             脱敏基线 {state.manifest.completeness === "COMPLETE" ? "完整" : "部分"}
             ，省略 {metrics.omittedCandidateCount} 项敏感或排除记录。
           </p>

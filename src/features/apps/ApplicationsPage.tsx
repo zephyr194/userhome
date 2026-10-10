@@ -298,7 +298,7 @@ function ApplicationsWorkspace({
   const detailRequestGeneration = useRef(0);
   const pendingFocus = useRef(false);
   const listHasFocus = useRef(false);
-  const catalogListRef = useRef<HTMLElement>(null);
+  const catalogListRef = useRef<HTMLDivElement>(null);
   const catalogButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const selectedKeyRef = useRef(selectedKey);
   const scrollTopRef = useRef(scrollTop);
@@ -845,211 +845,203 @@ function ApplicationsWorkspace({
 
   return (
     <section
-      className="applications-workspace"
-      aria-labelledby="applications-heading"
+      className="applications-workspace__frame grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+      aria-label="应用与配置"
     >
-      <header className="applications-workspace__header">
-        <div>
-          <p className="section-kicker">
-            {isLocalScope
-              ? "本机识别"
-              : catalogPage
-                ? `受管目录 v${catalogPage.schemaVersion}`
-                : "受管目录"}
-          </p>
-          <h2 id="applications-heading">Applications</h2>
-          <p>
-            {isLocalScope
-              ? "本机识别项直接来自只读候选快照，按覆盖等级分类，不读取其内容。"
-              : "目录筛选由本机 Rust provider 执行；受管文档的操作均由 Rust appId/configId 授权。"}
-          </p>
+      <header
+        id="applications-heading"
+        className="applications-workspace__header flex min-w-0 flex-col gap-2 border-b border-border"
+      >
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+          <div
+            className="applications-workspace__scopes flex min-w-0 flex-wrap items-center gap-2"
+            role="tablist"
+            aria-label="应用范围"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isLocalScope}
+              className={classNames(
+                "applications-workspace__scope",
+                isLocalScope && "applications-workspace__scope--active",
+              )}
+              onClick={() => changeScope("LOCAL_RECOGNIZED")}
+            >
+              本机识别 ·{" "}
+              {recognizedCount === undefined ? "—" : recognizedCount}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!isLocalScope}
+              className={classNames(
+                "applications-workspace__scope",
+                !isLocalScope && "applications-workspace__scope--active",
+              )}
+              onClick={() => changeScope("CATALOG")}
+            >
+              全部目录 · {catalogCount === undefined ? "—" : catalogCount}
+            </button>
+          </div>
+          <div className="shrink-0 text-right text-xs text-muted-foreground">
+            <strong className="block text-sm text-foreground">
+              {isLocalScope
+                ? recognizedCount === undefined
+                  ? "—"
+                  : `${recognizedCount} 项`
+                : totalItems === undefined
+                  ? "—"
+                  : `${totalItems} 项`}
+            </strong>
+            <span role="status" aria-live="polite" aria-atomic="true">
+              {isLocalScope
+                ? "本机识别快照"
+                : catalogPage
+                  ? `当前显示 ${pageRange(catalogPage)}`
+                  : "目录待就绪"}
+            </span>
+          </div>
         </div>
-        <div className="shrink-0 text-right text-xs text-muted-foreground">
-          <strong className="block text-sm text-foreground">
-            {isLocalScope
-              ? recognizedCount === undefined
-                ? "—"
-                : `${recognizedCount} 项`
-              : totalItems === undefined
-                ? "—"
-                : `${totalItems} 项`}
-          </strong>
-          <span role="status" aria-live="polite" aria-atomic="true">
-            {isLocalScope
-              ? "本机识别快照"
-              : catalogPage
-                ? `当前显示 ${pageRange(catalogPage)}`
-                : "目录待就绪"}
-          </span>
-        </div>
+
+        {staleReason ? (
+          <div
+            className="applications-workspace__stale"
+            data-testid="stale-selection-notice"
+            role="status"
+          >
+            {staleSelectionNotice(staleReason)}
+          </div>
+        ) : null}
+
+        {!isLocalScope ? (
+          <>
+            {catalogPage ? (
+              <CatalogCoverageSummary catalog={catalogPage} />
+            ) : null}
+
+            <div
+              className="applications-workspace__filters"
+              aria-label="应用筛选"
+            >
+              <label className="min-w-0 flex-1">
+                <span>搜索</span>
+                <input
+                  type="search"
+                  maxLength={256}
+                  value={query}
+                  placeholder="名称、说明、ID、格式或安全路径别名"
+                  onChange={(event) => {
+                    setQuery(event.currentTarget.value);
+                    resetToFirstPage();
+                  }}
+                />
+              </label>
+              <label>
+                <span>分类</span>
+                <select
+                  value={category ?? "ALL"}
+                  onChange={(event) => {
+                    setCategory(
+                      event.currentTarget.value === "ALL"
+                        ? undefined
+                        : event.currentTarget.value,
+                    );
+                    resetToFirstPage();
+                  }}
+                >
+                  <option value="ALL">全部分类</option>
+                  {facets.categories.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>覆盖</span>
+                <select
+                  value={coverageClass ?? "ALL"}
+                  onChange={(event) => {
+                    setCoverageClass(
+                      event.currentTarget.value === "ALL"
+                        ? undefined
+                        : (event.currentTarget
+                            .value as ManagedAppCoverageClass),
+                    );
+                    resetToFirstPage();
+                  }}
+                >
+                  <option value="ALL">全部覆盖级别</option>
+                  {COVERAGE_FILTERS.filter((filter) =>
+                    facets.coverageClasses.includes(filter.value),
+                  ).map((filter) => (
+                    <option key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>能力</span>
+                <select
+                  value={capability ?? "ALL"}
+                  onChange={(event) => {
+                    setCapability(
+                      event.currentTarget.value === "ALL"
+                        ? undefined
+                        : (event.currentTarget
+                            .value as ManagedAppCapability),
+                    );
+                    resetToFirstPage();
+                  }}
+                >
+                  <option value="ALL">全部能力</option>
+                  {facets.capabilities.map((value) => (
+                    <option key={value} value={value}>
+                      {CAPABILITY_LABELS[value]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>检测</span>
+                <select
+                  value={
+                    detected === undefined
+                      ? "ALL"
+                      : detected
+                        ? "DETECTED"
+                        : "NOT_DETECTED"
+                  }
+                  disabled={stableDetectedAppIds === undefined}
+                  onChange={(event) => {
+                    setDetected(
+                      event.currentTarget.value === "ALL"
+                        ? undefined
+                        : event.currentTarget.value === "DETECTED",
+                    );
+                    resetToFirstPage();
+                  }}
+                >
+                  <option value="ALL">全部检测状态</option>
+                  <option value="DETECTED">本机已检测</option>
+                  <option value="NOT_DETECTED">本机未检测</option>
+                </select>
+              </label>
+            </div>
+          </>
+        ) : null}
       </header>
 
-      <div
-        className="applications-workspace__scopes"
-        role="tablist"
-        aria-label="应用范围"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={isLocalScope}
-          className={classNames(
-            "applications-workspace__scope",
-            isLocalScope && "applications-workspace__scope--active",
-          )}
-          onClick={() => changeScope("LOCAL_RECOGNIZED")}
-        >
-          本机识别 ·{" "}
-          {recognizedCount === undefined ? "—" : recognizedCount}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!isLocalScope}
-          className={classNames(
-            "applications-workspace__scope",
-            !isLocalScope && "applications-workspace__scope--active",
-          )}
-          onClick={() => changeScope("CATALOG")}
-        >
-          全部目录 · {catalogCount === undefined ? "—" : catalogCount}
-        </button>
-      </div>
-
-      {staleReason ? (
-        <div
-          className="applications-workspace__stale"
-          data-testid="stale-selection-notice"
-          role="status"
-        >
-          {staleSelectionNotice(staleReason)}
-        </div>
-      ) : null}
-
-      {!isLocalScope ? (
-        <>
-          {catalogPage ? (
-            <CatalogCoverageSummary catalog={catalogPage} />
-          ) : null}
-
-      <div className="applications-workspace__filters" aria-label="应用筛选">
-        <label className="min-w-0 flex-1">
-          <span>搜索</span>
-          <input
-            type="search"
-            maxLength={256}
-            value={query}
-            placeholder="名称、说明、ID、格式或安全路径别名"
-            onChange={(event) => {
-              setQuery(event.currentTarget.value);
-              resetToFirstPage();
-            }}
-          />
-        </label>
-        <label>
-          <span>分类</span>
-          <select
-            value={category ?? "ALL"}
-            onChange={(event) => {
-              setCategory(
-                event.currentTarget.value === "ALL"
-                  ? undefined
-                  : event.currentTarget.value,
-              );
-              resetToFirstPage();
-            }}
-          >
-            <option value="ALL">全部分类</option>
-            {facets.categories.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>覆盖</span>
-          <select
-            value={coverageClass ?? "ALL"}
-            onChange={(event) => {
-              setCoverageClass(
-                event.currentTarget.value === "ALL"
-                  ? undefined
-                  : (event.currentTarget
-                      .value as ManagedAppCoverageClass),
-              );
-              resetToFirstPage();
-            }}
-          >
-            <option value="ALL">全部覆盖级别</option>
-            {COVERAGE_FILTERS.filter((filter) =>
-              facets.coverageClasses.includes(filter.value),
-            ).map((filter) => (
-              <option key={filter.value} value={filter.value}>
-                {filter.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>能力</span>
-          <select
-            value={capability ?? "ALL"}
-            onChange={(event) => {
-              setCapability(
-                event.currentTarget.value === "ALL"
-                  ? undefined
-                  : (event.currentTarget.value as ManagedAppCapability),
-              );
-              resetToFirstPage();
-            }}
-          >
-            <option value="ALL">全部能力</option>
-            {facets.capabilities.map((value) => (
-              <option key={value} value={value}>
-                {CAPABILITY_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>检测</span>
-          <select
-            value={
-              detected === undefined
-                ? "ALL"
-                : detected
-                  ? "DETECTED"
-                  : "NOT_DETECTED"
-            }
-            disabled={stableDetectedAppIds === undefined}
-            onChange={(event) => {
-              setDetected(
-                event.currentTarget.value === "ALL"
-                  ? undefined
-                  : event.currentTarget.value === "DETECTED",
-              );
-              resetToFirstPage();
-            }}
-          >
-            <option value="ALL">全部检测状态</option>
-            <option value="DETECTED">本机已检测</option>
-            <option value="NOT_DETECTED">本机未检测</option>
-          </select>
-        </label>
-      </div>
-
-        </>
-      ) : null}
-
-      <div className="applications-workspace__body">
+      <div className="applications-workspace__body grid min-h-0 min-w-0 overflow-hidden">
         {isLocalScope ? (
           <aside
-            className="applications-workspace__list"
+            className="applications-workspace__list-pane flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-border"
             aria-label="本机识别项列表"
             aria-busy={candidates.status === "LOADING" ? "true" : undefined}
           >
-            <div className="flex min-w-0 items-center justify-between gap-2 border-b border-border px-3 py-2 text-xs text-muted-foreground">
+            <div className="applications-workspace__list-header flex min-w-0 items-center justify-between gap-2 border-b border-border px-3 py-2 text-xs text-muted-foreground">
               <h3
                 id="recognized-items-heading"
                 className="font-semibold text-foreground"
@@ -1060,298 +1052,307 @@ function ApplicationsWorkspace({
                 {recognizedCount === undefined ? "—" : `${recognizedCount} 项`}
               </span>
             </div>
-            <p className="px-3 pt-2 text-[11px] text-muted-foreground">
-              只读候选快照 · 来源刷新{" "}
-              {sourceRefreshId ?? refreshId ?? "未知"}
-            </p>
-            {candidates.status === "LOADING" ? (
-              <div className="px-3 pb-3">
-                <AsyncState kind="loading">正在扫描浅层目录元数据…</AsyncState>
-              </div>
-            ) : candidates.status === "ERROR" ? (
-              <div className="px-3 pb-3">
-                <AsyncState kind="error">{candidates.error.message}</AsyncState>
-              </div>
-            ) : unmanagedCandidates.length === 0 ? (
-              <div className="px-3 pb-3">
-                <AsyncState kind="empty">没有本机识别项。</AsyncState>
-              </div>
-            ) : (
-              <ul
-                role="listbox"
-                aria-label={`本机识别项，共 ${unmanagedCandidates.length} 项`}
-              >
-                {unmanagedCandidates.map((candidate) => {
-                  const key = candidateKey(candidate.candidateId);
-                  const isSelected = effectiveSelectedKey === key;
-                  const coverage =
-                    COVERAGE_PRESENTATION[candidate.coverageClass];
-                  return (
-                    <li key={candidate.candidateId} role="presentation">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        className={classNames(
-                          "applications-workspace__row applications-workspace__row--candidate",
-                          isSelected &&
-                            "applications-workspace__row--selected",
-                        )}
-                        title={candidate.displayName}
-                        onClick={() => selectCandidate(candidate)}
-                      >
-                        <ApplicationIcon
-                          className="size-4 shrink-0"
-                          iconKey="candidate"
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-xs font-medium">
-                            {candidate.displayName}
-                          </span>
-                          <span className="block truncate text-[11px] text-muted-foreground">
-                            本机识别项 · {coverage.label}
-                          </span>
-                        </span>
-                        <StatusBadge
-                          className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
-                          tone={coverage.tone}
+            <div className="applications-workspace__list-body min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [overscroll-behavior:contain] [scrollbar-gutter:stable]">
+              <p className="px-3 pt-2 text-[11px] text-muted-foreground">
+                只读候选快照 · 来源刷新{" "}
+                {sourceRefreshId ?? refreshId ?? "未知"}
+              </p>
+              {candidates.status === "LOADING" ? (
+                <div className="px-3 pb-3">
+                  <AsyncState kind="loading">
+                    正在扫描浅层目录元数据…
+                  </AsyncState>
+                </div>
+              ) : candidates.status === "ERROR" ? (
+                <div className="px-3 pb-3">
+                  <AsyncState kind="error">
+                    {candidates.error.message}
+                  </AsyncState>
+                </div>
+              ) : unmanagedCandidates.length === 0 ? (
+                <div className="px-3 pb-3">
+                  <AsyncState kind="empty">没有本机识别项。</AsyncState>
+                </div>
+              ) : (
+                <ul
+                  role="listbox"
+                  aria-label={`本机识别项，共 ${unmanagedCandidates.length} 项`}
+                >
+                  {unmanagedCandidates.map((candidate) => {
+                    const key = candidateKey(candidate.candidateId);
+                    const isSelected = effectiveSelectedKey === key;
+                    const coverage =
+                      COVERAGE_PRESENTATION[candidate.coverageClass];
+                    return (
+                      <li key={candidate.candidateId} role="presentation">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          className={classNames(
+                            "applications-workspace__row applications-workspace__row--candidate",
+                            isSelected &&
+                              "applications-workspace__row--selected",
+                          )}
+                          title={candidate.displayName}
+                          onClick={() => selectCandidate(candidate)}
                         >
-                          {coverage.label}
-                        </StatusBadge>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                          <ApplicationIcon
+                            className="size-4 shrink-0"
+                            iconKey="candidate"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block break-words text-xs font-medium">
+                              {candidate.displayName}
+                            </span>
+                            <span className="block break-words text-[11px] text-muted-foreground">
+                              {candidate.relativePath} · {coverage.label}
+                            </span>
+                          </span>
+                          <StatusBadge
+                            className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                            tone={coverage.tone}
+                          >
+                            {coverage.label}
+                          </StatusBadge>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           </aside>
         ) : (
-        <aside
-          ref={catalogListRef}
-          className="applications-workspace__list"
-          aria-label="应用与配置候选列表"
-          aria-busy={catalogState.status === "loading" ? "true" : undefined}
-          onFocusCapture={() => {
-            listHasFocus.current = true;
-          }}
-          onBlurCapture={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) {
-              listHasFocus.current = false;
-            }
-          }}
-          onScroll={(event) => {
-            if (catalogState.status !== "ready") {
-              return;
-            }
-            const nextScrollTop = Math.round(
-              event.currentTarget.scrollTop,
-            );
-            scrollTopRef.current = nextScrollTop;
-            setScrollTop(nextScrollTop);
-          }}
-        >
-          <div className="flex min-w-0 items-center justify-between gap-2 border-b border-border px-3 py-2 text-xs text-muted-foreground">
-            <span>Catalog 结果</span>
-            <span className="shrink-0">
-              {catalogPage
-                ? `${pageRange(catalogPage)} / ${catalogPage.pagination.totalItems}`
-                : "—"}
-            </span>
-          </div>
+          <aside
+            className="applications-workspace__list-pane flex min-h-0 min-w-0 flex-col overflow-hidden border-r border-border"
+            aria-label="应用与配置候选列表"
+            aria-busy={catalogState.status === "loading" ? "true" : undefined}
+            onFocusCapture={() => {
+              listHasFocus.current = true;
+            }}
+            onBlurCapture={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                listHasFocus.current = false;
+              }
+            }}
+          >
+            <div className="applications-workspace__list-header flex min-w-0 items-center justify-between gap-2 border-b border-border px-3 py-2 text-xs text-muted-foreground">
+              <span>Catalog 结果</span>
+              <span className="shrink-0">
+                {catalogPage
+                  ? `${pageRange(catalogPage)} / ${catalogPage.pagination.totalItems}`
+                  : "—"}
+              </span>
+            </div>
 
-          {catalogState.status === "loading" ? (
-            <div className="px-3 pb-1">
-              <AsyncState kind="loading">
-                {detected !== undefined && stableDetectedAppIds === undefined
-                  ? "正在等待本机应用检测结果…"
-                  : "正在加载受管应用目录…"}
-              </AsyncState>
-            </div>
-          ) : catalogState.status === "error" ? (
-            <div className="px-3 pb-1">
-              <AsyncState kind="error">
-                {catalogState.error.message}
-              </AsyncState>
-            </div>
-          ) : catalogApplications.length === 0 ? (
-            <div className="p-3">
-              <AsyncState kind="empty">
-                没有符合筛选条件的 catalog 应用。
-              </AsyncState>
-            </div>
-          ) : (
             <div
-              role="listbox"
-              aria-label={`受管应用目录，共 ${catalogPage?.pagination.totalItems} 项，第 ${catalogPage?.pagination.page} / ${catalogPage?.pagination.totalPages} 页，显示 ${catalogPage ? pageRange(catalogPage) : "0"}`}
+              ref={catalogListRef}
+              className="applications-workspace__list-body min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [overscroll-behavior:contain] [scrollbar-gutter:stable]"
+              onScroll={(event) => {
+                if (catalogState.status !== "ready") {
+                  return;
+                }
+                const nextScrollTop = Math.round(
+                  event.currentTarget.scrollTop,
+                );
+                scrollTopRef.current = nextScrollTop;
+                setScrollTop(nextScrollTop);
+              }}
             >
-              {groupedApplications.map((group, groupIndex) => (
-                <section
-                  key={group.category}
-                  role="group"
-                  aria-labelledby={`application-group-${groupIndex}`}
+              {catalogState.status === "loading" ? (
+                <div className="px-3 pb-1">
+                  <AsyncState kind="loading">
+                    {detected !== undefined &&
+                    stableDetectedAppIds === undefined
+                      ? "正在等待本机应用检测结果…"
+                      : "正在加载受管应用目录…"}
+                  </AsyncState>
+                </div>
+              ) : catalogState.status === "error" ? (
+                <div className="px-3 pb-1">
+                  <AsyncState kind="error">
+                    {catalogState.error.message}
+                  </AsyncState>
+                </div>
+              ) : catalogApplications.length === 0 ? (
+                <div className="p-3">
+                  <AsyncState kind="empty">
+                    没有符合筛选条件的 catalog 应用。
+                  </AsyncState>
+                </div>
+              ) : (
+                <div
+                  role="listbox"
+                  aria-label={`受管应用目录，共 ${catalogPage?.pagination.totalItems} 项，第 ${catalogPage?.pagination.page} / ${catalogPage?.pagination.totalPages} 页，显示 ${catalogPage ? pageRange(catalogPage) : "0"}`}
                 >
-                  <h3
-                    id={`application-group-${groupIndex}`}
-                    className="sticky top-0 z-[1] border-b border-border bg-surface-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground"
-                  >
-                    {group.category} · {group.applications.length}
-                  </h3>
-                  <ul role="presentation">
-                    {group.applications.map(({ application, index }) => {
-                      const key = catalogKey(application.id);
-                      const isSelected =
-                        effectiveSelectedKey === key;
-                      const coverage =
-                        COVERAGE_PRESENTATION[application.coverageClass];
-                      return (
-                        <li key={application.id} role="presentation">
-                          <button
-                            ref={(button) => {
-                              if (button) {
-                                catalogButtonRefs.current.set(key, button);
-                              } else {
-                                catalogButtonRefs.current.delete(key);
-                              }
-                            }}
-                            type="button"
-                            role="option"
-                            className={classNames(
-                              "applications-workspace__row",
-                              isSelected && "applications-workspace__row--selected",
-                            )}
-                            aria-label={application.displayName}
-                            aria-selected={isSelected}
-                            tabIndex={isSelected ? 0 : -1}
-                            title={application.displayName}
-                            onClick={() =>
-                              selectCatalogApplication(application)
-                            }
-                            onKeyDown={(event) =>
-                              moveSelection(event, index)
-                            }
-                          >
-                            <span
-                              className={classNames(
-                                "grid size-9 shrink-0 place-items-center rounded-md border",
-                                isSelected
-                                  ? "border-primary/30 bg-surface text-primary"
-                                  : "border-border bg-surface-muted text-muted-foreground",
-                              )}
-                            >
-                              <ApplicationIcon
-                                className="size-5"
-                                iconKey={application.iconKey}
-                              />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="flex min-w-0 items-center gap-2">
-                                <strong className="min-w-0 flex-1 truncate text-sm font-semibold">
-                                  {application.displayName}
-                                </strong>
-                                <StatusBadge
-                                  className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
-                                  tone={coverage.tone}
+                  {groupedApplications.map((group, groupIndex) => (
+                    <section
+                      key={group.category}
+                      role="group"
+                      aria-labelledby={`application-group-${groupIndex}`}
+                    >
+                      <h3
+                        id={`application-group-${groupIndex}`}
+                        className="sticky top-0 z-[1] border-b border-border bg-surface-muted px-3 py-1.5 text-[11px] font-semibold text-muted-foreground"
+                      >
+                        {group.category} · {group.applications.length}
+                      </h3>
+                      <ul role="presentation">
+                        {group.applications.map(({ application, index }) => {
+                          const key = catalogKey(application.id);
+                          const isSelected =
+                            effectiveSelectedKey === key;
+                          const coverage =
+                            COVERAGE_PRESENTATION[application.coverageClass];
+                          return (
+                            <li key={application.id} role="presentation">
+                              <button
+                                ref={(button) => {
+                                  if (button) {
+                                    catalogButtonRefs.current.set(key, button);
+                                  } else {
+                                    catalogButtonRefs.current.delete(key);
+                                  }
+                                }}
+                                type="button"
+                                role="option"
+                                className={classNames(
+                                  "applications-workspace__row",
+                                  isSelected &&
+                                    "applications-workspace__row--selected",
+                                )}
+                                aria-label={application.displayName}
+                                aria-selected={isSelected}
+                                tabIndex={isSelected ? 0 : -1}
+                                title={application.displayName}
+                                onClick={() =>
+                                  selectCatalogApplication(application)
+                                }
+                                onKeyDown={(event) =>
+                                  moveSelection(event, index)
+                                }
+                              >
+                                <span
+                                  className={classNames(
+                                    "grid size-9 shrink-0 place-items-center rounded-md border",
+                                    isSelected
+                                      ? "border-primary/30 bg-surface text-primary"
+                                      : "border-border bg-surface-muted text-muted-foreground",
+                                  )}
                                 >
-                                  {coverage.label}
-                                </StatusBadge>
-                              </span>
-                              <span className="block truncate text-xs text-muted-foreground">
-                                {application.presentation.category}
-                                {detectedIdSet.has(application.id)
-                                  ? " · 本机已检测"
-                                  : ""}
-                              </span>
-                            </span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              ))}
+                                  <ApplicationIcon
+                                    className="size-5"
+                                    iconKey={application.iconKey}
+                                  />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    <strong className="min-w-0 flex-1 break-words text-sm font-semibold">
+                                      {application.displayName}
+                                    </strong>
+                                    <StatusBadge
+                                      className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                                      tone={coverage.tone}
+                                    >
+                                      {coverage.label}
+                                    </StatusBadge>
+                                  </span>
+                                  <span className="block break-words text-xs text-muted-foreground">
+                                    {application.presentation.category}
+                                    {detectedIdSet.has(application.id)
+                                      ? " · 本机已检测"
+                                      : ""}
+                                  </span>
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </section>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
 
-          {catalogPage && catalogPage.pagination.totalPages > 0 ? (
-            <div
-              className="grid gap-2 border-t border-border p-3"
-              aria-label="Catalog 分页"
-            >
-              <div className="grid grid-cols-4 gap-2">
-                <Button
-                  size="sm"
-                  disabled={catalogPage.pagination.page <= 1}
-                  onClick={() => navigatePage(1)}
-                >
-                  首页
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={catalogPage.pagination.page <= 1}
-                  onClick={() =>
-                    navigatePage(catalogPage.pagination.page - 1)
-                  }
-                >
-                  上一页
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={
-                    catalogPage.pagination.page >=
-                    catalogPage.pagination.totalPages
-                  }
-                  onClick={() =>
-                    navigatePage(catalogPage.pagination.page + 1)
-                  }
-                >
-                  下一页
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={
-                    catalogPage.pagination.page >=
-                    catalogPage.pagination.totalPages
-                  }
-                  onClick={() =>
-                    navigatePage(catalogPage.pagination.totalPages)
-                  }
-                >
-                  末页
-                </Button>
-              </div>
-              <div
-                className="flex items-center justify-between gap-2 text-xs text-muted-foreground"
+            {catalogPage && catalogPage.pagination.totalPages > 0 ? (
+              <footer
+                className="applications-workspace__list-footer grid shrink-0 gap-2 border-t border-border p-3"
+                aria-label="Catalog 分页"
               >
-                <span>
-                  第 {catalogPage.pagination.page} /{" "}
-                  {catalogPage.pagination.totalPages} 页
-                </span>
-                <label className="flex items-center gap-2">
-                  <span>跳转</span>
-                  <select
-                    value={catalogPage.pagination.page}
-                    onChange={(event) =>
-                      navigatePage(Number(event.currentTarget.value))
+                <div className="grid grid-cols-4 gap-2">
+                  <Button
+                    size="sm"
+                    disabled={catalogPage.pagination.page <= 1}
+                    onClick={() => navigatePage(1)}
+                  >
+                    首页
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={catalogPage.pagination.page <= 1}
+                    onClick={() =>
+                      navigatePage(catalogPage.pagination.page - 1)
                     }
                   >
-                    {Array.from(
-                      { length: catalogPage.pagination.totalPages },
-                      (_, index) => index + 1,
-                    ).map((pageNumber) => (
-                      <option key={pageNumber} value={pageNumber}>
-                        {pageNumber}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-          ) : null}
-
-        </aside>
+                    上一页
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={
+                      catalogPage.pagination.page >=
+                      catalogPage.pagination.totalPages
+                    }
+                    onClick={() =>
+                      navigatePage(catalogPage.pagination.page + 1)
+                    }
+                  >
+                    下一页
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={
+                      catalogPage.pagination.page >=
+                      catalogPage.pagination.totalPages
+                    }
+                    onClick={() =>
+                      navigatePage(catalogPage.pagination.totalPages)
+                    }
+                  >
+                    末页
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>
+                    第 {catalogPage.pagination.page} /{" "}
+                    {catalogPage.pagination.totalPages} 页
+                  </span>
+                  <label className="flex items-center gap-2">
+                    <span>跳转</span>
+                    <select
+                      value={catalogPage.pagination.page}
+                      onChange={(event) =>
+                        navigatePage(Number(event.currentTarget.value))
+                      }
+                    >
+                      {Array.from(
+                        { length: catalogPage.pagination.totalPages },
+                        (_, index) => index + 1,
+                      ).map((pageNumber) => (
+                        <option key={pageNumber} value={pageNumber}>
+                          {pageNumber}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </footer>
+            ) : null}
+          </aside>
         )}
 
-        <div className="applications-workspace__detail">
+        <div className="applications-workspace__detail min-h-0 min-w-0 overflow-hidden">
           {isLocalScope ? (
             selectedCandidate ? (
               <RecognizedItems
@@ -1425,7 +1426,6 @@ function ApplicationsWorkspace({
     </section>
   );
 }
-
 interface ApplicationsPageProps {
   /**
    * T116 wires these through for the applications scope and candidate

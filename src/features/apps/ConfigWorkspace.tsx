@@ -700,8 +700,8 @@ export function ConfigWorkspace({
   }
 
   return (
-    <article className="config-workspace">
-      <header className="config-workspace__header">
+    <article className="config-workspace min-h-0 min-w-0 overflow-hidden">
+      <header className="config-workspace__header min-w-0">
         <div className="flex min-w-0 items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-border bg-surface-muted text-foreground">
             <ApplicationIcon className="size-7" iconKey={application.iconKey} />
@@ -754,7 +754,7 @@ export function ConfigWorkspace({
         )}
       >
         <section
-          className="config-workspace__documents"
+          className="config-workspace__documents min-h-0 min-w-0"
           aria-labelledby="config-documents-heading"
         >
           <div className="config-workspace__pane-heading">
@@ -764,13 +764,27 @@ export function ConfigWorkspace({
             ) : null}
           </div>
 
-          <details className="config-workspace__support">
-            <summary>支持范围与来源证据</summary>
+          <section
+            className="config-workspace__support min-h-0 min-w-0"
+            aria-labelledby="config-support-heading"
+          >
+            <div className="config-workspace__support-heading flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+              <h4
+                className="text-xs font-semibold text-foreground"
+                id="config-support-heading"
+              >
+                来源与证据
+              </h4>
+              <span className="text-[11px] text-muted-foreground">
+                只读展示 · 不授予任何操作权限
+              </span>
+            </div>
             <div className="p-3">
               <ApplicationSupportSummary application={application} />
             </div>
-          </details>
+          </section>
 
+          <div className="config-workspace__documents-body min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [overscroll-behavior:contain] [scrollbar-gutter:stable]">
           {!canRead ? (
             <div className="p-4">
               <AsyncState
@@ -800,7 +814,11 @@ export function ConfigWorkspace({
               </AsyncState>
             </div>
           ) : configs.status === "ready" ? (
-            <ul role="listbox" aria-label={`${application.displayName} 配置文档`}>
+            <ul
+              className="m-0 list-none p-0"
+              role="listbox"
+              aria-label={`${application.displayName} 配置文档`}
+            >
               {configs.configs.map((config) => {
                 const presentation = getConfigPresentation(
                   application,
@@ -844,8 +862,12 @@ export function ConfigWorkspace({
                       }
                     >
                       <span className="min-w-0 flex-1">
-                        <strong>{config.configId}</strong>
-                        <span>{config.displayPath}</span>
+                        <strong className="break-all">
+                          {config.configId}
+                        </strong>
+                        <span className="break-all">
+                          {config.displayPath}
+                        </span>
                       </span>
                       <StatusBadge
                         className="shrink-0"
@@ -859,18 +881,21 @@ export function ConfigWorkspace({
               })}
             </ul>
           ) : null}
+          </div>
         </section>
 
         {canRead ? (
           <aside
-            className="config-workspace__inspector"
+            className="config-workspace__inspector min-h-0 min-w-0"
             aria-labelledby="config-inspector-heading"
           >
             <div className="config-workspace__pane-heading">
               <h4 id="config-inspector-heading">配置详情</h4>
-              {selectedConfigId ? <span>{selectedConfigId}</span> : null}
+              {selectedConfigId ? (
+                <span className="break-all">{selectedConfigId}</span>
+              ) : null}
             </div>
-            <div className="config-workspace__inspector-content">
+            <div className="config-workspace__inspector-content min-h-0 min-w-0 overflow-y-auto">
               {document.status === "idle" ? (
                 <AsyncState kind="empty">
                   选择一个存在的配置文档以查看详情。

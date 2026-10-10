@@ -4452,19 +4452,26 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T122：完成 Applications/Configuration 三 pane 迁移
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**统一目录/结果、文档和详情/检查器层级，并保留配置安全流程。
 
 **验收：**
-- [ ] 识别证据和安全状态持续可辨，路径/名称可换行。
-- [ ] editor/inspector 独立滚动，预览/确认在 100%/200% 可达。
-- [ ] 50 项分页、generation、selection、草稿、预设、redaction 不回退。
+- [x] 识别证据和安全状态持续可辨，路径/名称可换行。
+- [x] documents/editor/inspector 具备独立滚动结构；真实 100%/200% 预览可达性留 T124。
+- [x] 50 项分页、generation、selection、草稿、预设、redaction 不回退。
 
 **验证：**Applications/config/editor tests；前端完整门禁；隔离 HOME 人工取消预览。
 **依赖：**T118、T119。
 **文件归属：**Applications、ConfigWorkspace、schema editors/presets、CSS。
 **规模：**L。
+
+**T122 实施证据（2026-10-10）：**
+
+- Applications 移除重复 hero/h2 与整页 card shell；scope/filters 作为 pane header，catalog/local list body 独立滚动，catalog pagination 固定 list footer。
+- ConfigWorkspace 持续显示 identity、coverage/capabilities、来源与安全证据（不再默认 details 折叠），documents 与 inspector 各自具备收缩/滚动边界；长名称、路径和错误不 truncate。
+- 只读 app 无修改能力；T118 的 managed local candidate 仍只以 appId/configId 进入现有 ConfigWorkspace。schema drafts、presets、request generation、redaction、preview/confirm/backup/restore 条件未改变。
+- RED：新增三窗格结构测试 10 项失败；GREEN：Apps 14 文件/67 项测试、scoped lint、typecheck 通过，独立快照复验通过。真实 200% 与前台预览/确认留 T124。
 
 ## Phase 33：清理与验收
 
