@@ -1,0 +1,168 @@
+{
+  "formatVersion": 1,
+  "presets": [
+    {
+      "presetId": "copilot-model-and-theme",
+      "presetVersion": 1,
+      "label": "Model and theme",
+      "description": "Groups approved Copilot CLI model and theme settings.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "copilot-settings",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "model",
+        "theme"
+      ],
+      "values": [],
+      "sourceIds": [
+        "copilot-cli-config-dir"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "copilot-new-settings",
+      "presetVersion": 1,
+      "label": "New Copilot settings",
+      "description": "Creates a missing settings.json with automatic model selection and the GitHub theme.",
+      "kind": "COMPLETE_TEMPLATE",
+      "schemaId": "copilot-settings",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "NEW_FILE_ONLY",
+      "mergeStrategy": "REPLACE_SCHEMA_PROJECTION",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "model",
+        "theme"
+      ],
+      "values": [
+        {
+          "fieldId": "model",
+          "value": {
+            "kind": "STRING",
+            "value": "auto"
+          }
+        },
+        {
+          "fieldId": "theme",
+          "value": {
+            "kind": "ENUM",
+            "value": "github"
+          }
+        }
+      ],
+      "sourceIds": [
+        "copilot-cli-config-dir"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "zsh-managed-fields",
+      "presetVersion": 1,
+      "label": "Managed shell fields",
+      "description": "Groups aliases, environment variables, and sourced files in the UserHome managed block.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "zshrc-managed-block",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "aliases",
+        "environment",
+        "sources"
+      ],
+      "values": [],
+      "sourceIds": [
+        "zsh-builtin-commands"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "zsh-new-managed-block",
+      "presetVersion": 1,
+      "label": "New managed Zsh block",
+      "description": "Creates a missing .zshrc with an empty UserHome managed block.",
+      "kind": "COMPLETE_TEMPLATE",
+      "schemaId": "zshrc-managed-block",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "NEW_FILE_ONLY",
+      "mergeStrategy": "REPLACE_SCHEMA_PROJECTION",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "aliases",
+        "environment",
+        "sources"
+      ],
+      "values": [
+        {
+          "fieldId": "aliases",
+          "value": {
+            "kind": "STRING_LIST",
+            "value": []
+          }
+        },
+        {
+          "fieldId": "environment",
+          "value": {
+            "kind": "STRING_LIST",
+            "value": []
+          }
+        },
+        {
+          "fieldId": "sources",
+          "value": {
+            "kind": "STRING_LIST",
+            "value": []
+          }
+        }
+      ],
+      "sourceIds": [
+        "zsh-builtin-commands"
+      ],
+      "aliases": []
+    }
+  ]
+}

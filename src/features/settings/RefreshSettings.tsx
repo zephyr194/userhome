@@ -3,6 +3,13 @@ import type {
   UpdatePreferencesRequest,
   UserPreferences,
 } from "../../ipc/settings";
+import {
+  SettingsFeedback,
+  SettingsField,
+  SettingsFieldList,
+  SettingsForm,
+  SettingsValueField,
+} from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 export function RefreshSettings({
@@ -15,47 +22,50 @@ export function RefreshSettings({
   const form = usePreferenceForm(preferences, onChange);
 
   return (
-    <div className="settings-form" aria-busy={form.saving}>
-      <div className="settings-control-list">
-        <label className="settings-control-row">
-          <span>
-            <strong>启动时刷新</strong>
-            <small>打开应用时运行一次有界 provider 扫描。</small>
-          </span>
+    <SettingsForm busy={form.saving}>
+      <SettingsFieldList>
+        <SettingsField
+          label="启动时刷新"
+          description="打开应用时运行一次有界 provider 扫描。"
+        >
           <input
+            className="size-4 shrink-0 accent-primary"
             type="checkbox"
             checked={form.values.refreshOnLaunch}
+            disabled={form.saving}
             onChange={(event) =>
               void form.update("启动刷新偏好", {
                 refreshOnLaunch: event.currentTarget.checked,
               })
             }
           />
-        </label>
+        </SettingsField>
 
-        <label className="settings-control-row">
-          <span>
-            <strong>从托盘重开时刷新</strong>
-            <small>仅在隐藏窗口重新显示时运行，不会周期性扫描。</small>
-          </span>
+        <SettingsField
+          label="从托盘重开时刷新"
+          description="仅在隐藏窗口重新显示时运行，不会周期性扫描。"
+        >
           <input
+            className="size-4 shrink-0 accent-primary"
             type="checkbox"
             checked={form.values.refreshOnReopen}
+            disabled={form.saving}
             onChange={(event) =>
               void form.update("重开刷新偏好", {
                 refreshOnReopen: event.currentTarget.checked,
               })
             }
           />
-        </label>
+        </SettingsField>
 
-        <label className="settings-control-row">
-          <span>
-            <strong>Provider 超时</strong>
-            <small>仅可使用受限预设；较长预设不会启用后台扫描。</small>
-          </span>
+        <SettingsField
+          label="Provider 超时"
+          description="仅可使用受限预设；较长预设不会启用后台扫描。"
+        >
           <select
+            className="min-h-control-sm max-w-full rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground"
             value={form.values.providerTimeoutPreset}
+            disabled={form.saving}
             onChange={(event) =>
               void form.update("Provider 超时", {
                 providerTimeoutPreset: event.currentTarget
@@ -67,26 +77,18 @@ export function RefreshSettings({
             <option value="STANDARD">标准（本机 2 秒 / Homebrew 10 秒）</option>
             <option value="EXTENDED">延长（本机 5 秒 / Homebrew 20 秒）</option>
           </select>
-        </label>
+        </SettingsField>
 
-        <div className="settings-control-row" role="status">
-          <span>
-            <strong>周期性后台扫描</strong>
-            <small>UserHome 只在启动、重开或手动请求时刷新。</small>
-          </span>
-          <span className="settings-control-row__value">关闭</span>
-        </div>
-      </div>
+        <SettingsValueField
+          label="周期性后台扫描"
+          description="UserHome 只在启动、重开或手动请求时刷新。"
+          role="status"
+        >
+          关闭
+        </SettingsValueField>
+      </SettingsFieldList>
 
-      {form.error ? (
-        <p className="settings-form__error" role="alert">
-          {form.error}
-        </p>
-      ) : form.status ? (
-        <p className="settings-form__status" role="status">
-          {form.status}
-        </p>
-      ) : null}
-    </div>
+      <SettingsFeedback error={form.error} status={form.status} />
+    </SettingsForm>
   );
 }

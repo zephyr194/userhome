@@ -89,13 +89,17 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::catalog::list_managed_apps,
+            commands::catalog::query_managed_apps,
+            commands::catalog::get_managed_app,
             commands::config::list_configs,
             commands::config::resolve_config_variants,
             commands::config::read_config,
+            commands::config::get_config_schema,
             commands::config::diagnose_config,
             commands::config::validate_config,
             commands::config::preview_config_write,
             commands::config::preview_structured_config_write,
+            commands::config::preview_schema_config_write,
             commands::config::execute_config_write,
             commands::config::list_config_backups,
             commands::config::preview_restore_backup,

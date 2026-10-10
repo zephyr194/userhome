@@ -1,5 +1,6 @@
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, StatusBadge, type StatusBadgeProps } from "../../components/ui";
+import type { BrewPackageAction, BrewSearchResult } from "../../ipc/brew";
 import type { AppError } from "../../ipc/core";
 import type {
   OperationDetails,
@@ -17,10 +18,7 @@ const STATUS_LABELS: Record<OperationStatus, string> = {
   EXPIRED: "预览已过期",
 };
 
-const STATUS_TONES: Record<
-  OperationStatus,
-  "neutral" | "success" | "warning" | "danger"
-> = {
+const STATUS_TONES: Record<OperationStatus, StatusBadgeProps["tone"]> = {
   PREVIEWED: "neutral",
   RUNNING: "warning",
   CANCELLING: "warning",
@@ -30,22 +28,33 @@ const STATUS_TONES: Record<
   EXPIRED: "danger",
 };
 
+const ACTION_LABELS: Record<BrewPackageAction, string> = {
+  INSTALL: "安装",
+  UPGRADE: "更新",
+  UNINSTALL: "卸载",
+};
+
 export function BrewActionDialog({
+  action,
   preview,
+  target,
   operation,
   error,
   busy,
   onConfirm,
   onCancel,
 }: {
+  action?: BrewPackageAction;
   preview: OperationPreview;
+  target?: BrewSearchResult;
   operation?: OperationDetails;
   error?: AppError;
   busy: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const canConfirm = !operation || operation.status === "PREVIEWED";
+  const status = operation?.status ?? (busy ? "RUNNING" : "PREVIEWED");
+  const canConfirm = operation === undefined;
 
   return (
     <ConfirmDialog
@@ -57,21 +66,25 @@ export function BrewActionDialog({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
-            待确认 Homebrew 操作
+            {action ? `待确认${ACTION_LABELS[action]}` : "待确认 Homebrew 操作"}
           </p>
           <h3 className="break-words" id="brew-action-heading">
             {preview.summary}
           </h3>
+          {target ? (
+            <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+              目标：{target.kind === "FORMULA" ? "Formula" : "Cask"} ·{" "}
+              {target.identifier}
+            </p>
+          ) : null}
         </div>
-        <StatusBadge
-          tone={operation ? STATUS_TONES[operation.status] : "neutral"}
-        >
-          {operation ? STATUS_LABELS[operation.status] : "等待确认"}
+        <StatusBadge className="shrink-0" tone={STATUS_TONES[status]}>
+          {STATUS_LABELS[status]}
         </StatusBadge>
       </div>
 
       <section
-        className="rounded-md border border-border bg-surface-muted px-3.5 py-3"
+        className="rounded-control border border-border bg-surface-muted px-3.5 py-3"
         aria-labelledby="brew-effects-heading"
       >
         <h4
@@ -86,7 +99,9 @@ export function BrewActionDialog({
               <span className="text-primary" aria-hidden="true">
                 •
               </span>
-              <span className="min-w-0 break-words">{effect}</span>
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                {effect}
+              </span>
             </li>
           ))}
         </ul>
@@ -94,6 +109,12 @@ export function BrewActionDialog({
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         无需管理员权限；确认仅适用于此预览中的类型、标识符和动作。
+      </p>
+      <p className="break-words text-xs text-muted-foreground">
+        预览到期：
+        <time dateTime={preview.expiresAt}>
+          {new Date(preview.expiresAt).toLocaleString("zh-CN")}
+        </time>
       </p>
 
       {busy ? (
@@ -125,31 +146,37 @@ export function BrewActionDialog({
             </StatusBadge>
           </div>
           {operation.events.length > 0 ? (
-            <ol className="mt-3 max-h-40 space-y-2 overflow-y-auto text-xs">
+            <ol
+              className="mt-3 max-h-40 space-y-2 overflow-y-auto overscroll-contain text-xs"
+              aria-label="Homebrew 操作进度，可滚动"
+              tabIndex={0}
+            >
               {operation.events.map((event) => (
                 <li
-                  className="rounded bg-surface-muted px-2.5 py-2 text-muted-foreground"
+                  className="rounded-control bg-surface-muted px-2.5 py-2 text-muted-foreground"
                   key={`${event.sequence}-${event.type}`}
                 >
                   {event.type === "progress" ? (
-                    event.message
+                    <span className="break-words [overflow-wrap:anywhere]">
+                      {event.message}
+                    </span>
                   ) : (
                     <>
                       <strong className="font-medium text-foreground">
                         {STATUS_LABELS[event.status]}
                       </strong>
                       {event.stdoutSummary ? (
-                        <p className="mt-1 whitespace-pre-wrap break-words">
+                        <p className="mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                           {event.stdoutSummary}
                         </p>
                       ) : null}
                       {event.stderrSummary ? (
-                        <p className="mt-1 whitespace-pre-wrap break-words text-danger">
+                        <p className="mt-1 whitespace-pre-wrap break-words text-danger [overflow-wrap:anywhere]">
                           {event.stderrSummary}
                         </p>
                       ) : null}
                       {event.error ? (
-                        <p className="mt-1 break-words text-danger">
+                        <p className="mt-1 break-words text-danger [overflow-wrap:anywhere]">
                           {event.error.message}
                         </p>
                       ) : null}
@@ -168,21 +195,25 @@ export function BrewActionDialog({
 
       {error ? (
         <p
-          className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger"
+          className="break-words rounded-control border border-danger-border bg-danger-soft px-3 py-2.5 text-sm text-danger [overflow-wrap:anywhere]"
           role="alert"
         >
           {error.message}
         </p>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 border-t border-border bg-surface px-5 py-4">
         {canConfirm ? (
           <Button
             variant="primary"
             disabled={busy}
             onClick={onConfirm}
           >
-            {busy ? "正在执行…" : "确认执行"}
+            {busy
+              ? "正在执行…"
+              : action
+                ? `确认${ACTION_LABELS[action]}`
+                : "确认执行"}
           </Button>
         ) : null}
         <Button

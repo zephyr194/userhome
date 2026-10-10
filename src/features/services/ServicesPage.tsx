@@ -6,6 +6,7 @@ import {
 } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge, type StatusBadgeProps } from "../../components/ui";
+import { classNames } from "../../components/ui/classNames";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
   getOperation,
@@ -46,6 +47,12 @@ type HistoryState =
   | { status: "loading" }
   | { status: "ready"; operations: readonly OperationSummary[] }
   | { status: "error"; error: AppError };
+
+interface ServicePreview {
+  action: ServiceAction;
+  serviceId: string;
+  value: OperationPreview;
+}
 
 const STATE_LABELS: Record<ServiceSummary["state"], string> = {
   STARTED: "运行中",
@@ -103,8 +110,9 @@ export function ServicesPage({
   const [historyState, setHistoryState] = useState<HistoryState>({
     status: "loading",
   });
+  const [filter, setFilter] = useState("");
   const [mutationRefresh, setMutationRefresh] = useState(0);
-  const [preview, setPreview] = useState<OperationPreview>();
+  const [preview, setPreview] = useState<ServicePreview>();
   const [operation, setOperation] = useState<OperationDetails>();
   const [actionError, setActionError] = useState<AppError>();
   const [busy, setBusy] = useState(false);
@@ -117,6 +125,7 @@ export function ServicesPage({
   const selectedServiceIdRef = useRef<string | undefined>(
     initialSelectedServiceId,
   );
+  const filterInputRef = useRef<HTMLInputElement>(null);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 
   useEffect(() => {
@@ -137,6 +146,9 @@ export function ServicesPage({
             ? current
             : services[0]?.serviceId;
         if (next !== current) {
+          const restoreFocus =
+            current !== undefined &&
+            rowRefs.current.get(current) === document.activeElement;
           selectedServiceIdRef.current = next;
           previewRequestRef.current += 1;
           setSelectedServiceId(next);
@@ -144,6 +156,15 @@ export function ServicesPage({
           setOperation(undefined);
           setActionError(undefined);
           selectedServiceChangeRef.current?.(next);
+          if (restoreFocus) {
+            requestAnimationFrame(() => {
+              (
+                (next ? rowRefs.current.get(next) : undefined) ??
+                rowRefs.current.values().next().value ??
+                filterInputRef.current
+              )?.focus();
+            });
+          }
         }
       })
       .catch((error: unknown) => {
@@ -204,7 +225,22 @@ export function ServicesPage({
     setActionError(undefined);
   }
 
-  const services = listState.status === "ready" ? listState.services : [];
+  const allServices = listState.status === "ready" ? listState.services : [];
+  const normalizedFilter = filter.trim().toLocaleLowerCase("zh-CN");
+  const services = normalizedFilter
+    ? allServices.filter((service) =>
+        [
+          service.displayName,
+          service.serviceId,
+          service.user,
+          service.status,
+          SCOPE_LABELS[service.scope],
+          STATE_LABELS[service.state],
+        ].some((value) =>
+          value?.toLocaleLowerCase("zh-CN").includes(normalizedFilter),
+        ),
+      )
+    : allServices;
   const selectedIsVisible = services.some(
     (service) => service.serviceId === selectedServiceId,
   );
@@ -241,7 +277,7 @@ export function ServicesPage({
         previewRequestRef.current === requestId &&
         selectedServiceIdRef.current === serviceId
       ) {
-        setPreview(nextPreview);
+        setPreview({ action, serviceId, value: nextPreview });
       }
     } catch (error) {
       if (
@@ -259,12 +295,12 @@ export function ServicesPage({
     setBusy(true);
     setActionError(undefined);
     try {
-      setOperation(await executeServiceAction(preview.operationId));
+      setOperation(await executeServiceAction(preview.value.operationId));
     } catch (error) {
       const executionError = decodeAppError(error);
       setActionError(executionError);
       try {
-        setOperation(await getOperation(preview.operationId));
+        setOperation(await getOperation(preview.value.operationId));
       } catch (operationError) {
         const lookupError = decodeAppError(operationError);
         setOperation(undefined);
@@ -283,11 +319,22 @@ export function ServicesPage({
   }
 
   return (
-    <section className="services-workspace" aria-labelledby="services-heading">
-      <header className="services-workspace__header">
+    <section
+      className="grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-panel border border-border bg-surface"
+      aria-labelledby="services-heading"
+    >
+      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-3xl border-b border-border px-ui-3xl py-ui-xl">
         <div className="min-w-0">
-          <h2 id="services-heading">服务清单</h2>
-          <p>Homebrew 用户级与系统级服务</p>
+          <p className="section-kicker">Homebrew 服务管理</p>
+          <h2
+            className="mt-ui-xs text-xl font-semibold tracking-tight"
+            id="services-heading"
+          >
+            服务清单
+          </h2>
+          <p className="mt-ui-xs text-xs text-muted-foreground">
+            Homebrew 用户级与系统级服务
+          </p>
         </div>
         {listState.status === "ready" ? (
           <div
@@ -312,24 +359,51 @@ export function ServicesPage({
             <StatusBadge tone="warning">
               只读{" "}
               {
-                listState.services.filter((service) => !service.manageable)
-                  .length
+                listState.services.filter(
+                  (service) =>
+                    !service.manageable || service.scope === "UNKNOWN",
+                ).length
               }
             </StatusBadge>
           </div>
         ) : null}
       </header>
 
-      <div className="services-workspace__body">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md border-b border-border bg-surface-muted px-ui-xl py-ui-md">
+        <label className="min-w-40 flex-1">
+          <span className="sr-only">筛选服务</span>
+          <input
+            ref={filterInputRef}
+            className="min-h-control-sm w-full min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20"
+            type="search"
+            maxLength={128}
+            placeholder="按名称、标识符、状态或作用域筛选"
+            value={filter}
+            onChange={(event) => setFilter(event.currentTarget.value)}
+          />
+        </label>
+        <span className="shrink-0 text-xs text-muted-foreground" role="status">
+          {listState.status === "ready"
+            ? `显示 ${services.length} / ${allServices.length} 项`
+            : "正在读取本机状态"}
+        </span>
+      </div>
+
+      <div className="grid min-h-0 grid-rows-[minmax(0,0.85fr)_minmax(0,1.15fr)] overflow-hidden sm:grid-cols-[minmax(18.75rem,0.82fr)_minmax(0,1.18fr)] sm:grid-rows-1">
         <section
-          className="services-workspace__list"
+          className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
           aria-labelledby="service-inventory-heading"
         >
-          <header className="services-workspace__pane-heading">
-            <h3 id="service-inventory-heading">已发现服务</h3>
-            <span>
+          <header className="flex min-h-[var(--app-row-height-standard)] min-w-0 items-center justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md">
+            <h3
+              className="text-xs font-semibold"
+              id="service-inventory-heading"
+            >
+              已发现服务
+            </h3>
+            <span className="text-xs text-muted-foreground">
               {listState.status === "ready"
-                ? `${listState.services.length} 项`
+                ? `${services.length} 项`
                 : "本机状态"}
             </span>
           </header>
@@ -340,14 +414,26 @@ export function ServicesPage({
             </div>
           ) : listState.status === "error" ? (
             <div className="p-3">
-              <AsyncState kind="error">{listState.error.message}</AsyncState>
+              <AsyncState kind="error">
+                <span className="break-words [overflow-wrap:anywhere]">
+                  {listState.error.message}
+                </span>
+              </AsyncState>
             </div>
-          ) : listState.services.length === 0 ? (
+          ) : allServices.length === 0 ? (
             <div className="p-3">
               <AsyncState kind="empty">没有发现 Homebrew 服务。</AsyncState>
             </div>
+          ) : services.length === 0 ? (
+            <div className="p-3">
+              <AsyncState kind="empty">没有符合筛选条件的服务。</AsyncState>
+            </div>
           ) : (
-            <ul role="listbox" aria-label="Homebrew 服务清单">
+            <ul
+              className="min-h-0 overflow-y-auto overscroll-contain"
+              role="listbox"
+              aria-label={`Homebrew 服务清单，共 ${services.length} 项`}
+            >
               {services.map((service, index) => {
                 const isSelected =
                   service.serviceId === selectedServiceId;
@@ -363,35 +449,38 @@ export function ServicesPage({
                           rowRefs.current.delete(service.serviceId);
                         }
                       }}
-                      className={
-                        isSelected
-                          ? "service-row service-row--selected"
-                          : "service-row"
-                      }
+                      className={classNames(
+                        "services-inventory-row",
+                        isSelected && "services-inventory-row--selected",
+                      )}
                       type="button"
                       role="option"
+                      aria-label={`${service.displayName}，${SCOPE_LABELS[service.scope]}，${STATE_LABELS[service.state]}，${service.manageable && service.scope !== "UNKNOWN" ? "可管理" : "只读"}`}
                       aria-selected={isSelected}
                       tabIndex={isTabStop ? 0 : -1}
+                      title={service.displayName}
                       onClick={() => selectService(service.serviceId)}
                       onKeyDown={(event) => moveSelection(event, index)}
                     >
                       <span className="min-w-0">
-                        <strong>{service.displayName}</strong>
-                        <span>{service.user ?? service.status}</span>
+                        <strong className="block truncate text-sm font-semibold">
+                          {service.displayName}
+                        </strong>
+                        <span className="mt-ui-xs block truncate text-xs text-muted-foreground">
+                          {SCOPE_LABELS[service.scope]} ·{" "}
+                          {service.manageable && service.scope !== "UNKNOWN"
+                            ? "可管理"
+                            : "只读"}{" "}
+                          ·{" "}
+                          {service.user ?? service.status}
+                        </span>
                       </span>
-                      <span className="service-row__status">
-                        <StatusBadge tone={STATE_TONES[service.state]}>
-                          {STATE_LABELS[service.state]}
-                        </StatusBadge>
-                        <StatusBadge>
-                          {SCOPE_LABELS[service.scope]}
-                        </StatusBadge>
-                        <StatusBadge
-                          tone={service.manageable ? "success" : "warning"}
-                        >
-                          {service.manageable ? "可管理" : "只读"}
-                        </StatusBadge>
-                      </span>
+                      <StatusBadge
+                        className="min-h-5 shrink-0 px-ui-sm py-0 text-[10px]"
+                        tone={STATE_TONES[service.state]}
+                      >
+                        {STATE_LABELS[service.state]}
+                      </StatusBadge>
                     </button>
                   </li>
                 );
@@ -401,10 +490,10 @@ export function ServicesPage({
         </section>
 
         <section
-          className="services-workspace__detail"
+          className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-ui-xl overscroll-contain"
           aria-label="服务详情与操作"
         >
-          <div className="services-workspace__detail-stack">
+          <div className="grid min-w-0 gap-ui-xl">
             {visibleDetailsState.status === "idle" ? (
               <AsyncState kind="empty">
                 从服务清单中选择一项以查看作用域、状态和可用操作。
@@ -413,7 +502,9 @@ export function ServicesPage({
               <AsyncState kind="loading">正在加载服务详情…</AsyncState>
             ) : visibleDetailsState.status === "error" ? (
               <AsyncState kind="error">
-                {visibleDetailsState.error.message}
+                <span className="break-words [overflow-wrap:anywhere]">
+                  {visibleDetailsState.error.message}
+                </span>
               </AsyncState>
             ) : (
               <ServiceDetails
@@ -422,12 +513,20 @@ export function ServicesPage({
               />
             )}
             {actionError && !preview ? (
-              <AsyncState kind="error">{actionError.message}</AsyncState>
+              <AsyncState kind="error">
+                <span className="break-words [overflow-wrap:anywhere]">
+                  {actionError.message}
+                </span>
+              </AsyncState>
             ) : null}
             {historyState.status === "loading" ? (
               <AsyncState kind="loading">正在加载操作历史…</AsyncState>
             ) : historyState.status === "error" ? (
-              <AsyncState kind="error">{historyState.error.message}</AsyncState>
+              <AsyncState kind="error">
+                <span className="break-words [overflow-wrap:anywhere]">
+                  {historyState.error.message}
+                </span>
+              </AsyncState>
             ) : (
               <OperationHistory
                 emptyMessage="暂无操作记录。"
@@ -441,12 +540,15 @@ export function ServicesPage({
 
       {preview ? (
         <ServiceActionDialog
-          preview={preview}
+          action={preview.action}
+          preview={preview.value}
+          serviceId={preview.serviceId}
           operation={operation}
           error={actionError}
           busy={busy}
           onConfirm={() => void confirmAction()}
           onCancel={() => {
+            previewRequestRef.current += 1;
             setPreview(undefined);
             setOperation(undefined);
             setActionError(undefined);

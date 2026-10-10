@@ -53,7 +53,7 @@ describe("UserHome desktop smoke", () => {
     expect(windowState.maximizable).toBe(false);
     expect(windowState.visible).toBe(false);
 
-    expect(await $(".brand").getText()).toBe("UserHome");
+    expect(await $(".titlebar__title").getText()).toBe("UserHome");
     expect(await $("nav[aria-label='主导航']").isDisplayed()).toBe(true);
     await browser.execute(() => {
       document
@@ -61,7 +61,7 @@ describe("UserHome desktop smoke", () => {
         ?.click();
     });
     await $("#dashboard-heading").waitForDisplayed({ timeout: 5_000 });
-    expect(await $(".titlebar__context").getText()).toBe("概览");
+    expect(await $(".desktop-workspace__page-title").getText()).toBe("概览");
     const dashboard = await $("section[aria-labelledby='dashboard-heading']");
     expect(await dashboard.getText()).toContain("macOS");
     expect(await dashboard.getText()).toContain("架构");
@@ -88,42 +88,23 @@ describe("UserHome desktop smoke", () => {
       "aside[aria-label='应用与配置候选列表']",
     );
     await applicationList.waitForDisplayed();
-    const applicationEntries = await applicationList.$$("button");
-    expect(applicationEntries.length).toBeGreaterThanOrEqual(26);
-    expect(
-      await applicationEntries.map((entry) => entry.getText()),
-    ).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("GitHub Copilot"),
-        expect.stringContaining("Caddy"),
-        expect.stringContaining("Git"),
-        expect.stringContaining("OpenSSH"),
-        expect.stringContaining("Zsh"),
-        expect.stringContaining("npm"),
-        expect.stringContaining("Visual Studio Code"),
-        expect.stringContaining("Cursor"),
-        expect.stringContaining("Ghostty"),
-        expect.stringContaining("Starship"),
-        expect.stringContaining("tmux"),
-        expect.stringContaining("Vim"),
-        expect.stringContaining("Zed"),
-        expect.stringContaining("Neovim"),
-        expect.stringContaining("iTerm2"),
-        expect.stringContaining("Claude"),
-        expect.stringContaining("Codex"),
-        expect.stringContaining("Gemini"),
-        expect.stringContaining("Antigravity"),
-        expect.stringContaining("Trae"),
-        expect.stringContaining("Docker"),
-        expect.stringContaining("OrbStack"),
-        expect.stringContaining("Google Cloud CLI"),
-        expect.stringContaining("Raycast"),
-        expect.stringContaining("GitKraken CLI"),
-        expect.stringContaining("Apifox"),
-      ]),
-    );
+    expect(await applicationList.$$("[role='option']")).toHaveLength(50);
     expect(await $(".applications-workspace__header").getText()).toContain(
-      "26 个 catalog 定义",
+      "624 项",
+    );
+    expect(await applicationList.getText()).toContain("第 1 / 13 页");
+
+    const applicationSearch = await $(
+      ".applications-workspace__filters input[type='search']",
+    );
+    await applicationSearch.setValue("GitHub Copilot");
+    await browser.waitUntil(
+      async () => {
+        const entries = await applicationList.$$("[role='option']");
+        const values = await entries.map((entry) => entry.getText());
+        return values.some((value) => value.includes("GitHub Copilot"));
+      },
+      { timeout: 5_000, timeoutMsg: "Catalog search did not settle" },
     );
 
     await $("a[href='#homebrew']").click();

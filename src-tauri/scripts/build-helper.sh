@@ -22,11 +22,20 @@ for architecture in $architectures; do
   esac
 
   triple="${architecture}-apple-macosx13.0"
-  swiftpm_output_dir="$helper_dir/.build/${architecture}-apple-macosx/release"
-  bridge_output_dir="$helper_dir/.build/$triple/release"
+  swiftpm_scratch_dir="$helper_dir/.build/userhome-helper/$architecture"
+  swiftpm_output_dir="$(
+    swift build \
+      --package-path "$helper_dir" \
+      --scratch-path "$swiftpm_scratch_dir" \
+      --configuration release \
+      --triple "$triple" \
+      --show-bin-path
+  )"
+  bridge_output_dir="$swiftpm_scratch_dir/bridge"
   mkdir -p "$bridge_output_dir"
   swift build \
     --package-path "$helper_dir" \
+    --scratch-path "$swiftpm_scratch_dir" \
     --configuration release \
     --product UserHomeHelper \
     --triple "$triple"

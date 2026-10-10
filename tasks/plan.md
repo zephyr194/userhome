@@ -643,3 +643,352 @@ pnpm build:unsigned
 | Preferences weaken filesystem or mutation boundaries | High | Store only typed UserHome behavior values; never persist paths, content, credentials, or authority. |
 | Diagnostic export leaks private data | High | Build from typed sanitized summaries and reject raw environment, paths, content, and authorization fields. |
 | Parser or launch-at-login work pressures dependency scope | Medium | Keep unsupported capability explicit and request separate approval before adding any dependency. |
+
+# Configuration Discovery and Editing Revision
+
+## Approved Decisions
+
+- Catalog search, filtering, and pagination run in Rust.
+- Application pages contain exactly 50 entries.
+- The packaged catalog supports at least 500 and at most 1,000 applications.
+- Schemas and presets remain independently versioned packaged data.
+- Each configuration document supports at most 64 fields and 32 presets.
+- Initial schema-driven migrations are Git, Caddy, GitHub Copilot CLI, npm,
+  OpenSSH, and Zsh.
+- Complete templates are write-enabled only for missing/new files in the first
+  release; existing files may preview them but cannot execute replacement.
+- Schema/preset aliases remain for at least two versions and 180 days.
+- The official-source corpus is reviewed monthly, becomes stale after 90 days,
+  and is approved by repository maintainers.
+- Corpus data stores normalized facts by default. Upstream schema files may be
+  bundled only when redistribution is explicitly permitted and SPDX/NOTICE
+  metadata is recorded.
+- Geometry is defined by semantic CSS custom properties and shared React
+  primitives; TypeScript does not duplicate CSS pixel constants.
+- No new test files or test cases are planned. Existing checks and bounded
+  manual acceptance are reused.
+
+## Dependency Graph
+
+```text
+T70 visual primitives
+  -> T92-T96 visual and window integration
+
+T71 schema contract
+  -> T72 preset contract
+  -> T85 schema/preset runtime presentation
+  -> T86 generic schema editor
+  -> T87 preset workflow
+  -> T88-T90 six-app migration
+  -> T91 schema-driven cutover
+
+T73 source provenance
+  -> T76 corpus tooling
+  -> T77-T79 corpus inputs
+  -> T80 packaged 500+ corpus
+
+T74 Rust catalog paging
+  -> T75 frontend catalog contracts
+  -> T81 catalog provider integration
+  -> T82-T84 browsing experience
+
+T80 + T84 + T91 + T92-T96
+  -> T97 integrated acceptance
+```
+
+### Phase 17: Shared Contracts
+
+- [x] T70 Consolidate semantic visual tokens and desktop primitives
+- [x] T71 Add the versioned configuration schema contract
+- [x] T72 Add the versioned preset contract and compatibility policy
+- [x] T73 Add official-source provenance and license contracts
+- [x] T74 Replace whole-catalog IPC with bounded Rust paging
+- [x] T75 Add strict frontend catalog, source, schema, and preset decoders
+
+### Checkpoint T: Contracts Stable
+
+- [x] Rust and TypeScript use the same version, count, enum, and identifier
+      bounds.
+- [x] Existing catalog/config behavior remains available for the original 26
+      managed apps.
+- [x] No new runtime network, dependency, writable path, or test case is added.
+
+### Phase 18: Curated Offline Corpus
+
+- [x] T76 Build maintainer-only corpus refresh and validation tooling
+- [x] T77 Import a pinned Homebrew formula application set
+- [x] T78 Import a pinned Homebrew cask application set
+- [x] T79 Curate official configuration overlays for existing managed tools
+- [x] T80 Package and validate the 500+ application corpus
+
+### Checkpoint U: Offline Corpus Ready
+
+- [x] At least 500 and at most 1,000 applications validate deterministically.
+- [x] Every packaged entry has official provenance and an explicit support
+      class.
+- [x] The client remains fully functional with network access disabled.
+- [x] The refresh workflow is monthly, maintainer-approved, and flags records
+      older than 90 days.
+
+### Phase 19: Paged Application Browsing
+
+- [x] T81 Integrate the paged catalog provider into shell state
+- [x] T82 Implement search, filters, and exact 50-item pagination
+- [x] T83 Present source provenance and support boundaries in application detail
+- [x] T84 Preserve selection, focus, page, and editor context
+
+### Checkpoint V: Application Browsing Complete
+
+- [x] At least 500 applications are searchable through Rust-side 50-item pages.
+- [x] Query p95 is below 100 ms on the baseline Apple Silicon Mac.
+- [x] Keyboard, selection, page, scroll, and config-document state remain
+      stable.
+- [x] Unsupported and excluded applications expose no write controls.
+
+### Phase 20: Schema-Driven Configuration Editing
+
+- [x] T85 Expose schema and preset presentation through typed IPC
+- [x] T86 Build the generic schema field renderer
+- [x] T87 Add safe preset selection and draft application
+- [x] T88 Migrate Git and npm to schema-driven editing
+- [x] T89 Migrate Caddy and OpenSSH to schema-driven editing
+- [x] T90 Migrate Copilot and Zsh to schema-driven editing
+- [x] T91 Make schema-driven editing the default for the initial six apps
+
+### Checkpoint W: Schema Editing Complete
+
+- [x] The initial six apps use schema-driven fields and presets by default.
+- [x] Invalid schemas, unknown field kinds, and expired aliases fail closed.
+- [x] Secret values are absent from reads, diffs, IPC, errors, logs, and
+      history.
+- [x] Every executed write still uses fresh hash, preview, explicit
+      confirmation, backup, atomic replacement, post-write validation, and
+      rollback.
+
+### Phase 21: Visual Consistency and Native Window Interaction
+
+- [x] T92 Normalize Applications and configuration workspace density
+- [x] T93 Normalize shell, navigation, toolbar, and Dashboard
+- [x] T94 Normalize Homebrew and Services workspaces
+- [x] T95 Normalize Settings workspace and form controls
+- [x] T96 Enforce reliable title-bar drag and double-click no-op behavior
+
+### Phase 22: Integration and Evidence
+
+- [x] T97 Complete integrated automated verification and documentation;
+      retained manual/external blockers are tracked in `tasks/todo.md` and
+      `docs/release-readiness.md`.
+
+### Checkpoint X: Revision Complete
+
+- [x] T70-T97 acceptance criteria pass or retain explicit approved blockers.
+- [x] The catalog contains 500-1,000 offline applications and returns exact
+      50-entry Rust-side pages.
+- [x] The six writable apps use schema-driven editing with safe presets.
+- [ ] Every primary route is usable at 1120 x 720 and 200% text zoom.
+- [ ] Window dragging and interactive no-drag behavior match the approved
+      matrix.
+- [x] Runtime browsing/editing uses no network and exposes no arbitrary path,
+      command, source-fetch, or privilege authority.
+
+### Parallel Waves
+
+| Wave | Parallel work | Coordination boundary |
+|---|---|---|
+| W8 | T70 visual tokens, T71 schema, T73 provenance, T74 paging | Serialize edits to `catalog/mod.rs`; visual work is independent. |
+| W9 | T72 presets, T75 frontend contracts, T76 tooling | T72 follows T71; frontend contracts follow Rust shapes. |
+| W10 | T77 formulae, T78 casks, T79 managed overlays | Independent corpus input files; do not edit packaged output. |
+| W11 | T80 packaging | Single owner for generated catalog/source/schema/preset outputs. |
+| W12 | T81 provider, T85 schema IPC, T93 shell visual pass | Shared `App.tsx`/shell files require explicit ownership. |
+| W13 | T82 paging UI, T83 provenance detail, T86 schema renderer, T94 routes | Shared Applications/global CSS edits are serialized. |
+| W14 | T84 state retention, T87 presets, T95 Settings | Separate state/editor/settings lanes. |
+| W15 | T88 Git/npm, T89 Caddy/SSH, T90 Copilot/Zsh | Independent source fragments; generated packaged files have one merge owner. |
+| W16 | T91 cutover, T92 Apps visual pass, T96 dragging | Serialize `ConfigWorkspace`, `AppShell`, and global CSS ownership. |
+| W17 | T97 integration | Runs after all implementation dependencies settle. |
+
+### Verification Commands
+
+Focused tasks use the smallest applicable existing command. Major checkpoints
+run:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+Checkpoints V, W, and X additionally run:
+
+```bash
+pnpm test:e2e
+```
+
+Checkpoint X additionally runs:
+
+```bash
+pnpm build:unsigned
+```
+
+No new test files or test cases are added. Existing suites must continue to
+pass; new behavior is verified with contract validators, builds, existing E2E,
+and explicit manual matrices.
+
+### Revision Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| A 500-entry corpus becomes unverifiable or stale | High | Official-only manifest, immutable revision/digest, monthly maintainer review, 90-day stale state, deterministic generation. |
+| Catalog paging breaks refresh/selection behavior | High | Stable IDs, request generations, page-aware selection memory, explicit removed-item fallback. |
+| Source evidence is mistaken for write authority | Critical | Keep provenance, catalog authorization, adapter, validator, editor, and write policy as separate required gates. |
+| Generic fields cannot preserve specialized adapter semantics | High | Migrate app pairs, compare disposable previews, retain compatibility editors until parity. |
+| Presets overwrite existing user configuration | Critical | Draft-only selection; complete templates execute only for missing/new files; existing safe mutation chain remains mandatory. |
+| Secret values leak through generic schemas | Critical | Replacement-only secret kind, no corpus default, no read payload, redacted preview/history, fail closed. |
+| Visual consolidation causes regressions across shared CSS | Medium | Land tokens first, serialize global CSS ownership, verify each route at fixed window and 200% zoom. |
+| Double-click behavior differs across WebKit/macOS | Medium | Runtime inspection first; add only a narrow native/Tauri guard if CSS cannot enforce no-op. |
+| Generated output causes parallel merge conflicts | Medium | Parallelize source fragments only; assign one owner to package generated artifacts. |
+| Existing manual/signing blockers are accidentally marked done | Medium | Append T70-T97, preserve T01-T69 verbatim, carry blockers into T97 evidence. |
+
+## 2026-09-23 Native Visual Redesign
+
+Status: Approved for execution on 2026-09-23. The capability map
+and five visual redesign specifications are approved. This extension preserves
+T01-T97 evidence, unfinished manual acceptance, external CI, signing,
+notarization, and hardware prerequisites without claiming their completion.
+Implementation tasks will be recorded in `tasks/todo.md` after plan approval.
+
+Specifications: [`../SPEC.md`](../SPEC.md),
+[`../SPEC-visual-system-v2.md`](../SPEC-visual-system-v2.md),
+[`../SPEC-desktop-shell-v2.md`](../SPEC-desktop-shell-v2.md),
+[`../SPEC-resource-workspaces-v2.md`](../SPEC-resource-workspaces-v2.md),
+[`../SPEC-utility-workspaces-v2.md`](../SPEC-utility-workspaces-v2.md), and
+[`../SPEC-visual-acceptance-v2.md`](../SPEC-visual-acceptance-v2.md).
+
+### Scope and Architectural Decisions
+
+- Keep the fixed 1120 x 720 macOS window, native traffic lights, typed IPC,
+  catalog authority, configuration safeguards, and all existing interactions.
+- Replace the green-leaning colors and accumulated inconsistent page styling
+  with gray/graphite surfaces, a restrained blue action accent, shared semantic
+  state tokens, and compact readable typography. Preserve distinct warning,
+  danger, success, selection, and focus meanings.
+- Use the existing CSS/Tailwind and shared React controls. Do not add packages,
+  tests, runtime polling, new privileges, or configuration behavior.
+- Implement small visible slices; each task runs focused checks, and no phase
+  passes without its actual evidence. The last phase records a cross-route
+  manual appearance, keyboard, drag, contrast, and 200% zoom matrix separately
+  from automation and existing release blockers.
+- Preserve all pre-existing uncommitted changes. Orca workers use the current
+  workspace only after the detailed tasks are approved. Assign exclusive
+  ownership of `src/styles/global.css`, `src/app/AppShell.tsx`, and shared
+  UI primitives; parallel work must own disjoint files or wait for a handoff.
+
+### Dependency Graph and Phase Order
+
+```text
+T98 semantic light/dark tokens
+  -> T99 shared controls and statuses
+    -> T100 title bar, navigation, and toolbar
+      -> T101 pane geometry and scroll ownership
+        -> T102 applications browse
+          -> T103 configuration detail and editor
+        -> T104 Homebrew list and detail
+        -> T105 services list and detail
+        -> T106 Dashboard summary
+        -> T107 Settings seven-group workspace
+
+T103-T107 -> T108 cross-route automated checks
+  -> T109 foreground/manual visual and interaction acceptance
+```
+
+### Phase 23: Visual Foundation (`visual-system-v2`)
+
+- [x] T98 Establish native Light/Dark/System semantic palette, typography, and
+      density without replacing existing state semantics.
+- [x] T99 Unify shared button, status, form, modal, and pane-local asynchronous
+      states against those tokens.
+
+Checkpoint Y: `pnpm lint`, `pnpm typecheck`, and `pnpm build` pass; shared
+component states remain keyboard accessible and color contrast targets are
+checked against rendered colors. No product route is marked redesigned yet.
+
+### Phase 24: Fixed Desktop Shell (`desktop-shell-v2`)
+
+- [x] T100 Clarify one title bar, sidebar, and contextual toolbar hierarchy
+      without losing menu events, traffic-light clearance, or navigation.
+- [x] T101 Fix pane geometry, list/detail readability, and scroll ownership at
+      1120 x 720 and 200% zoom.
+
+Checkpoint Z: no document-level overflow; title-bar interactions and focused
+navigation remain reachable. Shared shell files and CSS edits are serialized.
+
+### Phase 25: Resource Workspaces (`resource-workspaces-v2`)
+
+- [x] T102 Recompose application browsing and pagination presentation.
+- [ ] T103 Recompose configuration detail, schema editor, and preview flow.
+- [x] T104 Recompose Homebrew inventory, search, detail, and action surfaces;
+      native 200% action reachability remains a T109 acceptance gate.
+- [x] T105 Recompose Services list, detail, and confirmed action surfaces;
+      native 200% confirmation reachability remains a T109 acceptance gate.
+
+Checkpoint AA: each resource route shows a coherent selected item and primary
+action without losing 50-item paging, draft state, read-only boundaries,
+preview/confirmation, or local-first provider errors.
+
+### Phase 26: Utility Workspaces (`utility-workspaces-v2`)
+
+- [x] T106 Recompose Dashboard into scan-friendly machine, attention, and
+      recent-operation groups; native 200% reachability remains a T109 gate.
+- [x] T107 Recompose all seven Settings groups with aligned controls and
+      isolated dangerous actions; native 200% reachability remains a T109 gate.
+
+Checkpoint AB: Dashboard states remain distinct; Settings preference changes,
+safe defaults, reset and confirmed cleanup stay visible, keyboard reachable,
+and persistent.
+
+### Phase 27: Cross-Route Acceptance (`visual-acceptance-v2`)
+
+- [ ] T108 Run existing focused checks and full frontend/Rust/macOS E2E and
+      unsigned-build gates; record actual results.
+- [ ] T109 Complete the manual five-workspace x three-appearance x
+      100%/200%-zoom matrix, keyboard/drag/contrast review, and evidence
+      updates. If permissions or external prerequisites block any item,
+      record it as blocked, not complete.
+
+Checkpoint AC: every new task has implementation and actual acceptance
+evidence; unverified manual cases and earlier Apple/GitHub release gates remain
+visible. Do not ship or declare every old task complete without their
+independent prerequisites and evidence.
+
+### Orca Dispatch and Ownership
+
+After human approval of this plan and the detailed checklist, create one
+supervised Orca Run. Dispatch Phase 23 before Phase 24. Within Phase 25,
+Applications/Config run in order; Homebrew and Services may run alongside
+disjoint feature-owned TSX work only after T101. Phase 26 may overlap with
+Phase 25 on disjoint feature-owned files. Each task names an exact file
+ownership set and prohibits shared CSS/AppShell edits without an explicit
+handoff. The coordinator validates the worker report and focused verification
+before the next dependent wave; it does not release unverified workers or
+overwrite another worker's uncommitted changes.
+
+### Risks and Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Concurrent editors clobber dirty shared files | High | Single owner for global CSS, shell, and shared controls; sequential handoffs; inspect the diff before dispatch |
+| A palette looks polished but fails real contrast | High | Test rendered foreground/background combinations in both appearances, including translucent selection and focus |
+| Fixed panes clip long data at 200% zoom | High | Prioritize list/detail width and pane-local scrolling; inspect five routes and all primary actions |
+| Visual changes hide a dangerous or read-only boundary | High | Keep existing typed capability conditions, destructive copy, preview, confirmation, and status text |
+| Desktop automation cannot assert human-facing appearance | High | Keep the foreground manual matrix independent of `pnpm check` and WDIO |
+| Old signing or CI gates are incorrectly closed | High | Carry T01-T97 checkboxes and release-readiness blockers unchanged until real credentials/hosted runs exist |
+
+### Decisions Required Before Dispatch
+
+- Approve this plan, then review the detailed per-task checklist before any
+  Orca implementation Dispatch starts.
+- External signing credentials, a protected GitHub release run, and device /
+  accessibility review remain independently necessary to close the earlier
+  release tasks. Their absence must not be treated as an agent failure.

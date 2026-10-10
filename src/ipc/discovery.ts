@@ -3,7 +3,7 @@ import type { ManagedAppCoverageClass } from "./catalog";
 import { decodeSafeDisplayPath } from "./config";
 
 const MAX_TEXT_BYTES = 2 * 1024;
-const MAX_APPLICATIONS = 32;
+const MAX_APPLICATIONS = 1_000;
 const MAX_EVIDENCE = 32;
 const MAX_ISSUES = 32;
 const MAX_CANDIDATES = 128;

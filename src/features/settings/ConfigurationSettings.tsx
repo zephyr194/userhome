@@ -4,6 +4,12 @@ import type {
   UserPreferences,
 } from "../../ipc/settings";
 import { BackupSettings } from "./BackupSettings";
+import {
+  SettingsChoice,
+  SettingsChoiceGroup,
+  SettingsFeedback,
+  SettingsForm,
+} from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 export function ConfigurationSettings({
@@ -16,10 +22,12 @@ export function ConfigurationSettings({
   const form = usePreferenceForm(preferences, onChange);
 
   return (
-    <div className="settings-form" aria-busy={form.saving}>
-      <fieldset className="settings-choice-group">
-        <legend>首选编辑器模式</legend>
-        <p>仅在 catalog 授权相应能力时显示编辑器。</p>
+    <SettingsForm busy={form.saving}>
+      <SettingsChoiceGroup
+        disabled={form.saving}
+        legend="首选编辑器模式"
+        description="仅在 catalog 授权相应能力时显示编辑器；此偏好不会授予新的配置写入权限。"
+      >
         {(
           [
             [
@@ -38,40 +46,34 @@ export function ConfigurationSettings({
             string,
           ][]
         ).map(([value, label, description]) => (
-          <label key={value} className="settings-choice">
+          <SettingsChoice
+            key={value}
+            label={label}
+            description={description}
+          >
             <input
+              className="mt-ui-xxs size-4 shrink-0 accent-primary"
               type="radio"
               name="preferred-editor-mode"
               value={value}
               checked={form.values.preferredEditorMode === value}
+              disabled={form.saving}
               onChange={() =>
                 void form.update("首选编辑器模式", {
                   preferredEditorMode: value,
                 })
               }
             />
-            <span>
-              <strong>{label}</strong>
-              <small>{description}</small>
-            </span>
-          </label>
+          </SettingsChoice>
         ))}
-      </fieldset>
+      </SettingsChoiceGroup>
 
       <BackupSettings
         onChange={onChange}
         preferences={preferences}
       />
 
-      {form.error ? (
-        <p className="settings-form__error" role="alert">
-          {form.error}
-        </p>
-      ) : form.status ? (
-        <p className="settings-form__status" role="status">
-          {form.status}
-        </p>
-      ) : null}
-    </div>
+      <SettingsFeedback error={form.error} status={form.status} />
+    </SettingsForm>
   );
 }

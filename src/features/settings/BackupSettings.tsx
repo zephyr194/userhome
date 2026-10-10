@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, Panel, StatusBadge } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import type {
   OperationDetails,
@@ -15,6 +14,14 @@ import {
   type UpdatePreferencesRequest,
   type UserPreferences,
 } from "../../ipc/settings";
+import {
+  SettingsActions,
+  SettingsChoice,
+  SettingsChoiceGroup,
+  SettingsConfirmationDialog,
+  SettingsFeedback,
+  SettingsSection,
+} from "./SettingsPrimitives";
 
 type StorageState =
   | { status: "loading" }
@@ -51,62 +58,48 @@ function BackupClearDialog({
   const finished = operation?.status === "SUCCEEDED";
 
   return (
-    <ConfirmDialog
+    <SettingsConfirmationDialog
+      action={
+        !finished && !error ? (
+          <Button
+            size="sm"
+            variant="danger"
+            disabled={busy}
+            onClick={onConfirm}
+          >
+            {busy ? "正在清理…" : "确认清理"}
+          </Button>
+        ) : undefined
+      }
       busy={busy}
-      className="space-y-4"
+      cancelLabel={finished || error ? "关闭" : "取消"}
+      error={error?.message}
+      errorStatus="清理失败"
+      eyebrow="待确认备份清理"
       onCancel={onCancel}
+      status={finished ? "已完成" : busy ? "正在清理" : "等待确认"}
+      statusTone={finished ? "success" : "warning"}
+      title={preview.summary}
       titleId="backup-clear-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-widest text-danger">
-            待确认备份清理
-          </p>
-          <h3 id="backup-clear-heading">{preview.summary}</h3>
-        </div>
-        <StatusBadge tone={error ? "danger" : finished ? "success" : "warning"}>
-          {error ? "清理失败" : finished ? "已完成" : busy ? "正在清理" : "等待确认"}
-        </StatusBadge>
-      </div>
-
-      <section
-        className="rounded-md border border-border bg-surface-muted p-3"
+      <Panel
+        className="bg-surface-muted p-ui-2xl"
         aria-labelledby="backup-clear-effects-heading"
       >
         <h4 className="text-xs font-semibold" id="backup-clear-effects-heading">
           本次操作影响
         </h4>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+        <ul className="mt-ui-md mb-0 list-disc space-y-ui-xs pl-5 text-muted-foreground">
           {preview.effects.map((effect) => (
             <li key={effect}>{effect}</li>
           ))}
         </ul>
-      </section>
+      </Panel>
 
-      <p className="text-xs leading-relaxed text-muted-foreground">
+      <p className="m-0 break-words text-xs leading-relaxed text-muted-foreground">
         确认仅适用于此预览中的 UserHome 备份集合；备份变化后必须重新预览。
       </p>
-
-      {error ? (
-        <p
-          className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-danger"
-          role="alert"
-        >
-          {error.message}
-        </p>
-      ) : null}
-
-      <div className="flex justify-end gap-2 border-t border-border pt-4">
-        {!finished && !error ? (
-          <Button variant="danger" disabled={busy} onClick={onConfirm}>
-            {busy ? "正在清理…" : "确认清理"}
-          </Button>
-        ) : null}
-        <Button data-dialog-cancel disabled={busy} onClick={onCancel}>
-          {finished || error ? "关闭" : "取消"}
-        </Button>
-      </div>
-    </ConfirmDialog>
+    </SettingsConfirmationDialog>
   );
 }
 
@@ -205,24 +198,29 @@ export function BackupSettings({
 
   return (
     <section
-      className="settings-backup"
+      className="grid min-w-0 gap-ui-xl border-t border-border pt-ui-2xl"
       aria-busy={busy || previewing || pendingRetention !== undefined}
       aria-labelledby="backup-heading"
     >
-      <div>
-        <h3 id="backup-heading">配置备份</h3>
-        <p>保留策略和清理只作用于 UserHome 创建的备份。</p>
-      </div>
+      <SettingsSection
+        title="配置备份"
+        description="保留策略和清理只作用于 UserHome 创建的备份，不会修改受管配置或偏好。"
+        headingId="backup-heading"
+      />
 
-      <fieldset
-        className="settings-choice-group"
+      <SettingsChoiceGroup
         disabled={busy || previewing || pendingRetention !== undefined}
+        legend="每个配置保留"
+        description="降低数量后会立即移除超出上限的最旧备份。"
       >
-        <legend>每个配置保留</legend>
-        <p>降低数量后会立即移除超出上限的最旧备份。</p>
         {RETENTION_OPTIONS.map(([value, label, description]) => (
-          <label key={value} className="settings-choice">
+          <SettingsChoice
+            key={value}
+            label={label}
+            description={description}
+          >
             <input
+              className="mt-ui-xxs size-4 shrink-0 accent-primary"
               type="radio"
               name="backup-retention"
               value={value}
@@ -230,33 +228,29 @@ export function BackupSettings({
               disabled={pendingRetention !== undefined}
               onChange={() => void changeRetention(value)}
             />
-            <span>
-              <strong>{label}</strong>
-              <small>{description}</small>
-            </span>
-          </label>
+          </SettingsChoice>
         ))}
-      </fieldset>
+      </SettingsChoiceGroup>
 
-      <section
-        className="rounded-lg border border-border bg-surface-muted p-3"
+      <Panel
+        className="bg-surface-muted p-ui-2xl"
         aria-labelledby="backup-storage-heading"
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl">
           <div className="min-w-0">
             <h4 className="text-sm font-semibold" id="backup-storage-heading">
               本机备份存储
             </h4>
             {storage.status === "loading" ? (
-              <p className="mt-1 text-xs text-muted-foreground" role="status">
+              <p className="mt-ui-xs mb-0 text-xs text-muted-foreground" role="status">
                 正在统计 UserHome 备份…
               </p>
             ) : storage.status === "error" ? (
-              <p className="mt-1 text-xs text-danger" role="alert">
+              <p className="mt-ui-xs mb-0 text-xs text-danger" role="alert">
                 {storage.error.message}
               </p>
             ) : (
-              <p className="mt-1 break-words text-xs text-muted-foreground">
+              <p className="mt-ui-xs mb-0 break-all text-xs leading-relaxed text-muted-foreground">
                 {summary?.displayLocation}
               </p>
             )}
@@ -267,8 +261,9 @@ export function BackupSettings({
             </StatusBadge>
           ) : null}
         </div>
-        <div className="mt-3 flex justify-end border-t border-border pt-3">
+        <SettingsActions className="mt-ui-xl">
           <Button
+            size="sm"
             variant="danger"
             disabled={
               !summary ||
@@ -281,18 +276,10 @@ export function BackupSettings({
           >
             {previewing ? "正在准备预览…" : "清理所有备份…"}
           </Button>
-        </div>
-      </section>
+        </SettingsActions>
+      </Panel>
 
-      {error ? (
-        <p className="settings-form__error" role="alert">
-          {error.message}
-        </p>
-      ) : status ? (
-        <p className="settings-form__status" role="status">
-          {status}
-        </p>
-      ) : null}
+      <SettingsFeedback error={error?.message} status={status} />
 
       {preview ? (
         <BackupClearDialog

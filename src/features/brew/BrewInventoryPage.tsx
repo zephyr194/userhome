@@ -6,6 +6,7 @@ import {
 } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge } from "../../components/ui";
+import { classNames } from "../../components/ui/classNames";
 import {
   listBrewPackages,
   type BrewPackageKind,
@@ -28,7 +29,7 @@ type InventoryState =
 type BrewView = "installed" | "search";
 
 const FIELD_CLASSES =
-  "min-h-8 min-w-0 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "min-h-control-sm min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20";
 
 function packageKey(selection: BrewSearchResult): string {
   return `${selection.kind}:${selection.identifier}`;
@@ -149,17 +150,27 @@ export function BrewInventoryPage({
   }
 
   return (
-    <section className="brew-workspace" aria-labelledby="brew-heading">
-      <header className="brew-workspace__header">
+    <section
+      className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-panel border border-border bg-surface"
+      aria-labelledby="brew-heading"
+    >
+      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-3xl border-b border-border px-ui-3xl py-ui-xl">
         <div className="min-w-0">
           <p className="section-kicker">Homebrew 软件管理</p>
-          <h2 id="brew-heading">Homebrew</h2>
+          <h2
+            className="mt-ui-xs text-xl font-semibold tracking-tight"
+            id="brew-heading"
+          >
+            Homebrew
+          </h2>
           {summary.status === "READY" && summary.data.available ? (
-            <p>
+            <p className="mt-ui-xs break-all text-xs text-muted-foreground">
               {summary.data.version} · {summary.data.prefix}
             </p>
           ) : (
-            <p>本机软件包、远程目录与受控操作</p>
+            <p className="mt-ui-xs text-xs text-muted-foreground">
+              本机软件包、远程目录与受控操作
+            </p>
           )}
         </div>
         {summary.status === "READY" && summary.data.available ? (
@@ -174,15 +185,19 @@ export function BrewInventoryPage({
       </header>
 
       {summary.status === "LOADING" ? (
-        <div className="brew-workspace__provider-state">
+        <div className="min-h-0 overflow-y-auto px-ui-3xl pb-ui-3xl overscroll-contain">
           <AsyncState kind="loading">正在后台解析 Homebrew…</AsyncState>
         </div>
       ) : summary.status === "ERROR" ? (
-        <div className="brew-workspace__provider-state">
-          <AsyncState kind="error">{summary.error.message}</AsyncState>
+        <div className="min-h-0 overflow-y-auto px-ui-3xl pb-ui-3xl overscroll-contain">
+          <AsyncState kind="error">
+            <span className="break-words [overflow-wrap:anywhere]">
+              {summary.error.message}
+            </span>
+          </AsyncState>
         </div>
       ) : !summary.data.available ? (
-        <div className="brew-workspace__provider-state">
+        <div className="min-h-0 overflow-y-auto px-ui-3xl pb-ui-3xl overscroll-contain">
           <AsyncState kind="empty">
             未检测到 `/opt/homebrew` 或 `/usr/local` 下的可信 Homebrew。
           </AsyncState>
@@ -190,11 +205,11 @@ export function BrewInventoryPage({
       ) : (
         <>
           <div
-            className="brew-workspace__view"
+            className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden [hidden]:hidden"
             hidden={view !== "installed"}
           >
             <form
-              className="brew-workspace__toolbar"
+              className="flex min-w-0 flex-wrap items-center gap-ui-md border-b border-border bg-surface-muted px-ui-xl py-ui-md"
               onSubmit={(event) => {
                 event.preventDefault();
                 setPageNumber(1);
@@ -202,7 +217,7 @@ export function BrewInventoryPage({
               }}
             >
               <div
-                className="brew-workspace__mode"
+                className="flex shrink-0 items-center gap-ui-xs"
                 role="group"
                 aria-label="Homebrew 数据源"
               >
@@ -237,7 +252,7 @@ export function BrewInventoryPage({
                 筛选已安装软件
               </label>
               <input
-                className={FIELD_CLASSES}
+                className={`${FIELD_CLASSES} min-w-40 flex-1`}
                 id="brew-installed-filter"
                 type="search"
                 maxLength={128}
@@ -254,14 +269,19 @@ export function BrewInventoryPage({
               </Button>
             </form>
 
-            <div className="brew-workspace__body">
+            <div className="grid min-h-0 grid-rows-[minmax(0,0.85fr)_minmax(0,1.15fr)] overflow-hidden sm:grid-cols-[minmax(17.5rem,0.85fr)_minmax(0,1.15fr)] sm:grid-rows-1">
               <section
-                className="brew-workspace__list"
+                className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
                 aria-labelledby="inventory-list-heading"
               >
-                <header className="brew-workspace__pane-heading">
-                  <h3 id="inventory-list-heading">已安装软件</h3>
-                  <span>
+                <header className="flex min-h-[var(--app-row-height-standard)] min-w-0 items-center justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md">
+                  <h3
+                    className="text-xs font-semibold"
+                    id="inventory-list-heading"
+                  >
+                    已安装软件
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
                     {visibleState.status === "ready"
                       ? `${visibleState.page.totalItems} 项`
                       : "本机清单"}
@@ -275,7 +295,9 @@ export function BrewInventoryPage({
                 ) : visibleState.status === "error" ? (
                   <div className="p-3">
                     <AsyncState kind="error">
-                      {visibleState.error.message}
+                      <span className="break-words [overflow-wrap:anywhere]">
+                        {visibleState.error.message}
+                      </span>
                     </AsyncState>
                   </div>
                 ) : visibleState.page.items.length === 0 ? (
@@ -286,7 +308,11 @@ export function BrewInventoryPage({
                   </div>
                 ) : (
                   <>
-                    <ul role="listbox" aria-label="已安装软件列表">
+                    <ul
+                      className="min-h-0 overflow-y-auto overscroll-contain"
+                      role="listbox"
+                      aria-label={`已安装软件列表，共 ${visibleState.page.totalItems} 项，第 ${visibleState.page.page} / ${Math.max(visibleState.page.totalPages, 1)} 页`}
+                    >
                       {items.map((item, index) => {
                         const itemSelection = {
                           kind: item.kind,
@@ -306,32 +332,42 @@ export function BrewInventoryPage({
                                   buttonRefs.current.delete(key);
                                 }
                               }}
-                              className={
-                                isSelected
-                                  ? "brew-package-row brew-package-row--selected"
-                                  : "brew-package-row"
-                              }
+                              className={classNames(
+                                "brew-inventory-row",
+                                isSelected && "brew-inventory-row--selected",
+                              )}
                               type="button"
                               role="option"
+                              aria-label={`${item.displayName}，${item.kind === "FORMULA" ? "Formula" : "Cask"} ${item.identifier}，${item.installedVersions.join(", ") || "版本未知"}，${item.outdated ? "可更新" : "最新"}`}
                               aria-selected={isSelected}
                               tabIndex={isTabStop ? 0 : -1}
+                              title={item.displayName}
                               onClick={() => selectPackage(itemSelection)}
                               onKeyDown={(event) =>
                                 moveSelection(event, index)
                               }
                             >
                               <span className="min-w-0">
-                                <strong>{item.displayName}</strong>
-                                <span>
+                                <strong className="block truncate text-sm font-semibold">
+                                  {item.displayName}
+                                </strong>
+                                <span className="mt-ui-xs block truncate text-xs text-muted-foreground">
                                   {item.description ?? item.identifier}
                                 </span>
                               </span>
-                              <span className="brew-package-row__status">
-                                <span>
+                              <span className="flex min-w-0 flex-col items-end gap-ui-xs">
+                                <span
+                                  className="block max-w-full truncate text-xs text-muted-foreground"
+                                  title={
+                                    item.installedVersions.join(", ") ||
+                                    "版本未知"
+                                  }
+                                >
                                   {item.installedVersions.join(", ") ||
                                     "版本未知"}
                                 </span>
                                 <StatusBadge
+                                  className="min-h-5 shrink-0 px-ui-sm py-0 text-[10px]"
                                   tone={item.outdated ? "warning" : "success"}
                                 >
                                   {item.outdated ? "可更新" : "最新"}
@@ -343,7 +379,7 @@ export function BrewInventoryPage({
                       })}
                     </ul>
                     <nav
-                      className="brew-workspace__pagination"
+                      className="flex min-h-control-md items-center justify-between gap-ui-md border-t border-border px-ui-lg py-ui-sm text-xs text-muted-foreground"
                       aria-label="已安装软件分页"
                     >
                       <Button
@@ -355,7 +391,7 @@ export function BrewInventoryPage({
                       >
                         上一页
                       </Button>
-                      <span>
+                      <span role="status" aria-live="polite" aria-atomic="true">
                         {visibleState.page.page} /{" "}
                         {Math.max(visibleState.page.totalPages, 1)}
                       </span>
@@ -377,22 +413,29 @@ export function BrewInventoryPage({
               </section>
 
               <section
-                className="brew-workspace__detail"
+                className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-ui-xl overscroll-contain"
                 aria-label="Homebrew 软件包详情"
               >
-                {selected && selectedIsVisible ? (
-                  <BrewPackageInspector
-                    idPrefix="brew-installed-package"
-                    key={packageKey(selected)}
-                    onChanged={handleChanged}
-                    onSelectionRemoved={(removed) => {
-                      if (packageKey(removed) === selectedKey) {
-                        selectPackage(undefined);
-                      }
-                    }}
-                    refreshId={refreshId}
-                    selected={selected}
-                  />
+                {selected ? (
+                  <>
+                    {visibleState.status === "ready" && !selectedIsVisible ? (
+                      <p className="mb-ui-md break-words rounded-control border border-border bg-surface-muted px-ui-xl py-ui-lg text-xs text-muted-foreground">
+                        所选软件包不在当前筛选页；详情与操作结果保持可见。
+                      </p>
+                    ) : null}
+                    <BrewPackageInspector
+                      idPrefix="brew-installed-package"
+                      key={packageKey(selected)}
+                      onChanged={handleChanged}
+                      onSelectionRemoved={(removed) => {
+                        if (packageKey(removed) === selectedKey) {
+                          selectPackage(undefined);
+                        }
+                      }}
+                      refreshId={refreshId}
+                      selected={selected}
+                    />
+                  </>
                 ) : (
                   <AsyncState kind="empty">
                     选择一个已安装软件包以查看详情与可用操作。
@@ -402,7 +445,10 @@ export function BrewInventoryPage({
             </div>
           </div>
 
-          <div className="brew-workspace__search-view" hidden={view !== "search"}>
+          <div
+            className="h-full min-h-0 overflow-hidden [hidden]:hidden"
+            hidden={view !== "search"}
+          >
             <BrewSearch
               onChanged={handleChanged}
               onShowInstalled={() => setView("installed")}

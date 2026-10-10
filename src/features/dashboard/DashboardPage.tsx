@@ -114,12 +114,16 @@ function StatusRow({
     <div className="dashboard-status-row" aria-busy={busy || undefined}>
       <StatusIcon busy={busy} tone={tone} />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <h4 className="text-xs font-semibold">{label}</h4>
-          <StatusBadge tone={tone}>{status}</StatusBadge>
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-md">
+          <h4 className="min-w-0 break-words text-xs font-semibold">
+            {label}
+          </h4>
+          <StatusBadge className="shrink-0" tone={tone}>
+            {status}
+          </StatusBadge>
         </div>
         <p
-          className={`mt-1 text-xs leading-relaxed ${
+          className={`mt-1 min-w-0 break-words text-xs leading-relaxed ${
             tone === "danger" ? "text-danger" : "text-muted-foreground"
           }`}
           role={role}
@@ -323,18 +327,28 @@ function HomebrewSummary({ state }: { state: DiscoveryState }) {
     );
   }
 
+  const partial = brew.completeness === "PARTIAL";
   return (
     <div className="dashboard-status-row">
-      <StatusIcon tone="success" />
+      <StatusIcon tone={partial ? "warning" : "success"} />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <h4 className="text-xs font-semibold">Homebrew</h4>
-          <StatusBadge tone="success">可用</StatusBadge>
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-md">
+          <h4 className="min-w-0 break-words text-xs font-semibold">
+            Homebrew
+          </h4>
+          <StatusBadge
+            className="shrink-0"
+            tone={partial ? "warning" : "success"}
+          >
+            {partial ? "部分可用" : "可用"}
+          </StatusBadge>
         </div>
         <dl className="dashboard-inline-metrics">
           <div>
             <dt>版本</dt>
-            <dd>{brew.data.version ?? "不可用"}</dd>
+            <dd className="break-words">
+              {brew.data.version ?? "不可用"}
+            </dd>
           </div>
           <div>
             <dt>Formula</dt>
@@ -354,6 +368,151 @@ const DEFAULT_CONNECTION: ConnectionState = { status: "loading" };
 const DEFAULT_REFRESH: RefreshState = { status: "idle" };
 const DEFAULT_OPERATION: RecentOperationState = { status: "empty" };
 
+function AttentionSummary({
+  connection,
+  recentOperation,
+  refresh,
+  state,
+}: {
+  connection: ConnectionState;
+  recentOperation: RecentOperationState;
+  refresh: RefreshState;
+  state: DiscoveryState;
+}) {
+  const items: {
+    key: string;
+    label: string;
+    detail: string;
+    tone: "warning" | "danger";
+  }[] = [];
+
+  if (connection.status === "error") {
+    items.push({
+      key: "connection",
+      label: "本地服务",
+      detail: connection.error.message,
+      tone: "danger",
+    });
+  }
+  if (refresh.status === "error") {
+    items.push({
+      key: "refresh",
+      label: "数据刷新",
+      detail: refresh.message,
+      tone: "warning",
+    });
+  }
+  if (state.status === "error") {
+    items.push({
+      key: "discovery",
+      label: "本机发现",
+      detail: state.error.message,
+      tone: "danger",
+    });
+  }
+  if (state.status === "ready") {
+    const { system, brew, candidates } = state.snapshot;
+    for (const [label, module] of [
+      ["本机发现", system],
+      ["Homebrew", brew],
+      ["配置发现", candidates],
+    ] as const) {
+      if (module.status === "ERROR") {
+        items.push({
+          key: `${label}-error`,
+          label,
+          detail: module.error.message,
+          tone: "danger",
+        });
+      } else if (module.status === "READY") {
+        const issues = [
+          ...(module.issues ?? []),
+          ...("issues" in module.data ? module.data.issues : []),
+        ];
+        if (
+          (module.completeness === "PARTIAL" ||
+            ("completeness" in module.data &&
+              module.data.completeness === "PARTIAL")) &&
+          issues.length === 0
+        ) {
+          items.push({
+            key: `${label}-partial`,
+            label,
+            detail: "本次扫描只返回部分结果。",
+            tone: "warning",
+          });
+        }
+        for (const [index, issue] of issues.entries()) {
+          items.push({
+            key: `${label}-${index}`,
+            label: `${label} · ${issue.module}`,
+            detail: issue.message,
+            tone: "warning",
+          });
+        }
+      }
+    }
+  }
+  if (recentOperation.status === "error") {
+    items.push({
+      key: "operation-error",
+      label: "最近操作",
+      detail: recentOperation.error.message,
+      tone: "danger",
+    });
+  } else if (
+    recentOperation.status === "ready" &&
+    recentOperation.operation.status === "FAILED"
+  ) {
+    items.push({
+      key: "operation-failed",
+      label: "最近操作",
+      detail: recentOperation.operation.summary,
+      tone: "danger",
+    });
+  }
+
+  const updating =
+    connection.status === "loading" ||
+    state.status === "loading" ||
+    (state.status === "ready" &&
+      (state.snapshot.system.status === "LOADING" ||
+        state.snapshot.brew.status === "LOADING" ||
+        state.snapshot.candidates.status === "LOADING")) ||
+    recentOperation.status === "loading" ||
+    refresh.status === "refreshing";
+
+  return (
+    <div className="dashboard-attention">
+      {items.length === 0 ? (
+        <p className="dashboard-attention__empty" role="status">
+          {updating
+            ? "部分状态仍在读取中，关注项会随结果更新。"
+            : "当前没有需要关注的状态。"}
+        </p>
+      ) : (
+        <>
+          {updating ? (
+            <p className="dashboard-attention__empty">
+              部分状态仍在读取中，关注项会随结果更新。
+            </p>
+          ) : null}
+          {items.map((item) => (
+            <StatusRow
+              key={item.key}
+              detail={item.detail}
+              label={item.label}
+              role={item.tone === "danger" ? "alert" : "status"}
+              status={item.tone === "danger" ? "异常" : "需留意"}
+              tone={item.tone}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function DashboardPage({
   connection = DEFAULT_CONNECTION,
   recentOperation = DEFAULT_OPERATION,
@@ -367,16 +526,18 @@ export function DashboardPage({
 
   return (
     <section
-      className="dashboard-workspace"
+      className="dashboard-workspace min-w-0 break-words"
       aria-labelledby="dashboard-heading"
     >
       <header className="dashboard-workspace__header">
-        <div>
+        <div className="min-w-0">
           <h2 id="dashboard-heading">概览</h2>
-          <p>本机能力、软件与最近活动</p>
+          <p>本机状态、需要关注的事项和最近活动</p>
         </div>
         {systemIsPartial ? (
-          <StatusBadge tone="warning">部分结果</StatusBadge>
+          <StatusBadge className="shrink-0" tone="warning">
+            部分结果
+          </StatusBadge>
         ) : null}
       </header>
 
@@ -384,30 +545,34 @@ export function DashboardPage({
         className="dashboard-group"
         aria-labelledby="dashboard-discovery-heading"
       >
-        <h3 id="dashboard-discovery-heading">本机与应用</h3>
-        <div className="dashboard-group__content">
-          <DiscoverySummary state={state} />
-        </div>
-      </section>
-
-      <section
-        className="dashboard-group"
-        aria-labelledby="dashboard-packages-heading"
-      >
-        <h3 id="dashboard-packages-heading">软件包</h3>
-        <div className="dashboard-group__content">
-          <HomebrewSummary state={state} />
-        </div>
-      </section>
-
-      <section
-        className="dashboard-group"
-        aria-labelledby="dashboard-runtime-heading"
-      >
-        <h3 id="dashboard-runtime-heading">运行状态</h3>
+        <h3 id="dashboard-discovery-heading">本机概览</h3>
         <div className="dashboard-group__content dashboard-group__content--rows">
           <ConnectionSummary state={connection} />
+          <DiscoverySummary state={state} />
+          <HomebrewSummary state={state} />
           <RefreshSummary state={refresh} />
+        </div>
+      </section>
+
+      <section
+        className="dashboard-group"
+        aria-labelledby="dashboard-attention-heading"
+      >
+        <h3 id="dashboard-attention-heading">需要关注</h3>
+        <AttentionSummary
+          connection={connection}
+          recentOperation={recentOperation}
+          refresh={refresh}
+          state={state}
+        />
+      </section>
+
+      <section
+        className="dashboard-group"
+        aria-labelledby="dashboard-activity-heading"
+      >
+        <h3 id="dashboard-activity-heading">最近活动</h3>
+        <div className="dashboard-group__content dashboard-group__content--rows">
           <OperationStatus state={recentOperation} />
         </div>
       </section>

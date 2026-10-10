@@ -41,29 +41,43 @@ export function DesktopWorkspace({
         className="desktop-workspace__main"
         tabIndex={-1}
       >
-        <header className="desktop-workspace__toolbar">{toolbar}</header>
-        {banner ? (
-          <div className="desktop-workspace__banner">{banner}</div>
-        ) : null}
-        <div className={paneClassName}>
+        <header
+          className="desktop-workspace__toolbar"
+          aria-label="当前页面工具栏"
+        >
+          {toolbar}
+        </header>
+        <div
+          className="desktop-workspace__banner min-w-0 break-words"
+          hidden={!banner}
+        >
+          {banner}
+        </div>
+        <div className={paneClassName} key="panes">
           {list ? (
             <section
+              key="list"
               className="desktop-workspace__list"
               aria-label={listLabel}
+              tabIndex={0}
             >
               {list}
             </section>
           ) : null}
           <section
+            key="detail"
             className="desktop-workspace__detail"
             aria-label={detailLabel}
+            tabIndex={0}
           >
             {detail}
           </section>
           {inspector ? (
             <aside
+              key="inspector"
               className="desktop-workspace__inspector"
               aria-label={inspectorLabel}
+              tabIndex={0}
             >
               {inspector}
             </aside>
@@ -73,6 +87,7 @@ export function DesktopWorkspace({
           <section
             className="desktop-workspace__operation-progress"
             aria-label="操作进度"
+            tabIndex={0}
           >
             {operationProgress}
           </section>

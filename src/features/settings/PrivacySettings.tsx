@@ -4,6 +4,14 @@ import type {
   UpdatePreferencesRequest,
   UserPreferences,
 } from "../../ipc/settings";
+import {
+  SettingsChoice,
+  SettingsChoiceGroup,
+  SettingsFeedback,
+  SettingsFieldList,
+  SettingsForm,
+  SettingsValueField,
+} from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 const ROOTS: readonly {
@@ -73,15 +81,20 @@ export function PrivacySettings({
   }
 
   return (
-    <div className="settings-form" aria-busy={form.saving || refreshing}>
-      <fieldset className="settings-choice-group">
-        <legend>元数据发现根</legend>
-        <p>
-          只读取一层目录项名称、类型和修改时间；不会读取候选配置内容，也不接受自定义路径。
-        </p>
+    <SettingsForm busy={form.saving || refreshing}>
+      <SettingsChoiceGroup
+        disabled={form.saving || refreshing}
+        legend="元数据发现根"
+        description="只读取一层目录项名称、类型和修改时间；不会读取候选配置内容，也不接受自定义路径。"
+      >
         {ROOTS.map((root) => (
-          <label key={root.id} className="settings-choice">
+          <SettingsChoice
+            key={root.id}
+            label={root.label}
+            description={root.description}
+          >
             <input
+              className="mt-ui-xxs size-4 shrink-0 accent-primary"
               type="checkbox"
               checked={form.values.optionalDiscoveryRoots.includes(root.id)}
               disabled={form.saving || refreshing}
@@ -89,45 +102,27 @@ export function PrivacySettings({
                 void toggleRoot(root.id, event.currentTarget.checked)
               }
             />
-            <span>
-              <strong>{root.label}</strong>
-              <small>{root.description}</small>
-            </span>
-          </label>
+          </SettingsChoice>
         ))}
-      </fieldset>
+      </SettingsChoiceGroup>
 
-      <div className="settings-control-list">
-        <div className="settings-control-row" role="status">
-          <span>
-            <strong>当前活动根</strong>
-            <small>保存后立即运行一次现有的有界刷新。</small>
-          </span>
-          <span className="settings-control-row__value">
-            {form.values.optionalDiscoveryRoots.length} / {ROOTS.length}
-          </span>
-        </div>
-        <div className="settings-control-row">
-          <span>
-            <strong>Catalog 授权边界</strong>
-            <small>
-              关闭发现根只隐藏该根的未知候选证据；catalog
-              已授权文档的检测、读取和写入能力保持不变。
-            </small>
-          </span>
-          <span className="settings-control-row__value">不变</span>
-        </div>
-      </div>
+      <SettingsFieldList>
+        <SettingsValueField
+          label="当前活动根"
+          description="保存后立即运行一次现有的有界刷新。"
+          role="status"
+        >
+          {form.values.optionalDiscoveryRoots.length} / {ROOTS.length}
+        </SettingsValueField>
+        <SettingsValueField
+          label="Catalog 授权边界"
+          description="关闭发现根只隐藏该根的未知候选证据；catalog 已授权文档的检测、读取和写入能力保持不变。"
+        >
+          不变
+        </SettingsValueField>
+      </SettingsFieldList>
 
-      {form.error ? (
-        <p className="settings-form__error" role="alert">
-          {form.error}
-        </p>
-      ) : form.status ? (
-        <p className="settings-form__status" role="status">
-          {form.status}
-        </p>
-      ) : null}
-    </div>
+      <SettingsFeedback error={form.error} status={form.status} />
+    </SettingsForm>
   );
 }

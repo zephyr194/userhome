@@ -3,10 +3,12 @@ import {
   useEffect,
   useState,
   type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
 } from "react";
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
-import { Button } from "../components/ui";
+import { Button, StatusBadge } from "../components/ui";
 import type { Appearance } from "../ipc/settings";
 import type { UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
@@ -25,6 +27,39 @@ interface AppShellProps {
   onPreferencesReset?: () => Promise<void>;
   onRefresh: () => void;
   state: ShellState;
+}
+
+function ShellNotice({
+  busy = false,
+  children,
+  label,
+  role = "status",
+  tone,
+}: {
+  busy?: boolean;
+  children: ReactNode;
+  label: string;
+  role?: "alert" | "status";
+  tone: "danger" | "warning";
+}) {
+  return (
+    <div
+      className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
+      role={role}
+      aria-busy={busy || undefined}
+    >
+      <StatusBadge className="shrink-0" tone={tone}>
+        {label}
+      </StatusBadge>
+      <p
+        className={`m-0 min-w-0 flex-1 break-words leading-relaxed ${
+          tone === "danger" ? "text-danger" : "text-warning"
+        }`}
+      >
+        {children}
+      </p>
+    </div>
+  );
 }
 
 function clearSearchOnEscape(event: KeyboardEvent<HTMLDivElement>) {
@@ -54,6 +89,14 @@ function clearSearchOnEscape(event: KeyboardEvent<HTMLDivElement>) {
     input.value = "";
   }
   input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function suppressTitlebarDoubleClick(event: MouseEvent<HTMLElement>) {
+  if (event.button !== 0) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
 }
 
 export function AppShell({
@@ -116,18 +159,17 @@ export function AppShell({
 
   const preferencesNotice =
     state.preferences.status === "loading" ? (
-      <p
-        className="m-0 px-4 py-2 text-xs text-muted-foreground"
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
+      <ShellNotice
+        busy
+        label="加载中"
+        tone="warning"
       >
         正在加载本机偏好设置…
-      </p>
+      </ShellNotice>
     ) : state.preferences.status === "safe-default" ? (
-      <p className="m-0 px-4 py-2 text-xs text-warning" role="alert">
-        安全默认值：{state.preferences.diagnostic.message}
-      </p>
+      <ShellNotice label="安全默认值" role="alert" tone="warning">
+        {state.preferences.diagnostic.message}
+      </ShellNotice>
     ) : undefined;
 
   return (
@@ -136,24 +178,14 @@ export function AppShell({
         跳到主要内容
       </a>
       <div className="app-shell" onKeyDownCapture={clearSearchOnEscape}>
-        <header className="titlebar" data-tauri-drag-region>
-          <div className="titlebar__brand" data-tauri-drag-region>
-            <span
-              className="brand-mark"
-              aria-hidden="true"
-              data-tauri-drag-region
-            >
-              UH
-            </span>
-            <div data-tauri-drag-region>
-              <p className="brand" data-tauri-drag-region>
-                UserHome
-              </p>
-            </div>
-          </div>
-          <h1 className="titlebar__context" data-tauri-drag-region>
-            {activeRoute.label}
-          </h1>
+        <header
+          className="titlebar"
+          data-tauri-drag-region
+          onDoubleClick={suppressTitlebarDoubleClick}
+        >
+          <p className="titlebar__title" data-tauri-drag-region>
+            UserHome
+          </p>
         </header>
 
         <DesktopWorkspace
@@ -168,43 +200,53 @@ export function AppShell({
             commandError || preferencesNotice ? (
               <div className="divide-y divide-border">
                 {commandError ? (
-                  <p className="m-0 px-4 py-2 text-xs text-danger" role="alert">
+                  <ShellNotice label="命令不可用" role="alert" tone="danger">
                     {commandError}
-                  </p>
+                  </ShellNotice>
                 ) : null}
                 {preferencesNotice}
               </div>
             ) : undefined
           }
           toolbar={
-            <div className="refresh-controls">
-              <Button
-                className="toolbar-refresh-button"
-                size="sm"
-                disabled={
-                  state.preferences.status === "loading" ||
-                  state.refresh.status === "refreshing"
-                }
-                onClick={onRefresh}
-                aria-label={
-                  state.refresh.status === "refreshing"
-                    ? "正在刷新本机状态"
-                    : "刷新本机状态"
-                }
-              >
-                <svg
-                  className={
+            <div className="flex w-full min-w-0 items-center justify-between gap-ui-xl">
+              <div className="min-w-0 flex-1">
+                <h1 className="desktop-workspace__page-title">
+                  {activeRoute.label}
+                </h1>
+                <p className="m-0 mt-ui-xxs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
+                  {activeRoute.description}
+                </p>
+              </div>
+              <div className="refresh-controls">
+                <Button
+                  className="toolbar-refresh-button"
+                  size="sm"
+                  disabled={
+                    state.preferences.status === "loading" ||
                     state.refresh.status === "refreshing"
-                      ? "animate-spin"
-                      : undefined
                   }
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
+                  onClick={onRefresh}
+                  aria-label={
+                    state.refresh.status === "refreshing"
+                      ? "正在刷新本机状态"
+                      : "刷新本机状态"
+                  }
                 >
-                  <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-                </svg>
-                {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
-              </Button>
+                  <svg
+                    className={
+                      state.refresh.status === "refreshing"
+                        ? "animate-spin"
+                        : undefined
+                    }
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+                  </svg>
+                  {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
+                </Button>
+              </div>
             </div>
           }
           detailLabel={`${activeRoute.label}内容`}

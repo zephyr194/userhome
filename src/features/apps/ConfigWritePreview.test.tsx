@@ -1,8 +1,18 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ConfigWritePreview } from "./ConfigWritePreview";
+import { createPreviewRequestGate } from "./configPresentation";
 
 describe("ConfigWritePreview", () => {
+  it("rejects a preview response after the selected document changes", () => {
+    const requests = createPreviewRequestGate();
+    const staleRequest = requests.start();
+
+    requests.invalidate();
+
+    expect(requests.isCurrent(staleRequest)).toBe(false);
+  });
+
   it("renders a redacted diff and explicit confirmation action", () => {
     const markup = renderToStaticMarkup(
       <ConfigWritePreview

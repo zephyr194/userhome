@@ -1,0 +1,249 @@
+{
+  "formatVersion": 1,
+  "presets": [
+    {
+      "presetId": "git-identity-fields",
+      "presetVersion": 1,
+      "label": "Identity",
+      "description": "Groups Git user name and email fields.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "git-global-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "user-name",
+        "user-email"
+      ],
+      "values": [],
+      "sourceIds": [
+        "git-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "git-safe-workflow",
+      "presetVersion": 1,
+      "label": "Safe workflow defaults",
+      "description": "Uses main as the initial branch, keeps merge-based pulls, and prunes deleted remote references.",
+      "kind": "RECOMMENDED_VALUES",
+      "schemaId": "git-global-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "MERGE_DECLARED_FIELDS",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "default-branch",
+        "pull-rebase",
+        "fetch-prune"
+      ],
+      "values": [
+        {
+          "fieldId": "default-branch",
+          "value": {
+            "kind": "STRING",
+            "value": "main"
+          }
+        },
+        {
+          "fieldId": "pull-rebase",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": false
+          }
+        },
+        {
+          "fieldId": "fetch-prune",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": true
+          }
+        }
+      ],
+      "sourceIds": [
+        "git-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "git-workflow-fields",
+      "presetVersion": 1,
+      "label": "Workflow",
+      "description": "Groups default branch, aliases, pull, and fetch settings.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "git-global-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "default-branch",
+        "alias-checkout",
+        "alias-branch",
+        "pull-rebase",
+        "fetch-prune"
+      ],
+      "values": [],
+      "sourceIds": [
+        "git-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "npm-new-user-config",
+      "presetVersion": 1,
+      "label": "New npm user config",
+      "description": "Creates a missing .npmrc using the public npm registry with strict TLS validation.",
+      "kind": "COMPLETE_TEMPLATE",
+      "schemaId": "npm-user-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "NEW_FILE_ONLY",
+      "mergeStrategy": "REPLACE_SCHEMA_PROJECTION",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "registry",
+        "strict-ssl"
+      ],
+      "values": [
+        {
+          "fieldId": "registry",
+          "value": {
+            "kind": "STRING",
+            "value": "https://registry.npmjs.org/"
+          }
+        },
+        {
+          "fieldId": "strict-ssl",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": true
+          }
+        }
+      ],
+      "sourceIds": [
+        "npm-cli-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "npm-registry-security",
+      "presetVersion": 1,
+      "label": "Registry security",
+      "description": "Groups registry, TLS validation, and replacement-only token fields.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "npm-user-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "registry",
+        "strict-ssl",
+        "auth-token"
+      ],
+      "values": [],
+      "sourceIds": [
+        "npm-cli-config",
+        "npmrc"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "npm-public-registry",
+      "presetVersion": 1,
+      "label": "Public npm registry",
+      "description": "Sets the public npm registry and enables strict TLS validation.",
+      "kind": "RECOMMENDED_VALUES",
+      "schemaId": "npm-user-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "MERGE_DECLARED_FIELDS",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "registry",
+        "strict-ssl"
+      ],
+      "values": [
+        {
+          "fieldId": "registry",
+          "value": {
+            "kind": "STRING",
+            "value": "https://registry.npmjs.org/"
+          }
+        },
+        {
+          "fieldId": "strict-ssl",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": true
+          }
+        }
+      ],
+      "sourceIds": [
+        "npm-cli-config"
+      ],
+      "aliases": []
+    }
+  ]
+}

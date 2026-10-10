@@ -465,10 +465,9 @@ fn legacy_variant_spec(definition: &ConfigDocumentDefinition) -> Option<VariantS
             (CatalogPathRoot::XdgConfigHome, relative)
         } else if let Some(relative) = template.strip_prefix("~/") {
             (CatalogPathRoot::Home, relative)
-        } else if let Some(relative) = template.strip_prefix("${HOMEBREW_PREFIX}/") {
-            (CatalogPathRoot::HomebrewPrefix, relative)
         } else {
-            return None;
+            let relative = template.strip_prefix("${HOMEBREW_PREFIX}/")?;
+            (CatalogPathRoot::HomebrewPrefix, relative)
         };
     Some(VariantSpec {
         variant_id: Cow::Borrowed("legacy"),

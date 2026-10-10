@@ -1,0 +1,476 @@
+{
+  "formatVersion": 1,
+  "presets": [
+    {
+      "presetId": "caddy-site-and-proxy",
+      "presetVersion": 1,
+      "label": "Site and reverse proxy",
+      "description": "Groups the existing Caddy site address and single reverse proxy upstream.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "caddyfile",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "site-address",
+        "reverse-proxy"
+      ],
+      "values": [],
+      "sourceIds": [
+        "caddy-caddyfile-concepts",
+        "caddy-reverse-proxy"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "copilot-model-and-theme",
+      "presetVersion": 1,
+      "label": "Model and theme",
+      "description": "Groups approved Copilot CLI model and theme settings.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "copilot-settings",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "model",
+        "theme"
+      ],
+      "values": [],
+      "sourceIds": [
+        "copilot-cli-config-dir"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "copilot-new-settings",
+      "presetVersion": 1,
+      "label": "New Copilot settings",
+      "description": "Creates a missing settings.json with automatic model selection and the GitHub theme.",
+      "kind": "COMPLETE_TEMPLATE",
+      "schemaId": "copilot-settings",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "NEW_FILE_ONLY",
+      "mergeStrategy": "REPLACE_SCHEMA_PROJECTION",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "model",
+        "theme"
+      ],
+      "values": [
+        {
+          "fieldId": "model",
+          "value": {
+            "kind": "STRING",
+            "value": "auto"
+          }
+        },
+        {
+          "fieldId": "theme",
+          "value": {
+            "kind": "ENUM",
+            "value": "github"
+          }
+        }
+      ],
+      "sourceIds": [
+        "copilot-cli-config-dir"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "git-identity-fields",
+      "presetVersion": 1,
+      "label": "Identity",
+      "description": "Groups Git user name and email fields.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "git-global-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "user-name",
+        "user-email"
+      ],
+      "values": [],
+      "sourceIds": [
+        "git-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "git-safe-workflow",
+      "presetVersion": 1,
+      "label": "Safe workflow defaults",
+      "description": "Uses main as the initial branch, keeps merge-based pulls, and prunes deleted remote references.",
+      "kind": "RECOMMENDED_VALUES",
+      "schemaId": "git-global-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "MERGE_DECLARED_FIELDS",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "default-branch",
+        "pull-rebase",
+        "fetch-prune"
+      ],
+      "values": [
+        {
+          "fieldId": "default-branch",
+          "value": {
+            "kind": "STRING",
+            "value": "main"
+          }
+        },
+        {
+          "fieldId": "pull-rebase",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": false
+          }
+        },
+        {
+          "fieldId": "fetch-prune",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": true
+          }
+        }
+      ],
+      "sourceIds": [
+        "git-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "git-workflow-fields",
+      "presetVersion": 1,
+      "label": "Workflow",
+      "description": "Groups default branch, aliases, pull, and fetch settings.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "git-global-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "default-branch",
+        "alias-checkout",
+        "alias-branch",
+        "pull-rebase",
+        "fetch-prune"
+      ],
+      "values": [],
+      "sourceIds": [
+        "git-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "npm-new-user-config",
+      "presetVersion": 1,
+      "label": "New npm user config",
+      "description": "Creates a missing .npmrc using the public npm registry with strict TLS validation.",
+      "kind": "COMPLETE_TEMPLATE",
+      "schemaId": "npm-user-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "NEW_FILE_ONLY",
+      "mergeStrategy": "REPLACE_SCHEMA_PROJECTION",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "registry",
+        "strict-ssl"
+      ],
+      "values": [
+        {
+          "fieldId": "registry",
+          "value": {
+            "kind": "STRING",
+            "value": "https://registry.npmjs.org/"
+          }
+        },
+        {
+          "fieldId": "strict-ssl",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": true
+          }
+        }
+      ],
+      "sourceIds": [
+        "npm-cli-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "npm-registry-security",
+      "presetVersion": 1,
+      "label": "Registry security",
+      "description": "Groups registry, TLS validation, and replacement-only token fields.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "npm-user-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "registry",
+        "strict-ssl",
+        "auth-token"
+      ],
+      "values": [],
+      "sourceIds": [
+        "npm-cli-config",
+        "npmrc"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "npm-public-registry",
+      "presetVersion": 1,
+      "label": "Public npm registry",
+      "description": "Sets the public npm registry and enables strict TLS validation.",
+      "kind": "RECOMMENDED_VALUES",
+      "schemaId": "npm-user-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "MERGE_DECLARED_FIELDS",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "registry",
+        "strict-ssl"
+      ],
+      "values": [
+        {
+          "fieldId": "registry",
+          "value": {
+            "kind": "STRING",
+            "value": "https://registry.npmjs.org/"
+          }
+        },
+        {
+          "fieldId": "strict-ssl",
+          "value": {
+            "kind": "BOOLEAN",
+            "value": true
+          }
+        }
+      ],
+      "sourceIds": [
+        "npm-cli-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "ssh-managed-host",
+      "presetVersion": 1,
+      "label": "Managed host",
+      "description": "Groups the fields in the UserHome managed OpenSSH host block.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "ssh-client-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "host-name",
+        "user",
+        "port"
+      ],
+      "values": [],
+      "sourceIds": [
+        "openbsd-ssh-config"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "zsh-managed-fields",
+      "presetVersion": 1,
+      "label": "Managed shell fields",
+      "description": "Groups aliases, environment variables, and sourced files in the UserHome managed block.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "zshrc-managed-block",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "aliases",
+        "environment",
+        "sources"
+      ],
+      "values": [],
+      "sourceIds": [
+        "zsh-builtin-commands"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "zsh-new-managed-block",
+      "presetVersion": 1,
+      "label": "New managed Zsh block",
+      "description": "Creates a missing .zshrc with an empty UserHome managed block.",
+      "kind": "COMPLETE_TEMPLATE",
+      "schemaId": "zshrc-managed-block",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "NEW_FILE_ONLY",
+      "mergeStrategy": "REPLACE_SCHEMA_PROJECTION",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "aliases",
+        "environment",
+        "sources"
+      ],
+      "values": [
+        {
+          "fieldId": "aliases",
+          "value": {
+            "kind": "STRING_LIST",
+            "value": []
+          }
+        },
+        {
+          "fieldId": "environment",
+          "value": {
+            "kind": "STRING_LIST",
+            "value": []
+          }
+        },
+        {
+          "fieldId": "sources",
+          "value": {
+            "kind": "STRING_LIST",
+            "value": []
+          }
+        }
+      ],
+      "sourceIds": [
+        "zsh-builtin-commands"
+      ],
+      "aliases": []
+    }
+  ]
+}

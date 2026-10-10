@@ -1,0 +1,47 @@
+{
+  "artifact": {
+    "path": "generated/catalog-packaged.json",
+    "sha256": "11bc74cafe58d3259341733af10ce15baad471fdb742d7cd2cc2c30a17b3e501"
+  },
+  "categories": {
+    "AI Development Tools": 38,
+    "Cloud Tools": 1,
+    "Databases": 9,
+    "Developer Tools": 21,
+    "Editors": 44,
+    "Games": 15,
+    "Media": 54,
+    "Networking": 25,
+    "Package Management": 1,
+    "Productivity": 21,
+    "Remote Access": 1,
+    "Security": 9,
+    "Shell": 2,
+    "Terminals": 33,
+    "Utilities": 349,
+    "Version Control": 1
+  },
+  "counts": {
+    "caskRecords": 300,
+    "formulaRecords": 300,
+    "managedOverlays": 26,
+    "uniqueApplications": 624
+  },
+  "reproducibility": {
+    "byteIdenticalBuild": true,
+    "timestampsExcludedFromArtifact": true
+  },
+  "review": {
+    "maintainerApprovalPending": 624,
+    "missingOfficialSource": 2,
+    "required": 624
+  },
+  "schemaVersion": 1,
+  "sourceRecords": {
+    "homebrew-cask-api": 300,
+    "homebrew-formula-api": 300
+  },
+  "supportClasses": {
+    "DETECTED_UNSUPPORTED": 624
+  }
+}

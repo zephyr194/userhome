@@ -1,0 +1,6017 @@
+{
+  "recordKind": "formula",
+  "records": [
+    {
+      "category": "Utilities",
+      "displayName": "a2ps",
+      "id": "a2ps",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "4.15.8",
+        "token": "a2ps",
+        "type": "formula"
+      },
+      "summary": "Any-to-PostScript filter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "a52dec",
+      "id": "a52dec",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "0.8.0",
+        "token": "a52dec",
+        "type": "formula"
+      },
+      "summary": "Library for decoding ATSC A/52 streams (AKA 'AC-3')",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "aalib",
+      "id": "aalib",
+      "package": {
+        "license": "LGPL-2.0-or-later",
+        "stableVersion": "1.4rc5",
+        "token": "aalib",
+        "type": "formula"
+      },
+      "summary": "Portable ASCII art graphics library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aarch64-elf-binutils",
+      "id": "aarch64-elf-binutils",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "2.47",
+        "token": "aarch64-elf-binutils",
+        "type": "formula"
+      },
+      "summary": "GNU Binutils for aarch64-elf cross development",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "aarch64-elf-gcc",
+      "id": "aarch64-elf-gcc",
+      "package": {
+        "license": "GPL-3.0-or-later WITH GCC-exception-3.1",
+        "stableVersion": "16.2.0",
+        "token": "aarch64-elf-gcc",
+        "type": "formula"
+      },
+      "summary": "GNU compiler collection for aarch64-elf",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "aarch64-elf-gdb",
+      "id": "aarch64-elf-gdb",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "17.2",
+        "token": "aarch64-elf-gdb",
+        "type": "formula"
+      },
+      "summary": "GNU debugger for aarch64-elf cross development",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ab-av1",
+      "id": "ab-av1",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.11.7",
+        "token": "ab-av1",
+        "type": "formula"
+      },
+      "summary": "AV1 re-encoding using ffmpeg, svt-av1 & vmaf",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abcl",
+      "id": "abcl",
+      "package": {
+        "license": "GPL-2.0-or-later WITH Classpath-exception-2.0",
+        "stableVersion": "1.9.2",
+        "token": "abcl",
+        "type": "formula"
+      },
+      "summary": "Armed Bear Common Lisp: a full implementation of Common Lisp",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "abcm2ps",
+      "id": "abcm2ps",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "8.14.18",
+        "token": "abcm2ps",
+        "type": "formula"
+      },
+      "summary": "ABC music notation software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "abcmidi",
+      "id": "abcmidi",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "2026.06.09",
+        "token": "abcmidi",
+        "type": "formula"
+      },
+      "summary": "Converts abc music notation files to MIDI files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abduco",
+      "id": "abduco",
+      "package": {
+        "license": "ISC",
+        "stableVersion": "0.6",
+        "token": "abduco",
+        "type": "formula"
+      },
+      "summary": "Provides session management: i.e. separate programs from terminals",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "abi-dumper",
+      "id": "abi-dumper",
+      "package": {
+        "license": "LGPL-2.1-or-later",
+        "stableVersion": "1.4",
+        "token": "abi-dumper",
+        "type": "formula"
+      },
+      "summary": "Dump ABI of an ELF object containing DWARF debug info",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abi3audit",
+      "id": "abi3audit",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.0.26",
+        "token": "abi3audit",
+        "type": "formula"
+      },
+      "summary": "Scans Python packages for abi3 violations and inconsistencies",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "abnfgen",
+      "id": "abnfgen",
+      "package": {
+        "license": "LicenseRef-Homebrew-cannot-represent",
+        "stableVersion": "0.21",
+        "token": "abnfgen",
+        "type": "formula"
+      },
+      "summary": "Quickly generate random documents that match an ABFN grammar",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abook",
+      "id": "abook",
+      "package": {
+        "license": "GPL-3.0-only AND GPL-2.0-or-later AND LGPL-2.0-or-later AND BSD-2-Clause AND BSD-4.3RENO",
+        "stableVersion": "0.6.2",
+        "token": "abook",
+        "type": "formula"
+      },
+      "summary": "Address book with mutt support",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abpoa",
+      "id": "abpoa",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.5.7",
+        "token": "abpoa",
+        "type": "formula"
+      },
+      "summary": "SIMD-based C library for fast partial order alignment using adaptive band",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abricate",
+      "id": "abricate",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "1.4.0",
+        "token": "abricate",
+        "type": "formula"
+      },
+      "summary": "Find antimicrobial resistance and virulence genes in contigs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abseil",
+      "id": "abseil",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "20260817.0",
+        "token": "abseil",
+        "type": "formula"
+      },
+      "summary": "C++ Common Libraries",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "abyss",
+      "id": "abyss",
+      "package": {
+        "license": "GPL-3.0-only AND LGPL-2.1-or-later AND MIT AND BSD-3-Clause",
+        "stableVersion": "2.3.10",
+        "token": "abyss",
+        "type": "formula"
+      },
+      "summary": "Genome sequence assembler for short reads",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "ace",
+      "id": "ace",
+      "package": {
+        "license": "DOC",
+        "stableVersion": "8.0.7",
+        "token": "ace",
+        "type": "formula"
+      },
+      "summary": "ADAPTIVE Communication Environment: OO network programming in C++",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ack",
+      "id": "ack",
+      "package": {
+        "license": "Artistic-2.0",
+        "stableVersion": "3.10.0",
+        "token": "ack",
+        "type": "formula"
+      },
+      "summary": "Search tool like grep, but optimized for programmers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "acl",
+      "id": "acl",
+      "package": {
+        "license": "GPL-2.0-or-later AND LGPL-2.1-or-later",
+        "stableVersion": "2.4.0",
+        "token": "acl",
+        "type": "formula"
+      },
+      "summary": "Commands for manipulating POSIX access control lists",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "acl2",
+      "id": "acl2",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "8.7",
+        "token": "acl2",
+        "type": "formula"
+      },
+      "summary": "Logic and programming language in which you can model computer systems",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "acme",
+      "id": "acme",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "0.97",
+        "token": "acme",
+        "type": "formula"
+      },
+      "summary": "Crossassembler for multiple environments",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "acme.sh",
+      "id": "acme-sh",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "3.1.6",
+        "token": "acme.sh",
+        "type": "formula"
+      },
+      "summary": "ACME client",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "acpica",
+      "id": "acpica",
+      "package": {
+        "license": "Intel-ACPI OR GPL-2.0-only OR BSD-3-Clause",
+        "stableVersion": "20260408",
+        "token": "acpica",
+        "type": "formula"
+      },
+      "summary": "OS-independent implementation of the ACPI specification",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "acronym",
+      "id": "acronym",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.0.0",
+        "token": "acronym",
+        "type": "formula"
+      },
+      "summary": "Python-based tool for creating English-ish acronyms from your fancy project",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "act",
+      "id": "act",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.2.89",
+        "token": "act",
+        "type": "formula"
+      },
+      "summary": "Run your GitHub Actions locally",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "action-docs",
+      "id": "action-docs",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.5.1",
+        "token": "action-docs",
+        "type": "formula"
+      },
+      "summary": "Generate docs for GitHub actions",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "action-validator",
+      "id": "action-validator",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "0.9.0",
+        "token": "action-validator",
+        "type": "formula"
+      },
+      "summary": "Tool to validate GitHub Action and Workflow YAML files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "actionlint",
+      "id": "actionlint",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.7.12",
+        "token": "actionlint",
+        "type": "formula"
+      },
+      "summary": "Static checker for GitHub Actions workflow files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "actions-batch",
+      "id": "actions-batch",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.0.3",
+        "token": "actions-batch",
+        "type": "formula"
+      },
+      "summary": "Time-sharing supercomputer built on GitHub Actions",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "actions-languageserver",
+      "id": "actions-languageserver",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.3.61",
+        "token": "actions-languageserver",
+        "type": "formula"
+      },
+      "summary": "Language server for GitHub Actions YAML files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "actions-up",
+      "id": "actions-up",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.20.0",
+        "token": "actions-up",
+        "type": "formula"
+      },
+      "summary": "Tool to update GitHub Actions to latest versions with SHA pinning",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "activemq",
+      "id": "activemq",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "6.3.2",
+        "token": "activemq",
+        "type": "formula"
+      },
+      "summary": "Apache ActiveMQ: powerful open source messaging server",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "activemq-cpp",
+      "id": "activemq-cpp",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.9.5",
+        "token": "activemq-cpp",
+        "type": "formula"
+      },
+      "summary": "C++ API for message brokers such as Apache ActiveMQ",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "ad",
+      "id": "ad",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.4.0",
+        "token": "ad",
+        "type": "formula"
+      },
+      "summary": "Adaptable text editor inspired by vi, kakoune, and acme",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ada-url",
+      "id": "ada-url",
+      "package": {
+        "license": "Apache-2.0 OR MIT",
+        "stableVersion": "4.0.0",
+        "token": "ada-url",
+        "type": "formula"
+      },
+      "summary": "WHATWG-compliant and fast URL parser written in modern C++",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "adamstark-audiofile",
+      "id": "adamstark-audiofile",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.1.4",
+        "token": "adamstark-audiofile",
+        "type": "formula"
+      },
+      "summary": "C++ Audio File Library by Adam Stark",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adapterremoval",
+      "id": "adapterremoval",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "3.0.2",
+        "token": "adapterremoval",
+        "type": "formula"
+      },
+      "summary": "Rapid adapter trimming, identification, and read merging",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adaptivecpp",
+      "id": "adaptivecpp",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "25.10.0",
+        "token": "adaptivecpp",
+        "type": "formula"
+      },
+      "summary": "SYCL and C++ standard parallelism for CPUs and GPUs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adb-enhanced",
+      "id": "adb-enhanced",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.12.0",
+        "token": "adb-enhanced",
+        "type": "formula"
+      },
+      "summary": "Swiss-army knife for Android testing and development",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "add-determinism",
+      "id": "add-determinism",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "0.7.3",
+        "token": "add-determinism",
+        "type": "formula"
+      },
+      "summary": "Build postprocessor to reset metadata fields for build reproducibility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "addlicense",
+      "id": "addlicense",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.2.0",
+        "token": "addlicense",
+        "type": "formula"
+      },
+      "summary": "Scan directories recursively to ensure source files have license headers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "addons-linter",
+      "id": "addons-linter",
+      "package": {
+        "license": "MPL-2.0",
+        "stableVersion": "10.13.0",
+        "token": "addons-linter",
+        "type": "formula"
+      },
+      "summary": "Firefox Add-ons linter, written in JavaScript",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adios2",
+      "id": "adios2",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.12.1",
+        "token": "adios2",
+        "type": "formula"
+      },
+      "summary": "Next generation of ADIOS developed in the Exascale Computing Program",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "admesh",
+      "id": "admesh",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "0.98.5",
+        "token": "admesh",
+        "type": "formula"
+      },
+      "summary": "Processes triangulated solid meshes",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "adns",
+      "id": "adns",
+      "package": {
+        "license": "GPL-3.0-or-later AND LGPL-2.0-or-later",
+        "stableVersion": "1.7.0",
+        "token": "adns",
+        "type": "formula"
+      },
+      "summary": "C/C++ resolver library and DNS resolver utilities",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "adplay",
+      "id": "adplay",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.9",
+        "token": "adplay",
+        "type": "formula"
+      },
+      "summary": "Command-line player for OPL2 music",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adplug",
+      "id": "adplug",
+      "package": {
+        "license": "LGPL-2.1-or-later",
+        "stableVersion": "2.4",
+        "token": "adplug",
+        "type": "formula"
+      },
+      "summary": "Free, hardware independent AdLib sound player library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adr-tools",
+      "id": "adr-tools",
+      "package": {
+        "license": "CC-BY-4.0",
+        "stableVersion": "3.0.0",
+        "token": "adr-tools",
+        "type": "formula"
+      },
+      "summary": "CLI tool for working with Architecture Decision Records",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adr-viewer",
+      "id": "adr-viewer",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.4.0",
+        "token": "adr-viewer",
+        "type": "formula"
+      },
+      "summary": "Generate easy-to-read web pages for your Architecture Decision Records",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adrs",
+      "id": "adrs",
+      "package": {
+        "license": "MIT OR Apache-2.0",
+        "stableVersion": "0.12.1",
+        "token": "adrs",
+        "type": "formula"
+      },
+      "summary": "Architectural Decision Record tool in Rust",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "advai-cli",
+      "id": "advai-cli",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.0.12",
+        "token": "advai-cli",
+        "type": "formula"
+      },
+      "summary": "CLI for managing skills and external CLIs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "advancecomp",
+      "id": "advancecomp",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "2.6",
+        "token": "advancecomp",
+        "type": "formula"
+      },
+      "summary": "Recompression utilities for .PNG, .MNG, .ZIP, and .GZ files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "advancescan",
+      "id": "advancescan",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.18",
+        "token": "advancescan",
+        "type": "formula"
+      },
+      "summary": "Rom manager for AdvanceMAME/MESS",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "adwaita-icon-theme",
+      "id": "adwaita-icon-theme",
+      "package": {
+        "license": "LGPL-3.0-or-later OR CC-BY-SA-3.0",
+        "stableVersion": "51.0",
+        "token": "adwaita-icon-theme",
+        "type": "formula"
+      },
+      "summary": "Icons for the GNOME project",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "aerc",
+      "id": "aerc",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.22.0",
+        "token": "aerc",
+        "type": "formula"
+      },
+      "summary": "Email client that runs in your terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "aerleon",
+      "id": "aerleon",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.17.0",
+        "token": "aerleon",
+        "type": "formula"
+      },
+      "summary": "Generate firewall configs for multiple firewall platforms",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "aescrypt",
+      "id": "aescrypt",
+      "package": {
+        "license": "BSD-4-Clause",
+        "stableVersion": "0.7",
+        "token": "aescrypt",
+        "type": "formula"
+      },
+      "summary": "Program for encryption/decryption",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "aespipe",
+      "id": "aespipe",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "2.4j",
+        "token": "aespipe",
+        "type": "formula"
+      },
+      "summary": "AES encryption or decryption for pipes",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "afflib",
+      "id": "afflib",
+      "package": {
+        "license": "BSD-4-Clause AND LicenseRef-Homebrew-public-domain",
+        "stableVersion": "3.7.22",
+        "token": "afflib",
+        "type": "formula"
+      },
+      "summary": "Advanced Forensic Format",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "afio",
+      "id": "afio",
+      "package": {
+        "license": "LicenseRef-Homebrew-cannot-represent",
+        "stableVersion": "2.5.2",
+        "token": "afio",
+        "type": "formula"
+      },
+      "summary": "Creates cpio-format archives",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "afl++",
+      "id": "afl-plus-plus",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "5.03c",
+        "token": "afl++",
+        "type": "formula"
+      },
+      "summary": "American Fuzzy Lop++",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "afsctool",
+      "id": "afsctool",
+      "package": {
+        "license": "GPL-3.0-only AND BSL-1.0",
+        "stableVersion": "1.7.3",
+        "token": "afsctool",
+        "type": "formula"
+      },
+      "summary": "Utility for manipulating APFS and ZFS compressed files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "aften",
+      "id": "aften",
+      "package": {
+        "license": "LGPL-2.1-or-later",
+        "stableVersion": "0.0.8",
+        "token": "aften",
+        "type": "formula"
+      },
+      "summary": "Audio encoder which generates ATSC A/52 compressed audio streams",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "agda",
+      "id": "agda",
+      "package": {
+        "license": "MIT AND BSD-3-Clause",
+        "stableVersion": "2.8.0.2",
+        "token": "agda",
+        "type": "formula"
+      },
+      "summary": "Dependently typed functional programming language",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "age",
+      "id": "age",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "1.3.2",
+        "token": "age",
+        "type": "formula"
+      },
+      "summary": "Simple, modern, secure file encryption",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "age-plugin-se",
+      "id": "age-plugin-se",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.2.1",
+        "token": "age-plugin-se",
+        "type": "formula"
+      },
+      "summary": "Age plugin for Apple Secure Enclave",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "age-plugin-yubikey",
+      "id": "age-plugin-yubikey",
+      "package": {
+        "license": "Apache-2.0 OR MIT",
+        "stableVersion": "0.5.1",
+        "token": "age-plugin-yubikey",
+        "type": "formula"
+      },
+      "summary": "Plugin for encrypting files with age and PIV tokens such as YubiKeys",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "agedu",
+      "id": "agedu",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "20260410",
+        "token": "agedu",
+        "type": "formula"
+      },
+      "summary": "Unix utility for tracking down wasted disk space",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "agent-browser",
+      "id": "agent-browser",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "0.38.1",
+        "token": "agent-browser",
+        "type": "formula"
+      },
+      "summary": "Browser automation CLI for AI agents",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "agent-manager",
+      "id": "agent-manager",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "0.38.0",
+        "token": "agent-manager",
+        "type": "formula"
+      },
+      "summary": "Terminal UI to manage AI coding-agent tmux sessions",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "agg",
+      "id": "agg",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "1.9.0",
+        "token": "agg",
+        "type": "formula"
+      },
+      "summary": "Asciicast to GIF converter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aha",
+      "id": "aha",
+      "package": {
+        "license": "LGPL-2.0-or-later OR MPL-1.1",
+        "stableVersion": "0.5.1",
+        "token": "aha",
+        "type": "formula"
+      },
+      "summary": "ANSI HTML adapter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "ahcpd",
+      "id": "ahcpd",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.53",
+        "token": "ahcpd",
+        "type": "formula"
+      },
+      "summary": "Autoconfiguration protocol for IPv6 and IPv6/IPv4 networks",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "ahoy",
+      "id": "ahoy",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "3.0.1",
+        "token": "ahoy",
+        "type": "formula"
+      },
+      "summary": "Creates self documenting CLI programs from commands in YAML files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "ai-cli",
+      "id": "ai-cli",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "0.5.2",
+        "token": "ai-cli",
+        "type": "formula"
+      },
+      "summary": "Generate images, video, audio, and text from the terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aiac",
+      "id": "aiac",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "5.3.0",
+        "token": "aiac",
+        "type": "formula"
+      },
+      "summary": "Artificial Intelligence Infrastructure-as-Code Generator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "aichat",
+      "id": "aichat",
+      "package": {
+        "license": "Apache-2.0 OR MIT",
+        "stableVersion": "0.30.0",
+        "token": "aichat",
+        "type": "formula"
+      },
+      "summary": "All-in-one AI-Powered CLI Chat & Copilot",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "aicommit",
+      "id": "aicommit",
+      "package": {
+        "license": "CC0-1.0",
+        "stableVersion": "0.6.5",
+        "token": "aicommit",
+        "type": "formula"
+      },
+      "summary": "AI-powered commit message generator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "aicommit2",
+      "id": "aicommit2",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.12.0",
+        "token": "aicommit2",
+        "type": "formula"
+      },
+      "summary": "Reactive CLI that generates commit messages for Git and Jujutsu with AI",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "aicommits",
+      "id": "aicommits",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "4.2.2",
+        "token": "aicommits",
+        "type": "formula"
+      },
+      "summary": "Writes your git commit messages for you with AI",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "aide",
+      "id": "aide",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "0.19.4",
+        "token": "aide",
+        "type": "formula"
+      },
+      "summary": "File and directory integrity checker",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "aider",
+      "id": "aider",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "0.86.2",
+        "token": "aider",
+        "type": "formula"
+      },
+      "summary": "AI pair programming in your terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aiken",
+      "id": "aiken",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.1.23",
+        "token": "aiken",
+        "type": "formula"
+      },
+      "summary": "Modern smart contract platform for Cardano",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "ain",
+      "id": "ain",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.6.0",
+        "token": "ain",
+        "type": "formula"
+      },
+      "summary": "HTTP API client for the terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "air",
+      "id": "air",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.11.0",
+        "token": "air",
+        "type": "formula"
+      },
+      "summary": "Fast and opinionated formatter for R code",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aircrack-ng",
+      "id": "aircrack-ng",
+      "package": {
+        "license": "BSD-3-Clause AND GPL-2.0-or-later AND (GPL-2.0-or-later WITH cryptsetup-OpenSSL-exception)",
+        "stableVersion": "1.7",
+        "token": "aircrack-ng",
+        "type": "formula"
+      },
+      "summary": "Next-generation aircrack with lots of new features",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "airshare",
+      "id": "airshare",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.1.6",
+        "token": "airshare",
+        "type": "formula"
+      },
+      "summary": "Cross-platform content sharing in a local network",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "airspyhf",
+      "id": "airspyhf",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "1.6.8",
+        "token": "airspyhf",
+        "type": "formula"
+      },
+      "summary": "Driver and tools for a software-defined radio",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "airtable-mcp-server",
+      "id": "airtable-mcp-server",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.14.0",
+        "token": "airtable-mcp-server",
+        "type": "formula"
+      },
+      "summary": "MCP Server for Airtable",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "aiven-client",
+      "id": "aiven-client",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "4.18.0",
+        "token": "aiven-client",
+        "type": "formula"
+      },
+      "summary": "Official command-line client for Aiven",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "akamai",
+      "id": "akamai",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.0.5",
+        "token": "akamai",
+        "type": "formula"
+      },
+      "summary": "CLI toolkit for working with Akamai's APIs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "akku",
+      "id": "akku",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "1.1.0",
+        "token": "akku",
+        "type": "formula"
+      },
+      "summary": "Package manager for Scheme",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aklomp-base64",
+      "id": "aklomp-base64",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "0.5.2",
+        "token": "aklomp-base64",
+        "type": "formula"
+      },
+      "summary": "Fast Base64 stream encoder/decoder in C99, with SIMD acceleration",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alass",
+      "id": "alass",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "2.0.0",
+        "token": "alass",
+        "type": "formula"
+      },
+      "summary": "Automatic Language-Agnostic Subtitle Synchronization",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "alda",
+      "id": "alda",
+      "package": {
+        "license": "EPL-2.0",
+        "stableVersion": "2.4.7",
+        "token": "alda",
+        "type": "formula"
+      },
+      "summary": "Music programming language for musicians",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aldo",
+      "id": "aldo",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "0.7.7",
+        "token": "aldo",
+        "type": "formula"
+      },
+      "summary": "Morse code learning tool released under GPL",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "alejandra",
+      "id": "alejandra",
+      "package": {
+        "license": "Unlicense",
+        "stableVersion": "4.0.0",
+        "token": "alejandra",
+        "type": "formula"
+      },
+      "summary": "Command-line tool for formatting Nix Code",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "alembic",
+      "id": "alembic",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "1.8.12",
+        "token": "alembic",
+        "type": "formula"
+      },
+      "summary": "Open computer graphics interchange framework",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alevin-fry",
+      "id": "alevin-fry",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "0.18.3",
+        "token": "alevin-fry",
+        "type": "formula"
+      },
+      "summary": "Efficient and flexible tool for processing single-cell sequencing data",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alexjs",
+      "id": "alexjs",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "11.0.1",
+        "token": "alexjs",
+        "type": "formula"
+      },
+      "summary": "Catch insensitive, inconsiderate writing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "algernon",
+      "id": "algernon",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "1.17.11",
+        "token": "algernon",
+        "type": "formula"
+      },
+      "summary": "Pure Go web server with Lua, Markdown, HTTP/2 and template support",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "algol68g",
+      "id": "algol68g",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "3.13.3",
+        "token": "algol68g",
+        "type": "formula"
+      },
+      "summary": "Algol 68 compiler-interpreter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "algolia",
+      "id": "algolia",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.17.0",
+        "token": "algolia",
+        "type": "formula"
+      },
+      "summary": "Command-line tool to manage Algolia applications, accounts, and search resources",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "ali",
+      "id": "ali",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.8.0",
+        "token": "ali",
+        "type": "formula"
+      },
+      "summary": "Generate HTTP load and plot the results in real-time",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "aliae",
+      "id": "aliae",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.6.0",
+        "token": "aliae",
+        "type": "formula"
+      },
+      "summary": "Cross shell and platform alias management",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "aliddns",
+      "id": "aliddns",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.0.23",
+        "token": "aliddns",
+        "type": "formula"
+      },
+      "summary": "Aliyun(Alibaba Cloud) ddns for golang",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "align",
+      "id": "align",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.7.5",
+        "token": "align",
+        "type": "formula"
+      },
+      "summary": "Text column alignment filter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alive2",
+      "id": "alive2",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "21.0",
+        "token": "alive2",
+        "type": "formula"
+      },
+      "summary": "Automatic verification of LLVM optimizations",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "aliyun-cli",
+      "id": "aliyun-cli",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.5.1",
+        "token": "aliyun-cli",
+        "type": "formula"
+      },
+      "summary": "Universal Command-Line Interface for Alibaba Cloud",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "aliyunpan",
+      "id": "aliyunpan",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "0.4.0",
+        "token": "aliyunpan",
+        "type": "formula"
+      },
+      "summary": "Command-line client tool for Alibaba aDrive disk",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "all-repos",
+      "id": "all-repos",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.33.0",
+        "token": "all-repos",
+        "type": "formula"
+      },
+      "summary": "Clone all your repositories and apply sweeping changes",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "allegro",
+      "id": "allegro",
+      "package": {
+        "license": "Zlib",
+        "stableVersion": "5.2.11.3",
+        "token": "allegro",
+        "type": "formula"
+      },
+      "summary": "C/C++ multimedia library for cross-platform game development",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alloy-analyzer",
+      "id": "alloy-analyzer",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "6.2.0",
+        "token": "alloy-analyzer",
+        "type": "formula"
+      },
+      "summary": "Open-source language and analyzer for software modeling",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "allure",
+      "id": "allure",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.46.1",
+        "token": "allure",
+        "type": "formula"
+      },
+      "summary": "Flexible lightweight test report tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "allureofthestars",
+      "id": "allureofthestars",
+      "package": {
+        "license": "AGPL-3.0-or-later AND GPL-2.0-or-later AND OFL-1.1 AND MIT AND Bitstream-Vera",
+        "stableVersion": "0.11.0.0",
+        "token": "allureofthestars",
+        "type": "formula"
+      },
+      "summary": "Near-future Sci-Fi roguelike and tactical squad combat game",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alot",
+      "id": "alot",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "0.12",
+        "token": "alot",
+        "type": "formula"
+      },
+      "summary": "Text mode MUA using notmuch mail",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alp",
+      "id": "alp",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.0.21",
+        "token": "alp",
+        "type": "formula"
+      },
+      "summary": "Access Log Profiler",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alpine",
+      "id": "alpine",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.26",
+        "token": "alpine",
+        "type": "formula"
+      },
+      "summary": "News and email agent",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "alpscore",
+      "id": "alpscore",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.3.3",
+        "token": "alpscore",
+        "type": "formula"
+      },
+      "summary": "Applications and libraries for physics simulations",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "alsa-lib",
+      "id": "alsa-lib",
+      "package": {
+        "license": "LGPL-2.1-or-later AND GPL-2.0-or-later",
+        "stableVersion": "1.2.16.1",
+        "token": "alsa-lib",
+        "type": "formula"
+      },
+      "summary": "Provides audio and MIDI functionality to the Linux operating system",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "amass",
+      "id": "amass",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "5.1.1",
+        "token": "amass",
+        "type": "formula"
+      },
+      "summary": "In-depth attack surface mapping and asset discovery",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "amber",
+      "id": "amber",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.5.0",
+        "token": "amber",
+        "type": "formula"
+      },
+      "summary": "Crystal web framework. Bare metal performance, productivity and happiness",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "amfora",
+      "id": "amfora",
+      "package": {
+        "license": "GPL-3.0-only AND (GPL-3.0-only OR MIT)",
+        "stableVersion": "1.11.0",
+        "token": "amfora",
+        "type": "formula"
+      },
+      "summary": "Fancy terminal browser for the Gemini protocol",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "amp",
+      "id": "amp",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "0.7.1",
+        "token": "amp",
+        "type": "formula"
+      },
+      "summary": "Text editor for your terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ampl-asl",
+      "id": "ampl-asl",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "1.0.1",
+        "token": "ampl-asl",
+        "type": "formula"
+      },
+      "summary": "AMPL Solver Library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ampl-mp",
+      "id": "ampl-mp",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "4.1.0",
+        "token": "ampl-mp",
+        "type": "formula"
+      },
+      "summary": "Open-source library for mathematical programming",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "amqp-cpp",
+      "id": "amqp-cpp",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "4.3.27",
+        "token": "amqp-cpp",
+        "type": "formula"
+      },
+      "summary": "C++ library for communicating with a RabbitMQ message broker",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "amtterm",
+      "id": "amtterm",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.8-1",
+        "token": "amtterm",
+        "type": "formula"
+      },
+      "summary": "Serial-over-LAN (sol) client for Intel AMT",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "amy",
+      "id": "amy",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.16.0",
+        "token": "amy",
+        "type": "formula"
+      },
+      "summary": "Nostr client from the Amethyst project",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "analog",
+      "id": "analog",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "6.0.18",
+        "token": "analog",
+        "type": "formula"
+      },
+      "summary": "Logfile analyzer",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "anchor",
+      "id": "anchor",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.2.0",
+        "token": "anchor",
+        "type": "formula"
+      },
+      "summary": "Solana Program Framework",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ancient",
+      "id": "ancient",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "2.3.0",
+        "token": "ancient",
+        "type": "formula"
+      },
+      "summary": "Decompression routines for ancient formats",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "angband",
+      "id": "angband",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "4.2.6",
+        "token": "angband",
+        "type": "formula"
+      },
+      "summary": "Dungeon exploration game",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "angle-grinder",
+      "id": "angle-grinder",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.19.6",
+        "token": "angle-grinder",
+        "type": "formula"
+      },
+      "summary": "Slice and dice log files on the command-line",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "angular-cli",
+      "id": "angular-cli",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "22.1.8",
+        "token": "angular-cli",
+        "type": "formula"
+      },
+      "summary": "CLI tool for Angular",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ansible",
+      "id": "ansible",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "14.4.0",
+        "token": "ansible",
+        "type": "formula"
+      },
+      "summary": "Automate deployment, configuration, and upgrading",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ansible@13",
+      "id": "ansible-at-13",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "13.8.0",
+        "token": "ansible@13",
+        "type": "formula"
+      },
+      "summary": "Automate deployment, configuration, and upgrading",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ansible-builder",
+      "id": "ansible-builder",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.1.1",
+        "token": "ansible-builder",
+        "type": "formula"
+      },
+      "summary": "CLI tool for building Ansible Execution Environments (Containers)",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ansible-creator",
+      "id": "ansible-creator",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "26.8.0",
+        "token": "ansible-creator",
+        "type": "formula"
+      },
+      "summary": "CLI tool for scaffolding Ansible Content",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "ansible-language-server",
+      "id": "ansible-language-server",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "26.6.0",
+        "token": "ansible-language-server",
+        "type": "formula"
+      },
+      "summary": "Language Server for Ansible Files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ansible-lint",
+      "id": "ansible-lint",
+      "package": {
+        "license": "MIT AND GPL-3.0-or-later",
+        "stableVersion": "26.8.0",
+        "token": "ansible-lint",
+        "type": "formula"
+      },
+      "summary": "Checks ansible playbooks for practices and behaviour",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ansifilter",
+      "id": "ansifilter",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "2.23",
+        "token": "ansifilter",
+        "type": "formula"
+      },
+      "summary": "Strip or convert ANSI codes into HTML, (La)Tex, RTF, or BBCode",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ansilove",
+      "id": "ansilove",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "4.2.2",
+        "token": "ansilove",
+        "type": "formula"
+      },
+      "summary": "ANSI/ASCII art to PNG converter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "ansiweather",
+      "id": "ansiweather",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "1.19.1",
+        "token": "ansiweather",
+        "type": "formula"
+      },
+      "summary": "Weather in your terminal, with ANSI colors and Unicode symbols",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "ant",
+      "id": "ant",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.10.18",
+        "token": "ant",
+        "type": "formula"
+      },
+      "summary": "Java build tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "ant-contrib",
+      "id": "ant-contrib",
+      "package": {
+        "license": "Apache-1.1",
+        "stableVersion": "1.0b3",
+        "token": "ant-contrib",
+        "type": "formula"
+      },
+      "summary": "Collection of tasks for Apache Ant",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "antidote",
+      "id": "antidote",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.3.0",
+        "token": "antidote",
+        "type": "formula"
+      },
+      "summary": "Plugin manager for zsh, inspired by antigen and antibody",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "antlr",
+      "id": "antlr",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "4.13.2",
+        "token": "antlr",
+        "type": "formula"
+      },
+      "summary": "ANother Tool for Language Recognition",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "antlr4-cpp-runtime",
+      "id": "antlr4-cpp-runtime",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "4.13.2",
+        "token": "antlr4-cpp-runtime",
+        "type": "formula"
+      },
+      "summary": "ANother Tool for Language Recognition C++ Runtime Library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "anubis",
+      "id": "anubis",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.27.0",
+        "token": "anubis",
+        "type": "formula"
+      },
+      "summary": "Protect resources from scraper bots",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "any2fasta",
+      "id": "any2fasta",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "0.8.1",
+        "token": "any2fasta",
+        "type": "formula"
+      },
+      "summary": "Convert various sequence formats to FASTA",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "anycable-go",
+      "id": "anycable-go",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.6.16",
+        "token": "anycable-go",
+        "type": "formula"
+      },
+      "summary": "WebSocket server with action cable protocol",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "anyenv",
+      "id": "anyenv",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.1.5",
+        "token": "anyenv",
+        "type": "formula"
+      },
+      "summary": "All in one for **env",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "anyquery",
+      "id": "anyquery",
+      "package": {
+        "license": "AGPL-3.0-only",
+        "stableVersion": "0.5.0",
+        "token": "anyquery",
+        "type": "formula"
+      },
+      "summary": "Query anything with SQL",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "aoe",
+      "id": "aoe",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.16.1",
+        "token": "aoe",
+        "type": "formula"
+      },
+      "summary": "Terminal session manager for AI coding agents",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "aoeui",
+      "id": "aoeui",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "1.6",
+        "token": "aoeui",
+        "type": "formula"
+      },
+      "summary": "Lightweight text editor optimized for Dvorak and QWERTY keyboards",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "aom",
+      "id": "aom",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "3.15.0",
+        "token": "aom",
+        "type": "formula"
+      },
+      "summary": "Codec library for encoding and decoding AV1 video streams",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-arrow",
+      "id": "apache-arrow",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "25.0.1",
+        "token": "apache-arrow",
+        "type": "formula"
+      },
+      "summary": "Columnar in-memory analytics layer designed to accelerate big data",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "apache-arrow-adbc",
+      "id": "apache-arrow-adbc",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "24",
+        "token": "apache-arrow-adbc",
+        "type": "formula"
+      },
+      "summary": "Cross-language, Arrow-native database access",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-arrow-adbc-glib",
+      "id": "apache-arrow-adbc-glib",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "24",
+        "token": "apache-arrow-adbc-glib",
+        "type": "formula"
+      },
+      "summary": "GLib bindings for Apache Arrow ADBC",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-arrow-glib",
+      "id": "apache-arrow-glib",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "25.0.1",
+        "token": "apache-arrow-glib",
+        "type": "formula"
+      },
+      "summary": "GLib bindings for Apache Arrow",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "apache-brooklyn-cli",
+      "id": "apache-brooklyn-cli",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.1.0",
+        "token": "apache-brooklyn-cli",
+        "type": "formula"
+      },
+      "summary": "Apache Brooklyn command-line interface",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "apache-drill",
+      "id": "apache-drill",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.22.0",
+        "token": "apache-drill",
+        "type": "formula"
+      },
+      "summary": "Schema-free SQL Query Engine for Hadoop, NoSQL and Cloud Storage",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-flink",
+      "id": "apache-flink",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.3.0",
+        "token": "apache-flink",
+        "type": "formula"
+      },
+      "summary": "Scalable batch and stream data processing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-flink-cdc",
+      "id": "apache-flink-cdc",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.6.0",
+        "token": "apache-flink-cdc",
+        "type": "formula"
+      },
+      "summary": "Flink CDC is a streaming data integration tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-geode",
+      "id": "apache-geode",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.0.3",
+        "token": "apache-geode",
+        "type": "formula"
+      },
+      "summary": "In-memory Data Grid for fast transactional data processing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "apache-opennlp",
+      "id": "apache-opennlp",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.5.12",
+        "token": "apache-opennlp",
+        "type": "formula"
+      },
+      "summary": "Machine learning toolkit for processing natural language text",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-polaris",
+      "id": "apache-polaris",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.7.0",
+        "token": "apache-polaris",
+        "type": "formula"
+      },
+      "summary": "Interoperable, open source catalog for Apache Iceberg",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-pulsar",
+      "id": "apache-pulsar",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "4.2.4",
+        "token": "apache-pulsar",
+        "type": "formula"
+      },
+      "summary": "Cloud-native distributed messaging and streaming platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "apache-serf",
+      "id": "apache-serf",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.3.10",
+        "token": "apache-serf",
+        "type": "formula"
+      },
+      "summary": "High-performance asynchronous HTTP client library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apache-spark",
+      "id": "apache-spark",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "4.2.0",
+        "token": "apache-spark",
+        "type": "formula"
+      },
+      "summary": "Engine for large-scale data processing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apachetop",
+      "id": "apachetop",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "0.23.2",
+        "token": "apachetop",
+        "type": "formula"
+      },
+      "summary": "Top-like display of Apache log",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apcupsd",
+      "id": "apcupsd",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "3.14.14",
+        "token": "apcupsd",
+        "type": "formula"
+      },
+      "summary": "Daemon for controlling APC UPSes",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "apfel",
+      "id": "apfel",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.11.0",
+        "token": "apfel",
+        "type": "formula"
+      },
+      "summary": "Apple Intelligence from the command-line, with OpenAi-compatible API server",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "apgdiff",
+      "id": "apgdiff",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.7.0",
+        "token": "apgdiff",
+        "type": "formula"
+      },
+      "summary": "Another PostgreSQL diff tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "api-linter",
+      "id": "api-linter",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.4.0",
+        "token": "api-linter",
+        "type": "formula"
+      },
+      "summary": "Linter for APIs defined in protocol buffers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "apibuilder-cli",
+      "id": "apibuilder-cli",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.2.4",
+        "token": "apibuilder-cli",
+        "type": "formula"
+      },
+      "summary": "Command-line interface to generate clients for api builder",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "apify-cli",
+      "id": "apify-cli",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.10.0",
+        "token": "apify-cli",
+        "type": "formula"
+      },
+      "summary": "Apify command-line interface",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "apigeecli",
+      "id": "apigeecli",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.17.0",
+        "token": "apigeecli",
+        "type": "formula"
+      },
+      "summary": "Apigee management API command-line interface",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "apkeep",
+      "id": "apkeep",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.0.0",
+        "token": "apkeep",
+        "type": "formula"
+      },
+      "summary": "Command-line tool for downloading APK files from various sources",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apkleaks",
+      "id": "apkleaks",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.6.3",
+        "token": "apkleaks",
+        "type": "formula"
+      },
+      "summary": "Scanning APK file for URIs, endpoints & secrets",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "apko",
+      "id": "apko",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.4.4",
+        "token": "apko",
+        "type": "formula"
+      },
+      "summary": "Build OCI images from APK packages directly without Dockerfile",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apktool",
+      "id": "apktool",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.0.3",
+        "token": "apktool",
+        "type": "formula"
+      },
+      "summary": "Tool for reverse engineering 3rd party, closed, binary Android apps",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "apm",
+      "id": "apm",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.31.0",
+        "token": "apm",
+        "type": "formula"
+      },
+      "summary": "Dependency manager for AI agent configuration",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apng2gif",
+      "id": "apng2gif",
+      "package": {
+        "license": "libpng-2.0 AND Zlib",
+        "stableVersion": "1.8",
+        "token": "apng2gif",
+        "type": "formula"
+      },
+      "summary": "Convert APNG animations into animated GIF format",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apngasm",
+      "id": "apngasm",
+      "package": {
+        "license": "Zlib",
+        "stableVersion": "3.1.10",
+        "token": "apngasm",
+        "type": "formula"
+      },
+      "summary": "Next generation of apngasm, the APNG assembler",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apparix",
+      "id": "apparix",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "11-062",
+        "token": "apparix",
+        "type": "formula"
+      },
+      "summary": "File system navigation via bookmarking directories",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "appium",
+      "id": "appium",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.7.0",
+        "token": "appium",
+        "type": "formula"
+      },
+      "summary": "Automation for Apps",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "apprise",
+      "id": "apprise",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "1.13.1",
+        "token": "apprise",
+        "type": "formula"
+      },
+      "summary": "Send notifications from the command-line to popular notification services",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "appstream",
+      "id": "appstream",
+      "package": {
+        "license": "LGPL-2.1-or-later",
+        "stableVersion": "1.2.0",
+        "token": "appstream",
+        "type": "formula"
+      },
+      "summary": "Tools and libraries to work with AppStream metadata",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "appstream-glib",
+      "id": "appstream-glib",
+      "package": {
+        "license": "LGPL-2.1-or-later",
+        "stableVersion": "0.8.4",
+        "token": "appstream-glib",
+        "type": "formula"
+      },
+      "summary": "Helper library for reading and writing AppStream metadata",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apptainer",
+      "id": "apptainer",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "1.5.3",
+        "token": "apptainer",
+        "type": "formula"
+      },
+      "summary": "Application container and unprivileged sandbox platform for Linux",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "appwrite",
+      "id": "appwrite",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "27.3.0",
+        "token": "appwrite",
+        "type": "formula"
+      },
+      "summary": "Command-line tool for Appwrite",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apr",
+      "id": "apr",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.7.6",
+        "token": "apr",
+        "type": "formula"
+      },
+      "summary": "Apache Portable Runtime library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apr-util",
+      "id": "apr-util",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.6.5",
+        "token": "apr-util",
+        "type": "formula"
+      },
+      "summary": "Companion library to apr, the Apache Portable Runtime library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "apt",
+      "id": "apt",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "3.3.3",
+        "token": "apt",
+        "type": "formula"
+      },
+      "summary": "Advanced Package Tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "apt-dater",
+      "id": "apt-dater",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.0.4",
+        "token": "apt-dater",
+        "type": "formula"
+      },
+      "summary": "Manage package updates on remote hosts using SSH",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aptly",
+      "id": "aptly",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.6.3",
+        "token": "aptly",
+        "type": "formula"
+      },
+      "summary": "Swiss army knife for Debian repository management",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aptos",
+      "id": "aptos",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "9.5.1",
+        "token": "aptos",
+        "type": "formula"
+      },
+      "summary": "Layer 1 blockchain built to support fair access to decentralized assets for all",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aqbanking",
+      "id": "aqbanking",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "6.9.2",
+        "token": "aqbanking",
+        "type": "formula"
+      },
+      "summary": "Generic online banking interface",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aqtinstall",
+      "id": "aqtinstall",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "3.3.0",
+        "token": "aqtinstall",
+        "type": "formula"
+      },
+      "summary": "Another unofficial Qt installer",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aqua",
+      "id": "aqua",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.63.0",
+        "token": "aqua",
+        "type": "formula"
+      },
+      "summary": "Declarative CLI Version manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arabica",
+      "id": "arabica",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "20200425",
+        "token": "arabica",
+        "type": "formula"
+      },
+      "summary": "XML toolkit written in C++",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aravis",
+      "id": "aravis",
+      "package": {
+        "license": "LGPL-2.1-or-later",
+        "stableVersion": "0.8.36",
+        "token": "aravis",
+        "type": "formula"
+      },
+      "summary": "Vision library for genicam based cameras",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "arcade-learning-environment",
+      "id": "arcade-learning-environment",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "0.12.1",
+        "token": "arcade-learning-environment",
+        "type": "formula"
+      },
+      "summary": "Platform for AI research",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "arcadedb",
+      "id": "arcadedb",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "26.9.1",
+        "token": "arcadedb",
+        "type": "formula"
+      },
+      "summary": "Multi-Model DBMS: Graph, Document, Key/Value, Search, Time Series, Vector",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "archey4",
+      "id": "archey4",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "4.15.0.0",
+        "token": "archey4",
+        "type": "formula"
+      },
+      "summary": "Simple system information tool written in Python",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "archgw",
+      "id": "archgw",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "0.3.22",
+        "token": "archgw",
+        "type": "formula"
+      },
+      "summary": "CLI for Arch Gateway",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "archi-steam-farm",
+      "id": "archi-steam-farm",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "6.3.9.6",
+        "token": "archi-steam-farm",
+        "type": "formula"
+      },
+      "summary": "Application for idling Steam cards from multiple accounts simultaneously",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "archivemount",
+      "id": "archivemount",
+      "package": {
+        "license": "LGPL-2.0-or-later",
+        "stableVersion": "1b",
+        "token": "archivemount",
+        "type": "formula"
+      },
+      "summary": "File system for accessing archives using libarchive",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "arduino-cli",
+      "id": "arduino-cli",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "1.5.1",
+        "token": "arduino-cli",
+        "type": "formula"
+      },
+      "summary": "Arduino command-line interface",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arelo",
+      "id": "arelo",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.15.4",
+        "token": "arelo",
+        "type": "formula"
+      },
+      "summary": "Simple auto reload (live reload) utility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ares",
+      "id": "ares",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.11.0",
+        "token": "ares",
+        "type": "formula"
+      },
+      "summary": "Automated decoding of encrypted text",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "arf",
+      "id": "arf",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.5.2",
+        "token": "arf",
+        "type": "formula"
+      },
+      "summary": "Modern R console with syntax highlighting and fuzzy search",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argc",
+      "id": "argc",
+      "package": {
+        "license": "Apache-2.0 OR MIT",
+        "stableVersion": "1.24.0",
+        "token": "argc",
+        "type": "formula"
+      },
+      "summary": "Easily create and use cli based on bash script",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argo",
+      "id": "argo",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "4.1.4",
+        "token": "argo",
+        "type": "formula"
+      },
+      "summary": "Get stuff done with container-native workflows for Kubernetes",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argocd",
+      "id": "argocd",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.5.3",
+        "token": "argocd",
+        "type": "formula"
+      },
+      "summary": "GitOps Continuous Delivery for Kubernetes",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argocd-autopilot",
+      "id": "argocd-autopilot",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "0.4.20",
+        "token": "argocd-autopilot",
+        "type": "formula"
+      },
+      "summary": "Opinionated way of installing Argo CD and managing GitOps repositories",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argocd-vault-plugin",
+      "id": "argocd-vault-plugin",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.18.1",
+        "token": "argocd-vault-plugin",
+        "type": "formula"
+      },
+      "summary": "Argo CD plugin to retrieve secrets from Secret Management tools",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "argon2",
+      "id": "argon2",
+      "package": {
+        "license": "CC0-1.0 OR Apache-2.0",
+        "stableVersion": "20190702",
+        "token": "argon2",
+        "type": "formula"
+      },
+      "summary": "Password hashing library and CLI utility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argp-standalone",
+      "id": "argp-standalone",
+      "package": {
+        "license": "LGPL-2.1-or-later AND LGPL-2.0-or-later AND LicenseRef-Homebrew-public-domain",
+        "stableVersion": "1.5.0",
+        "token": "argp-standalone",
+        "type": "formula"
+      },
+      "summary": "Standalone version of arguments parsing functions from GLIBC",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argparse",
+      "id": "argparse",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "3.2",
+        "token": "argparse",
+        "type": "formula"
+      },
+      "summary": "Argument Parser for Modern C++",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "argtable",
+      "id": "argtable",
+      "package": {
+        "license": "LGPL-2.0-or-later",
+        "stableVersion": "2.13",
+        "token": "argtable",
+        "type": "formula"
+      },
+      "summary": "ANSI C library for parsing GNU-style command-line options",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "argtable3",
+      "id": "argtable3",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "3.3.1",
+        "token": "argtable3",
+        "type": "formula"
+      },
+      "summary": "ANSI C library for parsing GNU-style command-line options",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "argus",
+      "id": "argus",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "5.0.4",
+        "token": "argus",
+        "type": "formula"
+      },
+      "summary": "Audit Record Generation and Utilization System server",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argus-clients",
+      "id": "argus-clients",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "5.0.4",
+        "token": "argus-clients",
+        "type": "formula"
+      },
+      "summary": "Audit Record Generation and Utilization System clients",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "argyll-cms",
+      "id": "argyll-cms",
+      "package": {
+        "license": "AGPL-3.0-only",
+        "stableVersion": "3.5.0",
+        "token": "argyll-cms",
+        "type": "formula"
+      },
+      "summary": "ICC compatible color management system",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aria2",
+      "id": "aria2",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.37.0",
+        "token": "aria2",
+        "type": "formula"
+      },
+      "summary": "Download with resuming and segmented downloading",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aribb24",
+      "id": "aribb24",
+      "package": {
+        "license": "LGPL-3.0-only",
+        "stableVersion": "1.0.4",
+        "token": "aribb24",
+        "type": "formula"
+      },
+      "summary": "Library for ARIB STD-B24, decoding JIS 8 bit characters and parsing MPEG-TS",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "arjun",
+      "id": "arjun",
+      "package": {
+        "license": "AGPL-3.0-only",
+        "stableVersion": "2.2.7",
+        "token": "arjun",
+        "type": "formula"
+      },
+      "summary": "HTTP parameter discovery suite",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arkade",
+      "id": "arkade",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.11.126",
+        "token": "arkade",
+        "type": "formula"
+      },
+      "summary": "Open Source Kubernetes Marketplace",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arm-linux-gnueabihf-binutils",
+      "id": "arm-linux-gnueabihf-binutils",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "2.47",
+        "token": "arm-linux-gnueabihf-binutils",
+        "type": "formula"
+      },
+      "summary": "FSF/GNU binutils for cross-compiling to arm-linux",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arm-none-eabi-binutils",
+      "id": "arm-none-eabi-binutils",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "2.47",
+        "token": "arm-none-eabi-binutils",
+        "type": "formula"
+      },
+      "summary": "GNU Binutils for arm-none-eabi cross development",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "arm-none-eabi-gcc",
+      "id": "arm-none-eabi-gcc",
+      "package": {
+        "license": "GPL-3.0-or-later WITH GCC-exception-3.1",
+        "stableVersion": "16.2.0",
+        "token": "arm-none-eabi-gcc",
+        "type": "formula"
+      },
+      "summary": "GNU compiler collection for arm-none-eabi",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "arm-none-eabi-gdb",
+      "id": "arm-none-eabi-gdb",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "17.2",
+        "token": "arm-none-eabi-gdb",
+        "type": "formula"
+      },
+      "summary": "GNU debugger for arm-none-eabi cross development",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "armadillo",
+      "id": "armadillo",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "15.6.0",
+        "token": "armadillo",
+        "type": "formula"
+      },
+      "summary": "C++ linear algebra library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arp-scan",
+      "id": "arp-scan",
+      "package": {
+        "license": "GPL-3.0-or-later AND BSD-3-Clause AND ISC",
+        "stableVersion": "1.10.0",
+        "token": "arp-scan",
+        "type": "formula"
+      },
+      "summary": "ARP scanning and fingerprinting tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "arp-scan-rs",
+      "id": "arp-scan-rs",
+      "package": {
+        "license": "AGPL-3.0-or-later",
+        "stableVersion": "0.15.1",
+        "token": "arp-scan-rs",
+        "type": "formula"
+      },
+      "summary": "ARP scan tool written in Rust for fast local network scans",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arpack",
+      "id": "arpack",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "3.9.1",
+        "token": "arpack",
+        "type": "formula"
+      },
+      "summary": "Routines to solve large scale eigenvalue problems",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arping",
+      "id": "arping",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "2.29",
+        "token": "arping",
+        "type": "formula"
+      },
+      "summary": "Utility to check whether MAC addresses are already taken on a LAN",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arpoison",
+      "id": "arpoison",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "0.7",
+        "token": "arpoison",
+        "type": "formula"
+      },
+      "summary": "UNIX arp cache update utility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arrayfire",
+      "id": "arrayfire",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "3.10.0",
+        "token": "arrayfire",
+        "type": "formula"
+      },
+      "summary": "General purpose GPU library",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arss",
+      "id": "arss",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "0.2.3",
+        "token": "arss",
+        "type": "formula"
+      },
+      "summary": "Analyze a sound file into a spectrogram",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "artillery",
+      "id": "artillery",
+      "package": {
+        "license": "MPL-2.0",
+        "stableVersion": "2.0.34",
+        "token": "artillery",
+        "type": "formula"
+      },
+      "summary": "Cloud-native performance & reliability testing for developers and SREs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "arttime",
+      "id": "arttime",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "2.5.0",
+        "token": "arttime",
+        "type": "formula"
+      },
+      "summary": "Clock, timer, time manager and ASCII+ text-art viewer for the terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arturo",
+      "id": "arturo",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.10.0",
+        "token": "arturo",
+        "type": "formula"
+      },
+      "summary": "Simple, modern and portable programming language for efficient scripting",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arx-libertatis",
+      "id": "arx-libertatis",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "1.2.1",
+        "token": "arx-libertatis",
+        "type": "formula"
+      },
+      "summary": "Cross-platform, open source port of Arx Fatalis",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "arxiv_latex_cleaner",
+      "id": "arxiv-latex-cleaner",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.0.11",
+        "token": "arxiv_latex_cleaner",
+        "type": "formula"
+      },
+      "summary": "Clean LaTeX code to submit to arXiv",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "as-tree",
+      "id": "as-tree",
+      "package": {
+        "license": "BlueOak-1.0.0",
+        "stableVersion": "0.12.0",
+        "token": "as-tree",
+        "type": "formula"
+      },
+      "summary": "Print a list of paths as a tree of paths",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "asak",
+      "id": "asak",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.4.0",
+        "token": "asak",
+        "type": "formula"
+      },
+      "summary": "Cross-platform audio recording/playback CLI tool with TUI",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "asar",
+      "id": "asar",
+      "package": {
+        "license": "LGPL-2.0-or-later",
+        "stableVersion": "1.91",
+        "token": "asar",
+        "type": "formula"
+      },
+      "summary": "SNES assembler for applying patches to ROM images or building ROMs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asc",
+      "id": "asc",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "5.4.0",
+        "token": "asc",
+        "type": "formula"
+      },
+      "summary": "Fast, lightweight CLI for App Store Connect",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asccli",
+      "id": "asccli",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.18.2",
+        "token": "asccli",
+        "type": "formula"
+      },
+      "summary": "App Store Connect CLI to manage apps, versions, and screenshots",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ascii",
+      "id": "ascii",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "3.32",
+        "token": "ascii",
+        "type": "formula"
+      },
+      "summary": "List ASCII idiomatic names and octal/decimal code-point forms",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ascii2binary",
+      "id": "ascii2binary",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "2.14",
+        "token": "ascii2binary",
+        "type": "formula"
+      },
+      "summary": "Converting Text to Binary and Back",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asciidoc",
+      "id": "asciidoc",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "10.2.1",
+        "token": "asciidoc",
+        "type": "formula"
+      },
+      "summary": "Formatter/translator for text files to numerous formats",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asciidoctor",
+      "id": "asciidoctor",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.0.26",
+        "token": "asciidoctor",
+        "type": "formula"
+      },
+      "summary": "Text processor and publishing toolchain for AsciiDoc",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asciidoctorj",
+      "id": "asciidoctorj",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.0.1",
+        "token": "asciidoctorj",
+        "type": "formula"
+      },
+      "summary": "Java wrapper and bindings for Asciidoctor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "asciinema",
+      "id": "asciinema",
+      "package": {
+        "license": "GPL-3.0-only",
+        "stableVersion": "3.2.1",
+        "token": "asciinema",
+        "type": "formula"
+      },
+      "summary": "Record and share terminal sessions",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asciiquarium",
+      "id": "asciiquarium",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.1",
+        "token": "asciiquarium",
+        "type": "formula"
+      },
+      "summary": "Aquarium animation in ASCII art",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asciitex",
+      "id": "asciitex",
+      "package": {
+        "license": "GPL-2.0-only",
+        "stableVersion": "0.21",
+        "token": "asciitex",
+        "type": "formula"
+      },
+      "summary": "Generate ASCII-art representations of mathematical equations",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asdf",
+      "id": "asdf",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.20.1",
+        "token": "asdf",
+        "type": "formula"
+      },
+      "summary": "Extendable version manager with support for Ruby, Node.js, Erlang & more",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asimov",
+      "id": "asimov",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.12.0",
+        "token": "asimov",
+        "type": "formula"
+      },
+      "summary": "Automatically exclude development dependencies from Time Machine backups",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asio",
+      "id": "asio",
+      "package": {
+        "license": "BSL-1.0",
+        "stableVersion": "1.38.2",
+        "token": "asio",
+        "type": "formula"
+      },
+      "summary": "Cross-platform C++ Library for asynchronous programming",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asitop",
+      "id": "asitop",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.0.24",
+        "token": "asitop",
+        "type": "formula"
+      },
+      "summary": "Perf monitoring CLI tool for Apple Silicon",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ask-cli",
+      "id": "ask-cli",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "2.30.7",
+        "token": "ask-cli",
+        "type": "formula"
+      },
+      "summary": "CLI tool for Alexa Skill Kit",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "asm-lsp",
+      "id": "asm-lsp",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "0.10.1",
+        "token": "asm-lsp",
+        "type": "formula"
+      },
+      "summary": "Language server for NASM/GAS/GO Assembly",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asm6809",
+      "id": "asm6809",
+      "package": {
+        "license": "GPL-3.0-or-later",
+        "stableVersion": "2.17",
+        "token": "asm6809",
+        "type": "formula"
+      },
+      "summary": "Cross assembler targeting the Motorola 6809 and Hitachi 6309",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asmfmt",
+      "id": "asmfmt",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.3.2",
+        "token": "asmfmt",
+        "type": "formula"
+      },
+      "summary": "Go Assembler Formatter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "asn",
+      "id": "asn",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.83.0",
+        "token": "asn",
+        "type": "formula"
+      },
+      "summary": "Organization lookup and server tool (ASN / IPv4 / IPv6 / Prefix / AS Path)",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asn1c",
+      "id": "asn1c",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "0.9.29",
+        "token": "asn1c",
+        "type": "formula"
+      },
+      "summary": "Compile ASN.1 specifications into C source code",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "asnmap",
+      "id": "asnmap",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.1.1",
+        "token": "asnmap",
+        "type": "formula"
+      },
+      "summary": "Quickly map organization network ranges using ASN information",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aspcud",
+      "id": "aspcud",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.9.6",
+        "token": "aspcud",
+        "type": "formula"
+      },
+      "summary": "Package dependency solver",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aspectj",
+      "id": "aspectj",
+      "package": {
+        "license": "EPL-2.0",
+        "stableVersion": "1.9.25.1",
+        "token": "aspectj",
+        "type": "formula"
+      },
+      "summary": "Aspect-oriented programming for Java",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aspell",
+      "id": "aspell",
+      "package": {
+        "license": "LGPL-2.1-only",
+        "stableVersion": "0.60.8.2",
+        "token": "aspell",
+        "type": "formula"
+      },
+      "summary": "Spell checker with better logic than ispell",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asroute",
+      "id": "asroute",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.1.0",
+        "token": "asroute",
+        "type": "formula"
+      },
+      "summary": "CLI to interpret traceroute -a output to show AS names traversed",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "assh",
+      "id": "assh",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.17.3",
+        "token": "assh",
+        "type": "formula"
+      },
+      "summary": "Advanced SSH config - Regex, aliases, gateways, includes and dynamic hosts",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "assimp",
+      "id": "assimp",
+      "package": {
+        "license": "BSD-3-Clause AND CC-PDDC AND MIT AND BSL-1.0 AND Unlicense AND Zlib",
+        "stableVersion": "6.0.5",
+        "token": "assimp",
+        "type": "formula"
+      },
+      "summary": "Portable library for importing many well-known 3D model formats",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ast-grep",
+      "id": "ast-grep",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.45.3",
+        "token": "ast-grep",
+        "type": "formula"
+      },
+      "summary": "Code searching, linting, rewriting",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "astgen",
+      "id": "astgen",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "3.50.1",
+        "token": "astgen",
+        "type": "formula"
+      },
+      "summary": "Generate AST in json format for JS/TS",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "astra",
+      "id": "astra",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.1.3",
+        "token": "astra",
+        "type": "formula"
+      },
+      "summary": "Command-Line Interface for DataStax Astra",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "astro",
+      "id": "astro",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.45.0",
+        "token": "astro",
+        "type": "formula"
+      },
+      "summary": "To build and run Airflow DAGs locally and interact with the Astronomer API",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "astrometry-net",
+      "id": "astrometry-net",
+      "package": {
+        "license": "BSD-3-Clause",
+        "stableVersion": "0.97",
+        "token": "astrometry-net",
+        "type": "formula"
+      },
+      "summary": "Automatic identification of astronomical images",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "astroterm",
+      "id": "astroterm",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.2.0",
+        "token": "astroterm",
+        "type": "formula"
+      },
+      "summary": "Planetarium for your terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "astyle",
+      "id": "astyle",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "3.6.18",
+        "token": "astyle",
+        "type": "formula"
+      },
+      "summary": "Source code beautifier for C, C++, C#, and Java",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asuka",
+      "id": "asuka",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.8.5",
+        "token": "asuka",
+        "type": "formula"
+      },
+      "summary": "Gemini Project client written in Rust with NCurses",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "asymptote",
+      "id": "asymptote",
+      "package": {
+        "license": "LGPL-3.0-only",
+        "stableVersion": "3.15",
+        "token": "asymptote",
+        "type": "formula"
+      },
+      "summary": "Powerful descriptive vector graphics language",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "async-profiler",
+      "id": "async-profiler",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "4.5",
+        "token": "async-profiler",
+        "type": "formula"
+      },
+      "summary": "Sampling CPU & HEAP profiler for Java using AsyncGetCallTrace + perf_events",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "async_simple",
+      "id": "async-simple",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "1.4",
+        "token": "async_simple",
+        "type": "formula"
+      },
+      "summary": "Simple, light-weight and easy-to-use asynchronous components",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "asyncapi",
+      "id": "asyncapi",
+      "package": {
+        "license": "Apache-2.0",
+        "stableVersion": "6.1.0",
+        "token": "asyncapi",
+        "type": "formula"
+      },
+      "summary": "All in one CLI for all AsyncAPI tools",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "asyncplusplus",
+      "id": "asyncplusplus",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "1.2",
+        "token": "asyncplusplus",
+        "type": "formula"
+      },
+      "summary": "Concurrency framework for C++11",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "at-spi2-core",
+      "id": "at-spi2-core",
+      "package": {
+        "license": "LGPL-2.1-or-later",
+        "stableVersion": "2.62.0.1",
+        "token": "at-spi2-core",
+        "type": "formula"
+      },
+      "summary": "Protocol definitions and daemon for D-Bus at-spi",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "ata",
+      "id": "ata",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "2.0.4",
+        "token": "ata",
+        "type": "formula"
+      },
+      "summary": "ChatGPT in the terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Terminals",
+      "displayName": "atac",
+      "id": "atac",
+      "package": {
+        "license": "MIT",
+        "stableVersion": "0.23.1",
+        "token": "atac",
+        "type": "formula"
+      },
+      "summary": "Simple API client (Postman-like) in your terminal",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "atari800",
+      "id": "atari800",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "7.2.1",
+        "token": "atari800",
+        "type": "formula"
+      },
+      "summary": "Atari 8-bit machine emulator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "atasm",
+      "id": "atasm",
+      "package": {
+        "license": "GPL-2.0-or-later",
+        "stableVersion": "1.30",
+        "token": "atasm",
+        "type": "formula"
+      },
+      "summary": "Atari MAC/65 compatible assembler for Unix",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "atf",
+      "id": "atf",
+      "package": {
+        "license": "BSD-2-Clause",
+        "stableVersion": "0.25",
+        "token": "atf",
+        "type": "formula"
+      },
+      "summary": "Automated testing framework",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "source": {
+    "id": "homebrew-formula-api",
+    "owner": "Homebrew",
+    "project": "homebrew-core",
+    "repositoryUrl": "https://github.com/Homebrew/homebrew-core",
+    "retrievedAt": "2026-09-22T08:05:48.384Z",
+    "sha256": "df8c6f4ee6bcd9c9737bc676a27a5eaca0ee61c729bb9a883ac179601ba36d98",
+    "staleAfterDays": 90,
+    "url": "https://formulae.brew.sh/api/formula.json",
+    "verifiedAt": "2026-09-22T08:05:48.428Z"
+  }
+}

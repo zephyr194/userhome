@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AsyncState } from "../../components/AsyncState";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, Panel, StatusBadge } from "../../components/ui";
 import {
   executeBrewAction,
   getBrewPackage,
@@ -34,18 +34,18 @@ export function BrewPackageDetails({
   const installed = details.installedVersions.length > 0;
 
   return (
-    <section
-      className="min-w-0 rounded-md border border-border bg-surface"
+    <Panel
+      className="min-w-0"
       aria-labelledby={headingId}
     >
-      <header className="border-b border-border px-4 py-3">
+      <header className="border-b border-border px-ui-3xl py-ui-xl">
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary">
               软件包详情
             </p>
             <h3
-              className="mt-1 break-words text-base font-semibold"
+              className="mt-ui-xs break-words text-lg font-semibold [overflow-wrap:anywhere]"
               id={headingId}
             >
               {details.displayName}
@@ -54,7 +54,7 @@ export function BrewPackageDetails({
               {details.identifier}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 flex-wrap justify-end gap-ui-sm">
             <StatusBadge>
               {details.kind === "FORMULA" ? "Formula" : "Cask"}
             </StatusBadge>
@@ -68,26 +68,26 @@ export function BrewPackageDetails({
         </div>
       </header>
 
-      <div className="min-w-0 space-y-4 px-4 py-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
+      <div className="min-w-0 px-ui-3xl py-ui-xl">
+        <p className="break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
           {details.description ?? "Homebrew 未提供描述。"}
         </p>
-        <dl className="grid min-w-0 grid-cols-1 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3">
-          <div className="min-w-0 bg-surface-muted px-3 py-2.5">
+        <dl className="mt-ui-xl grid min-w-0 grid-cols-1 overflow-hidden rounded-control border border-border bg-border sm:grid-cols-3 sm:gap-px">
+          <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
             <dt className="text-xs text-muted-foreground">当前版本</dt>
-            <dd className="mt-1 break-all text-sm font-medium">
+            <dd className="mt-ui-xs break-all text-sm font-medium">
               {details.currentVersion ?? "未知"}
             </dd>
           </div>
-          <div className="min-w-0 bg-surface-muted px-3 py-2.5">
+          <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
             <dt className="text-xs text-muted-foreground">已安装版本</dt>
-            <dd className="mt-1 break-all text-sm font-medium">
+            <dd className="mt-ui-xs break-all text-sm font-medium">
               {details.installedVersions.join(", ") || "未安装"}
             </dd>
           </div>
-          <div className="min-w-0 bg-surface-muted px-3 py-2.5">
+          <div className="min-w-0 bg-surface-muted px-ui-xl py-ui-lg">
             <dt className="text-xs text-muted-foreground">更新状态</dt>
-            <dd className="mt-1 text-sm font-medium">
+            <dd className="mt-ui-xs text-sm font-medium">
               {details.outdated
                 ? "有新版本可用"
                 : installed
@@ -98,13 +98,13 @@ export function BrewPackageDetails({
         </dl>
 
         {details.homepage ? (
-          <p className="min-w-0 break-all text-xs text-muted-foreground">
+          <p className="mt-ui-xl min-w-0 break-all text-xs text-muted-foreground">
             主页：{details.homepage}
           </p>
         ) : null}
 
         <div
-          className="flex flex-wrap justify-end gap-2 border-t border-border pt-4"
+          className="sticky bottom-0 -mx-ui-3xl -mb-ui-xl mt-ui-xl flex flex-wrap justify-end gap-ui-md border-t border-border bg-surface px-ui-3xl py-ui-xl"
           aria-label={`${details.displayName} 可用操作`}
         >
           {!installed ? (
@@ -122,15 +122,16 @@ export function BrewPackageDetails({
               </Button>
               <Button
                 variant="danger"
+                aria-label={`卸载 ${details.identifier}`}
                 onClick={() => onAction("UNINSTALL")}
               >
-                卸载 {details.identifier}
+                卸载软件包
               </Button>
             </>
           )}
         </div>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -159,6 +160,7 @@ export function BrewPackageInspector({
   const [busy, setBusy] = useState(false);
   const [removeOnClose, setRemoveOnClose] = useState(false);
   const detailsRequestRef = useRef(0);
+  const previewRequestRef = useRef(0);
   const operationInFlightRef = useRef(false);
 
   useEffect(() => {
@@ -178,11 +180,13 @@ export function BrewPackageInspector({
       });
     return () => {
       active = false;
+      previewRequestRef.current += 1;
     };
   }, [refreshId, selected.identifier, selected.kind]);
 
   async function createPreview(action: BrewPackageAction) {
     if (detailsState.status !== "ready") return;
+    const requestId = ++previewRequestRef.current;
     setActionError(undefined);
     setOperation(undefined);
     setRemoveOnClose(false);
@@ -192,9 +196,13 @@ export function BrewPackageInspector({
         kind: detailsState.details.kind,
         identifier: detailsState.details.identifier,
       });
-      setPreview({ action, value });
+      if (previewRequestRef.current === requestId) {
+        setPreview({ action, value });
+      }
     } catch (error) {
-      setActionError(decodeAppError(error));
+      if (previewRequestRef.current === requestId) {
+        setActionError(decodeAppError(error));
+      }
     }
   }
 
@@ -250,6 +258,7 @@ export function BrewPackageInspector({
   }
 
   function closePreview() {
+    previewRequestRef.current += 1;
     if (removeOnClose) {
       onSelectionRemoved?.(selected);
     }
@@ -264,7 +273,11 @@ export function BrewPackageInspector({
       {detailsState.status === "loading" ? (
         <AsyncState kind="loading">正在加载详情…</AsyncState>
       ) : detailsState.status === "error" ? (
-        <AsyncState kind="error">{detailsState.error.message}</AsyncState>
+        <AsyncState kind="error">
+          <span className="break-words [overflow-wrap:anywhere]">
+            {detailsState.error.message}
+          </span>
+        </AsyncState>
       ) : (
         <BrewPackageDetails
           details={detailsState.details}
@@ -274,11 +287,17 @@ export function BrewPackageInspector({
       )}
 
       {actionError && !preview ? (
-        <AsyncState kind="error">{actionError.message}</AsyncState>
+        <AsyncState kind="error">
+          <span className="break-words [overflow-wrap:anywhere]">
+            {actionError.message}
+          </span>
+        </AsyncState>
       ) : null}
       {preview ? (
         <BrewActionDialog
+          action={preview.action}
           preview={preview.value}
+          target={selected}
           operation={operation}
           error={actionError}
           busy={busy}

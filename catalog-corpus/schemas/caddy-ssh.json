@@ -1,0 +1,171 @@
+{
+  "formatVersion": 1,
+  "schemas": [
+    {
+      "schemaId": "caddyfile",
+      "schemaVersion": 1,
+      "appId": "caddy",
+      "configId": "caddyfile",
+      "label": "Caddyfile site",
+      "description": "Edit the existing Caddyfile site address and single reverse proxy upstream.",
+      "requiredCapabilities": {
+        "adapterId": "caddyfile",
+        "validatorId": "caddy"
+      },
+      "applicability": {
+        "variantIds": [
+          "primary"
+        ],
+        "platforms": [
+          "MACOS"
+        ],
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "featureFlags": []
+      },
+      "fields": [
+        {
+          "fieldId": "site-address",
+          "semanticKey": "siteAddress",
+          "label": "Site address",
+          "description": "Caddyfile site address handled by the existing Caddy adapter.",
+          "order": 0,
+          "optional": false,
+          "sensitivity": "STANDARD",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING",
+            "pattern": null,
+            "minimum_length": 1,
+            "maximum_length": 512,
+            "default_value": null
+          },
+          "sourceIds": [
+            "caddy-caddyfile-concepts"
+          ]
+        },
+        {
+          "fieldId": "reverse-proxy",
+          "semanticKey": "reverseProxy",
+          "label": "Reverse proxy upstream",
+          "description": "Single reverse_proxy upstream handled by the existing Caddy adapter.",
+          "order": 1,
+          "optional": true,
+          "sensitivity": "STANDARD",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING",
+            "pattern": null,
+            "minimum_length": 1,
+            "maximum_length": 512,
+            "default_value": null
+          },
+          "sourceIds": [
+            "caddy-reverse-proxy"
+          ]
+        }
+      ],
+      "sourceIds": [
+        "caddy-caddyfile-concepts",
+        "caddy-reverse-proxy"
+      ]
+    },
+    {
+      "schemaId": "ssh-client-config",
+      "schemaVersion": 1,
+      "appId": "openssh",
+      "configId": "ssh-client-config",
+      "label": "OpenSSH client host",
+      "description": "Edit the UserHome managed OpenSSH host block.",
+      "requiredCapabilities": {
+        "adapterId": "ssh-config",
+        "validatorId": "ssh-config"
+      },
+      "applicability": {
+        "variantIds": [
+          "primary"
+        ],
+        "platforms": [
+          "MACOS"
+        ],
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "featureFlags": []
+      },
+      "fields": [
+        {
+          "fieldId": "host-name",
+          "semanticKey": "hostName",
+          "label": "Host name",
+          "description": "Real host name or network address.",
+          "order": 0,
+          "optional": false,
+          "sensitivity": "SENSITIVE",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING",
+            "pattern": null,
+            "minimum_length": 1,
+            "maximum_length": 512,
+            "default_value": null
+          },
+          "sourceIds": [
+            "openbsd-ssh-config"
+          ]
+        },
+        {
+          "fieldId": "user",
+          "semanticKey": "user",
+          "label": "User",
+          "description": "Remote login user.",
+          "order": 1,
+          "optional": true,
+          "sensitivity": "SENSITIVE",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING",
+            "pattern": null,
+            "minimum_length": 1,
+            "maximum_length": 512,
+            "default_value": null
+          },
+          "sourceIds": [
+            "openbsd-ssh-config"
+          ]
+        },
+        {
+          "fieldId": "port",
+          "semanticKey": "port",
+          "label": "Port",
+          "description": "Remote SSH port.",
+          "order": 2,
+          "optional": true,
+          "sensitivity": "STANDARD",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "INTEGER",
+            "minimum": 1,
+            "maximum": 65535,
+            "default_value": null
+          },
+          "sourceIds": [
+            "openbsd-ssh-config"
+          ]
+        }
+      ],
+      "sourceIds": [
+        "openbsd-ssh-config"
+      ]
+    }
+  ]
+}

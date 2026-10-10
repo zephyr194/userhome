@@ -32,6 +32,7 @@ const applications = [
   capabilities: ["DETECT", "READ_CONFIG"],
   managedDocumentCount: 1,
   serviceCount: id === "caddy" ? 1 : 0,
+  sourceEvidence: [],
   configDocuments: [{ pathTemplate: "~/.should-not-cross-ipc" }],
 }));
 
@@ -79,7 +80,7 @@ describe("listManagedApps", () => {
     mockIPC(() => ({
       schemaVersion: 1,
       coveragePolicy,
-      applications: Array.from({ length: 33 }, (_, index) => ({
+      applications: Array.from({ length: 51 }, (_, index) => ({
         ...applications[0],
         id: `app-${index}`,
       })),

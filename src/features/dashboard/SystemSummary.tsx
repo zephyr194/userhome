@@ -66,11 +66,12 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
     <div className="dashboard-system-summary">
       <section aria-labelledby="machine-summary-heading">
         <header className="dashboard-subgroup-heading">
-          <div>
+          <div className="min-w-0">
             <h4 id="machine-summary-heading">机器信息</h4>
             <p>当前登录环境</p>
           </div>
           <StatusBadge
+            className="shrink-0"
             tone={summary.completeness === "COMPLETE" ? "success" : "warning"}
           >
             {summary.completeness === "COMPLETE" ? "完整" : "部分可用"}
@@ -95,59 +96,83 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
             <dd>{summary.shell ?? "不可用"}</dd>
           </div>
         </dl>
-
-        {summary.issues.length > 0 ? (
-          <div className="dashboard-issues" role="status">
-            <strong>{summary.issues.length} 项发现警告</strong>
-            <ul>
-              {summary.issues.map((issue) => (
-                <li key={`${issue.module}-${issue.message}`}>
-                  {issue.module}：{issue.message}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
       </section>
 
       <section aria-labelledby="applications-summary-heading">
         <header className="dashboard-subgroup-heading">
-          <div>
+          <div className="min-w-0">
             <h4 id="applications-summary-heading">应用检测</h4>
             <p>
               已识别 {detected.length}/{summary.applications.length} 个应用
             </p>
           </div>
-          <span className="dashboard-counts">
-            完整 <strong>{fullyDetected}</strong>
-            <span aria-hidden="true">·</span>
-            部分 <strong>{partial}</strong>
-          </span>
         </header>
 
-        <ul className="dashboard-application-rows">
-          {summary.applications.map((application) => (
-            <li key={application.appId}>
-              <div className="dashboard-application-row__heading">
-                <strong>{application.displayName}</strong>
-                <StatusBadge tone={APPLICATION_STATUS[application.status].tone}>
-                  {APPLICATION_STATUS[application.status].label}
-                </StatusBadge>
+        {summary.applications.length === 0 ? (
+          <div
+            className="flex min-w-0 items-start gap-ui-lg border-t border-border pt-ui-lg"
+            role="status"
+          >
+            <PresenceIcon present={false} />
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-md">
+                <strong className="min-w-0 text-xs">应用检测结果</strong>
+                <StatusBadge className="shrink-0">无数据</StatusBadge>
               </div>
-              <ul>
-                {application.evidence.map((evidence) => (
-                  <li key={`${evidence.kind}-${evidence.label}`}>
-                    <PresenceIcon present={evidence.present} />
-                    <span>
-                      <strong>{evidenceLabel(evidence)}</strong>：
-                      {evidence.path?.displayPath ?? evidence.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
+              <p className="mt-ui-xs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
+                本次发现未返回应用检测条目。
+              </p>
+            </div>
+          </div>
+        ) : (
+          <details className="dashboard-applications">
+            <summary>
+              <span>查看检测证据</span>
+              <span className="dashboard-counts">
+                完整 <strong>{fullyDetected}</strong>
+                <span aria-hidden="true">·</span>
+                部分 <strong>{partial}</strong>
+              </span>
+            </summary>
+            <ul className="dashboard-application-rows">
+              {summary.applications.map((application) => (
+                <li key={application.appId}>
+                  <div className="dashboard-application-row__heading flex-wrap">
+                    <strong
+                      className="min-w-0 break-words"
+                      title={application.displayName}
+                    >
+                      {application.displayName}
+                    </strong>
+                    <StatusBadge
+                      className="shrink-0"
+                      tone={APPLICATION_STATUS[application.status].tone}
+                    >
+                      {APPLICATION_STATUS[application.status].label}
+                    </StatusBadge>
+                  </div>
+                  {application.evidence.length === 0 ? (
+                    <p className="mt-ui-xs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
+                      未返回检测证据。
+                    </p>
+                  ) : (
+                    <ul>
+                      {application.evidence.map((evidence) => (
+                        <li key={`${evidence.kind}-${evidence.label}`}>
+                          <PresenceIcon present={evidence.present} />
+                          <span className="min-w-0 break-words">
+                            <strong>{evidenceLabel(evidence)}</strong>：
+                            {evidence.path?.displayPath ?? evidence.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </section>
     </div>
   );

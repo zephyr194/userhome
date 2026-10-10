@@ -1,0 +1,188 @@
+{
+  "formatVersion": 1,
+  "schemas": [
+    {
+      "schemaId": "copilot-settings",
+      "schemaVersion": 1,
+      "appId": "github-copilot",
+      "configId": "copilot-settings",
+      "label": "Copilot CLI settings",
+      "description": "Edit approved GitHub Copilot CLI user settings.",
+      "requiredCapabilities": {
+        "adapterId": "copilot-json",
+        "validatorId": "json"
+      },
+      "applicability": {
+        "variantIds": [
+          "primary"
+        ],
+        "platforms": [
+          "MACOS"
+        ],
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "featureFlags": []
+      },
+      "fields": [
+        {
+          "fieldId": "model",
+          "semanticKey": "model",
+          "label": "Model",
+          "description": "Copilot CLI model selection; auto delegates selection to Copilot.",
+          "order": 0,
+          "optional": true,
+          "sensitivity": "STANDARD",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING",
+            "pattern": null,
+            "minimum_length": 1,
+            "maximum_length": 128,
+            "default_value": null
+          },
+          "sourceIds": [
+            "copilot-cli-config-dir"
+          ]
+        },
+        {
+          "fieldId": "theme",
+          "semanticKey": "theme",
+          "label": "Theme",
+          "description": "Copilot CLI terminal color theme.",
+          "order": 1,
+          "optional": true,
+          "sensitivity": "STANDARD",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "ENUM",
+            "options": [
+              {
+                "value": "default",
+                "label": "Default"
+              },
+              {
+                "value": "github",
+                "label": "GitHub"
+              },
+              {
+                "value": "dim",
+                "label": "Dim"
+              },
+              {
+                "value": "high-contrast",
+                "label": "High contrast"
+              },
+              {
+                "value": "colorblind",
+                "label": "Colorblind"
+              }
+            ],
+            "default_value": "github"
+          },
+          "sourceIds": [
+            "copilot-cli-config-dir"
+          ]
+        }
+      ],
+      "sourceIds": [
+        "copilot-cli-config-dir",
+        "copilot-cli-configuration"
+      ]
+    },
+    {
+      "schemaId": "zshrc-managed-block",
+      "schemaVersion": 1,
+      "appId": "zsh",
+      "configId": "zshrc",
+      "label": "Zsh managed block",
+      "description": "Edit aliases, environment variables, and sourced files inside the UserHome managed block.",
+      "requiredCapabilities": {
+        "adapterId": "zsh-managed-block",
+        "validatorId": "zsh"
+      },
+      "applicability": {
+        "variantIds": [
+          "primary"
+        ],
+        "platforms": [
+          "MACOS"
+        ],
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "featureFlags": []
+      },
+      "fields": [
+        {
+          "fieldId": "aliases",
+          "semanticKey": "aliases",
+          "label": "Aliases",
+          "description": "Replacement list of name=value aliases inside the UserHome managed block.",
+          "order": 0,
+          "optional": true,
+          "sensitivity": "SENSITIVE",
+          "readPolicy": "REDACTED",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING_LIST",
+            "maximum_items": 64,
+            "maximum_item_length": 1153,
+            "default_value": null
+          },
+          "sourceIds": [
+            "zsh-builtin-commands"
+          ]
+        },
+        {
+          "fieldId": "environment",
+          "semanticKey": "environment",
+          "label": "Environment variables",
+          "description": "Replacement list of name=value exports inside the UserHome managed block. Existing values are never returned.",
+          "order": 1,
+          "optional": true,
+          "sensitivity": "SENSITIVE",
+          "readPolicy": "REDACTED",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING_LIST",
+            "maximum_items": 64,
+            "maximum_item_length": 1153,
+            "default_value": null
+          },
+          "sourceIds": [
+            "zsh-builtin-commands"
+          ]
+        },
+        {
+          "fieldId": "sources",
+          "semanticKey": "sources",
+          "label": "Sourced files",
+          "description": "Files sourced inside the UserHome managed block.",
+          "order": 2,
+          "optional": true,
+          "sensitivity": "STANDARD",
+          "readPolicy": "READABLE",
+          "writePolicy": "READ_WRITE",
+          "restoreUnchangedRedacted": false,
+          "fieldType": {
+            "kind": "STRING_LIST",
+            "maximum_items": 64,
+            "maximum_item_length": 512,
+            "default_value": null
+          },
+          "sourceIds": [
+            "zsh-builtin-commands"
+          ]
+        }
+      ],
+      "sourceIds": [
+        "zsh-builtin-commands"
+      ]
+    }
+  ]
+}

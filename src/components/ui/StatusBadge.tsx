@@ -5,9 +5,9 @@ type StatusTone = "neutral" | "success" | "warning" | "danger";
 
 const TONE_CLASSES: Record<StatusTone, string> = {
   neutral: "border-border bg-surface-muted text-muted-foreground",
-  success: "border-success/30 bg-success/10 text-success",
-  warning: "border-warning/30 bg-warning/10 text-warning",
-  danger: "border-danger/30 bg-danger/10 text-danger",
+  success: "border-success-border bg-success-soft text-success",
+  warning: "border-warning-border bg-warning-soft text-warning",
+  danger: "border-danger-border bg-danger-soft text-danger",
 };
 
 export interface StatusBadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -22,7 +22,7 @@ export function StatusBadge({
   return (
     <span
       className={classNames(
-        "inline-flex min-h-6 items-center rounded-md border px-2 py-0.5 text-xs font-medium",
+        "inline-flex min-h-status-badge max-w-full items-center break-words rounded-control border px-ui-md py-ui-xxs text-xs font-medium leading-snug",
         TONE_CLASSES[tone],
         className,
       )}

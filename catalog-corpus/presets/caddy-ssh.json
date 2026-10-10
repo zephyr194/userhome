@@ -1,0 +1,69 @@
+{
+  "formatVersion": 1,
+  "presets": [
+    {
+      "presetId": "caddy-site-and-proxy",
+      "presetVersion": 1,
+      "label": "Site and reverse proxy",
+      "description": "Groups the existing Caddy site address and single reverse proxy upstream.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "caddyfile",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "site-address",
+        "reverse-proxy"
+      ],
+      "values": [],
+      "sourceIds": [
+        "caddy-caddyfile-concepts",
+        "caddy-reverse-proxy"
+      ],
+      "aliases": []
+    },
+    {
+      "presetId": "ssh-managed-host",
+      "presetVersion": 1,
+      "label": "Managed host",
+      "description": "Groups the fields in the UserHome managed OpenSSH host block.",
+      "kind": "FIELD_GROUP",
+      "schemaId": "ssh-client-config",
+      "compatibleSchemaVersions": {
+        "minimum": 1,
+        "maximum": 1
+      },
+      "target": "EXISTING_OR_NEW",
+      "mergeStrategy": "NO_VALUES",
+      "applicability": {
+        "minimumAppVersion": null,
+        "maximumAppVersion": null,
+        "variantIds": [
+          "primary"
+        ],
+        "featureFlags": []
+      },
+      "fieldIds": [
+        "host-name",
+        "user",
+        "port"
+      ],
+      "values": [],
+      "sourceIds": [
+        "openbsd-ssh-config"
+      ],
+      "aliases": []
+    }
+  ]
+}

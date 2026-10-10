@@ -6,7 +6,8 @@ import {
 } from "./core";
 
 export const CATALOG_SCHEMA_VERSION = 1;
-const MAX_MANAGED_APPS = 32;
+export const CATALOG_PAGE_SIZE = 50;
+const MAX_MANAGED_APPS = 1_000;
 const MAX_CONFIG_DOCUMENTS_PER_APP = 16;
 const MAX_PATH_VARIANTS_PER_DOCUMENT = 8;
 const MAX_CONFIG_DOCUMENT_BYTES = 2 * 1024 * 1024;
@@ -113,6 +114,24 @@ export interface ManagedAppDetectionEvidence {
   value: string;
 }
 
+export type ManagedAppSourceLicenseStatus =
+  | "APPROVED"
+  | "REJECTED"
+  | "REVIEW_REQUIRED";
+
+export type ManagedAppSourceReviewStatus =
+  | "APPROVED"
+  | "PENDING"
+  | "REJECTED";
+
+export interface ManagedAppSourceEvidence {
+  url: string;
+  licenseStatus: ManagedAppSourceLicenseStatus;
+  reviewStatus: ManagedAppSourceReviewStatus;
+  contentSha256?: string;
+  verifiedAt?: string;
+}
+
 export interface ManagedAppSupportPresentation {
   limitations: readonly string[];
   exclusions: readonly string[];
@@ -128,6 +147,7 @@ export interface ManagedAppSummary {
   coverageClass: ManagedAppCoverageClass;
   presentation: ManagedAppPresentation;
   detectionEvidence: readonly ManagedAppDetectionEvidence[];
+  sourceEvidence?: readonly ManagedAppSourceEvidence[];
   support: ManagedAppSupportPresentation;
   capabilities: readonly ManagedAppCapability[];
   managedDocumentCount: number;
@@ -145,6 +165,37 @@ export interface CatalogCoveragePolicy {
 export interface ManagedAppCatalog {
   schemaVersion: typeof CATALOG_SCHEMA_VERSION;
   coveragePolicy: CatalogCoveragePolicy;
+  applications: readonly ManagedAppSummary[];
+}
+
+export interface ManagedAppPageQuery {
+  query?: string;
+  category?: string;
+  coverageClass?: ManagedAppCoverageClass;
+  capability?: ManagedAppCapability;
+  detected?: boolean;
+  detectedAppIds?: readonly string[];
+  page: number;
+}
+
+export interface ManagedAppPagination {
+  page: number;
+  pageSize: typeof CATALOG_PAGE_SIZE;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface ManagedAppFacets {
+  categories: readonly string[];
+  coverageClasses: readonly ManagedAppCoverageClass[];
+  capabilities: readonly ManagedAppCapability[];
+}
+
+export interface ManagedAppPage {
+  schemaVersion: typeof CATALOG_SCHEMA_VERSION;
+  coveragePolicy: CatalogCoveragePolicy;
+  facets: ManagedAppFacets;
+  pagination: ManagedAppPagination;
   applications: readonly ManagedAppSummary[];
 }
 
@@ -172,6 +223,16 @@ const DETECTION_EVIDENCE_KINDS: readonly string[] = [
   "HOMEBREW_PATH",
   "HOME_PATH",
   "SERVICE",
+];
+const SOURCE_LICENSE_STATUSES: readonly string[] = [
+  "APPROVED",
+  "REJECTED",
+  "REVIEW_REQUIRED",
+];
+const SOURCE_REVIEW_STATUSES: readonly string[] = [
+  "APPROVED",
+  "PENDING",
+  "REJECTED",
 ];
 const PATH_ROOTS: readonly string[] = [
   "HOME",
@@ -260,12 +321,74 @@ function decodeIdentifier(value: unknown): string {
   return identifier;
 }
 
-function decodeCount(value: unknown): number {
+function decodeSourceEvidence(value: unknown): readonly ManagedAppSourceEvidence[] {
+  if (!Array.isArray(value) || value.length > 32) {
+    throw createInternalError();
+  }
+  const evidence = value.map((entry) => {
+    if (!isRecord(entry)) {
+      throw createInternalError();
+    }
+    const url = decodeText(entry.url);
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw createInternalError();
+    }
+    if (
+      parsedUrl.protocol !== "https:" ||
+      parsedUrl.username.length > 0 ||
+      parsedUrl.password.length > 0 ||
+      parsedUrl.search.length > 0 ||
+      parsedUrl.hash.length > 0
+    ) {
+      throw createInternalError();
+    }
+    const contentSha256 =
+      entry.contentSha256 === null || entry.contentSha256 === undefined
+        ? undefined
+        : decodeText(entry.contentSha256);
+    const verifiedAt =
+      entry.verifiedAt === null || entry.verifiedAt === undefined
+        ? undefined
+        : decodeText(entry.verifiedAt);
+    if (
+      (contentSha256 === undefined) !== (verifiedAt === undefined) ||
+      (contentSha256 !== undefined &&
+        !/^[a-f0-9]{64}$/.test(contentSha256)) ||
+      (verifiedAt !== undefined &&
+        (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(verifiedAt) ||
+          Number.isNaN(Date.parse(verifiedAt))))
+    ) {
+      throw createInternalError();
+    }
+    return {
+      url,
+      licenseStatus: decodeKnownValue<ManagedAppSourceLicenseStatus>(
+        entry.licenseStatus,
+        SOURCE_LICENSE_STATUSES,
+      ),
+      reviewStatus: decodeKnownValue<ManagedAppSourceReviewStatus>(
+        entry.reviewStatus,
+        SOURCE_REVIEW_STATUSES,
+      ),
+      ...(contentSha256 === undefined ? {} : { contentSha256 }),
+      ...(verifiedAt === undefined ? {} : { verifiedAt }),
+    };
+  });
+  if (new Set(evidence.map((entry) => entry.url)).size !== evidence.length) {
+    throw createInternalError();
+  }
+  return evidence;
+}
+
+function decodeCount(value: unknown, maximum = MAX_MANAGED_APPS): number {
   if (
     typeof value !== "number" ||
     !Number.isSafeInteger(value) ||
     value < 0 ||
-    value > 32
+    value > maximum
   ) {
     throw createInternalError();
   }
@@ -514,7 +637,10 @@ function decodeManagedApp(value: unknown): ManagedAppSummary {
   }
 
   const capabilities = decodeCapabilities(value.capabilities);
-  const managedDocumentCount = decodeCount(value.managedDocumentCount);
+  const managedDocumentCount = decodeCount(
+    value.managedDocumentCount,
+    MAX_CONFIG_DOCUMENTS_PER_APP,
+  );
   return {
     id: decodeIdentifier(value.id),
     displayName: decodeText(value.displayName),
@@ -524,10 +650,11 @@ function decodeManagedApp(value: unknown): ManagedAppSummary {
     coverageClass: decodeCoverageClass(value.coverageClass, capabilities),
     presentation: decodePresentation(value.presentation, managedDocumentCount),
     detectionEvidence: decodeDetectionEvidence(value.detectionEvidence),
+    sourceEvidence: decodeSourceEvidence(value.sourceEvidence),
     support: decodeSupport(value.support),
     capabilities,
     managedDocumentCount,
-    serviceCount: decodeCount(value.serviceCount),
+    serviceCount: decodeCount(value.serviceCount, 32),
   };
 }
 
@@ -562,7 +689,7 @@ export function decodeManagedAppCatalog(value: unknown): ManagedAppCatalog {
     value.schemaVersion !== CATALOG_SCHEMA_VERSION ||
     !Array.isArray(value.applications) ||
     value.applications.length === 0 ||
-    value.applications.length > MAX_MANAGED_APPS
+    value.applications.length > CATALOG_PAGE_SIZE
   ) {
     throw createInternalError();
   }
@@ -572,32 +699,6 @@ export function decodeManagedAppCatalog(value: unknown): ManagedAppCatalog {
     throw createInternalError();
   }
   const coveragePolicy = decodeCoveragePolicy(value.coveragePolicy);
-  const priorityAApplications = applications.filter(
-    (application) => application.priority === "PRIORITY_A",
-  );
-  const priorityBApplications = applications.filter(
-    (application) => application.priority === "PRIORITY_B",
-  );
-  const priorityAUsable = priorityAApplications.filter(
-    (application) =>
-      application.coverageClass === "MANAGED_WRITABLE" &&
-      application.capabilities.includes("READ_CONFIG") &&
-      application.capabilities.includes("WRITE_CONFIG"),
-  ).length;
-  const priorityBCovered = priorityBApplications.filter(
-    (application) =>
-      application.coverageClass === "MANAGED_WRITABLE" ||
-      application.coverageClass === "MANAGED_READ_ONLY" ||
-      application.coverageClass === "EXCLUDED",
-  ).length;
-  if (
-    priorityAApplications.length !== coveragePolicy.priorityATotal ||
-    priorityAUsable !== coveragePolicy.priorityAUsable ||
-    priorityBApplications.length !== coveragePolicy.priorityBTotal ||
-    priorityBCovered !== coveragePolicy.priorityBCovered
-  ) {
-    throw createInternalError();
-  }
 
   return {
     schemaVersion: CATALOG_SCHEMA_VERSION,
@@ -606,6 +707,138 @@ export function decodeManagedAppCatalog(value: unknown): ManagedAppCatalog {
   };
 }
 
+function decodeTextArray(
+  value: unknown,
+  maximum: number,
+): readonly string[] {
+  if (!Array.isArray(value) || value.length > maximum) {
+    throw createInternalError();
+  }
+  const entries = value.map(decodeText);
+  if (new Set(entries).size !== entries.length) {
+    throw createInternalError();
+  }
+  return entries;
+}
+
+function decodeManagedAppFacets(value: unknown): ManagedAppFacets {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.coverageClasses) ||
+    value.coverageClasses.length > COVERAGE_CLASSES.length ||
+    !Array.isArray(value.capabilities) ||
+    value.capabilities.length > CAPABILITIES.length
+  ) {
+    throw createInternalError();
+  }
+  const categories = decodeTextArray(value.categories, MAX_MANAGED_APPS);
+  const coverageClasses = value.coverageClasses.map((coverageClass) =>
+    decodeKnownValue<ManagedAppCoverageClass>(
+      coverageClass,
+      COVERAGE_CLASSES,
+    ),
+  );
+  const capabilities = value.capabilities.map((capability) =>
+    decodeKnownValue<ManagedAppCapability>(capability, CAPABILITIES),
+  );
+  if (
+    new Set(coverageClasses).size !== coverageClasses.length ||
+    new Set(capabilities).size !== capabilities.length
+  ) {
+    throw createInternalError();
+  }
+  return { categories, coverageClasses, capabilities };
+}
+
+export function decodeManagedAppPage(value: unknown): ManagedAppPage {
+  if (
+    !isRecord(value) ||
+    value.schemaVersion !== CATALOG_SCHEMA_VERSION ||
+    !isRecord(value.pagination) ||
+    !Array.isArray(value.applications) ||
+    value.applications.length > CATALOG_PAGE_SIZE
+  ) {
+    throw createInternalError();
+  }
+  const page = decodeCount(value.pagination.page, MAX_MANAGED_APPS);
+  const pageSize = decodeCount(
+    value.pagination.pageSize,
+    CATALOG_PAGE_SIZE,
+  );
+  const totalItems = decodeCount(
+    value.pagination.totalItems,
+    MAX_MANAGED_APPS,
+  );
+  const totalPages = decodeCount(
+    value.pagination.totalPages,
+    MAX_MANAGED_APPS,
+  );
+  if (
+    page < 1 ||
+    pageSize !== CATALOG_PAGE_SIZE ||
+    (totalItems === 0 && (totalPages !== 0 || page !== 1)) ||
+    (totalItems > 0 &&
+      (totalPages !== Math.ceil(totalItems / CATALOG_PAGE_SIZE) ||
+        page > totalPages))
+  ) {
+    throw createInternalError();
+  }
+  const applications = value.applications.map(decodeManagedApp);
+  const expectedApplicationCount =
+    totalItems === 0
+    ? 0
+    : Math.min(
+        CATALOG_PAGE_SIZE,
+        totalItems - (page - 1) * CATALOG_PAGE_SIZE,
+      );
+  if (
+    applications.length !== expectedApplicationCount ||
+    new Set(applications.map((application) => application.id)).size !==
+    applications.length
+  ) {
+    throw createInternalError();
+  }
+  return {
+    schemaVersion: CATALOG_SCHEMA_VERSION,
+    coveragePolicy: decodeCoveragePolicy(value.coveragePolicy),
+    facets: decodeManagedAppFacets(value.facets),
+    pagination: {
+      page,
+      pageSize: CATALOG_PAGE_SIZE,
+      totalItems,
+      totalPages,
+    },
+    applications,
+  };
+}
+
 export function listManagedApps(): Promise<ManagedAppCatalog> {
   return invokeCommand("list_managed_apps", decodeManagedAppCatalog);
+}
+
+export function queryManagedApps(
+  input: ManagedAppPageQuery,
+): Promise<ManagedAppPage> {
+  if (
+    !Number.isSafeInteger(input.page) ||
+    input.page < 1 ||
+    input.page > MAX_MANAGED_APPS
+  ) {
+    return Promise.reject(createInternalError());
+  }
+  return invokeCommand("query_managed_apps", decodeManagedAppPage, {
+    input: {
+      query: input.query ?? "",
+      category: input.category,
+      coverageClass: input.coverageClass,
+      capability: input.capability,
+      detected: input.detected,
+      detectedAppIds: input.detectedAppIds ?? [],
+      page: input.page,
+    },
+  });
+}
+
+export function getManagedApp(appId: string): Promise<ManagedAppSummary> {
+  return invokeCommand("get_managed_app", decodeManagedApp, { appId });
 }

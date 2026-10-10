@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, net::Ipv6Addr};
 
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -66,14 +66,129 @@ pub fn prepare_structured(current: &str, fields: Value) -> Result<String, AppErr
             .get("registry")
             .cloned()
             .unwrap_or_else(|| "https://registry.npmjs.org/".to_owned());
-        let host = registry
-            .strip_prefix("https://")
-            .or_else(|| registry.strip_prefix("http://"))
-            .unwrap_or(&registry)
-            .trim_end_matches('/');
-        content = update_entry(&content, &format!("//{host}/:_authToken"), Some(&secret));
+        let scope = auth_token_scope(&registry)?;
+        content = update_entry(&content, &scope, Some(&secret));
     }
     Ok(content)
+}
+
+fn auth_token_scope(registry: &str) -> Result<String, AppError> {
+    let remainder = registry
+        .strip_prefix("https://")
+        .or_else(|| registry.strip_prefix("http://"))
+        .ok_or_else(invalid_registry_scope)?;
+    if remainder.is_empty()
+        || remainder.contains(['?', '#', '\\', '\0'])
+        || remainder.chars().any(char::is_whitespace)
+    {
+        return Err(invalid_registry_scope());
+    }
+
+    let (authority, path) = remainder
+        .split_once('/')
+        .map_or((remainder, ""), |(authority, path)| (authority, path));
+    if authority.is_empty() || authority.contains('@') || !valid_registry_authority(authority) {
+        return Err(invalid_registry_scope());
+    }
+    if path.starts_with('/') {
+        return Err(invalid_registry_scope());
+    }
+    let path = path.strip_suffix('/').unwrap_or(path);
+    if !path.is_empty()
+        && path.split('/').any(|segment| {
+            segment.is_empty()
+                || matches!(segment, "." | "..")
+                || !valid_registry_path_segment(segment)
+        })
+    {
+        return Err(invalid_registry_scope());
+    }
+
+    let authority = authority.to_ascii_lowercase();
+    if path.is_empty() {
+        Ok(format!("//{authority}/:_authToken"))
+    } else {
+        Ok(format!("//{authority}/{path}/:_authToken"))
+    }
+}
+
+fn valid_registry_authority(authority: &str) -> bool {
+    if let Some(ipv6) = authority.strip_prefix('[') {
+        let Some((address, port)) = ipv6.split_once(']') else {
+            return false;
+        };
+        return address.parse::<Ipv6Addr>().is_ok()
+            && (port.is_empty() || port.strip_prefix(':').is_some_and(valid_registry_port));
+    }
+
+    let (host, port) = match authority.split_once(':') {
+        Some((host, port)) if !port.contains(':') => (host, Some(port)),
+        Some(_) => return false,
+        None => (authority, None),
+    };
+    !host.is_empty()
+        && host.split('.').all(|label| {
+            !label.is_empty()
+                && !label.starts_with('-')
+                && !label.ends_with('-')
+                && label
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+        })
+        && port.is_none_or(valid_registry_port)
+}
+
+fn valid_registry_port(port: &str) -> bool {
+    !port.is_empty()
+        && port.bytes().all(|byte| byte.is_ascii_digit())
+        && port.parse::<u16>().is_ok_and(|port| port != 0)
+}
+
+fn valid_registry_path_segment(segment: &str) -> bool {
+    let bytes = segment.as_bytes();
+    let mut index = 0;
+    while index < bytes.len() {
+        let byte = bytes[index];
+        if byte == b'%' {
+            if index + 2 >= bytes.len()
+                || !bytes[index + 1].is_ascii_hexdigit()
+                || !bytes[index + 2].is_ascii_hexdigit()
+            {
+                return false;
+            }
+            index += 3;
+            continue;
+        }
+        if !byte.is_ascii_alphanumeric()
+            && !matches!(
+                byte,
+                b'-' | b'.'
+                    | b'_'
+                    | b'~'
+                    | b'!'
+                    | b'$'
+                    | b'&'
+                    | b'\''
+                    | b'('
+                    | b')'
+                    | b'*'
+                    | b'+'
+                    | b','
+                    | b';'
+                    | b'='
+                    | b':'
+                    | b'@'
+            )
+        {
+            return false;
+        }
+        index += 1;
+    }
+    true
+}
+
+fn invalid_registry_scope() -> AppError {
+    AppError::validation_failed("npm registry cannot safely scope an authentication replacement.")
 }
 
 fn parse(content: &str) -> Result<BTreeMap<String, String>, AppError> {

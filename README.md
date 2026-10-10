@@ -43,8 +43,9 @@ normal development and production builds.
 macOS 原生 traffic lights 的 overlay title bar。紧凑导航栏、上下文工具栏、
 列表/详情工作区都在固定窗口内布局；Dashboard 使用紧凑分组行展示本机、软件包、
 连接、刷新和最近操作状态。长列表、编辑器、详情和检查器在各自区域滚动，不会
-推动文档视口。关闭主窗口会按偏好隐藏到托盘或退出，托盘 Open 会恢复并聚焦
-原窗口。
+推动文档视口。标题文字和空白标题栏区域可拖动窗口；按钮、字段、菜单、列表行、
+编辑器、滚动区域和对话框显式为 no-drag，双击标题栏不会改变窗口尺寸或位置。
+关闭主窗口会按偏好隐藏到托盘或退出，托盘 Open 会恢复并聚焦原窗口。
 
 主界面在各模块独立加载时保持可用；loading、empty、partial、warning 和
 error 状态使用可读文本与 ARIA live region，不以颜色作为唯一状态信号。
@@ -123,13 +124,23 @@ validation restores the exact previous bytes and permissions. Restore follows
 the same preview, hash, validation, backup, and atomic replacement safeguards;
 only the newest 20 recognized backups per catalog document are retained.
 
-The Applications workspace currently exposes 26 catalog definitions: GitHub
-Copilot, Caddy, Git, OpenSSH, Zsh, and npm are explicitly managed writable;
-Visual Studio Code, Cursor, Ghostty, Starship, tmux, Vim, Zed, Neovim, and
-iTerm2, Claude, Codex, Gemini, Antigravity, Trae, Docker, Google Cloud CLI,
-Raycast, GitKraken CLI, and Apifox are bounded managed read-only definitions.
-OrbStack is explicitly excluded because its group container co-locates
-configuration and runtime data without a stable settings-file contract.
+The Applications workspace packages 624 offline catalog definitions and uses
+Rust-side search, filtering, facets, detail lookup, and exact 50-item pages.
+The corpus is built deterministically from pinned Homebrew formula/cask facts
+and reviewed managed overlays; the client performs no runtime source fetch.
+Application detail shows official source URLs, review/license state, and a
+SHA-256 plus verification time when an immutable API snapshot is available.
+Source evidence is read-only metadata and never grants filesystem, command,
+service, or elevation authority.
+
+The original 26 authorization definitions remain intact: GitHub Copilot,
+Caddy, Git, OpenSSH, Zsh, and npm are explicitly managed writable; Visual
+Studio Code, Cursor, Ghostty, Starship, tmux, Vim, Zed, Neovim, iTerm2, Claude,
+Codex, Gemini, Antigravity, Trae, Docker, Google Cloud CLI, Raycast, GitKraken
+CLI, and Apifox are bounded managed read-only definitions. OrbStack is
+explicitly excluded because its group container co-locates configuration and
+runtime data without a stable settings-file contract. All additional corpus
+entries are detection-only and expose zero configuration or mutation authority.
 `MANAGED_READ_ONLY` entries never expose preview, write, backup, restore,
 service, or elevation actions. `DETECTED_UNSUPPORTED` and `EXCLUDED`
 candidates expose only safe classification metadata (name, entry type,

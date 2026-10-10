@@ -1,4 +1,7 @@
 mod definitions;
+pub mod preset;
+pub mod schema;
+pub mod source;
 
 use std::collections::HashSet;
 
@@ -7,13 +10,15 @@ use serde::{Deserialize, Serialize};
 use crate::security::paths::is_safe_catalog_relative_path;
 
 pub use crate::security::paths::CatalogPathRoot;
-pub use definitions::BUILTIN_CATALOG_JSON;
+pub use definitions::{
+    BUILTIN_CATALOG_JSON, BUILTIN_PRESET_JSON, BUILTIN_SCHEMA_JSON, BUILTIN_SOURCE_JSON,
+};
 
 pub const CATALOG_SCHEMA_VERSION: u16 = 1;
-pub const MAX_CATALOG_BYTES: usize = 64 * 1024;
+pub const MAX_CATALOG_BYTES: usize = 2 * 1024 * 1024;
 pub const MAX_CONFIG_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
 
-const MAX_APPS: usize = 32;
+const MAX_APPS: usize = 1_000;
 const MAX_CONFIG_DOCUMENTS_PER_APP: usize = 16;
 const MAX_PATH_VARIANTS_PER_DOCUMENT: usize = 8;
 const MAX_LIST_ENTRIES: usize = 32;
@@ -135,6 +140,9 @@ pub enum CatalogValidationError {
     UnsupportedWritePolicy,
     UnsupportedValue,
     IncompletePriorityCoverage,
+    InvalidPresetDefinitions,
+    InvalidSchemaDefinitions,
+    InvalidSourceDefinitions,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -187,6 +195,8 @@ pub struct ManagedAppDefinition {
     config_documents: Vec<ConfigDocumentDefinition>,
     services: Vec<String>,
     capabilities: Vec<String>,
+    #[serde(default)]
+    source_evidence: Vec<ManagedAppSourceEvidence>,
 }
 
 impl ManagedAppDefinition {
@@ -264,6 +274,60 @@ impl ManagedAppDefinition {
     pub fn capabilities(&self) -> &[String] {
         &self.capabilities
     }
+
+    pub fn source_evidence(&self) -> &[ManagedAppSourceEvidence] {
+        &self.source_evidence
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ManagedAppSourceEvidence {
+    url: String,
+    license_status: CatalogSourceLicenseStatus,
+    review_status: CatalogSourceReviewStatus,
+    #[serde(default)]
+    content_sha256: Option<String>,
+    #[serde(default)]
+    verified_at: Option<String>,
+}
+
+impl ManagedAppSourceEvidence {
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    pub fn license_status(&self) -> CatalogSourceLicenseStatus {
+        self.license_status
+    }
+
+    pub fn review_status(&self) -> CatalogSourceReviewStatus {
+        self.review_status
+    }
+
+    pub fn content_sha256(&self) -> Option<&str> {
+        self.content_sha256.as_deref()
+    }
+
+    pub fn verified_at(&self) -> Option<&str> {
+        self.verified_at.as_deref()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CatalogSourceLicenseStatus {
+    Approved,
+    Rejected,
+    ReviewRequired,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CatalogSourceReviewStatus {
+    Approved,
+    Pending,
+    Rejected,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -511,7 +575,32 @@ impl ConfigDocumentDefinition {
 }
 
 pub fn load_builtin_catalog() -> Result<Catalog, CatalogValidationError> {
-    parse_catalog(BUILTIN_CATALOG_JSON)
+    let catalog = parse_catalog(BUILTIN_CATALOG_JSON)?;
+    let sources = source::parse_source_catalog(BUILTIN_SOURCE_JSON)
+        .map_err(|_| CatalogValidationError::InvalidSourceDefinitions)?;
+    let schemas = schema::parse_schema_catalog(BUILTIN_SCHEMA_JSON, &catalog, &sources)
+        .map_err(|_| CatalogValidationError::InvalidSchemaDefinitions)?;
+    preset::parse_preset_catalog(BUILTIN_PRESET_JSON, &schemas, &sources)
+        .map_err(|_| CatalogValidationError::InvalidPresetDefinitions)?;
+    Ok(catalog)
+}
+
+pub fn load_builtin_sources() -> Result<source::SourceCatalog, source::SourceValidationError> {
+    source::parse_source_catalog(BUILTIN_SOURCE_JSON)
+}
+
+pub fn load_builtin_schemas(
+    catalog: &Catalog,
+    sources: &source::SourceCatalog,
+) -> Result<schema::SchemaCatalog, schema::SchemaValidationError> {
+    schema::parse_schema_catalog(BUILTIN_SCHEMA_JSON, catalog, sources)
+}
+
+pub fn load_builtin_presets(
+    schemas: &schema::SchemaCatalog,
+    sources: &source::SourceCatalog,
+) -> Result<preset::PresetCatalog, preset::PresetValidationError> {
+    preset::parse_preset_catalog(BUILTIN_PRESET_JSON, schemas, sources)
 }
 
 pub fn parse_catalog(source: &str) -> Result<Catalog, CatalogValidationError> {
@@ -552,11 +641,32 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
         }
         validate_text(app.presentation_category())?;
         validate_list(&app.executables)?;
-        validate_list(&app.brew_formulae)?;
-        validate_list(&app.brew_casks)?;
+        validate_package_list(&app.brew_formulae)?;
+        validate_package_list(&app.brew_casks)?;
         validate_list(&app.services)?;
         validate_allowed_list(&app.capabilities, ALLOWED_CAPABILITIES)?;
         validate_coverage_class(app)?;
+        if app.source_evidence.len() > MAX_LIST_ENTRIES {
+            return Err(CatalogValidationError::TooManyEntries);
+        }
+        let mut source_urls = HashSet::with_capacity(app.source_evidence.len());
+        for evidence in &app.source_evidence {
+            if source::parse_https_url(&evidence.url).is_none()
+                || !source_urls.insert(evidence.url.as_str())
+                || evidence
+                    .content_sha256
+                    .as_deref()
+                    .is_some_and(|digest| !source::is_sha256(digest))
+                || evidence.verified_at.as_deref().is_some_and(|verified_at| {
+                    source::parse_verified_at(verified_at).is_none_or(|verified_at| {
+                        source::current_unix_seconds().is_none_or(|now| verified_at > now)
+                    })
+                })
+                || evidence.content_sha256.is_some() != evidence.verified_at.is_some()
+            {
+                return Err(CatalogValidationError::UnsupportedValue);
+            }
+        }
 
         if app.detection_rules.is_empty() {
             return Err(CatalogValidationError::UnsupportedValue);
@@ -575,6 +685,10 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
             if matches!(rule.kind.as_str(), "HOME_PATH" | "HOMEBREW_PATH") {
                 if !is_safe_path_template(&rule.value) {
                     return Err(CatalogValidationError::UnsafePath);
+                }
+            } else if matches!(rule.kind.as_str(), "BREW_CASK" | "BREW_FORMULA") {
+                if !is_package_token(&rule.value) {
+                    return Err(CatalogValidationError::InvalidIdentifier);
                 }
             } else if !is_kebab_case(&rule.value) {
                 return Err(CatalogValidationError::InvalidIdentifier);
@@ -812,8 +926,28 @@ fn validate_text(value: &str) -> Result<(), CatalogValidationError> {
     Ok(())
 }
 
+fn is_package_token(value: &str) -> bool {
+    let mut bytes = value.bytes();
+    bytes
+        .next()
+        .is_some_and(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit())
+        && value.len() <= 128
+        && bytes.all(|byte| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || matches!(byte, b'@' | b'+' | b'.' | b'_' | b'-')
+        })
+}
+
 fn validate_list(values: &[String]) -> Result<(), CatalogValidationError> {
     if values.len() > MAX_LIST_ENTRIES || values.iter().any(|value| !is_kebab_case(value)) {
+        return Err(CatalogValidationError::UnsupportedValue);
+    }
+    Ok(())
+}
+
+fn validate_package_list(values: &[String]) -> Result<(), CatalogValidationError> {
+    if values.len() > MAX_LIST_ENTRIES || values.iter().any(|value| !is_package_token(value)) {
         return Err(CatalogValidationError::UnsupportedValue);
     }
     Ok(())
@@ -834,11 +968,11 @@ fn validate_allowed_list(
     Ok(())
 }
 
-fn is_bounded_text(value: &str) -> bool {
+pub(super) fn is_bounded_text(value: &str) -> bool {
     !value.trim().is_empty() && value.len() <= MAX_STRING_BYTES
 }
 
-fn is_kebab_case(value: &str) -> bool {
+pub(super) fn is_kebab_case(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 64
         && !value.starts_with('-')

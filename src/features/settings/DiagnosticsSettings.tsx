@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AsyncState } from "../../components/AsyncState";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, Panel, StatusBadge } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
   exportDiagnosticsReport,
@@ -8,6 +8,14 @@ import {
   type DiagnosticProviderState,
   type DiagnosticsReport,
 } from "../../ipc/settings";
+import {
+  SettingsActions,
+  SettingsFeedback,
+  SettingsFieldList,
+  SettingsForm,
+  SettingsSection,
+  SettingsValueField,
+} from "./SettingsPrimitives";
 
 type ReportState =
   | { status: "loading" }
@@ -109,80 +117,69 @@ export function DiagnosticsSettings() {
 
   if (state.status === "error") {
     return (
-      <div className="settings-form">
+      <SettingsForm>
         <AsyncState kind="error">{state.error.message}</AsyncState>
-        <div>
-          <Button onClick={() => void loadReport()}>重新生成</Button>
-        </div>
-      </div>
+        <SettingsActions className="border-0 pt-0">
+          <Button size="sm" onClick={() => void loadReport()}>
+            重新生成
+          </Button>
+        </SettingsActions>
+      </SettingsForm>
     );
   }
 
   const { report } = state;
 
   return (
-    <div className="settings-form" aria-busy={busyAction !== undefined}>
-      <div className="settings-control-list">
-        <div className="settings-control-row">
-          <span>
-            <strong>应用与系统</strong>
-            <small>
+    <SettingsForm busy={busyAction !== undefined}>
+      <SettingsFieldList>
+        <SettingsValueField
+          label="应用与系统"
+          description={
+            <>
               UserHome {report.application.version} · macOS{" "}
               {report.system.macosVersion ?? "未知"}
-            </small>
-          </span>
-          <span className="settings-control-row__value">
-            {report.system.architecture}
-          </span>
-        </div>
-        <div className="settings-control-row">
-          <span>
-            <strong>Catalog</strong>
-            <small>
-              {report.catalog.applicationCount} 个应用 ·{" "}
-              {report.catalog.managedDocumentCount} 个受管文档 ·{" "}
-              {report.catalog.serviceCount} 个服务
-            </small>
-          </span>
+            </>
+          }
+        >
+          {report.system.architecture}
+        </SettingsValueField>
+        <SettingsValueField
+          label="Catalog"
+          description={`${report.catalog.applicationCount} 个应用 · ${report.catalog.managedDocumentCount} 个受管文档 · ${report.catalog.serviceCount} 个服务`}
+        >
           <StatusBadge tone="success">
             schema {report.catalog.schemaVersion}
           </StatusBadge>
-        </div>
-        <div className="settings-control-row">
-          <span>
-            <strong>权限辅助程序</strong>
-            <small>
-              {report.helper.supported
-                ? report.helper.signed
-                  ? "受支持且签名状态有效"
-                  : "受支持，但签名状态不可用"
-                : "当前平台不支持"}
-            </small>
-          </span>
+        </SettingsValueField>
+        <SettingsValueField
+          label="权限辅助程序"
+          description={
+            report.helper.supported
+              ? report.helper.signed
+                ? "受支持且签名状态有效"
+                : "受支持，但签名状态不可用"
+              : "当前平台不支持"
+          }
+        >
           <StatusBadge
             tone={report.helper.available ? "success" : "warning"}
           >
             {report.helper.available ? "可用" : "不可用"}
           </StatusBadge>
-        </div>
-      </div>
+        </SettingsValueField>
+      </SettingsFieldList>
 
-      <section
-        className="rounded-lg border border-border bg-surface-muted p-3"
+      <Panel
+        className="bg-surface-muted p-ui-2xl"
         aria-labelledby="diagnostics-provider-heading"
       >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3
-              className="m-0 text-xs font-semibold"
-              id="diagnostics-provider-heading"
-            >
-              提供程序健康
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              仅显示固定提供程序和枚举状态，不包含错误详情或候选路径。
-            </p>
-          </div>
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl">
+          <SettingsSection
+            title="提供程序健康"
+            description="仅显示固定提供程序和枚举状态，不包含错误详情或候选路径。"
+            headingId="diagnostics-provider-heading"
+          />
           <Button
             size="sm"
             disabled={busyAction !== undefined}
@@ -191,7 +188,7 @@ export function DiagnosticsSettings() {
             重新生成
           </Button>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-ui-xl flex flex-wrap gap-ui-md">
           {report.providers.map((provider) => (
             <StatusBadge
               key={provider.id}
@@ -202,50 +199,38 @@ export function DiagnosticsSettings() {
             </StatusBadge>
           ))}
         </div>
-      </section>
+      </Panel>
 
-      <section aria-labelledby="diagnostics-report-heading">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3
-              className="m-0 text-xs font-semibold"
-              id="diagnostics-report-heading"
-            >
-              净化报告
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              不包含配置内容、密钥、用户名、绝对主目录、环境变量或授权材料。
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              disabled={busyAction !== undefined}
-              onClick={() => void copyReport(report)}
-            >
-              {busyAction === "copy" ? "正在复制…" : "复制"}
-            </Button>
-            <Button
-              size="sm"
-              disabled={busyAction !== undefined}
-              onClick={() => void exportReport()}
-            >
-              {busyAction === "export" ? "正在导出…" : "导出…"}
-            </Button>
-          </div>
+      <SettingsSection
+        title="净化报告"
+        description="不包含配置内容、密钥、用户名、绝对主目录、环境变量或授权材料。"
+        headingId="diagnostics-report-heading"
+      >
+        <div className="flex min-w-0 flex-wrap justify-end gap-ui-md">
+          <Button
+            size="sm"
+            disabled={busyAction !== undefined}
+            onClick={() => void copyReport(report)}
+          >
+            {busyAction === "copy" ? "正在复制…" : "复制"}
+          </Button>
+          <Button
+            size="sm"
+            disabled={busyAction !== undefined}
+            onClick={() => void exportReport()}
+          >
+            {busyAction === "export" ? "正在导出…" : "导出…"}
+          </Button>
         </div>
-        <pre className="diagnostics-report">{report.reportText}</pre>
-      </section>
+        <pre
+          className="m-0 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-panel border border-border bg-surface-muted p-ui-xl font-mono text-xs leading-relaxed text-foreground [scrollbar-gutter:stable]"
+          tabIndex={0}
+        >
+          {report.reportText}
+        </pre>
+      </SettingsSection>
 
-      {actionError ? (
-        <p className="settings-form__error" role="alert">
-          {actionError}
-        </p>
-      ) : message ? (
-        <p className="settings-form__status" role="status">
-          {message}
-        </p>
-      ) : null}
-    </div>
+      <SettingsFeedback error={actionError} status={message} />
+    </SettingsForm>
   );
 }

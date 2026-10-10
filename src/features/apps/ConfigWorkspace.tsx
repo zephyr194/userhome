@@ -16,16 +16,20 @@ import type {
 import {
   executeConfigWrite,
   executeRestoreBackup,
+  getConfigSchema,
   listConfigBackups,
   listConfigs,
   previewConfigWrite,
   previewRestoreBackup,
+  previewSchemaConfigWrite,
   previewStructuredConfigWrite,
   readConfig,
   resolveConfigVariants,
   type BackupSummary,
   type ConfigDiagnostic,
   type ConfigDocument,
+  type ConfigSchemaPresentation,
+  type SchemaFieldPatch,
   type ConfigSummary,
   type ConfigVariantResolution,
   type ConfigWritePreview as ConfigWritePreviewValue,
@@ -48,8 +52,10 @@ import { ConfigWritePreview } from "./ConfigWritePreview";
 import { ConfigAdapterEditor } from "./editors/ConfigAdapterEditor";
 import { getConfigEditorCapability } from "./editors/configEditorCapabilities";
 import { RawTextEditor } from "./editors/RawTextEditor";
+import { SchemaEditor } from "./editors/SchemaEditor";
 import {
   CONFIG_DOCUMENT_ACTION_PRESENTATION,
+  createPreviewRequestGate,
   getConfigPresentation,
   resolveConfigDocumentActionMode,
 } from "./configPresentation";
@@ -85,6 +91,16 @@ type VariantState =
       status: "ready";
       configId: string;
       variants: readonly ConfigVariantResolution[];
+    }
+  | { status: "error"; configId: string; error: AppError };
+
+type SchemaState =
+  | { status: "idle" }
+  | { status: "loading"; configId: string }
+  | {
+      status: "ready";
+      configId: string;
+      presentation: ConfigSchemaPresentation;
     }
   | { status: "error"; configId: string; error: AppError };
 
@@ -171,7 +187,10 @@ export function ConfigWorkspace({
   refreshId?: string;
   selectedConfigId?: string;
 }) {
-  const canRead = application.capabilities.includes("READ_CONFIG");
+  const canRead =
+    (application.coverageClass === "MANAGED_WRITABLE" ||
+      application.coverageClass === "MANAGED_READ_ONLY") &&
+    application.capabilities.includes("READ_CONFIG");
   const canWrite =
     application.coverageClass === "MANAGED_WRITABLE" &&
     application.capabilities.includes("WRITE_CONFIG");
@@ -181,6 +200,7 @@ export function ConfigWorkspace({
   );
   const [document, setDocument] = useState<DocumentState>({ status: "idle" });
   const [variants, setVariants] = useState<VariantState>({ status: "idle" });
+  const [schema, setSchema] = useState<SchemaState>({ status: "idle" });
   const [draft, setDraft] = useState("");
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [operations, setOperations] = useState<OperationSummary[]>([]);
@@ -188,6 +208,8 @@ export function ConfigWorkspace({
   const [operation, setOperation] = useState<OperationDetails>();
   const [actionError, setActionError] = useState<AppError>();
   const [executing, setExecuting] = useState(false);
+  const [schemaEditorResetId, setSchemaEditorResetId] = useState(0);
+  const [previewRequests] = useState(createPreviewRequestGate);
   const selectedConfigIdRef = useRef(selectedConfigId);
   const loadRequestId = useRef(0);
   const configButtonRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -202,6 +224,7 @@ export function ConfigWorkspace({
       options: { resetPreview?: boolean; variantId?: string } = {},
     ) => {
       const requestId = ++loadRequestId.current;
+      previewRequests.invalidate();
       const presentation = getConfigPresentation(
         application,
         summary.configId,
@@ -212,6 +235,7 @@ export function ConfigWorkspace({
       onSelectedConfigChange(application.id, summary.configId);
       setDocument({ status: "loading" });
       setVariants({ status: "loading", configId: summary.configId });
+      setSchema({ status: "loading", configId: summary.configId });
       if (options.resetPreview !== false) {
         setPreview({ status: "idle" });
         setOperation(undefined);
@@ -253,6 +277,7 @@ export function ConfigWorkspace({
         setBackups([]);
         setOperations([]);
         setDraft("");
+        setSchema({ status: "idle" });
         setDocument(metadataDocumentState(summary));
         return;
       }
@@ -265,6 +290,31 @@ export function ConfigWorkspace({
           mayWrite ? listOperations() : Promise.resolve([]),
         ]);
         if (loadRequestId.current !== requestId) return;
+        if (mayWrite) {
+          void getConfigSchema(
+            summary.appId,
+            summary.configId,
+            value.variantId,
+          )
+            .then((schemaValue) => {
+              if (loadRequestId.current !== requestId) return;
+              setSchema({
+                status: "ready",
+                configId: summary.configId,
+                presentation: schemaValue,
+              });
+            })
+            .catch((error) => {
+              if (loadRequestId.current !== requestId) return;
+              setSchema({
+                status: "error",
+                configId: summary.configId,
+                error: decodeAppError(error),
+              });
+            });
+        } else {
+          setSchema({ status: "idle" });
+        }
         setBackups(backupValues);
         setOperations(
           operationValues.filter((operation) =>
@@ -284,7 +334,7 @@ export function ConfigWorkspace({
         }
       }
     },
-    [application, canWrite, onSelectedConfigChange],
+    [application, canWrite, onSelectedConfigChange, previewRequests],
   );
 
   useEffect(() => {
@@ -294,6 +344,7 @@ export function ConfigWorkspace({
       return () => {
         active = false;
         loadRequestId.current += 1;
+        previewRequests.invalidate();
       };
     }
 
@@ -307,10 +358,12 @@ export function ConfigWorkspace({
         );
         if (selectedId && !selectedConfig) {
           loadRequestId.current += 1;
+          previewRequests.invalidate();
           selectedConfigIdRef.current = undefined;
           onSelectedConfigChange(application.id, undefined);
           setDocument({ status: "idle" });
           setVariants({ status: "idle" });
+          setSchema({ status: "idle" });
           setPreview({ status: "idle" });
           setOperation(undefined);
           setActionError(undefined);
@@ -325,12 +378,14 @@ export function ConfigWorkspace({
     return () => {
       active = false;
       loadRequestId.current += 1;
+      previewRequests.invalidate();
     };
   }, [
     application.id,
     canRead,
     loadDocument,
     onSelectedConfigChange,
+    previewRequests,
     refreshId,
   ]);
 
@@ -341,6 +396,7 @@ export function ConfigWorkspace({
     setOperation(undefined);
     setActionError(undefined);
     setPreview({ status: "loading" });
+    const requestId = previewRequests.start();
     try {
       const result = await previewConfigWrite({
         appId: value.appId,
@@ -348,8 +404,10 @@ export function ConfigWorkspace({
         expectedHash: value.contentHash,
         content: draft,
       });
+      if (!previewRequests.isCurrent(requestId)) return;
       setPreview({ status: "ready", kind: "write", preview: result });
     } catch (error) {
+      if (!previewRequests.isCurrent(requestId)) return;
       setPreview({ status: "error", error: decodeAppError(error) });
     }
   }
@@ -364,6 +422,7 @@ export function ConfigWorkspace({
     setOperation(undefined);
     setActionError(undefined);
     setPreview({ status: "loading" });
+    const requestId = previewRequests.start();
     try {
       const result = await previewStructuredConfigWrite({
         appId: value.appId,
@@ -371,8 +430,44 @@ export function ConfigWorkspace({
         expectedHash: value.contentHash,
         fields,
       });
+      if (!previewRequests.isCurrent(requestId)) return;
       setPreview({ status: "ready", kind: "write", preview: result });
     } catch (error) {
+      if (!previewRequests.isCurrent(requestId)) return;
+      setPreview({ status: "error", error: decodeAppError(error) });
+    }
+  }
+
+  async function createSchemaWritePreview(
+    presentation: ConfigSchemaPresentation & {
+      state: "READY";
+      schema: NonNullable<ConfigSchemaPresentation["schema"]>;
+      expectedHash: string;
+      variantId: string;
+    },
+    fields: SchemaFieldPatch[],
+    completeTemplate?: { presetId: string; presetVersion: number },
+  ) {
+    if (!canWrite || !presentation.writable) return;
+    setOperation(undefined);
+    setActionError(undefined);
+    setPreview({ status: "loading" });
+    const requestId = previewRequests.start();
+    try {
+      const result = await previewSchemaConfigWrite({
+        appId: presentation.appId,
+        configId: presentation.configId,
+        variantId: presentation.variantId,
+        schemaId: presentation.schema.schemaId,
+        schemaVersion: presentation.schema.schemaVersion,
+        expectedHash: presentation.expectedHash,
+        fields,
+        ...(completeTemplate ? { completeTemplate } : {}),
+      });
+      if (!previewRequests.isCurrent(requestId)) return;
+      setPreview({ status: "ready", kind: "write", preview: result });
+    } catch (error) {
+      if (!previewRequests.isCurrent(requestId)) return;
       setPreview({ status: "error", error: decodeAppError(error) });
     }
   }
@@ -389,6 +484,7 @@ export function ConfigWorkspace({
     setOperation(undefined);
     setActionError(undefined);
     setPreview({ status: "loading" });
+    const requestId = previewRequests.start();
     try {
       const result = await previewRestoreBackup({
         appId: document.document.appId,
@@ -396,8 +492,10 @@ export function ConfigWorkspace({
         backupId,
         expectedHash: document.document.contentHash,
       });
+      if (!previewRequests.isCurrent(requestId)) return;
       setPreview({ status: "ready", kind: "restore", preview: result });
     } catch (error) {
+      if (!previewRequests.isCurrent(requestId)) return;
       setPreview({ status: "error", error: decodeAppError(error) });
     }
   }
@@ -412,14 +510,23 @@ export function ConfigWorkspace({
         preview.kind === "write"
           ? await executeConfigWrite(operationId)
           : await executeRestoreBackup(operationId);
+      setSchemaEditorResetId((value) => value + 1);
       setOperation(result);
-      if (
-        document.status === "ready" &&
-        selectedConfigIdRef.current === document.document.configId
-      ) {
-        await loadDocument(document.document, {
+      const selectedConfig =
+        configs.status === "ready"
+          ? configs.configs.find(
+              (config) => config.configId === selectedConfigIdRef.current,
+            )
+          : undefined;
+      if (selectedConfig) {
+        await loadDocument(selectedConfig, {
           resetPreview: false,
-          variantId: document.document.variantId,
+          variantId:
+            document.status === "ready"
+              ? document.document.variantId
+              : document.status === "diagnostic"
+                ? document.diagnostic.variantId
+                : undefined,
         });
       }
     } catch (error) {
@@ -436,6 +543,7 @@ export function ConfigWorkspace({
   }
 
   function closePreview() {
+    previewRequests.invalidate();
     setPreview({ status: "idle" });
     setOperation(undefined);
     setActionError(undefined);
@@ -496,6 +604,28 @@ export function ConfigWorkspace({
     : undefined;
   const selectedFormatMatches =
     displayedDocument?.format === selectedPresentation?.format;
+  const selectedSchema =
+    schema.status === "ready" && schema.configId === selectedConfigId
+      ? schema.presentation
+      : undefined;
+  const readySchema =
+    selectedSchema?.state === "READY" &&
+    selectedSchema.schema &&
+    selectedSchema.expectedHash &&
+    selectedSchema.variantId &&
+    selectedSchema.documentState
+      ? {
+          ...selectedSchema,
+          state: "READY" as const,
+          schema: selectedSchema.schema,
+          expectedHash: selectedSchema.expectedHash,
+          variantId: selectedSchema.variantId,
+          documentState: selectedSchema.documentState,
+        }
+      : undefined;
+  const allowAdapterFallback =
+    selectedSchema?.state === "UNAVAILABLE" &&
+    selectedSchema.disabledReason?.code === "NO_SCHEMA";
   const documentActionMode =
     displayedDocument && selectedPresentation
       ? resolveConfigDocumentActionMode({
@@ -503,7 +633,9 @@ export function ConfigWorkspace({
           applicationCanWrite: canWrite,
           contentHash: displayedDocument.contentHash,
           editorAvailable: Boolean(
-            editorCapability?.StructuredEditor || editorCapability?.raw,
+            readySchema ||
+              (allowAdapterFallback && editorCapability?.StructuredEditor) ||
+              editorCapability?.raw,
           ),
           formatMatches: selectedFormatMatches,
           selectedVariant: selectedVariantIsWritable,
@@ -515,7 +647,10 @@ export function ConfigWorkspace({
     selectedFormatMatches &&
     (selectedPresentation?.accessMode === "READ_WRITE" ||
       selectedPresentation?.accessMode === "READ_ONLY");
-  const hasStructuredEditor = Boolean(editorCapability?.StructuredEditor);
+  const hasStructuredEditor = Boolean(
+    readySchema ||
+      (allowAdapterFallback && editorCapability?.StructuredEditor),
+  );
   const hasRawEditor =
     Boolean(editorCapability?.raw) &&
     displayedDocument?.content !== undefined;
@@ -523,6 +658,10 @@ export function ConfigWorkspace({
     hasRawEditor &&
     (preferredEditorMode === "RAW" || !hasStructuredEditor);
   const showStructuredEditor = hasStructuredEditor && !showRawEditor;
+  const showSchemaEditor = Boolean(readySchema && showStructuredEditor);
+  const showAdapterEditor = Boolean(
+    allowAdapterFallback && !readySchema && showStructuredEditor,
+  );
 
   function selectVariant(variantId: string) {
     if (configs.status !== "ready" || !selectedConfigId) return;
@@ -568,7 +707,7 @@ export function ConfigWorkspace({
             <ApplicationIcon className="size-7" iconKey={application.iconKey} />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h3 className="text-lg font-semibold tracking-tight">
                 {application.displayName}
               </h3>
@@ -625,9 +764,12 @@ export function ConfigWorkspace({
             ) : null}
           </div>
 
-          <div className="border-b border-border p-3">
-            <ApplicationSupportSummary application={application} />
-          </div>
+          <details className="config-workspace__support">
+            <summary>支持范围与来源证据</summary>
+            <div className="p-3">
+              <ApplicationSupportSummary application={application} />
+            </div>
+          </details>
 
           {!canRead ? (
             <div className="p-4">
@@ -665,6 +807,10 @@ export function ConfigWorkspace({
                   config.configId,
                 );
                 const isSelected = selectedConfigId === config.configId;
+                const accessLabel =
+                  presentation?.accessMode === "READ_WRITE" && canWrite
+                    ? "授权文档"
+                    : "只读";
                 const isTabStop =
                   isSelected ||
                   (!selectedConfigId && config.configId === firstSelectableId);
@@ -684,8 +830,10 @@ export function ConfigWorkspace({
                       )}
                       type="button"
                       role="option"
+                      aria-label={`${config.configId}，${config.displayPath}，${accessLabel}，${config.exists ? "已找到" : "未找到"}`}
                       aria-selected={isSelected}
                       tabIndex={isTabStop ? 0 : -1}
+                      title={`${config.configId} · ${config.displayPath}`}
                       onClick={() => void loadDocument(config)}
                       onKeyDown={(event) =>
                         moveDocumentSelection(
@@ -695,16 +843,16 @@ export function ConfigWorkspace({
                         )
                       }
                     >
-                      <span className="min-w-0">
+                      <span className="min-w-0 flex-1">
                         <strong>{config.configId}</strong>
                         <span>{config.displayPath}</span>
                       </span>
-                      <span className="shrink-0 text-right">
-                        <span>
-                          {presentation?.editorKey ?? "通用元数据视图"}
-                        </span>
-                        <span>{config.exists ? "打开" : "查看诊断"}</span>
-                      </span>
+                      <StatusBadge
+                        className="shrink-0"
+                        tone={accessLabel === "授权文档" ? "success" : "neutral"}
+                      >
+                        {accessLabel}
+                      </StatusBadge>
                     </button>
                   </li>
                 );
@@ -747,6 +895,32 @@ export function ConfigWorkspace({
                         无法解析路径变体；没有回退到不受控路径。
                       </AsyncState>
                     ) : null}
+                    {document.diagnostic.state === "MISSING" &&
+                    readySchema &&
+                    canWrite &&
+                    selectedPresentation.accessMode === "READ_WRITE" ? (
+                      <SchemaEditor
+                        key={`${readySchema.appId}:${readySchema.configId}:${readySchema.variantId}:${readySchema.schema.schemaVersion}:${readySchema.expectedHash}:${readySchema.documentState}:${schemaEditorResetId}`}
+                        disabled={
+                          preview.status === "loading" || executing
+                        }
+                        presentation={readySchema}
+                        onPreview={(fields, completeTemplate) =>
+                          void createSchemaWritePreview(
+                            readySchema,
+                            fields,
+                            completeTemplate,
+                          )
+                        }
+                      />
+                    ) : null}
+                    {document.diagnostic.state === "MISSING" &&
+                    selectedSchema?.state === "DISABLED" ? (
+                      <AsyncState kind="error">
+                        {selectedSchema.disabledReason?.message ??
+                          "Schema 不可用；已禁用结构化新建。"}
+                      </AsyncState>
+                    ) : null}
                   </div>
                 ) : (
                   <AsyncState kind="error">
@@ -780,7 +954,23 @@ export function ConfigWorkspace({
                   ) : null}
                   {canWriteDocument ? (
                     <>
-                      {showStructuredEditor ? (
+                      {showSchemaEditor && readySchema ? (
+                        <SchemaEditor
+                          key={`${readySchema.appId}:${readySchema.configId}:${readySchema.variantId}:${readySchema.schema.schemaVersion}:${readySchema.expectedHash}:${readySchema.documentState}:${schemaEditorResetId}`}
+                          disabled={
+                            preview.status === "loading" || executing
+                          }
+                          presentation={readySchema}
+                          onPreview={(fields, completeTemplate) =>
+                            void createSchemaWritePreview(
+                              readySchema,
+                              fields,
+                              completeTemplate,
+                            )
+                          }
+                        />
+                      ) : null}
+                      {showAdapterEditor ? (
                         <ConfigAdapterEditor
                           document={document.document}
                           editorKey={selectedPresentation.editorKey}
@@ -791,6 +981,20 @@ export function ConfigWorkspace({
                             )
                           }
                         />
+                      ) : null}
+                      {selectedSchema?.state === "DISABLED" ? (
+                        <AsyncState kind="error">
+                          {selectedSchema.disabledReason?.message ??
+                            "Schema 不可用；结构化编辑已禁用。"}
+                        </AsyncState>
+                      ) : schema.status === "error" ? (
+                        <AsyncState kind="error">
+                          Schema IPC 校验失败；未回退到专用结构化编辑器。
+                        </AsyncState>
+                      ) : schema.status === "loading" ? (
+                        <AsyncState kind="loading">
+                          正在验证配置 Schema…
+                        </AsyncState>
                       ) : null}
                       {showRawEditor ? (
                         <RawTextEditor

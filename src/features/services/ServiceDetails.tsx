@@ -1,5 +1,6 @@
 import {
   Button,
+  Panel,
   StatusBadge,
   type StatusBadgeProps,
 } from "../../components/ui";
@@ -53,66 +54,90 @@ export function ServiceDetails({
   details: ServiceDetailsValue;
   onAction: (action: ServiceAction) => void;
 }) {
+  const canManage = details.manageable && details.scope !== "UNKNOWN";
+
   return (
-    <section
-      className="service-details-pane"
+    <Panel
+      className="min-w-0"
       aria-labelledby="service-details-heading"
     >
-      <header className="service-details-pane__header">
+      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl border-b border-border px-ui-3xl py-ui-xl">
         <div className="min-w-0">
-          <h3 id="service-details-heading">{details.displayName}</h3>
-          <p>{details.serviceId}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+            服务详情
+          </p>
+          <h3
+            className="mt-ui-xs break-words text-lg font-semibold [overflow-wrap:anywhere]"
+            id="service-details-heading"
+          >
+            {details.displayName}
+          </h3>
+          <p className="mt-ui-xs break-all font-mono text-xs text-muted-foreground">
+            {details.serviceId}
+          </p>
         </div>
-        <div className="flex flex-wrap justify-end gap-1.5">
+        <div className="flex shrink-0 flex-wrap justify-end gap-ui-sm">
           <StatusBadge tone={STATE_TONES[details.state]}>
             {STATE_LABELS[details.state]}
           </StatusBadge>
           <StatusBadge>{SCOPE_LABELS[details.scope]}</StatusBadge>
-          {!details.manageable ? (
+          {!canManage ? (
             <StatusBadge tone="warning">只读</StatusBadge>
           ) : null}
         </div>
       </header>
 
-      <dl className="service-details-pane__metadata">
-        <div>
-          <dt>作用域</dt>
-          <dd className="mt-1 font-medium">{SCOPE_LABELS[details.scope]}</dd>
+      <dl className="grid min-w-0 grid-cols-1 overflow-hidden border-b border-border bg-border sm:grid-cols-2 sm:gap-px">
+        <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
+          <dt className="text-xs text-muted-foreground">作用域</dt>
+          <dd className="mt-ui-xs break-words text-sm font-medium">
+            {SCOPE_LABELS[details.scope]}
+          </dd>
         </div>
-        <div>
-          <dt>软件版本</dt>
-          <dd className="mt-1 font-medium">
+        <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
+          <dt className="text-xs text-muted-foreground">软件版本</dt>
+          <dd className="mt-ui-xs break-all text-sm font-medium">
             {details.packageVersion ?? "未知"}
           </dd>
         </div>
-        <div>
-          <dt>Caddyfile</dt>
-          <dd className="mt-1">
+        <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
+          <dt className="text-xs text-muted-foreground">Caddyfile</dt>
+          <dd className="mt-ui-xs">
             <StatusBadge tone={VALIDITY_TONES[details.configValidity]}>
               {VALIDITY_LABELS[details.configValidity]}
             </StatusBadge>
           </dd>
         </div>
-        <div>
-          <dt>运行身份</dt>
-          <dd className="mt-1 font-medium">{details.user ?? "不可用"}</dd>
+        <div className="min-w-0 bg-surface-muted px-ui-xl py-ui-lg">
+          <dt className="text-xs text-muted-foreground">运行身份</dt>
+          <dd className="mt-ui-xs break-all text-sm font-medium">
+            {details.user ?? "不可用"}
+          </dd>
         </div>
       </dl>
 
       {details.configIssue ? (
         <p
-          className="service-details-pane__warning"
+          className="mx-ui-3xl mt-ui-xl break-words rounded-control border border-warning-border bg-warning-soft px-ui-xl py-ui-lg text-xs leading-relaxed text-warning [overflow-wrap:anywhere]"
           role="status"
         >
           {details.configIssue}
         </p>
       ) : null}
 
-      {details.manageable ? (
+      {canManage ? (
         <div
-          className="service-details-pane__actions"
+          className="sticky bottom-0 mt-ui-xl flex flex-wrap justify-end gap-ui-md border-t border-border bg-surface px-ui-3xl py-ui-xl"
           aria-label={`${SCOPE_LABELS[details.scope]}服务操作`}
         >
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={details.configValidity !== "VALID"}
+            onClick={() => onAction("RESTART")}
+          >
+            重启
+          </Button>
           <Button
             size="sm"
             onClick={() => onAction("START")}
@@ -125,22 +150,14 @@ export function ServiceDetails({
           >
             停止
           </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={details.configValidity !== "VALID"}
-            onClick={() => onAction("RESTART")}
-          >
-            重启
-          </Button>
         </div>
       ) : (
-        <div className="service-details-pane__readonly">
+        <div className="m-ui-3xl rounded-control border border-dashed border-border bg-surface-muted px-ui-xl py-ui-lg">
           <p className="text-sm text-muted-foreground">
             此服务仅供查看，不提供启动、停止或重启操作。
           </p>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

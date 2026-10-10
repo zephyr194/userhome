@@ -8,7 +8,7 @@ export function Panel({
   return (
     <section
       className={classNames(
-        "rounded-lg border border-border bg-surface text-foreground",
+        "rounded-panel border border-border bg-surface text-foreground",
         className,
       )}
       {...props}

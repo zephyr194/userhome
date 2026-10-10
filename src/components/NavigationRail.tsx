@@ -68,11 +68,15 @@ export function NavigationRail({
           <li key={route.id}>
             <a
               href={`#${route.id}`}
+              aria-label={`${route.label}：${route.description}`}
               aria-current={activeRouteId === route.id ? "page" : undefined}
               aria-controls="main-content"
+              title={route.label}
               onClick={(event) => {
                 event.preventDefault();
-                onNavigate(route.id);
+                if (activeRouteId !== route.id) {
+                  onNavigate(route.id);
+                }
               }}
             >
               <span className="navigation-rail__icon">

@@ -2617,3 +2617,1416 @@ root, and the test app plus temporary directory were removed afterward.
 - [x] Existing manual, signing, notarization, GitHub-hosted CI, and local
       Computer Use blockers remain accurately documented.
 - [x] No automated verification reads or mutates real user configuration.
+
+## T70: Consolidate semantic visual tokens and desktop primitives
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+manual appearance and 200% text-zoom inspection remains open.
+
+**Description:** Define one geometry, spacing, radius, control-height, row,
+surface, focus, and state-color contract and make shared primitives consume it.
+
+**Acceptance criteria:**
+- [x] Shared buttons, panels, badges, toolbar slots, and workspace panes use
+      the same semantic CSS variables for equivalent states.
+- [x] Fixed shell geometry remains 1120 x 720 with title bar 52 px, sidebar
+      200-216 px, toolbar 44-52 px, and compact rows 32-44 px.
+- [x] No provider, catalog, or mutation behavior moves into layout primitives.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [ ] Manual: inspect System, Light, and Dark appearances at 100% and 200% text
+      zoom.
+
+**Dependencies:** T45
+
+**Parallel wave:** W8, visual foundation lane
+
+**Checkpoint:** T
+
+**Risks:** Shared CSS changes can regress every route; land semantic tokens
+before route-specific visual work and serialize ownership of global styles.
+
+**Files likely touched:** `src/styles/global.css`,
+`src/components/DesktopWorkspace.tsx`, `src/components/ui/Button.tsx`,
+`src/components/ui/Panel.tsx`, `src/components/ui/StatusBadge.tsx`
+
+**Estimated scope:** M
+
+## T71: Add the versioned configuration schema contract
+
+**Status:** Done on 2026-09-22
+
+**Description:** Add strict Rust schema types and a separately packaged
+`schemas-v1.json` with the approved field kinds, 64-field bound, sensitivity,
+constraints, applicability, adapter, validator, and source references.
+
+**Acceptance criteria:**
+- [x] Unknown versions, field kinds, constraints, references, and duplicate IDs
+      fail closed.
+- [x] `SECRET` fields are replacement-only and cannot contain defaults or
+      readable corpus values.
+- [x] Existing catalog path/write authority remains the only source of
+      filesystem authorization.
+
+**Verification:**
+- [x] `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm typecheck`
+
+**Dependencies:** T54
+
+**Parallel wave:** W8, schema contract lane
+
+**Checkpoint:** T
+
+**Risks:** Schema metadata could be mistaken for filesystem authority; keep
+schema presentation separate from catalog path, adapter, validator, and write
+policy gates.
+
+**Files likely touched:** `src-tauri/src/catalog/schema.rs`,
+`src-tauri/src/catalog/mod.rs`, `src-tauri/src/catalog/definitions.rs`,
+`src-tauri/src/catalog/schemas-v1.json`, `docs/managed-app-schema.md`
+
+**Estimated scope:** M
+
+## T72: Add the versioned preset contract and compatibility policy
+
+**Status:** Done on 2026-09-22
+
+**Description:** Add strict preset types for complete templates, field groups,
+and recommended values with a 32-preset bound and two-version/180-day aliases.
+
+**Acceptance criteria:**
+- [x] Presets may reference only fields in their declared schema.
+- [x] Field groups change no values; recommended presets change only declared
+      fields; complete templates are marked new-file-only.
+- [x] Unknown merge strategies, expired aliases, and secret literals fail
+      closed.
+
+**Verification:**
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm typecheck`
+- [x] Inspect deterministic decoding of the independently versioned preset
+      file.
+
+**Dependencies:** T71
+
+**Parallel wave:** W9, preset contract lane
+
+**Checkpoint:** T
+
+**Risks:** Presets could overwrite user-owned configuration or expose secrets;
+enforce draft-only application, new-file-only complete templates, and
+replacement-only secret fields.
+
+**Files likely touched:** `src-tauri/src/catalog/preset.rs`,
+`src-tauri/src/catalog/mod.rs`, `src-tauri/src/catalog/definitions.rs`,
+`src-tauri/src/catalog/presets-v1.json`, `docs/managed-app-schema.md`
+
+**Estimated scope:** M
+
+## T73: Add official-source provenance and license contracts
+
+**Status:** Done on 2026-09-22
+
+**Description:** Define source IDs, canonical HTTPS URLs, official owners,
+immutable revisions/digests, verification dates, staleness, license status,
+and normalized-fact references.
+
+**Acceptance criteria:**
+- [x] Only approved official domains and repository owners are accepted.
+- [x] Mutable-only sources require a content digest; unofficial or credentialed
+      sources are rejected.
+- [x] Source evidence never grants read, write, service, command, or elevation
+      authority.
+
+**Verification:**
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] Review source records for HTTPS, immutable revision/digest, license state,
+      and 90-day staleness behavior.
+
+**Dependencies:** T71
+
+**Parallel wave:** W8, provenance lane
+
+**Checkpoint:** T
+
+**Risks:** Provenance may be treated as an authorization signal; require
+separate catalog authorization and runtime capability checks for every action.
+
+**Files likely touched:** `src-tauri/src/catalog/source.rs`,
+`src-tauri/src/catalog/mod.rs`, `src-tauri/src/catalog/definitions.rs`,
+`src-tauri/src/catalog/sources-v1.json`, `docs/managed-app-schema.md`
+
+**Estimated scope:** M
+
+## T74: Replace whole-catalog IPC with bounded Rust paging
+
+**Status:** Done on 2026-09-22
+
+**Description:** Raise reviewed bounds to 1,000 applications and expose typed
+Rust commands for 50-item search/filter pages, counts/facets, and application
+detail while retaining a temporary compatibility path.
+
+**Acceptance criteria:**
+- [x] No list response contains more than 50 applications.
+- [x] Query text, category, coverage, detection, and capability filters are
+      validated and applied in Rust.
+- [x] Missing or invalid catalog data returns explicit failure, never empty
+      success.
+
+**Verification:**
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`
+- [x] Inspect serialized page and detail payloads for paths, secrets, and
+      bounds.
+
+**Dependencies:** T54, T73
+
+**Parallel wave:** W8, catalog paging lane
+
+**Checkpoint:** T
+
+**Risks:** Paging can break selection and refresh semantics or leak oversized
+payloads; enforce stable IDs, exact bounds, typed errors, and deterministic
+ordering in Rust.
+
+**Files likely touched:** `src-tauri/src/catalog/mod.rs`,
+`src-tauri/src/commands/catalog.rs`, `src-tauri/src/commands/mod.rs`,
+`src-tauri/src/lib.rs`
+
+**Estimated scope:** L
+
+## T75: Add strict frontend catalog, source, schema, and preset decoders
+
+**Status:** Done on 2026-09-22
+
+**Description:** Replace the monolithic catalog decoder with bounded page,
+facet, detail, provenance, schema, and preset contracts.
+
+**Acceptance criteria:**
+- [x] Frontend decoding rejects oversized pages, unknown enums, malformed
+      source references, and schema/preset counts above approved bounds.
+- [x] WebView inputs contain IDs and typed values only.
+- [x] Compatibility types remain only until T91 and are not used by new flows.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [x] Inspect every decoder bound against the Rust contract.
+
+**Dependencies:** T71, T72, T73, T74
+
+**Parallel wave:** W9, frontend contract lane
+
+**Checkpoint:** T
+
+**Risks:** Rust and TypeScript bounds can drift; mirror every version, enum,
+count, and identifier limit and fail closed on unknown payloads.
+
+**Files likely touched:** `src/ipc/catalog.ts`, `src/ipc/config.ts`,
+`src/app/shellState.ts`, `src/App.tsx`
+
+**Estimated scope:** M
+
+## T76: Build maintainer-only corpus refresh and validation tooling
+
+**Status:** Implementation and offline validation complete on 2026-09-22;
+a fresh real-network refresh remains open.
+
+**Description:** Add dependency-free Node 24 scripts that fetch only approved
+official sources during explicit maintenance, normalize facts, calculate
+digests, validate staleness/licenses, and never run in the client.
+
+**Acceptance criteria:**
+- [x] Refresh requires an approved manifest and writes to a staging output
+      before replacing packaged data.
+- [x] Validation runs offline against packaged artifacts.
+- [x] A failed fetch or validation preserves the last approved corpus.
+
+**Verification:**
+- [x] Run the offline validation command with networking disabled.
+- [ ] Run refresh against a disposable output and confirm production corpus
+      bytes remain unchanged on failure.
+
+**Dependencies:** T72, T73
+
+**Parallel wave:** W9, corpus tooling lane
+
+**Checkpoint:** U
+
+**Risks:** Maintenance tooling could introduce runtime networking or corrupt
+approved artifacts; keep scripts maintainer-only, dependency-free, staged, and
+atomic.
+
+**Files likely touched:** `package.json`,
+`scripts/catalog/refresh-corpus.mjs`,
+`scripts/catalog/validate-corpus.mjs`,
+`catalog-corpus/source-manifest.json`, `docs/managed-app-schema.md`
+
+**Estimated scope:** L
+
+## T77: Import a pinned Homebrew formula application set
+
+**Status:** Done on 2026-09-22
+
+**Description:** Curate at least 250 stable application identities from the
+official Homebrew formula API/repository with official project links and
+support classifications.
+
+**Acceptance criteria:**
+- [x] Every entry has a stable ID, official source record, category, detection
+      evidence, and explicit support class.
+- [x] Entries without a verified config contract remain read-only, unsupported,
+      or excluded and gain no write capability.
+- [x] Duplicate formula/cask/project identities are resolved deterministically.
+
+**Verification:**
+- [x] Run the corpus validator.
+- [x] Review generated counts, duplicate report, source domains, and
+      write-capable count.
+
+**Dependencies:** T76
+
+**Parallel wave:** W10, formula corpus lane
+
+**Checkpoint:** U
+
+**Risks:** Bulk imports can create unverifiable identities or accidental write
+authority; use pinned official facts and keep unverified entries non-writable.
+
+**Files likely touched:** `catalog-corpus/apps/formulae.json`,
+`catalog-corpus/sources/formulae.json`,
+`catalog-corpus/reports/formulae-summary.json`
+
+**Estimated scope:** L
+
+## T78: Import a pinned Homebrew cask application set
+
+**Status:** Done on 2026-09-22
+
+**Description:** Curate at least 250 stable desktop application identities from
+the official Homebrew cask API/repository with official vendor/project links.
+
+**Acceptance criteria:**
+- [x] Every entry satisfies the same provenance and authority separation as
+      T77.
+- [x] Cask/formula duplicates merge without changing existing Priority A IDs.
+- [x] Apps with credentials, databases, logs, caches, or runtime-only state
+      remain metadata-only or excluded.
+
+**Verification:**
+- [x] Run the corpus validator.
+- [x] Review duplicate resolution and sensitive-data classifications.
+
+**Dependencies:** T76
+
+**Parallel wave:** W10, cask corpus lane
+
+**Checkpoint:** U
+
+**Risks:** Cask metadata can identify sensitive runtime data or collide with
+formula identities; apply deterministic merging and explicit exclusion rules.
+
+**Files likely touched:** `catalog-corpus/apps/casks.json`,
+`catalog-corpus/sources/casks.json`,
+`catalog-corpus/reports/casks-summary.json`
+
+**Estimated scope:** L
+
+## T79: Curate official configuration overlays for existing managed tools
+
+**Status:** Done on 2026-09-22
+
+**Description:** Add official config documentation/repository evidence for the
+existing 26 catalog apps and map verified paths/fields to source IDs without
+broadening write authority.
+
+**Acceptance criteria:**
+- [x] All current managed documents have official source references or an
+      explicit unsupported rationale.
+- [x] The six writable apps preserve current paths, adapters, validators, and
+      write policies.
+- [x] License metadata follows the normalized-facts/default and
+      permitted-schema policy.
+
+**Verification:**
+- [x] Run the corpus and catalog validators.
+- [x] Compare all existing app/config IDs and authorization fields before and
+      after.
+
+**Dependencies:** T76
+
+**Parallel wave:** W10, managed overlay lane
+
+**Checkpoint:** U
+
+**Risks:** Overlay data can silently broaden established authorization; compare
+all IDs and authority fields and treat source evidence as descriptive only.
+
+**Files likely touched:** `catalog-corpus/apps/managed-overlays.json`,
+`catalog-corpus/sources/managed-overlays.json`,
+`docs/managed-app-schema.md`, `docs/home-baseline-coverage.md`
+
+**Estimated scope:** M
+
+## T80: Package and validate the 500+ application corpus
+
+**Status:** Done on 2026-09-22
+
+**Description:** Deterministically merge formula, cask, and managed overlays
+into the runtime catalog while preserving current IDs and enforcing the 1,000
+application ceiling.
+
+**Acceptance criteria:**
+- [x] Packaged output contains at least 500 unique applications and no more
+      than 1,000.
+- [x] Rebuilding unchanged inputs produces byte-identical catalog/source/
+      schema/preset outputs.
+- [x] Runtime catalog loading remains fully offline and fail closed.
+
+**Verification:**
+- [x] Run the corpus validator twice and compare digests.
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml catalog`
+- [x] `pnpm typecheck`
+
+**Evidence:** 624 unique applications. Runtime SHA-256
+`3aeb04f2a1ee4293ae02926d0c64d9f6eb60972ab1eaafe33977d33870105afd`;
+packaged corpus SHA-256
+`11bc74cafe58d3259341733af10ce15baad471fdb742d7cd2cc2c30a17b3e501`.
+
+**Dependencies:** T77, T78, T79
+
+**Parallel wave:** W11, single-owner packaging lane
+
+**Checkpoint:** U
+
+**Risks:** Generated artifacts can be nondeterministic or conflict across
+parallel branches; assign one packaging owner and compare byte-level digests.
+
+**Files likely touched:** `scripts/catalog/build-corpus.mjs`,
+`src-tauri/src/catalog/catalog-v2.json`,
+`src-tauri/src/catalog/definitions.rs`,
+`src-tauri/src/catalog/mod.rs`, `docs/managed-app-schema.md`
+
+**Estimated scope:** L
+
+## T81: Integrate the paged catalog provider into shell state
+
+**Status:** Done on 2026-09-22
+
+**Description:** Load facets and the first page rather than the whole catalog,
+and expose cancellable query/page/detail requests with explicit loading/error
+states.
+
+**Acceptance criteria:**
+- [x] Initial application load transfers at most one 50-item page plus bounded
+      facets.
+- [x] Stale search, page, detail, and refresh responses cannot overwrite newer
+      state.
+- [x] Provider failure remains visible and does not become an empty list.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [x] Inspect IPC calls during rapid query and refresh changes.
+
+**Dependencies:** T75, T80
+
+**Parallel wave:** W12, catalog provider lane
+
+**Checkpoint:** V
+
+**Risks:** Concurrent responses can replace newer state; use request
+generations/cancellation and keep provider failures explicit.
+
+**Files likely touched:** `src/App.tsx`, `src/app/shellState.ts`,
+`src/ipc/catalog.ts`, `src/app/refreshCoordinator.ts`
+
+**Estimated scope:** M
+
+## T82: Implement search, filters, and exact 50-item pagination
+
+**Status:** Implementation and automated performance verification complete on
+2026-09-22; the full manual page matrix remains open.
+
+**Description:** Rework Applications to request Rust pages and present result
+counts, direct page selection, previous/next navigation, and bounded rows.
+
+**Acceptance criteria:**
+- [x] Query/category/coverage/detection/capability changes reset to page 1 and
+      return within the 100 ms p95 target on the baseline Mac.
+- [x] No page or DOM result list contains more than 50 application rows.
+- [x] Empty, loading, partial, and error states remain confined to the list
+      pane.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [x] Measure at least 50 representative 500-entry queries.
+- [ ] Manual: inspect first, middle, final, and empty pages.
+
+**Evidence:** 100 representative 624-entry Rust queries measured p95 at
+22.470 ms. The isolated native E2E verifies 50 rows on page 1 of 13 and a
+Rust-side search for GitHub Copilot.
+
+**Dependencies:** T81
+
+**Parallel wave:** W13, paging UI lane
+
+**Checkpoint:** V
+
+**Risks:** Frontend filtering could bypass Rust bounds or page state could
+drift; make Rust results authoritative and reset page state on every filter
+change.
+
+**Files likely touched:** `src/features/apps/ApplicationsPage.tsx`,
+`src/features/apps/CatalogCoverageSummary.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T83: Present source provenance and support boundaries in application detail
+
+**Status:** Done on 2026-09-22
+
+**Description:** Show official source titles, immutable revisions/digests,
+verification freshness, license state, supported documents, exclusions, and
+requirements without exposing unsafe values.
+
+**Acceptance criteria:**
+- [x] Each app detail shows its support class and source evidence state.
+- [x] Stale or invalid source evidence is visible but never grants actions.
+- [x] Unsupported/excluded apps expose zero mutation controls.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [x] Inspect writable, read-only, unsupported, excluded, fresh, and stale
+      records.
+
+**Dependencies:** T81
+
+**Parallel wave:** W13, provenance detail lane
+
+**Checkpoint:** V
+
+**Risks:** UI presentation may imply stale evidence grants capability; render
+support, provenance, and mutation authority as separate states.
+
+**Files likely touched:** `src/features/apps/ApplicationSupportSummary.tsx`,
+`src/features/apps/ApplicationsPage.tsx`,
+`src/features/apps/SourceEvidence.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T84: Preserve selection, focus, page, and editor context
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+the full keyboard-only matrix remains open.
+
+**Description:** Persist logical selection and return position across page
+changes, detail/editor transitions, refreshes, and unrelated provider updates.
+
+**Acceptance criteria:**
+- [x] Arrow, Home, End, PageUp, PageDown, previous/next page, and direct page
+      controls preserve predictable focus.
+- [x] Returning from a config document restores query, filters, page, list
+      scroll, app selection, and selected config document when still valid.
+- [x] Removed results use a deterministic nearest-selection or empty-detail
+      state.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [ ] Complete a keyboard-only navigation and refresh matrix.
+
+**Dependencies:** T82, T83
+
+**Parallel wave:** W14, application state lane
+
+**Checkpoint:** V
+
+**Risks:** Refreshes and paging can trap focus on removed rows; reconcile by
+stable IDs and use a deterministic nearest-selection or empty-detail fallback.
+
+**Files likely touched:** `src/features/apps/ApplicationsPage.tsx`,
+`src/app/selectionMemory.ts`, `src/app/shellState.ts`,
+`src/features/apps/ConfigWorkspace.tsx`
+
+**Estimated scope:** M
+
+## T85: Expose schema and preset presentation through typed IPC
+
+**Status:** Done on 2026-09-22
+
+**Description:** Return the selected config document's schema, presets,
+applicability, source references, sensitivity, and disabled diagnostics without
+returning secret values.
+
+**Acceptance criteria:**
+- [x] Unknown or mismatched schema/preset versions return typed disabled states.
+- [x] Responses contain at most 64 fields and 32 presets.
+- [x] Current `SECRET` values appear in zero IPC payloads.
+
+**Verification:**
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [x] `pnpm typecheck`
+- [x] Inspect serialized values for secret, path, and authority leakage.
+
+**Dependencies:** T72, T75, T80
+
+**Parallel wave:** W12, schema IPC lane
+
+**Checkpoint:** W
+
+**Risks:** Typed presentation payloads can leak current secrets or imply
+authority; return only bounded metadata and replacement state, never secret
+values or new authorization.
+
+**Files likely touched:** `src-tauri/src/commands/config.rs`,
+`src-tauri/src/config/read.rs`, `src-tauri/src/lib.rs`,
+`src/ipc/config.ts`
+
+**Estimated scope:** M
+
+## T86: Build the generic schema field renderer
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+manual 200% text-zoom and field-kind interaction remain open.
+
+**Description:** Render boolean, bounded integer, string, enum, string-list,
+and replacement-only secret fields from schema data with shared grouping,
+help, validation, and accessibility behavior.
+
+**Acceptance criteria:**
+- [x] Rendering dispatches by field kind, never `appId`.
+- [x] Unknown fields are visibly disabled rather than routed to a generic
+      writable fallback.
+- [ ] At 1120 x 720 and 200% text zoom, every field and validation message
+      remains reachable within the editor pane.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [ ] Manual: exercise every approved field kind, invalid state, and secret
+      replacement behavior.
+
+**Dependencies:** T70, T85
+
+**Parallel wave:** W13, schema renderer lane
+
+**Checkpoint:** W
+
+**Risks:** A generic fallback could make unknown fields writable; require
+explicit field-kind dispatch and a disabled presentation for unsupported data.
+
+**Files likely touched:** `src/features/apps/editors/SchemaEditor.tsx`,
+`src/features/apps/editors/SchemaField.tsx`,
+`src/features/apps/editors/types.ts`,
+`src/features/apps/editors/ConfigAdapterEditor.tsx`,
+`src/styles/global.css`
+
+**Estimated scope:** L
+
+## T87: Add safe preset selection and draft application
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+manual preset interaction remains open.
+
+**Description:** Add source-aware preset browsing, applicability warnings,
+changed-field counts, draft-only application, and new-file-only complete
+template execution.
+
+**Acceptance criteria:**
+- [x] Selecting a preset changes zero filesystem bytes.
+- [x] Preview shows exact changed fields, source, warnings, and redacted diff
+      before confirmation.
+- [x] Complete templates cannot execute against an existing file in the first
+      release.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml config`
+- [ ] Manual: inspect field-group, recommended-value, and complete-template
+      flows.
+
+**Dependencies:** T72, T85, T86
+
+**Parallel wave:** W14, preset workflow lane
+
+**Checkpoint:** W
+
+**Risks:** Preset selection could mutate files or replace existing
+configuration; keep selection draft-only and enforce new-file-only complete
+templates in the backend.
+
+**Files likely touched:** `src/features/apps/editors/PresetPicker.tsx`,
+`src/features/apps/editors/SchemaEditor.tsx`,
+`src/features/apps/ConfigWorkspace.tsx`, `src/ipc/config.ts`,
+`src-tauri/src/config/write.rs`
+
+**Estimated scope:** M
+
+## T88: Migrate Git and npm to schema-driven editing
+
+**Status:** Implementation, review, and automated verification complete on
+2026-09-22; manual preview comparison remains open.
+
+**Description:** Define official-source-backed schemas/presets for Git and npm,
+prove adapter parity, and select the generic editor while retaining the
+specialized editors as compatibility fallback.
+
+**Acceptance criteria:**
+- [x] Existing structured values round-trip without changing unmanaged keys,
+      comments, credentials, or file permissions.
+- [x] npm auth token remains replacement-only and never appears in reads or
+      diffs.
+- [x] Existing preview, confirmation, backup, and rollback behavior is
+      unchanged.
+
+**Verification:**
+- [x] Run existing Git/npm Rust and frontend checks through `pnpm check`.
+- [ ] Manual: compare specialized and schema-driven previews on disposable
+      files.
+
+**Dependencies:** T87
+
+**Parallel wave:** W15, Git/npm migration lane
+
+**Checkpoint:** W
+
+**Risks:** Generic fields may alter adapter-specific formatting or expose npm
+credentials; compare disposable previews and retain compatibility editors
+until parity is proven.
+
+**Files likely touched:** `catalog-corpus/schemas/git-npm.json`,
+`catalog-corpus/presets/git-npm.json`,
+`src-tauri/src/catalog/schemas-v1.json`,
+`src-tauri/src/catalog/presets-v1.json`,
+`src/features/apps/editors/configEditorCapabilities.ts`
+
+**Estimated scope:** M
+
+## T89: Migrate Caddy and OpenSSH to schema-driven editing
+
+**Status:** Implementation, review, and automated verification complete on
+2026-09-22; manual disposable preview comparison remains open.
+
+**Description:** Define schemas/presets for Caddy and OpenSSH while preserving
+unsupported sections, managed blocks, validation, safe symlinks, and service/
+elevation separation.
+
+**Acceptance criteria:**
+- [x] Caddy unsupported directives and OpenSSH unmanaged hosts remain
+      unchanged.
+- [x] Symlink and permission behavior matches the existing safe write pipeline.
+- [x] Presets cannot trigger validation, service, or elevated execution
+      directly.
+
+**Verification:**
+- [x] Run existing Caddy/SSH Rust and frontend checks through `pnpm check`.
+- [ ] Compare old/new previews on disposable fixtures.
+
+**Dependencies:** T87
+
+**Parallel wave:** W15, Caddy/OpenSSH migration lane
+
+**Checkpoint:** W
+
+**Risks:** Migration could rewrite unmanaged sections or conflate file writes
+with service/elevation actions; preserve managed boundaries and keep execution
+capabilities separate.
+
+**Files likely touched:** `catalog-corpus/schemas/caddy-ssh.json`,
+`catalog-corpus/presets/caddy-ssh.json`,
+`src-tauri/src/catalog/schemas-v1.json`,
+`src-tauri/src/catalog/presets-v1.json`,
+`src/features/apps/editors/configEditorCapabilities.ts`
+
+**Estimated scope:** M
+
+## T90: Migrate Copilot and Zsh to schema-driven editing
+
+**Status:** Implementation, review, and automated verification complete on
+2026-09-22; manual disposable preview comparison remains open.
+
+**Description:** Define schemas/presets for approved Copilot settings and Zsh
+managed blocks while excluding sessions, databases, logs, caches, tokens, and
+unmanaged shell content.
+
+**Acceptance criteria:**
+- [x] Only approved Copilot settings documents receive fields or presets.
+- [x] Zsh aliases, environment variables, and sources remain inside the
+      managed block and preserve external shell content.
+- [x] Sensitive and secret values remain redacted or replacement-only.
+
+**Verification:**
+- [x] Run existing Copilot/Zsh Rust and frontend checks through `pnpm check`.
+- [ ] Compare old/new previews on disposable fixtures.
+
+**Dependencies:** T87
+
+**Parallel wave:** W15, Copilot/Zsh migration lane
+
+**Checkpoint:** W
+
+**Risks:** Broad Copilot discovery or Zsh rewrites could expose sensitive state
+or alter unmanaged shell content; restrict approved documents and managed
+blocks explicitly.
+
+**Files likely touched:** `catalog-corpus/schemas/copilot-zsh.json`,
+`catalog-corpus/presets/copilot-zsh.json`,
+`src-tauri/src/catalog/schemas-v1.json`,
+`src-tauri/src/catalog/presets-v1.json`,
+`src/features/apps/editors/configEditorCapabilities.ts`
+
+**Estimated scope:** M
+
+## T91: Make schema-driven editing the default for the initial six apps
+
+**Status:** Implementation, final independent review, and automated verification
+complete on 2026-09-22; manual six-app inspection remains open.
+
+**Description:** Route supported documents to the generic renderer and keep the
+specialized editor only as a bounded compatibility fallback when schema parity
+cannot be proven.
+
+**Acceptance criteria:**
+- [x] The normal path for all six apps renders without an `appId` branch.
+- [x] Unknown or invalid schema/preset data disables structured editing.
+- [x] Raw editing remains available only where the existing catalog policy
+      already authorizes it.
+
+**Verification:**
+- [x] `pnpm check`
+- [x] `pnpm test:e2e` without reading or writing real user configuration.
+- [ ] Inspect all six apps in a disposable environment.
+
+**Dependencies:** T88, T89, T90
+
+**Parallel wave:** W16, schema cutover lane
+
+**Checkpoint:** W
+
+**Risks:** Premature cutover could remove safe specialized behavior; retain a
+bounded fallback until parity evidence exists and fail closed on invalid
+schemas.
+
+**Files likely touched:** `src/features/apps/editors/ConfigAdapterEditor.tsx`,
+`src/features/apps/editors/configEditorCapabilities.ts`,
+`src/features/apps/ConfigWorkspace.tsx`,
+`src-tauri/src/config/adapters/mod.rs`
+
+**Estimated scope:** M
+
+## T92: Normalize Applications and configuration workspace density
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+manual 200% text-zoom and appearance inspection remains open.
+
+**Description:** Apply the shared geometry to application filters, pagination,
+rows, details, provenance, config documents, fields, presets, previews, and
+operation history.
+
+**Acceptance criteria:**
+- [x] One-line rows fit 32-44 px and required two-line rows fit within 64 px.
+- [x] Long names, paths, diagnostics, and localized text wrap or move to
+      details without hiding required actions.
+- [ ] Applications/config content has no document-level scroll at 1120 x 720
+      or 200% text zoom.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [ ] Inspect representative shortest and longest labels in System, Light, and
+      Dark.
+
+**Dependencies:** T70, T84, T91
+
+**Parallel wave:** W16, Applications visual lane
+
+**Checkpoint:** X
+
+**Risks:** Shared density changes can hide actions or create document-level
+scroll; keep pane-owned scrolling and verify long content at fixed geometry.
+
+**Files likely touched:** `src/features/apps/ApplicationsPage.tsx`,
+`src/features/apps/ConfigWorkspace.tsx`,
+`src/features/apps/ApplicationSupportSummary.tsx`,
+`src/features/apps/editors/SchemaEditor.tsx`,
+`src/styles/global.css`
+
+**Estimated scope:** M
+
+## T93: Normalize shell, navigation, toolbar, and Dashboard
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+manual Dashboard keyboard and 200% text-zoom inspection remains open.
+
+**Description:** Remove remaining route-level header/card drift and apply one
+sidebar/toolbar/row/status hierarchy.
+
+**Acceptance criteria:**
+- [x] Shell, navigation, toolbar, Dashboard summaries, loading, partial, error,
+      and empty states use shared primitives and semantic tokens.
+- [x] Focus remains visible and unrelated async updates do not reset it.
+- [x] No title, status, or primary action is clipped at supported scales.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [ ] Complete keyboard and 200% text-zoom checks on Dashboard.
+
+**Dependencies:** T70
+
+**Parallel wave:** W12, shell visual lane
+
+**Checkpoint:** X
+
+**Risks:** Shell-level changes affect every route and title-bar interaction;
+keep provider behavior unchanged and coordinate ownership with T81 and T96.
+
+**Files likely touched:** `src/app/AppShell.tsx`,
+`src/components/NavigationRail.tsx`,
+`src/components/DesktopWorkspace.tsx`,
+`src/features/dashboard/DashboardPage.tsx`,
+`src/styles/global.css`
+
+**Estimated scope:** M
+
+## T94: Normalize Homebrew and Services workspaces
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+manual keyboard and long-content inspection remains open.
+
+**Description:** Apply the shared list/detail, compact row, control, dialog,
+status, and scroll contract to package and service flows.
+
+**Acceptance criteria:**
+- [x] Search, rows, details, actions, previews, progress, errors, and history
+      fit the fixed window with pane-local scrolling.
+- [x] Equivalent controls match the application/configuration workspace.
+- [x] Destructive actions remain separately previewed and confirmed.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [ ] Complete keyboard and long-content checks for package and service flows.
+
+**Dependencies:** T70
+
+**Parallel wave:** W13, Homebrew/Services visual lane
+
+**Checkpoint:** X
+
+**Risks:** Visual consolidation could weaken action confirmation or overflow
+dense history panes; preserve the existing preview/confirm flow and explicit
+scroll ownership.
+
+**Files likely touched:** `src/features/brew/BrewInventoryPage.tsx`,
+`src/features/brew/BrewPackageDetails.tsx`,
+`src/features/services/ServicesPage.tsx`,
+`src/features/services/ServiceDetails.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T95: Normalize Settings workspace and form controls
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+manual restart, appearance, keyboard, and long-label checks remain open.
+
+**Description:** Apply shared group-row, field, help, validation, dialog, and
+button geometry to all Settings panes without changing preference authority.
+
+**Acceptance criteria:**
+- [ ] Every Settings group and action remains reachable at 200% text zoom.
+- [x] Appearance, lifecycle, refresh, backup, privacy, diagnostics, and reset
+      controls use consistent sizing and state presentation.
+- [x] Reset, backup clearing, and managed configuration mutation remain
+      separate.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [ ] Complete keyboard, restart, Light/Dark/System, and long-label checks.
+
+**Dependencies:** T70
+
+**Parallel wave:** W14, Settings visual lane
+
+**Checkpoint:** X
+
+**Risks:** Shared form styling could blur destructive boundaries or clip long
+labels; preserve separate confirmations and verify every group at 200% zoom.
+
+**Files likely touched:** `src/features/settings/SettingsPage.tsx`,
+`src/features/settings/SettingsSidebar.tsx`,
+`src/features/settings/ConfigurationSettings.tsx`,
+`src/components/ui/Button.tsx`, `src/styles/global.css`
+
+**Estimated scope:** M
+
+## T96: Enforce reliable title-bar drag and double-click no-op behavior
+
+**Status:** Implementation and automated verification complete on 2026-09-22;
+the real macOS 10/10 drag and 0/10 no-drag matrix remains open.
+
+**Description:** Define explicit drag and no-drag primitives, inspect composed
+pointer paths, and add a narrow Tauri/macOS event guard only if WebKit/CSS
+cannot guarantee the approved double-click no-op.
+
+**Acceptance criteria:**
+- [ ] Title text and approved blank space move the window in 10/10 attempts.
+- [ ] Buttons, links, fields, menus, list rows, editors, scrollbars, and dialogs
+      move the window in 0/10 attempts and retain normal activation.
+- [ ] Double-click changes size/position in 0/10 attempts and leaves a
+      continuous 120 x 28 logical-pixel drag target.
+
+**Verification:**
+- [x] `pnpm lint && pnpm typecheck && pnpm build`
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml`
+- [ ] Complete the macOS pointer/trackpad matrix in System, Light, Dark, and
+      supported display scales.
+
+**Dependencies:** T70, T93
+
+**Parallel wave:** W16, native drag lane
+
+**Checkpoint:** X
+
+**Risks:** WebKit/macOS double-click behavior may bypass CSS no-drag regions;
+inspect runtime behavior first and add only a narrow native guard if required.
+
+**Files likely touched:** `src/app/AppShell.tsx`, `src/styles/global.css`,
+`src-tauri/src/lib.rs`
+
+**Estimated scope:** M
+
+## T97: Complete integrated verification and documentation
+
+**Status:** Automated verification and documentation complete on 2026-09-22;
+manual desktop, accessibility, signing, notarization, and external CI gates
+remain open.
+
+**Description:** Run existing project gates, perform the fixed-window/manual
+matrix, document corpus maintenance and module evidence, and preserve every
+external signing/notarization blocker accurately.
+
+**Acceptance criteria:**
+- [x] All six 2026-09-22 module specs trace to implementation evidence or an
+      explicit approved external/manual blocker.
+- [x] Existing T01-T69 blockers remain intact and are not falsely completed.
+- [x] No verification reads or mutates real user configuration.
+
+**Verification:**
+- [x] `pnpm check`
+- [x] `pnpm test:e2e`
+- [x] `pnpm build:unsigned`
+- [ ] Complete fixed-window, 200% zoom, keyboard, contrast, drag, pagination,
+      provenance, schema/preset, disposable-write, and offline-runtime checks.
+
+**Dependencies:** T80, T84, T91, T92, T93, T94, T95, T96
+
+**Parallel wave:** W17, integration only
+
+**Checkpoint:** X
+
+**Risks:** Passing automation can conceal unperformed manual, signing, or
+notarization gates; preserve every blocker accurately and use only disposable
+configuration during verification.
+
+**Files likely touched:** `README.md`, `docs/release-readiness.md`,
+`docs/managed-app-schema.md`, `docs/home-baseline-coverage.md`,
+`tasks/todo.md`
+
+**Estimated scope:** L
+
+## 2026-09-23 原生视觉重设计任务
+
+状态：Phase 23–27 计划及 T98–T109 实施任务均于 2026-09-23 获用户审批。
+所有任务沿用已批准规格，不新增依赖或测试用例，不接触真实 HOME
+配置。每项只修改列明的文件；共享样式须由唯一编辑者串行接手，
+保留其他会话的未提交修改。旧 T01–T97 未完成项仍保持原状态。
+
+### Phase 23：视觉基础
+
+## T98：建立原生语义颜色与排版令牌
+
+**状态：**2026-09-23 已完成语义令牌及构建/计算样式核验；
+真实 Tauri 逐页人工检查仍归 T109。
+
+**目标：**将 Light/Dark/System 的画布、内容面、侧栏、蓝色强调、
+危险/警告/成功、选中、焦点和字体层级归并为一套语义令牌。
+
+**验收：**
+- [x] 三种外观均按新规格渲染；状态不只靠蓝色表示。
+- [x] 正文对比度至少 4.5:1，边界/焦点至少 3:1；有记录可复核。
+- [x] 不更改窗口、业务行为、IPC 或现有配置安全边界。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm build`；人工核对
+Light/Dark/System 的基色和状态。依赖：无。
+
+**文件归属：**`src/styles/global.css`（唯一编辑者）。
+**规模：**S。
+
+**证据：**Orca T98 `ctx_4db506d8d52a` 报告仅修改
+`src/styles/global.css`。隔离 Chrome 的最终构建计算样式：
+Light 最低文字 4.63:1、边界 3.05:1、焦点 5.20:1；
+Dark/System 最低文字 7.01:1、边界 3.03:1、焦点 6.25:1。
+`pnpm lint && pnpm typecheck && pnpm build` 通过；Node 20 对项目要求的
+Node 24 有 engine 警告，Vite 保留既有约 500 kB chunk 警告。
+无新测试、依赖、提交或真实 HOME 访问。
+
+## T99：统一共用控件与异步状态
+
+**状态：**2026-09-23 已完成共用控件与现有检查；T109 负责真实
+Tauri 运行时的跨页人工验收。
+
+**目标：**使按钮、状态标识、表单与弹窗、局部加载/空/错误沿用
+T98 语义令牌及一致的尺寸、文字、焦点与禁用反馈。
+
+**验收：**
+- [x] 主/次/危险/幽灵按钮和状态标识在两种外观下清楚区分。
+- [x] 加载、空、错误等局部反馈保留现有文案、语义角色和可见焦点。
+- [x] 不通过增大阴影、渐变或大量胶囊装饰掩盖信息。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm test && pnpm build`；
+人工检查组件状态。依赖：T98。
+
+**文件归属：**`src/components/ui/Button.tsx`、
+`src/components/ui/StatusBadge.tsx`、`src/components/ui/Modal.tsx`、
+`src/components/AsyncState.tsx`（不编辑全局 CSS）。**规模：**M。
+
+**证据：**Orca T99 `ctx_4ee2826c6c84` 报告仅修改上述四文件，
+补足按钮按下态、长状态文案、轻量弹窗和错误/注意文字标识；
+隔离 Chrome 实际 Tab 焦点显示 3px 描边，Light/Dark 代表性
+文字组合满足对比度要求。`pnpm lint && pnpm typecheck && pnpm test
+&& pnpm build` 通过（29 文件、72 个既有用例）；无新测试或依赖。
+
+### Checkpoint Y：视觉基础
+
+- [x] T98–T99 验收成立；色彩对比记录对应实际渲染状态。
+- [x] 现有静态检查及构建通过；未宣称页面已完成重设计。
+
+### Phase 24：固定桌面骨架
+
+## T100：整理标题栏、导航与上下文工具栏
+
+**状态：**2026-09-23 实现和静态核验完成；原生交通灯、拖拽和
+快捷键前台验收留在 T109，不视为已人工验证。
+
+**目标：**去掉重复的品牌/标题信息，将路线选择、搜索、刷新和状态
+放到清楚的原生桌面层级，并保留 macOS 交通灯及菜单操作。
+
+**验收：**
+- [x] 一级导航的图标、文字与选中态清楚；工具栏仅显示当前页动作。
+- [x] `Command+,`、`Command+R`、搜索清空及跳到主要内容仍可用。
+- [ ] 标题栏交互不可拖拽，空白拖拽区域和交通灯不被覆盖；
+      CSS/no-drag 静态核对通过，原生前台实际测试待 T109。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm build`；
+人工检查标题栏与键盘。依赖：T99。
+
+**文件归属：**`src/app/AppShell.tsx`、
+`src/components/NavigationRail.tsx`、`src/styles/global.css`。
+**规模：**M。
+
+**证据：**Orca T100 `ctx_64748c7677e9` 报告仅修改
+`AppShell.tsx` 与 `global.css`：去掉 `UH` 徽标及重复路由标题，
+标题栏保留 `UserHome`，工具栏展示当前页与刷新；复用原生菜单
+单通路、搜索 Escape 和跳转主内容；`pnpm lint && pnpm typecheck
+&& pnpm build` 通过。未触及 `NavigationRail.tsx` 的已有未提交修改。
+
+## T101：修正分栏宽度和容器滚动归属
+
+**状态：**2026-09-23 实现、静态检查及隔离浏览器几何验证完成；
+真实 Tauri 有数据页面的可达性与交通灯交互待 T109。
+
+**目标：**让列表/详情/检查器留出主操作和长文本空间，
+且滚动只发生在侧栏、列表、详情或操作容器内。
+
+**验收：**
+- [x] 1120×720 没有文档级水平或垂直滚动；有后端数据时
+      的按钮遮挡仍需 T109 前台验收。
+- [ ] 200% 文本缩放时主操作可在指定 pane 内滚动到达；
+      空态面板已验证，真实操作按钮待 T109。
+- [x] 现有布局槽位和可访问名称继续工作。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm build`；
+人工查看面板边界与缩放。依赖：T100。
+
+**文件归属：**`src/components/DesktopWorkspace.tsx`、
+`src/styles/global.css`。**规模：**S。
+
+**证据：**Orca T101 `ctx_87429efee503` 仅修改上述两文件；
+补足键盘可聚焦滚动面板、详情最小宽度、稳定 gutter 与窄视口下
+列表/详情纵向布局。隔离 Chrome 在 1120×720 和 560×360
+（模拟 200%）对五个路由逐一核对：文档宽高等于视口，应用列表/
+详情及设置面板可滚动。`pnpm lint && pnpm typecheck && pnpm build`
+通过；真实 Tauri/有数据条件留给 T109。
+
+### Checkpoint Z：桌面骨架
+
+- [ ] T100–T101 静态及隔离浏览器验证完成；真实交通灯、拖拽、
+      200% 下有后端数据的操作仍待 T109。
+- [x] 共享 `AppShell.tsx`/`global.css` 串行完成，后续页面只读此契约。
+
+### Phase 25：资源工作台
+
+## T102：重排应用目录与分页操作
+
+**状态：**2026-09-23 实现与隔离 HOME 的真实 Tauri E2E 已通过；
+完整外观及 200% 前台人工验收仍归 T109。
+
+**目标：**以应用名称和支持状态为主、次级来源信息为辅，
+清晰呈现搜索、筛选、每页 50 项、选择与详情入口。
+
+**验收：**
+- [x] Rust 分页 50 项、筛选、选中/滚动记忆和键盘浏览行为不变。
+- [x] 详情明确区分可写、只读、排除项；长名称不撑破窗口。
+- [x] 加载、空、错误都在受影响 pane 内显示。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm test && pnpm build`；
+隔离 HOME 的 `pnpm test:e2e` 复用已有分页断言。依赖：T101。
+
+**文件归属：**`src/features/apps/ApplicationsPage.tsx`、
+`src/features/apps/ApplicationSupportSummary.tsx`、
+`src/styles/global.css`。**规模：**M。
+
+**证据：**Orca T102 `ctx_834fc31b5c5c` 仅修改上述三文件，
+补足默认页选择同步、紧凑截断列表、可访问的分页提示和支持边界；
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` 通过
+（72 个既有用例）。隔离 HOME 的 `pnpm test:e2e` 初次因 T100
+移除 `.brand` 而遇到旧选择器；协调者仅在现有
+`e2e/smoke.spec.ts` 更新两处已过期选择器（没有新增用例），
+复跑 1 项 E2E 通过。未操作真实 HOME。
+
+## T103：重排配置详情、表单与预览
+
+**状态：**2026-09-23 页面实现与静态检查完成；隔离 HOME 下的
+Schema IPC 校验曾阻断预览。协调者已修正 Rust 返回字段类型的
+`snake_case`/前端 `camelCase` 不一致，真实 Tauri 复验及 200%
+缩放下确认流程仍待完成，不视作验收通过。
+
+**目标：**将身份/能力、文档选择、schema 字段/预设、diff/确认
+按从查看到执行的顺序组织，保留警告与隐藏敏感信息。
+
+**验收：**
+- [ ] 六款既有可写应用的字段、预设与安全预览仍可达。
+- [ ] 只读无写入按钮；敏感值、错误和危险动作仍明确受限。
+- [ ] 200% 文本缩放下预览与确认可通过局部滚动抵达。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm test && pnpm build`；
+人工查看一次性配置的预览/确认，不操作真实文件。依赖：T102。
+
+**文件归属：**`src/features/apps/ConfigWorkspace.tsx`、
+`src/features/apps/editors/SchemaEditor.tsx`、
+`src/features/apps/editors/PresetPicker.tsx`、
+`src/styles/global.css`。**规模：**M。
+
+**证据：**Orca T103 `ctx_09c15c4afa2c` 修改上述四文件；
+`pnpm lint`、`pnpm typecheck`、`pnpm test`（72 项）、
+`pnpm build` 及六适配器定向测试（27 项）通过。隔离 HOME
+的 Git 文档可读，但 Schema 校验报错；协调者定位到
+`src-tauri/src/commands/config.rs` 的 `FieldTypePresentation`
+枚举字段序列化未按前端协议使用 camelCase，并添加
+`rename_all_fields = "camelCase"`；Rust 格式检查和 Clippy 通过。
+该修复须在真实 Tauri 中复验预览/确认后才能关闭 T103。
+
+## T104：重排 Homebrew 库存、搜索及操作
+
+**状态：**2026-09-23 实现与现有自动化通过；原生 Tauri
+WebView 200% 缩放下操作可达性待 T109 前台验证。
+
+**目标：**用统一列表/详情与动作层级呈现库存、搜索、安装/升级/卸载，
+使无 Homebrew 和失败状态只影响本区。
+
+**验收：**
+- [ ] 列表/详情选择、搜索与分页保留；操作目标和破坏性清楚。
+- [ ] 无 Homebrew、部分加载、搜索无结果和错误状态有专属提示。
+- [ ] 预览→确认→结果流程仍可用且不会默认执行命令。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm test && pnpm build`；
+人工检查操作弹窗，不对真实包进行更改。依赖：T101。
+
+**文件归属：**`src/features/brew/BrewInventoryPage.tsx`、
+`src/features/brew/BrewPackageDetails.tsx`、
+`src/features/brew/BrewActionDialog.tsx`、
+`src/styles/global.css`。**规模：**M。
+
+**证据：**Orca T104 `ctx_57357569cf15` 仅修改上述四文件，
+以紧凑库存行呈现状态，详情在分页/筛选后保持选中，预览防止
+旧响应覆写，并在确认框明示目标和动作。`pnpm lint`、
+`pnpm typecheck`、`pnpm test`（72 项，其中 Homebrew 定向
+7 项）、`pnpm build` 及 `git diff --check` 通过。未对真实
+软件包执行安装、升级或卸载；未为模拟 200% 缩放放宽 WebView
+权限，真实缩放验收仍未完成。
+
+## T105：重排服务状态与确认式操作
+
+**状态：**2026-09-23 页面实现与既有自动化通过；原生 Tauri
+200% 缩放下确认框可达性待 T109 实测。
+
+**目标：**使服务列表、选中详情和开始/停止/重启的状态、反馈、
+确认清楚且与 Homebrew 工作台一致。
+
+**验收：**
+- [ ] 未授权或未知服务不出现可执行的操作。
+- [ ] 选中项、状态文字、预览确认和进度保持对应且不只靠颜色。
+- [ ] 空、错误、刷新状态不清空无关面板。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm test && pnpm build`；
+人工检查确认弹窗而不触发真实服务更改。依赖：T101。
+
+**文件归属：**`src/features/services/ServicesPage.tsx`、
+`src/features/services/ServiceDetails.tsx`、
+`src/features/services/ServiceActionDialog.tsx`、
+`src/styles/global.css`。**规模：**M。
+
+**证据：**Orca T105 `ctx_823d14a3dd16` 仅修改上述四文件；
+保留服务选择/焦点、未知作用域只读限制和绑定服务 ID/动作的
+预览确认结果。`pnpm lint`、`pnpm typecheck`、`pnpm test`
+（29 文件/72 项）、`pnpm build` 及 `git diff --check` 通过。
+未触发真实服务操作，未扩张 WebView 缩放权限；原生 200%
+检查尚未完成。
+
+### Checkpoint AA：资源工作台
+
+- [ ] T102–T105 验收成立；应用及配置顺序执行，所有全局 CSS
+      编辑串行；Homebrew/Services 仅在 TSX 文件独占时并行。
+- [ ] 既有分页、草稿、授权、预览与确认行为未回退。
+
+### Phase 26：工具工作台
+
+## T106：重排仪表盘摘要
+
+**状态：**2026-09-23 页面实现与静态/现有测试通过；
+200% 原生缩放下主操作可达性待 T109 验证。
+
+**目标：**按本机概况、需要关注、最近操作组织文本/数据分组，
+不以花哨卡片代替可辨识的真实状态。
+
+**验收：**
+- [ ] 连接、发现、Homebrew、操作的正常/部分/失败仍各自清楚。
+- [ ] 不引入永久状态侧栏、营销 hero 或通用卡片网格。
+- [ ] 主操作在 100% 和 200% 缩放均可达。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm test && pnpm build`；
+人工检查正常/加载/错误状态。依赖：T101。
+
+**文件归属：**`src/features/dashboard/DashboardPage.tsx`、
+`src/features/dashboard/SystemSummary.tsx`、
+`src/styles/global.css`。**规模：**M。
+
+**证据：**Orca T106 `ctx_d41cda8b5656` 仅修改上述三文件；
+本机概况、需要关注与最近活动采用紧凑纵向分组，保留连接、
+发现、Homebrew、刷新和操作状态及局部错误。`pnpm lint`、
+`pnpm typecheck`、`pnpm test`（29 文件/72 项）、`pnpm build`
+及 `git diff --check` 通过。当前没有可供该工作者检查的
+UserHome 原生窗口；真正 200% 缩放结果仍未验证。
+
+## T107：重排七组设置与危险操作
+
+**状态：**2026-09-23 实现与既有自动化通过；
+原生窗口及 200% 缩放下七组操作的实际可达性待 T109 验收。
+
+**目标：**使分组导航、标题说明、表单对齐、保存反馈、
+重置与清理危险区具有清晰的原生设置层级。
+
+**验收：**
+- [ ] 七组设置、分组选择恢复与 `Command+,` 保持可用。
+- [ ] 外观切换、保存错误、安全默认值、清理/重置确认有明确反馈。
+- [ ] 200% 缩放和所有外观下操作完整可达。
+
+**验证：**`pnpm lint && pnpm typecheck && pnpm test && pnpm build`；
+隔离 HOME 查看设置恢复，不清理真实备份。依赖：T101。
+
+**文件归属：**`src/features/settings/SettingsPage.tsx`、
+`src/features/settings/SettingsSidebar.tsx`、
+`src/features/settings/SettingsPrimitives.tsx`、
+`src/styles/global.css`。**规模：**M。
+
+**证据：**Orca T107 `ctx_bbbb31e11296` 仅修改上述四文件；
+七组设置窄视口导航可横向滚动且支持方向键，安全默认值
+诊断可见，重置与清理确认均以取消为默认路径。`pnpm lint`、
+`pnpm typecheck`、`pnpm test`（29 文件/72 项）、`pnpm build`
+及 `git diff --check` 通过。未清理真实备份；原生 UserHome
+窗口及 200% 检查尚未实测。
+
+### Checkpoint AB：工具工作台
+
+- [ ] T106–T107 验收成立；设置已保存值及重置语义不变。
+- [ ] 仪表盘真实状态、危险操作文案及键盘导航未回退。
+
+### Phase 27：跨路由验收
+
+## T108：执行既有自动化与无签名集成关口
+
+**状态：**2026-09-24 三项本地门禁在隔离 HOME 下最终通过；首次
+失败及复跑原因保留在下方。Git Schema 原生入口与 200% 前台
+验收未覆盖，仍归 T109；不代表可发布。
+
+**目标：**汇总五个模块实现证据及本地静态、前端、Rust、隔离
+HOME 的 macOS E2E、无签名构建结果，不以通过测试代替视觉验收。
+
+**验收：**
+- [x] `pnpm check`、`pnpm test:e2e`、`pnpm build:unsigned`
+      实际运行结果如实记录；失败被修复或明确留作阻塞。
+- [x] 既有 T01–T97 人工/外部阻塞仍原样追踪。
+- [x] 自动化没有读取或修改真实用户配置。
+
+**验证：**上述三个命令；复核隔离 HOME 设置。依赖：T103–T107。
+
+**文件归属：**`docs/release-readiness.md`、`tasks/todo.md`
+（只更新新阶段证据）。**规模：**S。
+
+**证据：**Orca T108 `ctx_71df4a76e36a` 使用临时 HOME 执行：
+`pnpm check` 最终通过（29 文件/72 项 Vitest、92 项 Rust 库测试、
+22 项集成测试及 0 项失败的 doc-test）；首轮因 Homebrew
+`rustdoc` 与 rustup 缓存产物混用，doc-test 报 238 个
+`serde`/E0463 错误，固定 rustup Cargo/rustc/rustdoc 后通过。
+`pnpm test:e2e` 首轮在 `e2e/smoke.spec.ts:117` 因
+`Homebrew inventory timed out.` 未满足计数/未安装断言而失败；
+换新的隔离 HOME 复跑 1/1 通过，未改产品或测试代码。
+`pnpm build:unsigned` 首轮在空 HOME 中因 Corepack 下载
+pnpm 10.33.1 遇 `UND_ERR_SOCKET` 失败；复制本机现有 pnpm 缓存
+到临时 HOME、禁用网络后成功生成
+`src-tauri/target/release/userhome`。WDIO 额外隔离
+`HOME`/`XDG_CONFIG_HOME`，未调用真实包/服务写入。现有 smoke
+不进入 Git Schema 页，Rust 序列化修复及安全预览在原生 UI
+仍未复验；Node 20.20.2 与要求的 24.21.0 不同。真正的
+Light/Dark/System、1120×720、200% 可达性、签名、公证及 CI
+证据仍由 T109 或原阻塞任务追踪，不能因本轮自动化关口勾选。
+
+## T109：完成前台桌面视觉与交互验收
+
+**状态：**2026-09-24 已在隔离 HOME 启动真实原生窗口，
+但本机 Orca Computer Use 的全局 AX 读取不可用，窗口截图亦失败；
+五组 × 三种外观 × 两种缩放均为阻塞，未完成视觉验收。
+
+**目标：**逐页记录 Light/Dark/System 与 100%/200% 缩放、
+键盘、焦点、拖拽、对比度及状态实际表现。
+
+**验收：**
+- [ ] 五组工作台每组分别有三种外观及两种缩放的人工证据。
+- [ ] 文档滚动量为零，pane 可达操作；对比度阈值实际核验。
+- [ ] 无法完成的签名、CI、硬件、权限或人工项标记为“待验证/
+      阻塞”，不伪称所有旧任务已完成。
+
+**验证：**按 `SPEC-visual-acceptance-v2.md` 的矩阵实际检查，
+隔离 HOME，记录复测及未完成理由。依赖：T108。
+
+**文件归属：**`docs/release-readiness.md`、`tasks/todo.md`
+（只更新验收证据）。**规模：**S。
+
+**证据：**使用隔离 `/tmp/userhome-t109-ctx6c00` 的 `HOME`/
+`XDG_CONFIG_HOME`，`preferences.json` 权限 `0600`、设置目录
+`0700`、`optionalDiscoveryRoots=[]`；本次 release 二进制在
+临时 `.app` 外壳内运行。`orca computer list-windows` 看到
+UserHome PID 3947 的窗口 ID 4032（屏幕像素 1009 × 650），
+但 `get-app-state --restore-window` 返回 `permission_denied`/
+`no accessibility window`；System Settings、Orca 自身相同，
+尽管 accessibility/screenshots 均报 `granted`。窗口专用
+`screencapture` 也无法生成图像。可复现命令、5×3×2
+逐格阻塞及各阈值/交互未验证项详见
+`docs/release-readiness.md` 的 T109 小节；Git Schema
+原生预览仍须复验。未操作真实用户配置，也未执行包、服务
+或配置写入；签名、公证、GitHub CI、硬件和旧人工关口继续
+保持 NO-GO，不能据此勾选本任务验收项。
+
+### Checkpoint AC：重设计验收
+
+- [ ] T98–T109 均以证据关闭，或注明不可跨越的外部/人工阻塞。
+- [ ] 不把已批准新设计误称为已签名/公证/发布。
+- [ ] 旧计划所有未完成项继续真实存在，直至取得相应证据。

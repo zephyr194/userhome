@@ -1,5 +1,8 @@
 import type { AppError, AppStatus } from "../ipc/core";
-import type { ManagedAppCatalog } from "../ipc/catalog";
+import type {
+  ManagedAppCatalog,
+  ManagedAppPage,
+} from "../ipc/catalog";
 import type { DiscoverySnapshot } from "../ipc/discovery";
 import type { OperationDetails } from "../ipc/operations";
 import type { SettingsDiagnostic, UserPreferences } from "../ipc/settings";
@@ -23,6 +26,7 @@ export type RefreshState =
 
 export type ApplicationsState =
   | { status: "loading" }
+  | { status: "ready"; page: ManagedAppPage }
   | { status: "ready"; catalog: ManagedAppCatalog }
   | { status: "error"; error: AppError };
 
@@ -60,6 +64,7 @@ export const initialShellState: ShellState = {
 
 export type ShellAction =
   | { type: "applications-loading" }
+  | { type: "applications-ready"; page: ManagedAppPage }
   | { type: "applications-ready"; catalog: ManagedAppCatalog }
   | { type: "applications-error"; error: AppError }
   | { type: "connection-loading" }
@@ -92,7 +97,10 @@ export function shellReducer(
     case "applications-ready":
       return {
         ...state,
-        applications: { status: "ready", catalog: action.catalog },
+        applications:
+          "page" in action
+            ? { status: "ready", page: action.page }
+            : { status: "ready", catalog: action.catalog },
       };
     case "applications-error":
       return {

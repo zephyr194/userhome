@@ -1,0 +1,495 @@
+{
+  "schemaVersion": 1,
+  "applications": [
+    {
+      "id": "antigravity",
+      "displayName": "Antigravity",
+      "category": "AI Development Tools",
+      "officialSources": [],
+      "reviewRequired": true,
+      "reviewNotes": "No official vendor or project URL was safely confirmed; a maintainer must supply and allowlist one.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Blocked on confirmed official source."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "apifox",
+      "displayName": "Apifox",
+      "category": "Developer Tools",
+      "officialSources": [
+        "https://apifox.com/"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Confirm product metadata and licensing before adding facts beyond identity.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Vendor terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "caddy",
+      "displayName": "Caddy",
+      "category": "Networking",
+      "officialSources": [
+        "https://github.com/caddyserver/caddy"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "claude",
+      "displayName": "Claude",
+      "category": "AI Development Tools",
+      "officialSources": [
+        "https://www.anthropic.com/claude-code"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Vendor source confirmed; exact product identity and metadata scope require review.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Vendor terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "codex",
+      "displayName": "Codex",
+      "category": "AI Development Tools",
+      "officialSources": [
+        "https://github.com/openai/codex"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "cursor",
+      "displayName": "Cursor",
+      "category": "Editors",
+      "officialSources": [
+        "https://www.cursor.com/"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Vendor source confirmed; support facts require maintainer review.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Vendor terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "docker",
+      "displayName": "Docker",
+      "category": "Developer Tools",
+      "officialSources": [
+        "https://www.docker.com/products/docker-desktop/"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Docker Desktop identity is confirmed; configuration support is not asserted by this overlay.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Vendor terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "gcloud",
+      "displayName": "Google Cloud CLI",
+      "category": "Cloud Tools",
+      "officialSources": [
+        "https://cloud.google.com/sdk/docs/install"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Official installation documentation confirms identity; support details require review.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Documentation and product terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "gemini",
+      "displayName": "Gemini",
+      "category": "AI Development Tools",
+      "officialSources": [
+        "https://github.com/google-gemini/gemini-cli"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "ghostty",
+      "displayName": "Ghostty",
+      "category": "Terminals",
+      "officialSources": [
+        "https://github.com/ghostty-org/ghostty"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "git",
+      "displayName": "Git",
+      "category": "Version Control",
+      "officialSources": [
+        "https://github.com/git/git"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "github-copilot",
+      "displayName": "GitHub Copilot",
+      "category": "AI Development Tools",
+      "officialSources": [
+        "https://docs.github.com/en/copilot"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Official product documentation confirms identity; CLI-specific enrichment requires review.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Documentation and product terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "gitkraken-cli",
+      "displayName": "GitKraken CLI",
+      "category": "Developer Tools",
+      "officialSources": [
+        "https://www.gitkraken.com/cli"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Vendor source confirmed; support facts require maintainer review.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Vendor terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "iterm2",
+      "displayName": "iTerm2",
+      "category": "Terminals",
+      "officialSources": [
+        "https://github.com/gnachman/iTerm2"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "neovim",
+      "displayName": "Neovim",
+      "category": "Editors",
+      "officialSources": [
+        "https://github.com/neovim/neovim"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "npm",
+      "displayName": "npm",
+      "category": "Package Management",
+      "officialSources": [
+        "https://github.com/npm/cli"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "openssh",
+      "displayName": "OpenSSH",
+      "category": "Remote Access",
+      "officialSources": [
+        "https://www.openssh.com/"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Official project source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Project license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "orbstack",
+      "displayName": "OrbStack",
+      "category": "Developer Tools",
+      "officialSources": [
+        "https://orbstack.dev/"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Vendor source confirmed; no write or configuration support is inferred.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Vendor terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "raycast",
+      "displayName": "Raycast",
+      "category": "Productivity",
+      "officialSources": [
+        "https://www.raycast.com/"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Vendor source confirmed; support facts require maintainer review.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Vendor terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "starship",
+      "displayName": "Starship",
+      "category": "Shell",
+      "officialSources": [
+        "https://github.com/starship/starship"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "tmux",
+      "displayName": "tmux",
+      "category": "Terminals",
+      "officialSources": [
+        "https://github.com/tmux/tmux"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "trae",
+      "displayName": "Trae",
+      "category": "AI Development Tools",
+      "officialSources": [],
+      "reviewRequired": true,
+      "reviewNotes": "No official vendor or project URL was safely confirmed; a maintainer must supply and allowlist one.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Blocked on confirmed official source."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "vim",
+      "displayName": "Vim",
+      "category": "Editors",
+      "officialSources": [
+        "https://github.com/vim/vim"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "visual-studio-code",
+      "displayName": "Visual Studio Code",
+      "category": "Editors",
+      "officialSources": [
+        "https://github.com/microsoft/vscode"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Source identity confirmed; product branding and support facts require review.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Source license and product terms require maintainer review."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "zed",
+      "displayName": "Zed",
+      "category": "Editors",
+      "officialSources": [
+        "https://github.com/zed-industries/zed"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Identity source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Repository license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    },
+    {
+      "id": "zsh",
+      "displayName": "Zsh",
+      "category": "Shell",
+      "officialSources": [
+        "https://www.zsh.org/"
+      ],
+      "reviewRequired": true,
+      "reviewNotes": "Official project source confirmed; support details remain intentionally incomplete.",
+      "licenseReview": {
+        "status": "REVIEW_REQUIRED",
+        "notes": "Project license and attribution review pending."
+      },
+      "maintainerApproval": {
+        "status": "PENDING",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,246 @@
+{
+  "formatVersion": 1,
+  "normalization": "FACTS_ONLY",
+  "authorities": [
+    {
+      "authorityId": "caddy-official",
+      "displayName": "Caddy official documentation",
+      "domains": [
+        "caddyserver.com"
+      ],
+      "repositoryOwners": [
+        "caddyserver"
+      ]
+    },
+    {
+      "authorityId": "git-official",
+      "displayName": "Git official documentation",
+      "domains": [
+        "git-scm.com"
+      ],
+      "repositoryOwners": [
+        "git"
+      ]
+    },
+    {
+      "authorityId": "github-official",
+      "displayName": "GitHub official documentation",
+      "domains": [
+        "docs.github.com"
+      ],
+      "repositoryOwners": [
+        "github"
+      ]
+    },
+    {
+      "authorityId": "npm-official",
+      "displayName": "npm official documentation",
+      "domains": [
+        "docs.npmjs.com"
+      ],
+      "repositoryOwners": [
+        "npm"
+      ]
+    },
+    {
+      "authorityId": "openbsd-official",
+      "displayName": "OpenBSD manual pages",
+      "domains": [
+        "man.openbsd.org"
+      ],
+      "repositoryOwners": []
+    },
+    {
+      "authorityId": "zsh-official",
+      "displayName": "Zsh official documentation",
+      "domains": [
+        "zsh.sourceforge.io"
+      ],
+      "repositoryOwners": [
+        "zsh-users"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "sourceId": "caddy-caddyfile-concepts",
+      "authorityId": "caddy-official",
+      "project": "Caddy",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://caddyserver.com/docs/caddyfile/concepts",
+      "immutableRevision": null,
+      "contentSha256": "7003b77ccbe6189c8fa27f366c46a4eab69e43572e49a4794360379651ac3386",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "caddy-reverse-proxy",
+      "authorityId": "caddy-official",
+      "project": "Caddy",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://caddyserver.com/docs/caddyfile/directives/reverse_proxy",
+      "immutableRevision": null,
+      "contentSha256": "38ae35afcb4802a1f63de4a2e5ee753fec355b51506225bf16db992cdd090c4f",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "copilot-cli-config-dir",
+      "authorityId": "github-official",
+      "project": "GitHub Copilot CLI",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+      "immutableRevision": null,
+      "contentSha256": "a036a17c8a163ce6d0abbc69b9e4fcb6e9b7f0160de69c120c715957f1c45afb",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "copilot-cli-configuration",
+      "authorityId": "github-official",
+      "project": "GitHub Copilot CLI",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/configure-copilot-cli",
+      "immutableRevision": null,
+      "contentSha256": "a14f427f6b04720139f86c08c14434c2ca544b27b2593eda9c6ef0fda9818cd9",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "git-config",
+      "authorityId": "git-official",
+      "project": "Git",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://git-scm.com/docs/git-config",
+      "immutableRevision": null,
+      "contentSha256": "512529b2e6cfc50a9f424968f68e90a86715f13c748090ef2b4ef3aa01d0716b",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "npm-cli-config",
+      "authorityId": "npm-official",
+      "project": "npm CLI",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://docs.npmjs.com/cli/v11/using-npm/config",
+      "immutableRevision": null,
+      "contentSha256": "877584cbe6cd3e5351078971059bf225b34e0832a4bfef3fda16237e75073410",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "npmrc",
+      "authorityId": "npm-official",
+      "project": "npm CLI",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://docs.npmjs.com/cli/v11/configuring-npm/npmrc",
+      "immutableRevision": null,
+      "contentSha256": "8b3020282f707aa0f10135d8dbe855c944c1f6d8452578d15ef91cf23d965ce6",
+      "verifiedAt": "2026-09-22T09:17:26Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "openbsd-ssh-config",
+      "authorityId": "openbsd-official",
+      "project": "OpenSSH",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://man.openbsd.org/ssh_config",
+      "immutableRevision": null,
+      "contentSha256": "3d8e498373fc78cf844ce3317848867fb80624f0b981a92a6440bc9890b4980f",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    },
+    {
+      "sourceId": "zsh-builtin-commands",
+      "authorityId": "zsh-official",
+      "project": "Zsh",
+      "kind": "OFFICIAL_DOCUMENTATION",
+      "canonicalUrl": "https://zsh.sourceforge.io/Doc/Release/Shell-Builtin-Commands.html",
+      "immutableRevision": null,
+      "contentSha256": "19f7a047abe520cd4db0dea2f68285e354980786980a42475ebbb191e4b60b4e",
+      "verifiedAt": "2026-09-22T09:15:06Z",
+      "license": {
+        "status": "NOT_APPLICABLE",
+        "spdxId": null
+      },
+      "reviewStatus": "APPROVED",
+      "scopes": [
+        "FIELD_SCHEMA",
+        "PRESET",
+        "DOCUMENTATION_TEXT"
+      ]
+    }
+  ]
+}

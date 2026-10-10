@@ -25,14 +25,33 @@ use super::{
 pub struct ConfigDocument {
     #[serde(flatten)]
     summary: ConfigSummary,
+    #[serde(skip_serializing_if = "Option::is_none")]
     content: Option<String>,
     content_redacted: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     structured: Option<Value>,
 }
 
 impl ConfigDocument {
     pub(crate) fn content(&self) -> Option<&str> {
         self.content.as_deref()
+    }
+
+    pub(crate) fn structured(&self) -> Option<&Value> {
+        self.structured.as_ref()
+    }
+
+    pub(crate) fn content_hash(&self) -> Option<&str> {
+        self.summary.content_hash.as_deref()
+    }
+
+    pub(crate) fn exists(&self) -> bool {
+        self.summary.exists
+    }
+
+    pub(crate) fn strip_schema_payload(&mut self) {
+        self.content = None;
+        self.structured = None;
     }
 
     pub fn diagnostic(&self) -> &ConfigDiagnostic {

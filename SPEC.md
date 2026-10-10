@@ -1,6 +1,96 @@
 # Spec: UserHome
 
-Status: Approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21
+Status: Approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21; configuration-discovery-and-editing revision approved on 2026-09-22; native visual redesign approved on 2026-09-23
+
+## 2026-09-23 原生视觉重设计（已审批）
+
+**已确认的前提：**目标用户是使用 macOS 的开发者及高级用户；范围是仪表盘、应用与配置、Homebrew、服务和设置的整体重设计，而非仅换配色。保留固定 1120×720 窗口、原生交通灯、现有 Tauri 2 / React 19 / TypeScript / Tailwind CSS 4 / Headless UI 技术栈，以及全部功能和安全边界。不引入依赖或新增测试用例。设计方向为克制的原生 macOS 工具：灰白和石墨中性色、蓝色操作强调、紧凑列表，而非卡片式网页或装饰性渐变。
+
+目标是让每个主要页面在信息层级、交互、颜色和留白上形成同一套清楚、可信的桌面语言；优先让资源、状态及下一步操作易于扫描。此次修订的能力图和五份模块规格均于 2026-09-23 获确认，见 [`CAPABILITY-MAP.md`](CAPABILITY-MAP.md)。旧版规格继续有效，视觉要求以本修订为准；实施仍须等待分阶段计划与任务审批：
+
+- [`SPEC-visual-system-v2.md`](SPEC-visual-system-v2.md)：语义配色、字型、密度、组件状态。
+- [`SPEC-desktop-shell-v2.md`](SPEC-desktop-shell-v2.md)：标题栏、导航、工具栏、分栏与滚动。
+- [`SPEC-resource-workspaces-v2.md`](SPEC-resource-workspaces-v2.md)：应用与配置、Homebrew、服务。
+- [`SPEC-utility-workspaces-v2.md`](SPEC-utility-workspaces-v2.md)：仪表盘与设置。
+- [`SPEC-visual-acceptance-v2.md`](SPEC-visual-acceptance-v2.md)：全路由验收与证据。
+
+### 技术栈、命令及目录
+
+| 范畴 | 约定 |
+|---|---|
+| 桌面与 UI | Tauri 2、React 19、严格 TypeScript、Tailwind CSS 4；Headless UI 仅用于需要的无障碍复合交互 |
+| 启动 | `pnpm tauri dev` |
+| 定向前端验证 | `pnpm lint && pnpm typecheck && pnpm build` |
+| 现有测试 | `pnpm test`；真实 macOS WebView 冒烟 `pnpm test:e2e` |
+| 跨栈检查 | `pnpm check`；无签名打包 `pnpm build:unsigned` |
+| 结构 | `src/styles/global.css` 定义语义令牌；`src/components/ui/` 是共用控件；`src/app/` 是窗口与路由；`src/features/` 按页面持有内容；`src/ipc/` 与 `src-tauri/` 保持现有接口和安全逻辑；`e2e/` 及相邻现有测试文件负责已有验证 |
+
+### 风格与验证
+
+使用语义令牌而不是在页面散落色值；组件使用 `PascalCase`，函数使用 `camelCase`，维持仓库现有双空格及现有 class 组合约定。例如：
+
+```tsx
+<section className="resource-detail" aria-labelledby="resource-title">
+  <h2 id="resource-title">{resource.name}</h2>
+  <Button onClick={onPreview}>预览更改</Button>
+</section>
+```
+
+实施时先跑受影响模块的现有检查，再跑 `pnpm check` 与隔离 HOME 的 `pnpm test:e2e`。人工在 1120×720、System/Light/Dark、100%/200% 文本缩放下检查所有主要页面的视觉、键盘、滚动、对比度及悬浮/焦点/禁用/错误状态；缺乏人工证据不得标记为已通过。既有测试保持通过，**默认不新增测试用例**。
+
+### 边界
+
+- **始终遵守：**保留原生交通灯和无拖拽交互区域、明确的滚动容器、键盘焦点、显式状态文案、确认式变更及隐私和授权边界；不修改用户真实配置做验收。
+- **先征得确认：**改变窗口尺寸或可缩放性、增加依赖或测试用例、调整业务语义或已有授权路径、引入新动效或自定义窗口控件。
+- **绝不执行：**网页式 hero/通用卡片网格、以颜色作为唯一状态、遮挡交通灯或焦点、静默省略错误与预览、绕过已有配置写入及提权流程。
+
+### 整体完成条件
+
+五个模块均按依赖顺序通过各自的可量化验收；主要页面具有一致的原生视觉层级，所有现有功能保持可达；无文档级滚动、无主操作在 200% 缩放时被遮挡；普通文本对比度至少 4.5:1，图标、边界及焦点至少 3:1。发布级人工验收、Apple 签名/公证及 GitHub 托管 CI 等现有外部阻塞继续单独记录，不得以视觉重设计或本地构建替代。
+
+**下一关口：**另行制定 `tasks/plan.md` / `tasks/todo.md` 的新阶段，审批计划与任务后才通过 Orca 分发实现。不得把原有 T01–T97 的未完成外部关口改写为已完成。
+
+## 2026-09-22 Configuration-discovery-and-editing revision
+
+This revision extends the approved desktop-completeness architecture with six
+independently verifiable modules:
+
+1. [`desktop-visual-consistency`](SPEC-desktop-visual-consistency.md)
+2. [`config-schema-presets`](SPEC-config-schema-presets.md)
+3. [`native-window-dragging`](SPEC-native-window-dragging.md)
+4. [`open-source-config-sourcing`](SPEC-open-source-config-sourcing.md)
+5. [`schema-driven-config-editing`](SPEC-schema-driven-config-editing.md)
+6. [`application-browsing`](SPEC-application-browsing.md)
+
+The approved capability map and dependency direction are recorded in
+[`CAPABILITY-MAP.md`](CAPABILITY-MAP.md). The build order is:
+
+```text
+desktop-visual-consistency + config-schema-presets
+  -> native-window-dragging + open-source-config-sourcing
+  -> schema-driven-config-editing
+  -> application-browsing
+  -> integrated desktop acceptance at 1120 x 720
+```
+
+The revision fixes the following product decisions:
+
+- Application browsing uses dependency-free pagination with exactly 50
+  applications per page; it does not render the full 500-entry corpus at once.
+- Configuration schemas and presets are stored in two independently versioned
+  packaged files.
+- The first schema-driven migration set is Git, Caddy, GitHub Copilot CLI, npm,
+  OpenSSH, and Zsh; compatibility editors remain until parity is demonstrated.
+- Corpus refresh cadence, staleness threshold, and approval owner remain open
+  implementation-plan decisions.
+
+All six revision specifications were approved on 2026-09-22. They refine,
+rather than replace, the previously approved specifications. Existing
+local-first, fail-closed, typed IPC, sensitive-data shielding, catalog-owned
+authorization, and preview/confirm/backup/atomic write/post-validate/rollback
+boundaries remain mandatory. Planning may proceed against these module IDs and
+their acyclic dependency order; implementation still requires an approved
+plan.
 
 ## 2026-09-21 Desktop-completeness revision
 
@@ -547,6 +637,12 @@ Required quality bar:
 
 ## Module Index
 
+- [`SPEC-desktop-visual-consistency.md`](SPEC-desktop-visual-consistency.md)
+- [`SPEC-config-schema-presets.md`](SPEC-config-schema-presets.md)
+- [`SPEC-native-window-dragging.md`](SPEC-native-window-dragging.md)
+- [`SPEC-open-source-config-sourcing.md`](SPEC-open-source-config-sourcing.md)
+- [`SPEC-schema-driven-config-editing.md`](SPEC-schema-driven-config-editing.md)
+- [`SPEC-application-browsing.md`](SPEC-application-browsing.md)
 - [`SPEC-native-desktop-shell.md`](SPEC-native-desktop-shell.md)
 - [`SPEC-home-baseline-inventory.md`](SPEC-home-baseline-inventory.md)
 - [`SPEC-configuration-platform.md`](SPEC-configuration-platform.md)

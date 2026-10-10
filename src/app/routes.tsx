@@ -8,6 +8,7 @@ import type {
   Appearance,
   UpdatePreferencesRequest,
 } from "../ipc/settings";
+import type { AppError } from "../ipc/core";
 import type {
   ApplicationsState,
   ConnectionState,
@@ -18,6 +19,39 @@ import type {
 } from "./shellState";
 import type { AppRoute } from "./routeDefinitions";
 import type { SelectionMemory } from "./selectionMemory";
+
+function detectedApplicationIds(
+  discovery: DiscoveryState,
+): readonly string[] | undefined {
+  if (
+    discovery.status !== "ready" ||
+    discovery.snapshot.system.status !== "READY"
+  ) {
+    return undefined;
+  }
+  return discovery.snapshot.system.data.applications
+    .filter((application) => application.status !== "ABSENT")
+    .map((application) => application.appId);
+}
+
+function applicationDetectionError(
+  discovery: DiscoveryState,
+): AppError | undefined {
+  if (discovery.status === "error") {
+    return discovery.error;
+  }
+  if (
+    discovery.status === "ready" &&
+    discovery.snapshot.system.status === "ERROR"
+  ) {
+    return {
+      code: "PARTIAL_FAILURE",
+      message: discovery.snapshot.system.error.message,
+      retryable: discovery.snapshot.system.error.retryable,
+    };
+  }
+  return undefined;
+}
 
 interface RoutePanelProps {
   applications: ApplicationsState;
@@ -83,8 +117,28 @@ export function RoutePanel({
               : { status: "LOADING" }
         }
         state={applications}
+        detectedAppIds={detectedApplicationIds(discovery)}
+        detectionError={applicationDetectionError(discovery)}
         initialSelectedConfigIds={selection.applicationConfigIds}
         initialSelectedKey={selection.applicationKey}
+        initialQuery={selection.applicationQuery}
+        initialCategory={selection.applicationCategory}
+        initialCoverage={selection.applicationCoverage}
+        initialCapability={selection.applicationCapability}
+        initialDetected={selection.applicationDetected}
+        initialPage={selection.applicationPage}
+        initialScrollTop={selection.applicationScrollTop}
+        onBrowseStateChange={(browseState) =>
+          onSelectionChange({
+            applicationQuery: browseState.query,
+            applicationCategory: browseState.category,
+            applicationCoverage: browseState.coverageClass,
+            applicationCapability: browseState.capability,
+            applicationDetected: browseState.detected,
+            applicationPage: browseState.page,
+            applicationScrollTop: browseState.scrollTop,
+          })
+        }
         onSelectedConfigChange={(applicationId, configId) => {
           const next = { ...selection.applicationConfigIds };
           if (configId) {

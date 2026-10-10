@@ -1,0 +1,431 @@
+{
+  "allowlistedProjectSources": [
+    {
+      "licenseReview": {
+        "notes": "Documentation reference only; review product metadata use before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "GitHub",
+      "project": "GitHub Copilot",
+      "url": "https://docs.github.com/en/copilot"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Caddy",
+      "project": "Caddy",
+      "url": "https://github.com/caddyserver/caddy"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Git",
+      "project": "Git",
+      "url": "https://github.com/git/git"
+    },
+    {
+      "licenseReview": {
+        "notes": "Review project licensing before copying any additional material.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "OpenBSD",
+      "project": "OpenSSH",
+      "url": "https://www.openssh.com/"
+    },
+    {
+      "licenseReview": {
+        "notes": "Review project licensing before copying any additional material.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Zsh Development Group",
+      "project": "Zsh",
+      "url": "https://www.zsh.org/"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "npm",
+      "project": "npm CLI",
+      "url": "https://github.com/npm/cli"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm source and product branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Microsoft",
+      "project": "Visual Studio Code",
+      "url": "https://github.com/microsoft/vscode"
+    },
+    {
+      "licenseReview": {
+        "notes": "Vendor reference only; review metadata and branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Anysphere",
+      "project": "Cursor",
+      "url": "https://www.cursor.com/"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Ghostty",
+      "project": "Ghostty",
+      "url": "https://github.com/ghostty-org/ghostty"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Starship",
+      "project": "Starship",
+      "url": "https://github.com/starship/starship"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "tmux",
+      "project": "tmux",
+      "url": "https://github.com/tmux/tmux"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Vim",
+      "project": "Vim",
+      "url": "https://github.com/vim/vim"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Zed Industries",
+      "project": "Zed",
+      "url": "https://github.com/zed-industries/zed"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Neovim",
+      "project": "Neovim",
+      "url": "https://github.com/neovim/neovim"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "George Nachman",
+      "project": "iTerm2",
+      "url": "https://github.com/gnachman/iTerm2"
+    },
+    {
+      "licenseReview": {
+        "notes": "Vendor reference only; review metadata and branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Anthropic",
+      "project": "Claude Code",
+      "url": "https://www.anthropic.com/claude-code"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "OpenAI",
+      "project": "Codex",
+      "url": "https://github.com/openai/codex"
+    },
+    {
+      "licenseReview": {
+        "notes": "Confirm repository license and attribution requirements before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Google",
+      "project": "Gemini CLI",
+      "url": "https://github.com/google-gemini/gemini-cli"
+    },
+    {
+      "licenseReview": {
+        "notes": "Vendor reference only; review metadata and branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Docker",
+      "project": "Docker Desktop",
+      "url": "https://www.docker.com/products/docker-desktop/"
+    },
+    {
+      "licenseReview": {
+        "notes": "Vendor reference only; review metadata and branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "OrbStack",
+      "project": "OrbStack",
+      "url": "https://orbstack.dev/"
+    },
+    {
+      "licenseReview": {
+        "notes": "Documentation reference only; review product metadata use before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Google",
+      "project": "Google Cloud CLI",
+      "url": "https://cloud.google.com/sdk/docs/install"
+    },
+    {
+      "licenseReview": {
+        "notes": "Vendor reference only; review metadata and branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Raycast",
+      "project": "Raycast",
+      "url": "https://www.raycast.com/"
+    },
+    {
+      "licenseReview": {
+        "notes": "Vendor reference only; review metadata and branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "GitKraken",
+      "project": "GitKraken CLI",
+      "url": "https://www.gitkraken.com/cli"
+    },
+    {
+      "licenseReview": {
+        "notes": "Vendor reference only; review metadata and branding terms before enrichment.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "owner": "Apifox",
+      "project": "Apifox",
+      "url": "https://apifox.com/"
+    }
+  ],
+  "managedOverlayIds": [
+    "antigravity",
+    "apifox",
+    "caddy",
+    "claude",
+    "codex",
+    "cursor",
+    "docker",
+    "gcloud",
+    "gemini",
+    "ghostty",
+    "git",
+    "github-copilot",
+    "gitkraken-cli",
+    "iterm2",
+    "neovim",
+    "npm",
+    "openssh",
+    "orbstack",
+    "raycast",
+    "starship",
+    "tmux",
+    "trae",
+    "vim",
+    "visual-studio-code",
+    "zed",
+    "zsh"
+  ],
+  "policy": {
+    "defaultCapabilities": [
+      "DETECT"
+    ],
+    "defaultCoverageClass": "DETECTED_UNSUPPORTED",
+    "defaultWritePermissions": [],
+    "maximumPackagedApplications": 1000,
+    "minimumCaskRecords": 250,
+    "minimumFormulaRecords": 250,
+    "minimumPackagedApplications": 500,
+    "staleAfterDays": 90
+  },
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "homebrew-formula-api",
+      "kind": "HOMEBREW_FORMULA_API",
+      "licenseReview": {
+        "notes": "Review formula metadata redistribution and individual package license fields before shipping.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "normalizedSha256": "a0769eacda7ca2c9b75eb621ea2924cf3e47fe34be5dbcc3d65422d3936a0fef",
+      "owner": "Homebrew",
+      "project": "homebrew-core",
+      "rawPath": "raw/homebrew-formulae.normalized.json",
+      "recordLimit": 300,
+      "repositoryUrl": "https://github.com/Homebrew/homebrew-core",
+      "retrievedAt": "2026-09-22T08:05:48.384Z",
+      "sha256": "df8c6f4ee6bcd9c9737bc676a27a5eaca0ee61c729bb9a883ac179601ba36d98",
+      "staleAfterDays": 90,
+      "url": "https://formulae.brew.sh/api/formula.json",
+      "verifiedAt": "2026-09-22T08:05:48.428Z"
+    },
+    {
+      "id": "homebrew-cask-api",
+      "kind": "HOMEBREW_CASK_API",
+      "licenseReview": {
+        "notes": "Review cask metadata redistribution and upstream application licensing before shipping.",
+        "status": "REVIEW_REQUIRED"
+      },
+      "maintainerApproval": {
+        "approvedAt": null,
+        "approvedBy": null,
+        "status": "PENDING"
+      },
+      "normalizedSha256": "46d22bb00be4753d47d060fca1776eda0c0832d784eb9e346a27a70554561f62",
+      "owner": "Homebrew",
+      "project": "homebrew-cask",
+      "rawPath": "raw/homebrew-casks.normalized.json",
+      "recordLimit": 300,
+      "repositoryUrl": "https://github.com/Homebrew/homebrew-cask",
+      "retrievedAt": "2026-09-22T08:05:47.390Z",
+      "sha256": "077589fc98590963f006665c7b326064ee3f4c220dfeefc322a9c323f8e7fca6",
+      "staleAfterDays": 90,
+      "url": "https://formulae.brew.sh/api/cask.json",
+      "verifiedAt": "2026-09-22T08:05:47.408Z"
+    }
+  ]
+}

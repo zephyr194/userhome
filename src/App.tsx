@@ -16,7 +16,7 @@ import {
   type PreferencesState,
   type ShellAction,
 } from "./app/shellState";
-import { listManagedApps } from "./ipc/catalog";
+import { queryManagedApps } from "./ipc/catalog";
 import { decodeAppError, type AppError, getAppStatus } from "./ipc/core";
 import {
   getSystemSnapshot,
@@ -125,9 +125,9 @@ function App({
           dispatch({ type: "operation-error", error });
           return false;
         }),
-      listManagedApps()
-        .then((catalog) => {
-          dispatch({ type: "applications-ready", catalog });
+      queryManagedApps({ page: 1 })
+        .then((page) => {
+          dispatch({ type: "applications-ready", page });
           return true;
         })
         .catch((error: AppError) => {

@@ -1,0 +1,5717 @@
+{
+  "recordKind": "cask",
+  "records": [
+    {
+      "category": "Games",
+      "displayName": "0 A.D.",
+      "id": "0-ad",
+      "package": {
+        "stableVersion": "0.28.0",
+        "token": "0-ad",
+        "type": "cask"
+      },
+      "summary": "Real-time strategy game",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "010 Editor",
+      "id": "010-editor",
+      "package": {
+        "stableVersion": "16.0.4",
+        "token": "010-editor",
+        "type": "cask"
+      },
+      "summary": "Text editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "115Browser",
+      "id": "115browser",
+      "package": {
+        "stableVersion": "36.0.1",
+        "token": "115browser",
+        "type": "cask"
+      },
+      "summary": "Web browser",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "1Password",
+      "id": "1password",
+      "package": {
+        "stableVersion": "8.12.36",
+        "token": "1password",
+        "type": "cask"
+      },
+      "summary": "Password manager that keeps all passwords secure behind one password",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "1Password",
+      "id": "1password-at-7",
+      "package": {
+        "stableVersion": "7.9.11",
+        "token": "1password@7",
+        "type": "cask"
+      },
+      "summary": "Password manager that keeps all passwords secure behind one password",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "1Password",
+      "id": "1password-at-beta",
+      "package": {
+        "stableVersion": "8.12.38-25.BETA",
+        "token": "1password@beta",
+        "type": "cask"
+      },
+      "summary": "Password manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Security",
+      "displayName": "1Password Nightly",
+      "id": "1password-at-nightly",
+      "package": {
+        "stableVersion": "latest",
+        "token": "1password@nightly",
+        "type": "cask"
+      },
+      "summary": "Password manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "4K Image Compressor",
+      "id": "4k-image-compressor",
+      "package": {
+        "stableVersion": "26.0.0",
+        "token": "4k-image-compressor",
+        "type": "cask"
+      },
+      "summary": "Image compressor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "4K Slideshow Maker",
+      "id": "4k-slideshow-maker",
+      "package": {
+        "stableVersion": "2.0.1",
+        "token": "4k-slideshow-maker",
+        "type": "cask"
+      },
+      "summary": "Slideshow maker",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "4K Stogram",
+      "id": "4k-stogram",
+      "package": {
+        "stableVersion": "4.9.0",
+        "token": "4k-stogram",
+        "type": "cask"
+      },
+      "summary": "Download Instagram photos, accounts, hashtags and locations",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "4K Tokkit",
+      "id": "4k-tokkit",
+      "package": {
+        "stableVersion": "26.0.0",
+        "token": "4k-tokkit",
+        "type": "cask"
+      },
+      "summary": "Download TikTok videos and accounts",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "4K Video Downloader",
+      "id": "4k-video-downloader",
+      "package": {
+        "stableVersion": "4.33.5",
+        "token": "4k-video-downloader",
+        "type": "cask"
+      },
+      "summary": "Free video downloader",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "4K Video Downloader Plus",
+      "id": "4k-video-downloader-plus",
+      "package": {
+        "stableVersion": "26.3.3",
+        "token": "4k-video-downloader+",
+        "type": "cask"
+      },
+      "summary": "Free video downloader",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "4K Video to MP3",
+      "id": "4k-video-to-mp3",
+      "package": {
+        "stableVersion": "3.0.1",
+        "token": "4k-video-to-mp3",
+        "type": "cask"
+      },
+      "summary": "Convert any video to MP3",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "4K YouTube to MP3",
+      "id": "4k-youtube-to-mp3",
+      "package": {
+        "stableVersion": "26.3.3",
+        "token": "4k-youtube-to-mp3",
+        "type": "cask"
+      },
+      "summary": "Turn YouTube links into MP3 files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "4Peaks",
+      "id": "4peaks",
+      "package": {
+        "stableVersion": "1.8",
+        "token": "4peaks",
+        "type": "cask"
+      },
+      "summary": "Visualise and edit DNA sequence trace files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "5ire",
+      "id": "5ire",
+      "package": {
+        "stableVersion": "0.15.1",
+        "token": "5ire",
+        "type": "cask"
+      },
+      "summary": "AI assistant and MCP client",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "5KPlayer",
+      "id": "5kplayer",
+      "package": {
+        "stableVersion": "6.11.0",
+        "token": "5kplayer",
+        "type": "cask"
+      },
+      "summary": "Play 4K/1080p/360-degree video, MP3/AAC/APE/FLAC music without quality loss",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "86Box",
+      "id": "86box",
+      "package": {
+        "stableVersion": "6.0,9001",
+        "token": "86box",
+        "type": "cask"
+      },
+      "summary": "Emulator of x86-based machines based on PCem",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "8BitDo Firmware Updater",
+      "id": "8bitdo-firmware-updater",
+      "package": {
+        "stableVersion": "2.5.2",
+        "token": "8bitdo-firmware-updater",
+        "type": "cask"
+      },
+      "summary": "Firmware updater for 8BitDo controllers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "8BitDo Ultimate Software",
+      "id": "8bitdo-ultimate-software",
+      "package": {
+        "stableVersion": "2.0.6",
+        "token": "8bitdo-ultimate-software",
+        "type": "cask"
+      },
+      "summary": "Control every piece of your controller",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "8BitDo Ultimate Software V2",
+      "id": "8bitdo-ultimate-software-v2",
+      "package": {
+        "stableVersion": "1.0.20",
+        "token": "8bitdo-ultimate-software-v2",
+        "type": "cask"
+      },
+      "summary": "Control every piece of your controller",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "8x8_work",
+      "id": "8x8-work",
+      "package": {
+        "stableVersion": "8.37.2-1",
+        "token": "8x8-work",
+        "type": "cask"
+      },
+      "summary": "Communications application with voice, video, chat, and web conferencing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "A Better Finder Attributes",
+      "id": "a-better-finder-attributes",
+      "package": {
+        "stableVersion": "7.49",
+        "token": "a-better-finder-attributes",
+        "type": "cask"
+      },
+      "summary": "File and photo tweaking tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "A Better Finder Rename",
+      "id": "a-better-finder-rename",
+      "package": {
+        "stableVersion": "12.34",
+        "token": "a-better-finder-rename",
+        "type": "cask"
+      },
+      "summary": "Renamer for files, music and photos",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "ABBYY FineReader PDF",
+      "id": "abbyy-finereader-pdf",
+      "package": {
+        "stableVersion": "1402.19",
+        "token": "abbyy-finereader-pdf",
+        "type": "cask"
+      },
+      "summary": "Scan, OCR, and convert documents to searchable PDFs and other formats",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AbleSet",
+      "id": "ableset",
+      "package": {
+        "stableVersion": "3.1.5",
+        "token": "ableset",
+        "type": "cask"
+      },
+      "summary": "Ableton setlist manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Intro",
+      "id": "ableton-live-intro",
+      "package": {
+        "stableVersion": "12.4.6",
+        "token": "ableton-live-intro",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Intro",
+      "id": "ableton-live-intro-at-11",
+      "package": {
+        "stableVersion": "11.3.43",
+        "token": "ableton-live-intro@11",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Lite",
+      "id": "ableton-live-lite",
+      "package": {
+        "stableVersion": "12.4.6",
+        "token": "ableton-live-lite",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Lite",
+      "id": "ableton-live-lite-at-11",
+      "package": {
+        "stableVersion": "11.3.43",
+        "token": "ableton-live-lite@11",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Standard",
+      "id": "ableton-live-standard",
+      "package": {
+        "stableVersion": "12.4.6",
+        "token": "ableton-live-standard",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Standard",
+      "id": "ableton-live-standard-at-11",
+      "package": {
+        "stableVersion": "11.3.43",
+        "token": "ableton-live-standard@11",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Suite",
+      "id": "ableton-live-suite",
+      "package": {
+        "stableVersion": "12.4.6",
+        "token": "ableton-live-suite",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Suite",
+      "id": "ableton-live-suite-at-10",
+      "package": {
+        "stableVersion": "10.1.43",
+        "token": "ableton-live-suite@10",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Ableton Live Suite",
+      "id": "ableton-live-suite-at-11",
+      "package": {
+        "stableVersion": "11.3.43",
+        "token": "ableton-live-suite@11",
+        "type": "cask"
+      },
+      "summary": "Sound and music editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Abstract",
+      "id": "abstract",
+      "package": {
+        "stableVersion": "98.6.3",
+        "token": "abstract",
+        "type": "cask"
+      },
+      "summary": "Collaborative design tool with support for Sketch files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "teleport",
+      "id": "abyssoft-teleport",
+      "package": {
+        "stableVersion": "1.3.5",
+        "token": "abyssoft-teleport",
+        "type": "cask"
+      },
+      "summary": "Virtual KVM",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AccessMenuBarApps",
+      "id": "accessmenubarapps",
+      "package": {
+        "stableVersion": "2.6.1",
+        "token": "accessmenubarapps",
+        "type": "cask"
+      },
+      "summary": "Instant access for menubar apps",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "accord",
+      "id": "accord",
+      "package": {
+        "stableVersion": "1.7.1",
+        "token": "accord",
+        "type": "cask"
+      },
+      "summary": "Discord client written in Swift for modern Macs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Accordance Bible Software",
+      "id": "accordance",
+      "package": {
+        "stableVersion": "14.1.2",
+        "token": "accordance",
+        "type": "cask"
+      },
+      "summary": "Bible study software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Accordance Bible Software",
+      "id": "accordance-at-13",
+      "package": {
+        "stableVersion": "13.3.5",
+        "token": "accordance@13",
+        "type": "cask"
+      },
+      "summary": "Bible study software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "ACE Studio",
+      "id": "ace-studio",
+      "package": {
+        "stableVersion": "2.1.3,2202",
+        "token": "ace-studio",
+        "type": "cask"
+      },
+      "summary": "AI Singing Voice Generator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Acorn",
+      "id": "acorn",
+      "package": {
+        "stableVersion": "8.6.3",
+        "token": "acorn",
+        "type": "cask"
+      },
+      "summary": "Image editor focused on simplicity",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "acreom",
+      "id": "acreom",
+      "package": {
+        "stableVersion": "1.20.4",
+        "token": "acreom",
+        "type": "cask"
+      },
+      "summary": "Personal knowledge base for developers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ActiveDock",
+      "id": "activedock",
+      "package": {
+        "stableVersion": "2.882",
+        "token": "activedock",
+        "type": "cask"
+      },
+      "summary": "Customizable dock, application launcher, dock replacement",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ActivityWatch",
+      "id": "activitywatch",
+      "package": {
+        "stableVersion": "0.13.2",
+        "token": "activitywatch",
+        "type": "cask"
+      },
+      "summary": "Time tracker",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ActivityWatch",
+      "id": "activitywatch-at-beta",
+      "package": {
+        "stableVersion": "0.14.0b8",
+        "token": "activitywatch@beta",
+        "type": "cask"
+      },
+      "summary": "Time tracker",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Actual",
+      "id": "actual",
+      "package": {
+        "stableVersion": "26.9.0",
+        "token": "actual",
+        "type": "cask"
+      },
+      "summary": "Privacy-focused app for managing your finances",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Adapter",
+      "id": "adapter",
+      "package": {
+        "stableVersion": "2.1.6",
+        "token": "adapter",
+        "type": "cask"
+      },
+      "summary": "Converts video, audio and images",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Adium",
+      "id": "adium",
+      "package": {
+        "stableVersion": "1.5.10.4",
+        "token": "adium",
+        "type": "cask"
+      },
+      "summary": "Instant messaging application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Adobe Creative Cloud Cleaner Tool",
+      "id": "adobe-creative-cloud-cleaner-tool",
+      "package": {
+        "stableVersion": "4.3.0.1322",
+        "token": "adobe-creative-cloud-cleaner-tool",
+        "type": "cask"
+      },
+      "summary": "Utility to clean up corrupted installations of Adobe software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Adrafinil",
+      "id": "adrafinil",
+      "package": {
+        "stableVersion": "1.8",
+        "token": "adrafinil",
+        "type": "cask"
+      },
+      "summary": "Keep your computer awake while AI coding agents are working",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Aliyundrive",
+      "id": "adrive",
+      "package": {
+        "stableVersion": "6.9.3",
+        "token": "adrive",
+        "type": "cask"
+      },
+      "summary": "Intelligent cloud storage platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Advanced Renamer",
+      "id": "advanced-renamer",
+      "package": {
+        "stableVersion": "4.25",
+        "token": "advanced-renamer",
+        "type": "cask"
+      },
+      "summary": "Batch file renaming utility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "Advanced REST Client",
+      "id": "advancedrestclient",
+      "package": {
+        "stableVersion": "17.0.9",
+        "token": "advancedrestclient",
+        "type": "cask"
+      },
+      "summary": "API testing tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AdvantageScope",
+      "id": "advantagescope",
+      "package": {
+        "stableVersion": "26.0.2",
+        "token": "advantagescope",
+        "type": "cask"
+      },
+      "summary": "FRC log analysis tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Adze",
+      "id": "adze",
+      "package": {
+        "stableVersion": "1.4.12",
+        "token": "adze",
+        "type": "cask"
+      },
+      "summary": "Edit GPX documents",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Aerial",
+      "id": "aerial",
+      "package": {
+        "stableVersion": "4.1.3",
+        "token": "aerial",
+        "type": "cask"
+      },
+      "summary": "Apple TV Aerial screensaver",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Aerial",
+      "id": "aerial-at-beta",
+      "package": {
+        "stableVersion": "4.1.3",
+        "token": "aerial@beta",
+        "type": "cask"
+      },
+      "summary": "Apple TV Aerial screensaver",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "AFFiNE",
+      "id": "affine",
+      "package": {
+        "stableVersion": "0.27.4",
+        "token": "affine",
+        "type": "cask"
+      },
+      "summary": "Note editor and whiteboard",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Affinity",
+      "id": "affinity",
+      "package": {
+        "stableVersion": "3.3.0,4850",
+        "token": "affinity",
+        "type": "cask"
+      },
+      "summary": "Image editing and design software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "Afterglow",
+      "id": "afterglow",
+      "package": {
+        "stableVersion": "1.0.1",
+        "token": "afterglow",
+        "type": "cask"
+      },
+      "summary": "Classic After Dark screen savers emulator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Agent TARS",
+      "id": "agent-tars",
+      "package": {
+        "stableVersion": "1.0.0-alpha.10",
+        "token": "agent-tars",
+        "type": "cask"
+      },
+      "summary": "Multimodal AI agent for GUI interaction",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "AgentIDE",
+      "id": "agentide",
+      "package": {
+        "stableVersion": "0.9.5",
+        "token": "agentide",
+        "type": "cask"
+      },
+      "summary": "IDE for agent-based development",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Agent!",
+      "id": "agentiloop-agent",
+      "package": {
+        "stableVersion": "1.1.33.233",
+        "token": "agentiloop-agent",
+        "type": "cask"
+      },
+      "summary": "Autonomous agent",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Agentkube",
+      "id": "agentkube",
+      "package": {
+        "stableVersion": "0.0.12",
+        "token": "agentkube",
+        "type": "cask"
+      },
+      "summary": "AI-powered Kubernetes IDE",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "AgentsMesh",
+      "id": "agentsmesh",
+      "package": {
+        "stableVersion": "0.44.7",
+        "token": "agentsmesh",
+        "type": "cask"
+      },
+      "summary": "AI agent workforce platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "AgentsView",
+      "id": "agentsview",
+      "package": {
+        "stableVersion": "0.44.0",
+        "token": "agentsview",
+        "type": "cask"
+      },
+      "summary": "Browse, search and analyse your past AI coding sessions",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "agi",
+      "id": "agi",
+      "package": {
+        "stableVersion": "3.3.3",
+        "token": "agi",
+        "type": "cask"
+      },
+      "summary": "Android GPU Inspector",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Altair AI Studio",
+      "id": "ai-studio",
+      "package": {
+        "stableVersion": "2026.1.1",
+        "token": "ai-studio",
+        "type": "cask"
+      },
+      "summary": "Data science platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "AigcPanel",
+      "id": "aigcpanel",
+      "package": {
+        "stableVersion": "2.3.0",
+        "token": "aigcpanel",
+        "type": "cask"
+      },
+      "summary": "AI video, audio and broadcast generator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Aimersoft Video Converter Ultimate",
+      "id": "aimersoft-video-converter-ultimate",
+      "package": {
+        "stableVersion": "11.6.7.1",
+        "token": "aimersoft-video-converter-ultimate",
+        "type": "cask"
+      },
+      "summary": "Video converter app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "AionUi",
+      "id": "aionui",
+      "package": {
+        "stableVersion": "2.2.2",
+        "token": "aionui",
+        "type": "cask"
+      },
+      "summary": "Unified GUI for command-line AI agents",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "Air Video Server HD",
+      "id": "air-video-server-hd",
+      "package": {
+        "stableVersion": "2.3.0-beta1u1",
+        "token": "air-video-server-hd",
+        "type": "cask"
+      },
+      "summary": "Tool to stream videos to Apple devices",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AirBuddy",
+      "id": "airbuddy",
+      "package": {
+        "stableVersion": "3.0.1,1008",
+        "token": "airbuddy",
+        "type": "cask"
+      },
+      "summary": "AirPods companion app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Aircall",
+      "id": "aircall",
+      "package": {
+        "stableVersion": "3.1.66",
+        "token": "aircall",
+        "type": "cask"
+      },
+      "summary": "Cloud-based call center and phone system software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AirDash",
+      "id": "airdash",
+      "package": {
+        "stableVersion": "2.0.158",
+        "token": "airdash",
+        "type": "cask"
+      },
+      "summary": "Transfer photos and files to any device",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AirDroid",
+      "id": "airdroid",
+      "package": {
+        "stableVersion": "3.7.3.1",
+        "token": "airdroid",
+        "type": "cask"
+      },
+      "summary": "Mobile device management suite",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Airflow",
+      "id": "airflow",
+      "package": {
+        "stableVersion": "3.3.10",
+        "token": "airflow",
+        "type": "cask"
+      },
+      "summary": "Watch local content on Apple TV and Chromecast",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Airfoil",
+      "id": "airfoil",
+      "package": {
+        "stableVersion": "5.12.8",
+        "token": "airfoil",
+        "type": "cask"
+      },
+      "summary": "Sends audio from computer to outputs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "AIRI",
+      "id": "airi",
+      "package": {
+        "stableVersion": "0.11.3",
+        "token": "airi",
+        "type": "cask"
+      },
+      "summary": "AI companion and VTuber application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AirParrot",
+      "id": "airparrot",
+      "package": {
+        "stableVersion": "3.1.7",
+        "token": "airparrot",
+        "type": "cask"
+      },
+      "summary": "Tool to wirelessly mirror the screen or stream media files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AirScroll",
+      "id": "airscroll",
+      "package": {
+        "stableVersion": "1.3.3",
+        "token": "airscroll",
+        "type": "cask"
+      },
+      "summary": "Smooth mouse scrolling utility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "AirServer",
+      "id": "airserver",
+      "package": {
+        "stableVersion": "7.3.3",
+        "token": "airserver",
+        "type": "cask"
+      },
+      "summary": "Screen mirroring receiver",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AirStats",
+      "id": "airstats",
+      "package": {
+        "stableVersion": "1.4",
+        "token": "airstats",
+        "type": "cask"
+      },
+      "summary": "Menu bar system monitor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AirSync",
+      "id": "airsync",
+      "package": {
+        "stableVersion": "4.0.1",
+        "token": "airsync",
+        "type": "cask"
+      },
+      "summary": "Continuity tools for use with Android devices",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "Airtable",
+      "id": "airtable",
+      "package": {
+        "stableVersion": "1.7.1",
+        "token": "airtable",
+        "type": "cask"
+      },
+      "summary": "Spreadsheet-database hybrid cloud collaboration",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Airtame",
+      "id": "airtame",
+      "package": {
+        "stableVersion": "4.16.0",
+        "token": "airtame",
+        "type": "cask"
+      },
+      "summary": "Wireless screen sharing platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Airy",
+      "id": "airy",
+      "package": {
+        "stableVersion": "3.29.2",
+        "token": "airy",
+        "type": "cask"
+      },
+      "summary": "YouTube video and MP3 downloader",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Akiflow",
+      "id": "akiflow",
+      "package": {
+        "stableVersion": "2.81.8,443b090a",
+        "token": "akiflow",
+        "type": "cask"
+      },
+      "summary": "Time blocking and productivity platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AKS desktop",
+      "id": "aks-desktop",
+      "package": {
+        "stableVersion": "0.9.1",
+        "token": "aks-desktop",
+        "type": "cask"
+      },
+      "summary": "Azure Kubernetes Service desktop application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ALCOM",
+      "id": "alcom",
+      "package": {
+        "stableVersion": "1.1.8",
+        "token": "alcom",
+        "type": "cask"
+      },
+      "summary": "Graphical frontend of vrc-get, open source alternative to VRChat Package Manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Alcove",
+      "id": "alcove",
+      "package": {
+        "stableVersion": "1.7.7",
+        "token": "alcove",
+        "type": "cask"
+      },
+      "summary": "Utility to add Dynamic Island like features to notch area",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AlDente",
+      "id": "aldente",
+      "package": {
+        "stableVersion": "1.39.3",
+        "token": "aldente",
+        "type": "cask"
+      },
+      "summary": "Menu bar tool to limit maximum charging percentage",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "Aleph One",
+      "id": "aleph-one",
+      "package": {
+        "stableVersion": "20250829",
+        "token": "aleph-one",
+        "type": "cask"
+      },
+      "summary": "Open-source continuation of Bungie's Marathon 2 game engine",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Alfred",
+      "id": "alfred",
+      "package": {
+        "stableVersion": "5.8,2348",
+        "token": "alfred",
+        "type": "cask"
+      },
+      "summary": "Application launcher and productivity software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Alfred",
+      "id": "alfred-at-4",
+      "package": {
+        "stableVersion": "4.8,1312",
+        "token": "alfred@4",
+        "type": "cask"
+      },
+      "summary": "Application launcher and productivity software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Alfred",
+      "id": "alfred-at-prerelease",
+      "package": {
+        "stableVersion": "5.8,2348",
+        "token": "alfred@prerelease",
+        "type": "cask"
+      },
+      "summary": "Application launcher and productivity software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AlgoApp",
+      "id": "algoapp",
+      "package": {
+        "stableVersion": "13.3.2",
+        "token": "algoapp",
+        "type": "cask"
+      },
+      "summary": "Spaced Repetition Flashcard App",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Algodoo",
+      "id": "algodoo",
+      "package": {
+        "stableVersion": "2.2.4",
+        "token": "algodoo",
+        "type": "cask"
+      },
+      "summary": "Draw and interact with physical systems",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Sentinel",
+      "id": "alienator88-sentinel",
+      "package": {
+        "stableVersion": "3.1.4",
+        "token": "alienator88-sentinel",
+        "type": "cask"
+      },
+      "summary": "Configure Gatekeeper, unquarantine and self-sign apps",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Alifix",
+      "id": "alifix",
+      "package": {
+        "stableVersion": "1.4,2025.07",
+        "token": "alifix",
+        "type": "cask"
+      },
+      "summary": "Refreshes aliases and identifies broken aliases",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AliWangwang",
+      "id": "aliwangwang",
+      "package": {
+        "stableVersion": "10.01.06M",
+        "token": "aliwangwang",
+        "type": "cask"
+      },
+      "summary": "Shopping communication tool for Taobao and Tmall users",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AliWorkBench",
+      "id": "aliworkbench",
+      "package": {
+        "stableVersion": "9.98.45QNM",
+        "token": "aliworkbench",
+        "type": "cask"
+      },
+      "summary": "Merchant workbench for Taobao and Tmall sellers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "All-in-One Messenger",
+      "id": "all-in-one-messenger",
+      "package": {
+        "stableVersion": "2.5.0",
+        "token": "all-in-one-messenger",
+        "type": "cask"
+      },
+      "summary": "Combined interface for various messaging platforms",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Alma",
+      "id": "alma",
+      "package": {
+        "stableVersion": "0.4.90",
+        "token": "alma",
+        "type": "cask"
+      },
+      "summary": "AI chat application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Almighty",
+      "id": "almighty",
+      "package": {
+        "stableVersion": "2.11.0",
+        "token": "almighty",
+        "type": "cask"
+      },
+      "summary": "Settings and tweaks configurator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Aloha Browser",
+      "id": "aloha-browser",
+      "package": {
+        "stableVersion": "latest",
+        "token": "aloha-browser",
+        "type": "cask"
+      },
+      "summary": "Web browser focused on privacy",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AltTab",
+      "id": "alt-tab",
+      "package": {
+        "stableVersion": "11.7.1",
+        "token": "alt-tab",
+        "type": "cask"
+      },
+      "summary": "Enable Windows-like alt-tab",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Altair GraphQL Client",
+      "id": "altair-graphql-client",
+      "package": {
+        "stableVersion": "8.5.9",
+        "token": "altair-graphql-client",
+        "type": "cask"
+      },
+      "summary": "GraphQL client",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Altar AI",
+      "id": "altar-ai",
+      "package": {
+        "stableVersion": "2.1.1",
+        "token": "altar-ai",
+        "type": "cask"
+      },
+      "summary": "AI-powered meeting assistant",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Alternote",
+      "id": "alternote",
+      "package": {
+        "stableVersion": "1.0.18,1018",
+        "token": "alternote",
+        "type": "cask"
+      },
+      "summary": "Note-taking App for Evernote",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AlterSend",
+      "id": "altersend",
+      "package": {
+        "stableVersion": "2.0.0",
+        "token": "altersend",
+        "type": "cask"
+      },
+      "summary": "Secure, peer-to-peer file transfer app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Networking",
+      "displayName": "AltServer",
+      "id": "altserver",
+      "package": {
+        "stableVersion": "1.8.1",
+        "token": "altserver",
+        "type": "cask"
+      },
+      "summary": "iOS App Store alternative",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Amadeus Pro",
+      "id": "amadeus-pro",
+      "package": {
+        "stableVersion": "3.0.3",
+        "token": "amadeus-pro",
+        "type": "cask"
+      },
+      "summary": "Multi-purpose audio recorder, editor and converter",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Amadine",
+      "id": "amadine",
+      "package": {
+        "stableVersion": "1.8.4",
+        "token": "amadine",
+        "type": "cask"
+      },
+      "summary": "Vector graphic and illustration software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Amazon Chime",
+      "id": "amazon-chime",
+      "package": {
+        "stableVersion": "5.23.22533",
+        "token": "amazon-chime",
+        "type": "cask"
+      },
+      "summary": "Communications service",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Amazon Photos",
+      "id": "amazon-photos",
+      "package": {
+        "stableVersion": "11.3.0,36",
+        "token": "amazon-photos",
+        "type": "cask"
+      },
+      "summary": "Photo storage and sharing service",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Amethyst",
+      "id": "amethyst",
+      "package": {
+        "stableVersion": "0.24.3",
+        "token": "amethyst",
+        "type": "cask"
+      },
+      "summary": "Automatic tiling window manager similar to xmonad",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Amethyst",
+      "id": "amethyst-nostr",
+      "package": {
+        "stableVersion": "1.16.0",
+        "token": "amethyst-nostr",
+        "type": "cask"
+      },
+      "summary": "Nostr client",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "Amiberry",
+      "id": "amiberry",
+      "package": {
+        "stableVersion": "8.3.0",
+        "token": "amiberry",
+        "type": "cask"
+      },
+      "summary": "Amiga emulator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Amical",
+      "id": "amical",
+      "package": {
+        "stableVersion": "1.12.1",
+        "token": "amical",
+        "type": "cask"
+      },
+      "summary": "AI dictation app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Amie",
+      "id": "amie",
+      "package": {
+        "stableVersion": "260909.0.0",
+        "token": "amie",
+        "type": "cask"
+      },
+      "summary": "Calendar and task manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Ammonite",
+      "id": "ammonite",
+      "package": {
+        "stableVersion": "1.30",
+        "token": "ammonite",
+        "type": "cask"
+      },
+      "summary": "Tag visualiser and search utility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Amore",
+      "id": "amore",
+      "package": {
+        "stableVersion": "0.1,47",
+        "token": "amore",
+        "type": "cask"
+      },
+      "summary": "App distribution platform with Sparkle, code signing, and notarization",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Anarlog",
+      "id": "anarlog",
+      "package": {
+        "stableVersion": "1.4.25",
+        "token": "anarlog",
+        "type": "cask"
+      },
+      "summary": "AI notepad for meetings",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Anchor Wallet",
+      "id": "anchor-wallet",
+      "package": {
+        "stableVersion": "1.4.0",
+        "token": "anchor-wallet",
+        "type": "cask"
+      },
+      "summary": "EOSIO Desktop Wallet and Authenticator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Android File Transfer",
+      "id": "android-file-transfer",
+      "package": {
+        "stableVersion": "5071136",
+        "token": "android-file-transfer",
+        "type": "cask"
+      },
+      "summary": "Transfer files from and to an Android smartphone",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Android Performance Analyzer",
+      "id": "android-performance-analyzer",
+      "package": {
+        "stableVersion": "0.9.0",
+        "token": "android-performance-analyzer",
+        "type": "cask"
+      },
+      "summary": "Toolchain for profiling apps and games",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Android Studio",
+      "id": "android-studio",
+      "package": {
+        "stableVersion": "2026.1.4.8,quail4-patch1",
+        "token": "android-studio",
+        "type": "cask"
+      },
+      "summary": "Tools for building Android applications",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Android Studio Preview (Beta)",
+      "id": "android-studio-preview-at-beta",
+      "package": {
+        "stableVersion": "2026.2.1.6,rabbit1-rc1",
+        "token": "android-studio-preview@beta",
+        "type": "cask"
+      },
+      "summary": "Tools for building Android applications",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Android Studio Preview (Canary)",
+      "id": "android-studio-preview-at-canary",
+      "package": {
+        "stableVersion": "2026.2.2.1,rabbit2-canary1",
+        "token": "android-studio-preview@canary",
+        "type": "cask"
+      },
+      "summary": "Tools for building Android applications",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AndroidTool",
+      "id": "androidtool",
+      "package": {
+        "stableVersion": "1.66",
+        "token": "androidtool",
+        "type": "cask"
+      },
+      "summary": "App for recording the screen and installing apps in iOS and Android",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AnkerWork",
+      "id": "ankerwork",
+      "package": {
+        "stableVersion": "3.0.4",
+        "token": "ankerwork",
+        "type": "cask"
+      },
+      "summary": "Webcam & audio device software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Anki",
+      "id": "anki",
+      "package": {
+        "stableVersion": "26.09.2",
+        "token": "anki",
+        "type": "cask"
+      },
+      "summary": "Memory training application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Annotate",
+      "id": "annotate",
+      "package": {
+        "stableVersion": "1.6.0",
+        "token": "annotate",
+        "type": "cask"
+      },
+      "summary": "Keyboard-driven screen annotation tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "Another Redis Desktop Manager",
+      "id": "another-redis-desktop-manager",
+      "package": {
+        "stableVersion": "1.7.4",
+        "token": "another-redis-desktop-manager",
+        "type": "cask"
+      },
+      "summary": "Redis desktop manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AntConc",
+      "id": "antconc",
+      "package": {
+        "stableVersion": "4.3.1",
+        "token": "antconc",
+        "type": "cask"
+      },
+      "summary": "Corpus analysis toolkit for concordancing and text analysis",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Google Antigravity",
+      "id": "antigravity",
+      "package": {
+        "stableVersion": "2.15.1,5880727900913664",
+        "token": "antigravity",
+        "type": "cask"
+      },
+      "summary": "Agent orchestration platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Google Antigravity IDE",
+      "id": "antigravity-ide",
+      "package": {
+        "stableVersion": "2.5.5,4923483625488384",
+        "token": "antigravity-ide",
+        "type": "cask"
+      },
+      "summary": "AI Coding Agent IDE",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Antinote",
+      "id": "antinote",
+      "package": {
+        "stableVersion": "2.1.3",
+        "token": "antinote",
+        "type": "cask"
+      },
+      "summary": "Temporary notes with calculations and extensible features",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AnyBar",
+      "id": "anybar",
+      "package": {
+        "stableVersion": "0.2.3",
+        "token": "anybar",
+        "type": "cask"
+      },
+      "summary": "Menu bar status indicator",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AnyDesk",
+      "id": "anydesk",
+      "package": {
+        "stableVersion": "9.8.0",
+        "token": "anydesk",
+        "type": "cask"
+      },
+      "summary": "Allows connection to a computer remotely",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Any.do",
+      "id": "anydo",
+      "package": {
+        "stableVersion": "5.0.68",
+        "token": "anydo",
+        "type": "cask"
+      },
+      "summary": "Reminder, planner & calendar",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AnyList",
+      "id": "anylist",
+      "package": {
+        "stableVersion": "1.2,3",
+        "token": "anylist",
+        "type": "cask"
+      },
+      "summary": "Grocery shopping list",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Anypoint Studio",
+      "id": "anypointstudio",
+      "package": {
+        "stableVersion": "7.28.0",
+        "token": "anypointstudio",
+        "type": "cask"
+      },
+      "summary": "Eclipse-based IDE for designing and testing Mule applications",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "AnythingLLM",
+      "id": "anythingllm",
+      "package": {
+        "stableVersion": "1.16.1",
+        "token": "anythingllm",
+        "type": "cask"
+      },
+      "summary": "Private desktop AI chat application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Anytype",
+      "id": "anytype",
+      "package": {
+        "stableVersion": "0.56.5",
+        "token": "anytype",
+        "type": "cask"
+      },
+      "summary": "Local-first and end-to-end encrypted notes app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Anytype",
+      "id": "anytype-at-alpha",
+      "package": {
+        "stableVersion": "0.56.11-beta",
+        "token": "anytype@alpha",
+        "type": "cask"
+      },
+      "summary": "Local-first and end-to-end encrypted notes app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Anytype",
+      "id": "anytype-at-beta",
+      "package": {
+        "stableVersion": "0.56.11-beta",
+        "token": "anytype@beta",
+        "type": "cask"
+      },
+      "summary": "Local-first and end-to-end encrypted notes app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "Apache CouchDB",
+      "id": "apache-couchdb",
+      "package": {
+        "stableVersion": "3.5.2",
+        "token": "apache-couchdb",
+        "type": "cask"
+      },
+      "summary": "Multi-master syncing database",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Apache Directory Studio",
+      "id": "apache-directory-studio",
+      "package": {
+        "stableVersion": "2.0.0.v20210717-M17",
+        "token": "apache-directory-studio",
+        "type": "cask"
+      },
+      "summary": "Eclipse-based LDAP browser and directory client",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "ApE (A Plasmid Editor)",
+      "id": "ape",
+      "package": {
+        "stableVersion": "3.1.10.1",
+        "token": "ape",
+        "type": "cask"
+      },
+      "summary": "Software for DNA sequence analysis and annotation",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Aphera",
+      "id": "aphera",
+      "package": {
+        "stableVersion": "1.5.0",
+        "token": "aphera",
+        "type": "cask"
+      },
+      "summary": "Raw photo editing software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "Apidog",
+      "id": "apidog",
+      "package": {
+        "stableVersion": "2.8.48",
+        "token": "apidog",
+        "type": "cask"
+      },
+      "summary": "API development platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "Apidog Europe",
+      "id": "apidog-europe",
+      "package": {
+        "stableVersion": "2.8.48",
+        "token": "apidog-europe",
+        "type": "cask"
+      },
+      "summary": "API development platform hosted in Europe",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Apifox",
+      "id": "apifox",
+      "package": {
+        "stableVersion": "2.8.48",
+        "token": "apifox",
+        "type": "cask"
+      },
+      "summary": "Platform for API documentation, debugging, and testing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Apipost",
+      "id": "apipost",
+      "package": {
+        "stableVersion": "8.2.7",
+        "token": "apipost",
+        "type": "cask"
+      },
+      "summary": "Platform for API documentation, debugging, Mock and testing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "App Buddy",
+      "id": "app-buddy",
+      "package": {
+        "stableVersion": "1.3.0",
+        "token": "app-buddy",
+        "type": "cask"
+      },
+      "summary": "Helper for Sindre Sorhus's apps",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Nektony App Cleaner & Uninstaller",
+      "id": "app-cleaner",
+      "package": {
+        "stableVersion": "10.0.1,2336",
+        "token": "app-cleaner",
+        "type": "cask"
+      },
+      "summary": "Uninstaller and cleaning assistant",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "App Fair",
+      "id": "app-fair",
+      "package": {
+        "stableVersion": "0.8.137",
+        "token": "app-fair",
+        "type": "cask"
+      },
+      "summary": "Catalogue of free and commercial native desktop applications",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AppTamer",
+      "id": "app-tamer",
+      "package": {
+        "stableVersion": "2.8.4",
+        "token": "app-tamer",
+        "type": "cask"
+      },
+      "summary": "CPU management application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Apparency",
+      "id": "apparency",
+      "package": {
+        "stableVersion": "3.4",
+        "token": "apparency",
+        "type": "cask"
+      },
+      "summary": "Inspect application bundles",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AppBox",
+      "id": "appbox",
+      "package": {
+        "stableVersion": "4.0.0",
+        "token": "appbox",
+        "type": "cask"
+      },
+      "summary": "iOS app distribution tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "FreeMacSoft AppCleaner",
+      "id": "appcleaner",
+      "package": {
+        "stableVersion": "3.6.8",
+        "token": "appcleaner",
+        "type": "cask"
+      },
+      "summary": "Application uninstaller",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AppexIndexer",
+      "id": "appexindexer",
+      "package": {
+        "stableVersion": "108,2025.04",
+        "token": "appexindexer",
+        "type": "cask"
+      },
+      "summary": "List and inspect installed app extensions",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AppFlowy",
+      "id": "appflowy",
+      "package": {
+        "stableVersion": "0.14.4",
+        "token": "appflowy",
+        "type": "cask"
+      },
+      "summary": "Open-source project and knowledge management tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "AppGridMac",
+      "id": "appgridmac",
+      "package": {
+        "stableVersion": "1.2.11",
+        "token": "appgridmac",
+        "type": "cask"
+      },
+      "summary": "AI-assisted Launchpad replacement",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ApplePi-Baker",
+      "id": "applepi-baker",
+      "package": {
+        "stableVersion": "2.2.3",
+        "token": "applepi-baker",
+        "type": "cask"
+      },
+      "summary": "Backup and restore SD cards, USB drives, external HDD, etc",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Applite",
+      "id": "applite",
+      "package": {
+        "stableVersion": "1.4.2",
+        "token": "applite",
+        "type": "cask"
+      },
+      "summary": "User-friendly GUI app for Homebrew",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "approf",
+      "id": "approf",
+      "package": {
+        "stableVersion": "14.1.3",
+        "token": "approf",
+        "type": "cask"
+      },
+      "summary": "Native app for pprof",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AppZapper",
+      "id": "appzapper",
+      "package": {
+        "stableVersion": "2.0.5",
+        "token": "appzapper",
+        "type": "cask"
+      },
+      "summary": "Tool to uninstall unwanted applications and their support files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Aptakube",
+      "id": "aptakube",
+      "package": {
+        "stableVersion": "1.20.5",
+        "token": "aptakube",
+        "type": "cask"
+      },
+      "summary": "Kubernetes desktop client",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Aquafold Aqua Data Studio",
+      "id": "aqua-data-studio",
+      "package": {
+        "stableVersion": "26.0.0",
+        "token": "aqua-data-studio",
+        "type": "cask"
+      },
+      "summary": "Database IDE with data management and visual analytics",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Aqua Voice",
+      "id": "aqua-voice",
+      "package": {
+        "stableVersion": "0.17.2",
+        "token": "aqua-voice",
+        "type": "cask"
+      },
+      "summary": "Speech-to-text system",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Aquamacs",
+      "id": "aquamacs",
+      "package": {
+        "stableVersion": "3.6",
+        "token": "aquamacs",
+        "type": "cask"
+      },
+      "summary": "Text editor based on GNU Emacs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Araxis Merge",
+      "id": "araxis-merge",
+      "package": {
+        "stableVersion": "2026.0",
+        "token": "araxis-merge",
+        "type": "cask"
+      },
+      "summary": "Two and three-way file comparison, merging and folder synchronisation",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Arc",
+      "id": "arc",
+      "package": {
+        "stableVersion": "1.165.1,87405",
+        "token": "arc",
+        "type": "cask"
+      },
+      "summary": "Chromium based browser",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "ArcBox",
+      "id": "arcbox",
+      "package": {
+        "stableVersion": "1.37.0",
+        "token": "arcbox",
+        "type": "cask"
+      },
+      "summary": "Runtime for containers, Linux virtual machines, and AI agent sandboxes",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Archaeology",
+      "id": "archaeology",
+      "package": {
+        "stableVersion": "1.7,306",
+        "token": "archaeology",
+        "type": "cask"
+      },
+      "summary": "Tool for digging into binary files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "Archipelago",
+      "id": "archipelago",
+      "package": {
+        "stableVersion": "6.0.8",
+        "token": "archipelago",
+        "type": "cask"
+      },
+      "summary": "Terminal emulator built on web technology",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Archiver",
+      "id": "archiver-app",
+      "package": {
+        "stableVersion": "5.0.11",
+        "token": "archiver-app",
+        "type": "cask"
+      },
+      "summary": "Open archives, compress files, as well as split and combine files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ArchiveWeb.page",
+      "id": "archivewebpage",
+      "package": {
+        "stableVersion": "0.17.1",
+        "token": "archivewebpage",
+        "type": "cask"
+      },
+      "summary": "Archive webpages manually to WARC or WACZ files as you browse the web",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Arctic",
+      "id": "arctic",
+      "package": {
+        "stableVersion": "26.1.1,71,20260709162100",
+        "token": "arctic",
+        "type": "cask"
+      },
+      "summary": "Display and manage Final Cut Pro X libraries",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Arduino IDE",
+      "id": "arduino-ide",
+      "package": {
+        "stableVersion": "2.3.10",
+        "token": "arduino-ide",
+        "type": "cask"
+      },
+      "summary": "Electronics prototyping platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Arduino IDE",
+      "id": "arduino-ide-at-nightly",
+      "package": {
+        "stableVersion": "latest",
+        "token": "arduino-ide@nightly",
+        "type": "cask"
+      },
+      "summary": "Electronics prototyping platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "ares",
+      "id": "ares-emulator",
+      "package": {
+        "stableVersion": "148",
+        "token": "ares-emulator",
+        "type": "cask"
+      },
+      "summary": "Cross-platform, multi-system emulator, focusing on accuracy and preservation",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AriaX",
+      "id": "ariax",
+      "package": {
+        "stableVersion": "1.0.7",
+        "token": "ariax",
+        "type": "cask"
+      },
+      "summary": "Aria2 download manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Artisan",
+      "id": "artisan",
+      "package": {
+        "stableVersion": "4.2.0",
+        "token": "artisan",
+        "type": "cask"
+      },
+      "summary": "Visual scope for coffee roasters",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AS Timer",
+      "id": "as-timer",
+      "package": {
+        "stableVersion": "6.2",
+        "token": "as-timer",
+        "type": "cask"
+      },
+      "summary": "Timer app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Asana",
+      "id": "asana",
+      "package": {
+        "stableVersion": "2.9.1",
+        "token": "asana",
+        "type": "cask"
+      },
+      "summary": "Manage team projects and tasks",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Aside",
+      "id": "aside",
+      "package": {
+        "stableVersion": "1.0.914.1",
+        "token": "aside",
+        "type": "cask"
+      },
+      "summary": "Web browser with built-in AI assistant",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Asset Catalog Tinkerer",
+      "id": "asset-catalog-tinkerer",
+      "package": {
+        "stableVersion": "2.9",
+        "token": "asset-catalog-tinkerer",
+        "type": "cask"
+      },
+      "summary": "Browse/extract images from .car files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ASTRO Command Center",
+      "id": "astro-command-center",
+      "package": {
+        "stableVersion": "latest",
+        "token": "astro-command-center",
+        "type": "cask"
+      },
+      "summary": "Full configuration of the adjustable settings for ASTRO devices",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Astro Editor",
+      "id": "astro-editor",
+      "package": {
+        "stableVersion": "1.0.17",
+        "token": "astro-editor",
+        "type": "cask"
+      },
+      "summary": "Markdown editor for Astro content collections",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Astrofox",
+      "id": "astrofox",
+      "package": {
+        "stableVersion": "2.0.0",
+        "token": "astrofox",
+        "type": "cask"
+      },
+      "summary": "Motion graphics program for music visualisations",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Astropad Studio",
+      "id": "astropad-studio",
+      "package": {
+        "stableVersion": "5.5.2,4987",
+        "token": "astropad-studio",
+        "type": "cask"
+      },
+      "summary": "Turn your iPad into a professional drawing tablet",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "atemOSC",
+      "id": "atemosc",
+      "package": {
+        "stableVersion": "5.0.17",
+        "token": "atemosc",
+        "type": "cask"
+      },
+      "summary": "Control BMD ATEM video switchers with OSC",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "aText",
+      "id": "atext",
+      "package": {
+        "stableVersion": "3.21",
+        "token": "atext",
+        "type": "cask"
+      },
+      "summary": "Tool to replace abbreviations while typing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Athas",
+      "id": "athas",
+      "package": {
+        "stableVersion": "0.14.2",
+        "token": "athas",
+        "type": "cask"
+      },
+      "summary": "Lightweight code editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Atlas",
+      "id": "atlas-app",
+      "package": {
+        "stableVersion": "0.3.3",
+        "token": "atlas-app",
+        "type": "cask"
+      },
+      "summary": "Source control for coding agents",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Atoll",
+      "id": "atoll",
+      "package": {
+        "stableVersion": "2.3.3",
+        "token": "atoll",
+        "type": "cask"
+      },
+      "summary": "Dynamic Island for the MacBook notch",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Atomic Wallet",
+      "id": "atomic-wallet",
+      "package": {
+        "stableVersion": "2.104.7",
+        "token": "atomic-wallet",
+        "type": "cask"
+      },
+      "summary": "Manage Bitcoin, Ethereum, XRP, Litecoin, XLM and over 300 other coins and tokens",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AttacheCase",
+      "id": "attachecase",
+      "package": {
+        "stableVersion": "4.2.1",
+        "token": "attachecase",
+        "type": "cask"
+      },
+      "summary": "Utility for encrypting/decrypting files and directories",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Atuin Desktop",
+      "id": "atuin-desktop",
+      "package": {
+        "stableVersion": "0.2.20",
+        "token": "atuin-desktop",
+        "type": "cask"
+      },
+      "summary": "Runbook editor for terminal workflows",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "ATV Remote",
+      "id": "atv-remote",
+      "package": {
+        "stableVersion": "2.2.1",
+        "token": "atv-remote",
+        "type": "cask"
+      },
+      "summary": "Control Apple TV from your desktop",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AU Lab",
+      "id": "au-lab",
+      "package": {
+        "stableVersion": "2.3",
+        "token": "au-lab",
+        "type": "cask"
+      },
+      "summary": "Digital audio mixing application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Audacity",
+      "id": "audacity",
+      "package": {
+        "stableVersion": "4.0.0",
+        "token": "audacity",
+        "type": "cask"
+      },
+      "summary": "Multi-track audio editor and recorder",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Audacity",
+      "id": "audacity-at-3",
+      "package": {
+        "stableVersion": "3.7.9",
+        "token": "audacity@3",
+        "type": "cask"
+      },
+      "summary": "Multi-track audio editor and recorder",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Audio Hijack",
+      "id": "audio-hijack",
+      "package": {
+        "stableVersion": "4.6.0",
+        "token": "audio-hijack",
+        "type": "cask"
+      },
+      "summary": "Records audio from any application",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Audiobook Builder",
+      "id": "audiobook-builder",
+      "package": {
+        "stableVersion": "2.2.9",
+        "token": "audiobook-builder",
+        "type": "cask"
+      },
+      "summary": "Turn audio CDs and files into audiobooks",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AudioCupcake",
+      "id": "audiocupcake",
+      "package": {
+        "stableVersion": "1.0.19",
+        "token": "audiocupcake",
+        "type": "cask"
+      },
+      "summary": "Master your audiobook narration and podcasts",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AudioRelay",
+      "id": "audiorelay",
+      "package": {
+        "stableVersion": "0.27.5",
+        "token": "audiorelay",
+        "type": "cask"
+      },
+      "summary": "Stream audio between your devices",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Audirvana",
+      "id": "audirvana",
+      "package": {
+        "stableVersion": "3.5.50",
+        "token": "audirvana",
+        "type": "cask"
+      },
+      "summary": "Audio playback software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Audius",
+      "id": "audius",
+      "package": {
+        "stableVersion": "1.5.180",
+        "token": "audius",
+        "type": "cask"
+      },
+      "summary": "Music streaming and sharing platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Aurora HDR",
+      "id": "aurora-hdr",
+      "package": {
+        "stableVersion": "1.0.2,6495",
+        "token": "aurora-hdr",
+        "type": "cask"
+      },
+      "summary": "HDR photo editor with filters, batch processing and more",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AusweisApp",
+      "id": "ausweisapp",
+      "package": {
+        "stableVersion": "2.5.5",
+        "token": "ausweisapp",
+        "type": "cask"
+      },
+      "summary": "Official eID-Client of the Federal Government of Germany",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "AI Development Tools",
+      "displayName": "Auto Claude",
+      "id": "auto-claude",
+      "package": {
+        "stableVersion": "2.7.6",
+        "token": "auto-claude",
+        "type": "cask"
+      },
+      "summary": "Autonomous multi-session AI coding",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AutoDMG",
+      "id": "autodmg",
+      "package": {
+        "stableVersion": "1.9",
+        "token": "autodmg",
+        "type": "cask"
+      },
+      "summary": "App for creating deployable system images from a system installer",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Texts.com",
+      "id": "automattic-texts",
+      "package": {
+        "stableVersion": "0.84.17,1306a54b77",
+        "token": "automattic-texts",
+        "type": "cask"
+      },
+      "summary": "DM Manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AutoPkgr",
+      "id": "autopkgr",
+      "package": {
+        "stableVersion": "2.0",
+        "token": "autopkgr",
+        "type": "cask"
+      },
+      "summary": "Install and configure AutoPkg",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Avast Secure Browser",
+      "id": "avast-secure-browser",
+      "package": {
+        "stableVersion": "139.0.6697.68",
+        "token": "avast-secure-browser",
+        "type": "cask"
+      },
+      "summary": "Web browser focusing on privacy",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AVbeam",
+      "id": "avbeam",
+      "package": {
+        "stableVersion": "1.2.0",
+        "token": "avbeam",
+        "type": "cask"
+      },
+      "summary": "Audio file similarity viewer",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AVItools",
+      "id": "avitools",
+      "package": {
+        "stableVersion": "3.7.2",
+        "token": "avitools",
+        "type": "cask"
+      },
+      "summary": "Graphical interface for a variety of video file processing tools",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Avogadro",
+      "id": "avogadro",
+      "package": {
+        "stableVersion": "2.0.0",
+        "token": "avogadro",
+        "type": "cask"
+      },
+      "summary": "Molecule editor and visualiser",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AVTouchBar",
+      "id": "avtouchbar",
+      "package": {
+        "stableVersion": "3.0.7,2021,08",
+        "token": "avtouchbar",
+        "type": "cask"
+      },
+      "summary": "Audio Visualiser for the Touch Bar",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "AW EDID Editor",
+      "id": "aw-edid-editor",
+      "package": {
+        "stableVersion": "3.0.20",
+        "token": "aw-edid-editor",
+        "type": "cask"
+      },
+      "summary": "Edit any standard EDID binary file, supports DisplayID and CEA-861-G extensions",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "AWA",
+      "id": "awa",
+      "package": {
+        "stableVersion": "1.5.7",
+        "token": "awa",
+        "type": "cask"
+      },
+      "summary": "Music streaming service",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Developer Tools",
+      "displayName": "Axure RP",
+      "id": "axure-rp",
+      "package": {
+        "stableVersion": "11.0.0.4137",
+        "token": "axure-rp",
+        "type": "cask"
+      },
+      "summary": "Planning and prototyping tool for developers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "AYA",
+      "id": "aya",
+      "package": {
+        "stableVersion": "1.14.2",
+        "token": "aya",
+        "type": "cask"
+      },
+      "summary": "Android ADB desktop app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BrightAuthor:connected",
+      "id": "ba-connected",
+      "package": {
+        "stableVersion": "1.85.0",
+        "token": "ba-connected",
+        "type": "cask"
+      },
+      "summary": "Configurator and manager for BrightSign devices",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "BabelEdit",
+      "id": "babeledit",
+      "package": {
+        "stableVersion": "5.6.0",
+        "token": "babeledit",
+        "type": "cask"
+      },
+      "summary": "Translation editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Backblaze Downloader",
+      "id": "backblaze-downloader",
+      "package": {
+        "stableVersion": "9.2.2.878",
+        "token": "backblaze-downloader",
+        "type": "cask"
+      },
+      "summary": "Download Backblaze restored files more reliably",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Backblaze Restore",
+      "id": "backblaze-restore",
+      "package": {
+        "stableVersion": "10.0.3.1076",
+        "token": "backblaze-restore",
+        "type": "cask"
+      },
+      "summary": "Computer backup restore client",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Backdrop",
+      "id": "backdrop",
+      "package": {
+        "stableVersion": "2.7.0,129",
+        "token": "backdrop",
+        "type": "cask"
+      },
+      "summary": "Live wallpaper app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BackupLoupe",
+      "id": "backuploupe",
+      "package": {
+        "stableVersion": "3.15.1",
+        "token": "backuploupe",
+        "type": "cask"
+      },
+      "summary": "Alternative GUI for Time Machine",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Badgeify",
+      "id": "badgeify",
+      "package": {
+        "stableVersion": "1.14.5",
+        "token": "badgeify",
+        "type": "cask"
+      },
+      "summary": "Add apps to the menu bar",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Badlion Client",
+      "id": "badlion-client",
+      "package": {
+        "stableVersion": "4.5.4",
+        "token": "badlion-client",
+        "type": "cask"
+      },
+      "summary": "Minecraft launcher",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Baidu NetDisk",
+      "id": "baidunetdisk",
+      "package": {
+        "stableVersion": "8.8.5",
+        "token": "baidunetdisk",
+        "type": "cask"
+      },
+      "summary": "Cloud storage service",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Balance Lock",
+      "id": "balance-lock",
+      "package": {
+        "stableVersion": "1.1",
+        "token": "balance-lock",
+        "type": "cask"
+      },
+      "summary": "Prevents audio balance from drifting left or right",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Etcher",
+      "id": "balenaetcher",
+      "package": {
+        "stableVersion": "2.1.7",
+        "token": "balenaetcher",
+        "type": "cask"
+      },
+      "summary": "Tool to flash OS images to SD cards & USB drives",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Ball",
+      "id": "ball",
+      "package": {
+        "stableVersion": "1",
+        "token": "ball",
+        "type": "cask"
+      },
+      "summary": "Utility that adds a ball to your dock",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Balsamiq Wireframes",
+      "id": "balsamiq-wireframes",
+      "package": {
+        "stableVersion": "4.8.6",
+        "token": "balsamiq-wireframes",
+        "type": "cask"
+      },
+      "summary": "UI wireframing tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bambu Connect",
+      "id": "bambu-connect",
+      "package": {
+        "stableVersion": "2.5.0-beta.15",
+        "token": "bambu-connect",
+        "type": "cask"
+      },
+      "summary": "Tool for linking with Bambu Lab 3D printers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bambu Studio",
+      "id": "bambu-studio",
+      "package": {
+        "stableVersion": "02.08.02.61,20260820225108",
+        "token": "bambu-studio",
+        "type": "cask"
+      },
+      "summary": "3D model slicing software for 3D printers, maintained by Bambu Lab",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Banana Cake Pop",
+      "id": "banana-cake-pop",
+      "package": {
+        "stableVersion": "17.0.0",
+        "token": "banana-cake-pop",
+        "type": "cask"
+      },
+      "summary": "IDE to interact with GraphQL servers",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "banksiagui",
+      "id": "banksiagui",
+      "package": {
+        "stableVersion": "0.58",
+        "token": "banksiagui",
+        "type": "cask"
+      },
+      "summary": "Chess GUI",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Banktivity",
+      "id": "banktivity",
+      "package": {
+        "stableVersion": "10.1.1,432",
+        "token": "banktivity",
+        "type": "cask"
+      },
+      "summary": "App to manage bank accounts in one place",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bartender",
+      "id": "bartender",
+      "package": {
+        "stableVersion": "7.0.4",
+        "token": "bartender",
+        "type": "cask"
+      },
+      "summary": "Menu bar icon organiser",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "Menial Base",
+      "id": "base",
+      "package": {
+        "stableVersion": "3.3.0",
+        "token": "base",
+        "type": "cask"
+      },
+      "summary": "App to create, design, edit and browse SQLite 3 database files",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Basecamp",
+      "id": "basecamp",
+      "package": {
+        "stableVersion": "5.1.5",
+        "token": "basecamp",
+        "type": "cask"
+      },
+      "summary": "All-In-One Toolkit for Working Remotely",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BatchOutput PDF",
+      "id": "batchoutput-pdf",
+      "package": {
+        "stableVersion": "3.1.8",
+        "token": "batchoutput-pdf",
+        "type": "cask"
+      },
+      "summary": "Automate PDF printing",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BatFi",
+      "id": "batfi",
+      "package": {
+        "stableVersion": "4.0.0",
+        "token": "batfi",
+        "type": "cask"
+      },
+      "summary": "App for managing battery charging",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BathyScaphe",
+      "id": "bathyscaphe",
+      "package": {
+        "stableVersion": "3.2.1,1101",
+        "token": "bathyscaphe",
+        "type": "cask"
+      },
+      "summary": "2-channel browser",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Batteries",
+      "id": "batteries",
+      "package": {
+        "stableVersion": "3.0.2",
+        "token": "batteries",
+        "type": "cask"
+      },
+      "summary": "Track all your devices' batteries",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Battery",
+      "id": "battery",
+      "package": {
+        "stableVersion": "1.4.0",
+        "token": "battery",
+        "type": "cask"
+      },
+      "summary": "App for managing battery charging. (Also installs a CLI on first use.)",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Battery Buddy",
+      "id": "battery-buddy",
+      "package": {
+        "stableVersion": "1.0.4",
+        "token": "battery-buddy",
+        "type": "cask"
+      },
+      "summary": "Replacement of the default battery indicator in the menu bar",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bazecor",
+      "id": "bazecor",
+      "package": {
+        "stableVersion": "1.10.0",
+        "token": "bazecor",
+        "type": "cask"
+      },
+      "summary": "Graphical configurator for Dygma Raise keyboards",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "bb",
+      "id": "bb",
+      "package": {
+        "stableVersion": "0.43.3",
+        "token": "bb",
+        "type": "cask"
+      },
+      "summary": "IDE for running and orchestrating coding agents",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BBackupp",
+      "id": "bbackupp",
+      "package": {
+        "stableVersion": "2.14.74",
+        "token": "bbackupp",
+        "type": "cask"
+      },
+      "summary": "iOS device backup software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "BBEdit",
+      "id": "bbedit",
+      "package": {
+        "stableVersion": "16.0.3",
+        "token": "bbedit",
+        "type": "cask"
+      },
+      "summary": "Text, code, and markup editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "BBEdit",
+      "id": "bbedit-at-14",
+      "package": {
+        "stableVersion": "14.6.9",
+        "token": "bbedit@14",
+        "type": "cask"
+      },
+      "summary": "Text, code, and markup editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Bcut",
+      "id": "bcut",
+      "package": {
+        "stableVersion": "3.11.24,23369602,a97c4192d11a838429fb9600044e67c8",
+        "token": "bcut",
+        "type": "cask"
+      },
+      "summary": "Professional video editing software by Bilibili",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Databases",
+      "displayName": "Bdash",
+      "id": "bdash",
+      "package": {
+        "stableVersion": "1.35.2",
+        "token": "bdash",
+        "type": "cask"
+      },
+      "summary": "Simple SQL Client for lightweight data analysis",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Beamer",
+      "id": "beamer",
+      "package": {
+        "stableVersion": "4.3.6",
+        "token": "beamer",
+        "type": "cask"
+      },
+      "summary": "Desktop casting/streaming app for Apple TV and Chromecast",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bean",
+      "id": "bean",
+      "package": {
+        "stableVersion": "3.7.8",
+        "token": "bean",
+        "type": "cask"
+      },
+      "summary": "Word processor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Beardie",
+      "id": "beardie",
+      "package": {
+        "stableVersion": "3.0.24.84.Release",
+        "token": "beardie",
+        "type": "cask"
+      },
+      "summary": "Control various media players with your keyboard",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "beaTunes",
+      "id": "beatunes",
+      "package": {
+        "stableVersion": "5.2.36",
+        "token": "beatunes",
+        "type": "cask"
+      },
+      "summary": "Analyze, inspect, and play songs",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Productivity",
+      "displayName": "Beaver Notes",
+      "id": "beaver-notes",
+      "package": {
+        "stableVersion": "4.4.0",
+        "token": "beaver-notes",
+        "type": "cask"
+      },
+      "summary": "Privacy-focused note-taking app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Beekeeper Studio",
+      "id": "beekeeper-studio",
+      "package": {
+        "stableVersion": "6.1.2",
+        "token": "beekeeper-studio",
+        "type": "cask"
+      },
+      "summary": "Cross platform SQL editor and database management app",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Beeper",
+      "id": "beeper",
+      "package": {
+        "stableVersion": "4.3.123",
+        "token": "beeper",
+        "type": "cask"
+      },
+      "summary": "Universal chat app powered by Matrix",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BeerSmith",
+      "id": "beersmith",
+      "package": {
+        "stableVersion": "4.0.22",
+        "token": "beersmith",
+        "type": "cask"
+      },
+      "summary": "Beer brewing software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Belgian eID Viewer",
+      "id": "beid-viewer",
+      "package": {
+        "stableVersion": "5.1.31",
+        "token": "beid-viewer",
+        "type": "cask"
+      },
+      "summary": "Belgian ID card reader",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BentoBox",
+      "id": "bentobox",
+      "package": {
+        "stableVersion": "1.1.10",
+        "token": "bentobox",
+        "type": "cask"
+      },
+      "summary": "Window manager that organizes desktop applications into predefined zones",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Berrycast",
+      "id": "berrycast",
+      "package": {
+        "stableVersion": "0.39.4",
+        "token": "berrycast",
+        "type": "cask"
+      },
+      "summary": "Screen recorder",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bespoke Synth",
+      "id": "bespoke",
+      "package": {
+        "stableVersion": "1.3.0",
+        "token": "bespoke",
+        "type": "cask"
+      },
+      "summary": "Software modular synth",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Better And Better",
+      "id": "betterandbetter",
+      "package": {
+        "stableVersion": "2.7.9,2026062701",
+        "token": "betterandbetter",
+        "type": "cask"
+      },
+      "summary": "Keyboard, mouse and touchpad motion gestures",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterCapture",
+      "id": "bettercapture",
+      "package": {
+        "stableVersion": "2026.4",
+        "token": "bettercapture",
+        "type": "cask"
+      },
+      "summary": "Screen recorder",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterCmdTab",
+      "id": "bettercmdtab",
+      "package": {
+        "stableVersion": "26.7,20260813144806",
+        "token": "bettercmdtab",
+        "type": "cask"
+      },
+      "summary": "Replacement for the built-in Cmd+Tab app switcher",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterCmdTab",
+      "id": "bettercmdtab-at-beta",
+      "package": {
+        "stableVersion": "26.7,20260813144806",
+        "token": "bettercmdtab@beta",
+        "type": "cask"
+      },
+      "summary": "Replacement for the built-in Cmd+Tab app switcher",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterDisplay",
+      "id": "betterdisplay",
+      "package": {
+        "stableVersion": "5.0.5",
+        "token": "betterdisplay",
+        "type": "cask"
+      },
+      "summary": "Display management tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterMacWidgets",
+      "id": "bettermacwidgets",
+      "package": {
+        "stableVersion": "2.3.10",
+        "token": "bettermacwidgets",
+        "type": "cask"
+      },
+      "summary": "Live-animated widgets that sit on the desktop",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterMouse",
+      "id": "bettermouse",
+      "package": {
+        "stableVersion": "1.7,8995",
+        "token": "bettermouse",
+        "type": "cask"
+      },
+      "summary": "Utility improving 3rd party mouse performance and functionalities",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Better Shot",
+      "id": "bettershot",
+      "package": {
+        "stableVersion": "0.5.6",
+        "token": "bettershot",
+        "type": "cask"
+      },
+      "summary": "Screen capturing and editing tool",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterTouchTool",
+      "id": "bettertouchtool",
+      "package": {
+        "stableVersion": "6.845,2026092108",
+        "token": "bettertouchtool",
+        "type": "cask"
+      },
+      "summary": "Tool to customise input devices and automate computer systems",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterTouchTool",
+      "id": "bettertouchtool-at-alpha",
+      "package": {
+        "stableVersion": "6.845,2026092108",
+        "token": "bettertouchtool@alpha",
+        "type": "cask"
+      },
+      "summary": "Tool to customise input devices and automate computer systems",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BetterZip",
+      "id": "betterzip",
+      "package": {
+        "stableVersion": "6.0.6",
+        "token": "betterzip",
+        "type": "cask"
+      },
+      "summary": "Utility to create and modify archives",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Editors",
+      "displayName": "Beutl",
+      "id": "beutl",
+      "package": {
+        "stableVersion": "1.1.0",
+        "token": "beutl",
+        "type": "cask"
+      },
+      "summary": "Video editor",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Beyond Compare",
+      "id": "beyond-compare",
+      "package": {
+        "stableVersion": "5.2.5.32528",
+        "token": "beyond-compare",
+        "type": "cask"
+      },
+      "summary": "Compare files and folders",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Beyond Compare",
+      "id": "beyond-compare-at-4",
+      "package": {
+        "stableVersion": "4.4.7.28397",
+        "token": "beyond-compare@4",
+        "type": "cask"
+      },
+      "summary": "Compare files and folders",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bezel",
+      "id": "bezel",
+      "package": {
+        "stableVersion": "5.0.0",
+        "token": "bezel",
+        "type": "cask"
+      },
+      "summary": "iOS screen output recorder",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "BibDesk",
+      "id": "bibdesk",
+      "package": {
+        "stableVersion": "1.9.13",
+        "token": "bibdesk",
+        "type": "cask"
+      },
+      "summary": "Edit and manage bibliographies",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bifrost",
+      "id": "bifrost",
+      "package": {
+        "stableVersion": "2.1.4",
+        "token": "bifrost",
+        "type": "cask"
+      },
+      "summary": "Samsung firmware downloader",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Big Mean Folder Machine",
+      "id": "big-mean-folder-machine",
+      "package": {
+        "stableVersion": "2.43",
+        "token": "big-mean-folder-machine",
+        "type": "cask"
+      },
+      "summary": "File/folder management utility",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Bike",
+      "id": "bike",
+      "package": {
+        "stableVersion": "1.22.2,196",
+        "token": "bike",
+        "type": "cask"
+      },
+      "summary": "Record and process your ideas",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Media",
+      "displayName": "Bilibili",
+      "id": "bilibili",
+      "package": {
+        "stableVersion": "1.19.0",
+        "token": "bilibili",
+        "type": "cask"
+      },
+      "summary": "Official bilibili video streaming and sharing platform",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Billings Pro",
+      "id": "billings-pro",
+      "package": {
+        "stableVersion": "1.8.1,39116,2026-04-06-1244",
+        "token": "billings-pro",
+        "type": "cask"
+      },
+      "summary": "Invoices, estimates, quotes and time-tracking",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Utilities",
+      "displayName": "Billy",
+      "id": "billy",
+      "package": {
+        "stableVersion": "1.2.0,43",
+        "token": "billy",
+        "type": "cask"
+      },
+      "summary": "Invoice manager",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    },
+    {
+      "category": "Games",
+      "displayName": "Billy Frontier",
+      "id": "billy-frontier",
+      "package": {
+        "stableVersion": "1.1.1",
+        "token": "billy-frontier",
+        "type": "cask"
+      },
+      "summary": "Arcade style, cowboys in space themed action game from Pangea Software",
+      "support": {
+        "capabilities": [
+          "DETECT"
+        ],
+        "coverageClass": "DETECTED_UNSUPPORTED",
+        "reason": "Homebrew metadata supports package detection only; no configuration schema or write authority has been reviewed.",
+        "writePermissions": []
+      }
+    }
+  ],
+  "schemaVersion": 1,
+  "source": {
+    "id": "homebrew-cask-api",
+    "owner": "Homebrew",
+    "project": "homebrew-cask",
+    "repositoryUrl": "https://github.com/Homebrew/homebrew-cask",
+    "retrievedAt": "2026-09-22T08:05:47.390Z",
+    "sha256": "077589fc98590963f006665c7b326064ee3f4c220dfeefc322a9c323f8e7fca6",
+    "staleAfterDays": 90,
+    "url": "https://formulae.brew.sh/api/cask.json",
+    "verifiedAt": "2026-09-22T08:05:47.408Z"
+  }
+}
