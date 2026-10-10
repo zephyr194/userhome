@@ -4,7 +4,7 @@ describe("UserHome desktop smoke", () => {
   it("launches the macOS app and renders the main shell", async () => {
     expect(await browser.getTitle()).toBe("UserHome");
 
-    const windowState = await browser.execute(async () => {
+    const readWindowState = () => browser.execute(async () => {
       const tauriWindow = window as Window & {
         __TAURI__: {
           core: {
@@ -47,11 +47,66 @@ describe("UserHome desktop smoke", () => {
         visible,
       };
     });
+    const windowState = await readWindowState();
     expect(windowState.width).toBe(1120);
-    expect(Math.abs(windowState.height - 720)).toBeLessThanOrEqual(1);
-    expect(windowState.resizable).toBe(false);
+    expect(windowState.height).toBe(720);
+    expect(windowState.resizable).toBe(true);
     expect(windowState.maximizable).toBe(false);
     expect(windowState.visible).toBe(false);
+
+    const initialRect = await browser.getWindowRect();
+    try {
+      for (const delta of [240, 0]) {
+        await browser.setWindowRect(
+          initialRect.x,
+          initialRect.y,
+          initialRect.width + delta,
+          initialRect.height + delta,
+        );
+        const expectedWidth = 1120 + delta;
+        const expectedHeight = 720 + delta;
+        await browser.waitUntil(
+          async () => {
+            const state = await readWindowState();
+            return (
+              state.width === expectedWidth && state.height === expectedHeight
+            );
+          },
+          { timeout: 5_000, timeoutMsg: "Native window resize did not settle" },
+        );
+        await browser.waitUntil(
+          () =>
+            browser.execute(
+              (width, height) => {
+                const root = document.documentElement;
+                return (
+                  root.clientWidth === width &&
+                  root.clientHeight === height &&
+                  root.scrollWidth <= width &&
+                  root.scrollHeight <= height
+                );
+              },
+              expectedWidth,
+              expectedHeight,
+            ),
+          {
+            timeout: 5_000,
+            timeoutMsg: "Resized workspace overflowed its viewport",
+          },
+        );
+        const resizedState = await readWindowState();
+        expect(resizedState.resizable).toBe(true);
+        expect(resizedState.maximizable).toBe(false);
+        expect(resizedState.visible).toBe(false);
+      }
+    } finally {
+      await browser.setWindowRect(
+        initialRect.x,
+        initialRect.y,
+        initialRect.width,
+        initialRect.height,
+      );
+    }
 
     expect(await $(".titlebar__title").getText()).toBe("UserHome");
     expect(await $("nav[aria-label='主导航']").isDisplayed()).toBe(true);

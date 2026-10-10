@@ -50,7 +50,7 @@ pub fn run() {
             discovery.set_timeout_preset(preferences.provider_timeout_preset());
             discovery.set_optional_discovery_roots(preferences.optional_discovery_roots());
             app.manage(settings);
-            WebviewWindowBuilder::new(
+            let window = WebviewWindowBuilder::new(
                 app,
                 tray::MAIN_WINDOW_LABEL,
                 WebviewUrl::App("index.html".into()),
@@ -58,15 +58,16 @@ pub fn run() {
             .title("UserHome")
             .inner_size(1120.0, 720.0)
             .min_inner_size(1120.0, 720.0)
-            .max_inner_size(1120.0, 720.0)
             .center()
-            .resizable(false)
+            .resizable(true)
             .maximizable(false)
             .decorations(true)
             .title_bar_style(TitleBarStyle::Overlay)
             .hidden_title(true)
             .visible(preferences.open_window_on_launch())
             .build()?;
+            // Normalize macOS overlay-window geometry after native creation.
+            window.set_size(tauri::LogicalSize::new(1120.0, 720.0))?;
             tray::setup(app)?;
             Ok(())
         })

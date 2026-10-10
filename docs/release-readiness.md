@@ -176,6 +176,41 @@ they are not a completed manual drag matrix. Frontend/Rust contract checks,
 the unchanged fixed-size native smoke, and the final unsigned build passed.
 No real configuration was accessed, and T109's manual gates remain open.
 
+### Native border resizing revision (2026-10-10)
+
+The user approved native border resizing, with both the initial and minimum
+size at 1120x720 logical pixels. The maximum-size constraint is removed;
+maximize/fullscreen, title-bar double-click behavior, and production IPC
+permissions remain unchanged. No size-settings UI or size persistence is added.
+
+The revised existing smoke first failed because the native window was not
+resizable. Removing the maximum bound exposed the earlier 1121x721 startup
+geometry again. Explicitly setting the logical content size after native
+creation restores exactly 1120x720 without imposing a maximum.
+The isolated native smoke then verified actual growth to 1360x960 and
+restoration to 1120x720, matching WebView dimensions and no document-level
+overflow at both sizes; maximize remained disabled and startup remained hidden.
+
+WebDriver uses Tauri's programmatic size setter, which can bypass AppKit's
+minimum-size restriction. An attempted below-minimum driver resize therefore
+does not prove native border clamping; the final smoke tests growth and
+restoration instead. Native pointer/trackpad resizing and minimum-bound
+interaction still require foreground acceptance.
+
+The exact staged candidate was also exported into a separate checkout,
+excluding all unrelated ongoing UI, settings, and dependency edits. Its native
+smoke, existing shell and IPC tests, scoped ESLint, both TypeScript projects,
+Rust formatting, strict all-target/all-feature Clippy, and unsigned production
+build passed with Node 24.21.0, cached pnpm 10.33.1, and one consistent
+Homebrew Rust 1.99 toolchain. Shared installed dependencies/build caches were
+reused; no dependency installation or production capability expansion occurred.
+The known large-chunk and WDIO teardown warnings remain.
+
+Runtime checks used disposable private HOME/preferences and no real
+configuration or package/service mutations. User-owned working-tree changes
+are not included in this revision. T103/T109 and all signing, notarization,
+GitHub-hosted CI, hardware, and other manual gates remain open under NO-GO.
+
 ### T109 foreground acceptance attempt (2026-09-24)
 
 The current `src-tauri/target/release/userhome` binary was launched with

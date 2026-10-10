@@ -4,6 +4,11 @@ Status: Approved on 2026-09-22. This is an incremental revision of the window
 behavior in `SPEC.md`, `SPEC-desktop-experience.md`, and
 `SPEC-native-desktop-shell.md`.
 
+2026-10-10 geometry revision: the user approved native border resizing with
+an initial and minimum size of 1120 by 720 and no maximum-size constraint.
+This supersedes assumption 2's disabled-resize policy only; maximize,
+fullscreen, and title-bar double-click behavior remain disabled.
+
 ## Assumptions
 
 1. The macOS window keeps native traffic lights and the current 52-pixel
