@@ -89,11 +89,10 @@ export function AppearanceSettings({
         legend="外观模式"
         description="选择系统、浅色或深色语义颜色；保存后立即应用。"
       >
-        <div className="grid min-w-0 grid-cols-1 gap-ui-lg sm:grid-cols-3">
+        <div className="appearance-settings__options">
           {APPEARANCE_OPTIONS.map((option) => (
-            <label key={option.value} className="relative min-w-0">
+            <label key={option.value} className="appearance-option">
               <input
-                className="peer sr-only"
                 type="radio"
                 name="appearance"
                 value={option.value}
@@ -101,20 +100,16 @@ export function AppearanceSettings({
                 disabled={saving}
                 onChange={() => void selectAppearance(option.value)}
               />
-              <span className="grid min-h-36 cursor-pointer grid-rows-[4.75rem_auto_auto] content-start gap-ui-sm rounded-control border border-border bg-surface p-ui-lg transition-colors hover:bg-surface-muted peer-checked:border-selection-border peer-checked:bg-selection peer-focus-visible:ring-2 peer-focus-visible:ring-focus peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-canvas">
+              <span className="appearance-option__card">
                 <span
-                  className={`appearance-option__preview appearance-option__preview--${option.value.toLowerCase()}`}
                   aria-hidden="true"
+                  className={`appearance-option__preview appearance-option__preview--${option.value.toLowerCase()}`}
                 >
                   <span />
                   <span />
                 </span>
-                <strong className="break-words text-sm font-semibold">
-                  {option.label}
-                </strong>
-                <span className="break-words text-xs leading-relaxed text-muted-foreground">
-                  {option.description}
-                </span>
+                <strong>{option.label}</strong>
+                <span>{option.description}</span>
               </span>
             </label>
           ))}

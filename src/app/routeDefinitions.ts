@@ -26,38 +26,47 @@ export const APP_ROUTES: readonly AppRoute[] = [
     icon: "dashboard",
     label: "概览",
     eyebrow: "本机概览",
-    description: "查看 UserHome 与最近本机操作的可用状态。",
+    description: "掌握系统、配置、软件与服务的实时状态。",
   },
   {
     id: "applications",
     icon: "applications",
-    label: "应用",
-    eyebrow: "用户目录",
-    description: "识别应用及其配置文件。",
+    label: "应用与配置",
+    eyebrow: "配置工作区",
+    description: "发现、检查并安全管理本机应用配置。",
   },
   {
     id: "homebrew",
     icon: "homebrew",
-    label: "Homebrew",
-    eyebrow: "软件管理",
-    description: "查看 Homebrew 安装的软件。",
+    label: "软件",
+    eyebrow: "Homebrew",
+    description: "浏览、搜索并维护 Homebrew 软件。",
   },
   {
     id: "services",
     icon: "services",
     label: "服务",
     eyebrow: "后台服务",
-    description: "查看 Homebrew services 的运行状态。",
+    description: "检查并管理 Homebrew 后台服务。",
   },
   {
     id: "settings",
     icon: "settings",
     label: "设置",
     eyebrow: "应用设置",
-    description: "管理 UserHome 的本地偏好。",
+    description: "调整 UserHome 的本地行为与安全边界。",
   },
 ];
 
+/**
+ * The applications workspace has two scopes:
+ * - `LOCAL_RECOGNIZED` lists the locally discovered candidates.
+ * - `CATALOG` browses the curated managed application catalog.
+ *
+ * The scope is safe to persist in selection memory. Transient navigation
+ * details such as `candidateId`/`sourceRefreshId` are intentionally kept out
+ * of the persisted shape.
+ */
 export type ApplicationsScope = "LOCAL_RECOGNIZED" | "CATALOG";
 
 export interface ApplicationsNavigationIntent {

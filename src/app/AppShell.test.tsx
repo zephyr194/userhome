@@ -32,6 +32,8 @@ describe("AppShell", () => {
     expect(markup).toContain("Homebrew");
     expect(markup).toContain("服务");
     expect(markup).toContain("设置");
+    expect(markup).toContain("系统控制台");
+    expect(markup).toContain("应用与配置");
     expect(markup).toContain('aria-current="page"');
     expect(markup).toContain('role="status"');
     expect(markup).toContain('aria-busy="true"');
@@ -52,7 +54,14 @@ describe("AppShell", () => {
         state={loadingState}
       />,
     );
+
+    // The Control Lab sub-brand must exist once, in the navigation rail only.
     expect(markup.match(/CONTROL LAB/g)).toHaveLength(1);
+    const railBrand = markup.match(
+      /<div class="navigation-rail__brand">[\s\S]*?<\/div>/,
+    )?.[0];
+    expect(railBrand).toContain("CONTROL LAB");
+    // The titlebar never repeats the sub-brand.
     const titlebar = markup.match(/<header class="titlebar"[\s\S]*?<\/header>/)?.[0];
     expect(titlebar).toBeDefined();
     expect(titlebar).not.toContain("Control Lab");
@@ -67,9 +76,13 @@ describe("AppShell", () => {
         state={loadingState}
       />,
     );
+
     expect(markup.match(/aria-label="当前页面工具栏"/g)).toHaveLength(1);
-    expect(markup.match(/desktop-workspace__page-title/g)).toHaveLength(1);
+    expect(markup).toContain(
+      '<h1 class="desktop-workspace__page-title">概览</h1>',
+    );
     expect(markup.match(/toolbar-refresh-button/g)).toHaveLength(1);
+    // No leftover shell hero or duplicate brand panel.
     expect(markup).not.toContain("interface-preview");
     expect(markup).not.toContain("welcome-panel");
   });

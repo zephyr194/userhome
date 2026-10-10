@@ -4477,14 +4477,14 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T123：删除兼容样式并完成自动化门禁
 
-**状态：**待执行。
+**状态：**2026-10-10 自动化门禁已完成。
 
 **目标：**在五路由迁移后删除确认无引用的兼容 CSS，并运行完整自动化。
 
 **验收：**
-- [ ] 删除旧 workspace/appearance/button/card 私有规则，不盲删动态类。
-- [ ] 现有 E2E 覆盖五路由、两窗口、root 无溢出、local scope 和只读边界。
-- [ ] 全门禁通过或如实记录；无 skipped tests、降级断言或权限扩张。
+- [x] 删除旧 workspace/appearance/button/card 私有规则，并以动态类引用审计保护运行时 modifier。
+- [x] 现有 E2E 覆盖五路由、两窗口、root 无溢出、local scope 与 catalog 分页/只读边界。
+- [x] 全门禁通过并如实记录；无 skipped tests、降级断言或权限扩张。
 
 **验证：**`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm check`、
 `pnpm test:e2e`、`pnpm build:unsigned`、`pnpm corpus:validate`、
@@ -4492,6 +4492,14 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 **依赖：**T117、T119–T122。
 **文件归属：**global CSS、相关 tests/E2E、v3 acceptance evidence。
 **规模：**M。
+
+**T123 实施证据（2026-10-10）：**
+
+- 清理旧 workspace/button/card/appearance 规则并建立有界 compat layer；动态类引用审计后保留实际 modifier。compat layer 无 literal color，生产文本无 ellipsis/clamp/nowrap；唯一 gradient 为 System 明暗主题预览。
+- E2E 在临时 HOME/XDG 中覆盖 Dashboard 首组、本机识别→全部目录、50/624 catalog、Homebrew、Services、Settings、1120×720/1360×960、document 无溢出、refresh coalescing 与 unsigned helper fail-closed，1/1 通过。
+- 完整门禁：`pnpm check` 通过（42 文件/196 前端测试；93 Rust lib + 22 integration；fmt/strict Clippy）；`pnpm build:unsigned`、`pnpm corpus:validate`、`git diff --check` 均通过。保留 Dashboard Fast Refresh warning、>500 kB chunk warning及 WDIO teardown warning。
+- 实际环境 Node 20.20.2（低于声明 24.21.0）、pnpm 12.11.2、Rust 1.99.0；排除的 package/lock/.nvmrc SHA-256 与 T110 完全一致。
+- 详细证据：`docs/ui-correction-acceptance-v3.md`。
 
 ## T124：执行人工矩阵并结算 v3
 
