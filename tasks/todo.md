@@ -4206,20 +4206,37 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T113：补齐既有 catalog path variant exact probes
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**让 discovery exact probe 遍历既有 document path variants，并保持
 批准根、上限、metadata-only 和 wire schema 不变。
 
 **验收：**
-- [ ] secondary variant 可被识别且 ID/安全路径/分类稳定。
-- [ ] 不新增根、深度、内容读取、权限或 IPC 字段。
-- [ ] 现有 Rust fixture 覆盖 variant 去重和 Docker 类路径。
+- [x] secondary variant 可被识别且 ID/安全路径/分类稳定。
+- [x] 不新增根、深度、内容读取、权限或 IPC 字段。
+- [x] 现有 Rust fixture 覆盖 variant 去重和 Docker 类路径。
 
 **验证：**Rust discovery 定向测试、fmt、Clippy、cargo test。
 **依赖：**T110。
 **文件归属：**Rust catalog/discovery candidates 及现有测试。
 **规模：**S/M。
+
+**T113 实施证据（2026-10-10）：**
+
+- `catalog_candidate_metadata()` 复用 catalog 的 `path_variants()`、`root()`、
+  `relative_path()` 与 legacy `path_template()`，将全部既有 variant 去重映射到
+  原有 HOME/Homebrew exact-probe map；扫描循环、containment、上限和 wire DTO
+  未改变。自定义合法 XDG 根继续由既有 `.config/...` exact-probe 重映射逻辑
+  覆盖，Application Support 继续受 HOME containment 检查。
+- RED：新增 `recognizes_every_declared_catalog_path_variant`，只创建 Docker
+  secondary `Library/Group Containers/group.com.docker/settings.json`；修复前因
+  无 candidate 失败。
+- GREEN：该 fixture 识别为安全相对路径、`docker`、`MANAGED_READ_ONLY`、
+  `SECRET` 与 `CATALOG_DOCUMENT`；`cargo test --lib discovery::` 8 项通过。
+- 完整验证：`cargo fmt --check`、严格 Clippy、完整 `cargo test` 均通过；
+  93 项 lib 与 22 项 integration 测试零失败。仅修改
+  `src-tauri/src/discovery/candidates.rs` 与本证据段，无新 root、遍历、内容读取、
+  权限、IPC 字段或 catalog model 变更。
 
 ## Phase 30：共享视觉系统与 Shell
 

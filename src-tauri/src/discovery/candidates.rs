@@ -9,7 +9,7 @@ use std::{
 use serde::Serialize;
 
 use crate::{
-    catalog::{Catalog, CatalogCoverageClass, load_builtin_catalog},
+    catalog::{Catalog, CatalogCoverageClass, CatalogPathRoot, load_builtin_catalog},
     security::paths::TRUSTED_BREW_PREFIXES,
     settings::OptionalDiscoveryRoot,
 };
@@ -1158,31 +1158,31 @@ fn catalog_candidate_metadata(catalog: &Catalog) -> CatalogCandidatePaths {
     let mut paths = CatalogCandidatePaths::default();
     for app in catalog.apps() {
         for document in app.config_documents() {
-            let (target, relative) =
-                if let Some(relative) = document.path_template().strip_prefix("~/") {
-                    (&mut paths.home, relative)
-                } else if let Some(relative) =
-                    document.path_template().strip_prefix("${HOMEBREW_PREFIX}/")
-                {
-                    (&mut paths.homebrew, relative)
-                } else {
+            let metadata = CatalogCandidateMetadata {
+                coverage_class: app.coverage_class(),
+                app_id: app.id().to_owned(),
+                format_hints: vec![document.format().to_owned()],
+                sensitivity_hint: match document.sensitivity() {
+                    "STANDARD" => CandidateSensitivityHint::Standard,
+                    "SENSITIVE" => CandidateSensitivityHint::Sensitive,
+                    "SECRET" => CandidateSensitivityHint::Secret,
+                    _ => CandidateSensitivityHint::Unknown,
+                },
+                source: CatalogCandidateSource::Document,
+            };
+            for (root, relative) in document_path_variants(document) {
+                let Some((target, key)) = catalog_variant_location(root, &relative) else {
                     continue;
                 };
-            target.insert(
-                PathBuf::from(relative),
-                CatalogCandidateMetadata {
-                    coverage_class: app.coverage_class(),
-                    app_id: app.id().to_owned(),
-                    format_hints: vec![document.format().to_owned()],
-                    sensitivity_hint: match document.sensitivity() {
-                        "STANDARD" => CandidateSensitivityHint::Standard,
-                        "SENSITIVE" => CandidateSensitivityHint::Sensitive,
-                        "SECRET" => CandidateSensitivityHint::Secret,
-                        _ => CandidateSensitivityHint::Unknown,
-                    },
-                    source: CatalogCandidateSource::Document,
-                },
-            );
+                match target {
+                    CatalogVariantTarget::Home => {
+                        paths.home.insert(key, metadata.clone());
+                    }
+                    CatalogVariantTarget::Homebrew => {
+                        paths.homebrew.insert(key, metadata.clone());
+                    }
+                }
+            }
         }
         for service in app.services() {
             if !is_safe_name(service) {
@@ -1201,6 +1201,72 @@ fn catalog_candidate_metadata(catalog: &Catalog) -> CatalogCandidatePaths {
         }
     }
     paths
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CatalogVariantTarget {
+    Home,
+    Homebrew,
+}
+
+/// Returns every existing path declared by a config document. Documents that
+/// declare `pathVariants` are traversed in full (each variant carries its own
+/// root and relative path); documents without variants fall back to the legacy
+/// `pathTemplate`, which is only ever rooted at `~` or `${HOMEBREW_PREFIX}`.
+fn document_path_variants(
+    document: &crate::catalog::ConfigDocumentDefinition,
+) -> Vec<(CatalogPathRoot, PathBuf)> {
+    if !document.path_variants().is_empty() {
+        return document
+            .path_variants()
+            .iter()
+            .map(|variant| (variant.root(), PathBuf::from(variant.relative_path())))
+            .collect();
+    }
+    legacy_document_variant(document.path_template())
+        .into_iter()
+        .collect()
+}
+
+fn legacy_document_variant(template: &str) -> Option<(CatalogPathRoot, PathBuf)> {
+    if let Some(relative) = template.strip_prefix("${HOMEBREW_PREFIX}/") {
+        return Some((CatalogPathRoot::HomebrewPrefix, PathBuf::from(relative)));
+    }
+    template
+        .strip_prefix("~/")
+        .map(|relative| (CatalogPathRoot::Home, PathBuf::from(relative)))
+}
+
+/// Maps a declared catalog path variant onto the metadata map that the scan
+/// already probes. Variants rooted below the home directory are folded into the
+/// `home` map with their fixed containing prefix so the existing exact probe and
+/// boundary checks stay unchanged.
+fn catalog_variant_location(
+    root: CatalogPathRoot,
+    relative: &Path,
+) -> Option<(CatalogVariantTarget, PathBuf)> {
+    let (target, prefix) = match root {
+        CatalogPathRoot::Home => (CatalogVariantTarget::Home, ""),
+        CatalogPathRoot::XdgConfigHome => (CatalogVariantTarget::Home, ".config"),
+        CatalogPathRoot::ApplicationSupport => {
+            (CatalogVariantTarget::Home, "Library/Application Support")
+        }
+        CatalogPathRoot::AppSupport => (
+            CatalogVariantTarget::Home,
+            "Library/Application Support/UserHome",
+        ),
+        CatalogPathRoot::HomebrewPrefix => (CatalogVariantTarget::Homebrew, ""),
+        CatalogPathRoot::Unknown => return None,
+    };
+    let key = if prefix.is_empty() {
+        relative.to_path_buf()
+    } else {
+        Path::new(prefix).join(relative)
+    };
+    if key.as_os_str().is_empty() {
+        return None;
+    }
+    Some((target, key))
 }
 
 fn home_candidate_location(
@@ -1832,6 +1898,43 @@ mod tests {
                 && candidate.relative_path != "APPLICATION_SUPPORT/Not Catalog"
                 && candidate.relative_path != "HOMEBREW_PREFIX/etc/tool.conf"
         }));
+
+        fs::remove_dir_all(home).expect("fixture home should be removed");
+    }
+
+    #[test]
+    fn recognizes_every_declared_catalog_path_variant() {
+        let home = env::temp_dir().join(format!("userhome-variants-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&home);
+        fs::create_dir_all(home.join("Library/Group Containers/group.com.docker"))
+            .expect("docker variant directory should be created");
+        fs::write(
+            home.join("Library/Group Containers/group.com.docker/settings.json"),
+            "{}",
+        )
+        .expect("docker secondary settings variant should be written");
+
+        let candidates = discover_candidates_in(&home, None, &[], &[])
+            .expect("catalog-only candidate scan should succeed");
+        let secondary = candidates
+            .candidates
+            .iter()
+            .find(|candidate| {
+                candidate.relative_path
+                    == "~/Library/Group Containers/group.com.docker/settings.json"
+            })
+            .expect("secondary path variant should be detected");
+        assert_eq!(secondary.catalog_app_id.as_deref(), Some("docker"));
+        assert_eq!(
+            secondary.coverage_class,
+            CatalogCoverageClass::ManagedReadOnly
+        );
+        assert_eq!(secondary.sensitivity_hint, CandidateSensitivityHint::Secret);
+        assert!(
+            secondary
+                .evidence
+                .contains(&CandidateEvidence::CatalogDocument)
+        );
 
         fs::remove_dir_all(home).expect("fixture home should be removed");
     }
