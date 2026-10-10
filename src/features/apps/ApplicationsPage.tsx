@@ -25,15 +25,18 @@ import {
   type ManagedAppSummary,
 } from "../../ipc/catalog";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import type {
-  ModuleSnapshot,
-  UnmanagedCandidate,
-} from "../../ipc/discovery";
+import type { UnmanagedCandidate } from "../../ipc/discovery";
 import type { PreferredEditorMode } from "../../ipc/settings";
+import { candidatesFromModule, type CandidateModule } from "../../app/discoverySelectors";
 import { ApplicationIcon } from "./ApplicationIcon";
 import { CatalogCoverageSummary } from "./CatalogCoverageSummary";
 import { ConfigWorkspace } from "./ConfigWorkspace";
-import { UnmanagedCandidates } from "./UnmanagedCandidates";
+import { RecognizedItems } from "./RecognizedItems";
+import {
+  isManagedCoverageClass,
+  matchCandidateConfigDocument,
+  type CandidateConfigMatch,
+} from "./candidateCatalogMatch";
 
 type CatalogState =
   | { status: "loading" }
@@ -58,6 +61,25 @@ interface DetailResult {
     | { status: "error"; applicationId: string; error: AppError };
 }
 
+interface ManagedMatchState {
+  key?: string;
+  status: "loading" | "ready" | "error";
+  application?: ManagedAppSummary;
+  match?: CandidateConfigMatch;
+  error?: AppError;
+}
+
+function staleSelectionNotice(reason: StaleApplicationReason): string {
+  switch (reason) {
+    case "SNAPSHOT_UNAVAILABLE":
+      return "本机发现快照尚不可用，已清除原有的候选选择，未显示任何幽灵选择。";
+    case "REFRESH_MISMATCH":
+      return "本机发现已刷新，原有候选选择基于旧快照，已清除该选择以免显示幽灵选择。";
+    case "CANDIDATE_MISSING":
+      return "原选择的候选项已从本机发现中消失，已清除该选择，未显示幽灵选择。";
+  }
+}
+
 export interface ApplicationBrowseState {
   query: string;
   category?: string;
@@ -74,7 +96,7 @@ const COVERAGE_PRESENTATION: Record<
 > = {
   MANAGED_WRITABLE: { label: "受管可写", tone: "success" },
   MANAGED_READ_ONLY: { label: "受管只读", tone: "neutral" },
-  DETECTED_UNSUPPORTED: { label: "暂不支持", tone: "warning" },
+  DETECTED_UNSUPPORTED: { label: "已发现，暂不支持", tone: "warning" },
   EXCLUDED: { label: "已排除", tone: "warning" },
 };
 
@@ -195,13 +217,15 @@ function isDefaultBrowseRequest(
   );
 }
 
-function candidateList(
-  candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>,
+function recognizedItemList(
+  candidates: CandidateModule,
 ): readonly UnmanagedCandidate[] {
-  return candidates.status === "READY" ? candidates.data : [];
+  return candidatesFromModule(candidates);
 }
 
 function ApplicationsWorkspace({
+  applicationsScope,
+  candidateId,
   candidates,
   detectedAppIds,
   detectionError,
@@ -214,12 +238,15 @@ function ApplicationsWorkspace({
   initialScrollTop,
   initialSelectedConfigIds,
   initialSelectedKey,
+  onApplicationsScopeChange,
   onBrowseStateChange,
   onSelectedConfigChange,
   onSelectedKeyChange,
   onOperationChanged,
   preferredEditorMode,
   refreshId,
+  sourceRefreshId,
+  staleReason,
   state,
 }: ApplicationsPageProps) {
   const initialCatalogState = catalogStateFromShell(state);
@@ -292,9 +319,17 @@ function ApplicationsWorkspace({
     [stableDetectedAppIds],
   );
   const unmanagedCandidates = useMemo(
-    () => candidateList(candidates),
+    () => recognizedItemList(candidates),
     [candidates],
   );
+  const [internalScope, setInternalScope] = useState<ApplicationsScope>(
+    applicationsScope ?? "LOCAL_RECOGNIZED",
+  );
+  const scope = applicationsScope ?? internalScope;
+  const [managedMatch, setManagedMatch] = useState<ManagedMatchState>();
+  const [openedManagedCandidateId, setOpenedManagedCandidateId] = useState<
+    string | undefined
+  >();
   const defaultRequest = isDefaultBrowseRequest(
     query,
     category,
@@ -359,11 +394,28 @@ function ApplicationsWorkspace({
       })),
     [catalogApplications],
   );
+  const isLocalScope = scope === "LOCAL_RECOGNIZED";
   const currentCatalogId = selectedCatalogId(selectedKey);
   const currentCandidateId = selectedCandidateId(selectedKey);
-  const selectedCandidate = unmanagedCandidates.find(
-    (candidate) => candidate.candidateId === currentCandidateId,
-  );
+  const explicitCandidate = currentCandidateId
+    ? unmanagedCandidates.find(
+        (candidate) => candidate.candidateId === currentCandidateId,
+      )
+    : undefined;
+  // A `candidateId` prop that no longer exists in the snapshot must never
+  // become a ghost selection.
+  const propCandidate = candidateId
+    ? unmanagedCandidates.find(
+        (candidate) => candidate.candidateId === candidateId,
+      )
+    : undefined;
+  const selectedCandidate = isLocalScope
+    ? (explicitCandidate ??
+      propCandidate ??
+      (candidateId === undefined && currentCandidateId === undefined
+        ? unmanagedCandidates[0]
+        : undefined))
+    : undefined;
   const fallbackApplication =
     catalogApplications.find(
       (application) => application.id === currentCatalogId,
@@ -374,13 +426,17 @@ function ApplicationsWorkspace({
         Math.max(catalogApplications.length - 1, 0),
       )
     ];
-  const effectiveSelectedKey = selectedCandidate
-    ? selectedKey
-    : fallbackApplication
-      ? catalogKey(fallbackApplication.id)
-      : catalogState.status === "ready"
-        ? undefined
-        : selectedKey;
+  const effectiveSelectedKey = isLocalScope
+    ? selectedCandidate
+      ? candidateKey(selectedCandidate.candidateId)
+      : undefined
+    : selectedCandidate
+      ? selectedKey
+      : fallbackApplication
+        ? catalogKey(fallbackApplication.id)
+        : catalogState.status === "ready"
+          ? undefined
+          : selectedKey;
   const effectiveCatalogId = selectedCatalogId(effectiveSelectedKey);
   const detailState: DetailState = effectiveCatalogId
     ? detailResult?.applicationId === effectiveCatalogId
@@ -393,6 +449,67 @@ function ApplicationsWorkspace({
       (application) => application.id === effectiveCatalogId,
     ),
   );
+
+  const managedCandidateAppId = selectedCandidate?.catalogAppId;
+  const selectedCandidateIsManaged = selectedCandidate
+    ? isManagedCoverageClass(selectedCandidate.coverageClass)
+    : false;
+  const matchRequestKey =
+    selectedCandidate !== undefined &&
+    selectedCandidateIsManaged &&
+    managedCandidateAppId !== undefined
+      ? `${selectedCandidate.candidateId}\u0000${managedCandidateAppId}\u0000${refreshId ?? ""}`
+      : undefined;
+  const selectedMatchState: ManagedMatchState | undefined =
+    !selectedCandidateIsManaged
+      ? undefined
+      : matchRequestKey === undefined
+        ? { status: "ready", match: { kind: "NONE" } }
+        : managedMatch?.key === matchRequestKey
+          ? managedMatch
+          : { status: "loading" };
+
+  const recognizedCount =
+    candidates.status === "READY" ? unmanagedCandidates.length : undefined;
+  const catalogCount =
+    catalogPage?.pagination.totalItems ??
+    initialCatalogPage?.pagination.totalItems;
+
+  useEffect(() => {
+    if (
+      matchRequestKey === undefined ||
+      selectedCandidate === undefined ||
+      managedCandidateAppId === undefined
+    ) {
+      return;
+    }
+    let cancelled = false;
+    void getManagedApp(managedCandidateAppId)
+      .then((application) => {
+        if (cancelled) {
+          return;
+        }
+        setManagedMatch({
+          key: matchRequestKey,
+          status: "ready",
+          application,
+          match: matchCandidateConfigDocument(selectedCandidate, application),
+        });
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setManagedMatch({
+          key: matchRequestKey,
+          status: "error",
+          error: decodeAppError(error),
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [matchRequestKey, managedCandidateAppId, selectedCandidate]);
 
   useEffect(() => {
     selectedConfigChangeRef.current = onSelectedConfigChange;
@@ -631,6 +748,15 @@ function ApplicationsWorkspace({
     }
   }
 
+  function changeScope(nextScope: ApplicationsScope) {
+    if (nextScope === scope) {
+      return;
+    }
+    setInternalScope(nextScope);
+    setOpenedManagedCandidateId(undefined);
+    onApplicationsScopeChange?.(nextScope);
+  }
+
   function selectCandidate(candidate: UnmanagedCandidate) {
     const key = candidateKey(candidate.candidateId);
     selectedKeyRef.current = key;
@@ -725,26 +851,86 @@ function ApplicationsWorkspace({
       <header className="applications-workspace__header">
         <div>
           <p className="section-kicker">
-            {catalogPage
-              ? `受管目录 v${catalogPage.schemaVersion}`
-              : "受管目录"}
+            {isLocalScope
+              ? "本机识别"
+              : catalogPage
+                ? `受管目录 v${catalogPage.schemaVersion}`
+                : "受管目录"}
           </p>
           <h2 id="applications-heading">Applications</h2>
-          <p>目录筛选由本机 Rust provider 执行；未受管候选保持只读隔离。</p>
+          <p>
+            {isLocalScope
+              ? "本机识别项直接来自只读候选快照，按覆盖等级分类，不读取其内容。"
+              : "目录筛选由本机 Rust provider 执行；受管文档的操作均由 Rust appId/configId 授权。"}
+          </p>
         </div>
         <div className="shrink-0 text-right text-xs text-muted-foreground">
           <strong className="block text-sm text-foreground">
-            {totalItems === undefined ? "—" : `${totalItems} 项`}
+            {isLocalScope
+              ? recognizedCount === undefined
+                ? "—"
+                : `${recognizedCount} 项`
+              : totalItems === undefined
+                ? "—"
+                : `${totalItems} 项`}
           </strong>
           <span role="status" aria-live="polite" aria-atomic="true">
-            {catalogPage
-              ? `当前显示 ${pageRange(catalogPage)}`
-              : "目录待就绪"}
+            {isLocalScope
+              ? "本机识别快照"
+              : catalogPage
+                ? `当前显示 ${pageRange(catalogPage)}`
+                : "目录待就绪"}
           </span>
         </div>
       </header>
 
-      {catalogPage ? <CatalogCoverageSummary catalog={catalogPage} /> : null}
+      <div
+        className="applications-workspace__scopes"
+        role="tablist"
+        aria-label="应用范围"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={isLocalScope}
+          className={classNames(
+            "applications-workspace__scope",
+            isLocalScope && "applications-workspace__scope--active",
+          )}
+          onClick={() => changeScope("LOCAL_RECOGNIZED")}
+        >
+          本机识别 ·{" "}
+          {recognizedCount === undefined ? "—" : recognizedCount}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!isLocalScope}
+          className={classNames(
+            "applications-workspace__scope",
+            !isLocalScope && "applications-workspace__scope--active",
+          )}
+          onClick={() => changeScope("CATALOG")}
+        >
+          全部目录 · {catalogCount === undefined ? "—" : catalogCount}
+        </button>
+      </div>
+
+      {staleReason ? (
+        <div
+          className="applications-workspace__stale"
+          data-testid="stale-selection-notice"
+          role="status"
+        >
+          {staleSelectionNotice(staleReason)}
+        </div>
+      ) : null}
+
+      {!isLocalScope ? (
+        <>
+          {catalogPage ? (
+            <CatalogCoverageSummary catalog={catalogPage} />
+          ) : null}
 
       <div className="applications-workspace__filters" aria-label="应用筛选">
         <label className="min-w-0 flex-1">
@@ -853,7 +1039,93 @@ function ApplicationsWorkspace({
         </label>
       </div>
 
+        </>
+      ) : null}
+
       <div className="applications-workspace__body">
+        {isLocalScope ? (
+          <aside
+            className="applications-workspace__list"
+            aria-label="本机识别项列表"
+            aria-busy={candidates.status === "LOADING" ? "true" : undefined}
+          >
+            <div className="flex min-w-0 items-center justify-between gap-2 border-b border-border px-3 py-2 text-xs text-muted-foreground">
+              <h3
+                id="recognized-items-heading"
+                className="font-semibold text-foreground"
+              >
+                本机识别项
+              </h3>
+              <span>
+                {recognizedCount === undefined ? "—" : `${recognizedCount} 项`}
+              </span>
+            </div>
+            <p className="px-3 pt-2 text-[11px] text-muted-foreground">
+              只读候选快照 · 来源刷新{" "}
+              {sourceRefreshId ?? refreshId ?? "未知"}
+            </p>
+            {candidates.status === "LOADING" ? (
+              <div className="px-3 pb-3">
+                <AsyncState kind="loading">正在扫描浅层目录元数据…</AsyncState>
+              </div>
+            ) : candidates.status === "ERROR" ? (
+              <div className="px-3 pb-3">
+                <AsyncState kind="error">{candidates.error.message}</AsyncState>
+              </div>
+            ) : unmanagedCandidates.length === 0 ? (
+              <div className="px-3 pb-3">
+                <AsyncState kind="empty">没有本机识别项。</AsyncState>
+              </div>
+            ) : (
+              <ul
+                role="listbox"
+                aria-label={`本机识别项，共 ${unmanagedCandidates.length} 项`}
+              >
+                {unmanagedCandidates.map((candidate) => {
+                  const key = candidateKey(candidate.candidateId);
+                  const isSelected = effectiveSelectedKey === key;
+                  const coverage =
+                    COVERAGE_PRESENTATION[candidate.coverageClass];
+                  return (
+                    <li key={candidate.candidateId} role="presentation">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        className={classNames(
+                          "applications-workspace__row applications-workspace__row--candidate",
+                          isSelected &&
+                            "applications-workspace__row--selected",
+                        )}
+                        title={candidate.displayName}
+                        onClick={() => selectCandidate(candidate)}
+                      >
+                        <ApplicationIcon
+                          className="size-4 shrink-0"
+                          iconKey="candidate"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-xs font-medium">
+                            {candidate.displayName}
+                          </span>
+                          <span className="block truncate text-[11px] text-muted-foreground">
+                            本机识别项 · {coverage.label}
+                          </span>
+                        </span>
+                        <StatusBadge
+                          className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
+                          tone={coverage.tone}
+                        >
+                          {coverage.label}
+                        </StatusBadge>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </aside>
+        ) : (
         <aside
           ref={catalogListRef}
           className="applications-workspace__list"
@@ -1076,84 +1348,49 @@ function ApplicationsWorkspace({
             </div>
           ) : null}
 
-          <section
-            className="border-t border-border"
-            aria-labelledby="unmanaged-candidates-heading"
-          >
-            <div className="flex items-center justify-between px-3 py-2 text-xs text-muted-foreground">
-              <h3
-                id="unmanaged-candidates-heading"
-                className="font-semibold text-foreground"
-              >
-                未受管候选
-              </h3>
-              <span>
-                {candidates.status === "READY"
-                  ? `${unmanagedCandidates.length} 项`
-                  : "—"}
-              </span>
-            </div>
-            {candidates.status === "LOADING" ? (
-              <div className="px-3 pb-3">
-                <AsyncState kind="loading">
-                  正在补充只读候选元数据…
-                </AsyncState>
-              </div>
-            ) : candidates.status === "ERROR" ? (
-              <div className="px-3 pb-3">
-                <AsyncState kind="error">
-                  {candidates.error.message}
-                </AsyncState>
-              </div>
-            ) : unmanagedCandidates.length === 0 ? (
-              <div className="px-3 pb-3">
-                <AsyncState kind="empty">没有未受管候选项。</AsyncState>
-              </div>
-            ) : (
-              <ul>
-                {unmanagedCandidates.map((candidate) => {
-                  const key = candidateKey(candidate.candidateId);
-                  const isSelected = effectiveSelectedKey === key;
-                  return (
-                    <li key={candidate.candidateId}>
-                      <button
-                        type="button"
-                        className={classNames(
-                          "applications-workspace__row applications-workspace__row--candidate",
-                          isSelected && "applications-workspace__row--selected",
-                        )}
-                        aria-pressed={isSelected}
-                        title={candidate.displayName}
-                        onClick={() => selectCandidate(candidate)}
-                      >
-                        <ApplicationIcon
-                          className="size-4 shrink-0"
-                          iconKey="candidate"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                          {candidate.displayName}
-                        </span>
-                        <StatusBadge
-                          className="min-h-5 shrink-0 px-1.5 py-0 text-[10px]"
-                          tone="warning"
-                        >
-                          只读元数据
-                        </StatusBadge>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
         </aside>
+        )}
 
         <div className="applications-workspace__detail">
-          {selectedCandidate ? (
-            <UnmanagedCandidates
-              selectedCandidate={selectedCandidate}
-              state={candidates}
-            />
+          {isLocalScope ? (
+            selectedCandidate ? (
+              <RecognizedItems
+                key={selectedCandidate.candidateId}
+                application={
+                  selectedMatchState?.status === "ready"
+                    ? selectedMatchState.application
+                    : undefined
+                }
+                candidate={selectedCandidate}
+                match={
+                  selectedMatchState?.status === "ready"
+                    ? selectedMatchState.match
+                    : undefined
+                }
+                matchError={
+                  selectedMatchState?.status === "error"
+                    ? selectedMatchState.error
+                    : undefined
+                }
+                module={candidates}
+                onOperationChanged={onOperationChanged}
+                onOpenManagedConfig={() =>
+                  setOpenedManagedCandidateId(selectedCandidate.candidateId)
+                }
+                onSelectedConfigChange={updateConfigSelection}
+                opened={
+                  openedManagedCandidateId === selectedCandidate.candidateId
+                }
+                preferredEditorMode={preferredEditorMode ?? "STRUCTURED"}
+                refreshId={refreshId}
+              />
+            ) : (
+              <div className="p-5">
+                <AsyncState kind="empty">
+                  选择一个本机识别项以查看安全详情。
+                </AsyncState>
+              </div>
+            )
           ) : detailState.status === "loading" ? (
             <div className="p-5">
               <AsyncState kind="loading">正在加载应用详情…</AsyncState>
@@ -1179,7 +1416,7 @@ function ApplicationsWorkspace({
           ) : (
             <div className="p-5">
               <AsyncState kind="empty">
-                选择一个 catalog 应用或未受管候选以查看详情。
+                选择一个 catalog 应用以查看详情。
               </AsyncState>
             </div>
           )}
@@ -1192,14 +1429,14 @@ function ApplicationsWorkspace({
 interface ApplicationsPageProps {
   /**
    * T116 wires these through for the applications scope and candidate
-   * navigation. T118 renders the formal scope UI; until then they are accepted
-   * for type-safe forwarding and selection, not displayed.
+   * navigation. T118 renders the formal scope UI and the transient local
+   * candidate context.
    */
   applicationsScope?: ApplicationsScope;
   candidateId?: string;
   sourceRefreshId?: string;
   staleReason?: StaleApplicationReason;
-  candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
+  candidates: CandidateModule;
   detectedAppIds?: readonly string[];
   detectionError?: AppError;
   initialCapability?: ManagedAppCapability;
@@ -1211,6 +1448,7 @@ interface ApplicationsPageProps {
   initialScrollTop?: number;
   initialSelectedConfigIds?: Record<string, string>;
   initialSelectedKey?: string;
+  onApplicationsScopeChange?: (scope: ApplicationsScope) => void;
   onBrowseStateChange?: (state: ApplicationBrowseState) => void;
   onSelectedConfigChange?: (
     applicationId: string,

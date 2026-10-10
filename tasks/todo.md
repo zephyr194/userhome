@@ -4361,21 +4361,28 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T118：实现 Applications 本机识别与授权详情
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**提供“本机识别”和“全部目录”两种明确上下文，并按四类能力展示
 下一步。
 
 **验收：**
-- [ ] local/catalog 计数、筛选、选择和草稿不混用。
-- [ ] 固定显示安全路径、证据、理由、敏感性和扫描状态。
-- [ ] managed 项仅经 catalog/path variant 唯一匹配进入 ConfigWorkspace；
+- [x] local/catalog 计数、筛选、选择和草稿不混用。
+- [x] 固定显示安全路径、证据、理由、敏感性和扫描状态。
+- [x] managed 项仅经 catalog/path variant 唯一匹配进入 ConfigWorkspace；
       unsupported/excluded 无内容或 mutation action。
 
 **验证：**Applications/config/path-match 定向测试；前端完整门禁。
 **依赖：**T112、T113、T116。
 **文件归属：**Applications、candidate details、ConfigWorkspace、matching helper。
 **规模：**L。
+
+**T118 实施证据（2026-10-10）：**
+
+- Applications 顶部提供“本机识别 · N / 全部目录 · M”受控 scope；scope 变更回写 SelectionMemory，local 直接消费完整 ConfigurationCoverage，catalog 保留既有分页/筛选/草稿。
+- `UnmanagedCandidates` 重命名为中性 `RecognizedItems`；四类均显示 safe relativePath、evidence、coverage、classification reason、sensitivity、scan/module 状态和 next action。stale reason 可见且无 ghost selection。
+- 新增安全 path matching：root + segments 标准化，拒绝 absolute、反斜杠、控制字符、空段与 `..`；仅 catalogAppId 一致且唯一 document variant 匹配时，以 appId/configId 复用 ConfigWorkspace。零/多匹配不猜，unsupported/excluded 不渲染任何 action。
+- RED 后 GREEN：matching 13 项、RecognizedItems 8 项、Applications 8 项及 Apps/导航整组 73 项通过；typecheck、scoped lint 通过。未将 candidate 路径传给 Rust 写入 API，未扩大权限。
 
 ## Phase 32：完成五路由布局
 

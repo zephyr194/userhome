@@ -10,10 +10,6 @@ import type {
 } from "../ipc/settings";
 import type { AppError } from "../ipc/core";
 import type {
-  ModuleSnapshot,
-  UnmanagedCandidate,
-} from "../ipc/discovery";
-import type {
   ApplicationsState,
   ConnectionState,
   DiscoveryState,
@@ -33,7 +29,6 @@ import {
   type StaleApplicationNavigation,
 } from "./applicationNavigation";
 import type { SelectionMemory } from "./selectionMemory";
-import { selectCandidateListModule } from "./discoverySelectors";
 
 function detectedApplicationIds(
   discovery: DiscoveryState,
@@ -45,26 +40,6 @@ function detectedApplicationIds(
   return snapshot.system.data.applications
     .filter((application) => application.status !== "ABSENT")
     .map((application) => application.appId);
-}
-
-function candidateListModule(
-  discovery: DiscoveryState,
-): ModuleSnapshot<readonly UnmanagedCandidate[]> {
-  const snapshot = activeDiscoverySnapshot(discovery);
-  if (snapshot) {
-    return selectCandidateListModule(snapshot.candidates);
-  }
-  if (discovery.status === "error") {
-    return {
-      status: "ERROR",
-      error: {
-        module: "candidates",
-        message: discovery.error.message,
-        retryable: discovery.error.retryable,
-      },
-    };
-  }
-  return { status: "LOADING" };
 }
 
 function applicationDetectionError(
@@ -152,7 +127,19 @@ export function RoutePanel({
     return (
       <ApplicationsPage
         applicationsScope={applicationsScope}
-        candidates={candidateListModule(discovery)}
+        candidates={
+          activeDiscoverySnapshot(discovery)?.candidates ??
+          (discovery.status === "error"
+            ? {
+                status: "ERROR",
+                error: {
+                  module: "candidates",
+                  message: discovery.error.message,
+                  retryable: discovery.error.retryable,
+                },
+              }
+            : { status: "LOADING" })
+        }
         candidateId={applicationNavigation?.context?.candidateId}
         sourceRefreshId={applicationNavigation?.context?.sourceRefreshId}
         staleReason={applicationNavigation?.stale?.reason}
@@ -172,6 +159,9 @@ export function RoutePanel({
         initialDetected={selection.applicationDetected}
         initialPage={selection.applicationPage}
         initialScrollTop={selection.applicationScrollTop}
+        onApplicationsScopeChange={(applicationsScope) =>
+          onSelectionChange({ applicationsScope })
+        }
         onBrowseStateChange={(browseState) =>
           onSelectionChange({
             applicationQuery: browseState.query,
