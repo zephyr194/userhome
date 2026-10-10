@@ -4188,21 +4188,36 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T112：保留完整 configuration coverage 与旧 snapshot
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**停止丢弃 scan summary/outcomes，从同一 snapshot 计算四类计数，
 并在刷新失败时保留上一份可用数据。
 
 **验收：**
-- [ ] `DiscoverySnapshot.candidates` 保留完整 `ConfigurationCoverage`。
-- [ ] 四类计数之和等于 candidateCount，安全路径和 limits/outcomes 保真。
-- [ ] partial/error 显示已取得结果；refresh error 可携带 previous snapshot。
-- [ ] 新增已批准的 DTO、selector、stale snapshot 定向测试。
+- [x] `DiscoverySnapshot.candidates` 保留完整 `ConfigurationCoverage`。
+- [x] 四类计数之和等于 candidateCount，安全路径和 limits/outcomes 保真。
+- [x] partial/error 显示已取得结果；refresh error 可携带 previous snapshot。
+- [x] 新增已批准的 DTO、selector、stale snapshot 定向测试。
 
 **验证：**定向 Vitest；`pnpm lint && pnpm typecheck && pnpm test && pnpm build`。
 **依赖：**T110。
 **文件归属：**`src/ipc/discovery.ts`、shell state/App、共享 selector 及测试。
 **规模：**M。
+
+**T112 实施证据（2026-10-10）：**
+
+- `DiscoverySnapshot.candidates` 保留完整 `ConfigurationCoverage`；legacy array
+  仍合成兼容 summary。decoder 保真并校验 candidateCount/limits、安全路径与
+  permission/timeout/limit/symlink outcomes。
+- 新增 `discoverySelectors`，统一四类计数、守恒标记、complete/empty/partial、
+  restricted、issues/outcomes，并提供旧列表消费者的最小适配。
+- `DiscoveryState` error 可携带 `previousSnapshot`；reducer 在首次成功后的刷新
+  失败及重复失败中保留旧数据，在从未成功时不虚构 snapshot。
+- RED：3 个测试文件、4 项失败（summary 被压扁、selector 缺失、旧 snapshot
+  未保留）。GREEN：定向 28 项通过；完整 `pnpm test` 34 文件/101 项通过，
+  `pnpm lint`、`pnpm typecheck`、`pnpm build` 均通过。
+- 未修改 Rust wire schema、扫描权限、`AppShell`、global CSS 或包管理器文件；
+  Dashboard/Applications 只做维持编译所需的数据适配，未提前实现 T117/T118。
 
 ## T113：补齐既有 catalog path variant exact probes
 

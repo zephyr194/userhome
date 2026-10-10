@@ -1,12 +1,15 @@
 import { AsyncState } from "../../components/AsyncState";
 import { StatusBadge } from "../../components/ui";
+import {
+  candidatesFromModule,
+  type CandidateModule,
+} from "../../app/discoverySelectors";
 import type { ManagedAppCoverageClass } from "../../ipc/catalog";
 import type {
   CandidateEvidence,
   CandidateKind,
   CandidateRootKind,
   CandidateSensitivityHint,
-  ModuleSnapshot,
   UnmanagedCandidate,
 } from "../../ipc/discovery";
 import { ApplicationIcon } from "./ApplicationIcon";
@@ -178,11 +181,13 @@ export function UnmanagedCandidates({
   state,
 }: {
   selectedCandidate?: UnmanagedCandidate;
-  state: ModuleSnapshot<readonly UnmanagedCandidate[]>;
+  state: CandidateModule;
 }) {
   if (selectedCandidate) {
     return <CandidateDetails candidate={selectedCandidate} />;
   }
+
+  const candidates = candidatesFromModule(state);
 
   return (
     <section
@@ -195,13 +200,13 @@ export function UnmanagedCandidates({
           <p className="section-kicker">只读候选项</p>
           <h2 id="candidate-heading">未受管的配置条目</h2>
         </div>
-        {state.status === "READY" ? <p>{state.data.length} 项</p> : null}
+        {state.status === "READY" ? <p>{candidates.length} 项</p> : null}
       </div>
       {state.status === "LOADING" ? (
         <AsyncState kind="loading">正在扫描浅层目录元数据…</AsyncState>
       ) : state.status === "ERROR" ? (
         <AsyncState kind="error">{state.error.message}</AsyncState>
-      ) : state.data.length === 0 ? (
+      ) : candidates.length === 0 ? (
         <AsyncState kind="empty">没有发现未受管候选项。</AsyncState>
       ) : (
         <>
@@ -210,7 +215,7 @@ export function UnmanagedCandidates({
             同时提供安全根别名、分类证据与原因，但不读取候选条目内容。
           </p>
           <ul className="candidate-list">
-            {state.data.map((candidate) => {
+            {candidates.map((candidate) => {
               const coverage = COVERAGE_PRESENTATION[candidate.coverageClass];
               return (
                 <li key={candidate.candidateId}>

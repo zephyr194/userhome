@@ -234,7 +234,7 @@ export interface DiscoverySnapshot {
   completedAtEpochMs?: number;
   system: ModuleSnapshot<SystemSummary>;
   brew: ModuleSnapshot<BrewInventorySummary>;
-  candidates: ModuleSnapshot<readonly UnmanagedCandidate[]>;
+  candidates: ModuleSnapshot<ConfigurationCoverage>;
 }
 
 function decodeText(value: unknown, allowEmpty = false): string {
@@ -830,17 +830,8 @@ function decodeConfigurationCoverage(value: unknown): ConfigurationCoverage {
 
 function decodeCandidateModule(
   value: unknown,
-): ModuleSnapshot<readonly UnmanagedCandidate[]> {
-  const module = decodeModule(value, decodeConfigurationCoverage);
-  if (module.status !== "READY") {
-    return module;
-  }
-  return {
-    status: "READY",
-    data: module.data.candidates,
-    completeness: module.data.completeness,
-    issues: module.data.issues,
-  };
+): ModuleSnapshot<ConfigurationCoverage> {
+  return decodeModule(value, decodeConfigurationCoverage);
 }
 
 function decodeModule<T>(

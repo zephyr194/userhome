@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AppError, AppStatus } from "../ipc/core";
+import type { DiscoverySnapshot } from "../ipc/discovery";
 import type { OperationDetails } from "../ipc/operations";
 import { DEFAULT_USER_PREFERENCES } from "../ipc/settings";
 import { initialShellState, shellReducer } from "./shellState";
@@ -127,5 +128,58 @@ describe("shellReducer", () => {
       preferences: DEFAULT_USER_PREFERENCES,
       diagnostic: { code: "INVALID_DOCUMENT" },
     });
+  });
+});
+
+describe("shellReducer discovery retention", () => {
+  const snapshot: DiscoverySnapshot = {
+    refreshId: "refresh-1",
+    startedAtEpochMs: 1,
+    system: { status: "LOADING" },
+    brew: { status: "LOADING" },
+    candidates: { status: "LOADING" },
+  };
+
+  it("retains the previous snapshot when a refresh fails", () => {
+    const ready = shellReducer(initialShellState, {
+      type: "discovery-ready",
+      snapshot,
+    });
+    const failed = shellReducer(ready, {
+      type: "discovery-error",
+      error,
+    });
+
+    expect(failed.discovery).toEqual({
+      status: "error",
+      error,
+      previousSnapshot: snapshot,
+    });
+  });
+
+  it("keeps the retained snapshot across repeated refresh failures", () => {
+    const ready = shellReducer(initialShellState, {
+      type: "discovery-ready",
+      snapshot,
+    });
+    const first = shellReducer(ready, { type: "discovery-error", error });
+    const second = shellReducer(first, {
+      type: "discovery-error",
+      error: { ...error, message: "again" },
+    });
+
+    expect(second.discovery).toMatchObject({
+      status: "error",
+      previousSnapshot: snapshot,
+    });
+  });
+
+  it("does not invent a previous snapshot before any discovery succeeds", () => {
+    const failed = shellReducer(initialShellState, {
+      type: "discovery-error",
+      error,
+    });
+
+    expect(failed.discovery).toEqual({ status: "error", error });
   });
 });

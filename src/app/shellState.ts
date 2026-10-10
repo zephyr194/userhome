@@ -33,7 +33,11 @@ export type ApplicationsState =
 export type DiscoveryState =
   | { status: "loading" }
   | { status: "ready"; snapshot: DiscoverySnapshot }
-  | { status: "error"; error: AppError };
+  | {
+      status: "error";
+      error: AppError;
+      previousSnapshot?: DiscoverySnapshot;
+    };
 
 export type PreferencesState =
   | { status: "loading" }
@@ -72,7 +76,11 @@ export type ShellAction =
   | { type: "connection-error"; error: AppError }
   | { type: "discovery-loading" }
   | { type: "discovery-ready"; snapshot: DiscoverySnapshot }
-  | { type: "discovery-error"; error: AppError }
+  | {
+      type: "discovery-error";
+      error: AppError;
+      previousSnapshot?: DiscoverySnapshot;
+    }
   | { type: "preferences-ready"; preferences: UserPreferences }
   | {
       type: "preferences-safe-default";
@@ -126,11 +134,21 @@ export function shellReducer(
         ...state,
         discovery: { status: "ready", snapshot: action.snapshot },
       };
-    case "discovery-error":
+    case "discovery-error": {
+      const previousSnapshot =
+        action.previousSnapshot ??
+        (state.discovery.status === "ready"
+          ? state.discovery.snapshot
+          : state.discovery.status === "error"
+            ? state.discovery.previousSnapshot
+            : undefined);
       return {
         ...state,
-        discovery: { status: "error", error: action.error },
+        discovery: previousSnapshot
+          ? { status: "error", error: action.error, previousSnapshot }
+          : { status: "error", error: action.error },
       };
+    }
     case "preferences-ready":
       return {
         ...state,

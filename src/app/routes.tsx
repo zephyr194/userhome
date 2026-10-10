@@ -10,6 +10,11 @@ import type {
 } from "../ipc/settings";
 import type { AppError } from "../ipc/core";
 import type {
+  DiscoverySnapshot,
+  ModuleSnapshot,
+  UnmanagedCandidate,
+} from "../ipc/discovery";
+import type {
   ApplicationsState,
   ConnectionState,
   DiscoveryState,
@@ -19,19 +24,44 @@ import type {
 } from "./shellState";
 import type { AppRoute } from "./routeDefinitions";
 import type { SelectionMemory } from "./selectionMemory";
+import { selectCandidateListModule } from "./discoverySelectors";
+
+function activeDiscoverySnapshot(
+  discovery: DiscoveryState,
+): DiscoverySnapshot | undefined {
+  if (discovery.status === "ready") return discovery.snapshot;
+  if (discovery.status === "error") return discovery.previousSnapshot;
+  return undefined;
+}
 
 function detectedApplicationIds(
   discovery: DiscoveryState,
 ): readonly string[] | undefined {
-  if (
-    discovery.status !== "ready" ||
-    discovery.snapshot.system.status !== "READY"
-  ) {
+  const snapshot = activeDiscoverySnapshot(discovery);
+  if (!snapshot || snapshot.system.status !== "READY") {
     return undefined;
   }
-  return discovery.snapshot.system.data.applications
+  return snapshot.system.data.applications
     .filter((application) => application.status !== "ABSENT")
     .map((application) => application.appId);
+}
+
+function candidateListModule(
+  discovery: DiscoveryState,
+): ModuleSnapshot<readonly UnmanagedCandidate[]> {
+  const snapshot = activeDiscoverySnapshot(discovery);
+  if (snapshot) return selectCandidateListModule(snapshot.candidates);
+  if (discovery.status === "error") {
+    return {
+      status: "ERROR",
+      error: {
+        module: "candidates",
+        message: discovery.error.message,
+        retryable: discovery.error.retryable,
+      },
+    };
+  }
+  return { status: "LOADING" };
 }
 
 function applicationDetectionError(
@@ -102,20 +132,7 @@ export function RoutePanel({
   if (route.id === "applications") {
     return (
       <ApplicationsPage
-        candidates={
-          discovery.status === "ready"
-            ? discovery.snapshot.candidates
-            : discovery.status === "error"
-              ? {
-                  status: "ERROR",
-                  error: {
-                    module: "candidates",
-                    message: discovery.error.message,
-                    retryable: discovery.error.retryable,
-                  },
-                }
-              : { status: "LOADING" }
-        }
+        candidates={candidateListModule(discovery)}
         state={applications}
         detectedAppIds={detectedApplicationIds(discovery)}
         detectionError={applicationDetectionError(discovery)}
