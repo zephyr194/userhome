@@ -57,6 +57,8 @@ pub fn run() {
             )
             .title("UserHome")
             .inner_size(1120.0, 720.0)
+            .min_inner_size(1120.0, 720.0)
+            .max_inner_size(1120.0, 720.0)
             .center()
             .resizable(false)
             .maximizable(false)
