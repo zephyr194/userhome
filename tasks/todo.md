@@ -4136,20 +4136,55 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T111：恢复 System/Light/Dark 协议
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**恢复默认 System、显式 Light/Dark、即时应用、持久化和失败
 回滚，不改变 settings schema 或当前 UI 状态。
 
 **验收：**
-- [ ] 三个持久化值均正确渲染，System 可跟随系统明/暗。
-- [ ] 切换不丢失路由、选择、筛选、分页或编辑草稿。
-- [ ] 移除 fixed-dark 实现、文案和冲突测试契约。
+- [x] 三个持久化值均正确渲染，System 可跟随系统明/暗。
+- [x] 切换不丢失路由、选择、筛选、分页或编辑草稿。
+- [x] 移除 fixed-dark 实现、文案和冲突测试契约。
 
 **验证：**定向 appearance/settings tests；`pnpm lint && pnpm typecheck && pnpm test && pnpm build`。
 **依赖：**T110。
 **文件归属：**appearance、前后端 settings、Appearance Settings、相邻测试。
 **规模：**M。
+
+**T111 实施证据（2026-10-10，未提交）：**
+
+- 净提交文件：`src/app/appearance.ts`、`src/app/AppShell.test.tsx`、
+  `e2e/smoke.spec.ts`、本证据段。`src/App.tsx`、前后端 settings 默认值、
+  `AppearanceSettings` 三选一及显式 prop wiring 恢复后与已提交基线一致，
+  因而没有净提交差异。既有导航、品牌、Dashboard 与视觉布局改动继续留在
+  工作树，未纳入 T111；`src/styles/global.css`、`package.json`、
+  `pnpm-lock.yaml`、`.nvmrc` 也未纳入。
+- 实现：`applyAppearance` 将 SYSTEM/LIGHT/DARK 映射为
+  `data-appearance=system|light|dark` 且 `colorScheme='light dark'|'light'|'dark'`；
+  默认持久化值恢复 SYSTEM（前端 `DEFAULT_USER_PREFERENCES` 与 Rust
+  `UserPreferences::default`），schema 不变。因 `routes.tsx`/`SettingsPage.tsx`
+  不在 T111 归属内，AppShell 通过 `AppearanceControlContext`（定义于
+  `appearance.ts`）向下提供 `onAppearanceChange`，`AppearanceSettings` 消费该
+  上下文恢复三选一、即时 apply、持久化与失败回滚；App 层 `changeAppearance`
+  先 apply 再持久化，失败时回滚。
+- RED：
+  - `pnpm exec vitest run src/app/AppShell.test.tsx` → 2 failed（映射返回
+    `'dark'`；`AppearanceControlContext` 未定义）。
+  - `cargo test --manifest-path src-tauri/Cargo.toml --lib settings_` → 2 failed
+    （默认快照 DARK≠SYSTEM；保留文件 appearance Dark≠System）。
+- GREEN / 完整验证：
+  - `pnpm exec vitest run src/app/AppShell.test.tsx` → 5 passed。
+  - `cargo test --manifest-path src-tauri/Cargo.toml --lib settings_` → 10 passed。
+  - `pnpm lint` → 通过（无输出）。
+  - `pnpm typecheck` → 通过。
+  - `pnpm test` → 29 files / 74 tests passed。
+  - `pnpm build` → 成功（仅既有 >500 kB chunk 警告）。
+  - `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` → 通过。
+- E2E 未运行（按要求仅更新断言）：`e2e/smoke.spec.ts` 移除硬断言
+  `appearance === "dark"`，改为校验持久化值为 system/light/dark 之一、
+  对应 colorScheme 映射，并在 System 时确认 `colorScheme='light dark'`
+  与 `prefers-color-scheme` 媒体查询可解析一致。
+- 剩余：无 T111 阻塞项；固定深色文案与冲突测试契约已移除。
 
 ## T112：保留完整 configuration coverage 与旧 snapshot
 

@@ -121,6 +121,25 @@ describe("UserHome desktop smoke", () => {
     expect(await dashboard.getText()).toContain("macOS");
     expect(await dashboard.getText()).toContain("架构");
     expect(await dashboard.getText()).toContain("已连接");
+    const appearance = await browser.execute(() => ({
+      value: document.documentElement.dataset.appearance,
+      colorScheme: document.documentElement.style.colorScheme,
+      prefersDark: window.matchMedia("(prefers-color-scheme: dark)").matches,
+    }));
+    const colorSchemeByAppearance: Record<string, string> = {
+      system: "light dark",
+      light: "light",
+      dark: "dark",
+    };
+    const persistedAppearance = appearance.value ?? "";
+    expect(["system", "light", "dark"]).toContain(persistedAppearance);
+    expect(colorSchemeByAppearance[persistedAppearance]).toBe(
+      appearance.colorScheme,
+    );
+    if (appearance.value === "system") {
+      expect(appearance.colorScheme).toBe("light dark");
+      expect(typeof appearance.prefersDark).toBe("boolean");
+    }
 
     const focusedHref = await browser.execute(() => {
       document

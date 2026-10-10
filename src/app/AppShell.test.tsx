@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AppShell } from "./AppShell";
+import { applyAppearance } from "./appearance";
+import { AppearanceSettings } from "../features/settings/AppearanceSettings";
 import type { ShellState } from "./shellState";
 
 const loadingState: ShellState = {
@@ -40,6 +42,42 @@ describe("AppShell", () => {
       '<p class="titlebar__title" data-tauri-drag-region="true">',
     );
     expect(markup).not.toMatch(/<(?:button|a|input)[^>]*data-tauri-drag-region/);
+  });
+
+  it("maps each persisted appearance value to its attribute and color scheme", () => {
+    const documentElement = {
+      dataset: {} as Record<string, string>,
+      style: { colorScheme: "" },
+    };
+    vi.stubGlobal("document", { documentElement });
+
+    const cases = [
+      ["SYSTEM", "system", "light dark"],
+      ["LIGHT", "light", "light"],
+      ["DARK", "dark", "dark"],
+    ] as const;
+
+    for (const [appearance, attribute, colorScheme] of cases) {
+      applyAppearance(appearance);
+      expect(documentElement.dataset.appearance).toBe(attribute);
+      expect(documentElement.style.colorScheme).toBe(colorScheme);
+    }
+  });
+
+  it("renders the three persisted appearance choices", () => {
+    const markup = renderToStaticMarkup(
+      <AppearanceSettings
+        appearance="LIGHT"
+        onChange={() => Promise.resolve()}
+      />,
+    );
+
+    expect(markup).toContain('value="SYSTEM"');
+    expect(markup).toContain('value="LIGHT"');
+    expect(markup).toContain('value="DARK"');
+    expect(markup).toContain("系统");
+    expect(markup).toContain("浅色");
+    expect(markup).toContain("深色");
   });
 
   it("does not programmatically move navigation focus into the main pane", () => {
