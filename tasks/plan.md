@@ -1058,10 +1058,10 @@ excluded package-manager files remain byte-identical.
 
 ### Phase 29: Appearance and discovery contracts
 
-- [ ] T111 Restore functional System/Light/Dark behavior and persisted defaults.
-- [ ] T112 Preserve complete configuration coverage and retain the previous
+- [x] T111 Restore functional System/Light/Dark behavior and persisted defaults.
+- [x] T112 Preserve complete configuration coverage and retain the previous
       snapshot when a refresh fails.
-- [ ] T113 Probe every existing catalog path variant without expanding roots,
+- [x] T113 Probe every existing catalog path variant without expanding roots,
       traversal, content reads, or the wire schema.
 
 Checkpoint AE: appearance and discovery contracts are independently tested;
@@ -1070,19 +1070,19 @@ usable local data.
 
 ### Phase 30: Shared visual system and shell
 
-- [ ] T114 Consolidate semantic tokens, typography, dimensions, and shared
+- [x] T114 Consolidate semantic tokens, typography, dimensions, and shared
       controls while retaining compatibility selectors.
-- [ ] T115 Establish one shell hierarchy and one scroll owner per route pane.
+- [x] T115 Establish one shell hierarchy and one scroll owner per route pane.
 
 Checkpoint AF: System/Light/Dark share one semantic component system; the shell
 has no document scroll or duplicate brand/page hierarchy at 1120 x 720.
 
 ### Phase 31: Home-configuration recognition loop
 
-- [ ] T116 Add validated, session-only Dashboard-to-Applications local context.
-- [ ] T117 Make home-directory configuration recognition the first Dashboard
+- [x] T116 Add validated, session-only Dashboard-to-Applications local context.
+- [x] T117 Make home-directory configuration recognition the first Dashboard
       group with truthful counts, safe paths, evidence, and scan outcomes.
-- [ ] T118 Add distinct local-recognition/catalog views and route managed
+- [x] T118 Add distinct local-recognition/catalog views and route managed
       candidates only through existing catalog-authorized configuration flows.
 
 Checkpoint AG: one discovery snapshot supplies Dashboard and Applications;
@@ -1091,13 +1091,13 @@ no content or mutation action.
 
 ### Phase 32: Complete all route layouts
 
-- [ ] T119 Use Settings as the reference list/detail layout and keep all seven
+- [x] T119 Use Settings as the reference list/detail layout and keep all seven
       groups and dangerous-action boundaries reachable.
-- [ ] T120 Complete the Homebrew list/detail layout and persistent operation
+- [x] T120 Complete the Homebrew list/detail layout and persistent operation
       feedback without executing real package operations.
-- [ ] T121 Complete the Services list/detail layout and preserve read-only and
+- [x] T121 Complete the Services list/detail layout and preserve read-only and
       confirmation boundaries without executing real service operations.
-- [ ] T122 Complete the Applications/configuration three-pane layout while
+- [x] T122 Complete the Applications/configuration three-pane layout while
       preserving pagination, drafts, presets, redaction, and safe preview.
 
 Checkpoint AH: all five routes use the same hierarchy and shared control
@@ -1106,11 +1106,13 @@ silently clipped.
 
 ### Phase 33: Cleanup and acceptance
 
-- [ ] T123 Remove verified-unused compatibility CSS and run focused, full,
+- [x] T123 Remove verified-unused compatibility CSS and run focused, full,
       macOS E2E, unsigned-build, corpus, and whitespace gates.
 - [ ] T124 Execute and record the foreground appearance, true 200% text zoom,
       window-size, state, keyboard, contrast, drag, VoiceOver, and privacy
-      matrix; retain genuine blockers as blockers.
+      matrix; retain genuine blockers as blockers. The 2026-10-10 attempt is blocked by unavailable
+      foreground AX/screenshot/true-zoom/VoiceOver access; automated evidence
+      is recorded but does not close this task.
 
 Checkpoint AI: v3 closes only when every required route/state has evidence and
 no blocking preview, recognition, or primary-action defect remains. T103/T109

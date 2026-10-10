@@ -24,6 +24,8 @@ ui-visual-system-v3 + audit existing home discovery contracts
 
 The discovery-contract audit may run beside visual-system work, but it does not authorize implementation changes. This revision reuses existing approved roots and typed discovery data by default. It does not add filesystem authority, scan depth, arbitrary paths, catalog write access, or dependencies. Approval includes only focused discovery DTO, count-selector, and stale-snapshot unit tests; other new tests still require separate approval.
 
+Implementation status (2026-10-10): T110–T123 and all automated gates are complete. T124 foreground/manual acceptance is blocked by unavailable true 200% zoom, VoiceOver, rendered-contrast and human visual access; the v3 acceptance module and Checkpoint AI remain open.
+
 Approved specifications:
 
 - [`SPEC-ui-visual-system-v3.md`](docs/specs/SPEC-ui-visual-system-v3.md)

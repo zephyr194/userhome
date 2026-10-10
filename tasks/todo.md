@@ -4503,7 +4503,7 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T124：执行人工矩阵并结算 v3
 
-**状态：**待执行。
+**状态：**2026-10-10 已执行；前台人工矩阵受环境阻塞，未完成。
 
 **目标：**用前台证据完成五路由、四外观条件、两缩放、两窗口和状态矩阵。
 
@@ -4512,14 +4512,21 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
       1120×720/放大、正常与至少一个异常状态。
 - [ ] Dashboard 额外覆盖 loading/ready/empty/partial/error/restricted。
 - [ ] 记录 root/pane overflow、键盘、焦点、对比度、drag、VoiceOver、隐私。
-- [ ] 不用模拟缩放或自动化替代真实 200%；阻塞保持阻塞。
-- [ ] 仅在证据等价时更新 T103/T109；发布外部门禁保持独立。
+- [x] 未用模拟缩放或自动化替代真实 200%；阻塞保持阻塞。
+- [x] 未更新 T103/T109；签名、公证、CI、硬件与发布门禁保持独立。
 
 **验证：**按 `SPEC-ui-correction-acceptance-v3.md` 在隔离 HOME 上记录矩阵、
 缺陷和复测。
 **依赖：**T123。
 **文件归属：**v3 acceptance evidence、release readiness、todo、capability map。
 **规模：**M。
+
+**T124 执行证据（2026-10-10，阻塞）：**
+
+- 自动 E2E 在 System 偏好下验证五路由、1120×720/1360×960 与 document 无溢出，但不构成真人视觉、真实 200% 或 System 明暗渲染证据。
+- 当前会话无前台屏幕/VoiceOver 控制；同机 T109 已复现 AX/窗口截图读取被拒。未扩大权限，也未用 560×360、媒体查询、静态 token 或隐藏 E2E 冒充真实缩放/人工验收。
+- 五路由 × System→Light/System→Dark/Light/Dark × 100%/200% 的前台单元格，以及 human contrast、VoiceOver、完整键盘/焦点恢复、pointer drag/no-drag、reduced motion 和最长文案审美检查均保持 Blocked。
+- Dashboard 六态有 16 项自动测试证据，但不标记为前台通过。详细矩阵见 `docs/ui-correction-acceptance-v3.md`；release NO-GO、T103/T109 与外部门禁保持不变。
 
 ### Checkpoint AI：UI 纠偏 v3
 

@@ -57,3 +57,47 @@ No real configuration, package or service mutation was executed. The WDIO servic
 ## Foreground/manual matrix
 
 See the T124 section below. Automated and static evidence does not count as true 200% text zoom, VoiceOver, rendered contrast or human visual acceptance.
+
+## T124 foreground/manual acceptance attempt
+
+Result: **BLOCKED — not a visual pass**.
+
+The current execution environment has no attached foreground screen/VoiceOver
+control. The same host's prior T109 attempt already established that macOS AX
+and window screenshot reads fail even when the permission query reports granted:
+`visible windows but no accessibility window`, and window-specific capture
+returns `could not create image from window`. This run did not broaden Tauri or
+macOS permissions and did not substitute viewport resizing, media-query
+simulation, static token checks, or hidden WebDriver automation for true 200%
+text zoom or human visual inspection.
+
+Automated E2E evidence is available only for the following subset:
+
+| Route | System preference | 1120×720 | 1360×960 | Document overflow | Main structure |
+|---|---|---:|---:|---:|---|
+| Dashboard | Protocol verified; rendered appearance not human-inspected | Pass | Pass | Pass | “用户目录配置” first group and conserved count |
+| Applications/configuration | Protocol verified; rendered appearance not human-inspected | Pass | Pass | Pass | Local-recognition and 50-item catalog contexts |
+| Homebrew | Protocol verified; rendered appearance not human-inspected | Pass | Pass | Pass | Workbench settled or explicit missing state |
+| Services | Protocol verified; rendered appearance not human-inspected | Pass | Pass | Pass | List and detail/operation panes present |
+| Settings | Protocol verified; rendered appearance not human-inspected | Pass | Pass | Pass | Seven-group list/detail workspace present |
+
+The required foreground cells remain blocked rather than passed:
+
+| Workspace | System→Light 100/200% | System→Dark 100/200% | Explicit Light 100/200% | Explicit Dark 100/200% |
+|---|---|---|---|---|
+| Dashboard | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom |
+| Applications/configuration | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom |
+| Homebrew | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom |
+| Services | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom |
+| Settings | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom | Blocked: no foreground/true zoom |
+
+Also blocked: human contrast measurement from composited rendered colors,
+VoiceOver announcements, full keyboard traversal and focus restoration,
+pointer/trackpad title-bar drag/no-drag, reduced-motion observation, and
+human review of longest-label/readability aesthetics. Dashboard's
+loading/ready/empty/partial/error/restricted states are covered by 16 unit
+cases, but these are not foreground visual evidence.
+
+No real configuration, package or service was changed. T103 and T109 remain
+open. Signing, notarization, protected GitHub CI, Intel/Apple Silicon hardware,
+display-scale and all other release gates retain the existing NO-GO decision.

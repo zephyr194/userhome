@@ -394,3 +394,31 @@ desktop smoke creates and removes an isolated temporary
 unknown-root discovery, does not open configuration documents or invoke
 mutation commands, and verifies the unsigned helper fails closed. No T69
 or T97 automated command read or mutated real user configuration.
+
+### UI correction v3 automated completion and manual blocker (2026-10-10)
+
+T110–T123 implemented the approved UI correction sequence on
+`chore/ui-correction-v3-t110`: functional System/Light/Dark; complete discovery
+coverage and stale-snapshot retention; all catalog path-variant probes; shared
+visual tokens and shell scroll ownership; Dashboard-first home-configuration
+recognition; validated local Applications context; local/catalog Applications;
+and completed Settings, Homebrew, Services and Applications/configuration
+workspaces.
+
+Automated evidence passed: 42 Vitest files / 196 tests; both TypeScript
+projects; ESLint with one non-failing Dashboard Fast Refresh warning; Rust fmt,
+strict Clippy, 93 library tests and 22 integration tests; one isolated-HOME
+macOS WebView E2E; unsigned release build; 624-entry corpus validation; and
+`git diff --check`. The E2E verified 1120×720 and 1360×960, no document-level
+overflow on all five routes, Dashboard-first user-directory recognition,
+local-to-catalog Applications navigation, exact 50-item catalog page, refresh
+coalescing and unsigned-helper fail-closed behavior. No real configuration,
+package or service mutation occurred.
+
+T124 was attempted but remains **blocked, not passed**. This environment cannot
+perform true foreground 200% text zoom, human visual inspection, VoiceOver,
+composited contrast measurement or pointer/trackpad drag checks. It does not
+substitute hidden E2E, viewport resizing or static token checks for those gates.
+The full blocked matrix is in [`ui-correction-acceptance-v3.md`](ui-correction-acceptance-v3.md).
+T103/T109 and every signing, notarization, hosted-CI, hardware and manual gate
+remain open under the existing production NO-GO decision.
