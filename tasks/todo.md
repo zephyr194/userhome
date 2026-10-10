@@ -3794,10 +3794,11 @@ T98 语义令牌及一致的尺寸、文字、焦点与禁用反馈。
 
 ## T103：重排配置详情、表单与预览
 
-**状态：**2026-09-23 页面实现与静态检查完成；隔离 HOME 下的
-Schema IPC 校验曾阻断预览。协调者已修正 Rust 返回字段类型的
-`snake_case`/前端 `camelCase` 不一致，真实 Tauri 复验及 200%
-缩放下确认流程仍待完成，不视作验收通过。
+**状态：**2026-10-10 隔离 HOME 的真实 Tauri 复验已确认 Git、
+npm、OpenSSH、Copilot settings、Zsh 的 Schema、草稿与安全预览，
+既有 camelCase 修复有效；后续已修复并验证精确窗口尺寸与列表
+草稿输入。Caddy 一次性目标、真实 200% 缩放仍受阻，本任务
+保持未完成。
 
 **目标：**将身份/能力、文档选择、schema 字段/预设、diff/确认
 按从查看到执行的顺序组织，保留警告与隐藏敏感信息。
@@ -3822,7 +3823,57 @@ Schema IPC 校验曾阻断预览。协调者已修正 Rust 返回字段类型的
 `src-tauri/src/commands/config.rs` 的 `FieldTypePresentation`
 枚举字段序列化未按前端协议使用 camelCase，并添加
 `rename_all_fields = "camelCase"`；Rust 格式检查和 Clippy 通过。
-该修复须在真实 Tauri 中复验预览/确认后才能关闭 T103。
+当时该修复尚待真实 Tauri 复验，后续结果如下。
+
+**2026-10-10 复验证据：**Orca Run `run_309bec7341e6`、
+Task `task_20f5a3b30e5d`、Dispatch `ctx_0c468dcf6c71` 以
+`failed` 如实结算（验收未闭环），未修改实现、权限或测试。
+Node 24.21.0 / pnpm 12.11.2 下四项前端门禁通过（29 文件、
+72 项），一致的 Homebrew Rust 1.99 工具链下 19 项既有适配器
+测试通过，E2E-enabled 原生构建通过。
+
+Git 的实际原生 AX 操作、对话框与截图确认字段/预设草稿可到达
+预览及确认；npm、OpenSSH、Copilot settings、Zsh 通过已有
+embedded WebDriver 驱动真实 WebView 控件取得同类 100% 证据，
+不是四页完整前台人工验收。两份 VS Code 只读文档未出现写入、
+预览或恢复按钮；一次性令牌/私钥哨兵未进入可见内容或预览。
+五份配置字节未变，没有确认执行写入或真实包/服务操作。
+
+Caddy 授权目标固定为 Homebrew 的 `etc/Caddyfile`，无隔离
+HOME 目标，故未读取真实文件，Rust fixture 通过不替代原生
+Caddy 预览。前台缩放快捷键在 restore 后仍返回
+`window_not_focused`；native zoom IPC 被现有权限拒绝，
+字体仍为 13px，未扩大 capability 或用模拟缩放代替验收。
+原生实际尺寸为 1121×721（2242×1442 physical / scale 2），
+非规格 1120×720；不改动的 smoke 在 `e2e/smoke.spec.ts:50`
+因宽度预期 1120、实际 1121 失败，根因未确定。
+
+完整报告及截图保留在工作者 session 的
+`files/t103/T103-verification-report.md`，摘要与复测边界见
+`docs/release-readiness.md` 的 T103 小节。一次性 HOME/应用进程
+已清理；协调者复核三份用户依赖改动 SHA256 均未变，无提交或
+发布。Orca cleanup 返回 `retained / user_takeover`，终端归用户，
+没有关闭用户接管的会话。T108/T109 与全部旧阻塞保持原状态。
+
+**2026-10-10 候选合并复测：**既有 smoke 再次稳定复现
+1121×721；主窗口新增相同的最小/最大 1120×720 内容尺寸约束，
+未放宽既有断言。原生结果变为 1120×720，禁止 resize/maximize
+与隐藏启动仍成立，完整既有 smoke 通过。
+
+合并前审查另复现 `SchemaField` 列表控件逐键 trim/filter 的回归：
+`ll=ls -la` 会变成 `ll=ls-la`，多行 source 路径会被拼接。
+现保留原始空格、空行和末尾换行，仅在 `SchemaEditor` 构建预览
+patch 时 trim/filter；非列表 patch 与草稿本身保持不变。
+一次性内存复现由失败转为通过，并核验完整 patch 形状；真实
+Tauri WebView 逐字符输入别名与两行路径、打开屏蔽差异的预览、
+取消并返回草稿均通过，`.zshrc` 原字节不变。最初验证脚本误把
+屏蔽差异当作可见内容，纠正验证预期后通过，没有降低产品断言。
+没有新增仓库测试、依赖、权限或真实配置操作。
+
+用户明确选择把当前实现作为无签名审查候选合并到本地 `main`，
+不是关闭 T103/T109 或批准发布；既有依赖改动原样保留且不混入
+本次提交。最终门禁及剩余边界见 release-readiness 的候选合并
+小节。
 
 ## T104：重排 Homebrew 库存、搜索及操作
 
@@ -3956,6 +4007,14 @@ UserHome 原生窗口；真正 200% 缩放结果仍未验证。
 **状态：**2026-09-24 三项本地门禁在隔离 HOME 下最终通过；首次
 失败及复跑原因保留在下方。Git Schema 原生入口与 200% 前台
 验收未覆盖，仍归 T109；不代表可发布。
+
+2026-10-10 候选复测补充：Node 24.21.0 / pnpm 12.11.2 下
+前端 lint/typecheck、29 文件/72 项既有测试通过；一致的
+Homebrew Rust 1.99 下格式、严格 Clippy、92 项库测试与
+22 项集成测试通过。修复窗口约束后完整既有 macOS smoke
+通过，修复列表输入后再跑同一 smoke 亦通过；最终无签名
+生产构建通过，624 项目录校验通过。保留既有大 chunk 及
+WDIO teardown 警告，不将这些自动化结果算作 T109 人工验收。
 
 **目标：**汇总五个模块实现证据及本地静态、前端、Rust、隔离
 HOME 的 macOS E2E、无签名构建结果，不以通过测试代替视觉验收。

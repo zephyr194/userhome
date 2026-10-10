@@ -73,7 +73,7 @@ foreground human acceptance:
 |---|---|---|
 | Visual foundation and shell (T98-T101) | Semantic light/dark/system tokens, shared controls, fixed workspace geometry, and pane-local scrolling are implemented; T98 recorded computed contrast samples and T101 checked empty-pane geometry in an isolated browser. | Real Tauri traffic lights, drag regions, populated panes, and 200% zoom need foreground inspection. |
 | Applications (T102) | Compact selectable rows and support boundaries retain Rust-side 50-item pages; the native smoke checks 50 rows, 13 pages, and a GitHub Copilot search against 624 entries. | Full pagination, long-name, keyboard, and selected-detail visual matrices remain manual. |
-| Configuration (T103) | Schema fields, presets, document selection, and preview/confirmation retain the existing typed authority boundary. Rust now serializes `FieldTypePresentation` fields in camelCase, and local checks pass. | The Git Schema page previously reported an IPC validation error. The existing smoke does not enter that page or exercise a safe preview, so the fix and six writable adapters remain unverified in the native UI; T109 must retest with disposable data. |
+| Configuration (T103) | Schema fields, presets, document selection, and preview/confirmation retain the existing typed authority boundary. The 2026-10-10 follow-ups below verify the camelCase DTO fix, five schema/preview flows, fixed 1120x720 native geometry, and string-list typing with canceled redacted previews. | Caddy lacks an authorized disposable native target; genuine 200% zoom remains unresolved. Embedded native WebView evidence does not constitute completed foreground acceptance. |
 | Homebrew and Services (T104-T105) | Compact inventory/service rows, selected details, read-only restrictions, and target-specific preview/confirmation are implemented; existing unit and Rust checks pass without invoking real mutations. | Dialog reachability, action feedback, and 200% zoom remain manual. |
 | Dashboard and Settings (T106-T107) | Grouped machine/attention/activity rows and seven settings groups preserve localized state, preference feedback, keyboard selection, and distinct danger confirmations; existing checks pass. | Populated states, persistence across real restarts, and 200% control reachability remain manual. |
 
@@ -91,6 +91,76 @@ installed Rust and package-manager caches were reused for build tools. The
 local Node.js version is 20.20.2, not the pinned 24.21.0. None of these checks
 is evidence of human visual acceptance, a signed artifact, notarization, or
 GitHub-hosted CI. The existing manual and external blockers remain NO-GO.
+
+### T103 isolated native follow-up (2026-10-10)
+
+The user approved default `/build`: T103 only, with no commits, new tests,
+dependency changes, or real configuration access. Orca Run
+`run_309bec7341e6`, Task `task_20f5a3b30e5d`, Dispatch `ctx_0c468dcf6c71`
+settled **failed / acceptance incomplete**. No implementation file changed.
+
+| Evidence | Actual result |
+|---|---|
+| Existing frontend gates | `pnpm lint && pnpm typecheck && pnpm test && pnpm build` passed under installed Node 24.21.0 / pnpm 12.11.2: 29 files, 72 existing tests. The existing large-chunk warning remains. |
+| Existing Rust adapters / native build | Consistent Homebrew Cargo/rustc/rustdoc 1.99 passed 19 existing adapter tests and the E2E-enabled native build. The native build reused the successful frontend output via a command-line `beforeBuildCommand` override; no repository build configuration changed. |
+| Git / `git-global-config` | Actual native schema fields, preset draft, redacted preview, and confirmation were observed through AX, DOM, and a retained OS screenshot. The AX action's unasserted metadata was independently checked against the resulting dialog. No write executed. |
+| npm, OpenSSH, Copilot settings, Zsh | Existing rendered controls in the real Tauri WebView decoded schemas, changed drafts, opened safe previews/confirmation, and canceled successfully through the embedded driver. This is automated native evidence, not a completed four-page foreground/manual pass. |
+| Read-only / secret boundaries | Two VS Code documents showed no write/preview/restore buttons. Invented token/private-key sentinels were absent from rendered content and previews. Extra Copilot documents retained their actual no-schema/fallback states; no unsupported schema or additional preview pass is claimed. |
+| Caddy | Native schema/preview **blocked**: its authorized Homebrew `etc/Caddyfile` target cannot be relocated under disposable HOME with current policy. No real Caddyfile was read; existing Rust Caddy fixtures do not prove native acceptance. |
+| Genuine 200% zoom | **Blocked**: foreground shortcut returned `window_not_focused` even after restore; native zoom IPC was denied by existing `core:webview:allow-set-webview-zoom`. Body/control fonts stayed 13px. No capabilities were broadened and no CSS/viewport simulation is counted. |
+| Exact geometry / existing smoke | Native inner size was 2242x1442 physical at scale factor 2, or **1121x721 logical**. The unchanged `pnpm exec wdio run ./wdio.conf.ts` failed at `e2e/smoke.spec.ts:50`, expected width 1120, received 1121. Root cause remains undetermined; no passing `pnpm test:e2e` or exact-size acceptance is claimed for this follow-up. |
+
+At the observed 100% geometry, root scroll dimensions equaled the
+1121x721 viewport. Each populated inspector scrolled locally to its preview;
+confirmation controls were within the viewport. This narrows the native
+schema/preview gap but does not satisfy exact 1120x720 or 200% requirements.
+Current UserHome AX/screenshots became readable after the permissions-helper
+retry; the historical blanket AX blocker below is not a claim about the
+current five-app evidence. Focus/zoom and the remaining foreground matrix
+remain unresolved.
+
+All launches used disposable `HOME` and `XDG_CONFIG_HOME`, `0700` settings
+directories, `0600` preference files, and `optionalDiscoveryRoots=[]`.
+Five schema fixture files retained their original hashes. No confirmation
+executed a write, and no real package/service mutation occurred. Temporary
+HOME directories and owned app processes were cleaned up; installed caches
+and build output were preserved. The coordinator independently confirmed
+that the pre-existing `package.json`, `pnpm-lock.yaml`, and `.nvmrc` hashes
+were unchanged.
+
+The full report, per-document native responses, harness corrections,
+before/after hashes, logs, and `git-preview-native-action.png` are retained at
+`/Users/archie.zheng/.copilot/session-state/f5f14f69-e087-4cc1-8cde-9684d01d6bb1/files/t103/`.
+The worker terminal was already user-owned; post-settlement cleanup returned
+`retained / user_takeover` with no process action. T103 remains unchecked;
+T108's historical results, T109's independent matrix, and all signing,
+notarization, GitHub CI, hardware, and earlier manual gates are unchanged.
+
+### Local unsigned-candidate integration follow-up (2026-10-10)
+
+The user explicitly approved integrating this implementation into local
+`main` as an **unsigned review candidate**, retaining the incomplete T103/T109
+criteria. This is not production acceptance, publication, or authorization to
+push. The unrelated working-tree `package.json`, `pnpm-lock.yaml`, and `.nvmrc`
+changes are preserved without inclusion in the candidate commits.
+
+| Scope | Actual result |
+|---|---|
+| Native fixed size | The unchanged smoke reproduced 1121x721. Disabling resize/maximize did not enforce the content-size invariant; adding equal minimum/maximum 1120x720 bounds produced exactly 1120x720 while preserving hidden startup and disabled resize/maximize. The full unchanged smoke passed, including a final run after the string-list fix. |
+| String-list drafts | Pre-merge review reproduced per-keystroke normalization corrupting `ll=ls -la` and joining two source paths. The control now retains raw lines, spaces, and trailing newlines; only preview patch construction trims entries and filters empty lines. One-off in-memory execution verified exact patch shapes, unchanged non-list values, empty-list clearing, and unmodified drafts. |
+| Native configuration follow-up | A disposable `.zshrc` in the real Tauri WebView retained character-by-character alias/source input, reached a redacted preview, and preserved both drafts after cancellation. Fixture bytes remained unchanged; no write was confirmed. The first harness incorrectly expected sensitive diff text and had a cleanup race; its expectations and bounded cleanup were corrected, without changing product assertions or redaction. |
+| Frontend and corpus | Node 24.21.0 / pnpm 12.11.2 passed lint, both TypeScript projects, all 29 Vitest files / 72 existing tests, and frontend builds. Corpus validation confirmed 300 formulae, 300 casks, 26 overlays, and 624 unique applications. |
+| Rust | Consistent Homebrew Cargo/rustc/rustdoc 1.99 passed formatting, strict all-target/all-feature Clippy, 92 library tests, 22 integration tests, and doc tests after the window change. |
+| Unsigned artifact | The final `pnpm build:unsigned` completed after both fixes and produced `src-tauri/target/release/userhome`. The existing large-chunk warning and non-fatal WDIO mock-store teardown warning remain. |
+
+Runtime launches used disposable `HOME`/`XDG_CONFIG_HOME`, private preferences,
+and disabled optional discovery roots. No repository tests, dependencies,
+capabilities, or real configuration/package/service mutations were added.
+One-off harnesses and logs are retained in Copilot session
+`792f83b9-56c8-4359-8314-b6d0113e343f` under `files/`.
+**T103/T109 remain open** for Caddy, genuine 200% zoom, and the foreground
+visual/interaction matrix; signing, notarization, GitHub-hosted CI, and
+hardware gates retain their existing NO-GO status.
 
 ### T109 foreground acceptance attempt (2026-09-24)
 

@@ -927,7 +927,10 @@ navigation remain reachable. Shared shell files and CSS edits are serialized.
 ### Phase 25: Resource Workspaces (`resource-workspaces-v2`)
 
 - [x] T102 Recompose application browsing and pagination presentation.
-- [ ] T103 Recompose configuration detail, schema editor, and preview flow.
+- [ ] T103 Recompose configuration detail, schema editor, and preview flow —
+      2026-10-10 isolated native verification confirms five apps at 100%;
+      fixed 1120x720 native geometry and string-list draft editing are now
+      verified; Caddy's disposable target and genuine 200% zoom remain open.
 - [x] T104 Recompose Homebrew inventory, search, detail, and action surfaces;
       native 200% action reachability remains a T109 acceptance gate.
 - [x] T105 Recompose Services list, detail, and confirmed action surfaces;
@@ -950,8 +953,10 @@ and persistent.
 
 ### Phase 27: Cross-Route Acceptance (`visual-acceptance-v2`)
 
-- [ ] T108 Run existing focused checks and full frontend/Rust/macOS E2E and
-      unsigned-build gates; record actual results.
+- [x] T108 Run existing focused checks and full frontend/Rust/macOS E2E and
+      unsigned-build gates; 2026-10-10 follow-up confirms the fixed-window
+      smoke and final frontend/Rust/unsigned-build results. This does not
+      close T103 or T109.
 - [ ] T109 Complete the manual five-workspace x three-appearance x
       100%/200%-zoom matrix, keyboard/drag/contrast review, and evidence
       updates. If permissions or external prerequisites block any item,
@@ -961,6 +966,11 @@ Checkpoint AC: every new task has implementation and actual acceptance
 evidence; unverified manual cases and earlier Apple/GitHub release gates remain
 visible. Do not ship or declare every old task complete without their
 independent prerequisites and evidence.
+
+On 2026-10-10, the user explicitly approved integrating the unsigned review
+candidate into local `main` while retaining the open T103/T109 acceptance
+criteria. This is not Checkpoint AC approval or authorization to push, publish,
+or include the unrelated package-manager changes.
 
 ### Orca Dispatch and Ownership
 
