@@ -4338,19 +4338,26 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T117：实现 Dashboard 首要“用户目录配置”分组
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**让第一主要分组回答识别了什么、在哪里、支持到什么程度和下一步。
 
 **验收：**
-- [ ] 首组显示同一 snapshot 的总数、四类计数、safe path、证据和 outcomes。
-- [ ] loading/empty/disabled/partial/restricted/error 可区分且不清空旧结果。
-- [ ] catalog 总量不冒充本机识别数；导航与 refreshId 一致。
+- [x] 首组显示同一 snapshot 的总数、四类计数、safe path、证据和 outcomes。
+- [x] loading/empty/disabled/partial/restricted/error 可区分且不清空旧结果。
+- [x] catalog 总量不冒充本机识别数；导航与 refreshId 一致。
 
 **验证：**Dashboard/selector 定向测试；前端完整门禁。
 **依赖：**T112、T115、T116。
 **文件归属：**Dashboard、SystemSummary、共享 selector/UI、global CSS。
 **规模：**L。
+
+**T117 实施证据（2026-10-10）：**
+
+- Dashboard DOM 第一主要分组为“用户目录配置”，使用 active ready 或 error.previousSnapshot 的同一 ConfigurationCoverage/refreshId。
+- 显示总数与四类计数守恒、scan root/metadata/limits、非 COMPLETE outcomes、issues、safe relativePath、coverage/evidence 与最多 3 个稳定优先行动项；intent 绑定 LOCAL_RECOGNIZED、candidateId 与 sourceRefreshId。
+- loading 不显示最终 0；complete empty、optional roots disabled、partial/restricted、module error、top-level error with/without previous snapshot 均有独立文案。catalog/system totals 不作为本机识别数。
+- RED 后 GREEN：Dashboard 16 项状态/导航测试通过，核心识别合计 45 项通过；独立快照 typecheck、scoped lint 与 Dashboard tests 通过。机器、关注、软件服务和最近活动位于首组之后。
 
 ## T118：实现 Applications 本机识别与授权详情
 

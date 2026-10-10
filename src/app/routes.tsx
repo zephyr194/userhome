@@ -130,14 +130,17 @@ export function RoutePanel({
   selection,
   settingsGroup,
 }: RoutePanelProps) {
-  // T117 consumes this callback from the Dashboard; T116 establishes the
-  // validated navigation contract and keeps the route boundary type-safe.
-  void onNavigate;
-
   if (route.id === "dashboard") {
     return (
       <DashboardPage
         connection={connection}
+        onNavigate={onNavigate}
+        onRefresh={onOperationChanged}
+        optionalDiscoveryRoots={
+          preferences.status === "loading"
+            ? undefined
+            : preferences.preferences.optionalDiscoveryRoots
+        }
         refresh={refresh}
         recentOperation={recentOperation}
         state={discovery}
