@@ -4404,18 +4404,24 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T121：完成 Services 工作台迁移
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**保持 list/detail、配置有效性、授权和操作结果持续可见。
 
 **验收：**
-- [ ] unknown/system 未授权服务只读，preview/confirm/history 保留。
-- [ ] 长内容在详情 pane 滚动；不执行真实服务操作。
+- [x] unknown/system 未授权服务只读，preview/confirm/history 保留。
+- [x] 长内容在详情 pane 滚动；不执行真实服务操作。
 
 **验证：**现有 Services tests；前端完整门禁；人工取消确认。
 **依赖：**T115。
 **文件归属：**Services feature TSX；shared CSS 由单一所有者修改。
 **规模：**M。
+
+**T121 实施证据（2026-10-10）：**
+
+- 移除重复页面 hero 与整页卡片 shell，建立单一服务 list/detail；筛选、统计与列表头固定在列表 pane，详情及 OperationHistory 持续可见。
+- 运行状态、配置有效性、scope/manageability 分开呈现；unknown/system 未授权项保持只读。长名称、元数据、结果与错误换行，不使用 truncate。
+- ServiceActionDialog 保持取消为默认，busy 时禁止关闭；测试全为 mock，未执行真实服务操作。RED 后 GREEN：Services/Operations 定向 16 项通过；services 独立快照 typecheck/lint 通过。真实 200% 与原生确认仍留 T124。
 
 ## T122：完成 Applications/Configuration 三 pane 迁移
 

@@ -320,93 +320,76 @@ export function ServicesPage({
 
   return (
     <section
-      className="grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden rounded-panel border border-border bg-surface"
+      className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)] overflow-hidden"
       aria-labelledby="services-heading"
     >
-      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-3xl border-b border-border px-ui-3xl py-ui-xl">
-        <div className="min-w-0">
-          <p className="section-kicker">Homebrew 服务管理</p>
-          <h2
-            className="mt-ui-xs text-xl font-semibold tracking-tight"
-            id="services-heading"
-          >
-            服务清单
-          </h2>
-          <p className="mt-ui-xs text-xs text-muted-foreground">
-            Homebrew 用户级与系统级服务
-          </p>
-        </div>
-        {listState.status === "ready" ? (
-          <div
-            className="flex flex-wrap items-center justify-end gap-2"
-            aria-label="服务统计"
-          >
-            <StatusBadge>
-              用户级{" "}
-              {
-                listState.services.filter((service) => service.scope === "USER")
-                  .length
-              }
-            </StatusBadge>
-            <StatusBadge>
-              系统级{" "}
-              {
-                listState.services.filter(
-                  (service) => service.scope === "SYSTEM",
-                ).length
-              }
-            </StatusBadge>
-            <StatusBadge tone="warning">
-              只读{" "}
-              {
-                listState.services.filter(
-                  (service) =>
-                    !service.manageable || service.scope === "UNKNOWN",
-                ).length
-              }
-            </StatusBadge>
-          </div>
-        ) : null}
-      </header>
-
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md border-b border-border bg-surface-muted px-ui-xl py-ui-md">
-        <label className="min-w-40 flex-1">
-          <span className="sr-only">筛选服务</span>
-          <input
-            ref={filterInputRef}
-            className="min-h-control-sm w-full min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20"
-            type="search"
-            maxLength={128}
-            placeholder="按名称、标识符、状态或作用域筛选"
-            value={filter}
-            onChange={(event) => setFilter(event.currentTarget.value)}
-          />
-        </label>
-        <span className="shrink-0 text-xs text-muted-foreground" role="status">
-          {listState.status === "ready"
-            ? `显示 ${services.length} / ${allServices.length} 项`
-            : "正在读取本机状态"}
-        </span>
-      </div>
-
-      <div className="grid min-h-0 grid-rows-[minmax(0,0.85fr)_minmax(0,1.15fr)] overflow-hidden sm:grid-cols-[minmax(18.75rem,0.82fr)_minmax(0,1.18fr)] sm:grid-rows-1">
+      <div className="grid min-h-0 overflow-hidden grid-rows-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:grid-cols-[300px_minmax(0,1fr)] sm:grid-rows-1">
         <section
-          className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
-          aria-labelledby="service-inventory-heading"
+          className="grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
+          aria-labelledby="services-heading"
         >
-          <header className="flex min-h-[var(--app-row-height-standard)] min-w-0 items-center justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md">
-            <h3
-              className="text-xs font-semibold"
-              id="service-inventory-heading"
-            >
-              已发现服务
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              {listState.status === "ready"
-                ? `${services.length} 项`
-                : "本机状态"}
-            </span>
+          <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold" id="services-heading">
+                服务清单
+              </h2>
+              <p className="mt-ui-xs text-xs text-muted-foreground">
+                已发现服务
+              </p>
+            </div>
+            {listState.status === "ready" ? (
+              <div
+                className="flex flex-wrap items-center justify-end gap-2"
+                aria-label="服务统计"
+              >
+                <StatusBadge>
+                  用户级{" "}
+                  {
+                    listState.services.filter(
+                      (service) => service.scope === "USER",
+                    ).length
+                  }
+                </StatusBadge>
+                <StatusBadge>
+                  系统级{" "}
+                  {
+                    listState.services.filter(
+                      (service) => service.scope === "SYSTEM",
+                    ).length
+                  }
+                </StatusBadge>
+                <StatusBadge tone="warning">
+                  只读{" "}
+                  {
+                    listState.services.filter(
+                      (service) =>
+                        !service.manageable || service.scope === "UNKNOWN",
+                    ).length
+                  }
+                </StatusBadge>
+              </div>
+            ) : null}
           </header>
+
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md border-b border-border bg-surface-muted px-ui-xl py-ui-md">
+            <label className="min-w-40 flex-1">
+              <span className="sr-only">筛选服务</span>
+              <input
+                ref={filterInputRef}
+                className="min-h-control-sm w-full min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20"
+                type="search"
+                maxLength={128}
+                placeholder="按名称、标识符、状态或作用域筛选"
+                value={filter}
+                onChange={(event) => setFilter(event.currentTarget.value)}
+              />
+            </label>
+            <span className="shrink-0 text-xs text-muted-foreground" role="status">
+              {listState.status === "ready"
+                ? `显示 ${services.length} / ${allServices.length} 项`
+                : "正在读取本机状态"}
+            </span>
+          </div>
 
           {listState.status === "loading" ? (
             <div className="p-3">
@@ -435,8 +418,7 @@ export function ServicesPage({
               aria-label={`Homebrew 服务清单，共 ${services.length} 项`}
             >
               {services.map((service, index) => {
-                const isSelected =
-                  service.serviceId === selectedServiceId;
+                const isSelected = service.serviceId === selectedServiceId;
                 const isTabStop =
                   isSelected || (!selectedIsVisible && index === 0);
                 return (
@@ -463,10 +445,10 @@ export function ServicesPage({
                       onKeyDown={(event) => moveSelection(event, index)}
                     >
                       <span className="min-w-0">
-                        <strong className="block truncate text-sm font-semibold">
+                        <strong className="block break-words text-sm font-semibold [overflow-wrap:anywhere]">
                           {service.displayName}
                         </strong>
-                        <span className="mt-ui-xs block truncate text-xs text-muted-foreground">
+                        <span className="mt-ui-xs block break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
                           {SCOPE_LABELS[service.scope]} ·{" "}
                           {service.manageable && service.scope !== "UNKNOWN"
                             ? "可管理"

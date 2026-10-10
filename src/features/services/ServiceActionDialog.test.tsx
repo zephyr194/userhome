@@ -104,3 +104,46 @@ describe("ServiceActionDialog", () => {
     expect(new Set(operationIds).size).toBe(3);
   });
 });
+
+describe("ServiceActionDialog defaults", () => {
+  const preview = {
+    operationId: "start-caddy",
+    summary: "Start user-level Caddy service.",
+    effects: ["Action: start"],
+    requiresElevation: false,
+    expiresAt: "2026-09-20T12:00:00Z",
+  };
+
+  it("defaults to cancel and only offers confirmation explicitly", () => {
+    const markup = renderToStaticMarkup(
+      <ServiceActionDialog
+        action="START"
+        preview={preview}
+        serviceId="caddy"
+        busy={false}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    expect(markup).toContain("data-dialog-cancel");
+    expect(markup).toContain(">取消<");
+    expect(markup).toContain(">确认启动<");
+  });
+
+  it("disables the cancel default while an operation is running", () => {
+    const markup = renderToStaticMarkup(
+      <ServiceActionDialog
+        action="START"
+        preview={preview}
+        serviceId="caddy"
+        busy
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    expect(markup).toContain("正在执行");
+    expect(markup).toContain('disabled=""');
+  });
+});

@@ -77,9 +77,6 @@ export function ServiceDetails({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-ui-sm">
-          <StatusBadge tone={STATE_TONES[details.state]}>
-            {STATE_LABELS[details.state]}
-          </StatusBadge>
           <StatusBadge>{SCOPE_LABELS[details.scope]}</StatusBadge>
           {!canManage ? (
             <StatusBadge tone="warning">只读</StatusBadge>
@@ -88,6 +85,14 @@ export function ServiceDetails({
       </header>
 
       <dl className="grid min-w-0 grid-cols-1 overflow-hidden border-b border-border bg-border sm:grid-cols-2 sm:gap-px">
+        <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
+          <dt className="text-xs text-muted-foreground">运行状态</dt>
+          <dd className="mt-ui-xs">
+            <StatusBadge tone={STATE_TONES[details.state]}>
+              {STATE_LABELS[details.state]}
+            </StatusBadge>
+          </dd>
+        </div>
         <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
           <dt className="text-xs text-muted-foreground">作用域</dt>
           <dd className="mt-ui-xs break-words text-sm font-medium">
@@ -101,11 +106,12 @@ export function ServiceDetails({
           </dd>
         </div>
         <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
-          <dt className="text-xs text-muted-foreground">Caddyfile</dt>
-          <dd className="mt-ui-xs">
+          <dt className="text-xs text-muted-foreground">配置有效性</dt>
+          <dd className="mt-ui-xs flex flex-wrap items-center gap-ui-sm">
             <StatusBadge tone={VALIDITY_TONES[details.configValidity]}>
               {VALIDITY_LABELS[details.configValidity]}
             </StatusBadge>
+            <span className="text-xs text-muted-foreground">Caddyfile</span>
           </dd>
         </div>
         <div className="min-w-0 bg-surface-muted px-ui-xl py-ui-lg">
