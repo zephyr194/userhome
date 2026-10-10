@@ -4396,18 +4396,24 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 ## T120：完成 Homebrew 工作台迁移
 
-**状态：**待执行。
+**状态：**2026-10-10 已完成。
 
 **目标：**完成单一工具栏、固定 list footer 和持续 detail operation 反馈。
 
 **验收：**
-- [ ] 搜索、分页、selection、preview/confirm 和错误状态保留。
-- [ ] 长名称/版本/结果不裁切；不执行真实包操作。
+- [x] 搜索、分页、selection、preview/confirm 和错误状态保留。
+- [x] 长名称/版本/结果不裁切；不执行真实包操作。
 
 **验证：**现有 Homebrew tests；前端完整门禁；人工取消确认。
 **依赖：**T115。
 **文件归属：**Homebrew feature TSX；shared CSS 由单一所有者修改。
 **规模：**M。
+
+**T120 实施证据（2026-10-10）：**
+
+- 移除重复页面 hero/h2，建立单一 Homebrew toolbar、installed/search list、固定 list footer 与持续 detail；列表 loading/error/empty 不卸载已选详情。
+- 新增 `BrewInventoryList` 与共享 package key/keyboard helper；长名称、描述、版本、结果与错误使用 wrap/anywhere，元数据使用 11px `text-meta`，无 truncate。
+- 操作仍经现有 preview/confirm Modal；测试 mock IPC，未运行真实安装、升级或卸载。RED 后 GREEN：Homebrew 定向 13 项、scoped lint 通过；独立快照 typecheck/test 通过。真实 200% 与前台取消确认留 T124。
 
 ## T121：完成 Services 工作台迁移
 

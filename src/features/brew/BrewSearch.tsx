@@ -1,8 +1,4 @@
-import {
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
@@ -13,6 +9,7 @@ import {
 } from "../../ipc/brew";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import { BrewPackageInspector } from "./BrewPackageDetails";
+import { packageKey, targetIndex } from "./packageKey";
 
 type SearchState =
   | { status: "idle" }
@@ -21,23 +18,7 @@ type SearchState =
   | { status: "error"; requestId: number; error: AppError };
 
 const SEARCH_INPUT_CLASSES =
-  "min-h-control-sm min-w-40 flex-1 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20";
-
-function targetIndex(
-  event: KeyboardEvent<HTMLButtonElement>,
-  currentIndex: number,
-  itemCount: number,
-): number | undefined {
-  if (event.key === "ArrowDown") return Math.min(currentIndex + 1, itemCount - 1);
-  if (event.key === "ArrowUp") return Math.max(currentIndex - 1, 0);
-  if (event.key === "Home") return 0;
-  if (event.key === "End") return itemCount - 1;
-  return undefined;
-}
-
-function packageKey(selection: BrewSearchResult): string {
-  return `${selection.kind}:${selection.identifier}`;
-}
+  "min-h-control-sm min-w-0 w-full rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20";
 
 export function BrewSearch({
   onChanged,
@@ -113,9 +94,9 @@ export function BrewSearch({
   }
 
   return (
-    <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden">
+    <div className="brew-workspace__view">
       <form
-        className="flex min-w-0 flex-wrap items-center gap-ui-md border-b border-border bg-surface-muted px-ui-xl py-ui-md"
+        className="brew-workspace__toolbar"
         onSubmit={(event) => {
           event.preventDefault();
           const searchQuery = query.trim();
@@ -131,15 +112,11 @@ export function BrewSearch({
         }}
       >
         <div
-          className="flex shrink-0 items-center gap-ui-xs"
+          className="brew-workspace__mode"
           role="group"
           aria-label="Homebrew 数据源"
         >
-          <Button
-            size="sm"
-            aria-pressed="false"
-            onClick={onShowInstalled}
-          >
+          <Button size="sm" aria-pressed="false" onClick={onShowInstalled}>
             已安装
           </Button>
           <Button size="sm" variant="primary" aria-pressed="true">
@@ -174,19 +151,14 @@ export function BrewSearch({
         </Button>
       </form>
 
-      <div className="grid min-h-0 grid-rows-[minmax(0,0.85fr)_minmax(0,1.15fr)] overflow-hidden sm:grid-cols-[minmax(17.5rem,0.85fr)_minmax(0,1.15fr)] sm:grid-rows-1">
+      <div className="brew-workspace__body">
         <section
-          className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
+          className="brew-workspace__list"
           aria-labelledby="brew-search-results-heading"
         >
-          <header className="flex min-h-[var(--app-row-height-standard)] min-w-0 items-center justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md">
-            <h3
-              className="text-xs font-semibold"
-              id="brew-search-results-heading"
-            >
-              Homebrew 搜索
-            </h3>
-            <span className="text-xs text-muted-foreground">
+          <header className="brew-workspace__pane-heading">
+            <h3 id="brew-search-results-heading">Homebrew 搜索</h3>
+            <span>
               {searchState.status === "ready"
                 ? `${searchState.page.totalItems} 项`
                 : "远程目录"}
@@ -201,9 +173,7 @@ export function BrewSearch({
             </div>
           ) : searchState.status === "loading" ? (
             <div className="p-3">
-              <AsyncState kind="loading">
-                正在搜索 Homebrew 目录…
-              </AsyncState>
+              <AsyncState kind="loading">正在搜索 Homebrew 目录…</AsyncState>
             </div>
           ) : searchState.status === "error" ? (
             <div className="p-3">
@@ -219,11 +189,7 @@ export function BrewSearch({
             </div>
           ) : (
             <>
-              <ul
-                className="min-h-0 overflow-y-auto overscroll-contain"
-                role="listbox"
-                aria-label="Homebrew 搜索结果"
-              >
+              <ul role="listbox" aria-label="Homebrew 搜索结果">
                 {items.map((item, index) => {
                   const itemSelection = {
                     kind: item.kind,
@@ -244,11 +210,8 @@ export function BrewSearch({
                           }
                         }}
                         className={classNames(
-                          "grid min-h-[var(--app-row-height-two-line)] w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-ui-lg border-b border-border px-ui-xl py-ui-md text-left transition-colors",
-                          "hover:bg-surface-muted focus-visible:relative focus-visible:z-10",
-                          isSelected
-                            ? "bg-primary-soft text-foreground"
-                            : "bg-surface text-foreground",
+                          "brew-inventory-row",
+                          isSelected && "brew-inventory-row--selected",
                         )}
                         type="button"
                         role="option"
@@ -258,14 +221,14 @@ export function BrewSearch({
                         onKeyDown={(event) => moveSelection(event, index)}
                       >
                         <span className="min-w-0">
-                          <strong className="block truncate text-sm font-semibold">
+                          <strong className="block break-words text-sm font-semibold [overflow-wrap:anywhere]">
                             {item.identifier}
                           </strong>
-                          <span className="mt-ui-xs block truncate text-xs text-muted-foreground">
+                          <span className="mt-ui-xs block text-xs text-muted-foreground">
                             Homebrew 远程目录
                           </span>
                         </span>
-                        <StatusBadge className="min-h-5 shrink-0 px-ui-sm py-0 text-[10px]">
+                        <StatusBadge className="min-h-5 shrink-0 px-ui-sm py-0 text-meta">
                           {item.kind === "FORMULA" ? "Formula" : "Cask"}
                         </StatusBadge>
                       </button>
@@ -274,7 +237,7 @@ export function BrewSearch({
                 })}
               </ul>
               <nav
-                className="flex min-h-control-md items-center justify-between gap-ui-md border-t border-border px-ui-lg py-ui-sm text-xs text-muted-foreground"
+                className="brew-workspace__pagination"
                 aria-label="搜索结果分页"
               >
                 <Button
@@ -309,7 +272,7 @@ export function BrewSearch({
         </section>
 
         <section
-          className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-ui-xl overscroll-contain"
+          className="brew-workspace__detail"
           aria-label="Homebrew 软件包详情"
         >
           {selected ? (

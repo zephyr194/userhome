@@ -6,7 +6,16 @@ import {
   previewBrewAction,
   type BrewPackageAction,
 } from "../../ipc/brew";
+import type { OperationDetails } from "../../ipc/operations";
 import { BrewActionDialog } from "./BrewActionDialog";
+
+const PREVIEW = {
+  operationId: "upgrade-caddy",
+  summary: "Upgrade Formula caddy.",
+  effects: ["Package identifier: caddy"],
+  requiresElevation: false,
+  expiresAt: "2026-09-20T12:00:00Z",
+};
 
 describe("BrewActionDialog", () => {
   it("shows the exact destructive package effect before confirmation", () => {
@@ -32,6 +41,51 @@ describe("BrewActionDialog", () => {
     expect(markup).toContain("Uninstall Formula caddy");
     expect(markup).toContain("Package identifier: caddy");
     expect(markup).toContain("无需管理员权限");
+  });
+
+  it("keeps progress, result and long errors in a persistent, wrapped feedback region", () => {
+    const longOutput = "caddy-".repeat(200);
+    const operation: OperationDetails = {
+      ...PREVIEW,
+      status: "FAILED",
+      events: [
+        {
+          type: "progress",
+          operationId: "upgrade-caddy",
+          sequence: 0,
+          message: `正在下载 ${longOutput}`,
+        },
+        {
+          type: "finished",
+          operationId: "upgrade-caddy",
+          sequence: 1,
+          status: "FAILED",
+          stderrSummary: `错误：${longOutput}`,
+        },
+      ],
+    };
+
+    const markup = renderToStaticMarkup(
+      <BrewActionDialog
+        action="UPGRADE"
+        preview={PREVIEW}
+        target={{ kind: "FORMULA", identifier: "caddy" }}
+        operation={operation}
+        error={{ code: "PROCESS_FAILED", message: longOutput, retryable: false }}
+        busy={false}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    // Operation feedback lives in an announced region that stays mounted.
+    expect(markup).toContain('aria-live="polite"');
+    expect(markup).toContain("操作结果");
+    expect(markup).toContain(longOutput);
+    // Long errors are announced and wrap instead of being truncated.
+    expect(markup).toContain('role="alert"');
+    expect(markup).not.toContain("truncate");
+    expect(markup).toContain("[overflow-wrap:anywhere]");
   });
 
   it("keeps install upgrade and uninstall as separate mocked operations", async () => {
