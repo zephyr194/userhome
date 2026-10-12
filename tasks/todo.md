@@ -4559,8 +4559,10 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 - 103 个本地 Markdown 链接与 `git diff --check` 通过。保护文件 SHA-256：`package.json` `b7fae9a…5b77`、`pnpm-lock.yaml` `15e323c…525`、`.nvmrc` `73fb1b6…761f`、`.taurignore` `821882b…f7c6`，均未改变。
 
 ## T126：修复 Applications Tabs 与本机列表键盘合同
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**证据：**Applications scope 使用受控 Headless Tabs；本机、catalog 与配置文档列表改为语义列表+Headless Button，移除伪 listbox/option。本机列表具备 Arrow/Home/End、唯一 Tab stop、focus 与 nearest scroll。 Apps 14 文件/67 项、scoped lint、typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从19降至7；客户端Tab关系与实际焦点留T139 WDIO。
 ## T127：修复刷新、错误映射和全局反馈
 **状态：**2026-10-12 已完成。
 
@@ -4631,8 +4633,10 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 **证据：**Settings+forms 定向 4 文件/16 项、scoped lint/typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从30降至19。Headless Tabs 的真实方向键与表单序列化留 T139 WDIO。
 ## T133：迁移 Applications filters、scope 与配置选择器
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**证据：**Applications 搜索、四类筛选、分页跳转和配置路径选择器全部迁移共享 Headless Fields；scope/列表/文档行经 Headless UI，保留分页、generation、selection、scrollTop、草稿和授权。 Apps 14 文件/67 项、scoped lint、typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从19降至7；客户端Tab关系与实际焦点留T139 WDIO。
 ## T134：迁移 Schema 与专用配置编辑器
 **状态：**2026-10-12 已完成。
 

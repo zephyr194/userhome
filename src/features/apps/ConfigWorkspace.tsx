@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { AsyncState } from "../../components/AsyncState";
-import { StatusBadge } from "../../components/ui";
+import { Button, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import type {
   ManagedAppCapability,
@@ -816,7 +816,6 @@ export function ConfigWorkspace({
           ) : configs.status === "ready" ? (
             <ul
               className="m-0 list-none p-0"
-              role="listbox"
               aria-label={`${application.displayName} 配置文档`}
             >
               {configs.configs.map((config) => {
@@ -833,8 +832,8 @@ export function ConfigWorkspace({
                   isSelected ||
                   (!selectedConfigId && config.configId === firstSelectableId);
                 return (
-                  <li key={config.configId} role="presentation">
-                    <button
+                  <li key={config.configId}>
+                    <Button
                       ref={(button) => {
                         if (button) {
                           configButtonRefs.current.set(config.configId, button);
@@ -842,14 +841,13 @@ export function ConfigWorkspace({
                           configButtonRefs.current.delete(config.configId);
                         }
                       }}
+                      variant="ghost"
                       className={classNames(
                         "config-workspace__document",
                         isSelected && "config-workspace__document--selected",
                       )}
-                      type="button"
-                      role="option"
                       aria-label={`${config.configId}，${config.displayPath}，${accessLabel}，${config.exists ? "已找到" : "未找到"}`}
-                      aria-selected={isSelected}
+                      aria-current={isSelected ? "true" : undefined}
                       tabIndex={isTabStop ? 0 : -1}
                       title={`${config.configId} · ${config.displayPath}`}
                       onClick={() => void loadDocument(config)}
@@ -875,7 +873,7 @@ export function ConfigWorkspace({
                       >
                         {accessLabel}
                       </StatusBadge>
-                    </button>
+                    </Button>
                   </li>
                 );
               })}

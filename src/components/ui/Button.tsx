@@ -1,5 +1,5 @@
 import { Button as HeadlessButton } from "@headlessui/react";
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 import { classNames } from "./classNames";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
@@ -22,12 +22,14 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: Ref<HTMLButtonElement>;
   size?: ButtonSize;
   variant?: ButtonVariant;
 }
 
 export function Button({
   className,
+  ref,
   size = "md",
   type = "button",
   variant = "secondary",
@@ -35,6 +37,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <HeadlessButton
+      ref={ref}
       className={classNames(
         "inline-flex items-center justify-center gap-ui-md rounded-control border font-medium transition-colors",
         "focus-visible:shadow-focus",

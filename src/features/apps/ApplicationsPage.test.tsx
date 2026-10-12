@@ -395,8 +395,15 @@ describe("ApplicationsPage three-pane structure", () => {
     const markup = renderCatalog();
 
     expect(markup).toContain('role="tablist"');
+    const tabs = [...markup.matchAll(/<button[^>]*role="tab"[^>]*>/g)];
+    expect(tabs).toHaveLength(2);
+    expect(markup.match(/role="tabpanel"/g) ?? []).toHaveLength(2);
+    expect(markup.match(/aria-selected="true"/g) ?? []).toHaveLength(1);
+    expect(markup.match(/role="tab"[^>]*tabindex="0"/g) ?? []).toHaveLength(1);
     expect(markup).toContain('aria-label="应用筛选"');
     expect(markup).toContain('id="applications-heading"');
+    expect(markup).not.toContain('role="listbox"');
+    expect(markup).not.toContain('role="option"');
     const header = tokensForClass(markup, "applications-workspace__header");
     expect(header).toContain("min-w-0");
   });
