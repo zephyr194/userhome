@@ -1140,7 +1140,7 @@ T125–T140 and preserves all T01–T124 evidence and blockers.
 - T128 route focus, regions, live regions and pane tab stops
 - [x] T129 shared Headless UI form/action primitives
 - [x] T130 warm-gray amber tokens, zero-outline focus and low-border shared UI
-- T131 unified Modal/ConfirmDialog and selection adapters
+- [x] T131 unified Modal/ConfirmDialog and selection adapters
 - T132 Settings Headless UI migration
 - T133 Applications Headless UI migration
 - T134 Schema/specialized editor Headless UI migration

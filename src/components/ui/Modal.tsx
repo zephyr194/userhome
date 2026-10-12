@@ -8,6 +8,7 @@ import { useCallback, useRef, type ReactNode } from "react";
 import { classNames } from "./classNames";
 
 export function Modal({
+  bodyClassName,
   busy = false,
   children,
   className,
@@ -15,20 +16,23 @@ export function Modal({
   onClose,
   open,
   title,
+  titleId,
 }: {
+  bodyClassName?: string;
   busy?: boolean;
   children: ReactNode;
   className?: string;
   footer?: ReactNode;
   onClose: () => void;
   open: boolean;
-  title: ReactNode;
+  title?: ReactNode;
+  titleId?: string;
 }) {
   const initialFocusRef = useRef<HTMLElement | null>(null);
   const setPanelRef = useCallback((panel: HTMLDivElement | null) => {
     initialFocusRef.current =
       panel?.querySelector<HTMLElement>(
-        "[data-modal-cancel]:not(:disabled)",
+        "[data-modal-cancel]:not(:disabled), [data-dialog-cancel]:not(:disabled)",
       ) ?? null;
   }, []);
 
@@ -37,6 +41,7 @@ export function Modal({
       <div className="fixed inset-0 z-50 grid place-items-center bg-backdrop p-ui-xl sm:p-ui-3xl">
         <section
           aria-busy={busy || undefined}
+          aria-labelledby={titleId}
           aria-modal="true"
           className={classNames(
             "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground shadow-[var(--app-shadow-raised)]",
@@ -44,12 +49,19 @@ export function Modal({
           )}
           role="dialog"
         >
-          <div className="px-ui-3xl py-ui-2xl">
-            <div className="min-w-0 break-words text-group font-semibold">
-              {title}
+          {title !== undefined ? (
+            <div className="px-ui-3xl py-ui-2xl">
+              <div className="min-w-0 break-words text-group font-semibold">
+                {title}
+              </div>
             </div>
-          </div>
-          <div className="min-w-0 break-words px-ui-3xl py-ui-2xl text-body">
+          ) : null}
+          <div
+            className={classNames(
+              "min-w-0 break-words px-ui-3xl py-ui-2xl text-body",
+              bodyClassName,
+            )}
+          >
             {children}
           </div>
           {footer ? (
@@ -80,6 +92,7 @@ export function Modal({
           <DialogPanel
             ref={setPanelRef}
             aria-busy={busy || undefined}
+            aria-labelledby={titleId}
             className={classNames(
               "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground shadow-[var(--app-shadow-raised)]",
               "transition-opacity duration-150 data-closed:opacity-0",
@@ -92,12 +105,24 @@ export function Modal({
             }}
             transition
           >
-            <div className="px-ui-3xl py-ui-2xl">
-              <DialogTitle as="div" className="min-w-0 break-words text-group font-semibold">
-                {title}
-              </DialogTitle>
+            {title !== undefined ? (
+              <div className="px-ui-3xl py-ui-2xl">
+                <DialogTitle
+                  as="div"
+                  className="min-w-0 break-words text-group font-semibold"
+                >
+                  {title}
+                </DialogTitle>
+              </div>
+            ) : null}
+            <div
+              className={classNames(
+                "min-w-0 break-words px-ui-3xl py-ui-2xl text-body",
+                bodyClassName,
+              )}
+            >
+              {children}
             </div>
-            <div className="min-w-0 break-words px-ui-3xl py-ui-2xl text-body">{children}</div>
             {footer ? (
               <div className="flex flex-wrap justify-end gap-ui-md px-ui-3xl py-ui-2xl">
                 {footer}

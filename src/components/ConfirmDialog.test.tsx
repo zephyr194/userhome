@@ -18,5 +18,6 @@ describe("ConfirmDialog", () => {
     expect(markup).toContain('role="dialog"');
     expect(markup).toContain('aria-modal="true"');
     expect(markup).toContain('aria-labelledby="confirm-heading"');
+    expect(ConfirmDialog.toString()).not.toContain("DialogBackdrop");
   });
 });

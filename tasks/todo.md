@@ -4600,8 +4600,15 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 **证据：**RED 6 项失败（旧 palette、透明 soft、outline、共享默认边框）；GREEN 后定向 17 项、scoped lint、typecheck、完整 45 文件/214 项测试与 build 通过。Light 文本最低 4.70、control border 最低 3.14；Dark 文本最低 5.61、control border 最低 3.11。旧蓝灰色值与组件级 outline utility 均为零；保护文件哈希不变。
 ## T131：统一 Modal/ConfirmDialog 与选择控件基础
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] ConfirmDialog 组合统一 Modal，不再复制 Headless Dialog/Backdrop/Panel。
+- [x] 保留正文内 titleId、取消默认、focus trap、Escape、busy-close 和恢复焦点。
+- [x] 配置、Homebrew、Services 三类确认流程保持。
+
+**证据：**RED 源码结构断言暴露重复实现；统一后 5 个定向文件/15 项、scoped lint、typecheck、完整 45 文件/214 项测试和 build 通过。Modal 统一使用 raised surface/shadow 和 backdrop token，无作者 outline。
 ## Phase 36：逐模块 Headless UI 迁移
 
 ## T132：迁移 Settings 与设置侧栏
