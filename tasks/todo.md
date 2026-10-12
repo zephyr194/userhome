@@ -4659,8 +4659,15 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 **证据：**Homebrew/Services/Operations 定向 8 文件/29 项、scoped lint、typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从7降至0；真实焦点与表单提交留T139 WDIO。
 ## T136：业务层零直接原生交互元素门禁
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] `src/features/**/*.tsx` 直接 input/select/textarea/button 为零。
+- [x] 业务层伪 `role=listbox/option` 为零。
+- [x] 真正 form 容器保留，所有字段/动作经 Headless UI adapter。
+
+**证据：**静态门禁基线从68逐步降到0并锁死；完整 45 文件/215 项测试和 build 通过。保护文件未改。
 ## Phase 37：去线条视觉迁移与兼容层删除
 
 ## T137：迁移 Shell/Dashboard 到低边框层级
