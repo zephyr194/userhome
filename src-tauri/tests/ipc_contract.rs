@@ -52,3 +52,29 @@ fn ipc_capability_only_grants_event_listeners_and_main_window_dragging() {
     );
     assert!(capability.get("remote").is_none());
 }
+
+#[test]
+fn configuration_inputs_reject_paths_and_unknown_mutation_fields() {
+    use userhome_lib::commands::{
+        application_config::{ConfigurationAppInput, ConfigurationResourceInput},
+        settings::UpdateDiscoveryExclusionsInput,
+    };
+    assert!(
+        serde_json::from_value::<ConfigurationAppInput>(
+            json!({"appId":"github-copilot","path":"/tmp"})
+        )
+        .is_err()
+    );
+    assert!(
+        serde_json::from_value::<ConfigurationResourceInput>(
+            json!({"appId":"github-copilot","resourceId":"abc","content":"write"})
+        )
+        .is_err()
+    );
+    assert!(
+        serde_json::from_value::<UpdateDiscoveryExclusionsInput>(
+            json!({"userPaths":[],"builtinPaths":[]})
+        )
+        .is_err()
+    );
+}

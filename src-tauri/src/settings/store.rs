@@ -11,11 +11,13 @@ use crate::error::AppError;
 
 use super::{
     LoadedPreferences, SettingsDiagnostic, UserPreferences,
+    discovery_exclusions::DiscoveryExclusions,
     migration::{MigrationError, decode_and_migrate},
 };
 
 const SETTINGS_FILE_NAME: &str = "preferences.json";
 const MAX_SETTINGS_BYTES: u64 = 16 * 1024;
+const MAX_EXCLUSION_BYTES: u64 = 32 * 1024;
 const SETTINGS_DIRECTORY_MODE: u32 = 0o700;
 const SETTINGS_FILE_MODE: u32 = 0o600;
 
@@ -67,6 +69,57 @@ impl SettingsStore {
                 LoadedPreferences::recovered(SettingsDiagnostic::unsupported_version())
             }
         }
+    }
+
+    pub(crate) fn load_exclusions(&self) -> Result<DiscoveryExclusions, AppError> {
+        match fs::symlink_metadata(&self.directory) {
+            Ok(metadata) if metadata.is_dir() => {}
+            Ok(_) => return Err(AppError::permission_denied("排除设置目录不是普通目录。")),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Ok(DiscoveryExclusions::default());
+            }
+            Err(_) => return Err(AppError::permission_denied("排除设置目录无法读取。")),
+        }
+        let path = self.directory.join("discovery-exclusions.json");
+        let metadata = match fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_file() => metadata,
+            Ok(_) => return Err(AppError::permission_denied("排除设置存储不是普通文件。")),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                return Ok(DiscoveryExclusions::default());
+            }
+            Err(_) => return Err(AppError::permission_denied("排除设置无法读取。")),
+        };
+        if metadata.len() > MAX_EXCLUSION_BYTES {
+            return Err(AppError::validation_failed("排除设置超过大小上限。"));
+        }
+        let mut bytes = Vec::new();
+        File::open(path)
+            .and_then(|file| file.take(MAX_EXCLUSION_BYTES + 1).read_to_end(&mut bytes))
+            .map_err(|_| AppError::permission_denied("排除设置无法读取。"))?;
+        if bytes.len() as u64 > MAX_EXCLUSION_BYTES {
+            return Err(AppError::validation_failed("排除设置超过大小上限。"));
+        }
+        let rules: DiscoveryExclusions = serde_json::from_slice(&bytes).map_err(|_| {
+            AppError::validation_failed("排除设置损坏或版本不受支持，配置读取已停止。")
+        })?;
+        rules.validate()?;
+        Ok(rules)
+    }
+
+    pub(crate) fn save_exclusions(&self, rules: &DiscoveryExclusions) -> Result<(), AppError> {
+        rules.validate()?;
+        self.ensure_directory()?;
+        let path = self.directory.join("discovery-exclusions.json");
+        if fs::symlink_metadata(&path).is_ok_and(|metadata| !metadata.is_file()) {
+            return Err(AppError::permission_denied("排除设置存储不是普通文件。"));
+        }
+        let mut bytes = serde_json::to_vec_pretty(rules).map_err(|_| AppError::internal())?;
+        bytes.push(b'\n');
+        if bytes.len() as u64 > MAX_EXCLUSION_BYTES {
+            return Err(AppError::invalid_input("排除设置超过大小上限。"));
+        }
+        write_atomically(&path, &bytes)
+            .map_err(|_| AppError::permission_denied("排除设置无法保存，原有规则仍然生效。"))
     }
 
     pub fn save(&self, preferences: &UserPreferences) -> Result<(), AppError> {
@@ -189,6 +242,57 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.root);
         }
+    }
+
+    #[test]
+    fn exclusions_persist_privately_without_changing_legacy_preferences() {
+        let fixture = Fixture::new();
+        fixture
+            .store
+            .save(&UserPreferences::default())
+            .expect("preferences");
+        let old_bytes = fs::read(fixture.store.preferences_path()).expect("preferences bytes");
+        let rules = DiscoveryExclusions {
+            user_paths: vec![".copilot/instructions".into()],
+            ..Default::default()
+        };
+        fixture
+            .store
+            .save_exclusions(&rules)
+            .expect("save exclusions");
+        assert_eq!(
+            fixture.store.load_exclusions().expect("load exclusions"),
+            rules
+        );
+        assert_eq!(
+            fs::read(fixture.store.preferences_path()).expect("unchanged"),
+            old_bytes
+        );
+        let path = fixture.store.directory.join("discovery-exclusions.json");
+        assert_eq!(
+            fs::metadata(&path).expect("mode").permissions().mode() & 0o777,
+            0o600
+        );
+        fs::write(&path, br#"{"schemaVersion":99,"userPaths":[]}"#).expect("future version");
+        assert!(fixture.store.load_exclusions().is_err());
+        fs::write(&path, b"invalid-secret-sentinel").expect("invalid");
+        assert!(fixture.store.load_exclusions().is_err());
+        let escaped_rules = DiscoveryExclusions {
+            user_paths: (0..crate::settings::discovery_exclusions::MAX_USER_EXCLUSIONS)
+                .map(|index| format!("{index:02}/{}", "\"".repeat(253)))
+                .collect(),
+            ..Default::default()
+        };
+        fixture
+            .store
+            .save_exclusions(&escaped_rules)
+            .expect("maximum escaped paths");
+        assert!(fs::metadata(&path).expect("escaped size").len() > MAX_SETTINGS_BYTES);
+        let restarted = SettingsStore::new(fixture.store.directory.clone());
+        assert_eq!(
+            restarted.load_exclusions().expect("fresh store"),
+            escaped_rules
+        );
     }
 
     #[test]

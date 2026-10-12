@@ -194,6 +194,17 @@ pub fn update_service_summary(app: &AppHandle, services: Result<&[ServiceSummary
     }
 }
 
+pub fn update_configuration_summary(app: &AppHandle, detected: usize, partial: bool) {
+    let summary = app.state::<TraySummary>();
+    let label = format!(
+        "已识别配置应用：{detected}{}",
+        if partial { "（部分失败）" } else { "" }
+    );
+    if let Err(error) = summary.applications.set_text(label) {
+        eprintln!("failed to update the configuration tray summary: {error}");
+    }
+}
+
 fn application_summary_label(counts: Option<(usize, usize, bool)>) -> String {
     match counts {
         Some((detected, total, partial)) => format!(

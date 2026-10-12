@@ -1,5 +1,6 @@
 mod definitions;
 pub mod preset;
+pub mod profiles;
 pub mod schema;
 pub mod source;
 

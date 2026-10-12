@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use serde::Deserialize;
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
@@ -18,6 +19,41 @@ use crate::{
         diagnostics::{DiagnosticsExport, DiagnosticsReport},
     },
 };
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UpdateDiscoveryExclusionsInput {
+    pub user_paths: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn get_discovery_exclusions(
+    app: AppHandle,
+) -> Result<crate::settings::discovery_exclusions::DiscoveryExclusionsPresentation, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        Ok(app
+            .state::<SettingsCoordinator>()
+            .get_discovery_exclusions()?
+            .presentation())
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn update_discovery_exclusions(
+    app: AppHandle,
+    input: UpdateDiscoveryExclusionsInput,
+) -> Result<crate::settings::discovery_exclusions::DiscoveryExclusionsPresentation, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        Ok(app
+            .state::<SettingsCoordinator>()
+            .update_discovery_exclusions(input.user_paths)?
+            .presentation())
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
 
 #[tauri::command]
 pub fn get_preferences(

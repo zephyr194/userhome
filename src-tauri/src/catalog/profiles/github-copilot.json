@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "appId": "github-copilot",
+  "displayName": "GitHub Copilot",
+  "root": ".copilot",
+  "sources": [
+    {
+      "id": "configuration",
+      "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+      "gitBlobSha": "6290e7e120dd9d76779d98966014f3226351aebc"
+    },
+    {
+      "id": "instructions",
+      "url": "https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions",
+      "gitBlobSha": "dc6f2c08e1c2f2b6ef4de29f9a8902ed903b6c73"
+    }
+  ],
+  "documents": [
+    {
+      "id": "settings",
+      "label": "用户设置",
+      "description": "用户级 JSONC 设置。本页仅展示文件值，不计算项目、环境或命令行覆盖。",
+      "path": { "kind": "FILE", "relativePath": "settings.json" },
+      "format": "JSONC",
+      "viewKind": "FIELDS",
+      "maxSizeBytes": 262144,
+      "sourceId": "configuration",
+      "fields": [
+        { "fieldId": "model", "key": "model", "label": "模型", "description": "模型标识；auto 表示由 Copilot 自动选择。默认模型随应用而异。", "kind": "STRING" },
+        { "fieldId": "theme", "key": "theme", "label": "主题", "description": "终端颜色主题。", "kind": "ENUM", "options": ["default", "github", "dim", "high-contrast", "colorblind"], "defaultValue": "github" },
+        { "fieldId": "banner", "key": "banner", "label": "启动横幅", "description": "always 为始终显示，once 为显示一次，never 为不显示。", "kind": "ENUM", "options": ["always", "once", "never"], "defaultValue": "once" },
+        { "fieldId": "effort-level", "key": "effortLevel", "label": "推理强度", "description": "扩展思考的推理强度；更高的值使用更多计算资源。", "kind": "ENUM", "options": ["low", "medium", "high", "xhigh"], "defaultValue": "medium" },
+        { "fieldId": "editor-mode", "key": "editorMode", "label": "输入模式", "description": "normal 为普通输入，vim 为 Vim 输入模式。", "kind": "ENUM", "options": ["normal", "vim"], "defaultValue": "normal" },
+        { "fieldId": "auto-update", "key": "autoUpdate", "label": "自动更新", "description": "在会话开始时自动下载 CLI 和第一方插件更新。", "kind": "BOOLEAN", "defaultValue": true },
+        { "fieldId": "render-markdown", "key": "renderMarkdown", "label": "Markdown 渲染", "description": "在终端输出中渲染 Markdown。", "kind": "BOOLEAN", "defaultValue": true },
+        { "fieldId": "screen-reader", "key": "screenReader", "label": "屏幕阅读器优化", "description": "启用屏幕阅读器优化。", "kind": "BOOLEAN", "defaultValue": false },
+        { "fieldId": "stream", "key": "stream", "label": "流式响应", "description": "启用流式输出。", "kind": "BOOLEAN", "defaultValue": true }
+      ]
+    },
+    {
+      "id": "global-instructions",
+      "label": "全局指令",
+      "description": "跨项目应用的用户级指令，以原文只读展示。",
+      "path": { "kind": "FILE", "relativePath": "copilot-instructions.md" },
+      "format": "TEXT",
+      "viewKind": "TEXT",
+      "maxSizeBytes": 262144,
+      "sourceId": "instructions"
+    },
+    {
+      "id": "modular-instructions",
+      "label": "模块化指令",
+      "description": "instructions 目录中的 *.instructions.md；applyTo 等 frontmatter 按原文展示。",
+      "path": { "kind": "COLLECTION", "relativePath": "instructions", "suffix": ".instructions.md" },
+      "format": "TEXT",
+      "viewKind": "TEXT",
+      "maxSizeBytes": 262144,
+      "sourceId": "instructions"
+    },
+    {
+      "id": "application-state",
+      "label": "应用内部状态",
+      "description": "config.json 由 Copilot 自动维护，可能包含认证内容；这里只读取文件元数据。",
+      "path": { "kind": "FILE", "relativePath": "config.json" },
+      "format": "METADATA",
+      "viewKind": "METADATA",
+      "maxSizeBytes": 262144,
+      "sourceId": "configuration"
+    }
+  ]
+}

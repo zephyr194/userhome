@@ -6,6 +6,13 @@ use crate::{
     error::AppError,
 };
 
+pub(crate) fn parse_json_document(
+    format: &str,
+    content: &str,
+) -> Result<serde_json::Value, AppError> {
+    json::parse_document(format, content)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReadOnlyFormatView {
     pub content: Option<String>,

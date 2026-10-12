@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::AppError;
 
 pub mod diagnostics;
+pub mod discovery_exclusions;
 mod migration;
 mod store;
 
@@ -338,6 +339,26 @@ impl SettingsCoordinator {
 
     pub fn get(&self) -> Result<LoadedPreferences, AppError> {
         Ok(self.lock_store()?.load())
+    }
+
+    pub fn get_discovery_exclusions(
+        &self,
+    ) -> Result<discovery_exclusions::DiscoveryExclusions, AppError> {
+        self.lock_store()?.load_exclusions()
+    }
+
+    pub fn update_discovery_exclusions(
+        &self,
+        user_paths: Vec<String>,
+    ) -> Result<discovery_exclusions::DiscoveryExclusions, AppError> {
+        let store = self.lock_store()?;
+        store.load_exclusions()?;
+        let rules = discovery_exclusions::DiscoveryExclusions {
+            schema_version: 1,
+            user_paths,
+        };
+        store.save_exclusions(&rules)?;
+        Ok(rules)
     }
 
     pub fn update(&self, patch: UpdatePreferencesRequest) -> Result<LoadedPreferences, AppError> {

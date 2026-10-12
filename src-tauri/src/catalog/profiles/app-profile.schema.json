@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "只读应用配置定义",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "appId", "displayName", "root", "sources", "documents"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "appId": { "$ref": "#/$defs/id" },
+    "displayName": { "$ref": "#/$defs/text" },
+    "root": { "$ref": "#/$defs/path" },
+    "sources": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/source" } },
+    "documents": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/document" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[^\\u0000-\\u001f\\u007f]+$" },
+    "path": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))[^\\\\*?\\[\\]{}\\u0000-\\u001f\\u007f]+$", "description": "HOME 或应用根的相对路径；UTF-8 字节长度、空组件及规范化边界还由 Rust 校验。" },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "url", "gitBlobSha"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "url": { "type": "string", "maxLength": 2048, "pattern": "^https://" },
+        "gitBlobSha": { "type": "string", "pattern": "^[a-fA-F0-9]{40}$" }
+      }
+    },
+    "file": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "relativePath"],
+      "properties": { "kind": { "const": "FILE" }, "relativePath": { "$ref": "#/$defs/path" } }
+    },
+    "collection": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "relativePath", "suffix"],
+      "properties": {
+        "kind": { "const": "COLLECTION" },
+        "relativePath": { "$ref": "#/$defs/path" },
+        "suffix": { "type": "string", "minLength": 2, "maxLength": 64, "pattern": "^\\.[^/\\\\*?\\[\\]{}\\u0000-\\u001f\\u007f]+$" }
+      }
+    },
+    "field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["fieldId", "key", "label", "description", "kind"],
+      "properties": {
+        "fieldId": { "$ref": "#/$defs/id" },
+        "key": { "$ref": "#/$defs/text" },
+        "label": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" },
+        "kind": { "enum": ["STRING", "BOOLEAN", "INTEGER", "ENUM", "STRING_LIST"] },
+        "options": { "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "#/$defs/text" } },
+        "defaultValue": { "type": ["string", "boolean", "integer", "array"], "items": { "type": "string" } }
+      },
+      "description": "默认值必须匹配 kind；ENUM 必须有非空 options，其他类型不允许非空 options；秘密 key 不可展示。上述语义由 Rust 校验。"
+    },
+    "document": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "description", "path", "format", "viewKind", "maxSizeBytes", "sourceId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "label": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" },
+        "path": { "oneOf": [{ "$ref": "#/$defs/file" }, { "$ref": "#/$defs/collection" }] },
+        "format": { "enum": ["JSON", "JSONC", "TEXT", "METADATA"] },
+        "viewKind": { "enum": ["FIELDS", "TEXT", "METADATA"] },
+        "maxSizeBytes": { "type": "integer", "minimum": 1, "maximum": 262144 },
+        "sourceId": { "$ref": "#/$defs/id" },
+        "fields": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/field" } }
+      },
+      "description": "FIELDS 只能用于固定 JSON/JSONC 文件且需字段；TEXT 只能读取文本；METADATA 只能用于固定文件且不打开正文。ID、路径、字段 key 必须唯一，sourceId 必须引用已声明来源。"
+    },
+    "profileCollection": { "type": "array", "maxItems": 32, "items": { "$ref": "#" } }
+  }
+}

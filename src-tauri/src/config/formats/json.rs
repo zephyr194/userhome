@@ -9,17 +9,7 @@ pub(super) fn inspect(
     sensitivity: ConfigSensitivity,
     content: &str,
 ) -> Result<ReadOnlyFormatView, AppError> {
-    let normalized = match format {
-        "JSON" => content.to_owned(),
-        "JSONC" => normalize_jsonc(content)?,
-        _ => {
-            return Err(AppError::not_supported(
-                "JSON format capability is not supported.",
-            ));
-        }
-    };
-    let value: Value = serde_json::from_str(&normalized)
-        .map_err(|_| AppError::validation_failed("Read-only configuration JSON is invalid."))?;
+    let value = parse_document(format, content)?;
 
     if sensitivity == ConfigSensitivity::Standard {
         return Ok(ReadOnlyFormatView {
@@ -33,6 +23,20 @@ pub(super) fn inspect(
         content: Some(format_json(&redacted)?),
         redacted: redacted != value,
     })
+}
+
+pub(super) fn parse_document(format: &str, content: &str) -> Result<Value, AppError> {
+    let normalized = match format {
+        "JSON" => content.to_owned(),
+        "JSONC" => normalize_jsonc(content)?,
+        _ => {
+            return Err(AppError::not_supported(
+                "JSON format capability is not supported.",
+            ));
+        }
+    };
+    serde_json::from_str(&normalized)
+        .map_err(|_| AppError::validation_failed("Read-only configuration JSON is invalid."))
 }
 
 fn format_json(value: &Value) -> Result<String, AppError> {

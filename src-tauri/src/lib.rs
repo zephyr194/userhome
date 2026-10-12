@@ -91,6 +91,11 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            commands::application_config::get_configuration_apps,
+            commands::application_config::list_configuration_resources,
+            commands::application_config::read_configuration_resource,
+            commands::settings::get_discovery_exclusions,
+            commands::settings::update_discovery_exclusions,
             commands::catalog::list_managed_apps,
             commands::catalog::query_managed_apps,
             commands::catalog::get_managed_app,
