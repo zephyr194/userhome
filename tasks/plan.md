@@ -1128,3 +1128,43 @@ exists.
   feature-owned TSX; shared CSS changes are serialized.
 - Every task runs focused tests, then lint/typecheck/build. T123 runs the full
   gates; T124 remains a separate foreground/manual gate.
+
+## 2026-10-12 UI Visual and Interaction v4
+
+Status: Approved for incremental execution on 2026-10-12. This extension records
+T125–T140 and preserves all T01–T124 evidence and blockers.
+
+- [x] T125 v4 spec/baseline
+- T126 Applications Tabs and local selection keyboard contract
+- T127 refresh feedback and Brew discovery error mapping
+- T128 route focus, regions, live regions and pane tab stops
+- T129 shared Headless UI form/action primitives
+- T130 warm-gray amber tokens, zero-outline focus and low-border shared UI
+- T131 unified Modal/ConfirmDialog and selection adapters
+- T132 Settings Headless UI migration
+- T133 Applications Headless UI migration
+- T134 Schema/specialized editor Headless UI migration
+- T135 Homebrew/Services Headless UI migration
+- T136 business-layer native-control gate
+- T137 low-border Shell/Dashboard migration
+- T138 resource-route migration and compat removal
+- T139 interaction, visual and full automated gates
+- T140 foreground/manual acceptance
+
+Dependency order:
+
+```text
+T125 -> T126 / T127 / T128 / T129 / T130
+T129 + T130 -> T131
+T126 + T129 + T131 -> T133 / T135
+T129 + T131 -> T132
+T129 -> T134
+T132 + T133 + T134 + T135 -> T136
+T130 + T136 -> T137 -> T138
+T127 + T128 + T131 + T138 -> T139 -> T140
+```
+
+Shared CSS, UI adapters, AppShell/routes, E2E and documentation have one serial
+owner. Business-level `<form>` remains allowed; direct field/button elements do
+not. No dependency, filesystem/process authority, catalog/configuration safety,
+or release permission changes are authorized.

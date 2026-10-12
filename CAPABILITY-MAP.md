@@ -2,6 +2,18 @@
 
 Status: Initial map approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21; configuration-discovery-and-editing revision approved on 2026-09-22
 
+## Visual and interaction v4 (approved on 2026-10-12)
+
+| Module | Responsibility | Depends on |
+|---|---|---|
+| `visual-system-v4` | Warm-gray amber tokens, low-border hierarchy, zero-outline focus, shared Headless UI controls | existing v3 shell and routes |
+| `interaction-correction-v4` | Tabs/selection keyboard contracts, refresh/error feedback, route focus, live regions, Modal and pane tab order | `visual-system-v4` |
+| `headless-form-migration-v4` | Remove direct business-level native fields/buttons while preserving form, FormData, reset and secret safety | `visual-system-v4` |
+| `visual-acceptance-v4` | Automated and foreground evidence; blocked manual gates remain open | all v4 modules |
+
+Specification: [`SPEC-visual-system-v4.md`](docs/specs/SPEC-visual-system-v4.md). Tasks: T125–T140.
+No dependency or product-authority expansion is authorized.
+
 ## General UI correction (approved on 2026-10-10)
 
 This correction restores home-configuration recognition as the primary product task, completes the layout migration across every primary route, and defines one visual system without forcing a single appearance.

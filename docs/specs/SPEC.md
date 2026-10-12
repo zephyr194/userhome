@@ -1,6 +1,15 @@
 # Spec: UserHome
 
-Status: Approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21; configuration-discovery-and-editing revision approved on 2026-09-22; native visual redesign approved on 2026-09-23; general UI correction approved on 2026-10-10
+Status: Approved on 2026-09-20; desktop-completeness revision approved on 2026-09-21; configuration-discovery-and-editing revision approved on 2026-09-22; native visual redesign approved on 2026-09-23; general UI correction approved on 2026-10-10; visual and interaction v4 approved on 2026-10-12
+
+## 2026-10-12 顶层视觉与交互 v4（已审批）
+
+本修订采用暖灰琥珀语义色，减少被动容器和资源行的边框噪音，统一尺寸、圆角与间距，
+将业务层字段和动作迁移到共享 Headless UI 2.2.10 原语，并以 box-shadow/伪元素替代作者
+outline 焦点。详细合同见 [`SPEC-visual-system-v4.md`](SPEC-visual-system-v4.md)。
+
+本修订不改变用户目录配置识别优先级、业务流程或任何文件/命令/提权权限；T124、T109
+及发布 NO-GO 保持原状态。实施任务为 T125–T140。
 
 ## 2026-10-10 一般版本 UI 纠偏（已审批）
 

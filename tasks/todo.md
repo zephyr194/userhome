@@ -4533,3 +4533,80 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 - [ ] T110–T124 具有实际实现与验证证据。
 - [ ] 五路由和用户目录配置状态矩阵无阻断性缺陷。
 - [ ] T103/T109 与签名、公证、CI、硬件门禁未被错误关闭。
+
+## Phase 34：UI 顶层视觉与交互 v4
+
+## T125：建立权威 v4 规格和受保护基线
+
+**状态：**2026-10-12 已完成。
+
+**目标：**登记暖灰琥珀、低边框、Headless UI 和零作者 outline 的权威合同。
+
+**验收：**
+- [x] v4 规格明确替代冲突视觉条款，不改变业务与安全权限。
+- [x] T125–T140 依赖与共享文件边界已登记。
+- [x] 保护文件哈希不变；基线检查真实记录。
+
+**验证：**规格/任务断言、Markdown 链接、`git diff --check`、`pnpm check`。
+**依赖：**T124 保持 blocked，不要求其完成。
+**规模：**S。
+
+**T125 实施证据（2026-10-12）：**
+
+- RED：v4 规格/任务登记断言因 `SPEC-visual-system-v4.md` 不存在而失败；GREEN 后 v4 规格及 T125–T140 均可解析。
+- 新规格记录暖灰琥珀 token、表面/边框预算、统一尺寸、Headless UI 业务禁令和零作者 outline 焦点合同；总规格与能力图同步登记，不改变产品权限。
+- 基线 `pnpm check` 通过：42 个前端测试文件/196 项、Rust 93 项库测试+22 项集成测试、fmt 与严格 Clippy 全绿；保留一条 Dashboard Fast Refresh warning。
+- 103 个本地 Markdown 链接与 `git diff --check` 通过。保护文件 SHA-256：`package.json` `b7fae9a…5b77`、`pnpm-lock.yaml` `15e323c…525`、`.nvmrc` `73fb1b6…761f`、`.taurignore` `821882b…f7c6`，均未改变。
+
+## T126：修复 Applications Tabs 与本机列表键盘合同
+**状态：**待执行。
+
+## T127：修复刷新、错误映射和全局反馈
+**状态：**待执行。
+
+## T128：修复路由焦点、Region、Live Region 和无意义 Tab stop
+**状态：**待执行。
+
+## Phase 35：共享 Headless UI 与视觉基础
+
+## T129：建立 Headless UI 表单与动作原语
+**状态：**待执行。
+
+## T130：重建暖灰琥珀 token、focus 与共享低边框组件
+**状态：**待执行。
+
+## T131：统一 Modal/ConfirmDialog 与选择控件基础
+**状态：**待执行。
+
+## Phase 36：逐模块 Headless UI 迁移
+
+## T132：迁移 Settings 与设置侧栏
+**状态：**待执行。
+
+## T133：迁移 Applications filters、scope 与配置选择器
+**状态：**待执行。
+
+## T134：迁移 Schema 与专用配置编辑器
+**状态：**待执行。
+
+## T135：迁移 Homebrew 与 Services 字段和资源行
+**状态：**待执行。
+
+## T136：业务层零直接原生交互元素门禁
+**状态：**待执行。
+
+## Phase 37：去线条视觉迁移与兼容层删除
+
+## T137：迁移 Shell/Dashboard 到低边框层级
+**状态：**待执行。
+
+## T138：迁移资源路由并删除 compat
+**状态：**待执行。
+
+## Phase 38：自动化与人工验收
+
+## T139：真实交互与视觉自动门禁
+**状态：**待执行。
+
+## T140：前台人工矩阵与发布状态
+**状态：**待执行；无法取得真人前台能力时保持 Blocked。
