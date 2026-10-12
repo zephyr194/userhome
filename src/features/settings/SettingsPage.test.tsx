@@ -59,7 +59,7 @@ describe("settings page list/detail reference layout", () => {
     const markup = render("appearance");
 
     expect(SETTINGS_GROUPS).toHaveLength(7);
-    expect(markup.match(/role="option"/g) ?? []).toHaveLength(7);
+    expect(markup.match(/role="tab"/g) ?? []).toHaveLength(7);
     for (const group of SETTINGS_GROUPS) {
       expect(markup).toContain(group.label);
     }
@@ -67,8 +67,9 @@ describe("settings page list/detail reference layout", () => {
     // Selection is restored purely from the selectedGroup prop.
     expect(markup.match(/aria-selected="true"/g) ?? []).toHaveLength(1);
     expect(markup).toMatch(
-      /id="settings-group-appearance"[^>]*aria-selected="true"/,
+      /id="settings-group-appearance"[^>]*role="tab"[^>]*aria-selected="true"/,
     );
+    expect(markup).toContain('role="tabpanel"');
 
     const list = tokensForClass(markup, "settings-pane__groups");
     expect(list).toContain("min-h-0");
@@ -96,10 +97,12 @@ describe("settings page list/detail reference layout", () => {
   it("offers the appearance group as a three-way choice", () => {
     const markup = render("appearance");
 
-    expect(markup.match(/name="appearance"/g) ?? []).toHaveLength(3);
-    expect(markup).toContain('value="SYSTEM"');
-    expect(markup).toContain('value="LIGHT"');
-    expect(markup).toContain('value="DARK"');
+    expect(markup).toContain('role="radiogroup"');
+    expect(markup.match(/role="radio"/g) ?? []).toHaveLength(3);
+    expect(markup).toContain("系统");
+    expect(markup).toContain("浅色");
+    expect(markup).toContain("深色");
+    expect(markup.match(/aria-checked="true"/g) ?? []).toHaveLength(1);
   });
 
   it("keeps the dangerous reset action reachable", () => {

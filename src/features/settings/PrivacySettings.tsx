@@ -4,14 +4,8 @@ import type {
   UpdatePreferencesRequest,
   UserPreferences,
 } from "../../ipc/settings";
-import {
-  SettingsChoice,
-  SettingsChoiceGroup,
-  SettingsFeedback,
-  SettingsFieldList,
-  SettingsForm,
-  SettingsValueField,
-} from "./SettingsPrimitives";
+import { CheckboxField } from "../../components/ui";
+import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsValueField } from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 const ROOTS: readonly {
@@ -82,29 +76,13 @@ export function PrivacySettings({
 
   return (
     <SettingsForm busy={form.saving || refreshing}>
-      <SettingsChoiceGroup
-        disabled={form.saving || refreshing}
-        legend="元数据发现根"
-        description="只读取一层目录项名称、类型和修改时间；不会读取候选配置内容，也不接受自定义路径。"
-      >
+      <fieldset className="grid min-w-0 gap-ui-lg" disabled={form.saving || refreshing}>
+        <legend className="text-group font-semibold">元数据发现根</legend>
+        <p className="m-0 text-aux text-muted-foreground">只读取一层目录项名称、类型和修改时间；不会读取候选配置内容，也不接受自定义路径。</p>
         {ROOTS.map((root) => (
-          <SettingsChoice
-            key={root.id}
-            label={root.label}
-            description={root.description}
-          >
-            <input
-              className="mt-ui-xxs size-4 shrink-0 accent-primary"
-              type="checkbox"
-              checked={form.values.optionalDiscoveryRoots.includes(root.id)}
-              disabled={form.saving || refreshing}
-              onChange={(event) =>
-                void toggleRoot(root.id, event.currentTarget.checked)
-              }
-            />
-          </SettingsChoice>
+          <CheckboxField key={root.id} label={root.label} description={root.description} checked={form.values.optionalDiscoveryRoots.includes(root.id)} disabled={form.saving || refreshing} onCheckedChange={(checked) => void toggleRoot(root.id, checked)} />
         ))}
-      </SettingsChoiceGroup>
+      </fieldset>
 
       <SettingsFieldList>
         <SettingsValueField

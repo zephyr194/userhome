@@ -4612,8 +4612,16 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 ## Phase 36：逐模块 Headless UI 迁移
 
 ## T132：迁移 Settings 与设置侧栏
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] Settings sidebar 使用受控 vertical Headless Tabs/TabPanel。
+- [x] General/Refresh 使用 Switch/Select，Privacy 使用 Checkbox，Appearance/Configuration/Backup 使用 RadioGroup。
+- [x] Settings 业务目录零直接 input/select/textarea/button。
+- [x] 异步保存、三主题、隐私刷新、备份清理和重置边界保留。
+
+**证据：**Settings+forms 定向 4 文件/16 项、scoped lint/typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从30降至19。Headless Tabs 的真实方向键与表单序列化留 T139 WDIO。
 ## T133：迁移 Applications filters、scope 与配置选择器
 **状态：**待执行。
 

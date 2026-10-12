@@ -4,12 +4,8 @@ import type {
   UserPreferences,
 } from "../../ipc/settings";
 import { BackupSettings } from "./BackupSettings";
-import {
-  SettingsChoice,
-  SettingsChoiceGroup,
-  SettingsFeedback,
-  SettingsForm,
-} from "./SettingsPrimitives";
+import { RadioCardGroup } from "../../components/ui";
+import { SettingsFeedback, SettingsForm } from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 export function ConfigurationSettings({
@@ -23,50 +19,18 @@ export function ConfigurationSettings({
 
   return (
     <SettingsForm busy={form.saving}>
-      <SettingsChoiceGroup
-        disabled={form.saving}
-        legend="首选编辑器模式"
+      <RadioCardGroup
+        label="首选编辑器模式"
         description="仅在 catalog 授权相应能力时显示编辑器；此偏好不会授予新的配置写入权限。"
-      >
-        {(
-          [
-            [
-              "STRUCTURED",
-              "结构化",
-              "优先使用受约束字段编辑器，必要时回退到 raw。",
-            ],
-            [
-              "RAW",
-              "Raw",
-              "显式选择文本编辑器；仍保留预览、确认与写入策略。",
-            ],
-          ] as const satisfies readonly [
-            PreferredEditorMode,
-            string,
-            string,
-          ][]
-        ).map(([value, label, description]) => (
-          <SettingsChoice
-            key={value}
-            label={label}
-            description={description}
-          >
-            <input
-              className="mt-ui-xxs size-4 shrink-0 accent-primary"
-              type="radio"
-              name="preferred-editor-mode"
-              value={value}
-              checked={form.values.preferredEditorMode === value}
-              disabled={form.saving}
-              onChange={() =>
-                void form.update("首选编辑器模式", {
-                  preferredEditorMode: value,
-                })
-              }
-            />
-          </SettingsChoice>
-        ))}
-      </SettingsChoiceGroup>
+        name="preferred-editor-mode"
+        value={form.values.preferredEditorMode}
+        disabled={form.saving}
+        options={[
+          { value: "STRUCTURED", label: "结构化", description: "优先使用受约束字段编辑器，必要时回退到 raw。" },
+          { value: "RAW", label: "Raw", description: "显式选择文本编辑器；仍保留预览、确认与写入策略。" },
+        ]}
+        onValueChange={(preferredEditorMode) => void form.update("首选编辑器模式", { preferredEditorMode: preferredEditorMode as PreferredEditorMode })}
+      />
 
       <BackupSettings
         onChange={onChange}

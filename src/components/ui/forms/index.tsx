@@ -356,11 +356,6 @@ export function RadioCardGroup<T extends string>({
       <Legend className="text-group font-semibold text-foreground">
         {label}
       </Legend>
-      {description ? (
-        <Description className="text-aux text-muted-foreground">
-          {description}
-        </Description>
-      ) : null}
       <RadioGroup
         className="grid min-w-0 gap-ui-sm sm:grid-cols-2"
         defaultValue={defaultValue}
@@ -370,6 +365,11 @@ export function RadioCardGroup<T extends string>({
         onChange={onValueChange}
         value={value}
       >
+        {description ? (
+          <Description className="text-aux text-muted-foreground sm:col-span-2">
+            {description}
+          </Description>
+        ) : null}
         {options.map((option) => (
           <Radio
             key={option.value}
@@ -385,12 +385,15 @@ export function RadioCardGroup<T extends string>({
             ) : null}
           </Radio>
         ))}
+        {error ? (
+          <Description
+            className="text-aux text-danger sm:col-span-2"
+            role="alert"
+          >
+            {error}
+          </Description>
+        ) : null}
       </RadioGroup>
-      {error ? (
-        <Description className="text-aux text-danger" role="alert">
-          {error}
-        </Description>
-      ) : null}
     </Fieldset>
   );
 }

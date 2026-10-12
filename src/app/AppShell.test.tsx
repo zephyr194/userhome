@@ -115,9 +115,10 @@ describe("AppShell", () => {
       />,
     );
 
-    expect(markup).toContain('value="SYSTEM"');
+    expect(markup.match(/role="radio"/g) ?? []).toHaveLength(3);
+    expect(markup.match(/aria-checked="true"/g) ?? []).toHaveLength(1);
+    expect(markup).toContain('name="appearance"');
     expect(markup).toContain('value="LIGHT"');
-    expect(markup).toContain('value="DARK"');
     expect(markup).toContain("系统");
     expect(markup).toContain("浅色");
     expect(markup).toContain("深色");

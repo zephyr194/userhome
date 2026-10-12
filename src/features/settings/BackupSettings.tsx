@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Panel, StatusBadge } from "../../components/ui";
+import { Button, Panel, RadioCardGroup, StatusBadge } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import type {
   OperationDetails,
@@ -16,8 +16,6 @@ import {
 } from "../../ipc/settings";
 import {
   SettingsActions,
-  SettingsChoice,
-  SettingsChoiceGroup,
   SettingsConfirmationDialog,
   SettingsFeedback,
   SettingsSection,
@@ -208,29 +206,15 @@ export function BackupSettings({
         headingId="backup-heading"
       />
 
-      <SettingsChoiceGroup
-        disabled={busy || previewing || pendingRetention !== undefined}
-        legend="每个配置保留"
+      <RadioCardGroup
+        label="每个配置保留"
         description="降低数量后会立即移除超出上限的最旧备份。"
-      >
-        {RETENTION_OPTIONS.map(([value, label, description]) => (
-          <SettingsChoice
-            key={value}
-            label={label}
-            description={description}
-          >
-            <input
-              className="mt-ui-xxs size-4 shrink-0 accent-primary"
-              type="radio"
-              name="backup-retention"
-              value={value}
-              checked={selectedRetention === value}
-              disabled={pendingRetention !== undefined}
-              onChange={() => void changeRetention(value)}
-            />
-          </SettingsChoice>
-        ))}
-      </SettingsChoiceGroup>
+        name="backup-retention"
+        value={String(selectedRetention)}
+        disabled={busy || previewing || pendingRetention !== undefined}
+        options={RETENTION_OPTIONS.map(([value, label, description]) => ({ value: String(value), label, description }))}
+        onValueChange={(value) => void changeRetention(Number(value) as BackupRetention)}
+      />
 
       <Panel
         className="bg-surface-muted p-ui-2xl"

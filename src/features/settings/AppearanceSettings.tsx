@@ -1,13 +1,8 @@
 import { useRef, useState } from "react";
 import { decodeAppError } from "../../ipc/core";
 import type { Appearance } from "../../ipc/settings";
-import {
-  SettingsChoiceGroup,
-  SettingsFeedback,
-  SettingsFieldList,
-  SettingsForm,
-  SettingsValueField,
-} from "./SettingsPrimitives";
+import { RadioCardGroup } from "../../components/ui";
+import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsValueField } from "./SettingsPrimitives";
 
 interface AppearanceOption {
   description: string;
@@ -84,37 +79,15 @@ export function AppearanceSettings({
 
   return (
     <SettingsForm busy={saving}>
-      <SettingsChoiceGroup
-        disabled={saving}
-        legend="外观模式"
+      <RadioCardGroup
+        label="外观模式"
         description="选择系统、浅色或深色语义颜色；保存后立即应用。"
-      >
-        <div className="appearance-settings__options">
-          {APPEARANCE_OPTIONS.map((option) => (
-            <label key={option.value} className="appearance-option">
-              <input
-                type="radio"
-                name="appearance"
-                value={option.value}
-                checked={selectedAppearance === option.value}
-                disabled={saving}
-                onChange={() => void selectAppearance(option.value)}
-              />
-              <span className="appearance-option__card">
-                <span
-                  aria-hidden="true"
-                  className={`appearance-option__preview appearance-option__preview--${option.value.toLowerCase()}`}
-                >
-                  <span />
-                  <span />
-                </span>
-                <strong>{option.label}</strong>
-                <span>{option.description}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </SettingsChoiceGroup>
+        name="appearance"
+        value={selectedAppearance}
+        disabled={saving}
+        options={APPEARANCE_OPTIONS}
+        onValueChange={(value) => void selectAppearance(value)}
+      />
 
       <SettingsFeedback
         error={error ? `无法保存外观：${error}` : undefined}
