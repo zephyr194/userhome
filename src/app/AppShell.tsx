@@ -263,6 +263,43 @@ export function AppShell({
       </ShellNotice>
     ) : undefined;
 
+  // A failed refresh stays visible as a persistent alert with one unified
+  // retry action. When the discovery error still holds a previous snapshot,
+  // the copy states plainly that previously loaded data is retained.
+  const refreshNotice =
+    state.refresh.status === "error" ? (
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
+        role="alert"
+      >
+        <StatusBadge className="shrink-0" tone="danger">
+          刷新未完成
+        </StatusBadge>
+        <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-danger">
+          {state.refresh.message}
+          {state.discovery.status === "error" &&
+          state.discovery.previousSnapshot
+            ? " 已保留上次成功加载的数据。"
+            : ""}
+        </p>
+        <Button className="shrink-0" size="sm" onClick={onRefresh}>
+          重试
+        </Button>
+      </div>
+    ) : state.refresh.status === "ready" ? (
+      <div
+        className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
+        role="status"
+      >
+        <StatusBadge className="shrink-0" tone="success">
+          已刷新
+        </StatusBadge>
+        <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-muted-foreground">
+          本机状态已刷新。
+        </p>
+      </div>
+    ) : undefined;
+
   return (
     <>
       <a className="skip-link" href="#main-content">
@@ -289,7 +326,7 @@ export function AppShell({
             />
           }
           banner={
-            commandError || preferencesNotice ? (
+            commandError || preferencesNotice || refreshNotice ? (
               <div className="divide-y divide-border">
                 {commandError ? (
                   <ShellNotice label="命令不可用" role="alert" tone="danger">
@@ -297,6 +334,7 @@ export function AppShell({
                   </ShellNotice>
                 ) : null}
                 {preferencesNotice}
+                {refreshNotice}
               </div>
             ) : undefined
           }

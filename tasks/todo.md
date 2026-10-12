@@ -4562,8 +4562,15 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 **状态：**待执行。
 
 ## T127：修复刷新、错误映射和全局反馈
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] 全局刷新失败以持久 alert 显示失败、旧数据说明和统一重试。
+- [x] 刷新成功以 status 播报，不冒充 alert。
+- [x] Homebrew discovery ready/loading/error/stale 四态正确，终态不再映射为无限 Loading。
+
+**证据：**RED 后新增 selector 与 Shell 断言；GREEN 定向 17 项、scoped lint、typecheck、完整 44 文件/207 项测试与 build 通过。错误且有 previous snapshot 时保留原 Brew module 和 refreshId；首次失败无 snapshot 时明确 ERROR。未改变 provider 权限或业务操作。
 ## T128：修复路由焦点、Region、Live Region 和无意义 Tab stop
 **状态：**待执行。
 

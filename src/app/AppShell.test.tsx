@@ -181,4 +181,152 @@ describe("AppShell", () => {
     expect(markup).toContain("安全默认值");
     expect(markup).toContain("偏好设置无效，已启用安全默认值。");
   });
+
+  it("renders a persistent refresh-failure alert with a unified retry action", () => {
+    const state: ShellState = {
+      ...loadingState,
+      refresh: {
+        status: "error",
+        message: "刷新完成，但部分信息不可用。",
+      },
+    };
+
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={state}
+      />,
+    );
+
+    expect(markup).toContain('role="alert"');
+    expect(markup).toContain("刷新未完成");
+    expect(markup).toContain("刷新完成，但部分信息不可用。");
+    const alertRegion = markup.match(
+      /<div[^>]*role="alert"[\s\S]*?<\/div>/,
+    )?.[0];
+    expect(alertRegion).toContain("重试");
+    expect(alertRegion).toContain(">重试</button>");
+  });
+
+  it("states plainly that previous data is retained when a snapshot survives a failed refresh", () => {
+    const state: ShellState = {
+      ...loadingState,
+      discovery: {
+        status: "error",
+        error: {
+          code: "INTERNAL",
+          message: "刷新失败。",
+          retryable: true,
+        },
+        previousSnapshot: {
+          refreshId: "refresh-1",
+          startedAtEpochMs: 1,
+          system: { status: "LOADING" },
+          brew: { status: "LOADING" },
+          candidates: { status: "LOADING" },
+        },
+      },
+      refresh: { status: "error", message: "刷新失败。" },
+    };
+
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={state}
+      />,
+    );
+
+    expect(markup).toContain('role="alert"');
+    expect(markup).toContain("已保留上次成功加载的数据。");
+  });
+
+  it("announces a completed refresh as a quiet status rather than an alert", () => {
+    const state: ShellState = {
+      ...loadingState,
+      refresh: {
+        status: "ready",
+        completedAt: "2026-09-20T09:30:00Z",
+      },
+    };
+
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={state}
+      />,
+    );
+
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain("本机状态已刷新。");
+    expect(markup).not.toContain('role="alert"');
+  });
+
+  it("keeps the previous Homebrew inventory visible when a refresh fails", () => {
+    const state: ShellState = {
+      applications: { status: "loading" },
+      connection: { status: "loading" },
+      discovery: {
+        status: "error",
+        error: {
+          code: "INTERNAL",
+          message: "刷新失败。",
+          retryable: true,
+        },
+        previousSnapshot: {
+          refreshId: "refresh-1",
+          startedAtEpochMs: 1,
+          system: { status: "LOADING" },
+          brew: {
+            status: "READY",
+            data: {
+              available: true,
+              version: "4.0.0",
+              prefix: "/opt/homebrew",
+              formulaCount: 12,
+              caskCount: 4,
+            },
+          },
+          candidates: { status: "LOADING" },
+        },
+      },
+      preferences: {
+        status: "ready",
+        preferences: {
+          schemaVersion: 1,
+          appearance: "SYSTEM",
+          openWindowOnLaunch: true,
+          closeBehavior: "KEEP_RUNNING_IN_TRAY",
+          restoreSelection: true,
+          refreshOnLaunch: true,
+          refreshOnReopen: true,
+          providerTimeoutPreset: "STANDARD",
+          preferredEditorMode: "STRUCTURED",
+          backupRetention: 20,
+          optionalDiscoveryRoots: [],
+        },
+      },
+      recentOperation: { status: "empty" },
+      refresh: { status: "error", message: "刷新失败。" },
+    };
+    vi.stubGlobal("localStorage", {
+      getItem: () =>
+        JSON.stringify({ routeId: "homebrew", settingsGroup: "appearance" }),
+      removeItem: () => undefined,
+    });
+
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={state}
+      />,
+    );
+
+    expect(markup).toContain("Formula 12");
+    expect(markup).toContain("Cask 4");
+    expect(markup).toContain("正在显示上次成功刷新保留的 Homebrew 数据。");
+  });
 });
