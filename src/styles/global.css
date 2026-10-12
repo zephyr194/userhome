@@ -30,6 +30,11 @@
   --color-control-border: var(--app-control-border);
   --color-tertiary-foreground: var(--app-tertiary-foreground);
   --color-backdrop: var(--app-backdrop);
+  --color-accent-text: var(--app-accent-text);
+  --color-success-text: var(--app-success-text);
+  --color-warning-text: var(--app-warning-text);
+  --color-danger-text: var(--app-danger-text);
+  --shadow-focus: 0 0 0 2px var(--app-focus-gap), 0 0 0 4px var(--app-focus-ring);
   --font-sans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
@@ -71,62 +76,58 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --app-canvas: #f5f6f8;
-  --app-surface: #ffffff;
-  --app-surface-muted: #f2f5f9;
-  --app-surface-raised: #ffffff;
-  --app-border: #7f8b9c;
-  --app-control-border: #5b6b7e;
-  --app-foreground: #17212e;
-  --app-muted-foreground: #536174;
-  --app-tertiary-foreground: #6b7a8d;
-  --app-primary: #1663b7;
-  --app-primary-hover: #12529b;
-  --app-primary-soft: #e9f2ff;
-  --app-primary-foreground: #ffffff;
-  --app-success: #206d48;
-  --app-warning: #8b5d0a;
-  --app-danger: #ad2932;
-  --app-danger-hover: #92202b;
-  --app-danger-foreground: #ffffff;
-  --app-focus-ring: #1765b4;
-  --app-sidebar: #edf1f5;
-  --app-sidebar-foreground: #344457;
-  --app-sidebar-hover: #dce6f2;
+  --app-canvas: #F5F1EA;
+  --app-surface: #FCFAF6;
+  --app-surface-muted: #F0EAE2;
+  --app-surface-raised: #FFFFFF;
+  --app-border: #D8CEC1;
+  --app-control-border: #948678;
+  --app-foreground: #29241E;
+  --app-muted-foreground: #746A5E;
+  --app-tertiary-foreground: #746A5E;
+  --app-primary: #B65C24;
+  --app-accent-text: #A94F1F;
+  --app-success-text: #2B744F;
+  --app-warning-text: #8C5F12;
+  --app-danger-text: #B33A3A;
+  --app-line-subtle: #D8CEC1;
+  --app-focus-gap: #FCFAF6;
+  --app-shadow-raised: 0 18px 50px rgb(41 36 30 / 0.18);
+  --app-shadow-sticky: 0 -8px 20px rgb(41 36 30 / 0.08);
+  --app-primary-hover: #994619;
+  --app-primary-soft: #F3E3D7;
+  --app-primary-foreground: #FFFFFF;
+  --app-success: #2B744F;
+  --app-warning: #8C5F12;
+  --app-danger: #B33A3A;
+  --app-danger-hover: #962F2F;
+  --app-danger-foreground: #FFFFFF;
+  --app-focus-ring: #B65C24;
+  --app-sidebar: #EFE9E0;
+  --app-sidebar-foreground: #5E554B;
+  --app-sidebar-hover: #E7DDD1;
   --app-selection: var(--app-primary-soft);
-  --app-selection-foreground: #16579e;
-  --app-selection-border: #6087b4;
-  --app-backdrop: rgb(23 33 46 / 0.45);
-  --app-scrollbar-thumb: #b6c0cc;
-  --app-scrollbar-thumb-hover: #94a2b3;
+  --app-selection-foreground: #A94F1F;
+  --app-selection-border: #B65C24;
+  --app-backdrop: rgb(41 36 30 / 0.45);
+  --app-scrollbar-thumb: #C8BCAE;
+  --app-scrollbar-thumb-hover: #A99989;
   --app-sidebar-current-foreground: var(--app-selection-foreground);
   --app-sidebar-current-border: var(--app-selection-border);
-  --app-success-soft: color-mix(
-    in srgb,
-    var(--app-success) 10%,
-    transparent
-  );
+  --app-success-soft: #E2EEE7;
   --app-success-border: var(--app-success);
-  --app-warning-soft: color-mix(
-    in srgb,
-    var(--app-warning) 10%,
-    transparent
-  );
+  --app-warning-soft: #F2E8D2;
   --app-warning-border: var(--app-warning);
-  --app-danger-soft: color-mix(
-    in srgb,
-    var(--app-danger) 10%,
-    transparent
-  );
+  --app-danger-soft: #F5DFDC;
   --app-danger-border: var(--app-danger);
-  --app-preview-light-canvas: #f5f6f8;
-  --app-preview-light-surface: #ffffff;
-  --app-preview-light-sidebar: #edf1f5;
-  --app-preview-light-border: #7f8b9c;
-  --app-preview-dark-canvas: #171c24;
-  --app-preview-dark-surface: #202732;
-  --app-preview-dark-sidebar: #1b222d;
-  --app-preview-dark-border: #687b93;
+  --app-preview-light-canvas: #F5F1EA;
+  --app-preview-light-surface: #FFFFFF;
+  --app-preview-light-sidebar: #EFE9E0;
+  --app-preview-light-border: #D8CEC1;
+  --app-preview-dark-canvas: #171512;
+  --app-preview-dark-surface: #211E1A;
+  --app-preview-dark-sidebar: #1B1815;
+  --app-preview-dark-border: #4F473E;
   --app-viewport-width: 1120px;
   --app-viewport-height: 720px;
   --app-titlebar-height: 52px;
@@ -143,11 +144,11 @@
   --app-space-xl: 12px;
   --app-space-2xl: 16px;
   --app-space-3xl: 20px;
-  --app-radius-control: 7px;
-  --app-radius-panel: 10px;
+  --app-radius-control: 8px;
+  --app-radius-panel: 12px;
   --app-control-height-sm: 32px;
   --app-control-height-md: 36px;
-  --app-status-badge-height: 24px;
+  --app-status-badge-height: 22px;
   --app-row-height-compact: 36px;
   --app-row-height-standard: 40px;
   --app-row-height-two-line: 52px;
@@ -238,9 +239,14 @@ a {
   color: inherit;
 }
 
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]):focus {
+  outline: none;
+}
+
 :focus-visible {
-  outline: var(--app-focus-ring-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-offset);
+  box-shadow:
+    0 0 0 2px var(--app-focus-gap),
+    0 0 0 4px var(--app-focus-ring);
 }
 
 .skip-link {
@@ -373,13 +379,11 @@ a {
 
 .navigation-rail a:focus:not(:focus-visible),
 .settings-group-row:focus:not(:focus-visible) {
-  outline: none;
 }
 
 .navigation-rail a:focus-visible,
 .settings-group-row:focus-visible {
-  outline: var(--app-focus-ring-inset-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-inset-offset);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .navigation-rail a[aria-current="page"] {
@@ -487,8 +491,7 @@ a {
 .desktop-workspace__detail:focus-visible,
 .desktop-workspace__inspector:focus-visible,
 .desktop-workspace__operation-progress:focus-visible {
-  outline: var(--app-focus-ring-inset-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-inset-offset);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .desktop-workspace__list {
@@ -717,8 +720,7 @@ a {
 }
 
 .dashboard-applications summary:focus-visible {
-  outline: var(--app-focus-ring-inset-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-inset-offset);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .dashboard-application-rows,
@@ -976,8 +978,7 @@ a {
 .applications-workspace__row:focus-visible {
   position: relative;
   z-index: 2;
-  outline: var(--app-focus-ring-width) solid var(--app-focus-ring);
-  outline-offset: calc(-1 * var(--app-focus-ring-width));
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .config-workspace {
@@ -1075,8 +1076,7 @@ a {
 }
 
 .config-workspace__support > summary:focus-visible {
-  outline: var(--app-focus-ring-inset-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-inset-offset);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .config-workspace__presets > summary {
@@ -1088,8 +1088,7 @@ a {
 }
 
 .config-workspace__presets > summary:focus-visible {
-  outline: var(--app-focus-ring-inset-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-inset-offset);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .config-workspace__pane-heading {
@@ -1399,8 +1398,7 @@ a {
 .brew-inventory-row:focus-visible {
   position: relative;
   z-index: 2;
-  outline: var(--app-focus-ring-width) solid var(--app-focus-ring);
-  outline-offset: calc(-1 * var(--app-focus-ring-width));
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .services-inventory-row {
@@ -1434,13 +1432,11 @@ a {
 .services-inventory-row:focus-visible {
   position: relative;
   z-index: 2;
-  outline: var(--app-focus-ring-width) solid var(--app-focus-ring);
-  outline-offset: calc(-1 * var(--app-focus-ring-width));
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .settings-pane__tab:focus-visible {
-  outline: var(--app-focus-ring-inset-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-inset-offset);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 @media (max-width: 767px) {
@@ -1784,8 +1780,7 @@ a {
 }
 
 .appearance-option input:focus-visible + .appearance-option__card {
-  outline: var(--app-focus-ring-width) solid var(--app-focus-ring);
-  outline-offset: var(--app-focus-ring-offset);
+  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .appearance-option__preview {
@@ -2079,33 +2074,44 @@ a {
   color: var(--app-foreground);
   background: var(--app-canvas);
   color-scheme: dark;
-  --app-canvas: #171c24;
-  --app-surface: #202732;
-  --app-surface-muted: #28313e;
-  --app-border: #687b93;
-  --app-foreground: #edf2f9;
-  --app-muted-foreground: #b0bfd0;
-  --app-primary: #82baff;
-  --app-primary-hover: #a5ceff;
-  --app-primary-soft: #263d58;
-  --app-primary-foreground: #17212e;
-  --app-success: #7ad9a9;
-  --app-warning: #ffd077;
-  --app-danger: #ff9c9e;
-  --app-danger-hover: #ffb2b4;
-  --app-danger-foreground: #17212e;
-  --app-focus-ring: #91c7ff;
-  --app-sidebar: #1b222d;
-  --app-sidebar-foreground: #d2dce9;
-  --app-sidebar-hover: #283545;
-  --app-selection-foreground: #b6d7ff;
-  --app-selection-border: #719ed1;
-  --app-surface-raised: #182432;
-  --app-control-border: #566a84;
-  --app-tertiary-foreground: #8797aa;
-  --app-backdrop: rgb(0 0 0 / 0.6);
-  --app-scrollbar-thumb: #39495d;
-  --app-scrollbar-thumb-hover: #566a84;
+  --app-canvas: #171512;
+  --app-surface: #211E1A;
+  --app-surface-muted: #2A2621;
+  --app-border: #4F473E;
+  --app-foreground: #F3ECE2;
+  --app-muted-foreground: #B8ADA0;
+  --app-primary: #F0A060;
+  --app-accent-text: #F0A060;
+  --app-success-text: #65C894;
+  --app-warning-text: #E3B85B;
+  --app-danger-text: #EE7D78;
+  --app-line-subtle: #4F473E;
+  --app-focus-gap: #211E1A;
+  --app-shadow-raised: 0 20px 56px rgb(0 0 0 / 0.46);
+  --app-shadow-sticky: 0 -8px 22px rgb(0 0 0 / 0.26);
+  --app-primary-hover: #F6BA83;
+  --app-primary-soft: #3B2A20;
+  --app-primary-foreground: #29241E;
+  --app-success: #65C894;
+  --app-warning: #E3B85B;
+  --app-danger: #EE7D78;
+  --app-danger-hover: #F09A96;
+  --app-danger-foreground: #29241E;
+  --app-focus-ring: #F0A060;
+  --app-sidebar: #1B1815;
+  --app-sidebar-foreground: #CFC4B7;
+  --app-sidebar-hover: #2B2722;
+  --app-selection-foreground: #F0A060;
+  --app-selection-border: #F0A060;
+  --app-surface-raised: #2A2621;
+  --app-control-border: #7C7062;
+  --app-success-soft: #20382D;
+  --app-warning-soft: #3A321F;
+  --app-danger-soft: #3B2423;
+  --app-tertiary-foreground: #B8ADA0;
+  --app-backdrop: rgb(0 0 0 / 0.62);
+  --app-scrollbar-thumb: #4F473E;
+  --app-scrollbar-thumb-hover: #7C7062;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -2114,33 +2120,44 @@ a {
     color: var(--app-foreground);
     background: var(--app-canvas);
     color-scheme: dark;
-    --app-canvas: #171c24;
-    --app-surface: #202732;
-    --app-surface-muted: #28313e;
-    --app-border: #687b93;
-    --app-foreground: #edf2f9;
-    --app-muted-foreground: #b0bfd0;
-    --app-primary: #82baff;
-    --app-primary-hover: #a5ceff;
-    --app-primary-soft: #263d58;
-    --app-primary-foreground: #17212e;
-    --app-success: #7ad9a9;
-    --app-warning: #ffd077;
-    --app-danger: #ff9c9e;
-    --app-danger-hover: #ffb2b4;
-    --app-danger-foreground: #17212e;
-    --app-focus-ring: #91c7ff;
-    --app-sidebar: #1b222d;
-    --app-sidebar-foreground: #d2dce9;
-    --app-sidebar-hover: #283545;
-    --app-selection-foreground: #b6d7ff;
-    --app-selection-border: #719ed1;
-    --app-surface-raised: #182432;
-    --app-control-border: #566a84;
-    --app-tertiary-foreground: #8797aa;
-    --app-backdrop: rgb(0 0 0 / 0.6);
-    --app-scrollbar-thumb: #39495d;
-    --app-scrollbar-thumb-hover: #566a84;
+    --app-canvas: #171512;
+    --app-surface: #211E1A;
+    --app-surface-muted: #2A2621;
+    --app-border: #4F473E;
+    --app-foreground: #F3ECE2;
+    --app-muted-foreground: #B8ADA0;
+    --app-primary: #F0A060;
+  --app-accent-text: #F0A060;
+  --app-success-text: #65C894;
+  --app-warning-text: #E3B85B;
+  --app-danger-text: #EE7D78;
+  --app-line-subtle: #4F473E;
+  --app-focus-gap: #211E1A;
+  --app-shadow-raised: 0 20px 56px rgb(0 0 0 / 0.46);
+  --app-shadow-sticky: 0 -8px 22px rgb(0 0 0 / 0.26);
+    --app-primary-hover: #F6BA83;
+    --app-primary-soft: #3B2A20;
+    --app-primary-foreground: #29241E;
+    --app-success: #65C894;
+    --app-warning: #E3B85B;
+    --app-danger: #EE7D78;
+    --app-danger-hover: #F09A96;
+    --app-danger-foreground: #29241E;
+    --app-focus-ring: #F0A060;
+    --app-sidebar: #1B1815;
+    --app-sidebar-foreground: #CFC4B7;
+    --app-sidebar-hover: #2B2722;
+    --app-selection-foreground: #F0A060;
+    --app-selection-border: #F0A060;
+    --app-surface-raised: #2A2621;
+    --app-control-border: #7C7062;
+  --app-success-soft: #20382D;
+  --app-warning-soft: #3A321F;
+  --app-danger-soft: #3B2423;
+    --app-tertiary-foreground: #B8ADA0;
+    --app-backdrop: rgb(0 0 0 / 0.62);
+    --app-scrollbar-thumb: #4F473E;
+    --app-scrollbar-thumb-hover: #7C7062;
   }
 }
 

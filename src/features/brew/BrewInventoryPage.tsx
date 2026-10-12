@@ -25,7 +25,7 @@ type InventoryState =
 type BrewView = "installed" | "search";
 
 const FIELD_CLASSES =
-  "min-h-control-sm min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20";
+  "min-h-control-sm min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground transition placeholder:text-muted-foreground focus:border-primary focus-visible:shadow-focus";
 
 /**
  * Single Homebrew workbench: one context toolbar, an installed/search list and

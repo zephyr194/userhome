@@ -18,7 +18,7 @@ type SearchState =
   | { status: "error"; requestId: number; error: AppError };
 
 const SEARCH_INPUT_CLASSES =
-  "min-h-control-sm min-w-0 w-full rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20";
+  "min-h-control-sm min-w-0 w-full rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground transition placeholder:text-muted-foreground focus:border-primary focus-visible:shadow-focus";
 
 export function BrewSearch({
   onChanged,

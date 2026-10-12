@@ -7,7 +7,7 @@ describe("shared ui primitives", () => {
     const md = renderToStaticMarkup(<Button>保存</Button>);
     expect(md).toContain("min-h-control-md");
     expect(md).toContain("text-body");
-    expect(md).toContain("focus-visible:outline-focus");
+    expect(md).toContain("focus-visible:shadow-focus");
     expect(md).toContain("disabled:opacity-50");
     expect(md).not.toContain("truncate");
     expect(md).not.toContain("line-clamp");
@@ -25,13 +25,14 @@ describe("shared ui primitives", () => {
     expect(markup).toContain("text-meta");
     expect(markup).toContain("break-words");
     expect(markup).toContain("bg-warning-soft");
+    expect(markup).not.toMatch(/(?:^|\s)border(?:\s|$)/);
     expect(markup).not.toContain("truncate");
   });
 
   it("Panel renders token surface colors", () => {
     const markup = renderToStaticMarkup(<Panel>内容</Panel>);
     expect(markup).toContain("bg-surface");
-    expect(markup).toContain("border-border");
+    expect(markup).not.toContain("border-border");
     expect(markup).toContain("text-foreground");
   });
 

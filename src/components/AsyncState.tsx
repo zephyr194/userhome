@@ -4,10 +4,10 @@ import { classNames } from "./ui/classNames";
 type AsyncStateKind = "loading" | "empty" | "partial" | "error";
 
 const STATE_CLASSES: Record<AsyncStateKind, string> = {
-  loading: "border-border bg-surface-muted text-muted-foreground",
-  empty: "border-dashed border-border bg-surface text-muted-foreground",
-  partial: "border-warning-border bg-warning-soft text-warning",
-  error: "border-danger-border bg-danger-soft text-danger",
+  loading: "bg-surface-muted text-muted-foreground",
+  empty: "bg-surface text-muted-foreground",
+  partial: "bg-warning-soft text-warning",
+  error: "bg-danger-soft text-danger",
 };
 
 export function AsyncState({
@@ -20,7 +20,7 @@ export function AsyncState({
   return (
     <div
       className={classNames(
-        "mt-ui-3xl rounded-control border px-ui-xl py-ui-lg text-body leading-relaxed",
+        "mt-ui-3xl rounded-control px-ui-xl py-ui-lg text-body leading-relaxed",
         STATE_CLASSES[kind],
       )}
       role={kind === "error" ? "alert" : "status"}

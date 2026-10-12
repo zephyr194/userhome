@@ -19,7 +19,7 @@ export function ConfigVariantSelector({
       路径变体
       <select
         aria-label="配置路径变体"
-        className="mt-1.5 block min-h-9 w-full min-w-0 rounded-md border border-border bg-surface px-2.5 py-1.5 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="mt-1.5 block min-h-9 w-full min-w-0 rounded-md border border-border bg-surface px-2.5 py-1.5 font-mono text-xs text-foreground focus-visible:shadow-focus"
         disabled={disabled}
         value={currentVariantId}
         onChange={(event) => onChange(event.currentTarget.value)}

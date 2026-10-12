@@ -4589,8 +4589,16 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 **证据：**RED 因 forms 模块不存在失败；GREEN 后 3 个定向测试文件/10 项、scoped lint、typecheck、完整 45 文件/212 项测试与 build 通过。Headless Checkbox/Switch 源码确认通过隐藏 field 支持 `value || "on"` 和 reset；真实 FormData/reset 仍由 T134/T139 浏览器测试证明，不以 SSR 冒充。
 ## T130：重建暖灰琥珀 token、focus 与共享低边框组件
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] Light/Dark/System 使用暖灰琥珀语义 token，旧蓝灰值清零。
+- [x] opaque soft、正文/状态文本和 control border 对比度自动验证。
+- [x] 生产源码仅保留全局 `outline:none` reset，实际焦点使用双层 box-shadow。
+- [x] Panel/Badge/AsyncState 默认无框，Modal 使用 raised surface/shadow，Button 仅 secondary 保留 control border。
+
+**证据：**RED 6 项失败（旧 palette、透明 soft、outline、共享默认边框）；GREEN 后定向 17 项、scoped lint、typecheck、完整 45 文件/214 项测试与 build 通过。Light 文本最低 4.70、control border 最低 3.14；Dark 文本最低 5.61、control border 最低 3.11。旧蓝灰色值与组件级 outline utility 均为零；保护文件哈希不变。
 ## T131：统一 Modal/ConfirmDialog 与选择控件基础
 **状态：**待执行。
 

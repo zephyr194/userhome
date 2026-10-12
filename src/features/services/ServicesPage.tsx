@@ -376,7 +376,7 @@ export function ServicesPage({
               <span className="sr-only">筛选服务</span>
               <input
                 ref={filterInputRef}
-                className="min-h-control-sm w-full min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-focus/20"
+                className="min-h-control-sm w-full min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground transition placeholder:text-muted-foreground focus:border-primary focus-visible:shadow-focus"
                 type="search"
                 maxLength={128}
                 placeholder="按名称、标识符、状态或作用域筛选"
