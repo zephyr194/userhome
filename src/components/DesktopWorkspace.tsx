@@ -59,7 +59,6 @@ export function DesktopWorkspace({
               key="list"
               className="desktop-workspace__list min-w-0 min-h-0"
               aria-label={listLabel}
-              tabIndex={0}
             >
               {list}
             </section>
@@ -68,7 +67,6 @@ export function DesktopWorkspace({
             key="detail"
             className="desktop-workspace__detail min-w-0 min-h-0"
             aria-label={detailLabel}
-            tabIndex={0}
           >
             {detail}
           </section>
@@ -77,7 +75,6 @@ export function DesktopWorkspace({
               key="inspector"
               className="desktop-workspace__inspector min-w-0 min-h-0"
               aria-label={inspectorLabel}
-              tabIndex={0}
             >
               {inspector}
             </aside>
@@ -87,7 +84,6 @@ export function DesktopWorkspace({
           <section
             className="desktop-workspace__operation-progress min-w-0 min-h-0"
             aria-label="操作进度"
-            tabIndex={0}
           >
             {operationProgress}
           </section>

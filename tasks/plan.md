@@ -1137,7 +1137,7 @@ T125–T140 and preserves all T01–T124 evidence and blockers.
 - [x] T125 v4 spec/baseline
 - T126 Applications Tabs and local selection keyboard contract
 - [x] T127 refresh feedback and Brew discovery error mapping
-- T128 route focus, regions, live regions and pane tab stops
+- [x] T128 route focus, regions, live regions and pane tab stops
 - [x] T129 shared Headless UI form/action primitives
 - [x] T130 warm-gray amber tokens, zero-outline focus and low-border shared UI
 - [x] T131 unified Modal/ConfirmDialog and selection adapters

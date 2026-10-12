@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type KeyboardEvent,
   type MouseEvent,
@@ -12,7 +13,7 @@ import { NavigationRail } from "../components/NavigationRail";
 import { Button, StatusBadge } from "../components/ui";
 import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
-import { APP_ROUTES, type AppRouteId, type NavigationIntent } from "./routeDefinitions";
+import { APP_ROUTES, type AppRouteId, type NavigationIntent, type NavigationSource } from "./routeDefinitions";
 import {
   activeDiscoverySnapshot,
   resolveApplicationsNavigation,
@@ -113,6 +114,7 @@ export function AppShell({
   state,
 }: AppShellProps) {
   const [commandError, setCommandError] = useState<string>();
+  const pendingNavigationSource = useRef<NavigationSource>("primary-nav");
   // Transient, session-only application navigation context. Candidates and
   // refresh ids validate against a live discovery snapshot; they are never
   // written to selection memory (and so never reach localStorage).
@@ -132,6 +134,12 @@ export function AppShell({
     APP_ROUTES.find((route) => route.id === activeRouteId) ?? APP_ROUTES[0];
 
   useEffect(() => {
+    if (pendingNavigationSource.current === "primary-nav") return;
+    document.getElementById("main-content")?.focus({ preventScroll: true });
+    pendingNavigationSource.current = "primary-nav";
+  }, [activeRouteId]);
+
+  useEffect(() => {
     saveSelectionMemory(restoreSelection, selection);
   }, [restoreSelection, selection]);
 
@@ -139,11 +147,16 @@ export function AppShell({
     setSelection((current) => ({ ...current, ...patch }));
   }, []);
 
-  const navigate = useCallback((routeId: AppRouteId) => {
+  const navigate = useCallback((
+    routeId: AppRouteId,
+    source: NavigationSource = "primary-nav",
+  ) => {
+    pendingNavigationSource.current = source;
     updateSelection({ routeId });
   }, [updateSelection]);
 
   const navigateTo = useCallback((intent: NavigationIntent) => {
+    pendingNavigationSource.current = intent.source ?? "content";
     if (intent.routeId === "applications") {
       const resolved = resolveApplicationsNavigation(
         intent,
@@ -227,7 +240,7 @@ export function AppShell({
 
     void registerSettingsRequestListener(() => {
       setCommandError(undefined);
-      navigate("settings");
+      navigate("settings", "menu");
     })
       .then((cleanup) => {
         if (disposed) {

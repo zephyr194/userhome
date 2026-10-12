@@ -250,9 +250,8 @@ export function BrewSearch({
                 >
                   上一页
                 </Button>
-                <span>
-                  {searchState.page.page} /{" "}
-                  {Math.max(searchState.page.totalPages, 1)}
+                <span role="status" aria-live="polite" aria-atomic="true">
+                  第 {searchState.page.page} / {Math.max(searchState.page.totalPages, 1)} 页，共 {searchState.page.totalItems} 项
                 </span>
                 <Button
                   size="sm"

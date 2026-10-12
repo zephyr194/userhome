@@ -22,11 +22,11 @@ describe("DesktopWorkspace", () => {
       'class="desktop-workspace__detail min-w-0 min-h-0"',
     );
     expect(markup).toContain(
-      '<section class="desktop-workspace__detail min-w-0 min-h-0" aria-label="内容" tabindex="0"><div data-testid="detail-body">',
+      '<section class="desktop-workspace__detail min-w-0 min-h-0" aria-label="内容"><div data-testid="detail-body">',
     );
   });
 
-  it("bounds every pane and the operation region with min-w-0/min-h-0", () => {
+  it("bounds every pane without adding meaningless tab stops", () => {
     const markup = renderToStaticMarkup(
       <DesktopWorkspace
         {...baseProps}
@@ -45,6 +45,7 @@ describe("DesktopWorkspace", () => {
     expect(markup).toContain(
       'class="desktop-workspace__operation-progress min-w-0 min-h-0"',
     );
+    expect(markup).not.toContain('tabindex="0"');
   });
 
   it("renders no shell hero", () => {

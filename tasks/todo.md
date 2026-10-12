@@ -4572,8 +4572,16 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 **证据：**RED 后新增 selector 与 Shell 断言；GREEN 定向 17 项、scoped lint、typecheck、完整 44 文件/207 项测试与 build 通过。错误且有 previous snapshot 时保留原 Brew module 和 refreshId；首次失败无 snapshot 时明确 ERROR。未改变 provider 权限或业务操作。
 ## T128：修复路由焦点、Region、Live Region 和无意义 Tab stop
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] 主导航保留链接焦点，content/menu/tray 来源可在路由变化后聚焦 main。
+- [x] Dashboard 根区域命名为“概览”，系统脉冲只命名自身。
+- [x] Brew 搜索分页使用稳定 live status，播报页码和总数。
+- [x] DesktopWorkspace pane 不再产生无意义 Tab stop，main 保留 `tabIndex=-1`。
+
+**证据：**定向 4 文件/32 项、scoped lint（仅既有 Fast Refresh warning）、typecheck、完整测试与 build 通过。真实 activeElement、菜单/托盘来源和分页播报时序留 T139 WDIO 验证。
 ## Phase 35：共享 Headless UI 与视觉基础
 
 ## T129：建立 Headless UI 表单与动作原语

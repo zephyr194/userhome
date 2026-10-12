@@ -594,15 +594,15 @@ export function DashboardPage({
   const brew = state.status === "ready" ? state.snapshot.brew : undefined;
 
   return (
-    <section className="dashboard-workspace" aria-labelledby="dashboard-heading">
+    <section className="dashboard-workspace" aria-label="概览">
       <UserDirectoryCoveragePanel
         onNavigate={onNavigate}
         optionalDiscoveryRoots={optionalDiscoveryRoots}
         state={state}
       />
 
-      <section className="system-pulse">
-        <div className="system-pulse__label"><span>01</span><h2 id="dashboard-heading">系统脉冲</h2></div>
+      <section className="system-pulse" aria-labelledby="dashboard-system-heading">
+        <div className="system-pulse__label"><span>01</span><h2 id="dashboard-system-heading">系统脉冲</h2></div>
         <div className="system-pulse__grid">
           <PulseCard label="本地服务" {...connectionState} />
           <PulseCard label="本机发现" {...discoveryState} />

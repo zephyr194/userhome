@@ -124,8 +124,11 @@ describe("AppShell", () => {
     expect(markup).toContain("深色");
   });
 
-  it("does not programmatically move navigation focus into the main pane", () => {
-    expect(AppShell.toString()).not.toContain(".focus(");
+  it("keeps primary navigation focus while allowing source-sensitive main focus", () => {
+    const source = AppShell.toString();
+    expect(source).toContain("primary-nav");
+    expect(source).toContain("main-content");
+    expect(source).toContain("preventScroll");
   });
 
   it("keeps connection failures separate from an empty operation history", () => {

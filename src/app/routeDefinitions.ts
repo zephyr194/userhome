@@ -68,6 +68,7 @@ export const APP_ROUTES: readonly AppRoute[] = [
  * of the persisted shape.
  */
 export type ApplicationsScope = "LOCAL_RECOGNIZED" | "CATALOG";
+export type NavigationSource = "primary-nav" | "content" | "menu" | "tray";
 
 export interface ApplicationsNavigationIntent {
   routeId: "applications";
@@ -78,9 +79,10 @@ export interface ApplicationsNavigationIntent {
   configId?: string;
 }
 
-export type NavigationIntent =
+export type NavigationIntent = (
   | { routeId: "dashboard" }
   | ApplicationsNavigationIntent
   | { routeId: "homebrew" }
   | { routeId: "services"; serviceId?: string }
-  | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId };
+  | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId }
+) & { source?: NavigationSource };
