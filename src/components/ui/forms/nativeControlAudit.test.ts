@@ -6,12 +6,12 @@ import { describe, expect, it } from "vitest";
 const FEATURES = join(process.cwd(), "src", "features");
 const TAGS = ["input", "select", "textarea", "button"] as const;
 const APPROVED_BASELINE = {
-  files: 23,
-  input: 37,
-  select: 11,
-  textarea: 5,
-  button: 15,
-  total: 68,
+  files: 14,
+  input: 12,
+  select: 9,
+  textarea: 0,
+  button: 9,
+  total: 30,
 } as const;
 
 function sourceFiles(directory: string): string[] {

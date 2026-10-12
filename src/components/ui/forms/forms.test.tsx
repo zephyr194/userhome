@@ -92,6 +92,14 @@ describe("Headless UI form primitives", () => {
     expect(markup).not.toContain("current-secret");
   });
 
+  it("does not mix controlled and default values for secret replacements", () => {
+    const markup = renderToStaticMarkup(
+      <SecretReplacementField label="新令牌" name="token" value="draft" />,
+    );
+    expect(markup).toContain('value="draft"');
+    expect(markup).not.toContain('defaultValue=');
+  });
+
   it("uses the Headless UI button while preserving the default type", () => {
     const markup = renderToStaticMarkup(<Button>保存</Button>);
     expect(markup).toContain('type="button"');

@@ -4618,8 +4618,16 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 **状态：**待执行。
 
 ## T134：迁移 Schema 与专用配置编辑器
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] Schema 六类字段全部经 Headless UI 表单原语。
+- [x] Caddy/Copilot/Git/npm/SSH/Zsh 保留 form、FormData、默认值和校验。
+- [x] 编辑器业务代码零直接 input/select/textarea/button。
+- [x] Secret replacement-only，受控值不与 defaultValue 混用。
+
+**证据：**编辑器定向 8 文件/28 项、scoped lint、typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从 68 降至 30；编辑器目录为零。Checkbox hidden form field/reset 的真实行为仍由 T139 WDIO 验证。
 ## T135：迁移 Homebrew 与 Services 字段和资源行
 **状态：**待执行。
 

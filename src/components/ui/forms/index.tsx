@@ -400,12 +400,12 @@ type SecretProps = Omit<
   "autoComplete" | "defaultValue" | "spellCheck" | "type"
 >;
 
-export function SecretReplacementField(props: SecretProps) {
+export function SecretReplacementField({ value, ...props }: SecretProps) {
   return (
     <TextField
       {...props}
+      {...(value === undefined ? { defaultValue: "" } : { value })}
       autoComplete="new-password"
-      defaultValue=""
       spellCheck={false}
       type="password"
     />

@@ -1143,7 +1143,7 @@ T125–T140 and preserves all T01–T124 evidence and blockers.
 - [x] T131 unified Modal/ConfirmDialog and selection adapters
 - T132 Settings Headless UI migration
 - T133 Applications Headless UI migration
-- T134 Schema/specialized editor Headless UI migration
+- [x] T134 Schema/specialized editor Headless UI migration
 - T135 Homebrew/Services Headless UI migration
 - T136 business-layer native-control gate
 - T137 low-border Shell/Dashboard migration
