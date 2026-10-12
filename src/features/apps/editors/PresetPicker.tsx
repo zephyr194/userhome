@@ -36,7 +36,7 @@ export function PresetPicker({
           </p>
           {presets.map((preset) => (
             <div
-              className="grid min-w-0 gap-2 rounded-md border border-border p-2"
+              className="grid min-w-0 gap-2 rounded-md p-2"
               key={`${preset.presetId}:${preset.presetVersion}`}
             >
               <div className="flex min-w-0 flex-wrap items-center gap-2">

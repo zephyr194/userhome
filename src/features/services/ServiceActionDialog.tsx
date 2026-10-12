@@ -86,7 +86,7 @@ export function ServiceActionDialog({
       </div>
 
       <section
-        className="rounded-control border border-border bg-surface-muted px-3.5 py-3"
+        className="rounded-control bg-surface-muted px-3.5 py-3"
         aria-labelledby="service-effects-heading"
       >
         <h4 className="text-sm font-semibold" id="service-effects-heading">
@@ -134,7 +134,7 @@ export function ServiceActionDialog({
 
       {operation ? (
         <section
-          className="rounded-control border border-border px-3.5 py-3"
+          className="rounded-control px-3.5 py-3"
           aria-labelledby="service-result-heading"
           aria-live="polite"
         >
@@ -203,7 +203,7 @@ export function ServiceActionDialog({
         </p>
       ) : null}
 
-      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 border-t border-border bg-surface px-5 py-4">
+      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 bg-surface shadow-[var(--app-shadow-sticky)] px-5 py-4">
         {canConfirm ? (
           <Button
             variant="primary"

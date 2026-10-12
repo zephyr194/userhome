@@ -231,7 +231,7 @@ export function BrewInventoryPage({
                 {selected ? (
                   <>
                     {visibleState.status === "ready" && !selectedIsVisible ? (
-                      <p className="mb-ui-md break-words rounded-control border border-border bg-surface-muted px-ui-xl py-ui-lg text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                      <p className="mb-ui-md break-words rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs text-muted-foreground [overflow-wrap:anywhere]">
                         所选软件包不在当前筛选页；详情与操作结果保持可见。
                       </p>
                     ) : null}

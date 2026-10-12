@@ -4671,13 +4671,17 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 ## Phase 37：去线条视觉迁移与兼容层删除
 
 ## T137：迁移 Shell/Dashboard 到低边框层级
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**证据：**Shell/Dashboard 改用暖灰表面、留白与选中 marker；普通面板、状态行和图标容器不再依赖完整外框。 v4 三组静态门禁、对比度/forced-colors、完整 lint/typecheck/test/build 通过；46 个测试文件/220 项。CSS+业务 TSX border 词项由约501降至约319，剩余均受功能分类门禁约束。
 ## T138：迁移资源路由并删除 compat
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
 ## Phase 38：自动化与人工验收
 
+
+**证据：**Applications/Config/Brew/Services/Settings 被动 metadata/notice/list 容器外框已移除；旧 alias、compat 标记和迁移型 important 已清零，pane divider、字段、selection、danger、spinner 等功能边界保留。 v4 三组静态门禁、对比度/forced-colors、完整 lint/typecheck/test/build 通过；46 个测试文件/220 项。CSS+业务 TSX border 词项由约501降至约319，剩余均受功能分类门禁约束。
 ## T139：真实交互与视觉自动门禁
 **状态：**待执行。
 

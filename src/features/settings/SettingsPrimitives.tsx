@@ -142,7 +142,7 @@ export function SettingsChoice({
   return (
     <label
       className={classNames(
-        "flex min-w-0 items-start gap-ui-lg rounded-control border border-border bg-surface px-ui-2xl py-ui-xl",
+        "flex min-w-0 items-start gap-ui-lg rounded-control bg-surface px-ui-2xl py-ui-xl",
         "has-[input:checked]:border-selection-border has-[input:checked]:bg-selection",
         className,
       )}

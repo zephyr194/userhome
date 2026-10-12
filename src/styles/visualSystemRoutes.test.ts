@@ -8,9 +8,6 @@ const css = readFileSync(
   "utf8",
 );
 
-const start = css.indexOf("control-lab-compat:start");
-const end = css.indexOf("control-lab-compat:end");
-const compat = css.slice(start, end);
 
 /** Extract the body of every rule nested inside an @media block. */
 function mediaRuleBodies(source: string): { selector: string; body: string }[] {
@@ -33,7 +30,7 @@ function mediaRuleBodies(source: string): { selector: string; body: string }[] {
   return blocks;
 }
 
-describe("Control Lab compat layer", () => {
+describe("single v4 route visual system", () => {
   it("keeps a CSS definition for every committed workspace class", () => {
     const workspaceClasses = [
       "dashboard-workspace",
@@ -57,21 +54,22 @@ describe("Control Lab compat layer", () => {
     }
   });
 
-  it("bounds the compat layer between explicit markers", () => {
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-    expect(compat.length).toBeGreaterThan(0);
+  it("contains no compatibility marker or legacy alias", () => {
+    expect(css).not.toContain("control-lab-compat");
+    for (const alias of [
+      "--surface:", "--surface-subtle:", "--surface-muted:", "--border:",
+      "--text:", "--foreground:", "--muted:", "--accent:",
+    ]) expect(css).not.toContain(alias);
   });
 
-  it("never hard-codes colours in the compat layer", () => {
-    const colourPattern = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/;
-    expect(compat).not.toMatch(colourPattern);
+  it("keeps important only for reduced-motion overrides", () => {
+    expect(css.match(/!important/g) ?? []).toHaveLength(4);
   });
 
   it("never truncates meaningful text anywhere", () => {
     expect(css).not.toMatch(/text-overflow:\s*ellipsis/);
     expect(css).not.toMatch(/line-clamp/);
-    expect(compat).not.toMatch(/white-space:\s*nowrap/);
+    expect(css).not.toMatch(/white-space:\s*nowrap/);
   });
 
   it("never hides descriptions or help inside a media query", () => {

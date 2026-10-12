@@ -84,7 +84,7 @@ export function BrewActionDialog({
       </div>
 
       <section
-        className="rounded-control border border-border bg-surface-muted px-3.5 py-3"
+        className="rounded-control bg-surface-muted px-3.5 py-3"
         aria-labelledby="brew-effects-heading"
       >
         <h4
@@ -119,7 +119,7 @@ export function BrewActionDialog({
 
       {busy ? (
         <div
-          className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2.5 text-sm text-warning"
+          className="flex items-center gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-sm text-warning"
           role="status"
           aria-live="polite"
         >
@@ -133,7 +133,7 @@ export function BrewActionDialog({
 
       {operation ? (
         <section
-          className="rounded-md border border-border px-3.5 py-3"
+          className="rounded-md px-3.5 py-3"
           aria-labelledby="brew-result-heading"
           aria-live="polite"
         >
@@ -202,7 +202,7 @@ export function BrewActionDialog({
         </p>
       ) : null}
 
-      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 border-t border-border bg-surface px-5 py-4">
+      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 bg-surface shadow-[var(--app-shadow-sticky)] px-5 py-4">
         {canConfirm ? (
           <Button
             variant="primary"

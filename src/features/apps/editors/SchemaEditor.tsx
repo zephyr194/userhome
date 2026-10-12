@@ -146,7 +146,7 @@ export function SchemaEditor({
       </div>
 
       {requiresCompleteTemplate && !completeTemplate ? (
-        <Panel className="border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+        <Panel className="bg-warning-soft p-3 text-xs text-warning">
           缺失文档只能使用当前可用的完整模板创建；选择其他 preset
           或手动偏离模板后不会授权新建文件。
         </Panel>

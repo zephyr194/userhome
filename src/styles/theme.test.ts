@@ -45,6 +45,12 @@ describe("global theme tokens", () => {
     expect(css.toUpperCase()).toContain("#171512");
   });
 
+  it("keeps keyboard focus visible in forced-colors without outline", () => {
+    expect(css).toMatch(/forced-colors:\s*active/);
+    expect(css).toMatch(/forced-color-adjust:\s*none/);
+    expect(css).toMatch(/box-shadow:[\s\S]*Highlight/);
+  });
+
   it("contains no component-level outline utilities", () => {
     const files: string[] = [];
     const visit = (directory: string) => {

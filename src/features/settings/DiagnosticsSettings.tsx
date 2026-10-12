@@ -223,7 +223,7 @@ export function DiagnosticsSettings() {
           </Button>
         </div>
         <pre
-          className="m-0 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-panel border border-border bg-surface-muted p-ui-xl font-mono text-xs leading-relaxed text-foreground [scrollbar-gutter:stable]"
+          className="m-0 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-panel bg-surface-muted p-ui-xl font-mono text-xs leading-relaxed text-foreground [scrollbar-gutter:stable]"
           tabIndex={0}
         >
           {report.reportText}

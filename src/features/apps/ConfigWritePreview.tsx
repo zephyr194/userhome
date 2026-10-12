@@ -69,7 +69,7 @@ export function ConfigWritePreview({
       </div>
 
       <section
-        className="rounded-md border border-border bg-surface-muted px-3.5 py-3"
+        className="rounded-md bg-surface-muted px-3.5 py-3"
         aria-labelledby="config-effects-heading"
       >
         <h4 className="text-sm font-semibold" id="config-effects-heading">
@@ -100,7 +100,7 @@ export function ConfigWritePreview({
           </span>
         </div>
         {preview.diff.redacted ? (
-          <p className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          <p className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning">
             敏感内容已从差异中隐藏。
           </p>
         ) : null}
@@ -125,7 +125,7 @@ export function ConfigWritePreview({
             ))}
           </pre>
         ) : (
-          <p className="mt-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+          <p className="mt-2 rounded-md px-3 py-2 text-xs text-muted-foreground">
             此操作没有可显示的文本差异。
           </p>
         )}
@@ -144,7 +144,7 @@ export function ConfigWritePreview({
 
       {busy ? (
         <div
-          className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2.5 text-sm text-warning"
+          className="flex items-center gap-2 rounded-md bg-warning-soft px-3 py-2.5 text-sm text-warning"
           role="status"
           aria-live="polite"
         >
@@ -158,7 +158,7 @@ export function ConfigWritePreview({
 
       {operation ? (
         <section
-          className="rounded-md border border-border px-3.5 py-3"
+          className="rounded-md px-3.5 py-3"
           aria-labelledby="config-result-heading"
           aria-live="polite"
         >
@@ -214,7 +214,7 @@ export function ConfigWritePreview({
 
       {error ? (
         <p
-          className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger"
+          className="rounded-md bg-danger-soft px-3 py-2.5 text-sm text-danger"
           role="alert"
         >
           {error.message}

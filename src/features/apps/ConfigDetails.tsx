@@ -70,17 +70,17 @@ export function ConfigDetails({
       </div>
 
       <dl className="mt-4 grid gap-2 sm:grid-cols-2">
-        <div className="min-w-0 rounded-md border border-border bg-surface-muted px-3 py-2.5 sm:col-span-2">
+        <div className="min-w-0 rounded-md bg-surface-muted px-3 py-2.5 sm:col-span-2">
           <dt className="text-xs text-muted-foreground">路径</dt>
           <dd className="mt-1 break-all font-mono text-xs">
             {document.displayPath}
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+        <div className="rounded-md bg-surface-muted px-3 py-2.5">
           <dt className="text-xs text-muted-foreground">访问模式</dt>
           <dd className="mt-1 text-sm font-medium">{access.label}</dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+        <div className="rounded-md bg-surface-muted px-3 py-2.5">
           <dt className="text-xs text-muted-foreground">文件权限</dt>
           <dd className="mt-1 text-sm font-medium">
             {document.mode === undefined
@@ -88,13 +88,13 @@ export function ConfigDetails({
               : document.mode.toString(8)}
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+        <div className="rounded-md bg-surface-muted px-3 py-2.5">
           <dt className="text-xs text-muted-foreground">格式</dt>
           <dd className="mt-1 text-sm font-medium">
             {presentation.format} · {presentation.formatFamily}
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+        <div className="rounded-md bg-surface-muted px-3 py-2.5">
           <dt className="text-xs text-muted-foreground">大小</dt>
           <dd className="mt-1 text-sm font-medium">
             {document.sizeBytes === undefined
@@ -102,7 +102,7 @@ export function ConfigDetails({
               : `${document.sizeBytes} / ${presentation.maxSizeBytes} bytes`}
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5 sm:col-span-2">
+        <div className="rounded-md bg-surface-muted px-3 py-2.5 sm:col-span-2">
           <dt className="text-xs text-muted-foreground">写入策略</dt>
           <dd className="mt-1 text-sm font-medium">
             {WRITE_POLICY_LABELS[document.writePolicy]}
@@ -113,7 +113,7 @@ export function ConfigDetails({
         {access.description}
       </p>
       {document.symlink && (
-        <p className="mt-3 break-all rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+        <p className="mt-3 break-all rounded-md px-3 py-2 text-xs text-muted-foreground">
           符号链接目标：
           <span className="font-mono">{document.symlink.targetDisplayPath}</span>
         </p>
@@ -128,7 +128,7 @@ export function ConfigDetails({
       </div>
       {!showContent || document.content === undefined ? (
         <p
-          className="mt-4 rounded-md border border-border bg-surface-muted px-3 py-2.5 text-sm text-muted-foreground"
+          className="mt-4 rounded-md bg-surface-muted px-3 py-2.5 text-sm text-muted-foreground"
           role="status"
         >
           {!showContent
@@ -151,7 +151,7 @@ export function ConfigDetails({
           </div>
           {document.contentRedacted && (
             <p
-              className="mt-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning"
+              className="mt-2 rounded-md bg-warning-soft px-3 py-2 text-xs text-warning"
               role="status"
             >
               敏感字段、值或不安全内容已被屏蔽。

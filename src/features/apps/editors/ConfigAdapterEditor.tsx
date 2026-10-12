@@ -17,7 +17,7 @@ export function ConfigAdapterEditor({
   if (!capability) {
     return (
       <Panel
-        className="min-w-0 border-warning/30 bg-warning/10 p-4"
+        className="min-w-0 bg-warning-soft p-4"
         aria-label="编辑器能力不可用"
       >
         <p className="text-sm font-semibold text-warning">编辑器能力不可用</p>

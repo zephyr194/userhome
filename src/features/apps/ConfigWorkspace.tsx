@@ -703,7 +703,7 @@ export function ConfigWorkspace({
     <article className="config-workspace min-h-0 min-w-0 overflow-hidden">
       <header className="config-workspace__header min-w-0">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-border bg-surface-muted text-foreground">
+          <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-surface-muted text-foreground">
             <ApplicationIcon className="size-7" iconKey={application.iconKey} />
           </span>
           <div className="min-w-0 flex-1">

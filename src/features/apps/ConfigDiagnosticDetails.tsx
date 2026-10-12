@@ -51,17 +51,17 @@ export function ConfigDiagnosticDetails({
       </p>
 
       <dl className="mt-4 grid gap-2 sm:grid-cols-2">
-        <div className="min-w-0 rounded-md border border-border bg-surface-muted px-3 py-2.5 sm:col-span-2">
+        <div className="min-w-0 rounded-md bg-surface-muted px-3 py-2.5 sm:col-span-2">
           <dt className="text-xs text-muted-foreground">路径</dt>
           <dd className="mt-1 break-all font-mono text-xs">
             {diagnostic.displayPath}
           </dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+        <div className="rounded-md bg-surface-muted px-3 py-2.5">
           <dt className="text-xs text-muted-foreground">访问模式</dt>
           <dd className="mt-1 text-sm font-medium">{access.label}</dd>
         </div>
-        <div className="rounded-md border border-border bg-surface-muted px-3 py-2.5">
+        <div className="rounded-md bg-surface-muted px-3 py-2.5">
           <dt className="text-xs text-muted-foreground">格式能力</dt>
           <dd className="mt-1 text-sm font-medium">
             {presentation.format} · {presentation.formatFamily}
@@ -79,7 +79,7 @@ export function ConfigDiagnosticDetails({
       </div>
 
       <div
-        className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface-muted px-3 py-2.5"
+        className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md bg-surface-muted px-3 py-2.5"
         role={diagnostic.retryable ? "alert" : "status"}
       >
         <p className="text-sm text-muted-foreground">

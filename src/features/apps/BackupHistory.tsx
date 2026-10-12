@@ -22,13 +22,13 @@ export function BackupHistory({
         <StatusBadge>{backups.length} 项</StatusBadge>
       </div>
       {backups.length === 0 ? (
-        <p className="mt-3 rounded-md border border-border bg-surface-muted px-3 py-2.5 text-sm text-muted-foreground">
+        <p className="mt-3 rounded-md bg-surface-muted px-3 py-2.5 text-sm text-muted-foreground">
           暂无备份。
         </p>
       ) : (
         <div
           aria-label="备份历史，可滚动"
-          className="mt-3 max-h-64 overflow-y-auto overscroll-contain rounded-md border border-border"
+          className="mt-3 max-h-64 overflow-y-auto overscroll-contain rounded-md"
           tabIndex={0}
         >
           <ul className="divide-y divide-border">

@@ -181,7 +181,7 @@ export function RecognizedItems({
     <article className="h-full min-h-0 overflow-y-auto overscroll-contain bg-surface">
       <header className="border-b border-border px-5 py-4">
         <div className="flex items-start gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-lg border border-border bg-surface-muted text-muted-foreground">
+          <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-surface-muted text-muted-foreground">
             <ApplicationIcon className="size-7" iconKey="candidate" />
           </span>
           <div className="min-w-0">
@@ -201,47 +201,47 @@ export function RecognizedItems({
 
       <div className="grid gap-4 p-5">
         <dl className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 rounded-md border border-border bg-surface-muted p-3">
+          <div className="col-span-2 rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">安全相对路径</dt>
             <dd className="mt-1 break-all font-mono text-xs">
               {candidate.relativePath}
             </dd>
           </div>
-          <div className="rounded-md border border-border bg-surface-muted p-3">
+          <div className="rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">发现根</dt>
             <dd className="mt-1 text-sm font-medium">
               {ROOT_LABELS[candidate.rootKind]}
             </dd>
           </div>
-          <div className="rounded-md border border-border bg-surface-muted p-3">
+          <div className="rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">条目类型</dt>
             <dd className="mt-1 text-sm font-medium">
               {KIND_LABELS[candidate.entryType]}
             </dd>
           </div>
-          <div className="rounded-md border border-border bg-surface-muted p-3">
+          <div className="rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">覆盖等级</dt>
             <dd className="mt-1 text-sm font-medium">{coverage.label}</dd>
           </div>
-          <div className="rounded-md border border-border bg-surface-muted p-3">
+          <div className="rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">敏感度</dt>
             <dd className="mt-1 text-sm font-medium">
               {SENSITIVITY_LABELS[candidate.sensitivityHint]}
             </dd>
           </div>
-          <div className="rounded-md border border-border bg-surface-muted p-3">
+          <div className="rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">修改时间</dt>
             <dd className="mt-1 text-sm font-medium">
               {formatModifiedTime(candidate.modifiedAtEpochMs)}
             </dd>
           </div>
-          <div className="rounded-md border border-border bg-surface-muted p-3">
+          <div className="rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">Catalog 归属</dt>
             <dd className="mt-1 text-sm font-medium">
               {candidate.catalogAppId ?? "无"}
             </dd>
           </div>
-          <div className="col-span-2 rounded-md border border-border bg-surface-muted p-3">
+          <div className="col-span-2 rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">分类证据</dt>
             <dd className="mt-1 text-sm font-medium">
               {candidate.evidence.length > 0
@@ -251,7 +251,7 @@ export function RecognizedItems({
                 : "无"}
             </dd>
           </div>
-          <div className="col-span-2 rounded-md border border-border bg-surface-muted p-3">
+          <div className="col-span-2 rounded-md bg-surface-muted p-3">
             <dt className="text-xs text-muted-foreground">分类原因</dt>
             <dd className="mt-1 text-sm leading-relaxed">
               {candidate.classificationReason}
@@ -260,7 +260,7 @@ export function RecognizedItems({
         </dl>
 
         <section
-          className="rounded-md border border-border bg-surface-muted p-3"
+          className="rounded-md bg-surface-muted p-3"
           aria-labelledby="recognized-scan-heading"
         >
           <h3 id="recognized-scan-heading" className="text-xs text-muted-foreground">
@@ -281,7 +281,7 @@ export function RecognizedItems({
         </section>
 
         <section
-          className="rounded-md border border-border bg-surface-muted p-3"
+          className="rounded-md bg-surface-muted p-3"
           aria-labelledby="recognized-module-heading"
         >
           <h3 id="recognized-module-heading" className="text-xs text-muted-foreground">
@@ -294,7 +294,7 @@ export function RecognizedItems({
           </p>
         </section>
 
-        <section className="rounded-md border border-border bg-surface-muted p-3">
+        <section className="rounded-md bg-surface-muted p-3">
           <h3 className="text-xs text-muted-foreground">下一步操作</h3>
           <p className="mt-1 text-sm leading-relaxed">
             {nextActionText({
@@ -326,7 +326,7 @@ export function RecognizedItems({
 
         {opened && canOpenManaged && managedApplication && uniqueConfigId ? (
           <div
-            className="min-h-0 overflow-hidden rounded-md border border-border"
+            className="min-h-0 overflow-hidden rounded-md"
             data-testid="recognized-config-workspace"
           >
             <ConfigWorkspace

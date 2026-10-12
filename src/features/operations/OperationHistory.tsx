@@ -56,7 +56,7 @@ export function OperationHistory({
         <AsyncState kind="empty">{emptyMessage}</AsyncState>
       ) : (
         <div
-          className="mt-4 max-h-64 overflow-y-auto overscroll-contain rounded-md border border-border"
+          className="mt-4 max-h-64 overflow-y-auto overscroll-contain rounded-md"
           aria-label="配置操作历史，可滚动"
           tabIndex={0}
         >

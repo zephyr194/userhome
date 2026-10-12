@@ -46,7 +46,7 @@ export function ApplicationSupportSummary({
 
   return (
     <section
-      className="grid gap-3 rounded-md border border-border bg-surface px-4 py-3"
+      className="grid gap-3 rounded-md bg-surface px-4 py-3"
       aria-labelledby={`support-heading-${application.id}`}
     >
       <div className="flex items-center justify-between gap-3">
@@ -118,7 +118,7 @@ export function ApplicationSupportSummary({
                 Date.parse(evidence.verifiedAt) < SOURCE_STALE_BEFORE;
               return (
                 <li
-                  className="min-w-0 rounded-control border border-border bg-surface-muted px-3 py-2"
+                  className="min-w-0 rounded-control bg-surface-muted px-3 py-2"
                   key={evidence.url}
                 >
                   <code className="block break-all text-xs text-foreground">

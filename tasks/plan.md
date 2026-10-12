@@ -1146,8 +1146,8 @@ T125–T140 and preserves all T01–T124 evidence and blockers.
 - [x] T134 Schema/specialized editor Headless UI migration
 - [x] T135 Homebrew/Services Headless UI migration
 - [x] T136 business-layer native-control gate
-- T137 low-border Shell/Dashboard migration
-- T138 resource-route migration and compat removal
+- [x] T137 low-border Shell/Dashboard migration
+- [x] T138 resource-route migration and compat removal
 - T139 interaction, visual and full automated gates
 - T140 foreground/manual acceptance
 

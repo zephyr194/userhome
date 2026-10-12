@@ -72,7 +72,7 @@ export function BrewPackageDetails({
         <p className="break-words text-sm leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
           {details.description ?? "Homebrew 未提供描述。"}
         </p>
-        <dl className="mt-ui-xl grid min-w-0 grid-cols-1 overflow-hidden rounded-control border border-border bg-border sm:grid-cols-3 sm:gap-px">
+        <dl className="mt-ui-xl grid min-w-0 grid-cols-1 overflow-hidden rounded-control bg-border sm:grid-cols-3 sm:gap-px">
           <div className="min-w-0 border-b border-border bg-surface-muted px-ui-xl py-ui-lg sm:border-b-0">
             <dt className="text-xs text-muted-foreground">当前版本</dt>
             <dd className="mt-ui-xs break-all text-sm font-medium">
@@ -104,7 +104,7 @@ export function BrewPackageDetails({
         ) : null}
 
         <div
-          className="sticky bottom-0 -mx-ui-3xl -mb-ui-xl mt-ui-xl flex flex-wrap justify-end gap-ui-md border-t border-border bg-surface px-ui-3xl py-ui-xl"
+          className="sticky bottom-0 -mx-ui-3xl -mb-ui-xl mt-ui-xl flex flex-wrap justify-end gap-ui-md bg-surface shadow-[var(--app-shadow-sticky)] px-ui-3xl py-ui-xl"
           aria-label={`${details.displayName} 可用操作`}
         >
           {!installed ? (
