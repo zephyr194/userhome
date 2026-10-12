@@ -26,8 +26,10 @@ async function loadInitialPreferences(): Promise<LoadedPreferences> {
 }
 
 async function start() {
+  let E2eFormProbe: React.ComponentType | undefined;
   if (import.meta.env.VITE_E2E === "true") {
     await import("@wdio/tauri-plugin");
+    E2eFormProbe = (await import("./e2e/E2eFormProbe")).E2eFormProbe;
   }
 
   const initialPreferences = await loadInitialPreferences();
@@ -36,6 +38,7 @@ async function start() {
   ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
       <App initialPreferences={initialPreferences} />
+      {E2eFormProbe ? <E2eFormProbe /> : null}
     </React.StrictMode>,
   );
 }

@@ -4683,7 +4683,9 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 **证据：**Applications/Config/Brew/Services/Settings 被动 metadata/notice/list 容器外框已移除；旧 alias、compat 标记和迁移型 important 已清零，pane divider、字段、selection、danger、spinner 等功能边界保留。 v4 三组静态门禁、对比度/forced-colors、完整 lint/typecheck/test/build 通过；46 个测试文件/220 项。CSS+业务 TSX border 词项由约501降至约319，剩余均受功能分类门禁约束。
 ## T139：真实交互与视觉自动门禁
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
+
+**证据：**WDIO/Tauri 真实运行覆盖 Headless Checkbox/Secret 的 `FormData`（默认 `on`、unchecked absence、secret replacement）与原生 reset，Applications scope Tabs 键盘自动激活及 tab/tabpanel 双向关系，资源列表 ArrowDown/`aria-current`，content/primary-nav 两类路由焦点，Settings vertical Tabs End，ConfirmDialog 初始取消焦点、Escape 与触发器焦点恢复，以及五路由 viewport 无溢出、Light/Dark/System computed token 和 Homebrew discovery 终态；`1/1`、18.2 秒通过。E2E probe 仅在 `VITE_E2E=true` 动态加载，production build 不包含该 chunk。完整 `pnpm check` 通过：46 个前端测试文件/220 项、Rust unit/integration 115 项，lint 仅有既有 Dashboard Fast Refresh warning；`pnpm corpus:validate`、`pnpm build:unsigned`、`git diff --check` 均通过。unsigned build 保留既有 551 kB chunk warning，不构成功能失败。forced-colors、outline、业务层原生控件、旧 alias/compat、功能性 border 分类和颜色对比矩阵由 v4 Vitest 静态门禁持续锁定。真实 200% 文本缩放、VoiceOver、人眼层级/对比度与 forced-colors 前台呈现不能由自动化冒充，留 T140 Blocked。
 
 ## T140：前台人工矩阵与发布状态
 **状态：**待执行；无法取得真人前台能力时保持 Blocked。

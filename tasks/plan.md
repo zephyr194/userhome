@@ -1148,7 +1148,7 @@ T125–T140 and preserves all T01–T124 evidence and blockers.
 - [x] T136 business-layer native-control gate
 - [x] T137 low-border Shell/Dashboard migration
 - [x] T138 resource-route migration and compat removal
-- T139 interaction, visual and full automated gates
+- [x] T139 interaction, visual and full automated gates
 - T140 foreground/manual acceptance
 
 Dependency order:
