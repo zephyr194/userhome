@@ -4577,8 +4577,17 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 ## Phase 35：共享 Headless UI 与视觉基础
 
 ## T129：建立 Headless UI 表单与动作原语
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] Button 改由 Headless UI Button 渲染且默认 `type=button`。
+- [x] 建立 Field/Text/Area/Select/Checkbox/Switch/Radio/Secret 共享原语。
+- [x] label/help/error/invalid/required/disabled/readonly 语义由 Headless Field 关联。
+- [x] Secret replacement-only，类型/API 不接受初始秘密。
+- [x] 业务层 23 文件/68 个直接控件基线只能下降。
+
+**证据：**RED 因 forms 模块不存在失败；GREEN 后 3 个定向测试文件/10 项、scoped lint、typecheck、完整 45 文件/212 项测试与 build 通过。Headless Checkbox/Switch 源码确认通过隐藏 field 支持 `value || "on"` 和 reset；真实 FormData/reset 仍由 T134/T139 浏览器测试证明，不以 SSR 冒充。
 ## T130：重建暖灰琥珀 token、focus 与共享低边框组件
 **状态：**待执行。
 

@@ -1,3 +1,4 @@
+import { Button as HeadlessButton } from "@headlessui/react";
 import type { ButtonHTMLAttributes } from "react";
 import { classNames } from "./classNames";
 
@@ -33,7 +34,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-    <button
+    <HeadlessButton
       className={classNames(
         "inline-flex items-center justify-center gap-ui-md rounded-control border font-medium transition-colors",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
