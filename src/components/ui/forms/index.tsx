@@ -15,6 +15,7 @@ import {
 import type {
   InputHTMLAttributes,
   ReactNode,
+  Ref,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
@@ -82,6 +83,7 @@ type TextInputProps = Omit<
 > &
   FieldCopyProps & {
     inputClassName?: string;
+    inputRef?: Ref<HTMLInputElement>;
     invalid?: boolean;
     onValueChange?: (value: string) => void;
   };
@@ -92,6 +94,7 @@ export function TextField({
   disabled,
   error,
   inputClassName,
+  inputRef,
   invalid = Boolean(error),
   label,
   onValueChange,
@@ -109,6 +112,7 @@ export function TextField({
     >
       <Input
         {...props}
+        ref={inputRef}
         className={classNames(CONTROL_CLASSES, inputClassName)}
         disabled={disabled}
         invalid={invalid}

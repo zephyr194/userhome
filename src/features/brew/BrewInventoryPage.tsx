@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AsyncState } from "../../components/AsyncState";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, SelectField, StatusBadge, TextField } from "../../components/ui";
 import {
   listBrewPackages,
   type BrewPackageKind,
@@ -24,8 +24,6 @@ type InventoryState =
 
 type BrewView = "installed" | "search";
 
-const FIELD_CLASSES =
-  "min-h-control-sm min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground transition placeholder:text-muted-foreground focus:border-primary focus-visible:shadow-focus";
 
 /**
  * Single Homebrew workbench: one context toolbar, an installed/search list and
@@ -189,34 +187,26 @@ export function BrewInventoryPage({
                   搜索目录
                 </Button>
               </div>
-              <label className="sr-only" htmlFor="brew-installed-kind">
-                软件包类型
-              </label>
-              <select
-                className={`${FIELD_CLASSES} w-full`}
-                id="brew-installed-kind"
+              <SelectField
+                label="软件包类型"
                 value={kind}
-                onChange={(event) => {
-                  setKind(event.currentTarget.value as BrewPackageKind | "ALL");
+                options={[
+                  { value: "ALL", label: "全部类型" },
+                  { value: "FORMULA", label: "Formula" },
+                  { value: "CASK", label: "Cask" },
+                ]}
+                onValueChange={(value) => {
+                  setKind(value as BrewPackageKind | "ALL");
                   setPageNumber(1);
                 }}
-              >
-                <option value="ALL">全部类型</option>
-                <option value="FORMULA">Formula</option>
-                <option value="CASK">Cask</option>
-              </select>
-              <label className="sr-only" htmlFor="brew-installed-filter">
-                筛选已安装软件
-              </label>
-              <input
-                className={`${FIELD_CLASSES} w-full`}
-                id="brew-installed-filter"
+              />
+              <TextField
+                label="筛选已安装软件"
                 type="search"
                 maxLength={128}
                 placeholder="筛选已安装软件"
                 value={filterInput}
-                onChange={(event) => {
-                  const value = event.currentTarget.value;
+                onValueChange={(value) => {
                   setFilterInput(value);
                   if (value.length === 0) clearFilter();
                 }}

@@ -139,7 +139,9 @@ describe("BrewInventoryList", () => {
 
     expect(markup).toContain("brew-workspace__list");
     expect(markup).toContain("brew-workspace__pane-heading");
-    expect(markup).toContain('role="listbox"');
+    expect(markup).not.toContain('role="listbox"');
+    expect(markup).not.toContain('role="option"');
+    expect(markup.match(/tabindex="0"/g) ?? []).toHaveLength(1);
     expect(markup).toContain("2 项");
     expect(markup).toContain("brew-workspace__pagination");
     // The pagination footer follows (and is not part of) the scrollable list.

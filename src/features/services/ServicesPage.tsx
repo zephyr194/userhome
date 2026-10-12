@@ -5,7 +5,12 @@ import {
   type KeyboardEvent,
 } from "react";
 import { AsyncState } from "../../components/AsyncState";
-import { StatusBadge, type StatusBadgeProps } from "../../components/ui";
+import {
+  Button,
+  StatusBadge,
+  TextField,
+  type StatusBadgeProps,
+} from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
@@ -372,18 +377,16 @@ export function ServicesPage({
           </header>
 
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md border-b border-border bg-surface-muted px-ui-xl py-ui-md">
-            <label className="min-w-40 flex-1">
-              <span className="sr-only">筛选服务</span>
-              <input
-                ref={filterInputRef}
-                className="min-h-control-sm w-full min-w-0 rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground transition placeholder:text-muted-foreground focus:border-primary focus-visible:shadow-focus"
-                type="search"
-                maxLength={128}
-                placeholder="按名称、标识符、状态或作用域筛选"
-                value={filter}
-                onChange={(event) => setFilter(event.currentTarget.value)}
-              />
-            </label>
+            <TextField
+              className="min-w-40 flex-1"
+              inputRef={filterInputRef}
+              label="筛选服务"
+              type="search"
+              maxLength={128}
+              placeholder="按名称、标识符、状态或作用域筛选"
+              value={filter}
+              onValueChange={setFilter}
+            />
             <span className="shrink-0 text-xs text-muted-foreground" role="status">
               {listState.status === "ready"
                 ? `显示 ${services.length} / ${allServices.length} 项`
@@ -412,18 +415,15 @@ export function ServicesPage({
               <AsyncState kind="empty">没有符合筛选条件的服务。</AsyncState>
             </div>
           ) : (
-            <ul
-              className="min-h-0 overflow-y-auto overscroll-contain"
-              role="listbox"
-              aria-label={`Homebrew 服务清单，共 ${services.length} 项`}
-            >
+            <ul className="min-h-0 overflow-y-auto overscroll-contain" aria-label={`Homebrew 服务清单，共 ${services.length} 项`}>
               {services.map((service, index) => {
                 const isSelected = service.serviceId === selectedServiceId;
                 const isTabStop =
                   isSelected || (!selectedIsVisible && index === 0);
                 return (
-                  <li key={service.serviceId} role="presentation">
-                    <button
+                  <li key={service.serviceId}>
+                    <Button
+                      variant="ghost"
                       ref={(button) => {
                         if (button) {
                           rowRefs.current.set(service.serviceId, button);
@@ -435,10 +435,8 @@ export function ServicesPage({
                         "services-inventory-row",
                         isSelected && "services-inventory-row--selected",
                       )}
-                      type="button"
-                      role="option"
                       aria-label={`${service.displayName}，${SCOPE_LABELS[service.scope]}，${STATE_LABELS[service.state]}，${service.manageable && service.scope !== "UNKNOWN" ? "可管理" : "只读"}`}
-                      aria-selected={isSelected}
+                      aria-current={isSelected ? "true" : undefined}
                       tabIndex={isTabStop ? 0 : -1}
                       title={service.displayName}
                       onClick={() => selectService(service.serviceId)}
@@ -458,12 +456,12 @@ export function ServicesPage({
                         </span>
                       </span>
                       <StatusBadge
-                        className="min-h-5 shrink-0 px-ui-sm py-0 text-[10px]"
+                        className="min-h-5 shrink-0 px-ui-sm py-0 text-meta"
                         tone={STATE_TONES[service.state]}
                       >
                         {STATE_LABELS[service.state]}
                       </StatusBadge>
-                    </button>
+                    </Button>
                   </li>
                 );
               })}

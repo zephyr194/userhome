@@ -4649,8 +4649,15 @@ Vite 302 modules transformed）。构建保留既有单一 chunk 超过 500 kB
 
 **证据：**编辑器定向 8 文件/28 项、scoped lint、typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从 68 降至 30；编辑器目录为零。Checkbox hidden form field/reset 的真实行为仍由 T139 WDIO 验证。
 ## T135：迁移 Homebrew 与 Services 字段和资源行
-**状态：**待执行。
+**状态：**2026-10-12 已完成。
 
+
+**验收：**
+- [x] Homebrew 安装清单、搜索与 Services 字段全部经共享 Headless UI。
+- [x] 三类资源列表使用语义列表+Headless Button，移除伪 listbox/option。
+- [x] 保留 form 提交、分页、roving focus、详情反馈和只读/确认边界。
+
+**证据：**Homebrew/Services/Operations 定向 8 文件/29 项、scoped lint、typecheck、完整 45 文件/215 项测试与 build 通过。业务直接控件从7降至0；真实焦点与表单提交留T139 WDIO。
 ## T136：业务层零直接原生交互元素门禁
 **状态：**待执行。
 

@@ -1,6 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { AsyncState } from "../../components/AsyncState";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, StatusBadge, TextField } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import {
   searchBrewPackages,
@@ -17,8 +17,6 @@ type SearchState =
   | { status: "ready"; requestId: number; page: BrewSearchPage }
   | { status: "error"; requestId: number; error: AppError };
 
-const SEARCH_INPUT_CLASSES =
-  "min-h-control-sm min-w-0 w-full rounded-control border border-border bg-surface px-ui-lg py-ui-sm text-xs text-foreground transition placeholder:text-muted-foreground focus:border-primary focus-visible:shadow-focus";
 
 export function BrewSearch({
   onChanged,
@@ -123,22 +121,15 @@ export function BrewSearch({
             搜索目录
           </Button>
         </div>
-        <label className="sr-only" htmlFor="brew-package-search">
-          Homebrew 搜索
-        </label>
-        <input
-          className={SEARCH_INPUT_CLASSES}
-          id="brew-package-search"
+        <TextField
+          label="Homebrew 搜索"
           type="search"
           maxLength={128}
           placeholder="输入 Formula 或 Cask 名称"
           value={query}
-          onChange={(event) => {
-            const value = event.currentTarget.value;
+          onValueChange={(value) => {
             setQuery(value);
-            if (value.length === 0) {
-              clearSearch();
-            }
+            if (value.length === 0) clearSearch();
           }}
         />
         <Button
@@ -189,7 +180,7 @@ export function BrewSearch({
             </div>
           ) : (
             <>
-              <ul role="listbox" aria-label="Homebrew 搜索结果">
+              <ul aria-label="Homebrew 搜索结果">
                 {items.map((item, index) => {
                   const itemSelection = {
                     kind: item.kind,
@@ -200,8 +191,9 @@ export function BrewSearch({
                   const isTabStop =
                     isSelected || (!selectedIsVisible && index === 0);
                   return (
-                    <li key={key} role="presentation">
-                      <button
+                    <li key={key}>
+                      <Button
+                        variant="ghost"
                         ref={(button) => {
                           if (button) {
                             buttonRefs.current.set(key, button);
@@ -213,9 +205,7 @@ export function BrewSearch({
                           "brew-inventory-row",
                           isSelected && "brew-inventory-row--selected",
                         )}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
+                        aria-current={isSelected ? "true" : undefined}
                         tabIndex={isTabStop ? 0 : -1}
                         onClick={() => setSelected(itemSelection)}
                         onKeyDown={(event) => moveSelection(event, index)}
@@ -231,7 +221,7 @@ export function BrewSearch({
                         <StatusBadge className="min-h-5 shrink-0 px-ui-sm py-0 text-meta">
                           {item.kind === "FORMULA" ? "Formula" : "Cask"}
                         </StatusBadge>
-                      </button>
+                      </Button>
                     </li>
                   );
                 })}

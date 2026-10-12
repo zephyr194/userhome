@@ -84,10 +84,7 @@ export function BrewInventoryList({
         </div>
       ) : (
         <>
-          <ul
-            role="listbox"
-            aria-label={`已安装软件列表，共 ${state.page.totalItems} 项，第 ${state.page.page} / ${Math.max(state.page.totalPages, 1)} 页`}
-          >
+          <ul aria-label={`已安装软件列表，共 ${state.page.totalItems} 项，第 ${state.page.page} / ${Math.max(state.page.totalPages, 1)} 页`}>
             {items.map((item, index) => {
               const itemSelection = {
                 kind: item.kind,
@@ -100,8 +97,9 @@ export function BrewInventoryList({
               const versions =
                 item.installedVersions.join(", ") || "版本未知";
               return (
-                <li key={key} role="presentation">
-                  <button
+                <li key={key}>
+                  <Button
+                    variant="ghost"
                     ref={(button) => {
                       if (button) {
                         buttonRefs.current.set(key, button);
@@ -113,10 +111,8 @@ export function BrewInventoryList({
                       "brew-inventory-row",
                       isSelected && "brew-inventory-row--selected",
                     )}
-                    type="button"
-                    role="option"
                     aria-label={`${item.displayName}，${item.kind === "FORMULA" ? "Formula" : "Cask"} ${item.identifier}，${versions}，${item.outdated ? "可更新" : "最新"}`}
-                    aria-selected={isSelected}
+                    aria-current={isSelected ? "true" : undefined}
                     tabIndex={isTabStop ? 0 : -1}
                     onClick={() => onSelect(itemSelection)}
                     onKeyDown={(event) => moveSelection(event, index)}
@@ -140,7 +136,7 @@ export function BrewInventoryList({
                         {item.outdated ? "可更新" : "最新"}
                       </StatusBadge>
                     </span>
-                  </button>
+                  </Button>
                 </li>
               );
             })}
