@@ -88,8 +88,8 @@ single mutation lock.
 
 ## T04: Deliver the desktop window and tray shell
 
-**Status:** Implementation complete on 2026-09-20; manual tray interaction
-verification blocked by local Orca Computer Use permission.
+**状态：**2026-10-14 已完成；实现和自动化证据保留，真实托盘交互由用户
+在隔离 HOME 实例中人工验收通过。
 
 **Description:** Implement the main layout, close-to-hide lifecycle, tray menu,
 open/focus behavior, refresh trigger, status placeholder, and quit action.
@@ -102,19 +102,31 @@ open/focus behavior, refresh trigger, status placeholder, and quit action.
 **Verification:**
 - [x] `cargo test --manifest-path src-tauri/Cargo.toml tray`
 - [x] `pnpm vitest run src/app`
-- [ ] Manual: exercise close, open, refresh, and quit from the tray. `pnpm tauri
-      dev` launched the real 800x600 macOS window successfully, but Orca could
-      not enumerate the unsigned development window for interaction.
+- [x] 人工验收：关闭仅隐藏窗口；托盘 Open 恢复窗口并保留页面；点击一次
+      Refresh 后出现一次刷新并正常结束；托盘仅包含 Open、Refresh、只读摘要
+      和 Quit；通过托盘 Quit 正常退出。
 
 **Evidence:** `pnpm check` and `pnpm build` pass. The tray uses namespaced menu
 IDs, a disabled status item, exact event listen/unlisten permissions, and no
 mutation actions. T05's embedded WebDriver smoke test also launched the real
 macOS window and confirmed the `UserHome` title, main navigation, Dashboard,
-and live backend status. It did not exercise tray clicks, so the manual
-criterion remains open. Orca Run `run_d0fb24c338ec` has both review tasks
+and live backend status. 该次自动化未操作托盘；本次人工验收的完成依据为下述
+用户确认，不以旧 smoke 结果替代。Orca Run `run_d0fb24c338ec` has both review tasks
 completed from recovered reports and no reclaimable workers; two abandoned
 dispatches remain retained because Orca rejected release with
 `identity_unproven`.
+
+**2026-10-14 人工验收证据：**使用 `0e5c74a` 的本地 unsigned 可执行文件，
+在会话目录中设置独立 HOME、XDG_CONFIG_HOME 和私有偏好文件，窗口为
+1120×720。偏好指定关闭后留在托盘，禁用启动和重开自动刷新，以及可选发现根。
+用户逐项确认上述界面、关闭、重开、单次刷新、动作范围和退出结果；验收进程随后
+以状态码 0 结束。未更改真实用户配置，未执行软件或服务变更。
+
+Orca 的 Accessibility 和截图权限均已授予，但当前 provider 不支持 menubar
+和 menus 控制；因此托盘交互结论来自用户人工操作，不声称代理自动点击通过。
+本次定向回归通过：`cargo test --manifest-path src-tauri/Cargo.toml tray`
+共 3 项，`pnpm exec vitest run src/app` 共 8 个文件、52 项；
+`pnpm build` 的类型检查与构建通过，保留既有 chunk 大小警告。未新增或修改测试。
 
 **Dependencies:** T02, T03
 
@@ -169,7 +181,7 @@ Node 20.20.2 with an engine warning, while CI is pinned to the required Node
 ## Checkpoint B: Runnable Shell
 
 - [ ] T03-T05 acceptance criteria pass.
-- [ ] Application lifecycle works through the real tray.
+- [x] 真实托盘的应用生命周期通过 T04 用户人工验收。
 - [x] CI and local verification use the same canonical commands.
 
 ## T06: Deliver the six-application catalog and Applications list

@@ -111,14 +111,14 @@ T12 + T13-T23 + T26
 - [x] Rust and TypeScript checks pass
 
 - [x] T03 Add operation preview and lifecycle coordination
-- [ ] T04 Deliver the desktop window and tray shell — implementation complete;
-      manual tray interaction remains blocked by local Computer Use permission
+- [x] T04 完成桌面窗口与托盘外壳 — 2026-10-14 用户在隔离 HOME 实例中
+      完成关闭隐藏、托盘重开、单次刷新和退出人工验收
 - [ ] T05 Establish automated verification and CI baseline — implementation and
       local verification complete; first GitHub-hosted PR run pending
 
 ### Checkpoint B: Runnable Shell
 
-- [ ] Application launches, hides, reopens, refreshes, and quits correctly
+- [x] 应用可启动、隐藏、重开、刷新并正常退出，T04 人工验收通过
 - [x] Vitest IPC mocks and macOS WebdriverIO smoke test run
 - [ ] Pull-request CI completes an unsigned build smoke test
 

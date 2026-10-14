@@ -11,6 +11,17 @@ T97 automated integration and documentation are complete. Manual desktop
 acceptance and protected release evidence remain open and are not implied by
 the successful local checks.
 
+## 2026-10-14：T04 托盘生命周期人工验收完成
+
+用户在 `0e5c74a` 的隔离 HOME 实例中确认：界面可操作、关闭仅隐藏、托盘 Open
+恢复窗口并保留页面、单次 Refresh 正常结束、托盘没有配置或软件/服务变更动作，
+以及 Quit 正常退出。验收进程退出码为 0，未更改真实用户配置。
+既有 Rust 托盘回归 3 项、前端外壳回归 52 项及前端构建通过。
+
+此证据只关闭 T04，不关闭 T05 的 GitHub 托管 CI、T140 的完整人工矩阵、
+托盘主题外观和摘要准确性、签名/公证、安全审查及其他发布门禁；生产结论仍为
+**NO-GO**。人工步骤和证据范围见 `tasks/todo.md` 的 T04。
+
 ## Specification trace
 
 ### Foundation specifications (T01-T44)
