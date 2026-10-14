@@ -20,13 +20,17 @@ the successful local checks.
 
 此证据只关闭 T04，不关闭 T05 的 GitHub 托管 CI、T140 的完整人工矩阵、
 托盘主题外观和摘要准确性、签名/公证、安全审查及其他发布门禁；生产结论仍为
-**NO-GO**。人工步骤和证据范围见 `tasks/todo.md` 的 T04。
+**NO-GO**。人工验收的证据范围以本节记录为准。
 
-## Specification trace
+## 历史实施证据追溯
 
-### Foundation specifications (T01-T44)
+需求规格、能力图、实施计划和任务清单已于 2026-10-14 清理。以下 T 编号仅作为
+历史证据标识保留，不再指向任务文件；文档清理不关闭任何人工或外部门禁，
+也不改变生产发布的 **NO-GO** 结论。
 
-| Specification | Evidence |
+### 基础能力（T01-T44）
+
+| 能力 | 证据 |
 |---|---|
 | Initiative 1: signed macOS app and persistent tray | Fixed-window state, close-to-tray policy, tray action mapping, and read-only summaries have automated evidence; manual tray/window interaction and signed launch remain blocked or pending. |
 | Initiative 2: six integrations and evidence | Catalog tests plus dashboard/application E2E assertions cover all six definitions and typed evidence. |
@@ -38,39 +42,33 @@ the successful local checks.
 | Initiative 9: tagged signed universal release | Tag-only draft workflow, fail-closed secret gate, universal app/helper/bridge architecture checks, and local unsigned universal build provide implementation evidence; GitHub-hosted signed/notarized execution remains blocked. |
 | Initiative 10: no telemetry and bounded local persistence | No telemetry/network capability is configured; only protected backups and sanitized bounded operation metadata are stored. |
 
-The module-level criteria in `specs/SPEC-platform-foundation.md`,
-`specs/SPEC-app-catalog.md`, `specs/SPEC-system-discovery.md`,
-`specs/SPEC-config-management.md`, `specs/SPEC-brew-management.md`,
-`specs/SPEC-service-management.md`, and `specs/SPEC-desktop-experience.md` map to the
-corresponding T01-T44 tasks and their focused Rust/Vitest/E2E tests. T30-T43
-implementation criteria are automated where possible; their explicitly manual
-display, assistive-technology, and interaction criteria remain open.
+平台基础、应用目录、系统发现、配置管理、Homebrew 管理、服务管理和桌面体验的
+历史验收对应 T01-T44 及其定向 Rust/Vitest/E2E 测试。T30-T43 中可自动化的
+实施条件已有证据；需要人工验证的显示、辅助技术和交互条件仍未关闭。
 
-### Desktop Completeness revision (T45-T68)
+### 桌面完整性修订（T45-T68）
 
-| Specification | Tasks | Implementation evidence | Remaining manual/external evidence |
+| 能力 | 历史任务编号 | 实施证据 | 尚缺的人工或外部证据 |
 |---|---|---|---|
-| `specs/SPEC-native-desktop-shell.md` | T45-T50 | `DesktopWorkspace` owns bounded sidebar, toolbar, list, detail, inspector, banner, and operation regions; Dashboard is grouped rather than card-based; Applications, Homebrew, and Services use stable-ID list/detail selection; the native menu routes Settings, Refresh, Hide/Show, and Quit through one allowlisted dispatcher. The hidden WDIO smoke verifies the fixed 1120 × 720 logical window, disabled resize/maximize, compact Dashboard, stable navigation focus, catalog list, Homebrew settlement, and refresh coalescing. | Native menu accelerators, full keyboard traversal, tray interaction, window drag/minimize/close/reopen, display scaling, VoiceOver, contrast, reduced motion, and icon appearance remain unchecked. |
-| `specs/SPEC-home-baseline-inventory.md` | T51-T53 | Discovery uses typed root aliases, deterministic IDs, metadata-only exact probes plus bounded direct-child scans, explicit limits/outcomes, and a sanitized export. The recorded T53 snapshot classified all 128 emitted candidates without storing raw paths or content. | A fresh comparison on a disposable baseline machine remains unchecked; T69 did not rescan real user configuration. |
-| `specs/SPEC-configuration-platform.md` | T54-T57 | Catalog documents declare typed bounded variants and format capabilities; configuration reads return one of nine explicit diagnostic states with safe paths; shared read-only handlers fail closed; React dispatches by capability and `editorKey`, not `appId`; existing preview, validation, backup, restore, redaction, and atomic-write order remains intact. | End-to-end writable/read-only/redacted/restore inspection on disposable real configuration remains unchecked. |
-| `specs/SPEC-catalog-expansion.md` | T58-T60 | At the T60 revision, the validated catalog contained 26 definitions: six writable, nineteen read-only, and one excluded. The final recorded baseline classified 128/128 candidates, managed 25/25 eligible text roots (100%), retained Priority A at 6/6, and satisfied Priority B at 20/20 without adding React `appId` branches or new authority. | A fresh visual reconciliation on a disposable baseline machine remains unchecked. |
-| `specs/SPEC-application-settings.md` | T61-T68 | A versioned atomic preference store drives seven compact Settings groups, immediate System/Light/Dark appearance, bounded lifecycle/refresh/editor presets, owned-backup retention and confirmed clearing, typed optional discovery roots, allowlisted diagnostics export/copy, and preference reset that preserves backups and managed files. Settings selection is shared by the sidebar and `Command+,`; the earlier isolated 1120 × 720 keyboard pass covered all groups, and T68 verified sanitized export plus restart after reset. | Full contrast/reduced-motion inspection and native launch/close/reopen/tray lifecycle scenarios remain unchecked. |
+| 原生桌面外壳 | T45-T50 | `DesktopWorkspace` 管理有界侧栏、工具栏、列表、详情、检查器、横幅和操作区域；Dashboard 使用分组而非卡片；Applications、Homebrew 和 Services 使用稳定 ID 的列表/详情选择；原生菜单通过白名单分发器处理 Settings、Refresh、Hide/Show 和 Quit。该阶段隐藏窗口的 WDIO 冒烟验证了固定 1120 × 720 逻辑尺寸、禁止缩放/最大化、紧凑 Dashboard、稳定导航焦点、应用目录列表、Homebrew 加载结束及刷新合并。 | 原生菜单快捷键、完整键盘遍历、托盘交互、窗口拖动/最小化/关闭/重开、显示缩放、VoiceOver、对比度、减少动态效果及图标外观尚未完成验收。 |
+| 用户目录基线清单 | T51-T53 | 发现流程采用类型化根别名、确定性 ID、仅元数据的精确探测与有界直接子项扫描、显式限制/结果和脱敏导出。T53 快照分类了全部 128 个候选项，未保存原始路径或内容。 | 尚未在一次性基线机器上重新比对；T69 未重新扫描真实用户配置。 |
+| 配置平台 | T54-T57 | 目录文档声明类型化有界变体和格式能力；配置读取返回九种显式诊断状态之一及安全路径；共享只读处理器拒绝不安全情况；React 按能力和 `editorKey` 分发，而非 `appId`；既有预览、验证、备份、恢复、脱敏和原子写入顺序保持不变。 | 尚未在一次性真实配置上完成可写/只读/脱敏/恢复的端到端验收。 |
+| 应用目录扩展 | T58-T60 | T60 验证的目录包含 26 个定义：6 个可写、19 个只读、1 个排除。最终基线分类了 128/128 个候选项，管理 25/25 个符合条件的文本根（100%），Priority A 保持 6/6，Priority B 达到 20/20，未新增 React `appId` 分支或权限。 | 尚未在一次性基线机器上重新完成视觉比对。 |
+| 应用设置 | T61-T68 | 版本化原子偏好存储驱动七个紧凑 Settings 分组、即时 System/Light/Dark 外观、有界生命周期/刷新/编辑器预设、自有备份保留与确认清理、类型化可选发现根、白名单诊断导出/复制，以及保留备份和受管文件的偏好重置。侧栏与 `Command+,` 共享 Settings 选择；早期隔离环境的 1120 × 720 键盘验收覆盖全部分组，T68 验证了脱敏导出及重置后重启。 | 完整对比度/减少动态效果验收，以及原生启动/关闭/重开/托盘生命周期场景尚未完成。 |
 
-Every T45-T68 acceptance criterion is therefore linked to implementation
-evidence in `tasks/todo.md`; where verification requires a foreground macOS
-interaction, protected credentials, or a disposable baseline machine, the
-corresponding checkbox remains open below.
+上表保留 T45-T68 的实施证据。需要前台 macOS 交互、受保护凭据或一次性基线机器
+才能验证的条件，仍在下方保留为未关闭的门禁。
 
-### Configuration discovery and editing revision (T70-T97)
+### 配置发现与编辑修订（T70-T97）
 
-| Specification | Tasks | Implementation evidence | Remaining manual/external evidence |
+| 能力 | 历史任务编号 | 实施证据 | 尚缺的人工或外部证据 |
 |---|---|---|---|
-| `specs/SPEC-desktop-visual-consistency.md` | T70, T92-T95 | Shared semantic geometry, surface, state, focus, row, and control tokens now drive the shell and primary workspaces. Applications use compact two-line rows, a five-control filter grid, pane-local scrolling, long-text wrapping, and narrow logical-viewport adaptations. Homebrew, Services, Settings, Dashboard, dialogs, and shared controls use the same hierarchy. | System/Light/Dark inspection at 100% and 200% text zoom, full keyboard traversal, contrast, reduced motion, and longest-label inspection remain manual. |
-| `specs/SPEC-native-window-dragging.md` | T96 | The overlay title bar and approved blank/title regions are explicit drag regions. Buttons, links, inputs, selects, textareas, dialogs, tabs, menu items, options, contenteditable regions, and descendants are no-drag. React suppresses title-bar double-click default handling without changing fixed window configuration. | The real macOS pointer/trackpad matrix remains open: drag 10/10 on approved regions, 0/10 on interactive regions, double-click 0/10 across appearance and display scales. |
-| `specs/SPEC-application-browsing.md` | T74-T75, T81-T84 | Rust owns validated search, filters, facets, detail lookup, and exact 50-item pages for 624 offline applications. Request generations prevent stale replacement; selection memory retains query, filters, page, scroll, app, and config selection. The native E2E verifies page 1 contains exactly 50 rows across 13 pages and Rust search finds GitHub Copilot. | First/middle/final/empty manual page inspection and the full keyboard navigation/refresh matrix remain open. |
-| `specs/SPEC-open-source-config-sourcing.md` | T73, T76-T80, T83 | Maintainer-only scripts validate official HTTPS authorities, digests, freshness, licensing, review state, and deterministic output. The packaged corpus contains 300 formulae, 300 casks, 26 managed overlays, and 624 unique applications. Runtime remains offline and source evidence grants no authority. | A fresh real-network maintenance refresh and monthly maintainer approval workflow remain operational/manual activities. |
-| `specs/SPEC-config-schema-presets.md` | T71-T72, T85-T87 | Independently versioned schemas, presets, and sources fail closed on unknown data, enforce 64 fields/32 presets, omit secret current values, apply presets to drafts only, and restrict complete templates to missing files. Typed IPC and backend validation recheck applicability, values, variant, schema, and preset identity. | Manual interaction across every field kind, warning, field group, recommended preset, and complete-template flow remains open. |
-| `specs/SPEC-schema-driven-config-editing.md` | T88-T91 | Git, npm, Caddy, OpenSSH, Copilot settings, and Zsh use `SchemaEditor` by default without `appId` dispatch. Final independent review confirmed schema-backed reads omit sensitive projections, null patches are rejected, OpenSSH host markers are immutable, and npm registry token scope rejects unsafe authorities without echoing credentials. | Manual specialized-versus-schema preview comparison on disposable fixtures and a six-app visual inspection remain open. |
+| 桌面视觉一致性 | T70, T92-T95 | 共享语义几何、表面、状态、焦点、行和控件令牌驱动外壳与主要工作区。Applications 使用紧凑双行、五控件筛选网格、窗格内滚动、长文本换行和窄逻辑视口适配。Homebrew、Services、Settings、Dashboard、对话框和共享控件使用同一层级。 | System/Light/Dark 在 100%/200% 文本缩放下的验收、完整键盘遍历、对比度、减少动态效果和最长标签检查仍需人工完成。 |
+| 原生窗口拖动 | T96 | overlay 标题栏及已批准的空白/标题区域显式允许拖动。按钮、链接、输入框、选择框、文本区域、对话框、标签页、菜单项、选项、可编辑区域及其后代均禁止拖动。React 抑制标题栏双击默认行为，不改变该阶段固定窗口配置。 | 真实 macOS 指针/触控板矩阵仍未完成：跨外观与显示缩放，允许区域拖动 10/10、交互区域拖动 0/10、双击改变窗口 0/10。 |
+| 应用浏览 | T74-T75, T81-T84 | Rust 为 624 个离线应用提供经验证的搜索、筛选、分面、详情查询及每页恰好 50 项的分页。请求代次防止旧结果覆盖；选择记忆保留查询、筛选、页码、滚动、应用和配置选择。原生 E2E 验证共 13 页且第一页恰好 50 行，并通过 Rust 搜索找到 GitHub Copilot。 | 首/中/末/空页人工验收，以及完整键盘导航/刷新矩阵仍未完成。 |
+| 开源配置来源 | T73, T76-T80, T83 | 仅维护者使用的脚本验证官方 HTTPS 授权域、摘要、新鲜度、许可、审查状态和确定性输出。打包语料包含 300 个 formulae、300 个 casks、26 个受管 overlays 和 624 个唯一应用。运行时保持离线，来源证据不授予权限。 | 真实网络维护刷新和每月维护者审批仍属于运维/人工活动。 |
+| 配置 Schema 与预设 | T71-T72, T85-T87 | 独立版本化的 Schema、预设和来源拒绝未知数据，限制 64 个字段/32 个预设，省略 secret 当前值，预设只应用于草稿，完整模板仅用于缺失文件。类型化 IPC 和后端验证重新检查适用性、值、变体、Schema 和预设身份。 | 各字段类型、警告、字段组、推荐预设及完整模板流程的人工交互验收仍未完成。 |
+| Schema 驱动配置编辑 | T88-T91 | Git、npm、Caddy、OpenSSH、Copilot settings 和 Zsh 默认使用 `SchemaEditor`，不按 `appId` 分发。最终独立审查确认 Schema 读取省略敏感投影、拒绝 null 补丁、OpenSSH host 标记不可变，且 npm registry token 范围拒绝不安全授权域而不回显凭据。 | 一次性夹具上的专用编辑器与 Schema 预览人工比对，以及六个应用的视觉验收仍未完成。 |
 
 ## Automated evidence
 

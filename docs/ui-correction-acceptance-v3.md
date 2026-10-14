@@ -2,12 +2,8 @@
 
 Status: automated gate complete on 2026-10-10; foreground/manual matrix pending or blocked as recorded below.
 
-Specifications:
-
-- [`specs/SPEC-ui-visual-system-v3.md`](specs/SPEC-ui-visual-system-v3.md)
-- [`specs/SPEC-ui-layout-completion-v3.md`](specs/SPEC-ui-layout-completion-v3.md)
-- [`specs/SPEC-home-config-recognition-v3.md`](specs/SPEC-home-config-recognition-v3.md)
-- [`specs/SPEC-ui-correction-acceptance-v3.md`](specs/SPEC-ui-correction-acceptance-v3.md)
+本记录覆盖全局视觉系统、五个主路由布局、用户目录配置识别及跨路由验收矩阵。
+历史需求规格已清理；以下自动化证据和人工验收阻塞状态继续保留。
 
 ## Automated gate
 

@@ -23,3 +23,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 本地需求规格与实施计划（不忽略 *.spec.ts 等测试文件）
+SPEC*.md
+spec*.md
+/specs/
+/docs/specs/
+/CAPABILITY-MAP.md
+/tasks/plan.md
+/tasks/todo.md
