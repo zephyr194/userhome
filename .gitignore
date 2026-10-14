@@ -32,3 +32,6 @@ spec*.md
 /CAPABILITY-MAP.md
 /tasks/plan.md
 /tasks/todo.md
+
+# 本地技能安装状态
+/skills-lock.json
