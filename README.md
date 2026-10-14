@@ -6,6 +6,27 @@ configuration, Homebrew software, services, and basic machine capabilities.
 历史需求规格、能力图、实施计划和任务清单已清理。发布证据与未关闭的门禁保留在
 [`docs/release-readiness.md`](docs/release-readiness.md)，清理文档不代表已通过生产发布验收。
 
+## 文档导航
+
+`docs/` 保留可维护的技术契约、操作指南和有日期的证据，不作为需求规格或任务清单。
+需求规格、能力图、实施计划及 `skills-lock.json` 仅供本地使用，不纳入 Git 跟踪。
+
+| 分类 | 文档 | 用途与维护边界 |
+|---|---|---|
+| 技术契约 | [application-profiles.md](docs/application-profiles.md) | 新只读应用定义、资源发现/读取 IPC 与排除规则；随只读入口变化维护，不授予旧 Catalog 的写入权限。 |
+| 技术契约 | [managed-app-schema.md](docs/managed-app-schema.md) | 旧受管 Catalog 的扩展、Schema/预设、读写授权与兼容约束；随 Catalog 或编辑链路变化维护，与新只读定义分开。 |
+| 技术契约 | [threat-model.md](docs/threat-model.md) | 只读入口、提权和分发的信任边界、失败行为及残余风险；权限或信任边界变化时更新，不代替安全验收。 |
+| 操作指南 | [backup-and-restore.md](docs/backup-and-restore.md) | 配置备份位置、权限、保留与恢复流程；随备份/恢复行为变化维护。 |
+| 操作指南 | [release.md](docs/release.md) | CI、标签构建、签名、公证、草稿发布和回滚流程；随工作流变化维护，不代表门禁已通过。 |
+| 操作指南 | [elevation-checklist.md](docs/elevation-checklist.md) | 已签名 helper 的注册及受保护夹具人工验证步骤；只在一次性环境执行，实测结果记入发布台账。 |
+| 发布台账 | [release-readiness.md](docs/release-readiness.md) | 带日期的实测证据、发布决定、剩余阻塞与门禁；追加新证据，不把历史通过结果视为当前版本已通过。 |
+| 历史证据 | [home-baseline-coverage.md](docs/home-baseline-coverage.md) | 基线导出统计口径及 T53–T60 分类/覆盖率快照；不代表当前机器状态，也不授权扩大扫描或读写范围。 |
+| 历史证据 | [ui-correction-acceptance-v3.md](docs/ui-correction-acceptance-v3.md) | UI v3 自动化证据和未完成的人工矩阵；保留当时结论，不作为当前 UI 规格。 |
+
+操作步骤与验收结果分开维护：流程变更更新指南，实际执行结果记录日期、版本和环境。
+历史记录中的应用数量、窗口条件和 T 编号只用于追溯，不覆盖当前实现契约；
+需要实测的签名、前台交互及辅助技术门禁不能由文档或自动化结果代替。
+
 ## Requirements
 
 - macOS 13 or newer

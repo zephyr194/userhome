@@ -1,5 +1,9 @@
 # Managed application catalog extension
 
+**用途：**旧受管 Catalog、配置 Schema/预设及读写授权的维护契约，供集成与编辑链路维护者使用。
+契约随实现变化更新，带日期的来源和批次记录保留为历史证据。新只读入口的独立定义
+见 [application-profiles.md](application-profiles.md)，其资源 ID 和排除规则不扩展旧 Catalog 权限。
+
 `src-tauri/src/catalog/catalog-v2.json` is the packaged runtime authorization
 source of truth. It is generated deterministically from the reviewed v1
 managed definitions and the detection-only offline corpus.

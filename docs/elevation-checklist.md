@@ -1,5 +1,9 @@
 # Signed helper verification checklist
 
+**用途：**签名 helper 的人工操作清单，供发布与安全验证人员在一次性 macOS 环境中执行。
+步骤随 helper 协议和签名流程维护；实测日期、版本、结果与阻塞记录在
+[release-readiness.md](release-readiness.md)。文末签名阻塞是注明日期的历史观测，不证明当前机器状态。
+
 Automated CI uses the fake elevation transport and must not mutate live
 configuration or services. Run this checklist only on a disposable macOS 13+
 machine with development signing credentials.

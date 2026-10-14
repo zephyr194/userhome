@@ -1,5 +1,9 @@
 # 只读应用定义
 
+**用途：**新只读配置入口的技术契约，供应用定义、后端和 IPC 接入维护者使用。
+随定义、读取或排除行为变化更新；旧受管 Catalog 的 Schema、预设和写入规则见
+[managed-app-schema.md](managed-app-schema.md)，两套授权不能混用。
+
 本契约仅授权新入口读取核心配置，不替换旧 Catalog、Schema/preset、adapter 或写入授权。当前只编译注册 `github-copilot`，根为 `HOME/.copilot`；不枚举整个 HOME，不支持环境覆盖、运行时导入、手动绑定或其他应用。
 
 ## 定义与校验

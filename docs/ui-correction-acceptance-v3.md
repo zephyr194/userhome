@@ -1,5 +1,9 @@
 # UI Correction v3 Acceptance Evidence
 
+**用途：**保存 UI v3 阶段的自动化结果与前台人工矩阵，供历史验收追溯，不作为当前 UI 规格。
+保留当时通过、待验收和阻塞的区别；后续版本的验收结果应带日期记录在
+[release-readiness.md](release-readiness.md)，不能回写为本阶段已通过。
+
 Status: automated gate complete on 2026-10-10; foreground/manual matrix pending or blocked as recorded below.
 
 本记录覆盖全局视觉系统、五个主路由布局、用户目录配置识别及跨路由验收矩阵。

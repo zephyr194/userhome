@@ -1,5 +1,10 @@
 # Release readiness evidence
 
+**用途：**发布证据台账，汇集带日期的实测结果、发布决定及尚未关闭的人工/外部门禁。
+新增验收须注明版本、环境和证据范围，不覆盖旧记录或自动继承历史通过结论；
+操作流程见 [release.md](release.md)，详细 UI v3 矩阵见
+[ui-correction-acceptance-v3.md](ui-correction-acceptance-v3.md)。
+
 Assessment date: 2026-09-22
 
 Decision: **NO-GO for production publication** until the external signing,

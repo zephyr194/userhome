@@ -1,5 +1,9 @@
 # Home Baseline Coverage
 
+**用途：**记录脱敏基线导出的统计口径及 T53–T60 的历史分类/覆盖率证据，供目录维护和验收追溯。
+历史数量与路径存在性只适用于记录的检查点，不代表当前机器或当前目录全量状态，
+也不能据此扩大扫描、读取或写入权限；新基线验收需另记日期、版本与环境。
+
 The developer-facing `export_sanitized_baseline` command returns a bounded,
 content-free manifest for catalog planning. The TypeScript wrapper is
 `exportSanitizedBaseline()` in `src/ipc/discovery.ts`.

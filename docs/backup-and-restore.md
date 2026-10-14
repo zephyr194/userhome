@@ -1,5 +1,8 @@
 # Backup and restore
 
+**用途：**说明受管配置的备份位置、保护、保留和恢复行为，供使用者及配置链路维护者查阅。
+随备份/恢复实现变化更新；只读应用定义不因此获得备份或写入权限，测试仍须使用临时夹具。
+
 UserHome creates a backup immediately before each authorized configuration
 replacement. Backups live under `~/.userhome/backups/<appId>/<configId>/` and
 are scoped to catalog-owned application and configuration IDs.

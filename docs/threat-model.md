@@ -1,5 +1,9 @@
 # Threat model
 
+**用途：**记录只读配置、受控提权和发布分发的信任边界、失败策略与残余风险，供实现和安全审查使用。
+权限、数据流或分发边界变化时更新；本文不是已完成安全验收的证明，实际结果与外部阻塞
+见 [release-readiness.md](release-readiness.md)。
+
 ## 新只读配置入口
 
 新 `ApplicationProfile` 与旧 Catalog 写入授权分离，只有内置 HOME 相对根及明确核心资源。
