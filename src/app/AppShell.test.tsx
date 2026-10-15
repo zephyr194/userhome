@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { AppShell } from "./AppShell";
+import { AppShell, QuitConfirmationDialog, type QuitPrompt } from "./AppShell";
 import { applyAppearance } from "./appearance";
 import { AppearanceSettings } from "../features/settings/AppearanceSettings";
 import type { ShellState } from "./shellState";
@@ -353,5 +353,55 @@ describe("AppShell", () => {
     expect(markup).toContain("概览");
     expect(markup).not.toContain("Formula 12");
     expect(markup).not.toContain("正在显示上次成功刷新保留的 Homebrew 数据。");
+  });
+});
+
+describe("QuitConfirmationDialog", () => {
+  const render = (prompt: QuitPrompt) =>
+    renderToStaticMarkup(
+      <QuitConfirmationDialog
+        onCancel={() => undefined}
+        onConfirm={() => undefined}
+        prompt={prompt}
+      />,
+    );
+
+  it("asks to stop and quit or cancel, with cancel as the focus default", () => {
+    const markup = render({ phase: "asking", processCount: 2 });
+
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain('aria-labelledby="quit-confirmation-heading"');
+    expect(markup).toContain('id="quit-confirmation-heading"');
+    expect(markup).toContain("退出 UserHome？");
+    expect(markup).toContain("2");
+    expect(markup).toContain("data-dialog-cancel");
+    expect(markup).toContain(">取消退出<");
+    expect(markup).toContain(">停止并退出<");
+    expect(markup).not.toMatch(/<button[^>]*\sdisabled=""/);
+    expect(markup).not.toContain('role="alert"');
+  });
+
+  it("disables both choices and announces progress while stopping", () => {
+    const markup = render({ phase: "stopping", processCount: 1 });
+
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain("正在停止进程并等待其退出");
+    expect(markup.match(/<button[^>]*\sdisabled=""/g)).toHaveLength(2);
+  });
+
+  it("reports an unconfirmed exit honestly and offers retry or cancel", () => {
+    const markup = render({
+      phase: "failed",
+      processCount: 1,
+      message: "应用未退出：无法确认以下进程已退出：caddy。它们可能仍在运行。",
+    });
+
+    expect(markup).toContain('role="alert"');
+    expect(markup).toContain("应用未退出");
+    expect(markup).toContain("caddy");
+    expect(markup).toContain(">重试停止并退出<");
+    expect(markup).toContain(">取消退出<");
   });
 });

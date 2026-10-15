@@ -9,6 +9,7 @@ pub mod config;
 pub mod discovery;
 pub mod error;
 pub mod grants;
+pub mod lifecycle;
 pub mod operations;
 pub mod process;
 pub mod process_session;
@@ -32,6 +33,7 @@ pub fn run() {
         .manage(discovery::refresh::DiscoveryCoordinator::default())
         .manage(config::ConfigCoordinator::default())
         .manage(operations::OperationCoordinator::default())
+        .manage(lifecycle::LifecycleCoordinator::default())
         .manage(grants::ResourceWriteCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
         .manage(services::actions::ServiceActionCoordinator::default())
@@ -92,7 +94,7 @@ pub fn run() {
                         }
                     }
                 }
-                CloseRequestAction::Quit => window.app_handle().exit(0),
+                CloseRequestAction::Quit => lifecycle::request_quit(window.app_handle()),
                 CloseRequestAction::Ignore => {}
             }
         })
@@ -151,8 +153,22 @@ pub fn run() {
             commands::grants::revoke_grant,
             commands::resources::preview_resource_writes,
             commands::resources::execute_resource_write,
-            commands::resources::get_resource_write_batch
+            commands::resources::get_resource_write_batch,
+            commands::lifecycle::confirm_quit,
+            commands::lifecycle::cancel_quit
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // A quit nobody routed through the lifecycle entry (a system quit, for
+            // example) is held back and sent through it. Programmatic exits carry
+            // a code and have already passed the entry.
+            if let tauri::RunEvent::ExitRequested {
+                code: None, api, ..
+            } = event
+            {
+                api.prevent_exit();
+                lifecycle::request_quit(app);
+            }
+        });
 }

@@ -247,12 +247,13 @@ fn handle_action(app: &tauri::AppHandle, action: TrayAction) {
                 eprintln!("failed to hide the main window: {error}");
             }
         }
-        TrayAction::Quit => app.exit(0),
+        TrayAction::Quit => crate::lifecycle::request_quit(app),
         TrayAction::Ignore => {}
     }
 }
 
-fn show_main_window(app: &AppHandle) -> bool {
+/// Shows, restores and focuses the main window; `true` if it was hidden.
+pub(crate) fn show_main_window(app: &AppHandle) -> bool {
     let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) else {
         eprintln!("failed to show the main window: window not found");
         return false;

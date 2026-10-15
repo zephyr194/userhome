@@ -5,6 +5,7 @@ pub mod config;
 pub mod discovery;
 pub mod elevation;
 pub mod grants;
+pub mod lifecycle;
 pub mod operations;
 pub mod resources;
 pub mod services;

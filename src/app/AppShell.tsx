@@ -8,9 +8,15 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button, StatusBadge } from "../components/ui";
+import {
+  cancelQuit,
+  confirmQuit,
+  registerQuitConfirmationListener,
+} from "../ipc/lifecycle";
 import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
 import { APP_ROUTES, type AppRouteId, type NavigationIntent, type NavigationSource } from "./routeDefinitions";
@@ -69,6 +75,75 @@ function ShellNotice({
   );
 }
 
+export type QuitPrompt =
+  | { phase: "asking"; processCount: number }
+  | { phase: "stopping"; processCount: number }
+  | { phase: "quitting"; processCount: number }
+  | { phase: "failed"; processCount: number; message: string };
+
+/**
+ * Asked when the app is quit while it still runs processes it started. Nothing is
+ * stopped until "停止并退出"; cancel is the focused default.
+ */
+export function QuitConfirmationDialog({
+  onCancel,
+  onConfirm,
+  prompt,
+}: {
+  onCancel: () => void;
+  onConfirm: () => void;
+  prompt: QuitPrompt;
+}) {
+  const busy = prompt.phase === "stopping" || prompt.phase === "quitting";
+  return (
+    <ConfirmDialog
+      busy={busy}
+      className="space-y-4"
+      onCancel={onCancel}
+      titleId="quit-confirmation-heading"
+    >
+      <h3
+        className="break-words [overflow-wrap:anywhere]"
+        id="quit-confirmation-heading"
+      >
+        退出 UserHome？
+      </h3>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        UserHome 仍有 {prompt.processCount} 个由它启动的进程在运行。
+        “停止并退出”会先停止这些进程，确认全部已退出后才退出应用；
+        “取消退出”不会改变任何内容。
+      </p>
+      {prompt.phase === "stopping" || prompt.phase === "quitting" ? (
+        <p
+          className="text-sm text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          {prompt.phase === "stopping"
+            ? "正在停止进程并等待其退出…"
+            : "进程已全部退出，正在退出应用…"}
+        </p>
+      ) : null}
+      {prompt.phase === "failed" ? (
+        <p
+          className="break-words rounded-control border border-danger-border bg-danger-soft px-3 py-2.5 text-sm text-danger [overflow-wrap:anywhere]"
+          role="alert"
+        >
+          {prompt.message}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button data-dialog-cancel disabled={busy} onClick={onCancel}>
+          取消退出
+        </Button>
+        <Button variant="danger" disabled={busy} onClick={onConfirm}>
+          {prompt.phase === "failed" ? "重试停止并退出" : "停止并退出"}
+        </Button>
+      </div>
+    </ConfirmDialog>
+  );
+}
+
 function clearSearchOnEscape(event: KeyboardEvent<HTMLDivElement>) {
   if (event.key !== "Escape" || event.defaultPrevented) {
     return;
@@ -114,6 +189,8 @@ export function AppShell({
   state,
 }: AppShellProps) {
   const [commandError, setCommandError] = useState<string>();
+  const [quitPrompt, setQuitPrompt] = useState<QuitPrompt>();
+  const quitReturnFocus = useRef<HTMLElement | null>(null);
   const pendingNavigationSource = useRef<NavigationSource>("primary-nav");
   // Transient, session-only application navigation context. Candidates and
   // refresh ids validate against a live discovery snapshot; they are never
@@ -261,6 +338,84 @@ export function AppShell({
     };
   }, [navigate]);
 
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    void registerQuitConfirmationListener(({ processCount }) => {
+      if (document.activeElement instanceof HTMLElement) {
+        quitReturnFocus.current = document.activeElement;
+      }
+      setQuitPrompt({ phase: "asking", processCount });
+    })
+      .then((cleanup) => {
+        if (disposed) {
+          cleanup();
+        } else {
+          unlisten = cleanup;
+        }
+      })
+      .catch(() => {
+        if (!disposed) {
+          setCommandError("无法监听应用退出请求。");
+        }
+      });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
+
+  const closeQuitPrompt = useCallback(() => {
+    setQuitPrompt(undefined);
+    const target = quitReturnFocus.current;
+    quitReturnFocus.current = null;
+    window.setTimeout(() => {
+      (target?.isConnected
+        ? target
+        : document.getElementById("main-content")
+      )?.focus({ preventScroll: true });
+    }, 0);
+  }, []);
+
+  const cancelQuitPrompt = useCallback(() => {
+    void cancelQuit()
+      .catch(() => {
+        setCommandError("无法取消退出请求。");
+      })
+      .finally(closeQuitPrompt);
+  }, [closeQuitPrompt]);
+
+  const confirmQuitPrompt = useCallback(() => {
+    setQuitPrompt((current) =>
+      current ? { phase: "stopping", processCount: current.processCount } : current,
+    );
+    void confirmQuit()
+      .then((result) =>
+        setQuitPrompt((current) => {
+          const processCount = current?.processCount ?? 0;
+          return result.status === "QUITTING"
+            ? { phase: "quitting", processCount }
+            : {
+                phase: "failed",
+                processCount,
+                message: `应用未退出：无法确认以下进程已退出：${result.unconfirmed.join("、")}。它们可能仍在运行。`,
+              };
+        }),
+      )
+      .catch(() =>
+        setQuitPrompt((current) => {
+          const processCount = current?.processCount ?? 0;
+          return {
+            phase: "failed",
+            processCount,
+            message: "无法完成退出请求，应用未退出。",
+          };
+        }),
+      );
+  }, []);
+
   const preferencesNotice =
     state.preferences.status === "loading" ? (
       <ShellNotice
@@ -318,6 +473,13 @@ export function AppShell({
       <a className="skip-link" href="#main-content">
         跳到主要内容
       </a>
+      {quitPrompt ? (
+        <QuitConfirmationDialog
+          onCancel={cancelQuitPrompt}
+          onConfirm={confirmQuitPrompt}
+          prompt={quitPrompt}
+        />
+      ) : null}
       <div className="app-shell" onKeyDownCapture={clearSearchOnEscape}>
         <header
           className="titlebar"
