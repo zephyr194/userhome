@@ -30,8 +30,14 @@ impl Fixture {
         self.root.join("support")
     }
 
+    // The fixture root plays the injected $HOME, so every fixture target lies
+    // strictly below it.
     fn coordinator(&self) -> GrantCoordinator {
-        GrantCoordinator::new(GrantStore::new(self.store_directory()))
+        self.coordinator_with_home(Some(self.root.clone()))
+    }
+
+    fn coordinator_with_home(&self, home: Option<PathBuf>) -> GrantCoordinator {
+        GrantCoordinator::new(GrantStore::new(self.store_directory()), home)
     }
 
     fn store_file(&self) -> PathBuf {
@@ -575,6 +581,321 @@ fn grant_errors_map_to_distinct_application_errors() {
             .as_str()
             .expect("message")
             .to_owned();
+        assert!(messages.insert(message), "duplicate message for {error:?}");
+    }
+}
+
+// ---- Authorization is limited to targets strictly below $HOME (R1-2) ----
+
+/// A fixture whose injected $HOME is `<root>/home`, with unrelated locations
+/// next to it under the same root.
+struct HomeFixture {
+    fixture: Fixture,
+    home: PathBuf,
+}
+
+impl HomeFixture {
+    fn new() -> Self {
+        let fixture = Fixture::new();
+        let home = fixture.directory("home");
+        Self { fixture, home }
+    }
+
+    fn coordinator(&self) -> GrantCoordinator {
+        self.fixture.coordinator_with_home(Some(self.home.clone()))
+    }
+
+    fn home_directory(&self, relative: &str) -> PathBuf {
+        let path = self.home.join(relative);
+        fs::create_dir_all(&path).expect("create home directory");
+        path
+    }
+}
+
+#[test]
+fn rejects_directories_and_files_outside_home_without_storing_anything() {
+    let home = HomeFixture::new();
+    let outside_directory = home.fixture.directory("outside");
+    let outside_file = home.fixture.file("outside.txt");
+    let coordinator = home.coordinator();
+
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, &outside_directory),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigFile, &outside_file),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, Path::new("/")),
+        Err(GrantError::OutsideHome)
+    );
+    assert!(!home.fixture.store_file().exists());
+}
+
+#[test]
+fn rejects_home_itself_and_accepts_its_children() {
+    let home = HomeFixture::new();
+    let child = home.home_directory(".config/tool");
+    let coordinator = home.coordinator();
+
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, &home.home),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, &home.home.join(".config/..")),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(
+        coordinator
+            .create(GrantPurpose::ConfigDirectory, &child)
+            .expect("child of home")
+            .path,
+        child
+    );
+}
+
+#[test]
+fn compares_path_components_so_a_prefix_named_sibling_is_outside_home() {
+    let fixture = Fixture::new();
+    let home = fixture.directory("ab");
+    let sibling = fixture.directory("abc");
+    let sibling_file = sibling.join("settings.json");
+    fs::write(&sibling_file, b"{}").expect("write file");
+    let coordinator = fixture.coordinator_with_home(Some(home));
+
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, &sibling),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigFile, &sibling_file),
+        Err(GrantError::OutsideHome)
+    );
+}
+
+#[test]
+fn rejects_sensitive_directories_and_their_subpaths_but_not_lookalikes() {
+    let home = HomeFixture::new();
+    let coordinator = home.coordinator();
+    for protected in [
+        ".ssh",
+        ".ssh/keys",
+        ".gnupg",
+        ".gnupg/private-keys-v1.d",
+        "Library/Keychains",
+        "Library/Keychains/metadata",
+        ".SSH",
+    ] {
+        let directory = home.home_directory(protected);
+        assert_eq!(
+            coordinator.create(GrantPurpose::ConfigDirectory, &directory),
+            Err(GrantError::ProtectedLocation),
+            "{protected}"
+        );
+    }
+    let key = home.home.join(".ssh/id_ed25519");
+    fs::write(&key, b"secret").expect("write key");
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigFile, &key),
+        Err(GrantError::ProtectedLocation)
+    );
+    assert!(!home.fixture.store_file().exists());
+
+    for allowed in [".ssh-config", ".gnupg2", "Library", "Library/KeychainsOld"] {
+        let directory = home.home_directory(allowed);
+        coordinator
+            .create(GrantPurpose::ConfigDirectory, &directory)
+            .unwrap_or_else(|error| panic!("{allowed} must be allowed: {error:?}"));
+    }
+}
+
+#[test]
+fn a_symlinked_sensitive_directory_is_still_protected_through_its_real_location() {
+    let home = HomeFixture::new();
+    let real = home.home_directory("dotfiles/ssh");
+    symlink(&real, home.home.join(".ssh")).expect("link .ssh");
+    let coordinator = home.coordinator();
+
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, &home.home.join(".ssh")),
+        Err(GrantError::ProtectedLocation)
+    );
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, &real),
+        Err(GrantError::ProtectedLocation)
+    );
+}
+
+#[test]
+fn symbolic_links_below_home_that_resolve_outside_home_are_rejected() {
+    let home = HomeFixture::new();
+    let outside_directory = home.fixture.directory("outside");
+    let outside_file = home.fixture.file("outside.txt");
+    let directory_link = home.home.join("directory-link");
+    let file_link = home.home.join("file-link");
+    symlink(&outside_directory, &directory_link).expect("directory link");
+    symlink(&outside_file, &file_link).expect("file link");
+    let coordinator = home.coordinator();
+
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigDirectory, &directory_link),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(
+        coordinator.create(GrantPurpose::ConfigFile, &file_link),
+        Err(GrantError::OutsideHome)
+    );
+    assert!(!home.fixture.store_file().exists());
+}
+
+#[test]
+fn a_missing_or_unusable_home_makes_every_new_grant_fail_closed() {
+    let fixture = Fixture::new();
+    let directory = fixture.directory("project");
+    for home in [
+        None,
+        Some(PathBuf::from("relative/home")),
+        Some(PathBuf::from("")),
+        Some(PathBuf::from("/")),
+    ] {
+        assert_eq!(
+            fixture
+                .coordinator_with_home(home.clone())
+                .create(GrantPurpose::ConfigDirectory, &directory),
+            Err(GrantError::HomeUnavailable),
+            "{home:?}"
+        );
+    }
+    assert!(!fixture.store_file().exists());
+}
+
+#[test]
+fn an_existing_record_outside_home_is_invalid_on_use_but_neither_deleted_nor_rewritten() {
+    let home = HomeFixture::new();
+    let outside = home.fixture.directory("outside");
+    let outside_file = home.fixture.file("outside.txt");
+    // Written while a wider $HOME was in effect (or by an older version).
+    let wide = home.fixture.coordinator();
+    let directory_grant = wide
+        .create(GrantPurpose::ConfigDirectory, &outside)
+        .expect("wide directory grant");
+    let file_grant = wide
+        .create(GrantPurpose::ConfigFile, &outside_file)
+        .expect("wide file grant");
+    let before = fs::read(home.fixture.store_file()).expect("read store");
+    let narrow = home.coordinator();
+
+    assert_eq!(
+        narrow.resolve(&directory_grant.id),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(narrow.resolve(&file_grant.id), Err(GrantError::OutsideHome));
+    assert_eq!(
+        narrow.resolve_child(&directory_grant.id, "anything"),
+        Err(GrantError::OutsideHome)
+    );
+    assert_eq!(
+        narrow
+            .read_resource(&directory_grant.id, Some("anything"))
+            .map(|_| ()),
+        Err(super::ReadError::Excluded)
+    );
+    assert_eq!(
+        narrow.list().expect("list still works"),
+        vec![directory_grant.clone(), file_grant]
+    );
+    assert_eq!(
+        fs::read(home.fixture.store_file()).expect("read store again"),
+        before,
+        "the store must not be modified"
+    );
+    // The record stays revocable.
+    narrow.revoke(&directory_grant.id).expect("revoke");
+}
+
+#[test]
+fn an_existing_record_in_a_protected_location_is_invalid_on_use() {
+    let home = HomeFixture::new();
+    let protected = home.home_directory(".gnupg");
+    let grant = home
+        .fixture
+        .coordinator()
+        .create(GrantPurpose::ConfigDirectory, &protected)
+        .expect("grant under the wide home");
+
+    assert_eq!(
+        home.coordinator().resolve(&grant.id),
+        Err(GrantError::ProtectedLocation)
+    );
+    assert_eq!(home.coordinator().list().expect("list").len(), 1);
+}
+
+#[test]
+fn a_home_that_becomes_unusable_invalidates_existing_grants_on_use() {
+    let home = HomeFixture::new();
+    let project = home.home_directory("project");
+    let grant = home
+        .coordinator()
+        .create(GrantPurpose::ConfigDirectory, &project)
+        .expect("create grant");
+
+    for unusable in [
+        None,
+        Some(PathBuf::from("relative")),
+        Some(PathBuf::from("/")),
+    ] {
+        assert_eq!(
+            home.fixture
+                .coordinator_with_home(unusable)
+                .resolve(&grant.id),
+            Err(GrantError::HomeUnavailable)
+        );
+    }
+    home.coordinator()
+        .resolve(&grant.id)
+        .expect("still valid under the real home");
+}
+
+#[test]
+fn a_grant_inside_home_whose_root_is_swapped_for_an_outside_link_stops_resolving() {
+    let home = HomeFixture::new();
+    let project = home.home_directory("project");
+    let outside = home.fixture.directory("outside");
+    let coordinator = home.coordinator();
+    let grant = coordinator
+        .create(GrantPurpose::ConfigDirectory, &project)
+        .expect("create grant");
+    fs::remove_dir_all(&project).expect("remove project");
+    symlink(&outside, &project).expect("swap in link");
+
+    assert!(matches!(
+        coordinator.resolve(&grant.id),
+        Err(GrantError::SymlinkEscape | GrantError::OutsideHome)
+    ));
+}
+
+#[test]
+fn home_boundary_errors_map_to_distinct_messages_that_hide_paths() {
+    let cases = [
+        (GrantError::OutsideHome, AppErrorCode::PermissionDenied),
+        (
+            GrantError::ProtectedLocation,
+            AppErrorCode::PermissionDenied,
+        ),
+        (GrantError::HomeUnavailable, AppErrorCode::ValidationFailed),
+    ];
+    let mut messages = std::collections::BTreeSet::new();
+    for (error, code) in cases {
+        let app_error = AppError::from(error);
+        assert_eq!(app_error.code(), code, "{error:?}");
+        let message = serde_json::to_value(&app_error).expect("serialize")["message"]
+            .as_str()
+            .expect("message")
+            .to_owned();
+        assert!(!message.contains('/'), "{error:?} leaks a path: {message}");
         assert!(messages.insert(message), "duplicate message for {error:?}");
     }
 }

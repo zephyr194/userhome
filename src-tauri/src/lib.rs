@@ -43,9 +43,10 @@ pub fn run() {
         .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
             let settings_directory = app.path().app_config_dir()?;
-            app.manage(grants::GrantCoordinator::new(grants::GrantStore::new(
-                settings_directory.clone(),
-            )));
+            app.manage(grants::GrantCoordinator::new(
+                grants::GrantStore::new(settings_directory.clone()),
+                commands::grants::canonical_home(),
+            ));
             let settings = settings::SettingsCoordinator::new(settings::SettingsStore::new(
                 settings_directory,
             ));

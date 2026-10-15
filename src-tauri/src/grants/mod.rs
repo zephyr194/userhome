@@ -59,6 +59,15 @@ pub enum GrantError {
     Canonicalize,
     /// The path or a child resolves outside the approved root.
     SymlinkEscape,
+    /// The canonical target is `$HOME` itself or not strictly below it
+    /// (including a symbolic link that resolves outside `$HOME`).
+    OutsideHome,
+    /// The target is one of the protected credential locations below `$HOME`
+    /// (`~/.ssh`, `~/.gnupg`, `~/Library/Keychains`) or inside one.
+    ProtectedLocation,
+    /// `$HOME` is missing, not absolute or unusable, so nothing can be
+    /// validated against it.
+    HomeUnavailable,
     NotDirectory,
     NotFile,
     PermissionDenied,
@@ -80,6 +89,15 @@ impl From<GrantError> for AppError {
             }
             GrantError::SymlinkEscape => AppError::permission_denied(
                 "The path resolves outside the approved location through a symbolic link.",
+            ),
+            GrantError::OutsideHome => AppError::permission_denied(
+                "The location is not strictly inside your home folder, so it cannot be authorized.",
+            ),
+            GrantError::ProtectedLocation => AppError::permission_denied(
+                "The location holds credentials and is protected from authorization.",
+            ),
+            GrantError::HomeUnavailable => AppError::validation_failed(
+                "The home folder could not be determined, so authorizations are unavailable.",
             ),
             GrantError::NotDirectory => {
                 AppError::validation_failed("The approved location is not a directory.")
@@ -198,14 +216,21 @@ fn display_path(path: &Path, home: Option<&Path>) -> String {
 
 pub struct GrantCoordinator {
     store: GrantStore,
+    // Canonical `$HOME` that every grant target must lie strictly below.
+    // Injected so tests can use a temporary home; `None` fails closed.
+    home: Option<PathBuf>,
     // Serializes read-modify-write cycles; the store itself is stateless.
     lock: Mutex<()>,
 }
 
 impl GrantCoordinator {
-    pub fn new(store: GrantStore) -> Self {
+    /// `home` must already be the canonical home directory (see
+    /// `commands::grants::canonical_home`); a missing, relative or root value
+    /// rejects every new grant and invalidates stored ones on use.
+    pub fn new(store: GrantStore, home: Option<PathBuf>) -> Self {
         Self {
             store,
+            home,
             lock: Mutex::new(()),
         }
     }
@@ -214,7 +239,7 @@ impl GrantCoordinator {
     /// native picker. Re-granting the same canonical path and purpose returns
     /// the existing grant.
     pub fn create(&self, purpose: GrantPurpose, path: &Path) -> Result<GrantRecord, GrantError> {
-        let canonical = path::validate_target(path, purpose)?;
+        let canonical = path::validate_target(path, purpose, self.home.as_deref())?;
         let _guard = self.lock()?;
         let mut grants = self.store.load()?;
         if let Some(existing) = grants
@@ -262,7 +287,7 @@ impl GrantCoordinator {
                 .find(|grant| &grant.id == id)
                 .ok_or(GrantError::UnknownGrant)?
         };
-        path::revalidate(&record)?;
+        path::revalidate(&record, self.home.as_deref())?;
         Ok(record)
     }
 

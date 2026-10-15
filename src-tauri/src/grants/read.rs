@@ -58,7 +58,11 @@ impl From<GrantError> for ReadError {
             GrantError::NotDirectory
             | GrantError::NotFile
             | GrantError::StoreUnsupportedVersion => Self::Unsupported,
-            GrantError::SymlinkEscape | GrantError::UnknownGrant => Self::Excluded,
+            GrantError::SymlinkEscape
+            | GrantError::OutsideHome
+            | GrantError::ProtectedLocation
+            | GrantError::HomeUnavailable
+            | GrantError::UnknownGrant => Self::Excluded,
             GrantError::LimitReached => Self::Io,
         }
     }
@@ -241,7 +245,10 @@ mod tests {
         }
 
         fn coordinator(&self) -> GrantCoordinator {
-            GrantCoordinator::new(GrantStore::new(self.root.join("support")))
+            GrantCoordinator::new(
+                GrantStore::new(self.root.join("support")),
+                Some(self.root.clone()),
+            )
         }
 
         fn directory(&self, name: &str) -> PathBuf {

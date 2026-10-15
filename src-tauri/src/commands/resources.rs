@@ -310,7 +310,8 @@ mod tests {
             fs::create_dir_all(&project).expect("create project");
             let environment =
                 ConfigEnvironment::new(home.clone(), root.join("brew"), home.join("backups"));
-            let grants = GrantCoordinator::new(GrantStore::new(root.join("support")));
+            let grants =
+                GrantCoordinator::new(GrantStore::new(root.join("support")), Some(home.clone()));
             let grant = grants
                 .create(GrantPurpose::ConfigDirectory, &project)
                 .expect("create grant");

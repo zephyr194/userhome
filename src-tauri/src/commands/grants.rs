@@ -157,7 +157,7 @@ pub struct RevokeGrantInput {
 pub fn list_grants(
     coordinator: State<'_, GrantCoordinator>,
 ) -> Result<Vec<GrantSummary>, AppError> {
-    list_summaries(&coordinator, home_directory())
+    list_summaries(&coordinator, canonical_home())
 }
 
 #[tauri::command]
@@ -180,7 +180,7 @@ pub async fn select_directory_grant(
         native_picker(app),
         PickMode::Directory,
         input.purpose,
-        home_directory(),
+        canonical_home(),
     )
     .await
 }
@@ -197,7 +197,7 @@ pub async fn select_file_grant(
         native_picker(app),
         PickMode::File,
         input.purpose,
-        home_directory(),
+        canonical_home(),
     )
     .await
 }
@@ -214,13 +214,24 @@ pub async fn select_save_location_grant(
         native_picker(app),
         PickMode::SaveLocation,
         input.purpose,
-        home_directory(),
+        canonical_home(),
     )
     .await
 }
 
-fn home_directory() -> Option<PathBuf> {
-    std::env::var_os("HOME").map(PathBuf::from)
+/// The canonical `$HOME` that bounds every authorization (also used for
+/// display). `None` when it is missing, not absolute or cannot be
+/// canonicalized, in which case grants fail closed.
+pub fn canonical_home() -> Option<PathBuf> {
+    canonical_home_from(std::env::var_os("HOME"))
+}
+
+fn canonical_home_from(raw: Option<std::ffi::OsString>) -> Option<PathBuf> {
+    let path = PathBuf::from(raw?);
+    if !path.is_absolute() {
+        return None;
+    }
+    std::fs::canonicalize(path).ok()
 }
 
 // One native panel at a time; a second request while one is open is refused
@@ -327,7 +338,7 @@ mod tests {
 
     use super::{
         NativePicker, PickMode, PickerSlot, RevokeGrantInput, SelectGrantInput, SelectGrantOutcome,
-        list_summaries, revoke_by_id, select_grant, validate_selection,
+        canonical_home_from, list_summaries, revoke_by_id, select_grant, validate_selection,
     };
 
     struct FakePicker(Result<Option<PathBuf>, AppError>);
@@ -351,8 +362,12 @@ mod tests {
             Self { root }
         }
 
+        // The sandbox root plays the injected $HOME.
         fn coordinator(&self) -> GrantCoordinator {
-            GrantCoordinator::new(GrantStore::new(self.root.join("support")))
+            GrantCoordinator::new(
+                GrantStore::new(self.root.join("support")),
+                Some(self.root.clone()),
+            )
         }
     }
 
@@ -660,7 +675,8 @@ mod tests {
             .join(format!("userhome-grant-commands-{}", Uuid::new_v4()));
         let target = root.join("project");
         fs::create_dir_all(&target).expect("create target");
-        let coordinator = GrantCoordinator::new(GrantStore::new(root.join("support")));
+        let coordinator =
+            GrantCoordinator::new(GrantStore::new(root.join("support")), Some(root.clone()));
         let record = coordinator
             .create(GrantPurpose::ConfigDirectory, &target)
             .expect("create grant");
@@ -693,5 +709,54 @@ mod tests {
                 .is_empty()
         );
         let _ = fs::remove_dir_all(PathBuf::from(&root));
+    }
+
+    #[test]
+    fn home_is_taken_from_an_absolute_existing_path_and_canonicalized() {
+        let sandbox = Sandbox::new();
+        let real = sandbox.root.join("real-home");
+        fs::create_dir_all(&real).expect("real home");
+        let link = sandbox.root.join("home-link");
+        std::os::unix::fs::symlink(&real, &link).expect("home link");
+
+        assert_eq!(
+            canonical_home_from(Some(real.clone().into())),
+            Some(real.clone())
+        );
+        assert_eq!(canonical_home_from(Some(link.into())), Some(real));
+        assert_eq!(canonical_home_from(None), None);
+        assert_eq!(canonical_home_from(Some("".into())), None);
+        assert_eq!(canonical_home_from(Some("relative/home".into())), None);
+        assert_eq!(
+            canonical_home_from(Some(sandbox.root.join("missing").into())),
+            None
+        );
+    }
+
+    #[test]
+    fn selecting_outside_home_is_refused_without_leaking_the_path_or_creating_a_grant() {
+        let sandbox = Sandbox::new();
+        let home = sandbox.root.join("home");
+        let outside = sandbox.root.join("outside");
+        fs::create_dir_all(&home).expect("home");
+        fs::create_dir_all(&outside).expect("outside");
+        let coordinator = GrantCoordinator::new(
+            GrantStore::new(sandbox.root.join("support")),
+            Some(home.clone()),
+        );
+
+        let error = run_select(
+            &coordinator,
+            FakePicker(Ok(Some(outside.clone()))),
+            PickMode::Directory,
+            GrantPurpose::ConfigDirectory,
+            Some(home.clone()),
+        )
+        .expect_err("outside home");
+
+        assert_eq!(error.code(), AppErrorCode::PermissionDenied);
+        let serialized = serde_json::to_string(&error).expect("serialize");
+        assert!(!serialized.contains(sandbox.root.to_str().expect("utf8 root")));
+        assert!(coordinator.list().expect("list").is_empty());
     }
 }
