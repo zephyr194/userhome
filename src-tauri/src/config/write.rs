@@ -1,13 +1,8 @@
 use std::{
-    fs::{self, OpenOptions},
-    io::Write,
-    os::unix::fs::{OpenOptionsExt, PermissionsExt},
+    fs,
+    os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
 };
-
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use uuid::Uuid;
 
 use crate::{
     catalog::{Catalog, ConfigDocumentDefinition},
@@ -15,10 +10,13 @@ use crate::{
     security::paths::{PathPolicyError, resolve_rooted_catalog_path},
     settings::BackupRetention,
 };
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::{
     ConfigEnvironment,
-    backup::{BackupRecord, create_backup, read_backup_content},
+    atomic::{BackedUpReplace, create_new_verified, replace_with_backup},
+    backup::BackupRecord,
     diff::{ConfigDiff, build_diff},
     read::{hash_bytes, read_bounded},
     resolve_definition, resolve_path,
@@ -400,36 +398,13 @@ fn execute_new_file_write(
 ) -> Result<(), AppError> {
     let definition = resolve_definition(catalog, &mutation.app_id, &mutation.config_id)?;
     validate_pending_write(catalog, environment, mutation)?;
-    let mode = mutation.desired_mode.unwrap_or(0o600);
-    atomic_create_new(&mutation.expected_target, &mutation.content, mode)?;
-    let written = read_bounded(&mutation.expected_target, definition.max_size_bytes())?;
-    let post_result = if written == mutation.content {
-        validate_bytes(definition, environment, &written)
-    } else {
-        Err(AppError::validation_failed(
-            "Configuration verification failed after creation.",
-        ))
-    };
-    if let Err(error) = post_result {
-        let parent = mutation
-            .expected_target
-            .parent()
-            .ok_or_else(AppError::internal)?;
-        fs::remove_file(&mutation.expected_target).map_err(|_| {
-            AppError::partial_failure(
-                "New configuration validation failed and rollback could not remove it.",
-                false,
-            )
-        })?;
-        FileSync::sync_directory(parent).map_err(|_| {
-            AppError::partial_failure(
-                "New configuration rollback could not be synchronized.",
-                false,
-            )
-        })?;
-        return Err(error);
-    }
-    Ok(())
+    create_new_verified(
+        &mutation.expected_target,
+        &mutation.content,
+        mutation.desired_mode.unwrap_or(0o600),
+        definition.max_size_bytes(),
+        |written| validate_bytes(definition, environment, written),
+    )
 }
 
 fn initial_schema_content(
@@ -484,70 +459,20 @@ where
 {
     let definition = resolve_definition(catalog, &mutation.app_id, &mutation.config_id)?;
     validate_pending_write(catalog, environment, mutation)?;
-    let current = read_bounded(&mutation.expected_target, definition.max_size_bytes())?;
-    if hash_bytes(&current) != mutation.expected_hash {
-        return Err(AppError::conflict("Configuration changed after preview."));
-    }
-    let current_mode = fs::metadata(&mutation.expected_target)
-        .map_err(|_| AppError::not_found("Configuration document is unavailable."))?
-        .permissions()
-        .mode()
-        & 0o777;
-    let backup = create_backup(
+    replace_with_backup(
         environment,
-        &mutation.app_id,
-        &mutation.config_id,
-        &current,
-        current_mode,
-        retention,
-    )?;
-
-    match atomic_replace(
-        &mutation.expected_target,
-        &mutation.content,
-        mutation.desired_mode.unwrap_or(current_mode),
-        Some((&mutation.expected_hash, definition.max_size_bytes())),
-    ) {
-        Ok(()) => {}
-        Err(AtomicReplaceError::BeforeCommit(error)) => return Err(error),
-        Err(AtomicReplaceError::AfterCommit(error)) => {
-            restore_backup_after_commit_failure(definition, &mutation.expected_target, &backup)?;
-            return Err(error);
-        }
-    }
-    let written = read_bounded(&mutation.expected_target, definition.max_size_bytes())?;
-    let post_result = if written == mutation.content {
-        post_validate(definition, &written)
-    } else {
-        Err(AppError::validation_failed(
-            "Configuration verification failed after replacement.",
-        ))
-    };
-    if let Err(error) = post_result {
-        restore_backup_after_commit_failure(definition, &mutation.expected_target, &backup)?;
-        return Err(error);
-    }
-    Ok(backup)
-}
-
-fn restore_backup_after_commit_failure(
-    definition: &ConfigDocumentDefinition,
-    target: &Path,
-    backup: &BackupRecord,
-) -> Result<(), AppError> {
-    let prior = read_backup_content(backup, definition.max_size_bytes()).map_err(|_| {
-        AppError::partial_failure(
-            "Configuration replacement failed and backup content could not be read.",
-            false,
-        )
-    })?;
-    match atomic_replace(target, &prior, backup.metadata.mode, None) {
-        Ok(()) => Ok(()),
-        Err(_) => Err(AppError::partial_failure(
-            "Configuration replacement failed and backup restoration did not complete.",
-            false,
-        )),
-    }
+        BackedUpReplace {
+            app_id: &mutation.app_id,
+            config_id: &mutation.config_id,
+            target: &mutation.expected_target,
+            content: &mutation.content,
+            expected_hash: &mutation.expected_hash,
+            max_size_bytes: definition.max_size_bytes(),
+            desired_mode: mutation.desired_mode,
+            retention,
+        },
+        |written| post_validate(definition, written),
+    )
 }
 
 pub(super) fn elevation_resource_id(
@@ -563,152 +488,6 @@ pub(super) fn elevation_resource_id(
     let owned_and_writable = target_metadata.uid() == home_metadata.uid() && mode & 0o200 != 0;
     let world_writable = mode & 0o002 != 0;
     (!owned_and_writable && !world_writable).then(|| resource_id.to_owned())
-}
-
-enum AtomicReplaceError {
-    BeforeCommit(AppError),
-    AfterCommit(AppError),
-}
-
-fn atomic_replace(
-    path: &Path,
-    bytes: &[u8],
-    mode: u32,
-    expected_current: Option<(&str, usize)>,
-) -> Result<(), AtomicReplaceError> {
-    let parent = path.parent().ok_or_else(|| {
-        AtomicReplaceError::BeforeCommit(AppError::permission_denied(
-            "Configuration parent is unavailable.",
-        ))
-    })?;
-    let temp_path = parent.join(format!(".userhome-{}.tmp", Uuid::new_v4()));
-    let result = (|| -> Result<(), AtomicReplaceError> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(mode)
-            .open(&temp_path)
-            .map_err(|_| {
-                AtomicReplaceError::BeforeCommit(AppError::permission_denied(
-                    "Temporary file cannot be created.",
-                ))
-            })?;
-        file.write_all(bytes)
-            .and_then(|_| file.sync_all())
-            .map_err(|_| {
-                AtomicReplaceError::BeforeCommit(AppError::permission_denied(
-                    "Temporary file cannot be written.",
-                ))
-            })?;
-        fs::set_permissions(&temp_path, fs::Permissions::from_mode(mode)).map_err(|_| {
-            AtomicReplaceError::BeforeCommit(AppError::permission_denied(
-                "File permissions cannot be preserved.",
-            ))
-        })?;
-        if let Some((expected_hash, maximum_bytes)) = expected_current {
-            let current =
-                read_bounded(path, maximum_bytes).map_err(AtomicReplaceError::BeforeCommit)?;
-            if hash_bytes(&current) != expected_hash {
-                return Err(AtomicReplaceError::BeforeCommit(AppError::conflict(
-                    "Configuration changed immediately before replacement.",
-                )));
-            }
-        }
-        fs::rename(&temp_path, path).map_err(|_| {
-            AtomicReplaceError::BeforeCommit(AppError::permission_denied(
-                "Configuration cannot be replaced.",
-            ))
-        })?;
-        FileSync::sync_directory(parent).map_err(AtomicReplaceError::AfterCommit)?;
-        Ok(())
-    })();
-    if matches!(result, Err(AtomicReplaceError::BeforeCommit(_)))
-        && temp_path.exists()
-        && fs::remove_file(&temp_path).is_err()
-    {
-        return Err(AtomicReplaceError::BeforeCommit(AppError::partial_failure(
-            "Configuration replacement failed and temporary content could not be removed.",
-            false,
-        )));
-    }
-    result
-}
-
-fn atomic_create_new(path: &Path, bytes: &[u8], mode: u32) -> Result<(), AppError> {
-    let parent = path
-        .parent()
-        .ok_or_else(|| AppError::permission_denied("Configuration parent is unavailable."))?;
-    let temp_path = parent.join(format!(".userhome-{}.tmp", Uuid::new_v4()));
-    let result = (|| {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(mode)
-            .open(&temp_path)
-            .map_err(|_| AppError::permission_denied("Temporary file cannot be created."))?;
-        file.write_all(bytes)
-            .and_then(|_| file.sync_all())
-            .map_err(|_| AppError::permission_denied("Temporary file cannot be written."))?;
-        fs::set_permissions(&temp_path, fs::Permissions::from_mode(mode))
-            .map_err(|_| AppError::permission_denied("File permissions cannot be preserved."))?;
-        fs::hard_link(&temp_path, path).map_err(|error| {
-            if error.kind() == std::io::ErrorKind::AlreadyExists {
-                AppError::conflict("Configuration file was created after preview.")
-            } else {
-                AppError::permission_denied("Configuration file cannot be created.")
-            }
-        })?;
-        if fs::remove_file(&temp_path).is_err() {
-            fs::remove_file(path).map_err(|_| {
-                AppError::partial_failure(
-                    "Temporary file cleanup failed and the new configuration could not be rolled back.",
-                    false,
-                )
-            })?;
-            FileSync::sync_directory(parent).map_err(|_| {
-                AppError::partial_failure(
-                    "Temporary file cleanup rollback could not be synchronized.",
-                    false,
-                )
-            })?;
-            return Err(AppError::permission_denied(
-                "Temporary file cannot be removed.",
-            ));
-        }
-        if let Err(error) = FileSync::sync_directory(parent) {
-            fs::remove_file(path).map_err(|_| {
-                AppError::partial_failure(
-                    "Configuration creation committed but rollback could not remove the target.",
-                    false,
-                )
-            })?;
-            FileSync::sync_directory(parent).map_err(|_| {
-                AppError::partial_failure(
-                    "Configuration creation rollback could not be synchronized.",
-                    false,
-                )
-            })?;
-            return Err(error);
-        }
-        Ok(())
-    })();
-    if result.is_err() && temp_path.exists() && fs::remove_file(&temp_path).is_err() {
-        return Err(AppError::partial_failure(
-            "Configuration creation failed and temporary content could not be removed.",
-            false,
-        ));
-    }
-    result
-}
-
-struct FileSync;
-
-impl FileSync {
-    fn sync_directory(path: &Path) -> Result<(), AppError> {
-        fs::File::open(path)
-            .and_then(|directory| directory.sync_all())
-            .map_err(|_| AppError::permission_denied("Configuration directory cannot be synced."))
-    }
 }
 
 #[cfg(test)]

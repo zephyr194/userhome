@@ -1,4 +1,5 @@
 pub mod adapters;
+pub mod atomic;
 pub mod backup;
 pub mod diff;
 pub mod formats;
