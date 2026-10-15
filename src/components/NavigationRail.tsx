@@ -1,6 +1,11 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { ConnectionState } from "../app/shellState";
-import type { AppRoute, AppRouteIcon, AppRouteId } from "../app/routeDefinitions";
+import {
+  groupNavigationRoutes,
+  type AppRoute,
+  type AppRouteIcon,
+  type AppRouteId,
+} from "../app/routeDefinitions";
 
 interface NavigationRailProps {
   activeRouteId: AppRouteId;
@@ -46,27 +51,37 @@ export function NavigationRail({
           <small>CONTROL LAB</small>
         </span>
       </div>
-      <p className="navigation-rail__section-label">系统控制台</p>
-      <ul>
-        {routes.map((route) => (
-          <li key={route.id}>
-            <a
-              href={`#${route.id}`}
-              aria-label={`${route.label}：${route.description}`}
-              aria-current={activeRouteId === route.id ? "page" : undefined}
-              aria-controls="main-content"
-              title={route.label}
-              onClick={(event) => {
-                event.preventDefault();
-                if (activeRouteId !== route.id) onNavigate(route.id);
-              }}
-            >
-              <span className="navigation-rail__icon"><NavigationIcon icon={route.icon} /></span>
-              <span className="navigation-rail__label">{route.label}</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {groupNavigationRoutes(routes).map(({ group, routes: groupRoutes }) => (
+        <Fragment key={group.id}>
+          <p className="navigation-rail__section-label" id={`nav-group-${group.id}`}>
+            {group.label}
+          </p>
+          {groupRoutes.length > 0 ? (
+            <ul aria-labelledby={`nav-group-${group.id}`}>
+              {groupRoutes.map((route) => (
+                <li key={route.id}>
+                  <a
+                    href={`#${route.id}`}
+                    aria-label={`${route.label}：${route.description}`}
+                    aria-current={activeRouteId === route.id ? "page" : undefined}
+                    aria-controls="main-content"
+                    title={route.label}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (activeRouteId !== route.id) onNavigate(route.id);
+                    }}
+                  >
+                    <span className="navigation-rail__icon"><NavigationIcon icon={route.icon} /></span>
+                    <span className="navigation-rail__label">{route.label}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="m-0 px-2 text-xs text-muted-foreground">即将提供</p>
+          )}
+        </Fragment>
+      ))}
       <div className={`navigation-rail__status navigation-rail__status--${status.tone}`}>
         <span aria-hidden="true" />
         <div><strong>{status.label}</strong><small>LOCAL WORKSPACE</small></div>

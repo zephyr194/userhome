@@ -27,13 +27,6 @@ describe("AppShell", () => {
     expect(markup).toContain('href="#main-content"');
     expect(markup).toContain('<nav aria-label="主导航"');
     expect(markup.match(/<h1/g)).toHaveLength(1);
-    expect(markup).toContain("概览");
-    expect(markup).toContain("应用");
-    expect(markup).toContain("Homebrew");
-    expect(markup).toContain("服务");
-    expect(markup).toContain("设置");
-    expect(markup).toContain("系统控制台");
-    expect(markup).toContain("应用与配置");
     expect(markup).toContain('aria-current="page"');
     expect(markup).toContain('role="status"');
     expect(markup).toContain('aria-busy="true"');
@@ -44,6 +37,32 @@ describe("AppShell", () => {
       '<p class="titlebar__title" data-tauri-drag-region="true">',
     );
     expect(markup).not.toMatch(/<(?:button|a|input)[^>]*data-tauri-drag-region/);
+  });
+
+  it("groups primary navigation and leaves out the retired application and Homebrew entries", () => {
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={loadingState}
+      />,
+    );
+
+    const nav = markup.match(/<nav aria-label="主导航"[\s\S]*?<\/nav>/)?.[0];
+    expect(nav).toBeDefined();
+    for (const label of ["系统工具", "工具集", "支撑"]) {
+      expect(nav).toContain(`>${label}</p>`);
+    }
+    expect(nav).not.toContain("系统控制台");
+    expect(nav).toContain('href="#dashboard"');
+    expect(nav).toContain('href="#services"');
+    expect(nav).toContain('href="#settings"');
+    expect(nav).not.toContain('href="#applications"');
+    expect(nav).not.toContain('href="#homebrew"');
+    expect(nav).not.toContain('title="应用与配置"');
+    expect(nav).not.toContain('title="软件"');
+    expect(nav?.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(nav).toContain('aria-controls="main-content"');
   });
 
   it("keeps a single brand identity inside the navigation rail", () => {
