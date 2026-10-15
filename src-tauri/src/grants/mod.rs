@@ -15,8 +15,10 @@ use uuid::Uuid;
 use crate::error::AppError;
 
 mod path;
+mod read;
 mod store;
 
+pub use read::{ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantedRead, ReadError};
 pub use store::{GRANT_SCHEMA_VERSION, GrantStore, MAX_GRANTS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

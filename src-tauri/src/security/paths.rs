@@ -125,8 +125,14 @@ fn classify_io_error(error: std::io::Error) -> PathPolicyError {
     }
 }
 
+/// Whether canonical `path` is `root` itself or lies below it. Both sides must
+/// already be canonical; this is a component-wise check, not a string prefix.
+pub(crate) fn is_contained(path: &Path, root: &Path) -> bool {
+    path == root || path.starts_with(root)
+}
+
 fn ensure_contained(path: &Path, root: &Path) -> Result<(), PathPolicyError> {
-    if path == root || path.starts_with(root) {
+    if is_contained(path, root) {
         Ok(())
     } else {
         Err(PathPolicyError::OutsideAuthorizedRoot)
