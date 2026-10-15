@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { decodeGrantSummary, listGrants, revokeGrant } from "./grants";
+import {
+  decodeGrantSummary,
+  decodeSelectGrantResult,
+  listGrants,
+  revokeGrant,
+  selectDirectoryGrant,
+  selectFileGrant,
+  selectSaveLocationGrant,
+  type FileGrantPurpose,
+} from "./grants";
 
 const GRANT_ID = "3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b";
 
@@ -94,5 +103,126 @@ describe("grants IPC", () => {
       message: "The authorization does not exist or was revoked.",
       retryable: false,
     });
+  });
+});
+
+describe("native selection IPC", () => {
+  it("selects a directory with only a purpose and decodes the summary", async () => {
+    mockIPC((command, payload) => {
+      expect(command).toBe("select_directory_grant");
+      expect(payload).toEqual({ input: { purpose: "CONFIG_DIRECTORY" } });
+      return { status: "SELECTED", grant: wireGrant() };
+    });
+
+    await expect(selectDirectoryGrant()).resolves.toEqual({
+      status: "SELECTED",
+      grant: wireGrant(),
+    });
+  });
+
+  it.each<[FileGrantPurpose]>([["CONFIG_FILE"], ["EXECUTABLE"]])(
+    "selects a %s file with only a purpose",
+    async (purpose) => {
+      const grant = wireGrant({ purpose, kind: "FILE", displayPath: "~/tool" });
+      mockIPC((command, payload) => {
+        expect(command).toBe("select_file_grant");
+        expect(payload).toEqual({ input: { purpose } });
+        return { status: "SELECTED", grant };
+      });
+
+      await expect(selectFileGrant(purpose)).resolves.toEqual({
+        status: "SELECTED",
+        grant,
+      });
+    },
+  );
+
+  it("selects a save location as a config file grant", async () => {
+    const grant = wireGrant({ purpose: "CONFIG_FILE", kind: "FILE" });
+    mockIPC((command, payload) => {
+      expect(command).toBe("select_save_location_grant");
+      expect(payload).toEqual({ input: { purpose: "CONFIG_FILE" } });
+      return { status: "SELECTED", grant };
+    });
+
+    await expect(selectSaveLocationGrant()).resolves.toEqual({
+      status: "SELECTED",
+      grant,
+    });
+  });
+
+  it("reports an explicit cancelled result rather than a grant", async () => {
+    mockIPC(() => ({ status: "CANCELLED" }));
+
+    await expect(selectDirectoryGrant()).resolves.toEqual({
+      status: "CANCELLED",
+    });
+  });
+
+  it("rejects an unsupported file purpose without calling the backend", async () => {
+    let called = false;
+    mockIPC(() => {
+      called = true;
+      return null;
+    });
+
+    await expect(
+      selectFileGrant("CONFIG_DIRECTORY" as FileGrantPurpose),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(called).toBe(false);
+  });
+
+  it("passes backend errors through as typed app errors", async () => {
+    mockIPC(() => {
+      throw {
+        code: "CONFLICT",
+        message: "A selection dialog is already open.",
+        retryable: false,
+      };
+    });
+
+    await expect(selectDirectoryGrant()).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+  });
+
+  it.each([
+    ["a non-record", "SELECTED"],
+    ["an unknown status", { status: "OK" }],
+    ["a selection without a grant", { status: "SELECTED" }],
+    [
+      "a cancellation carrying a grant",
+      { status: "CANCELLED", grant: wireGrant() },
+    ],
+    ["a bare grant", wireGrant()],
+    [
+      "a grant with another purpose",
+      {
+        status: "SELECTED",
+        grant: wireGrant({ purpose: "EXECUTABLE", kind: "FILE" }),
+      },
+    ],
+    [
+      "a grant with a bad id",
+      { status: "SELECTED", grant: wireGrant({ id: "../x" }) },
+    ],
+  ])("rejects %s with an internal error", async (_label, response) => {
+    mockIPC(() => response);
+
+    await expect(selectDirectoryGrant()).rejects.toMatchObject({
+      code: "INTERNAL",
+    });
+  });
+
+  it("drops unknown fields such as a path from the selected grant", () => {
+    expect(
+      decodeSelectGrantResult(
+        {
+          status: "SELECTED",
+          grant: wireGrant({ path: "/Users/someone/.config/tool" }),
+        },
+        "CONFIG_DIRECTORY",
+      ),
+    ).toEqual({ status: "SELECTED", grant: wireGrant() });
   });
 });

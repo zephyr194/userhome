@@ -90,3 +90,68 @@ export function revokeGrant(grantId: string): Promise<void> {
   }
   return invokeCommand("revoke_grant", decodeRevoked, { input: { grantId } });
 }
+
+export type FileGrantPurpose = Exclude<GrantPurpose, "CONFIG_DIRECTORY">;
+
+export type SelectGrantResult =
+  | { readonly status: "SELECTED"; readonly grant: GrantSummary }
+  | { readonly status: "CANCELLED" };
+
+const FILE_GRANT_PURPOSES: readonly string[] = ["CONFIG_FILE", "EXECUTABLE"];
+
+export function decodeSelectGrantResult(
+  value: unknown,
+  purpose: GrantPurpose,
+): SelectGrantResult {
+  if (!isRecord(value)) {
+    throw createInternalError();
+  }
+  if (value.status === "CANCELLED") {
+    if (Object.keys(value).length !== 1) {
+      throw createInternalError();
+    }
+    return { status: "CANCELLED" };
+  }
+  if (value.status !== "SELECTED") {
+    throw createInternalError();
+  }
+  const grant = decodeGrantSummary(value.grant);
+  if (grant.purpose !== purpose) {
+    throw createInternalError();
+  }
+  return { status: "SELECTED", grant };
+}
+
+function selectGrant(
+  command: string,
+  purpose: GrantPurpose,
+): Promise<SelectGrantResult> {
+  return invokeCommand(
+    command,
+    (value) => decodeSelectGrantResult(value, purpose),
+    { input: { purpose } },
+  );
+}
+
+// The backend opens the native panel and creates the grant; the frontend
+// only names a purpose and never sends or receives an absolute path.
+export function selectDirectoryGrant(): Promise<SelectGrantResult> {
+  return selectGrant("select_directory_grant", "CONFIG_DIRECTORY");
+}
+
+export function selectFileGrant(
+  purpose: FileGrantPurpose,
+): Promise<SelectGrantResult> {
+  if (!FILE_GRANT_PURPOSES.includes(purpose)) {
+    return Promise.reject({
+      code: "INVALID_INPUT",
+      message: "Authorization purpose is invalid.",
+      retryable: false,
+    });
+  }
+  return selectGrant("select_file_grant", purpose);
+}
+
+export function selectSaveLocationGrant(): Promise<SelectGrantResult> {
+  return selectGrant("select_save_location_grant", "CONFIG_FILE");
+}

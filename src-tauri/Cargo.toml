@@ -30,6 +30,7 @@ serde_json = "1"
 sha2 = "0.10"
 time = { version = "=0.3.55", features = ["formatting"] }
 uuid = { version = "=1.26.1", features = ["v4"] }
+tauri-plugin-dialog = "=2.7.3"
 tauri-plugin-wdio = { version = "=1.4.0", optional = true }
 tauri-plugin-wdio-webdriver = { version = "=1.4.0", optional = true }
 

@@ -20,7 +20,9 @@ pub mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default();
+    // The dialog plugin serves backend-initiated pickers only; the capability
+    // file grants the frontend no dialog or fs permission.
+    let builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
 
     #[cfg(feature = "e2e")]
     let builder = builder
@@ -151,6 +153,9 @@ pub fn run() {
             commands::settings::execute_clear_backups,
             commands::grants::list_grants,
             commands::grants::revoke_grant,
+            commands::grants::select_directory_grant,
+            commands::grants::select_file_grant,
+            commands::grants::select_save_location_grant,
             commands::resources::preview_resource_writes,
             commands::resources::execute_resource_write,
             commands::resources::get_resource_write_batch,
