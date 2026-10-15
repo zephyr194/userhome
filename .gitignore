@@ -24,6 +24,12 @@ dist-ssr
 *.sln
 *.sw?
 
+# 本地代理配置
+/.agents/
+/.github/
+/.claude/
+/.cluade/
+
 # 本地需求规格与实施计划（不忽略 *.spec.ts 等测试文件）
 SPEC*.md
 spec*.md
