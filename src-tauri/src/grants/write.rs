@@ -46,7 +46,7 @@ use crate::{
 
 use super::{
     ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantCoordinator, GrantError, GrantId, GrantKind,
-    ReadError, display_path, path,
+    ReadError, display_path, new_file, path,
 };
 
 pub const MAX_PENDING_WRITES: usize = 64;
@@ -348,7 +348,7 @@ impl ResourceWriteCoordinator {
         self.execute_with(ctx, request, validate_text)
     }
 
-    fn execute_with<F>(
+    pub(super) fn execute_with<F>(
         &self,
         ctx: &ResourceWriteContext<'_>,
         request: &ConfirmRequest,
@@ -692,11 +692,14 @@ fn resolve_target(
     let record = ctx.grants.resolve(grant_id)?;
     let home = Some(ctx.environment.home());
     match (record.kind, relative) {
-        (GrantKind::File, None) => Ok(Target {
-            display: display_path(&record.path, home),
-            path: record.path,
-            exists: true,
-        }),
+        (GrantKind::File, None) => {
+            let path = record.target_path();
+            Ok(Target {
+                display: display_path(&path, home),
+                exists: new_file::target_exists(&record),
+                path,
+            })
+        }
         (GrantKind::File, Some(_)) => Err(GrantError::InvalidRelativePath.into()),
         (GrantKind::Directory, None) => Err(AppError::invalid_input(
             "A relative path is required for a directory authorization.",
@@ -707,7 +710,8 @@ fn resolve_target(
             }
             let display = format!("{}/{relative}", display_path(&record.path, home));
             if fs::symlink_metadata(record.path.join(relative)).is_ok() {
-                let resolved = path::resolve_within(&record.path, relative)?;
+                let resolved =
+                    path::resolve_within(&record.path, relative, ctx.grants.home.as_deref())?;
                 return Ok(Target {
                     path: resolved,
                     exists: true,
@@ -715,7 +719,10 @@ fn resolve_target(
                 });
             }
             let (parent, name) = match relative.rsplit_once('/') {
-                Some((parent, name)) => (path::resolve_within(&record.path, parent)?, name),
+                Some((parent, name)) => (
+                    path::resolve_within(&record.path, parent, ctx.grants.home.as_deref())?,
+                    name,
+                ),
                 None => (record.path.clone(), relative),
             };
             if !fs::metadata(&parent).is_ok_and(|metadata| metadata.is_dir()) {

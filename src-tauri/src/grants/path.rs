@@ -9,7 +9,7 @@ use std::{
 
 use crate::security::paths::is_safe_catalog_relative_path;
 
-use super::{GrantError, GrantKind, GrantPurpose, GrantRecord};
+use super::{GrantError, GrantKind, GrantPurpose, GrantRecord, new_file};
 
 /// Credential locations below `$HOME` that can never be authorized.
 const PROTECTED_BELOW_HOME: [&[&str]; 3] = [&[".ssh"], &[".gnupg"], &["Library", "Keychains"]];
@@ -39,6 +39,9 @@ pub(super) fn validate_target(
 /// readable as the recorded kind. Records written before the `$HOME` limit
 /// (or under another home) fail here without being touched in the store.
 pub(super) fn revalidate(record: &GrantRecord, home: Option<&Path>) -> Result<PathBuf, GrantError> {
+    if let Some(name) = &record.file_name {
+        return new_file::revalidate(record, name, home);
+    }
     let current = fs::canonicalize(&record.path).map_err(classify_io_error)?;
     if current != record.path {
         return Err(GrantError::SymlinkEscape);
@@ -49,22 +52,27 @@ pub(super) fn revalidate(record: &GrantRecord, home: Option<&Path>) -> Result<Pa
 }
 
 /// Resolves `relative` below a directory grant root, rejecting any target
-/// whose canonical form leaves the root.
-pub(super) fn resolve_within(root: &Path, relative: &str) -> Result<PathBuf, GrantError> {
+/// whose canonical form leaves the root or lands in a protected credential
+/// location (a broad root such as `~/Library` still excludes `Keychains`).
+pub(super) fn resolve_within(
+    root: &Path,
+    relative: &str,
+    home: Option<&Path>,
+) -> Result<PathBuf, GrantError> {
     if !is_safe_catalog_relative_path(relative) {
         return Err(GrantError::InvalidRelativePath);
     }
     let canonical = fs::canonicalize(root.join(relative)).map_err(classify_io_error)?;
-    if canonical.starts_with(root) {
-        Ok(canonical)
-    } else {
-        Err(GrantError::SymlinkEscape)
+    if !canonical.starts_with(root) {
+        return Err(GrantError::SymlinkEscape);
     }
+    ensure_below_home(&canonical, home)?;
+    Ok(canonical)
 }
 
 /// `canonical` must lie strictly below `home` (component-wise, so `/Users/ab`
 /// never covers `/Users/abc`) and outside the protected credential locations.
-fn ensure_below_home(canonical: &Path, home: Option<&Path>) -> Result<(), GrantError> {
+pub(super) fn ensure_below_home(canonical: &Path, home: Option<&Path>) -> Result<(), GrantError> {
     let home = home
         .filter(|home| {
             home.is_absolute()
@@ -109,7 +117,7 @@ fn has_prefix_ignoring_case(path: &Path, prefix: &Path) -> bool {
     })
 }
 
-fn check_kind(canonical: &Path, kind: GrantKind) -> Result<(), GrantError> {
+pub(super) fn check_kind(canonical: &Path, kind: GrantKind) -> Result<(), GrantError> {
     let metadata = fs::metadata(canonical).map_err(classify_io_error)?;
     match kind {
         GrantKind::Directory => {
@@ -128,7 +136,7 @@ fn check_kind(canonical: &Path, kind: GrantKind) -> Result<(), GrantError> {
     Ok(())
 }
 
-fn classify_io_error(error: io::Error) -> GrantError {
+pub(super) fn classify_io_error(error: io::Error) -> GrantError {
     match error.kind() {
         io::ErrorKind::NotFound | io::ErrorKind::NotADirectory => GrantError::NotFound,
         io::ErrorKind::PermissionDenied => GrantError::PermissionDenied,

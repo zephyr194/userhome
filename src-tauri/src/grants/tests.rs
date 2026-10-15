@@ -533,6 +533,7 @@ fn saving_more_grants_than_the_limit_is_refused() {
             kind: GrantKind::Directory,
             path: PathBuf::from(format!("/tmp/grant-{index}")),
             created_at_epoch_ms: 1,
+            file_name: None,
         })
         .collect();
 

@@ -116,9 +116,11 @@ impl GrantCoordinator {
     ) -> Result<GrantedRead, ReadError> {
         let record = self.resolve(id)?;
         let target = match (record.kind, relative) {
-            (GrantKind::File, None) => record.path.clone(),
+            (GrantKind::File, None) => record.target_path(),
             (GrantKind::File, Some(_)) => return Err(GrantError::InvalidRelativePath.into()),
-            (GrantKind::Directory, Some(relative)) => path::resolve_within(&record.path, relative)?,
+            (GrantKind::Directory, Some(relative)) => {
+                path::resolve_within(&record.path, relative, self.home.as_deref())?
+            }
             // A directory is not a readable resource by itself.
             (GrantKind::Directory, None) => return Err(ReadError::Unsupported),
         };
@@ -167,7 +169,7 @@ fn ensure_still_authorized(
 ) -> Result<(), ReadError> {
     let current = fs::canonicalize(target).map_err(io_error)?;
     let inside = match record.kind {
-        GrantKind::File => current == record.path,
+        GrantKind::File => current == record.target_path(),
         GrantKind::Directory => is_contained(&current, &record.path),
     };
     if !inside {

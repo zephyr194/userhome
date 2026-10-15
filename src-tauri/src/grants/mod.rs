@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 use crate::error::AppError;
 
+mod new_file;
 mod path;
 mod read;
 mod store;
@@ -170,6 +171,12 @@ pub struct GrantRecord {
     pub kind: GrantKind,
     pub path: PathBuf,
     pub created_at_epoch_ms: u64,
+    /// Set only for a new-file grant (see `new_file`): `path` is then the
+    /// canonical parent directory and this is the single file name the grant
+    /// covers. Optional and omitted when absent, so records written before
+    /// this field existed load and save unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file_name: Option<String>,
 }
 
 impl GrantRecord {
@@ -177,6 +184,18 @@ impl GrantRecord {
         self.path.is_absolute()
             && self.path.to_str().is_some_and(|path| !path.contains('\0'))
             && self.kind == self.purpose.kind()
+            && self.file_name.as_deref().is_none_or(|name| {
+                self.purpose == GrantPurpose::ConfigFile && new_file::is_valid_file_name(name)
+            })
+    }
+
+    /// The path the grant stands for: the file itself for a file grant, the
+    /// parent joined with the covered name for a new-file grant.
+    pub fn target_path(&self) -> PathBuf {
+        match &self.file_name {
+            Some(name) => self.path.join(name),
+            None => self.path.clone(),
+        }
     }
 
     pub fn summary(&self, home: Option<&Path>) -> GrantSummary {
@@ -184,7 +203,7 @@ impl GrantRecord {
             id: self.id.clone(),
             purpose: self.purpose,
             kind: self.kind,
-            display_path: display_path(&self.path, home),
+            display_path: display_path(&self.target_path(), home),
             created_at_epoch_ms: self.created_at_epoch_ms,
         }
     }
@@ -254,6 +273,7 @@ impl GrantCoordinator {
             kind: purpose.kind(),
             path: canonical,
             created_at_epoch_ms: now_epoch_ms(),
+            file_name: None,
         };
         grants.push(record.clone());
         self.store.save(&grants)?;
@@ -297,7 +317,7 @@ impl GrantCoordinator {
         if record.kind != GrantKind::Directory {
             return Err(GrantError::NotDirectory);
         }
-        path::resolve_within(&record.path, relative)
+        path::resolve_within(&record.path, relative, self.home.as_deref())
     }
 
     fn lock(&self) -> Result<MutexGuard<'_, ()>, GrantError> {
@@ -312,5 +332,7 @@ fn now_epoch_ms() -> u64 {
         .unwrap_or(0)
 }
 
+#[cfg(test)]
+mod new_file_tests;
 #[cfg(test)]
 mod tests;
