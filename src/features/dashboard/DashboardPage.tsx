@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type {
-  ApplicationsNavigationIntent,
-  NavigationIntent,
-} from "../../app/routeDefinitions";
+import type { NavigationIntent } from "../../app/routeDefinitions";
 import type {
   ConnectionState,
   DiscoveryState,
@@ -189,7 +186,6 @@ interface AttentionItem {
   label: string;
   detail: string;
   tone: "warning" | "danger";
-  target?: NavigationIntent;
 }
 
 function attentionItems(
@@ -204,25 +200,25 @@ function attentionItems(
   if (discovery.status === "error") items.push({ key: "discovery", label: "本机发现不可用", detail: discovery.error.message, tone: "danger" });
   if (discovery.status === "ready") {
     const modules = [
-      ["系统发现", discovery.snapshot.system, { routeId: "applications" } as NavigationIntent],
-      ["Homebrew", discovery.snapshot.brew, { routeId: "homebrew" } as NavigationIntent],
-      ["配置发现", discovery.snapshot.candidates, { routeId: "applications" } as NavigationIntent],
+      ["系统发现", discovery.snapshot.system],
+      ["Homebrew", discovery.snapshot.brew],
+      ["配置发现", discovery.snapshot.candidates],
     ] as const;
-    modules.forEach(([label, module, target]) => {
+    modules.forEach(([label, module]) => {
       if (module.status === "ERROR") {
-        items.push({ key: `${label}-error`, label: `${label}异常`, detail: module.error.message, tone: "danger", target });
+        items.push({ key: `${label}-error`, label: `${label}异常`, detail: module.error.message, tone: "danger" });
       } else if (module.status === "READY") {
         const dataIssues =
           "issues" in module.data && Array.isArray(module.data.issues)
             ? module.data.issues
             : [];
         const issues = [...(module.issues ?? []), ...dataIssues];
-        issues.forEach((issue, index) => items.push({ key: `${label}-${index}`, label: `${label} · ${issue.module}`, detail: issue.message, tone: "warning", target }));
+        issues.forEach((issue, index) => items.push({ key: `${label}-${index}`, label: `${label} · ${issue.module}`, detail: issue.message, tone: "warning" }));
         const partial =
           module.completeness === "PARTIAL" ||
           ("completeness" in module.data && module.data.completeness === "PARTIAL");
         if (partial && issues.length === 0) {
-          items.push({ key: `${label}-partial`, label: `${label}仅部分可用`, detail: "本次扫描只返回部分结果。", tone: "warning", target });
+          items.push({ key: `${label}-partial`, label: `${label}仅部分可用`, detail: "本次扫描只返回部分结果。", tone: "warning" });
         }
       }
     });
@@ -298,48 +294,20 @@ function OverviewPanel({
 // User-directory configuration (first dashboard group)
 // ---------------------------------------------------------------------------
 
-/** A local-recognition navigation intent for one candidate. */
-function candidateCoverageIntent(
-  candidateId: string,
-  sourceRefreshId: string,
-): ApplicationsNavigationIntent {
-  return {
-    routeId: "applications",
-    scope: "LOCAL_RECOGNIZED",
-    candidateId,
-    sourceRefreshId,
-  };
-}
-
-/** A local-recognition navigation intent for the whole recognized list. */
-function localCoverageIntent(
-  sourceRefreshId: string,
-): ApplicationsNavigationIntent {
-  return { routeId: "applications", scope: "LOCAL_RECOGNIZED", sourceRefreshId };
-}
-
-export interface CoverageAction {
-  candidate: UnmanagedCandidate;
-  intent: ApplicationsNavigationIntent;
-}
-
 export interface LocalCoveragePlan {
-  /** The bounded, prioritized candidate actions. */
-  actions: CoverageAction[];
-  /** The intent for the group's "view all" entry point. */
-  totalIntent: ApplicationsNavigationIntent;
+  /** The bounded, prioritized candidates listed in the first group. */
+  actions: UnmanagedCandidate[];
 }
 
 /**
- * Builds the local-recognition navigation plan for a coverage view. Actions
- * are prioritized managed writable, managed read-only, unsupported, excluded;
+ * Builds the bounded candidate list for a coverage view. Candidates are
+ * prioritized managed writable, managed read-only, unsupported, excluded;
  * ties keep discovery order so the list is stable, and the list is capped at
- * `limit`. Every intent carries the same `sourceRefreshId` as the snapshot the
- * counts were read from.
+ * `limit`. The list is informational: the retired applications workspace is
+ * no longer a navigation target.
  */
 export function localCoveragePlan(
   view: CandidateCoverageView,
-  sourceRefreshId: string,
   limit: number = MAX_COVERAGE_ACTIONS,
 ): LocalCoveragePlan {
   const actions = view.candidates
@@ -351,12 +319,9 @@ export function localCoveragePlan(
       return priority !== 0 ? priority : a.index - b.index;
     })
     .slice(0, Math.max(0, limit))
-    .map(({ candidate }) => ({
-      candidate,
-      intent: candidateCoverageIntent(candidate.candidateId, sourceRefreshId),
-    }));
+    .map(({ candidate }) => candidate);
 
-  return { actions, totalIntent: localCoverageIntent(sourceRefreshId) };
+  return { actions };
 }
 
 function evidenceSummary(candidate: UnmanagedCandidate): string {
@@ -377,11 +342,9 @@ function CoverageLoading() {
 }
 
 function UserDirectoryCoveragePanel({
-  onNavigate,
   optionalDiscoveryRoots,
   state,
 }: {
-  onNavigate: (intent: NavigationIntent) => void;
   optionalDiscoveryRoots?: readonly OptionalDiscoveryRoot[];
   state: DiscoveryState;
 }) {
@@ -392,7 +355,6 @@ function UserDirectoryCoveragePanel({
         ? state.previousSnapshot
         : undefined;
   const refreshError = state.status === "error" ? state.error : undefined;
-  const refreshId = snapshot?.refreshId;
   const coverage = selectCandidateCoverage(snapshot?.candidates);
   const moduleError =
     snapshot && snapshot.candidates.status === "ERROR"
@@ -401,9 +363,7 @@ function UserDirectoryCoveragePanel({
   const disabledRoots = optionalDiscoveryRoots
     ? ALL_OPTIONAL_ROOTS.filter((root) => !optionalDiscoveryRoots.includes(root))
     : [];
-  const plan =
-    refreshId === undefined ? undefined : localCoveragePlan(coverage, refreshId);
-  const actions = plan?.actions ?? [];
+  const actions = localCoveragePlan(coverage).actions;
   const omitted =
     coverage.status === "empty" ? 0 : coverage.candidates.length - actions.length;
   const outcomes = coverage.outcomes.filter(
@@ -506,25 +466,17 @@ function UserDirectoryCoveragePanel({
 
         {actions.length > 0 ? (
           <ul className="attention-list" aria-label="本机识别行动项">
-            {actions.map((action) => (
-              <li key={action.candidate.candidateId}>
-                <StatusGlyph tone={COVERAGE_TONES[action.candidate.coverageClass]} />
+            {actions.map((candidate) => (
+              <li key={candidate.candidateId}>
+                <StatusGlyph tone={COVERAGE_TONES[candidate.coverageClass]} />
                 <div>
-                  <strong>{action.candidate.displayName}</strong>
+                  <strong>{candidate.displayName}</strong>
                   <p>
-                    {COVERAGE_LABELS[action.candidate.coverageClass]} ·{" "}
-                    {action.candidate.relativePath}
+                    {COVERAGE_LABELS[candidate.coverageClass]} ·{" "}
+                    {candidate.relativePath}
                   </p>
-                  <p>证据：{evidenceSummary(action.candidate)}</p>
+                  <p>证据：{evidenceSummary(candidate)}</p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  aria-label={`在本机识别中查看 ${action.candidate.displayName}`}
-                  onClick={() => onNavigate(action.intent)}
-                >
-                  查看
-                </Button>
               </li>
             ))}
           </ul>
@@ -552,15 +504,6 @@ function UserDirectoryCoveragePanel({
           </h2>
           <p>本机识别到的配置覆盖、证据与下一步</p>
         </div>
-        {plan ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => onNavigate(plan.totalIntent)}
-          >
-            查看全部
-          </Button>
-        ) : null}
       </header>
       <div className="overview-panel__content">
         {refreshError && snapshot ? (
@@ -596,7 +539,6 @@ export function DashboardPage({
   return (
     <section className="dashboard-workspace" aria-label="概览">
       <UserDirectoryCoveragePanel
-        onNavigate={onNavigate}
         optionalDiscoveryRoots={optionalDiscoveryRoots}
         state={state}
       />
@@ -626,7 +568,6 @@ export function DashboardPage({
                 <li key={item.key}>
                   <StatusGlyph tone={item.tone} />
                   <div><strong>{item.label}</strong><p>{item.detail}</p></div>
-                  {item.target ? <Button size="sm" variant="ghost" onClick={() => onNavigate(item.target!)}>查看</Button> : null}
                 </li>
               ))}
             </ul>
@@ -651,7 +592,7 @@ export function DashboardPage({
         <OverviewPanel title="软件与服务" description="Homebrew 资产与后台进程">
           <div className="software-service-grid">
             <div>
-              <div className="overview-resource-heading"><span>软件</span><Button size="sm" variant="ghost" onClick={() => onNavigate({ routeId: "homebrew" })}>查看</Button></div>
+              <div className="overview-resource-heading"><span>软件</span></div>
               {brew?.status === "READY" && brew.data.available ? (
                 <dl className="resource-inline-metrics"><Metric label="Formula" value={brew.data.formulaCount} /><Metric label="Cask" value={brew.data.caskCount} /></dl>
               ) : <p>{brew?.status === "ERROR" ? brew.error.message : brew?.status === "READY" ? "未检测到 Homebrew" : "正在后台读取软件清单…"}</p>}

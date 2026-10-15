@@ -415,17 +415,61 @@ describe("DashboardPage user-directory configuration group", () => {
   });
 });
 
-describe("DashboardPage local coverage navigation", () => {
-  it("builds a total-recognition intent carrying the snapshot refresh id", () => {
+describe("DashboardPage retired navigation targets", () => {
+  function navigatingMarkup(state: Parameters<typeof DashboardPage>[0]["state"]) {
+    return renderToStaticMarkup(<DashboardPage state={state} />);
+  }
+
+  it("renders no control that leads to the retired applications or software pages", () => {
+    const markup = navigatingMarkup({
+      status: "ready",
+      snapshot: readySnapshot(readyModule(FOUR_CLASS_COVERAGE)),
+    });
+
+    expect(markup).not.toContain("在本机识别中查看");
+    expect(markup).not.toContain("查看全部");
+    // The only remaining "查看" entry is the services shortcut.
+    expect(markup.match(/查看/g) ?? []).toHaveLength(1);
+    expect(markup).toMatch(/<span>服务<\/span><button[^>]*>查看<\/button>/);
+  });
+
+  it("does not attach a retired navigation target to attention items", () => {
+    const markup = navigatingMarkup({
+      status: "ready",
+      snapshot: readySnapshot(
+        { status: "ERROR", error: { module: "candidates", message: "候选扫描失败。", retryable: true } },
+        {
+          brew: {
+            status: "ERROR",
+            error: { module: "brew", message: "Homebrew 读取失败。", retryable: true },
+          },
+        },
+      ),
+    });
+
+    expect(markup).toContain("配置发现异常");
+    expect(markup).toContain("Homebrew异常");
+    expect(markup.match(/查看/g) ?? []).toHaveLength(1);
+  });
+
+  it("keeps the service overview and basic status", () => {
+    const markup = navigatingMarkup({
+      status: "ready",
+      snapshot: readySnapshot(readyModule(FOUR_CLASS_COVERAGE)),
+    });
+
+    expect(markup).toContain("软件与服务");
+    expect(markup).toContain("正在读取服务状态");
+    expect(markup).toContain("系统脉冲");
+    expect(markup).toContain("本地服务");
+  });
+});
+
+describe("localCoveragePlan", () => {
+  it("returns no actions for an empty coverage view", () => {
     const plan = localCoveragePlan(
       selectCandidateCoverage(readyModule(coverage([]))),
-      "refresh-9",
     );
-    expect(plan.totalIntent).toEqual({
-      routeId: "applications",
-      scope: "LOCAL_RECOGNIZED",
-      sourceRefreshId: "refresh-9",
-    });
     expect(plan.actions).toEqual([]);
   });
 
@@ -442,19 +486,13 @@ describe("DashboardPage local coverage navigation", () => {
       ),
     );
 
-    const plan = localCoveragePlan(view, "refresh-7");
+    const plan = localCoveragePlan(view);
     expect(plan.actions).toHaveLength(MAX_COVERAGE_ACTIONS);
-    expect(plan.actions.map((action) => action.candidate.candidateId)).toEqual([
+    expect(plan.actions.map((action) => action.candidateId)).toEqual([
       "writable-1",
       "writable-2",
       "read-only-1",
     ]);
-    expect(plan.actions[0].intent).toEqual({
-      routeId: "applications",
-      scope: "LOCAL_RECOGNIZED",
-      candidateId: "writable-1",
-      sourceRefreshId: "refresh-7",
-    });
   });
 });
 

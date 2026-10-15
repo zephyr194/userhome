@@ -287,7 +287,7 @@ describe("AppShell", () => {
     expect(markup).not.toContain('role="alert"');
   });
 
-  it("keeps the previous Homebrew inventory visible when a refresh fails", () => {
+  it("falls back to the dashboard when a retired Homebrew route was persisted", () => {
     const state: ShellState = {
       applications: { status: "loading" },
       connection: { status: "loading" },
@@ -348,8 +348,10 @@ describe("AppShell", () => {
       />,
     );
 
-    expect(markup).toContain("Formula 12");
-    expect(markup).toContain("Cask 4");
-    expect(markup).toContain("正在显示上次成功刷新保留的 Homebrew 数据。");
+    // The retired Homebrew route is no longer restorable: the persisted id
+    // falls back to the dashboard.
+    expect(markup).toContain("概览");
+    expect(markup).not.toContain("Formula 12");
+    expect(markup).not.toContain("正在显示上次成功刷新保留的 Homebrew 数据。");
   });
 });

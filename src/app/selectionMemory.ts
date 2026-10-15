@@ -78,8 +78,13 @@ function safeIdentifier(value: unknown): value is string {
   );
 }
 
+/**
+ * Only routes that still have a navigation entry are restorable. A persisted
+ * id for a retired route (registered but without a group) or an unknown id
+ * falls back to the dashboard instead of failing.
+ */
 function safeRoute(value: unknown): value is AppRouteId {
-  return APP_ROUTES.some((route) => route.id === value);
+  return APP_ROUTES.some((route) => route.id === value && route.group);
 }
 
 function safeSettingsGroup(value: unknown): value is SettingsGroupId {
