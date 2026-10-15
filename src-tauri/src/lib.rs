@@ -31,6 +31,7 @@ pub fn run() {
         .manage(discovery::refresh::DiscoveryCoordinator::default())
         .manage(config::ConfigCoordinator::default())
         .manage(operations::OperationCoordinator::default())
+        .manage(grants::ResourceWriteCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
         .manage(services::actions::ServiceActionCoordinator::default())
         .manage(security::elevation::ElevationCoordinator::default())
@@ -146,7 +147,10 @@ pub fn run() {
             commands::settings::preview_clear_backups,
             commands::settings::execute_clear_backups,
             commands::grants::list_grants,
-            commands::grants::revoke_grant
+            commands::grants::revoke_grant,
+            commands::resources::preview_resource_writes,
+            commands::resources::execute_resource_write,
+            commands::resources::get_resource_write_batch
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

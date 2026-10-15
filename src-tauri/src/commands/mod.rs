@@ -6,6 +6,7 @@ pub mod discovery;
 pub mod elevation;
 pub mod grants;
 pub mod operations;
+pub mod resources;
 pub mod services;
 pub mod settings;
 pub mod status;

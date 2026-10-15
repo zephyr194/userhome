@@ -17,9 +17,16 @@ use crate::error::AppError;
 mod path;
 mod read;
 mod store;
+mod write;
 
 pub use read::{ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantedRead, ReadError};
 pub use store::{GRANT_SCHEMA_VERSION, GrantStore, MAX_GRANTS};
+pub use write::{
+    ConfirmRequest, FileState, MAX_BATCH_STEPS, MAX_PENDING_WRITES, RecoveryPoint,
+    ResourceWriteBatchPreview, ResourceWriteBatchStatus, ResourceWriteContext,
+    ResourceWriteCoordinator, ResourceWriteExecution, ResourceWritePreview, StepState, WriteKind,
+    WriteOutcome, WriteRequest, WriteStatus,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

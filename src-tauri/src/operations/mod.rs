@@ -23,6 +23,7 @@ pub const MAX_OPERATION_EVENTS: usize = 128;
 pub enum OperationKind {
     ConfigurationWrite,
     ConfigurationRestore,
+    ResourceWrite,
     BackupClear,
     BrewInstall,
     BrewUpgrade,
@@ -143,6 +144,13 @@ impl Default for OperationCoordinator {
 }
 
 impl OperationCoordinator {
+    /// Builds a coordinator around a store with injected clock and id sources.
+    pub fn with_store(store: OperationStore) -> Self {
+        Self {
+            store: Mutex::new(store),
+        }
+    }
+
     pub(crate) fn preview(
         &self,
         intent: OperationIntent,
