@@ -8,6 +8,7 @@ pub mod commands;
 pub mod config;
 pub mod discovery;
 pub mod error;
+pub mod grants;
 pub mod operations;
 mod process;
 pub mod security;
@@ -36,6 +37,9 @@ pub fn run() {
         .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
             let settings_directory = app.path().app_config_dir()?;
+            app.manage(grants::GrantCoordinator::new(grants::GrantStore::new(
+                settings_directory.clone(),
+            )));
             let settings = settings::SettingsCoordinator::new(settings::SettingsStore::new(
                 settings_directory,
             ));
@@ -140,7 +144,9 @@ pub fn run() {
             commands::settings::export_diagnostics_report,
             commands::settings::get_backup_storage,
             commands::settings::preview_clear_backups,
-            commands::settings::execute_clear_backups
+            commands::settings::execute_clear_backups,
+            commands::grants::list_grants,
+            commands::grants::revoke_grant
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

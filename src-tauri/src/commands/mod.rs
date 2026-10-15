@@ -4,6 +4,7 @@ pub mod catalog;
 pub mod config;
 pub mod discovery;
 pub mod elevation;
+pub mod grants;
 pub mod operations;
 pub mod services;
 pub mod settings;
