@@ -11,7 +11,8 @@ use tauri_plugin_dialog::DialogExt;
 use crate::{
     error::AppError,
     grants::{
-        GrantCoordinator, GrantError, GrantId, GrantKind, GrantPurpose, GrantRecord, GrantSummary,
+        GrantCoordinator, GrantError, GrantId, GrantKind, GrantPurpose, GrantRecord,
+        GrantStoreReset, GrantStoreStatus, GrantSummary,
     },
 };
 
@@ -157,6 +158,13 @@ pub struct RevokeGrantInput {
     pub grant_id: String,
 }
 
+/// Input of `reset_grant_store`. It carries nothing: the file to isolate is
+/// always the store's own `grants.json`, so any field (a path in particular)
+/// is rejected.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ResetGrantStoreInput {}
+
 #[tauri::command]
 pub fn list_grants(
     coordinator: State<'_, GrantCoordinator>,
@@ -170,6 +178,24 @@ pub fn revoke_grant(
     input: RevokeGrantInput,
 ) -> Result<(), AppError> {
     revoke_by_id(&coordinator, &input)
+}
+
+/// Read-only health of the authorization store; categories only, no path or
+/// file content.
+#[tauri::command]
+pub fn get_grant_store_status(coordinator: State<'_, GrantCoordinator>) -> GrantStoreStatus {
+    coordinator.store_status()
+}
+
+/// Isolates a damaged or newer-version `grants.json` and starts an empty
+/// store. The frontend must only call it after the user confirmed; the
+/// backend re-checks and refuses (`CONFLICT`) when the store is fine.
+#[tauri::command]
+pub fn reset_grant_store(
+    coordinator: State<'_, GrantCoordinator>,
+    input: ResetGrantStoreInput,
+) -> Result<GrantStoreReset, AppError> {
+    reset_store(&coordinator, &input)
 }
 
 #[tauri::command]
@@ -351,6 +377,13 @@ fn revoke_by_id(coordinator: &GrantCoordinator, input: &RevokeGrantInput) -> Res
     Ok(coordinator.revoke(&id)?)
 }
 
+fn reset_store(
+    coordinator: &GrantCoordinator,
+    _input: &ResetGrantStoreInput,
+) -> Result<GrantStoreReset, AppError> {
+    Ok(coordinator.reset_store()?)
+}
+
 #[cfg(test)]
 mod tests {
     use std::{fs, os::unix::ffi::OsStringExt, path::PathBuf, sync::atomic::AtomicBool};
@@ -364,8 +397,9 @@ mod tests {
     };
 
     use super::{
-        NativePicker, PickMode, PickerSlot, RevokeGrantInput, SelectGrantInput, SelectGrantOutcome,
-        canonical_home_from, list_summaries, revoke_by_id, select_grant, validate_selection,
+        NativePicker, PickMode, PickerSlot, ResetGrantStoreInput, RevokeGrantInput,
+        SelectGrantInput, SelectGrantOutcome, canonical_home_from, list_summaries, reset_store,
+        revoke_by_id, select_grant, validate_selection,
     };
 
     struct FakePicker(Result<Option<PathBuf>, AppError>);
@@ -1014,5 +1048,52 @@ mod tests {
         let serialized = serde_json::to_string(&error).expect("serialize");
         assert!(!serialized.contains(sandbox.root.to_str().expect("utf8 root")));
         assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn reset_input_is_an_empty_object_and_rejects_every_field() {
+        assert!(serde_json::from_value::<ResetGrantStoreInput>(json!({})).is_ok());
+        for rejected in [
+            json!({"path":"/Users/someone/.ssh"}),
+            json!({"grantsFile":"grants.json"}),
+            json!({"force":true}),
+        ] {
+            assert!(
+                serde_json::from_value::<ResetGrantStoreInput>(rejected.clone()).is_err(),
+                "{rejected} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn reset_command_refuses_a_healthy_store_and_isolates_a_damaged_one() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let input = ResetGrantStoreInput {};
+
+        let refused = reset_store(&coordinator, &input).expect_err("healthy store");
+        assert_eq!(refused.code(), AppErrorCode::Conflict);
+
+        let store = sandbox.root.join("support").join("grants.json");
+        fs::create_dir_all(store.parent().expect("parent")).expect("support directory");
+        fs::write(&store, b"{ damaged").expect("write damaged store");
+        assert_eq!(
+            serde_json::to_value(coordinator.store_status()).expect("serialize"),
+            json!({"status":"UNAVAILABLE","reason":"CORRUPT"})
+        );
+
+        let reset = reset_store(&coordinator, &input).expect("reset");
+        let serialized = serde_json::to_value(&reset).expect("serialize");
+        let name = serialized["quarantineFileName"].as_str().expect("name");
+        assert!(name.starts_with("grants.json.corrupt-") && !name.contains('/'));
+        assert_eq!(serialized["previousReason"], json!("CORRUPT"));
+        assert_eq!(
+            fs::read(sandbox.root.join("support").join(name)).expect("isolated"),
+            b"{ damaged"
+        );
+        assert_eq!(
+            serde_json::to_value(coordinator.store_status()).expect("serialize"),
+            json!({"status":"AVAILABLE"})
+        );
     }
 }

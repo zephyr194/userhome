@@ -78,3 +78,38 @@ fn configuration_inputs_reject_paths_and_unknown_mutation_fields() {
         .is_err()
     );
 }
+
+#[test]
+fn grant_store_recovery_contract_has_enum_only_status_and_a_pathless_reset_input() {
+    use userhome_lib::{
+        commands::grants::ResetGrantStoreInput,
+        grants::{GrantStoreProblem, GrantStoreReset, GrantStoreStatus},
+    };
+
+    assert_eq!(
+        serde_json::to_value(GrantStoreStatus::Available).expect("status should serialize"),
+        json!({"status":"AVAILABLE"})
+    );
+    assert_eq!(
+        serde_json::to_value(GrantStoreStatus::Unavailable {
+            reason: GrantStoreProblem::NewerVersion
+        })
+        .expect("status should serialize"),
+        json!({"status":"UNAVAILABLE","reason":"NEWER_VERSION"})
+    );
+    assert_eq!(
+        serde_json::to_value(GrantStoreReset {
+            quarantine_file_name: "grants.json.corrupt-20260102T030405Z".to_owned(),
+            previous_reason: GrantStoreProblem::Corrupt,
+        })
+        .expect("reset result should serialize"),
+        json!({
+            "quarantineFileName": "grants.json.corrupt-20260102T030405Z",
+            "previousReason": "CORRUPT",
+        })
+    );
+    assert!(serde_json::from_value::<ResetGrantStoreInput>(json!({})).is_ok());
+    assert!(
+        serde_json::from_value::<ResetGrantStoreInput>(json!({"path":"/tmp/grants.json"})).is_err()
+    );
+}

@@ -154,6 +154,8 @@ pub fn run() {
             commands::settings::execute_clear_backups,
             commands::grants::list_grants,
             commands::grants::revoke_grant,
+            commands::grants::get_grant_store_status,
+            commands::grants::reset_grant_store,
             commands::grants::select_directory_grant,
             commands::grants::select_file_grant,
             commands::grants::select_save_location_grant,

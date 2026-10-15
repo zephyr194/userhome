@@ -18,7 +18,7 @@ use super::{GrantError, GrantRecord};
 
 pub const GRANT_SCHEMA_VERSION: u16 = 1;
 pub const MAX_GRANTS: usize = 256;
-const GRANTS_FILE_NAME: &str = "grants.json";
+pub(super) const GRANTS_FILE_NAME: &str = "grants.json";
 const MAX_STORE_BYTES: u64 = 256 * 1024;
 const STORE_DIRECTORY_MODE: u32 = 0o700;
 const STORE_FILE_MODE: u32 = 0o600;
@@ -32,7 +32,7 @@ struct GrantDocument {
 
 #[derive(Debug, Clone)]
 pub struct GrantStore {
-    directory: PathBuf,
+    pub(super) directory: PathBuf,
 }
 
 impl GrantStore {
@@ -80,7 +80,7 @@ impl GrantStore {
         atomic_replace(&path, &bytes, STORE_FILE_MODE, None).map_err(|_| GrantError::StoreIo)
     }
 
-    fn file_path(&self) -> PathBuf {
+    pub(super) fn file_path(&self) -> PathBuf {
         self.directory.join(GRANTS_FILE_NAME)
     }
 

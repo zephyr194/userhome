@@ -17,10 +17,12 @@ use crate::error::AppError;
 mod new_file;
 mod path;
 mod read;
+mod recovery;
 mod store;
 mod write;
 
 pub use read::{ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantedRead, ReadError};
+pub use recovery::{GrantResetError, GrantStoreProblem, GrantStoreReset, GrantStoreStatus};
 pub use store::{GRANT_SCHEMA_VERSION, GrantStore, MAX_GRANTS};
 pub use write::{
     ConfirmRequest, FileState, MAX_BATCH_STEPS, MAX_PENDING_WRITES, RecoveryPoint,
@@ -334,5 +336,7 @@ fn now_epoch_ms() -> u64 {
 
 #[cfg(test)]
 mod new_file_tests;
+#[cfg(test)]
+mod recovery_tests;
 #[cfg(test)]
 mod tests;
