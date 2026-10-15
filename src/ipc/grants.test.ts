@@ -151,6 +151,55 @@ describe("native selection IPC", () => {
     });
   });
 
+  it("decodes a new-file grant for a save location that does not exist yet", async () => {
+    // The backend grants parent directory plus file name; the summary keeps
+    // the ordinary shape (a FILE grant with a display path) and carries no
+    // absolute path or file-name field.
+    const wire = wireGrant({
+      purpose: "CONFIG_FILE",
+      kind: "FILE",
+      displayPath: "~/project/not-yet.json",
+    });
+    mockIPC((command, payload) => {
+      expect(command).toBe("select_save_location_grant");
+      expect(payload).toEqual({ input: { purpose: "CONFIG_FILE" } });
+      return { status: "SELECTED", grant: wire };
+    });
+
+    const result = await selectSaveLocationGrant();
+
+    expect(result).toEqual({ status: "SELECTED", grant: wire });
+    expect(JSON.stringify(result)).not.toContain("/Users/");
+  });
+
+  it("decodes the same summary when a new-file grant is listed later", async () => {
+    const wire = wireGrant({
+      purpose: "CONFIG_FILE",
+      kind: "FILE",
+      displayPath: "~/project/not-yet.json",
+    });
+    mockIPC(() => [wire]);
+
+    await expect(listGrants()).resolves.toEqual([wire]);
+  });
+
+  it("passes new-file selection failures through as typed app errors without paths", async () => {
+    mockIPC(() => {
+      throw {
+        code: "NOT_FOUND",
+        message: "The approved location no longer exists.",
+        retryable: false,
+        path: "/Users/someone/missing/not-yet.json",
+      };
+    });
+
+    await expect(selectSaveLocationGrant()).rejects.toEqual({
+      code: "NOT_FOUND",
+      message: "The approved location no longer exists.",
+      retryable: false,
+    });
+  });
+
   it("reports an explicit cancelled result rather than a grant", async () => {
     mockIPC(() => ({ status: "CANCELLED" }));
 

@@ -1,5 +1,6 @@
 use std::{
-    path::PathBuf,
+    fs, io,
+    path::{Path, PathBuf},
     sync::atomic::{AtomicBool, Ordering},
 };
 
@@ -9,13 +10,16 @@ use tauri_plugin_dialog::DialogExt;
 
 use crate::{
     error::AppError,
-    grants::{GrantCoordinator, GrantError, GrantId, GrantKind, GrantPurpose, GrantSummary},
+    grants::{
+        GrantCoordinator, GrantError, GrantId, GrantKind, GrantPurpose, GrantRecord, GrantSummary,
+    },
 };
 
 // Grants are created only by backend code after a native picker; there is
 // deliberately no command that accepts a path and returns an authorization.
 // The select commands below open the picker themselves, hand the chosen path
-// to `GrantCoordinator::create` and return only a redacted summary. The dialog
+// to `GrantCoordinator::create` (or `create_new_file` for a save location that
+// does not exist yet) and return only a redacted summary. The dialog
 // plugin is registered for the backend alone: the capability file grants the
 // frontend no dialog or fs permission.
 
@@ -294,18 +298,41 @@ async fn select_grant<P: NativePicker>(
     let Some(path) = picked else {
         return Ok(SelectGrantOutcome::Cancelled);
     };
-    let record = coordinator.create(purpose, &path).map_err(|error| {
-        if mode == PickMode::SaveLocation && error == GrantError::NotFound {
-            AppError::validation_failed(
-                "The chosen save location does not exist yet; choose an existing file.",
-            )
-        } else {
-            error.into()
-        }
-    })?;
+    let record = if mode == PickMode::SaveLocation {
+        grant_save_location(coordinator, purpose, &path)?
+    } else {
+        coordinator.create(purpose, &path)?
+    };
     Ok(SelectGrantOutcome::Selected(
         record.summary(home.as_deref()),
     ))
+}
+
+/// A save location that already exists is granted as that file. One that does
+/// not exist yet (or whose parent is not a directory, which then fails there) is granted as its parent directory plus the single file name
+/// (`create_new_file`), which re-checks the parent against `$HOME` and the
+/// protected locations. A dangling symbolic link exists as far as
+/// `symlink_metadata` is concerned, so it is never mistaken for a new file.
+fn grant_save_location(
+    coordinator: &GrantCoordinator,
+    purpose: GrantPurpose,
+    path: &Path,
+) -> Result<GrantRecord, GrantError> {
+    match fs::symlink_metadata(path) {
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::NotFound | io::ErrorKind::NotADirectory
+            ) =>
+        {
+            let (Some(parent), Some(name)) = (path.parent(), path.file_name()) else {
+                return Err(GrantError::InvalidRelativePath);
+            };
+            let name = name.to_str().ok_or(GrantError::InvalidRelativePath)?;
+            coordinator.create_new_file(parent, name)
+        }
+        _ => coordinator.create(purpose, path),
+    }
 }
 
 fn list_summaries(
@@ -326,14 +353,14 @@ fn revoke_by_id(coordinator: &GrantCoordinator, input: &RevokeGrantInput) -> Res
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::PathBuf, sync::atomic::AtomicBool};
+    use std::{fs, os::unix::ffi::OsStringExt, path::PathBuf, sync::atomic::AtomicBool};
 
     use serde_json::json;
     use uuid::Uuid;
 
     use crate::{
         error::{AppError, AppErrorCode},
-        grants::{GrantCoordinator, GrantPurpose, GrantStore},
+        grants::{GrantCoordinator, GrantKind, GrantPurpose, GrantStore},
     };
 
     use super::{
@@ -525,16 +552,6 @@ mod tests {
         .expect_err("a file is not a directory");
         assert_eq!(wrong_kind.code(), AppErrorCode::ValidationFailed);
 
-        let missing_save = run_select(
-            &coordinator,
-            FakePicker(Ok(Some(sandbox.root.join("not-yet.json")))),
-            PickMode::SaveLocation,
-            GrantPurpose::ConfigFile,
-            None,
-        )
-        .expect_err("new files are not granted");
-        assert_eq!(missing_save.code(), AppErrorCode::ValidationFailed);
-
         let relative = run_select(
             &coordinator,
             FakePicker(Ok(Some(PathBuf::from("relative/path")))),
@@ -554,6 +571,208 @@ mod tests {
         )
         .expect_err("picker errors propagate");
         assert_eq!(picker_failure.code(), AppErrorCode::Internal);
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    fn save_location(
+        coordinator: &GrantCoordinator,
+        chosen: PathBuf,
+        home: Option<PathBuf>,
+    ) -> Result<SelectGrantOutcome, AppError> {
+        run_select(
+            coordinator,
+            FakePicker(Ok(Some(chosen))),
+            PickMode::SaveLocation,
+            GrantPurpose::ConfigFile,
+            home,
+        )
+    }
+
+    #[test]
+    fn choosing_a_missing_save_target_grants_parent_and_file_name() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let parent = sandbox.root.join("project");
+        fs::create_dir_all(&parent).expect("parent");
+        let target = parent.join("not-yet.json");
+
+        let outcome = save_location(&coordinator, target.clone(), Some(sandbox.root.clone()))
+            .expect("a missing target under an existing parent is granted");
+
+        let SelectGrantOutcome::Selected(summary) = &outcome else {
+            panic!("expected a selection, got {outcome:?}");
+        };
+        assert_eq!(summary.purpose, GrantPurpose::ConfigFile);
+        assert_eq!(summary.kind, GrantKind::File);
+        assert_eq!(summary.display_path, "~/project/not-yet.json");
+        let wire = serde_json::to_string(&outcome).expect("serialize");
+        assert!(wire.contains(r#""status":"SELECTED""#));
+        assert!(!wire.contains(sandbox.root.to_str().expect("utf8 root")));
+
+        let stored = coordinator.list().expect("list");
+        assert_eq!(stored.len(), 1);
+        assert_eq!(stored[0].file_name.as_deref(), Some("not-yet.json"));
+        assert_eq!(stored[0].purpose, GrantPurpose::ConfigFile);
+        let resolved = coordinator.resolve(&stored[0].id).expect("grant resolves");
+        assert_eq!(resolved.target_path(), target);
+        // Selecting grants authority only; the file is not created here.
+        assert!(!target.exists());
+
+        // The same choice again returns the existing grant.
+        save_location(&coordinator, target, Some(sandbox.root.clone())).expect("again");
+        assert_eq!(coordinator.list().expect("list").len(), 1);
+    }
+
+    #[test]
+    fn choosing_an_existing_save_target_still_grants_that_file() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let file = sandbox.root.join("tool.toml");
+        fs::write(&file, b"key = 1").expect("write file");
+
+        let outcome = save_location(&coordinator, file.clone(), Some(sandbox.root.clone()))
+            .expect("existing file is granted as before");
+
+        let SelectGrantOutcome::Selected(summary) = &outcome else {
+            panic!("expected a selection, got {outcome:?}");
+        };
+        assert_eq!(summary.display_path, "~/tool.toml");
+        let stored = coordinator.list().expect("list");
+        assert_eq!(stored.len(), 1);
+        assert_eq!(stored[0].file_name, None);
+        assert_eq!(stored[0].path, file);
+    }
+
+    #[test]
+    fn missing_save_target_failures_stay_classified_and_leak_no_path() {
+        let sandbox = Sandbox::new();
+        let home = sandbox.root.join("home");
+        let outside = sandbox.root.join("outside");
+        let ssh = home.join(".ssh");
+        let keychains = home.join("Library").join("Keychains");
+        for directory in [&home, &outside, &ssh, &keychains] {
+            fs::create_dir_all(directory).expect("directory");
+        }
+        fs::write(home.join("plain.txt"), b"x").expect("file");
+        fs::create_dir_all(home.join("dir-target")).expect("dir target");
+        std::os::unix::fs::symlink(&outside, home.join("link-parent")).expect("parent link");
+        std::os::unix::fs::symlink(home.join("gone"), home.join("dangling")).expect("dangling");
+        let coordinator = GrantCoordinator::new(
+            GrantStore::new(sandbox.root.join("support")),
+            Some(home.clone()),
+        );
+
+        let cases = [
+            (
+                "missing parent",
+                home.join("no-such-dir").join("a.json"),
+                AppErrorCode::NotFound,
+            ),
+            (
+                "parent outside home",
+                outside.join("a.json"),
+                AppErrorCode::PermissionDenied,
+            ),
+            (
+                "home itself as parent",
+                home.join("..").join("home").join("a.json"),
+                AppErrorCode::PermissionDenied,
+            ),
+            (
+                "sensitive parent",
+                ssh.join("config.json"),
+                AppErrorCode::PermissionDenied,
+            ),
+            (
+                "keychains parent",
+                keychains.join("a.json"),
+                AppErrorCode::PermissionDenied,
+            ),
+            (
+                "parent is a file",
+                home.join("plain.txt").join("a.json"),
+                AppErrorCode::ValidationFailed,
+            ),
+            (
+                "parent link out of home",
+                home.join("link-parent").join("a.json"),
+                AppErrorCode::PermissionDenied,
+            ),
+            (
+                "dangling link as target",
+                home.join("dangling"),
+                AppErrorCode::NotFound,
+            ),
+            (
+                "dot-dot name",
+                home.join("missing").join(".."),
+                AppErrorCode::InvalidInput,
+            ),
+        ];
+        for (label, chosen, expected) in cases {
+            let error = save_location(&coordinator, chosen, Some(home.clone())).expect_err(label);
+            assert_eq!(error.code(), expected, "{label}");
+            let wire = serde_json::to_string(&error).expect("serialize");
+            assert!(
+                !wire.contains(sandbox.root.to_str().expect("utf8 root")),
+                "{label} leaked a path"
+            );
+        }
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn missing_save_target_with_an_invalid_name_is_refused() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let too_long = "a".repeat(256);
+        let non_utf8 = std::ffi::OsString::from_vec(vec![0x66, 0xff, 0x67]);
+        for name in [
+            std::ffi::OsString::from("bad\nname"),
+            std::ffi::OsString::from(too_long),
+            non_utf8,
+        ] {
+            let error = save_location(&coordinator, sandbox.root.join(name), None)
+                .expect_err("invalid name");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        }
+        let relative = save_location(&coordinator, PathBuf::from("relative/not-yet.json"), None)
+            .expect_err("relative path");
+        assert_eq!(relative.code(), AppErrorCode::InvalidInput);
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn save_location_still_requires_the_config_file_purpose_for_missing_targets() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        for purpose in [GrantPurpose::ConfigDirectory, GrantPurpose::Executable] {
+            let error = run_select(
+                &coordinator,
+                FakePicker(Ok(Some(sandbox.root.join("not-yet.json")))),
+                PickMode::SaveLocation,
+                purpose,
+                None,
+            )
+            .expect_err("purpose mismatch");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        }
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn cancelling_a_save_location_grants_nothing_even_if_a_target_was_prepared() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let outcome = run_select(
+            &coordinator,
+            FakePicker(Ok(None)),
+            PickMode::SaveLocation,
+            GrantPurpose::ConfigFile,
+            Some(sandbox.root.clone()),
+        )
+        .expect("cancel");
+        assert_eq!(outcome, SelectGrantOutcome::Cancelled);
         assert!(coordinator.list().expect("list").is_empty());
     }
 
@@ -657,6 +876,43 @@ mod tests {
         ))
         .expect("select");
         assert!(matches!(outcome, SelectGrantOutcome::Selected(_)));
+    }
+
+    #[cfg(feature = "e2e")]
+    #[test]
+    fn e2e_save_fixture_may_name_a_path_that_does_not_exist_yet() {
+        use super::e2e_fixture::FixturePicker;
+
+        let sandbox = Sandbox::new();
+        let fixture = sandbox.root.join("fixture");
+        fs::create_dir_all(&fixture).expect("fixture dir");
+        let parent = sandbox.root.join("project");
+        fs::create_dir_all(&parent).expect("parent");
+        let target = parent.join("fresh.json");
+        fs::write(fixture.join("save"), format!("{}\n", target.display())).expect("write");
+        let picker = FixturePicker::new(Some(fixture));
+        assert_eq!(
+            picker.pick(PickMode::SaveLocation).expect("pick"),
+            Some(target.clone())
+        );
+
+        let coordinator = sandbox.coordinator();
+        let outcome = tauri::async_runtime::block_on(select_grant(
+            &coordinator,
+            &AtomicBool::new(false),
+            picker,
+            PickMode::SaveLocation,
+            GrantPurpose::ConfigFile,
+            Some(sandbox.root.clone()),
+        ))
+        .expect("select");
+        let SelectGrantOutcome::Selected(summary) = outcome else {
+            panic!("expected a selection");
+        };
+        assert_eq!(summary.display_path, "~/project/fresh.json");
+        assert!(!target.exists());
+        let stored = coordinator.list().expect("list");
+        assert_eq!(stored[0].file_name.as_deref(), Some("fresh.json"));
     }
 
     #[test]
