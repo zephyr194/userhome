@@ -14,3 +14,5 @@ export {
   type RadioCardOption,
   type SelectOption,
 } from "./forms";
+export { LogViewer, type LogViewerProps } from "./LogViewer";
+export { SecretValue, type SecretValueProps } from "./SecretValue";
