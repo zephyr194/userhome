@@ -43,6 +43,10 @@ export type OperationEvent =
 export interface OperationDetails extends OperationPreview {
   status: OperationStatus;
   events: OperationEvent[];
+  /** Older events of this operation dropped to stay within the event bound. */
+  droppedEvents?: number;
+  /** Operation records dropped from the history to stay within its bound. */
+  droppedRecords?: number;
 }
 
 export interface OperationSummary {
@@ -75,6 +79,16 @@ function isSequence(value: unknown): value is number {
   return (
     typeof value === "number" && Number.isSafeInteger(value) && value >= 0
   );
+}
+
+function decodeOptionalCount(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!isSequence(value)) {
+    throw createInternalError();
+  }
+  return value;
 }
 
 function decodeStringArray(value: unknown): string[] {
@@ -162,10 +176,15 @@ export function decodeOperationDetails(value: unknown): OperationDetails {
     throw createInternalError();
   }
 
+  const droppedEvents = decodeOptionalCount(value.droppedEvents);
+  const droppedRecords = decodeOptionalCount(value.droppedRecords);
+
   return {
     ...preview,
     status: value.status,
     events: value.events.map(decodeOperationEvent),
+    ...(droppedEvents === undefined ? {} : { droppedEvents }),
+    ...(droppedRecords === undefined ? {} : { droppedRecords }),
   };
 }
 

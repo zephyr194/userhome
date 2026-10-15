@@ -2,10 +2,13 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::error::AppError;
 
+use crate::process_session::StopOutcome;
+
 use super::{
-    Clock, MAX_OPERATION_EVENTS, MAX_PROGRESS_MESSAGE_BYTES, MAX_RESULT_SUMMARY_BYTES,
-    OperationDetails, OperationEvent, OperationIdSource, OperationIntent, OperationPreview,
-    OperationStatus, OperationSummary, PREVIEW_TTL_MILLIS, format_timestamp, sanitize_payload,
+    Clock, DEFAULT_MAX_OPERATION_RECORDS, MAX_OPERATION_EVENTS, MAX_PROGRESS_MESSAGE_BYTES,
+    MAX_RESULT_SUMMARY_BYTES, MIN_SENSITIVE_VALUE_BYTES, OperationDetails, OperationEvent,
+    OperationIdSource, OperationIntent, OperationPreview, OperationStatus, OperationSummary,
+    PREVIEW_TTL_MILLIS, StoppableProcess, format_timestamp, redact_error, sanitize_payload,
     system_clock, system_id_source,
 };
 
@@ -14,6 +17,16 @@ struct OperationRecord {
     intent: Option<OperationIntent>,
     expires_at_millis: u64,
     next_sequence: u64,
+    process: Option<Arc<dyn StoppableProcess>>,
+}
+
+/// What the caller of [`OperationStore::begin_cancel`] has to do next.
+pub enum CancelStep {
+    /// Nothing is left to stop; this is the operation's current state.
+    Settled(OperationDetails),
+    /// The operation is `Cancelling`; stop this process (without holding the
+    /// store lock), then report the outcome with [`OperationStore::finish_stop`].
+    Stop(Arc<dyn StoppableProcess>),
 }
 
 pub struct OperationStore {
@@ -22,6 +35,11 @@ pub struct OperationStore {
     records: HashMap<String, OperationRecord>,
     order: Vec<String>,
     active_mutation: Option<String>,
+    max_records: usize,
+    max_events: usize,
+    dropped_records: u64,
+    /// Known sensitive values, longest first so overlapping values mask fully.
+    sensitive: Vec<String>,
 }
 
 impl Default for OperationStore {
@@ -38,7 +56,83 @@ impl OperationStore {
             records: HashMap::new(),
             order: Vec::new(),
             active_mutation: None,
+            max_records: DEFAULT_MAX_OPERATION_RECORDS,
+            max_events: MAX_OPERATION_EVENTS,
+            dropped_records: 0,
+            sensitive: Vec::new(),
         }
+    }
+
+    /// Overrides the history bounds (at least one record and two events, so a
+    /// final event always fits next to progress).
+    pub fn with_limits(mut self, max_records: usize, max_events: usize) -> Self {
+        self.max_records = max_records.max(1);
+        self.max_events = max_events.max(2);
+        self
+    }
+
+    /// Number of records dropped so far to stay within the record bound.
+    pub fn dropped_records(&self) -> u64 {
+        self.dropped_records
+    }
+
+    /// Registers known sensitive values and redacts what is already recorded.
+    /// Values shorter than [`MIN_SENSITIVE_VALUE_BYTES`] are ignored.
+    pub fn register_sensitive_values(&mut self, values: impl IntoIterator<Item = String>) {
+        for value in values {
+            if value.len() >= MIN_SENSITIVE_VALUE_BYTES && !self.sensitive.contains(&value) {
+                self.sensitive.push(value);
+            }
+        }
+        self.sensitive
+            .sort_by_key(|value| std::cmp::Reverse(value.len()));
+
+        let known = self.sensitive.clone();
+        for record in self.records.values_mut() {
+            let details = &mut record.details;
+            details.summary =
+                sanitize_payload(&details.summary, MAX_PROGRESS_MESSAGE_BYTES, &known);
+            for effect in &mut details.effects {
+                *effect = sanitize_payload(effect, MAX_PROGRESS_MESSAGE_BYTES, &known);
+            }
+            for event in &mut details.events {
+                match event {
+                    OperationEvent::Progress { message, .. } => {
+                        *message = sanitize_payload(message, MAX_PROGRESS_MESSAGE_BYTES, &known);
+                    }
+                    OperationEvent::Finished {
+                        stdout_summary,
+                        stderr_summary,
+                        error,
+                        ..
+                    } => {
+                        for summary in [stdout_summary, stderr_summary].into_iter().flatten() {
+                            *summary = sanitize_payload(summary, MAX_RESULT_SUMMARY_BYTES, &known);
+                        }
+                        if let Some(current) = error.take() {
+                            *error = Some(redact_error(current, &known));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Connects a running operation to the own process its cancellation stops.
+    pub fn attach_process(
+        &mut self,
+        operation_id: &str,
+        process: Arc<dyn StoppableProcess>,
+    ) -> Result<(), AppError> {
+        let record = self
+            .records
+            .get_mut(operation_id)
+            .ok_or_else(AppError::operation_not_found)?;
+        if record.details.status != OperationStatus::Running {
+            return Err(AppError::invalid_operation_state());
+        }
+        record.process = Some(process);
+        Ok(())
     }
 
     pub fn preview(
@@ -64,10 +158,12 @@ impl OperationStore {
         )?;
         let preview = OperationPreview {
             operation_id: operation_id.clone(),
-            summary: sanitize_payload(summary, MAX_PROGRESS_MESSAGE_BYTES),
+            summary: sanitize_payload(summary, MAX_PROGRESS_MESSAGE_BYTES, &self.sensitive),
             effects: effects
                 .into_iter()
-                .map(|effect| sanitize_payload(&effect, MAX_PROGRESS_MESSAGE_BYTES))
+                .map(|effect| {
+                    sanitize_payload(&effect, MAX_PROGRESS_MESSAGE_BYTES, &self.sensitive)
+                })
                 .collect(),
             requires_elevation,
             expires_at,
@@ -80,8 +176,11 @@ impl OperationStore {
             expires_at: preview.expires_at.clone(),
             status: OperationStatus::Previewed,
             events: Vec::new(),
+            dropped_events: 0,
+            dropped_records: 0,
         };
 
+        self.evict_for_new_record();
         self.records.insert(
             operation_id.clone(),
             OperationRecord {
@@ -89,6 +188,7 @@ impl OperationStore {
                 intent: Some(intent),
                 expires_at_millis,
                 next_sequence: 1,
+                process: None,
             },
         );
         self.order.push(operation_id);
@@ -134,7 +234,7 @@ impl OperationStore {
         record.details.status = OperationStatus::Running;
         self.active_mutation = Some(operation_id.to_owned());
 
-        Ok(record.details.clone())
+        self.get(operation_id)
     }
 
     pub fn record_progress(
@@ -142,16 +242,20 @@ impl OperationStore {
         operation_id: &str,
         message: &str,
     ) -> Result<OperationEvent, AppError> {
+        let message = sanitize_payload(message, MAX_PROGRESS_MESSAGE_BYTES, &self.sensitive);
+        let max_events = self.max_events;
         let record = self.running_record_mut(operation_id)?;
         let event = OperationEvent::Progress {
             operation_id: operation_id.to_owned(),
             sequence: record.next_sequence,
-            message: sanitize_payload(message, MAX_PROGRESS_MESSAGE_BYTES),
+            message,
         };
         record.next_sequence += 1;
 
-        if record.details.events.len() >= MAX_OPERATION_EVENTS - 1 {
+        // Keep one slot free so the final event always fits.
+        while record.details.events.len() >= max_events - 1 {
             record.details.events.remove(0);
+            record.details.dropped_events += 1;
         }
         record.details.events.push(event.clone());
 
@@ -204,6 +308,62 @@ impl OperationStore {
         self.finish(operation_id, OperationStatus::Cancelled, None, None, None)
     }
 
+    /// Starts a cancellation. A running operation with an attached process moves
+    /// to `Cancelling` and hands the process back to be stopped; only the first
+    /// caller gets it, later calls just see `Cancelling`. Anything else behaves
+    /// like [`OperationStore::cancel`].
+    pub fn begin_cancel(&mut self, operation_id: &str) -> Result<CancelStep, AppError> {
+        let was_running = self
+            .records
+            .get(operation_id)
+            .ok_or_else(AppError::operation_not_found)?
+            .details
+            .status
+            == OperationStatus::Running;
+        let details = self.cancel(operation_id)?;
+        let process = self
+            .records
+            .get(operation_id)
+            .and_then(|record| record.process.clone())
+            .filter(|_| was_running);
+        Ok(match process {
+            Some(process) => CancelStep::Stop(process),
+            None => CancelStep::Settled(details),
+        })
+    }
+
+    /// Records the result of stopping the attached process. Only a confirmed
+    /// exit ends as `Cancelled`; otherwise the operation is `Failed`, because the
+    /// process may still be running.
+    pub fn finish_stop(
+        &mut self,
+        operation_id: &str,
+        outcome: StopOutcome,
+        stdout: &str,
+        stderr: &str,
+    ) -> Result<OperationEvent, AppError> {
+        let stdout = (!stdout.is_empty()).then_some(stdout);
+        let stderr = (!stderr.is_empty()).then_some(stderr);
+        match outcome {
+            StopOutcome::AlreadyExited(_) | StopOutcome::Terminated { .. } => self.finish(
+                operation_id,
+                OperationStatus::Cancelled,
+                stdout,
+                stderr,
+                None,
+            ),
+            StopOutcome::Unconfirmed => self.finish_failure(
+                operation_id,
+                AppError::process_failed(
+                    "The process exit could not be confirmed; it may still be running.",
+                    true,
+                ),
+                stdout,
+                stderr,
+            ),
+        }
+    }
+
     pub fn finish_success(
         &mut self,
         operation_id: &str,
@@ -251,8 +411,33 @@ impl OperationStore {
     pub fn get(&self, operation_id: &str) -> Result<OperationDetails, AppError> {
         self.records
             .get(operation_id)
-            .map(|record| record.details.clone())
+            .map(|record| OperationDetails {
+                dropped_records: self.dropped_records,
+                ..record.details.clone()
+            })
             .ok_or_else(AppError::operation_not_found)
+    }
+
+    /// Makes room for one more record by dropping the oldest ones that are not
+    /// active. Running and cancelling operations are never dropped.
+    fn evict_for_new_record(&mut self) {
+        while self.order.len() >= self.max_records {
+            let evictable = self.order.iter().position(|id| {
+                self.records.get(id).is_none_or(|record| {
+                    !matches!(
+                        record.details.status,
+                        OperationStatus::Running | OperationStatus::Cancelling
+                    )
+                })
+            });
+            let Some(index) = evictable else {
+                return;
+            };
+            let id = self.order.remove(index);
+            if self.records.remove(&id).is_some() {
+                self.dropped_records += 1;
+            }
+        }
     }
 
     fn running_record_mut(&mut self, operation_id: &str) -> Result<&mut OperationRecord, AppError> {
@@ -277,6 +462,8 @@ impl OperationStore {
         stderr: Option<&str>,
         error: Option<AppError>,
     ) -> Result<OperationEvent, AppError> {
+        let max_events = self.max_events;
+        let known = &self.sensitive;
         let record = self
             .records
             .get_mut(operation_id)
@@ -297,19 +484,23 @@ impl OperationStore {
         }
 
         record.intent = None;
+        record.process = None;
         record.details.status = status;
         let event = OperationEvent::Finished {
             operation_id: operation_id.to_owned(),
             sequence: record.next_sequence,
             status,
-            stdout_summary: stdout.map(|value| sanitize_payload(value, MAX_RESULT_SUMMARY_BYTES)),
-            stderr_summary: stderr.map(|value| sanitize_payload(value, MAX_RESULT_SUMMARY_BYTES)),
-            error,
+            stdout_summary: stdout
+                .map(|value| sanitize_payload(value, MAX_RESULT_SUMMARY_BYTES, known)),
+            stderr_summary: stderr
+                .map(|value| sanitize_payload(value, MAX_RESULT_SUMMARY_BYTES, known)),
+            error: error.map(|error| redact_error(error, known)),
         };
         record.next_sequence += 1;
 
-        while record.details.events.len() >= MAX_OPERATION_EVENTS {
+        while record.details.events.len() >= max_events {
             record.details.events.remove(0);
+            record.details.dropped_events += 1;
         }
         record.details.events.push(event.clone());
 

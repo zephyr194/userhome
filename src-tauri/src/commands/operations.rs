@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 use crate::{
     error::AppError,
@@ -20,10 +20,16 @@ pub fn get_operation(
     coordinator.get(&operation_id)
 }
 
+/// Stopping an attached process can wait for seconds, so it runs off the main
+/// thread; the command name and arguments are unchanged.
 #[tauri::command]
-pub fn cancel_operation(
-    coordinator: State<'_, OperationCoordinator>,
+pub async fn cancel_operation(
+    app: AppHandle,
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
-    coordinator.cancel(&operation_id)
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<OperationCoordinator>().cancel(&operation_id)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
 }

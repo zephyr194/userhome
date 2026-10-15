@@ -20,10 +20,10 @@ const STATUS_DETAILS: Record<
 > = {
   PREVIEWED: { label: "等待确认", tone: "warning" },
   RUNNING: { label: "进行中", tone: "warning" },
-  CANCELLING: { label: "正在取消", tone: "warning" },
+  CANCELLING: { label: "终止中", tone: "warning" },
   SUCCEEDED: { label: "已完成", tone: "success" },
   FAILED: { label: "失败", tone: "danger" },
-  CANCELLED: { label: "已取消", tone: "neutral" },
+  CANCELLED: { label: "已终止", tone: "neutral" },
   EXPIRED: { label: "已过期", tone: "neutral" },
 };
 
@@ -174,8 +174,19 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
     event?.type === "progress"
       ? event.message
       : event?.type === "finished"
-        ? event.stdoutSummary ?? event.stderrSummary ?? event.error?.message
+        ? event.status === "FAILED"
+          ? event.error?.message ?? event.stdoutSummary ?? event.stderrSummary
+          : event.stdoutSummary ?? event.stderrSummary ?? event.error?.message
         : undefined;
+
+  const truncation = [
+    operation.droppedEvents
+      ? `较早的 ${operation.droppedEvents} 条事件已被丢弃`
+      : undefined,
+    operation.droppedRecords
+      ? `较早的 ${operation.droppedRecords} 条操作记录已被丢弃`
+      : undefined,
+  ].filter((note): note is string => note !== undefined);
 
   return (
     <OperationRow
@@ -186,9 +197,22 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
       <p className="mt-1 text-xs font-medium leading-relaxed">
         {operation.summary}
       </p>
+      {operation.status === "CANCELLING" ? (
+        <p
+          className="mt-1 text-xs leading-relaxed text-muted-foreground"
+          role="status"
+        >
+          正在等待进程确认退出，确认前不会显示为已终止。
+        </p>
+      ) : null}
       {message ? (
         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
           {message}
+        </p>
+      ) : null}
+      {truncation.length > 0 ? (
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {truncation.join("；")}。
         </p>
       ) : null}
     </OperationRow>
