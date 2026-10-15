@@ -356,6 +356,21 @@ describe("AppShell", () => {
   });
 });
 
+describe("AppShell grant store notice", () => {
+  it("shows nothing before the store status is known", () => {
+    const markup = renderToStaticMarkup(
+      <AppShell
+        onAppearanceChange={() => Promise.resolve()}
+        onRefresh={() => undefined}
+        state={loadingState}
+      />,
+    );
+
+    expect(markup).not.toContain("授权存储");
+    expect(markup).not.toContain("隔离并重置");
+  });
+});
+
 describe("QuitConfirmationDialog", () => {
   const render = (prompt: QuitPrompt) =>
     renderToStaticMarkup(

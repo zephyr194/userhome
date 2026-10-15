@@ -155,3 +155,83 @@ export function selectFileGrant(
 export function selectSaveLocationGrant(): Promise<SelectGrantResult> {
   return selectGrant("select_save_location_grant", "CONFIG_FILE");
 }
+
+export type GrantStoreProblem =
+  | "CORRUPT"
+  | "NEWER_VERSION"
+  | "NOT_REGULAR_FILE"
+  | "IO";
+export type ResettableGrantStoreProblem = Extract<
+  GrantStoreProblem,
+  "CORRUPT" | "NEWER_VERSION"
+>;
+
+export type GrantStoreStatus =
+  | { readonly status: "AVAILABLE" }
+  | { readonly status: "UNAVAILABLE"; readonly reason: GrantStoreProblem };
+
+export interface GrantStoreReset {
+  readonly quarantineFileName: string;
+  readonly previousReason: ResettableGrantStoreProblem;
+}
+
+const GRANT_STORE_PROBLEMS: readonly string[] = [
+  "CORRUPT",
+  "NEWER_VERSION",
+  "NOT_REGULAR_FILE",
+  "IO",
+];
+const RESETTABLE_PROBLEMS: readonly string[] = ["CORRUPT", "NEWER_VERSION"];
+// A bare file name `grants.json.corrupt-<UTC stamp>[-<n>]`; never a path.
+const QUARANTINE_FILE_NAME_PATTERN = /^grants\.json\.corrupt-[0-9A-Za-z]+(-[0-9]+)?$/;
+
+export function decodeGrantStoreStatus(value: unknown): GrantStoreStatus {
+  if (!isRecord(value)) {
+    throw createInternalError();
+  }
+  const keys = Object.keys(value);
+  if (value.status === "AVAILABLE" && keys.length === 1) {
+    return { status: "AVAILABLE" };
+  }
+  if (
+    value.status === "UNAVAILABLE" &&
+    keys.length === 2 &&
+    typeof value.reason === "string" &&
+    GRANT_STORE_PROBLEMS.includes(value.reason)
+  ) {
+    return {
+      status: "UNAVAILABLE",
+      reason: value.reason as GrantStoreProblem,
+    };
+  }
+  throw createInternalError();
+}
+
+export function decodeGrantStoreReset(value: unknown): GrantStoreReset {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).length !== 2 ||
+    typeof value.quarantineFileName !== "string" ||
+    !QUARANTINE_FILE_NAME_PATTERN.test(value.quarantineFileName) ||
+    typeof value.previousReason !== "string" ||
+    !RESETTABLE_PROBLEMS.includes(value.previousReason)
+  ) {
+    throw createInternalError();
+  }
+  return {
+    quarantineFileName: value.quarantineFileName,
+    previousReason: value.previousReason as ResettableGrantStoreProblem,
+  };
+}
+
+export function getGrantStoreStatus(): Promise<GrantStoreStatus> {
+  return invokeCommand("get_grant_store_status", decodeGrantStoreStatus);
+}
+
+// The reset takes no path: the backend always isolates its own grants.json,
+// and only after the user confirmed in the UI.
+export function resetGrantStore(): Promise<GrantStoreReset> {
+  return invokeCommand("reset_grant_store", decodeGrantStoreReset, {
+    input: {},
+  });
+}

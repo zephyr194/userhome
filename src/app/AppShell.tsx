@@ -12,6 +12,9 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
 import { Button, StatusBadge } from "../components/ui";
+import { GrantStoreNotice } from "../features/grants/GrantStoreNotice";
+import { isGrantStoreNoticeVisible } from "../features/grants/grantStoreController";
+import { useGrantStoreNotice } from "../features/grants/useGrantStoreNotice";
 import {
   cancelQuit,
   confirmQuit,
@@ -189,6 +192,8 @@ export function AppShell({
   state,
 }: AppShellProps) {
   const [commandError, setCommandError] = useState<string>();
+  const grantStore = useGrantStoreNotice();
+  const grantStoreVisible = isGrantStoreNoticeVisible(grantStore.state);
   const [quitPrompt, setQuitPrompt] = useState<QuitPrompt>();
   const quitReturnFocus = useRef<HTMLElement | null>(null);
   const pendingNavigationSource = useRef<NavigationSource>("primary-nav");
@@ -501,12 +506,21 @@ export function AppShell({
             />
           }
           banner={
-            commandError || preferencesNotice || refreshNotice ? (
+            commandError ||
+            preferencesNotice ||
+            refreshNotice ||
+            grantStoreVisible ? (
               <div className="divide-y divide-border">
                 {commandError ? (
                   <ShellNotice label="命令不可用" role="alert" tone="danger">
                     {commandError}
                   </ShellNotice>
+                ) : null}
+                {grantStoreVisible ? (
+                  <GrantStoreNotice
+                    controller={grantStore.controller}
+                    state={grantStore.state}
+                  />
                 ) : null}
                 {preferencesNotice}
                 {refreshNotice}

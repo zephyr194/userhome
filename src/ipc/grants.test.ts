@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
+  decodeGrantStoreReset,
+  decodeGrantStoreStatus,
   decodeGrantSummary,
   decodeSelectGrantResult,
+  getGrantStoreStatus,
   listGrants,
+  resetGrantStore,
   revokeGrant,
   selectDirectoryGrant,
   selectFileGrant,
@@ -273,5 +277,147 @@ describe("native selection IPC", () => {
         "CONFIG_DIRECTORY",
       ),
     ).toEqual({ status: "SELECTED", grant: wireGrant() });
+  });
+});
+
+describe("grant store status and reset IPC", () => {
+  it("reads the store status without sending anything", async () => {
+    mockIPC((command, payload) => {
+      expect(command).toBe("get_grant_store_status");
+      expect(payload).toEqual({});
+      return { status: "UNAVAILABLE", reason: "NEWER_VERSION" };
+    });
+
+    await expect(getGrantStoreStatus()).resolves.toEqual({
+      status: "UNAVAILABLE",
+      reason: "NEWER_VERSION",
+    });
+  });
+
+  it("decodes every status and reason", () => {
+    expect(decodeGrantStoreStatus({ status: "AVAILABLE" })).toEqual({
+      status: "AVAILABLE",
+    });
+    for (const reason of ["CORRUPT", "NEWER_VERSION", "NOT_REGULAR_FILE", "IO"]) {
+      expect(decodeGrantStoreStatus({ status: "UNAVAILABLE", reason })).toEqual({
+        status: "UNAVAILABLE",
+        reason,
+      });
+    }
+  });
+
+  it.each([
+    ["null", null],
+    ["a string", "AVAILABLE"],
+    ["an unknown status", { status: "BROKEN" }],
+    ["a missing status", {}],
+    ["an unavailable status without a reason", { status: "UNAVAILABLE" }],
+    ["an unknown reason", { status: "UNAVAILABLE", reason: "ON_FIRE" }],
+    ["a non-string reason", { status: "UNAVAILABLE", reason: 3 }],
+    ["an available status with a reason", { status: "AVAILABLE", reason: "IO" }],
+    ["an extra field", { status: "AVAILABLE", path: "/Users/x/grants.json" }],
+  ])("rejects a malformed status: %s", async (_label, response) => {
+    expect(() => decodeGrantStoreStatus(response)).toThrowError(
+      expect.objectContaining({ code: "INTERNAL" }),
+    );
+    mockIPC(() => response);
+    await expect(getGrantStoreStatus()).rejects.toMatchObject({
+      code: "INTERNAL",
+    });
+  });
+
+  it("resets with an empty input object and decodes the result", async () => {
+    mockIPC((command, payload) => {
+      expect(command).toBe("reset_grant_store");
+      expect(payload).toEqual({ input: {} });
+      return {
+        quarantineFileName: "grants.json.corrupt-20261015T133000Z",
+        previousReason: "CORRUPT",
+      };
+    });
+
+    await expect(resetGrantStore()).resolves.toEqual({
+      quarantineFileName: "grants.json.corrupt-20261015T133000Z",
+      previousReason: "CORRUPT",
+    });
+  });
+
+  it("accepts the numbered name used when the first one is taken", () => {
+    expect(
+      decodeGrantStoreReset({
+        quarantineFileName: "grants.json.corrupt-20261015T133000Z-2",
+        previousReason: "NEWER_VERSION",
+      }),
+    ).toEqual({
+      quarantineFileName: "grants.json.corrupt-20261015T133000Z-2",
+      previousReason: "NEWER_VERSION",
+    });
+  });
+
+  it.each([
+    ["null", null],
+    ["a missing name", { previousReason: "CORRUPT" }],
+    ["a non-string name", { quarantineFileName: 1, previousReason: "CORRUPT" }],
+    [
+      "a path instead of a name",
+      {
+        quarantineFileName: "/Users/x/grants.json.corrupt-1",
+        previousReason: "CORRUPT",
+      },
+    ],
+    [
+      "a traversal",
+      {
+        quarantineFileName: "../grants.json.corrupt-1",
+        previousReason: "CORRUPT",
+      },
+    ],
+    [
+      "a foreign file name",
+      { quarantineFileName: "passwd", previousReason: "CORRUPT" },
+    ],
+    [
+      "a control character",
+      {
+        quarantineFileName: "grants.json.corrupt-1\n",
+        previousReason: "CORRUPT",
+      },
+    ],
+    [
+      "a reset reason that cannot be reset",
+      {
+        quarantineFileName: "grants.json.corrupt-1",
+        previousReason: "NOT_REGULAR_FILE",
+      },
+    ],
+    [
+      "an extra field",
+      {
+        quarantineFileName: "grants.json.corrupt-1",
+        previousReason: "CORRUPT",
+        content: "{}",
+      },
+    ],
+  ])("rejects a malformed reset result: %s", async (_label, response) => {
+    expect(() => decodeGrantStoreReset(response)).toThrowError(
+      expect.objectContaining({ code: "INTERNAL" }),
+    );
+    mockIPC(() => response);
+    await expect(resetGrantStore()).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+
+  it("surfaces a reset refusal with its error code and message", async () => {
+    mockIPC(() => {
+      throw {
+        code: "PARTIAL_FAILURE",
+        message: "set aside as grants.json.corrupt-1, try again",
+        retryable: true,
+      };
+    });
+
+    await expect(resetGrantStore()).rejects.toMatchObject({
+      code: "PARTIAL_FAILURE",
+      message: "set aside as grants.json.corrupt-1, try again",
+    });
   });
 });
