@@ -5,11 +5,19 @@ import {
   isRecord,
 } from "./core";
 import { isGrantId } from "./grants";
+import {
+  decodeResourceWriteExecution,
+  decodeResourceWritePreview,
+  type ResourceWriteExecution,
+  type ResourceWritePreview,
+} from "./resources";
 
 // Environment files are addressed by an authorization id plus a path relative
 // to it; the frontend never sends or receives an absolute path. Secret values
 // are not part of any list payload: they arrive only from the explicit
-// `revealEnvironmentValue` call.
+// `revealEnvironmentValue` call. Saving goes through preview → confirm; new
+// values only travel to the backend, and a preview never carries the text of a
+// secret value.
 
 export const DEFAULT_ENV_PATTERNS: readonly string[] = [
   ".env",
@@ -472,6 +480,217 @@ export function revealEnvironmentValue(
       ...wireSettings(settings),
       line: target.line,
       key: target.key,
+    },
+  });
+}
+
+// ---- saving edits ------------------------------------------------------------
+
+export type EnvKeyEdit =
+  | {
+      readonly op: "ADD";
+      readonly key: string;
+      readonly value: string;
+      readonly exported?: boolean;
+    }
+  | { readonly op: "SET"; readonly key: string; readonly value: string }
+  | { readonly op: "REMOVE"; readonly key: string };
+
+export type EnvChangeKind = "ADD" | "MODIFY" | "REMOVE";
+
+/** One key-level change. Secret entries never carry any value text. */
+export interface EnvChange {
+  readonly key: string;
+  readonly change: EnvChangeKind;
+  readonly secret: boolean;
+  readonly before?: string;
+  readonly after?: string;
+  /** A non-secret value was left out because it is too long to show. */
+  readonly omitted: boolean;
+}
+
+export interface EnvEditPreview extends ResourceWritePreview {
+  readonly changes: readonly EnvChange[];
+  readonly fileKind: EnvFileKind;
+  /** Whether the default scan patterns would list the file's name. */
+  readonly matchesDefaultPatterns: boolean;
+}
+
+const CHANGE_KINDS: readonly string[] = ["ADD", "MODIFY", "REMOVE"];
+export const MAX_EDITS = 64;
+/** Characters, as counted by the backend (`char`), not UTF-16 units. */
+export const MAX_EDIT_VALUE_CHARS = 8192;
+
+function decodeChange(value: unknown): EnvChange {
+  if (!isRecord(value)) return fail();
+  const key =
+    typeof value.key === "string" && KEY_PATTERN.test(value.key)
+      ? value.key
+      : fail();
+  const change = oneOf<EnvChangeKind>(value.change, CHANGE_KINDS);
+  const secret = flag(value.secret);
+  const omitted = flag(value.omitted);
+  const before = optionalText(value.before, MAX_INLINE_CHARS);
+  const after = optionalText(value.after, MAX_INLINE_CHARS);
+  const missing =
+    change === "ADD"
+      ? [after]
+      : change === "REMOVE"
+        ? [before]
+        : [before, after];
+  const unexpected =
+    change === "ADD" ? before : change === "REMOVE" ? after : undefined;
+  if (unexpected !== undefined) return fail();
+  const absent = missing.filter((side) => side === undefined).length;
+  // A secret never arrives with text; a value is only absent for a stated reason.
+  if (secret) {
+    if (absent !== missing.length || omitted) return fail();
+  } else if (omitted !== absent > 0) {
+    return fail();
+  }
+  return {
+    key,
+    change,
+    secret,
+    ...(before === undefined ? {} : { before }),
+    ...(after === undefined ? {} : { after }),
+    omitted,
+  };
+}
+
+export function decodeEnvEditPreview(value: unknown): EnvEditPreview {
+  const write = decodeResourceWritePreview(value);
+  if (!isRecord(value)) return fail();
+  // The raw text diff is always withheld; a response that carries one is not
+  // trusted, because it could hold secret values.
+  if (!write.diff.redacted || write.diff.lines.length > 0) return fail();
+  const changes = list(value.changes, MAX_EDITS).map(decodeChange);
+  if (
+    changes.length === 0 ||
+    new Set(changes.map((change) => change.key)).size !== changes.length
+  ) {
+    return fail();
+  }
+  return {
+    ...write,
+    changes,
+    fileKind: oneOf<EnvFileKind>(value.fileKind, ENV_FILE_KINDS),
+    matchesDefaultPatterns: flag(value.matchesDefaultPatterns),
+  };
+}
+
+/** The reason a set of edits cannot be sent, or `undefined` when it can. */
+export function editsProblem(edits: readonly EnvKeyEdit[]): string | undefined {
+  if (!Array.isArray(edits) || edits.length === 0 || edits.length > MAX_EDITS) {
+    return "一次保存需要 1 到 64 项改动。";
+  }
+  const seen = new Set<string>();
+  for (const edit of edits) {
+    if (typeof edit.key !== "string" || !KEY_PATTERN.test(edit.key)) {
+      return "键名必须匹配 [A-Za-z_][A-Za-z0-9_]*，且不超过 255 个字符。";
+    }
+    if (seen.has(edit.key)) return "同一个键在一次保存里只能改动一次。";
+    seen.add(edit.key);
+    if (edit.op === "REMOVE") {
+      if ("value" in edit) return "删除不带值。";
+    } else if (edit.op === "ADD" || edit.op === "SET") {
+      if (
+        typeof edit.value !== "string" ||
+        [...edit.value].length > MAX_EDIT_VALUE_CHARS
+      ) {
+        return "值必须是不超过 8192 个字符的文本。";
+      }
+    } else {
+      return "不支持的改动类型。";
+    }
+  }
+  return undefined;
+}
+
+function wireEdit(edit: EnvKeyEdit): Record<string, unknown> {
+  switch (edit.op) {
+    case "ADD":
+      return {
+        op: "ADD",
+        key: edit.key,
+        value: edit.value,
+        ...(edit.exported === true ? { exported: true } : {}),
+      };
+    case "SET":
+      return { op: "SET", key: edit.key, value: edit.value };
+    case "REMOVE":
+      return { op: "REMOVE", key: edit.key };
+  }
+}
+
+/**
+ * Previews edits of an existing file. `expectedHash` is the hash of the
+ * content the editor showed; a changed file is refused, never merged.
+ */
+export function previewEnvironmentEdit(
+  grantId: string,
+  path: string,
+  settings: ScanSettings,
+  expectedHash: string,
+  edits: readonly EnvKeyEdit[],
+): Promise<EnvEditPreview> {
+  if (!isGrantId(grantId)) return invalidInput("Authorization id is invalid.");
+  if (!isSafeRelativePath(path)) return invalidInput("File path is invalid.");
+  if (!HASH_PATTERN.test(expectedHash)) {
+    return invalidInput("The content hash is invalid.");
+  }
+  const problem = editsProblem(edits);
+  if (problem !== undefined) return invalidInput(problem);
+  return invokeCommand("preview_environment_edit", decodeEnvEditPreview, {
+    input: {
+      grantId,
+      relativePath: path,
+      ...wireSettings(settings),
+      expectedHash,
+      edits: edits.map(wireEdit),
+    },
+  });
+}
+
+/**
+ * Previews a new file. `grantId` must come from the native save-location
+ * panel (`selectSaveLocationGrant`); the frontend never names a path.
+ */
+export function previewEnvironmentCreate(
+  grantId: string,
+  edits: readonly EnvKeyEdit[],
+): Promise<EnvEditPreview> {
+  if (!isGrantId(grantId)) return invalidInput("Authorization id is invalid.");
+  const problem = editsProblem(edits);
+  if (problem !== undefined) return invalidInput(problem);
+  return invokeCommand("preview_environment_create", decodeEnvEditPreview, {
+    input: { grantId, edits: edits.map(wireEdit) },
+  });
+}
+
+/**
+ * Confirms a previewed edit. A rejection means nothing was changed; a
+ * resolved value means the transaction ran, so read `outcome.status` and
+ * `outcome.fileState` for what the file really contains.
+ */
+export function executeEnvironmentEdit(input: {
+  readonly operationId: string;
+  readonly grantId: string;
+  /** Omit for a new file (a save-location authorization). */
+  readonly relativePath?: string;
+}): Promise<ResourceWriteExecution> {
+  if (typeof input.operationId !== "string" || input.operationId.length === 0) {
+    return invalidInput("Operation id is invalid.");
+  }
+  if (!isGrantId(input.grantId)) return invalidInput("Authorization id is invalid.");
+  if (input.relativePath !== undefined && !isSafeRelativePath(input.relativePath)) {
+    return invalidInput("File path is invalid.");
+  }
+  return invokeCommand("execute_environment_edit", decodeResourceWriteExecution, {
+    input: {
+      operationId: input.operationId,
+      grantId: input.grantId,
+      ...(input.relativePath === undefined ? {} : { relativePath: input.relativePath }),
     },
   });
 }

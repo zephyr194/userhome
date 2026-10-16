@@ -25,6 +25,7 @@ import {
   type EnvironmentState,
   type FileState,
 } from "./environmentModel";
+import { DotenvEditor, type DotenvEditorProps } from "./DotenvEditor";
 import { LazySecretValue } from "./LazySecretValue";
 
 export interface EnvironmentViewProps {
@@ -42,6 +43,19 @@ export interface EnvironmentViewProps {
   onSelectFile: (path: string) => void;
   /** 取回一项的明文；只在用户点击“载入值”后调用。 */
   onLoadValue: (row: Extract<EnvRow, { kind: "ENTRY" }>) => Promise<string>;
+  /** 键编辑器；未提供时页面保持只读。 */
+  editor?: DotenvEditorProps;
+  /** 打开所选文件的键编辑器。 */
+  onEditFile?: () => void;
+  /** 经“选择保存位置”新建环境文件。 */
+  onNewFile?: () => void;
+  /** 保存位置面板正打开着。 */
+  choosingNewFile?: boolean;
+}
+
+/** 编辑器打开时锁定文件选择与扫描，避免丢弃未保存的草稿。 */
+function editorOpen(props: EnvironmentViewProps): boolean {
+  return props.editor !== undefined && props.editor.state.phase !== "closed";
 }
 
 const HEADER_CLASSES =
@@ -67,6 +81,15 @@ export function EnvironmentView(props: EnvironmentViewProps) {
                 指定目录中的 dotenv 文件，只读查看
               </p>
             </div>
+            {props.onNewFile ? (
+              <Button
+                disabled={props.choosingNewFile === true || editorOpen(props)}
+                onClick={props.onNewFile}
+                size="sm"
+              >
+                {props.choosingNewFile ? "等待选择…" : "新建环境文件…"}
+              </Button>
+            ) : null}
           </header>
           <GrantsSection {...props} />
           <SettingsSection {...props} />
@@ -183,12 +206,9 @@ function GrantRow({
 
 // ---- scan settings ---------------------------------------------------------
 
-function SettingsSection({
-  onPatternsChange,
-  onRecursiveChange,
-  onScan,
-  state,
-}: EnvironmentViewProps) {
+function SettingsSection(props: EnvironmentViewProps) {
+  const { onPatternsChange, onRecursiveChange, onScan, state } = props;
+  const locked = editorOpen(props);
   const check = checkSettings(state.patternsText, state.recursive);
   const scanned = state.scan.status === "ready" ? state.scan.settings : undefined;
   const changed = scanned !== undefined && check.ok && !sameSettings(scanned, check.settings);
@@ -214,7 +234,7 @@ function SettingsSection({
       />
       <div className="flex min-w-0 flex-wrap items-center gap-ui-md">
         <Button
-          disabled={noGrant || !check.ok || state.scan.status === "loading"}
+          disabled={noGrant || !check.ok || state.scan.status === "loading" || locked}
           onClick={onScan}
           variant="primary"
         >
@@ -232,7 +252,8 @@ function SettingsSection({
 
 // ---- scan results ------------------------------------------------------------
 
-function ScanResults({ onSelectFile, onScan, state }: EnvironmentViewProps) {
+function ScanResults(props: EnvironmentViewProps) {
+  const { onSelectFile, onScan, state } = props;
   const { scan } = state;
   return (
     <div className="px-ui-xl py-ui-md">
@@ -261,6 +282,7 @@ function ScanResults({ onSelectFile, onScan, state }: EnvironmentViewProps) {
         </AsyncState>
       ) : (
         <ScanReady
+          locked={editorOpen(props)}
           onSelectFile={onSelectFile}
           outcome={scan.outcome}
           selectedPath={state.selectedPath}
@@ -271,10 +293,12 @@ function ScanResults({ onSelectFile, onScan, state }: EnvironmentViewProps) {
 }
 
 function ScanReady({
+  locked,
   onSelectFile,
   outcome,
   selectedPath,
 }: {
+  locked: boolean;
   onSelectFile: (path: string) => void;
   outcome: ScanOutcome;
   selectedPath?: string;
@@ -307,6 +331,7 @@ function ScanReady({
                   "h-auto w-full min-w-0 flex-wrap justify-between gap-ui-sm text-left",
                   file.relativePath === selectedPath && "border-primary",
                 )}
+                disabled={locked}
                 onClick={() => onSelectFile(file.relativePath)}
                 size="sm"
                 title={file.relativePath}
@@ -359,7 +384,10 @@ function ScanReady({
 // ---- file view ---------------------------------------------------------------
 
 function FilePane(props: EnvironmentViewProps) {
-  const { state } = props;
+  const { editor, state } = props;
+  const editing = editor !== undefined && editor.state.phase !== "closed";
+  const loaded =
+    state.file.status === "loaded" && state.file.outcome.status === "READY";
   return (
     <section
       aria-labelledby="environment-file-heading"
@@ -368,15 +396,28 @@ function FilePane(props: EnvironmentViewProps) {
       <header className={HEADER_CLASSES}>
         <div className="min-w-0">
           <h2 className="text-sm font-semibold" id="environment-file-heading">
-            文件内容（只读）
+            {editing ? "编辑环境文件" : "文件内容（只读）"}
           </h2>
           <p className="mt-ui-xs break-all text-xs text-muted-foreground">
-            {state.selectedPath ?? "未选择文件"}
+            {editing
+              ? editor.state.target?.kind === "new"
+                ? editor.state.target.displayPath
+                : (editor.state.target?.path ?? "未选择文件")
+              : (state.selectedPath ?? "未选择文件")}
           </p>
         </div>
+        {!editing && props.onEditFile && loaded ? (
+          <Button onClick={props.onEditFile} size="sm" variant="primary">
+            编辑…
+          </Button>
+        ) : null}
       </header>
       <div className="px-ui-xl py-ui-md">
-        <FileBody {...props} file={state.file} />
+        {editing ? (
+          <DotenvEditor {...editor} />
+        ) : (
+          <FileBody {...props} file={state.file} />
+        )}
       </div>
     </section>
   );

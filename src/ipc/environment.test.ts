@@ -2,13 +2,19 @@ import { afterEach, describe, expect, it } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
   DEFAULT_ENV_PATTERNS,
+  decodeEnvEditPreview,
   decodeEnvFileOutcome,
   decodeRevealedValue,
   decodeScanOutcome,
+  editsProblem,
+  executeEnvironmentEdit,
   isSafeRelativePath,
+  previewEnvironmentCreate,
+  previewEnvironmentEdit,
   readEnvironmentFile,
   revealEnvironmentValue,
   scanEnvironmentFiles,
+  type EnvKeyEdit,
 } from "./environment";
 
 const GRANT_ID = "3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b";
@@ -322,6 +328,294 @@ describe("environment payload decoding", () => {
       throw new Error("expected a failure");
     } catch (error) {
       expect(JSON.stringify(error)).not.toContain("hunter2");
+    }
+  });
+});
+
+// ---- saving edits ------------------------------------------------------------
+
+const HASH = "b".repeat(64);
+const SECRET_TEXT = "hunter2-very-secret";
+
+function wireChange(overrides: Record<string, unknown> = {}) {
+  return {
+    key: "PORT",
+    change: "MODIFY",
+    secret: false,
+    before: "80",
+    after: "8080",
+    omitted: false,
+    ...overrides,
+  };
+}
+
+function wirePreview(overrides: Record<string, unknown> = {}) {
+  return {
+    operationId: "op-1",
+    summary: "Replace ~/proj/.env.",
+    effects: ["Target: ~/proj/.env"],
+    requiresElevation: false,
+    expiresAt: "2026-10-16T10:05:00Z",
+    kind: "REPLACE",
+    recoveryPoint: "BACKUP",
+    target: "~/proj/.env",
+    currentHash: HASH,
+    proposedHash: "c".repeat(64),
+    diff: { lines: [], redacted: true, truncated: false },
+    changes: [wireChange()],
+    fileKind: "ENVIRONMENT",
+    matchesDefaultPatterns: true,
+    ...overrides,
+  };
+}
+
+const EDITS: EnvKeyEdit[] = [
+  { op: "SET", key: "PORT", value: "8080" },
+  { op: "ADD", key: "REGION", value: "eu", exported: true },
+  { op: "REMOVE", key: "OLD" },
+];
+
+describe("environment save IPC", () => {
+  it("previews edits of a file with references and the hash it showed", async () => {
+    mockIPC((command, payload) => {
+      expect(command).toBe("preview_environment_edit");
+      expect(payload).toEqual({
+        input: {
+          grantId: GRANT_ID,
+          relativePath: "sub/.env",
+          patterns: [".env", ".env.*", "*.env"],
+          recursive: true,
+          expectedHash: HASH,
+          edits: [
+            { op: "SET", key: "PORT", value: "8080" },
+            { op: "ADD", key: "REGION", value: "eu", exported: true },
+            { op: "REMOVE", key: "OLD" },
+          ],
+        },
+      });
+      return wirePreview();
+    });
+
+    const preview = await previewEnvironmentEdit(
+      GRANT_ID,
+      "sub/.env",
+      { ...SETTINGS, recursive: true },
+      HASH,
+      EDITS,
+    );
+
+    expect(preview.operationId).toBe("op-1");
+    expect(preview.kind).toBe("REPLACE");
+    expect(preview.changes[0]).toEqual(wireChange());
+    expect(preview.fileKind).toBe("ENVIRONMENT");
+  });
+
+  it("previews a new file through its save-location authorization only", async () => {
+    mockIPC((command, payload) => {
+      expect(command).toBe("preview_environment_create");
+      expect(payload).toEqual({
+        input: { grantId: GRANT_ID, edits: [{ op: "ADD", key: "A", value: "1" }] },
+      });
+      return wirePreview({
+        kind: "CREATE",
+        recoveryPoint: "NONE_CREATED",
+        currentHash: undefined,
+        changes: [wireChange({ key: "A", change: "ADD", before: undefined, after: "1" })],
+      });
+    });
+
+    const preview = await previewEnvironmentCreate(GRANT_ID, [
+      { op: "ADD", key: "A", value: "1" },
+    ]);
+
+    expect(preview.kind).toBe("CREATE");
+    expect(preview.recoveryPoint).toBe("NONE_CREATED");
+  });
+
+  it("confirms with ids only and decodes the transaction outcome", async () => {
+    mockIPC((command, payload) => {
+      expect(command).toBe("execute_environment_edit");
+      expect(payload).toEqual({
+        input: { operationId: "op-1", grantId: GRANT_ID, relativePath: ".env" },
+      });
+      return {
+        operationId: "op-1",
+        summary: "Replace ~/proj/.env.",
+        effects: [],
+        requiresElevation: false,
+        expiresAt: "2026-10-16T10:05:00Z",
+        status: "SUCCEEDED",
+        events: [],
+        outcome: {
+          kind: "REPLACE",
+          status: "SUCCEEDED",
+          fileState: "WRITTEN",
+          recoveryPoint: "BACKUP",
+          backupId: "b-1",
+          summary: "The file was written and verified.",
+        },
+      };
+    });
+
+    const execution = await executeEnvironmentEdit({
+      operationId: "op-1",
+      grantId: GRANT_ID,
+      relativePath: ".env",
+    });
+
+    expect(execution.outcome.fileState).toBe("WRITTEN");
+    expect(execution.outcome.backupId).toBe("b-1");
+  });
+
+  it("omits the path when confirming a new file", async () => {
+    let sent: unknown;
+    mockIPC((_command, payload) => {
+      sent = payload;
+      return { status: "not an execution" };
+    });
+    await executeEnvironmentEdit({ operationId: "op-1", grantId: GRANT_ID }).catch(
+      () => undefined,
+    );
+    expect(sent).toEqual({ input: { operationId: "op-1", grantId: GRANT_ID } });
+  });
+
+  it("rejects bad input before any IPC call", async () => {
+    let calls = 0;
+    mockIPC(() => {
+      calls += 1;
+      return {};
+    });
+    const rejected = (promise: Promise<unknown>) =>
+      expect(promise).rejects.toMatchObject({ code: "INVALID_INPUT" });
+
+    await rejected(previewEnvironmentEdit("not-an-id", ".env", SETTINGS, HASH, EDITS));
+    await rejected(previewEnvironmentEdit(GRANT_ID, "/etc/.env", SETTINGS, HASH, EDITS));
+    await rejected(previewEnvironmentEdit(GRANT_ID, "../.env", SETTINGS, HASH, EDITS));
+    await rejected(previewEnvironmentEdit(GRANT_ID, ".env", SETTINGS, "xyz", EDITS));
+    await rejected(previewEnvironmentEdit(GRANT_ID, ".env", SETTINGS, HASH, []));
+    await rejected(previewEnvironmentCreate("x", EDITS));
+    await rejected(
+      previewEnvironmentCreate(GRANT_ID, [{ op: "ADD", key: "BAD KEY", value: "1" }]),
+    );
+    await rejected(executeEnvironmentEdit({ operationId: "", grantId: GRANT_ID }));
+    await rejected(executeEnvironmentEdit({ operationId: "op", grantId: "x" }));
+    await rejected(
+      executeEnvironmentEdit({ operationId: "op", grantId: GRANT_ID, relativePath: "/abs" }),
+    );
+    expect(calls).toBe(0);
+  });
+
+  it.each([
+    ["no edits", [] as EnvKeyEdit[]],
+    ["too many edits", Array.from({ length: 65 }, (_, index) => ({ op: "REMOVE", key: `K${index}` }) as EnvKeyEdit)],
+    ["an invalid key", [{ op: "SET", key: "1A", value: "x" }] as EnvKeyEdit[]],
+    ["a repeated key", [{ op: "SET", key: "A", value: "1" }, { op: "REMOVE", key: "A" }] as EnvKeyEdit[]],
+    ["an over-long value", [{ op: "SET", key: "A", value: "x".repeat(8193) }] as EnvKeyEdit[]],
+    ["a removal that carries a value", [{ op: "REMOVE", key: "A", value: "x" }] as unknown as EnvKeyEdit[]],
+    ["an unknown operation", [{ op: "TRUNCATE", key: "A" }] as unknown as EnvKeyEdit[]],
+    ["a non-string value", [{ op: "SET", key: "A", value: 1 }] as unknown as EnvKeyEdit[]],
+  ])("refuses to send %s", (_label, edits) => {
+    expect(editsProblem(edits)).toEqual(expect.any(String));
+  });
+
+  it("counts the value limit in characters like the backend", () => {
+    const emoji = "😀".repeat(8192);
+    expect(editsProblem([{ op: "SET", key: "A", value: emoji }])).toBeUndefined();
+    expect(editsProblem([{ op: "SET", key: "A", value: `${emoji}x` }])).toEqual(
+      expect.any(String),
+    );
+  });
+
+  it("never echoes a value in a rejection", async () => {
+    mockIPC(() => {
+      throw { code: "VALIDATION_FAILED", message: "refused", retryable: false };
+    });
+    await previewEnvironmentCreate(GRANT_ID, [
+      { op: "ADD", key: "API_TOKEN", value: SECRET_TEXT },
+    ]).catch((error) => {
+      expect(JSON.stringify(error)).not.toContain(SECRET_TEXT);
+    });
+  });
+});
+
+describe("environment preview decoding", () => {
+  it("accepts a masked secret change and a shown non-secret change", () => {
+    const preview = decodeEnvEditPreview(
+      wirePreview({
+        changes: [
+          wireChange({ key: "API_TOKEN", secret: true, before: undefined, after: undefined }),
+          wireChange({ key: "A", change: "ADD", before: undefined, after: "" }),
+          wireChange({ key: "B", change: "REMOVE", before: "x", after: undefined }),
+          wireChange({ key: "LONG", before: undefined, after: undefined, omitted: true }),
+        ],
+      }),
+    );
+    expect(preview.changes.map((change) => change.secret)).toEqual([
+      true,
+      false,
+      false,
+      false,
+    ]);
+    expect(preview.changes[0]).not.toHaveProperty("after");
+    expect(preview.changes[1].after).toBe("");
+  });
+
+  it.each([
+    ["a secret change carrying its new value", wireChange({ key: "API_TOKEN", secret: true, after: SECRET_TEXT })],
+    ["a secret change carrying its old value", wireChange({ key: "API_TOKEN", secret: true, before: SECRET_TEXT, after: undefined })],
+    ["a secret change flagged omitted", wireChange({ key: "API_TOKEN", secret: true, before: undefined, after: undefined, omitted: true })],
+    ["an addition with an old value", wireChange({ change: "ADD", before: "x" })],
+    ["a removal with a new value", wireChange({ change: "REMOVE", after: "x" })],
+    ["a missing value that is not explained", wireChange({ after: undefined })],
+    ["an omitted flag with nothing missing", wireChange({ omitted: true })],
+    ["an unknown change kind", wireChange({ change: "RENAME" })],
+    ["an invalid key", wireChange({ key: "A B" })],
+    ["a non-boolean secret flag", wireChange({ secret: "yes" })],
+    ["a non-string value", wireChange({ after: 5 })],
+    ["a change that is not an object", "PORT"],
+  ])("rejects %s", (_label, change) => {
+    expect(() =>
+      decodeEnvEditPreview(wirePreview({ changes: [change] })),
+    ).toThrowError(expect.objectContaining({ code: "INTERNAL" }));
+  });
+
+  it.each([
+    ["a raw text diff", { diff: { lines: [{ kind: "ADDED", text: `API_TOKEN=${SECRET_TEXT}` }], redacted: false, truncated: false } }],
+    ["a diff that is not marked redacted", { diff: { lines: [], redacted: false, truncated: false } }],
+    ["no changes", { changes: [] }],
+    ["the same key twice", { changes: [wireChange(), wireChange()] }],
+    ["more changes than the contract allows", { changes: Array.from({ length: 65 }, (_, index) => wireChange({ key: `K${index}` })) }],
+    ["an unknown file kind", { fileKind: "SCRIPT" }],
+    ["a non-boolean pattern flag", { matchesDefaultPatterns: "yes" }],
+    ["a missing change list", { changes: undefined }],
+    ["a create that has a recovery point", { kind: "CREATE", recoveryPoint: "BACKUP" }],
+    ["a replace without a current hash", { currentHash: undefined }],
+    ["an unknown write kind", { kind: "DELETE" }],
+    ["a bad proposed hash", { proposedHash: "nope" }],
+  ])("rejects a preview with %s", (_label, patch) => {
+    expect(() => decodeEnvEditPreview(wirePreview(patch))).toThrowError(
+      expect.objectContaining({ code: "INTERNAL" }),
+    );
+  });
+
+  it("rejects payloads that are not preview objects", () => {
+    for (const value of [null, "preview", 3, [], {}]) {
+      expect(() => decodeEnvEditPreview(value)).toThrowError(
+        expect.objectContaining({ code: "INTERNAL" }),
+      );
+    }
+  });
+
+  it("does not echo payload content in decode errors", () => {
+    try {
+      decodeEnvEditPreview(
+        wirePreview({
+          changes: [wireChange({ key: "API_TOKEN", secret: true, after: SECRET_TEXT })],
+        }),
+      );
+      throw new Error("expected a failure");
+    } catch (error) {
+      expect(JSON.stringify(error)).not.toContain(SECRET_TEXT);
     }
   });
 });

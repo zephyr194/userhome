@@ -10,21 +10,24 @@ import {
   listGrants,
   revokeGrant,
   selectDirectoryGrant,
+  selectSaveLocationGrant,
 } from "../../ipc/grants";
+import type { EditorTarget } from "./dotenvEditorModel";
 import { EnvironmentView, type EnvironmentViewProps } from "./EnvironmentView";
 import {
   INITIAL_ENVIRONMENT_STATE,
   checkSettings,
   environmentReducer,
 } from "./environmentModel";
+import { useDotenvEditor } from "./useDotenvEditor";
 
 type GrantNotice = EnvironmentViewProps["grantNotice"];
 
 /**
- * Wires the read-only environment view to the backend. Nothing is stored in
- * the browser: authorizations, scan results and revealed values only live in
- * component state, and every response is matched to the request that asked
- * for it.
+ * Wires the environment view and the key editor to the backend. Nothing is
+ * stored in the browser: authorizations, scan results, revealed values and
+ * editor drafts only live in component state, and every response is matched
+ * to the request that asked for it.
  */
 export function EnvironmentPage() {
   const [state, dispatch] = useReducer(
@@ -32,6 +35,7 @@ export function EnvironmentPage() {
     INITIAL_ENVIRONMENT_STATE,
   );
   const [addingGrant, setAddingGrant] = useState(false);
+  const [choosingNewFile, setChoosingNewFile] = useState(false);
   const [grantNotice, setGrantNotice] = useState<GrantNotice>();
   const requestCounter = useRef(0);
   const stateRef = useRef(state);
@@ -119,6 +123,56 @@ export function EnvironmentPage() {
     );
   }, []);
 
+  // After a transaction ran, show what the file now contains.
+  const reloadAfterSave = useCallback(
+    (target: EditorTarget) => {
+      if (target.kind === "existing") selectFile(target.path);
+    },
+    [selectFile],
+  );
+  const editor = useDotenvEditor(reloadAfterSave);
+
+  const editFile = useCallback(() => {
+    const current = stateRef.current;
+    if (
+      !current.selectedGrantId ||
+      current.scan.status !== "ready" ||
+      current.file.status !== "loaded" ||
+      current.file.outcome.status !== "READY"
+    ) {
+      return;
+    }
+    editor.controller.openExisting({
+      grantId: current.selectedGrantId,
+      path: current.file.path,
+      settings: current.scan.settings,
+      file: current.file.outcome.file,
+    });
+  }, [editor.controller]);
+
+  // The native save panel names the target and the file name; the backend turns
+  // that into a one-file authorization. Nothing is created until a preview is
+  // confirmed.
+  const newFile = useCallback(async () => {
+    setChoosingNewFile(true);
+    setGrantNotice(undefined);
+    try {
+      const result = await selectSaveLocationGrant();
+      if (result.status === "CANCELLED") {
+        setGrantNotice({ tone: "info", text: "已取消，没有创建文件。" });
+      } else {
+        editor.controller.openNew({
+          grantId: result.grant.id,
+          displayPath: result.grant.displayPath,
+        });
+      }
+    } catch (error) {
+      setGrantNotice({ tone: "error", text: decodeAppError(error).message });
+    } finally {
+      setChoosingNewFile(false);
+    }
+  }, [editor.controller]);
+
   // The plaintext goes straight to the caller (LazySecretValue) and is never
   // kept in page state.
   const loadValue = useCallback(
@@ -148,7 +202,15 @@ export function EnvironmentPage() {
   return (
     <EnvironmentView
       addingGrant={addingGrant}
+      choosingNewFile={choosingNewFile}
+      editor={{
+        actions: editor.controller,
+        check: editor.check,
+        state: editor.state,
+      }}
       grantNotice={grantNotice}
+      onEditFile={editFile}
+      onNewFile={() => void newFile()}
       onAddGrant={() => void addGrant()}
       onLoadValue={loadValue}
       onPatternsChange={(text) => dispatch({ type: "patternsChanged", text })}
