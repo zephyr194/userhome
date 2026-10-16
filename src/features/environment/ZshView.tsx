@@ -40,6 +40,11 @@ export interface ZshViewProps {
   onClearDirectory: () => void;
   /** 取回一项的明文；只在用户点击“载入值”后调用。 */
   onLoadValue: (file: ZshFileKey, row: ZshEntryRow) => Promise<string>;
+  /**
+   * 打开某个文件的专用块编辑器。不传时视图完全只读、没有任何编辑入口；传入后
+   * 只有位置已确定、且已读取或不存在的文件会出现入口（越界、未确定位置的没有）。
+   */
+  onEditFile?: (file: ZshFileKey) => void;
 }
 
 const HEADER_CLASSES =
@@ -50,7 +55,8 @@ const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
 /**
  * 只读视图：四个 zsh 启动文件的适用 shell 类型、读取顺序、ZDOTDIR 判断和静态
  * 识别出的条目。按原文显示，不展开变量、不执行命令，也不判断哪个文件里的同名
- * 项最终生效。没有任何编辑入口。
+ * 项最终生效。默认没有任何编辑入口；只有页面传入 onEditFile 时，位置已确定的文件
+ * 才出现“编辑专用块”入口（编辑器本身不在这个视图里）。
  */
 export function ZshView(props: ZshViewProps) {
   const { state } = props;
@@ -159,6 +165,7 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
           <FileCard
             file={file}
             key={file.file}
+            onEditFile={props.onEditFile}
             onLoadValue={props.onLoadValue}
           />
         ))}
@@ -282,9 +289,11 @@ function ZdotdirPanel({
 
 function FileCard({
   file,
+  onEditFile,
   onLoadValue,
 }: {
   file: ZshFile;
+  onEditFile?: ZshViewProps["onEditFile"];
   onLoadValue: ZshViewProps["onLoadValue"];
 }) {
   const applies = appliesToText(file.appliesTo);
@@ -308,10 +317,25 @@ function FileCard({
         <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
           <StatusBadge title={applies.detail}>{applies.label}</StatusBadge>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+          {onEditFile && canEdit(outcome) ? (
+            <Button
+              aria-label={`编辑 ${file.name} 的 UserHome 专用块`}
+              onClick={() => onEditFile(file.file)}
+              size="sm"
+              variant={file.file === "ZSHRC" ? "primary" : "secondary"}
+            >
+              编辑专用块…
+            </Button>
+          ) : null}
         </div>
       </header>
       <div className="px-ui-xl py-ui-md">
         <p className={NOTE_CLASSES}>{applies.detail}</p>
+        {onEditFile && canEdit(outcome) && file.file !== "ZSHRC" ? (
+          <p className={classNames("mt-ui-xs", NOTE_CLASSES)}>
+            默认只在 .zshrc 里编辑；这个文件需要你逐次选择，编辑前会显示它的影响范围。
+          </p>
+        ) : null}
         {outcome.status === "READY" ? (
           <ReadyFile file={file} onLoadValue={onLoadValue} outcome={outcome} />
         ) : (
@@ -319,6 +343,14 @@ function FileCard({
         )}
       </div>
     </section>
+  );
+}
+
+/** Only a located file that was read, or that does not exist yet, can be edited. */
+function canEdit(outcome: ZshFile["outcome"]): boolean {
+  return (
+    outcome.status === "READY" ||
+    (outcome.status === "UNAVAILABLE" && outcome.reason === "NOT_FOUND")
   );
 }
 

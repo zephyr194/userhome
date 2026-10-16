@@ -1179,3 +1179,667 @@ export function revealZshValue(
     },
   });
 }
+
+// ---- zsh managed block (editing) ----------------------------------------------
+//
+// The four startup files stay built-in sources: no call here carries a path or
+// an authorization id for the file. "Enable editing" makes the backend build
+// the authorization from the fixed file name and the canonical home folder;
+// preview and confirm name the file (and the optional ZDOTDIR directory the
+// user chose) and nothing else. New values only travel to the backend; a
+// preview and a state never carry the text of a secret value, and the raw text
+// diff of the whole file is always withheld (the preview shows the managed
+// lines only, masked).
+
+export type ZshProblemKind =
+  | "MISSING_END"
+  | "MISSING_BEGIN"
+  | "WRONG_ORDER"
+  | "NESTED"
+  | "DUPLICATE"
+  | "UNMANAGED";
+
+export interface ZshEditVariable {
+  readonly name: string;
+  readonly line: number;
+  readonly secret: boolean;
+  readonly hasValue: boolean;
+  readonly valueLength: number;
+  /** Absent for secrets and for very long values. */
+  readonly value?: string;
+}
+
+export type ZshEditBlock =
+  | { readonly status: "ABSENT" }
+  | {
+      readonly status: "PRESENT";
+      readonly beginLine: number;
+      readonly endLine: number;
+      readonly variables: readonly ZshEditVariable[];
+      /** Normalized items in written order (`$HOME/bin` stands for `~/bin`). */
+      readonly path: readonly string[];
+    }
+  | {
+      readonly status: "BROKEN";
+      readonly kind: ZshProblemKind;
+      readonly line: number;
+      readonly message: string;
+    };
+
+export interface ZshOutsideVariable {
+  readonly name: string;
+  readonly line: number;
+  /** Before the managed block (the block wins) or after it (this one wins). */
+  readonly beforeBlock: boolean;
+  readonly state: ZshValueState;
+  readonly secret: boolean;
+}
+
+export interface ZshOutsidePath {
+  readonly line: number;
+  readonly beforeBlock: boolean;
+  readonly operation: ZshOperation;
+  readonly state: ZshValueState;
+  readonly reason?: ZshDynamicReason;
+  /** As the read-only parser sees them: never expanded, never rewritten. */
+  readonly segments: readonly ZshPathSegment[];
+}
+
+export interface ZshOutsideDynamicLine {
+  readonly line: number;
+  readonly beforeBlock: boolean;
+  readonly reason?: ZshDynamicReason;
+  readonly text?: string;
+  readonly withheld: boolean;
+}
+
+export interface ZshEditOutside {
+  readonly variables: readonly ZshOutsideVariable[];
+  readonly path: readonly ZshOutsidePath[];
+  readonly dynamicPathLines: readonly ZshOutsideDynamicLine[];
+  readonly truncated: boolean;
+}
+
+export interface ZshEditState {
+  readonly file: ZshFileKey;
+  readonly name: string;
+  readonly appliesTo: ZshAppliesTo;
+  readonly position: number;
+  /** `~/.zshrc`-style path for display. */
+  readonly displayPath: string;
+  /** The absolute path of the file, as the backend located it. */
+  readonly fullPath: string;
+  readonly exists: boolean;
+  /** Absent exactly when the file does not exist. */
+  readonly contentHash?: string;
+  /** Editing was enabled for this file (an authorization exists). */
+  readonly enabled: boolean;
+  /** The authorization, so it can be revoked with `revokeGrant`. */
+  readonly grantId?: string;
+  readonly block: ZshEditBlock;
+  readonly outside: ZshEditOutside;
+}
+
+export type ZshEditOutcome =
+  | ({ readonly status: "READY" } & ZshEditState)
+  | {
+      readonly status: "UNAVAILABLE";
+      readonly reason: FailureKind;
+      readonly message: string;
+    }
+  | { readonly status: "OUTSIDE_HOME"; readonly message: string }
+  | { readonly status: "NOT_LOCATED"; readonly message: string };
+
+export interface ZshEditEnabled {
+  readonly file: ZshFileKey;
+  readonly displayPath: string;
+  readonly fullPath: string;
+  readonly exists: boolean;
+  readonly grantId: string;
+}
+
+export interface ZshEditTarget {
+  readonly file: ZshFileKey;
+  /** The directory authorization the user chose for an undetermined `ZDOTDIR`. */
+  readonly zdotdirGrantId?: string;
+}
+
+export type ZshVariableEdit =
+  | { readonly op: "SET"; readonly name: string; readonly value: string }
+  | { readonly op: "REMOVE"; readonly name: string };
+
+export interface ZshBlockEdit {
+  readonly variables: readonly ZshVariableEdit[];
+  /** The complete managed PATH list; absent leaves PATH as it is. */
+  readonly path?: readonly string[];
+}
+
+export interface ZshVariableChange {
+  readonly name: string;
+  readonly change: EnvChangeKind;
+  readonly secret: boolean;
+  readonly before?: string;
+  readonly after?: string;
+  /** A non-secret value was left out because it is too long to show. */
+  readonly omitted: boolean;
+}
+
+export interface ZshPathChange {
+  readonly before: readonly string[];
+  readonly after: readonly string[];
+}
+
+export interface ZshBlockDiffLine {
+  readonly kind: "ADDED" | "REMOVED";
+  /** Managed lines only; secret values are already masked. */
+  readonly text: string;
+}
+
+export type ZshEditWarning =
+  | { readonly kind: "OVERRIDES_EARLIER_ASSIGNMENT"; readonly name: string; readonly line: number }
+  | { readonly kind: "OVERRIDDEN_BY_LATER_ASSIGNMENT"; readonly name: string; readonly line: number }
+  | { readonly kind: "DUPLICATE_PATH_ITEM"; readonly item: string }
+  | { readonly kind: "PATH_ITEM_ALSO_OUTSIDE"; readonly item: string; readonly line: number }
+  | { readonly kind: "DYNAMIC_PATH_OUTSIDE"; readonly line: number }
+  | { readonly kind: "LATER_PATH_ASSIGNMENT"; readonly line: number }
+  | { readonly kind: "BLOCK_APPENDED" }
+  | { readonly kind: "FILE_CREATED" };
+
+export interface ZshEditPreview extends ResourceWritePreview {
+  readonly file: ZshFileKey;
+  readonly appliesTo: ZshAppliesTo;
+  readonly position: number;
+  readonly displayPath: string;
+  /** The complete path that will be written (where a symbolic link leads). */
+  readonly fullPath: string;
+  readonly createdBlock: boolean;
+  readonly variableChanges: readonly ZshVariableChange[];
+  readonly pathChange?: ZshPathChange;
+  readonly blockDiff: readonly ZshBlockDiffLine[];
+  readonly warnings: readonly ZshEditWarning[];
+  readonly effectNote: string;
+}
+
+export interface ZshEditExecution extends ResourceWriteExecution {
+  readonly file: ZshFileKey;
+  readonly effectNote: string;
+}
+
+export const MAX_ZSH_VARIABLES = 128;
+export const MAX_ZSH_PATH_ITEMS = 64;
+const MAX_ZSH_OUTSIDE_ROWS = 500;
+const MAX_ZSH_DIFF_LINES = 300;
+const MAX_ZSH_WARNINGS = 1000;
+const MAX_ZSH_DIFF_TEXT = 40000;
+const ZSH_PROBLEM_KINDS: readonly string[] = [
+  "MISSING_END",
+  "MISSING_BEGIN",
+  "WRONG_ORDER",
+  "NESTED",
+  "DUPLICATE",
+  "UNMANAGED",
+];
+/** A stored PATH item: an absolute literal path or one starting with `$HOME`. */
+const ZSH_PATH_ITEM_PATTERN = /^(\/|\$HOME(\/|$))/;
+const ZSH_RESERVED_NAMES: readonly string[] = ["PATH", "path"];
+
+function absolutePath(value: unknown): string {
+  const text = boundedText(value, MAX_PATH_LENGTH);
+  return text.startsWith("/") ? text : fail();
+}
+
+function displayPathText(value: unknown): string {
+  const text = boundedText(value, MAX_PATH_LENGTH);
+  return text.startsWith("~") || text.startsWith("/") ? text : fail();
+}
+
+function zshName(value: unknown): string {
+  return typeof value === "string" && KEY_PATTERN.test(value) ? value : fail();
+}
+
+function decodeZshEditVariable(value: unknown): ZshEditVariable {
+  if (!isRecord(value)) return fail();
+  const line = count(value.line);
+  const secret = flag(value.secret);
+  const hasValue = flag(value.hasValue);
+  const valueLength = count(value.valueLength);
+  const text = optionalText(nullable(value.value), MAX_INLINE_CHARS);
+  if (
+    line < 1 ||
+    hasValue !== valueLength > 0 ||
+    (secret && text !== undefined) ||
+    // `valueLength` counts characters, `String.length` UTF-16 units.
+    (text !== undefined && [...text].length !== valueLength)
+  ) {
+    return fail();
+  }
+  return {
+    name: zshName(value.name),
+    line,
+    secret,
+    hasValue,
+    valueLength,
+    ...(text === undefined ? {} : { value: text }),
+  };
+}
+
+function decodeZshEditBlock(value: unknown): ZshEditBlock {
+  if (!isRecord(value)) return fail();
+  switch (value.status) {
+    case "ABSENT":
+      return { status: "ABSENT" };
+    case "PRESENT": {
+      const beginLine = count(value.beginLine);
+      const endLine = count(value.endLine);
+      const variables = list(value.variables, MAX_ZSH_VARIABLES).map(
+        decodeZshEditVariable,
+      );
+      const path = list(value.path, MAX_ZSH_PATH_ITEMS).map((item) => {
+        const text = boundedText(item, MAX_PATH_LENGTH);
+        return ZSH_PATH_ITEM_PATTERN.test(text) ? text : fail();
+      });
+      const names = variables.map((variable) => variable.name);
+      if (
+        beginLine < 1 ||
+        endLine <= beginLine ||
+        new Set(names).size !== names.length ||
+        names.some((name) => ZSH_RESERVED_NAMES.includes(name)) ||
+        variables.some(
+          (variable) => variable.line <= beginLine || variable.line >= endLine,
+        )
+      ) {
+        return fail();
+      }
+      return { status: "PRESENT", beginLine, endLine, variables, path };
+    }
+    case "BROKEN": {
+      const line = count(value.line);
+      if (line < 1) return fail();
+      return {
+        status: "BROKEN",
+        kind: oneOf<ZshProblemKind>(value.kind, ZSH_PROBLEM_KINDS),
+        line,
+        message: boundedText(value.message, MAX_MESSAGE_LENGTH),
+      };
+    }
+    default:
+      return fail();
+  }
+}
+
+function decodeZshOutside(value: unknown): ZshEditOutside {
+  if (!isRecord(value)) return fail();
+  const variables = list(value.variables, MAX_ZSH_OUTSIDE_ROWS).map((item) => {
+    if (!isRecord(item)) return fail();
+    const line = count(item.line);
+    if (line < 1) return fail();
+    return {
+      name: zshName(item.name),
+      line,
+      beforeBlock: flag(item.beforeBlock),
+      state: oneOf<ZshValueState>(item.state, ZSH_VALUE_STATES),
+      secret: flag(item.secret),
+    };
+  });
+  const path = list(value.path, MAX_ZSH_OUTSIDE_ROWS).map((item): ZshOutsidePath => {
+    if (!isRecord(item)) return fail();
+    const line = count(item.line);
+    const state = oneOf<ZshValueState>(item.state, ZSH_VALUE_STATES);
+    const rawReason = nullable(item.reason);
+    // A dynamic PATH always says why; anything else never does.
+    if (line < 1 || (state === "DYNAMIC") !== (rawReason !== undefined)) return fail();
+    return {
+      line,
+      beforeBlock: flag(item.beforeBlock),
+      operation: oneOf<ZshOperation>(item.operation, ZSH_OPERATIONS),
+      state,
+      ...(rawReason === undefined
+        ? {}
+        : { reason: oneOf<ZshDynamicReason>(rawReason, ZSH_REASONS) }),
+      segments: list(item.segments, MAX_ZSH_SEGMENTS).map(decodeZshSegment),
+    };
+  });
+  const dynamicPathLines = list(value.dynamicPathLines, MAX_ZSH_OUTSIDE_ROWS).map(
+    (item): ZshOutsideDynamicLine => {
+      if (!isRecord(item)) return fail();
+      const line = count(item.line);
+      const text = optionalText(nullable(item.text), MAX_INLINE_CHARS);
+      const withheld = flag(item.withheld);
+      const rawReason = nullable(item.reason);
+      if (line < 1 || withheld !== (text === undefined)) return fail();
+      return {
+        line,
+        beforeBlock: flag(item.beforeBlock),
+        ...(rawReason === undefined
+          ? {}
+          : { reason: oneOf<ZshDynamicReason>(rawReason, ZSH_REASONS) }),
+        ...(text === undefined ? {} : { text }),
+        withheld,
+      };
+    },
+  );
+  return { variables, path, dynamicPathLines, truncated: flag(value.truncated) };
+}
+
+function decodeZshEditStateFields(value: Record<string, unknown>): ZshEditState {
+  const file = oneOf<ZshFileKey>(value.file, ZSH_FILE_KEYS);
+  const exists = flag(value.exists);
+  const rawHash = nullable(value.contentHash);
+  const contentHash =
+    rawHash === undefined
+      ? undefined
+      : typeof rawHash === "string" && HASH_PATTERN.test(rawHash)
+        ? rawHash
+        : fail();
+  const enabled = flag(value.enabled);
+  const rawGrant = nullable(value.grantId);
+  const grantId =
+    rawGrant === undefined
+      ? undefined
+      : typeof rawGrant === "string" && isGrantId(rawGrant)
+        ? rawGrant
+        : fail();
+  // A file has a content hash exactly when it exists, and editing is enabled
+  // exactly when there is an authorization to revoke.
+  if (exists !== (contentHash !== undefined) || enabled !== (grantId !== undefined)) {
+    return fail();
+  }
+  return {
+    file,
+    name: value.name === ZSH_FILE_NAMES[file] ? ZSH_FILE_NAMES[file] : fail(),
+    appliesTo: oneOf<ZshAppliesTo>(value.appliesTo, ZSH_APPLIES_TO),
+    position: count(value.position),
+    displayPath: displayPathText(value.displayPath),
+    fullPath: absolutePath(value.fullPath),
+    exists,
+    ...(contentHash === undefined ? {} : { contentHash }),
+    enabled,
+    ...(grantId === undefined ? {} : { grantId }),
+    block: decodeZshEditBlock(value.block),
+    outside: decodeZshOutside(value.outside),
+  };
+}
+
+export function decodeZshEditOutcome(value: unknown): ZshEditOutcome {
+  if (!isRecord(value)) return fail();
+  switch (value.status) {
+    case "READY":
+      return { status: "READY", ...decodeZshEditStateFields(value) };
+    case "UNAVAILABLE":
+      return {
+        status: "UNAVAILABLE",
+        reason: oneOf<FailureKind>(value.reason, FAILURE_KINDS),
+        message: boundedText(value.message, MAX_MESSAGE_LENGTH),
+      };
+    case "OUTSIDE_HOME":
+    case "NOT_LOCATED":
+      return {
+        status: value.status,
+        message: boundedText(value.message, MAX_MESSAGE_LENGTH),
+      };
+    default:
+      return fail();
+  }
+}
+
+export function decodeZshEditEnabled(value: unknown): ZshEditEnabled {
+  if (!isRecord(value)) return fail();
+  if (typeof value.grantId !== "string" || !isGrantId(value.grantId)) return fail();
+  return {
+    file: oneOf<ZshFileKey>(value.file, ZSH_FILE_KEYS),
+    displayPath: displayPathText(value.displayPath),
+    fullPath: absolutePath(value.fullPath),
+    exists: flag(value.exists),
+    grantId: value.grantId,
+  };
+}
+
+function decodeZshVariableChange(value: unknown): ZshVariableChange {
+  if (!isRecord(value)) return fail();
+  const change = oneOf<EnvChangeKind>(value.change, CHANGE_KINDS);
+  const secret = flag(value.secret);
+  const omitted = flag(value.omitted);
+  const before = optionalText(value.before, MAX_INLINE_CHARS);
+  const after = optionalText(value.after, MAX_INLINE_CHARS);
+  const expectedBefore = change !== "ADD";
+  const expectedAfter = change !== "REMOVE";
+  // A side that does not exist for this kind of change never carries text.
+  if ((!expectedBefore && before !== undefined) || (!expectedAfter && after !== undefined)) {
+    return fail();
+  }
+  const absent =
+    (expectedBefore && before === undefined ? 1 : 0) +
+    (expectedAfter && after === undefined ? 1 : 0);
+  // A secret never arrives with text; a value is only absent for a stated reason.
+  if (secret) {
+    if (before !== undefined || after !== undefined || omitted) return fail();
+  } else if (omitted !== absent > 0) {
+    return fail();
+  }
+  return {
+    name: zshName(value.name),
+    change,
+    secret,
+    ...(before === undefined ? {} : { before }),
+    ...(after === undefined ? {} : { after }),
+    omitted,
+  };
+}
+
+function pathItems(value: unknown): string[] {
+  return list(value, MAX_ZSH_PATH_ITEMS).map((item) => {
+    const text = boundedText(item, MAX_PATH_LENGTH);
+    return ZSH_PATH_ITEM_PATTERN.test(text) ? text : fail();
+  });
+}
+
+function decodeZshWarning(value: unknown): ZshEditWarning {
+  if (!isRecord(value)) return fail();
+  const line = () => {
+    const found = count(value.line);
+    return found >= 1 ? found : fail();
+  };
+  switch (value.kind) {
+    case "OVERRIDES_EARLIER_ASSIGNMENT":
+    case "OVERRIDDEN_BY_LATER_ASSIGNMENT":
+      return { kind: value.kind, name: zshName(value.name), line: line() };
+    case "DUPLICATE_PATH_ITEM":
+      return { kind: "DUPLICATE_PATH_ITEM", item: boundedText(value.item, MAX_PATH_LENGTH) };
+    case "PATH_ITEM_ALSO_OUTSIDE":
+      return {
+        kind: "PATH_ITEM_ALSO_OUTSIDE",
+        item: boundedText(value.item, MAX_PATH_LENGTH),
+        line: line(),
+      };
+    case "DYNAMIC_PATH_OUTSIDE":
+    case "LATER_PATH_ASSIGNMENT":
+      return { kind: value.kind, line: line() };
+    case "BLOCK_APPENDED":
+    case "FILE_CREATED":
+      return { kind: value.kind };
+    default:
+      return fail();
+  }
+}
+
+export function decodeZshEditPreview(value: unknown): ZshEditPreview {
+  const write = decodeResourceWritePreview(value);
+  if (!isRecord(value)) return fail();
+  // The raw text diff of the file is always withheld; a response that carries
+  // one is not trusted, because it could hold secret values.
+  if (!write.diff.redacted || write.diff.lines.length > 0) return fail();
+  const variableChanges = list(value.variableChanges, MAX_ZSH_VARIABLES).map(
+    decodeZshVariableChange,
+  );
+  const names = variableChanges.map((change) => change.name);
+  const rawPath = nullable(value.pathChange);
+  let pathChange: ZshPathChange | undefined;
+  if (rawPath !== undefined) {
+    if (!isRecord(rawPath)) return fail();
+    pathChange = { before: pathItems(rawPath.before), after: pathItems(rawPath.after) };
+  }
+  // A preview always changes something, and never the same variable twice.
+  if (
+    (variableChanges.length === 0 && pathChange === undefined) ||
+    new Set(names).size !== names.length
+  ) {
+    return fail();
+  }
+  const blockDiff = list(value.blockDiff, MAX_ZSH_DIFF_LINES).map(
+    (line): ZshBlockDiffLine => {
+      if (!isRecord(line)) return fail();
+      const text = optionalText(line.text, MAX_ZSH_DIFF_TEXT);
+      if (text === undefined) return fail();
+      return { kind: oneOf<"ADDED" | "REMOVED">(line.kind, ["ADDED", "REMOVED"]), text };
+    },
+  );
+  const file = oneOf<ZshFileKey>(value.file, ZSH_FILE_KEYS);
+  return {
+    ...write,
+    file,
+    appliesTo: oneOf<ZshAppliesTo>(value.appliesTo, ZSH_APPLIES_TO),
+    position: count(value.position),
+    displayPath: displayPathText(value.displayPath),
+    fullPath: absolutePath(value.fullPath),
+    createdBlock: flag(value.createdBlock),
+    variableChanges,
+    ...(pathChange === undefined ? {} : { pathChange }),
+    blockDiff,
+    warnings: list(value.warnings, MAX_ZSH_WARNINGS).map(decodeZshWarning),
+    effectNote: boundedText(value.effectNote, MAX_MESSAGE_LENGTH),
+  };
+}
+
+export function decodeZshEditExecution(value: unknown): ZshEditExecution {
+  const execution = decodeResourceWriteExecution(value);
+  if (!isRecord(value)) return fail();
+  return {
+    ...execution,
+    file: oneOf<ZshFileKey>(value.file, ZSH_FILE_KEYS),
+    effectNote: boundedText(value.effectNote, MAX_MESSAGE_LENGTH),
+  };
+}
+
+/** The reason an edit cannot be sent, or `undefined` when it can. */
+export function zshEditProblem(edit: ZshBlockEdit): string | undefined {
+  const variables = edit.variables;
+  if (!Array.isArray(variables) || variables.length > MAX_ZSH_VARIABLES) {
+    return "一次保存最多改动 128 个变量。";
+  }
+  if (
+    edit.path !== undefined &&
+    (!Array.isArray(edit.path) ||
+      edit.path.length > MAX_ZSH_PATH_ITEMS ||
+      edit.path.some((item) => typeof item !== "string"))
+  ) {
+    return "PATH 列表最多 64 项，且每项必须是文本。";
+  }
+  if (variables.length === 0 && edit.path === undefined) return "没有需要保存的改动。";
+  const seen = new Set<string>();
+  for (const item of variables) {
+    if (typeof item.name !== "string" || !KEY_PATTERN.test(item.name)) {
+      return "变量名必须匹配 [A-Za-z_][A-Za-z0-9_]*，且不超过 255 个字符。";
+    }
+    if (ZSH_RESERVED_NAMES.includes(item.name)) {
+      return "PATH 请通过 PATH 列表编辑，不能作为普通变量写入。";
+    }
+    if (seen.has(item.name)) return "同一个变量在一次保存里只能改动一次。";
+    seen.add(item.name);
+    if (item.op === "REMOVE") {
+      if ("value" in item) return "删除不带值。";
+    } else if (item.op === "SET") {
+      if (typeof item.value !== "string" || [...item.value].length > MAX_EDIT_VALUE_CHARS) {
+        return "值必须是不超过 8192 个字符的文本。";
+      }
+    } else {
+      return "不支持的改动类型。";
+    }
+  }
+  return undefined;
+}
+
+function wireTarget(target: ZshEditTarget): Record<string, unknown> | undefined {
+  if (!ZSH_FILE_KEYS.includes(target.file)) return undefined;
+  if (target.zdotdirGrantId !== undefined && !isGrantId(target.zdotdirGrantId)) {
+    return undefined;
+  }
+  return {
+    file: target.file,
+    ...(target.zdotdirGrantId === undefined
+      ? {}
+      : { zdotdirGrantId: target.zdotdirGrantId }),
+  };
+}
+
+const TARGET_PROBLEM = "The startup file or authorization id is invalid.";
+
+/** Reads one startup file for editing: the block, what is outside it, whether editing is enabled. */
+export function readZshEditState(target: ZshEditTarget): Promise<ZshEditOutcome> {
+  const wire = wireTarget(target);
+  if (wire === undefined) return invalidInput(TARGET_PROBLEM);
+  return invokeCommand("read_zsh_edit_state", decodeZshEditOutcome, { input: wire });
+}
+
+/**
+ * Creates the (revocable) authorization for exactly this startup file. The
+ * backend builds the path; nothing is written.
+ */
+export function enableZshEdit(target: ZshEditTarget): Promise<ZshEditEnabled> {
+  const wire = wireTarget(target);
+  if (wire === undefined) return invalidInput(TARGET_PROBLEM);
+  return invokeCommand("enable_zsh_edit", decodeZshEditEnabled, { input: wire });
+}
+
+function wireVariableEdit(edit: ZshVariableEdit): Record<string, unknown> {
+  return edit.op === "SET"
+    ? { op: "SET", name: edit.name, value: edit.value }
+    : { op: "REMOVE", name: edit.name };
+}
+
+/**
+ * Previews a block edit. `expectedHash` is the hash of the content the editor
+ * showed (`undefined` for a file that does not exist yet); a changed file is
+ * refused, never merged.
+ */
+export function previewZshEdit(
+  target: ZshEditTarget,
+  expectedHash: string | undefined,
+  edit: ZshBlockEdit,
+): Promise<ZshEditPreview> {
+  const wire = wireTarget(target);
+  if (wire === undefined) return invalidInput(TARGET_PROBLEM);
+  if (expectedHash !== undefined && !HASH_PATTERN.test(expectedHash)) {
+    return invalidInput("The content hash is invalid.");
+  }
+  const problem = zshEditProblem(edit);
+  if (problem !== undefined) return invalidInput(problem);
+  return invokeCommand("preview_zsh_edit", decodeZshEditPreview, {
+    input: {
+      ...wire,
+      expectedHash: expectedHash ?? null,
+      edit: {
+        variables: edit.variables.map(wireVariableEdit),
+        ...(edit.path === undefined ? {} : { path: [...edit.path] }),
+      },
+    },
+  });
+}
+
+/**
+ * Confirms a previewed edit. A rejection means nothing was changed; a
+ * resolved value means the transaction ran, so read `outcome.status` and
+ * `outcome.fileState` for what the file really contains.
+ */
+export function executeZshEdit(input: {
+  readonly operationId: string;
+  readonly target: ZshEditTarget;
+}): Promise<ZshEditExecution> {
+  if (typeof input.operationId !== "string" || input.operationId.length === 0) {
+    return invalidInput("Operation id is invalid.");
+  }
+  const wire = wireTarget(input.target);
+  if (wire === undefined) return invalidInput(TARGET_PROBLEM);
+  return invokeCommand("execute_zsh_edit", decodeZshEditExecution, {
+    input: { operationId: input.operationId, ...wire },
+  });
+}

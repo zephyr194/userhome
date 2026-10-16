@@ -7,17 +7,20 @@ import {
   type ZshFileKey,
 } from "../../ipc/environment";
 import { selectDirectoryGrant } from "../../ipc/grants";
+import { useZshEditor } from "./useZshEditor";
+import { ZshEditor } from "./ZshEditor";
 import { ZshView, type ZshViewProps } from "./ZshView";
 import { INITIAL_ZSH_STATE, zshReducer } from "./zshModel";
 
 type Notice = ZshViewProps["notice"];
 
 /**
- * Wires the read-only zsh view to the backend. Nothing is stored in the
- * browser: the overview, the directory the user chose for an undetermined
- * `ZDOTDIR` and revealed values only live in component state, and every
- * response is matched to the request that asked for it. There is no editing
- * entry point here.
+ * Wires the zsh view and the managed-block editor to the backend. Nothing is
+ * stored in the browser: the overview, the directory the user chose for an
+ * undetermined `ZDOTDIR`, revealed values and editor drafts only live in
+ * component state, and every response is matched to the request that asked for
+ * it. Editing happens inside this page (the editor replaces the read-only view
+ * while it is open); there is no new navigation entry.
  */
 export function ZshPage() {
   const [state, dispatch] = useReducer(zshReducer, INITIAL_ZSH_STATE);
@@ -47,6 +50,23 @@ export function ZshPage() {
     setNotice(undefined);
     load(stateRef.current.zdotdirGrantId);
   }, [load]);
+
+  // After a save ran (or failed in a way that may have changed the file), the
+  // read-only view must show what the files contain now.
+  const onSaved = useCallback(() => {
+    load(stateRef.current.zdotdirGrantId);
+  }, [load]);
+  const editor = useZshEditor(onSaved);
+  const openEditor = useCallback(
+    (file: ZshFileKey) => {
+      const zdotdirGrantId = stateRef.current.zdotdirGrantId;
+      void editor.controller.open({
+        file,
+        ...(zdotdirGrantId === undefined ? {} : { zdotdirGrantId }),
+      });
+    },
+    [editor.controller],
+  );
 
   // The native picker names the directory; the backend only accepts one below
   // the home folder and turns it into a directory authorization.
@@ -85,12 +105,22 @@ export function ZshPage() {
     [],
   );
 
+  if (editor.state.phase !== "closed") {
+    return (
+      <ZshEditor
+        actions={editor.controller}
+        check={editor.check}
+        state={editor.state}
+      />
+    );
+  }
   return (
     <ZshView
       choosing={choosing}
       notice={notice}
       onChooseDirectory={() => void chooseDirectory()}
       onClearDirectory={clearDirectory}
+      onEditFile={openEditor}
       onLoadValue={loadValue}
       onReload={reload}
       state={state}
