@@ -10,10 +10,11 @@ use serde::Serialize;
 
 use crate::{
     error::AppError,
-    grants::{GrantCoordinator, GrantId, ReadError},
+    grants::{ContentFingerprint, GrantCoordinator, GrantId, ReadError},
 };
 
 pub mod dotenv;
+pub mod provider;
 pub mod save;
 pub mod scan;
 pub mod zsh;
@@ -234,6 +235,8 @@ struct Loaded {
     text: String,
     content_hash: String,
     size_bytes: u64,
+    /// The full CORE-5 identity of what was read.
+    fingerprint: ContentFingerprint,
 }
 
 fn load(
@@ -251,6 +254,7 @@ fn load(
         text: read.text()?.to_owned(),
         content_hash: read.fingerprint.sha256.clone(),
         size_bytes: read.fingerprint.size,
+        fingerprint: read.fingerprint,
     })
 }
 

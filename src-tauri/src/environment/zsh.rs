@@ -22,8 +22,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     error::AppError,
     grants::{
-        BuiltInReadError, DEFAULT_MAX_READ_BYTES, GrantCoordinator, GrantId, GrantKind,
-        GrantPurpose, read_built_in,
+        BuiltInReadError, ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantCoordinator, GrantId,
+        GrantKind, GrantPurpose, read_built_in,
     },
 };
 
@@ -289,7 +289,7 @@ const ORDER: [(u8, StepScope, &str, AppliesTo, Option<StartupFile>); 8] = [
 ];
 
 impl StartupFile {
-    const ALL: [Self; 4] = [Self::Zshenv, Self::Zprofile, Self::Zshrc, Self::Zlogin];
+    pub(super) const ALL: [Self; 4] = [Self::Zshenv, Self::Zprofile, Self::Zshrc, Self::Zlogin];
 
     pub(super) fn file_name(self) -> &'static str {
         match self {
@@ -328,10 +328,12 @@ fn order_steps() -> Vec<OrderStep> {
 
 // ---- locating and reading ----------------------------------------------------
 
+#[derive(Clone)]
 pub(super) struct Loaded {
     pub(super) text: String,
     pub(super) content_hash: String,
     pub(super) size_bytes: u64,
+    pub(super) fingerprint: ContentFingerprint,
 }
 
 /// Why a file was not read; `Outside` is not a read failure but a refusal.
@@ -356,6 +358,7 @@ pub(super) fn load(path: &Path, home: Option<&Path>) -> Result<Loaded, Problem> 
         text,
         content_hash: read.fingerprint.sha256.clone(),
         size_bytes: read.fingerprint.size,
+        fingerprint: read.fingerprint,
     })
 }
 
@@ -544,49 +547,70 @@ pub(super) const OUTSIDE_MESSAGE: &str =
 pub(super) const NOT_LOCATED_MESSAGE: &str =
     "ZDOTDIR 未确定，位置未知，未读取。请先选择 ZDOTDIR 所在目录。";
 
+/// One startup file as read for a resolved layout.
+pub(super) struct StartupRead {
+    pub(super) display_path: Option<String>,
+    /// `None` when `ZDOTDIR` is undetermined and the location is unknown.
+    pub(super) result: Option<Result<Loaded, Problem>>,
+}
+
+pub(super) fn read_startup_file(
+    layout: &Layout,
+    file: StartupFile,
+    home: Option<&Path>,
+) -> StartupRead {
+    let name = file.file_name();
+    if file == StartupFile::Zshenv {
+        return StartupRead {
+            display_path: Some(format!("~/{name}")),
+            result: Some(layout.zshenv.clone()),
+        };
+    }
+    match &layout.dir {
+        Dir::Path(dir) => {
+            let path = dir.join(name);
+            let shown = usable_home(home).map_or_else(
+                || path.to_string_lossy().into_owned(),
+                |h| display_path(&path, h),
+            );
+            StartupRead {
+                display_path: Some(shown),
+                result: Some(load(&path, home)),
+            }
+        }
+        Dir::Outside(dir) => StartupRead {
+            display_path: Some(dir.join(name).to_string_lossy().into_owned()),
+            result: Some(Err(Problem::Outside)),
+        },
+        Dir::Unknown => StartupRead {
+            display_path: None,
+            result: None,
+        },
+    }
+}
+
 pub fn read_overview(
     coordinator: &GrantCoordinator,
     home: Option<&Path>,
     request: &ZshRequest,
 ) -> ZshOverview {
     let layout = resolve(coordinator, home, request);
-    let home_dir = usable_home(home);
     let files = StartupFile::ALL
         .into_iter()
         .map(|file| {
-            let name = file.file_name();
-            let (display, outcome) = if file == StartupFile::Zshenv {
-                (Some(format!("~/{name}")), outcome_of(&layout.zshenv))
-            } else {
-                match &layout.dir {
-                    Dir::Path(dir) => {
-                        let path = dir.join(name);
-                        let shown = home_dir.map_or_else(
-                            || path.to_string_lossy().into_owned(),
-                            |h| display_path(&path, h),
-                        );
-                        (Some(shown), outcome_of(&load(&path, home)))
-                    }
-                    Dir::Outside(dir) => (
-                        Some(dir.join(name).to_string_lossy().into_owned()),
-                        ZshFileOutcome::OutsideHome {
-                            message: OUTSIDE_MESSAGE.to_owned(),
-                        },
-                    ),
-                    Dir::Unknown => (
-                        None,
-                        ZshFileOutcome::NotLocated {
-                            message: NOT_LOCATED_MESSAGE.to_owned(),
-                        },
-                    ),
-                }
+            let read = read_startup_file(&layout, file, home);
+            let outcome = match &read.result {
+                Some(result) => outcome_of(result),
+                None => ZshFileOutcome::NotLocated {
+                    message: NOT_LOCATED_MESSAGE.to_owned(),
+                },
             };
             ZshFileView {
                 file,
-                name,
+                name: file.file_name(),
                 applies_to: file.step().3,
                 position: file.step().0,
-                display_path: display,
+                display_path: read.display_path,
                 outcome,
             }
         })
