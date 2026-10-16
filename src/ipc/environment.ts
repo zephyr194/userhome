@@ -694,3 +694,488 @@ export function executeEnvironmentEdit(input: {
     },
   });
 }
+
+// ---- zsh startup files (read-only) ------------------------------------------
+//
+// The four startup files are built-in sources: the frontend never sends or
+// receives an absolute path for them. The only input is the optional directory
+// authorization the user chose for a `ZDOTDIR` that cannot be determined
+// statically. Secret values are not part of the list; they come from
+// `revealZshValue` only.
+
+export type ZshFileKey = "ZSHENV" | "ZPROFILE" | "ZSHRC" | "ZLOGIN";
+export type ZshAppliesTo = "ALL" | "LOGIN" | "INTERACTIVE";
+export type ZshStepScope = "SYSTEM" | "USER";
+export type ZshValueState = "STATIC" | "REFERENCE" | "DYNAMIC";
+export type ZshOperation = "SET" | "APPEND";
+export type ZshDynamicReason =
+  | "COMMAND_SUBSTITUTION"
+  | "ARITHMETIC"
+  | "UNRESOLVED_REFERENCE"
+  | "CONDITIONAL"
+  | "BLOCK"
+  | "SOURCE"
+  | "EVAL"
+  | "FUNCTION_DEFINITION"
+  | "ALIAS"
+  | "COMPOUND"
+  | "LINE_CONTINUATION"
+  | "HERE_DOC"
+  | "MULTILINE_QUOTE"
+  | "EXPANSION";
+export type ZshUndeterminedReason =
+  | "DYNAMIC"
+  | "MULTIPLE"
+  | "UNSUPPORTED_FORM"
+  | "ZSHENV_NOT_READ";
+
+export interface ZshSource {
+  readonly url: string;
+  /** `YYYY-MM-DD`. */
+  readonly consultedOn: string;
+}
+
+export interface ZshOrderStep {
+  readonly position: number;
+  readonly scope: ZshStepScope;
+  readonly pathLabel: string;
+  readonly appliesTo: ZshAppliesTo;
+  /** The user file of this step; absent for system-level steps. */
+  readonly file?: ZshFileKey;
+  /** System-level files are only listed, never read. */
+  readonly readByUserHome: boolean;
+}
+
+export type ZshZdotdir =
+  | { readonly status: "DEFAULT" }
+  | { readonly status: "STATIC"; readonly displayPath: string; readonly line: number }
+  | { readonly status: "OUTSIDE"; readonly displayPath: string; readonly line: number }
+  | { readonly status: "SELECTED"; readonly displayPath: string }
+  | {
+      readonly status: "UNDETERMINED";
+      readonly reason: ZshUndeterminedReason;
+      /** Why the directory the user chose could not be used. */
+      readonly selectionProblem?: string;
+    };
+
+export interface ZshPathSegment {
+  readonly text: string;
+  readonly state: ZshValueState;
+}
+
+export interface ZshEntryRow {
+  readonly kind: "ENTRY";
+  readonly line: number;
+  readonly endLine: number;
+  readonly name: string;
+  readonly exported: boolean;
+  readonly operation: ZshOperation;
+  readonly secret: boolean;
+  readonly hasValue: boolean;
+  readonly valueLength: number;
+  /** Absent for secrets and for very long values; fetch on demand. */
+  readonly value?: string;
+  readonly state: ZshValueState;
+  /** Present exactly when `state` is `DYNAMIC`. */
+  readonly reason?: ZshDynamicReason;
+  /** Items of a `PATH`/`path` entry, in written order. */
+  readonly pathSegments?: readonly ZshPathSegment[];
+}
+
+export type ZshRow =
+  | { readonly kind: "BLANK"; readonly line: number }
+  | ({ readonly kind: "COMMENT" } & EnvTextRow)
+  | ({
+      readonly kind: "DYNAMIC";
+      readonly endLine: number;
+      readonly reason: ZshDynamicReason;
+    } & EnvTextRow)
+  | ({ readonly kind: "UNRECOGNIZED"; readonly endLine: number } & EnvTextRow)
+  | ZshEntryRow;
+
+export interface ZshFileDetail {
+  readonly contentHash: string;
+  readonly sizeBytes: number;
+  readonly lineCount: number;
+  readonly rows: readonly ZshRow[];
+  readonly rowsTruncated: boolean;
+  readonly entryCount: number;
+  readonly secretCount: number;
+  readonly dynamicCount: number;
+  readonly unrecognizedCount: number;
+}
+
+export type ZshFileOutcome =
+  | ({ readonly status: "READY" } & ZshFileDetail)
+  | {
+      readonly status: "UNAVAILABLE";
+      readonly reason: FailureKind;
+      readonly message: string;
+    }
+  | { readonly status: "OUTSIDE_HOME"; readonly message: string }
+  | { readonly status: "NOT_LOCATED"; readonly message: string };
+
+export interface ZshFile {
+  readonly file: ZshFileKey;
+  readonly name: string;
+  readonly appliesTo: ZshAppliesTo;
+  /** Position of the file in the documented reading order. */
+  readonly position: number;
+  /** Absent while the location is unknown (`NOT_LOCATED`). */
+  readonly displayPath?: string;
+  readonly outcome: ZshFileOutcome;
+}
+
+export interface ZshOverview {
+  readonly source: ZshSource;
+  readonly order: readonly ZshOrderStep[];
+  readonly zdotdir: ZshZdotdir;
+  readonly files: readonly ZshFile[];
+}
+
+export const ZSH_FILE_KEYS: readonly ZshFileKey[] = [
+  "ZSHENV",
+  "ZPROFILE",
+  "ZSHRC",
+  "ZLOGIN",
+];
+const ZSH_FILE_NAMES: Readonly<Record<ZshFileKey, string>> = {
+  ZSHENV: ".zshenv",
+  ZPROFILE: ".zprofile",
+  ZSHRC: ".zshrc",
+  ZLOGIN: ".zlogin",
+};
+const ZSH_APPLIES_TO: readonly string[] = ["ALL", "LOGIN", "INTERACTIVE"];
+const ZSH_SCOPES: readonly string[] = ["SYSTEM", "USER"];
+const ZSH_VALUE_STATES: readonly string[] = ["STATIC", "REFERENCE", "DYNAMIC"];
+const ZSH_OPERATIONS: readonly string[] = ["SET", "APPEND"];
+const ZSH_REASONS: readonly string[] = [
+  "COMMAND_SUBSTITUTION",
+  "ARITHMETIC",
+  "UNRESOLVED_REFERENCE",
+  "CONDITIONAL",
+  "BLOCK",
+  "SOURCE",
+  "EVAL",
+  "FUNCTION_DEFINITION",
+  "ALIAS",
+  "COMPOUND",
+  "LINE_CONTINUATION",
+  "HERE_DOC",
+  "MULTILINE_QUOTE",
+  "EXPANSION",
+];
+const ZSH_UNDETERMINED_REASONS: readonly string[] = [
+  "DYNAMIC",
+  "MULTIPLE",
+  "UNSUPPORTED_FORM",
+  "ZSHENV_NOT_READ",
+];
+const ZSH_ORDER_STEPS = 8;
+const MAX_ZSH_SEGMENTS = 512;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function nullable(value: unknown): unknown {
+  return value === null ? undefined : value;
+}
+
+function decodeZshSource(value: unknown): ZshSource {
+  if (!isRecord(value)) return fail();
+  const url = boundedText(value.url, MAX_PATH_LENGTH);
+  const consultedOn = boundedText(value.consultedOn, 10);
+  if (!url.startsWith("https://") || !DATE_PATTERN.test(consultedOn)) {
+    return fail();
+  }
+  return { url, consultedOn };
+}
+
+function decodeZshOrder(value: unknown): ZshOrderStep[] {
+  const steps = list(value, ZSH_ORDER_STEPS).map((item): ZshOrderStep => {
+    if (!isRecord(item)) return fail();
+    const scope = oneOf<ZshStepScope>(item.scope, ZSH_SCOPES);
+    const rawFile = nullable(item.file);
+    const file =
+      rawFile === undefined ? undefined : oneOf<ZshFileKey>(rawFile, ZSH_FILE_KEYS);
+    const readByUserHome = flag(item.readByUserHome);
+    // System-level steps stand for no user file and are never read.
+    if ((scope === "SYSTEM") !== (file === undefined) || (scope === "USER") !== readByUserHome) {
+      return fail();
+    }
+    return {
+      position: count(item.position),
+      scope,
+      pathLabel: boundedText(item.pathLabel, MAX_NAME_LENGTH),
+      appliesTo: oneOf<ZshAppliesTo>(item.appliesTo, ZSH_APPLIES_TO),
+      ...(file === undefined ? {} : { file }),
+      readByUserHome,
+    };
+  });
+  const userFiles = steps.flatMap((step) => (step.file ? [step.file] : []));
+  if (
+    steps.length !== ZSH_ORDER_STEPS ||
+    steps.some((step, index) => step.position !== index + 1) ||
+    userFiles.join() !== ZSH_FILE_KEYS.join()
+  ) {
+    return fail();
+  }
+  return steps;
+}
+
+function decodeZshZdotdir(value: unknown): ZshZdotdir {
+  if (!isRecord(value)) return fail();
+  switch (value.status) {
+    case "DEFAULT":
+      return { status: "DEFAULT" };
+    case "STATIC":
+    case "OUTSIDE": {
+      const line = count(value.line);
+      if (line < 1) return fail();
+      return {
+        status: value.status,
+        displayPath: boundedText(value.displayPath, MAX_PATH_LENGTH),
+        line,
+      };
+    }
+    case "SELECTED":
+      return {
+        status: "SELECTED",
+        displayPath: boundedText(value.displayPath, MAX_PATH_LENGTH),
+      };
+    case "UNDETERMINED": {
+      const problem = nullable(value.selectionProblem);
+      return {
+        status: "UNDETERMINED",
+        reason: oneOf<ZshUndeterminedReason>(value.reason, ZSH_UNDETERMINED_REASONS),
+        ...(problem === undefined
+          ? {}
+          : { selectionProblem: boundedText(problem, MAX_MESSAGE_LENGTH) }),
+      };
+    }
+    default:
+      return fail();
+  }
+}
+
+function decodeZshSegment(value: unknown): ZshPathSegment {
+  if (!isRecord(value)) return fail();
+  const text = optionalText(value.text, MAX_INLINE_CHARS);
+  if (text === undefined) return fail();
+  return { text, state: oneOf<ZshValueState>(value.state, ZSH_VALUE_STATES) };
+}
+
+function decodeZshEntry(value: Record<string, unknown>, line: number): ZshEntryRow {
+  const endLine = count(value.endLine);
+  const name =
+    typeof value.name === "string" && KEY_PATTERN.test(value.name)
+      ? value.name
+      : fail();
+  const secret = flag(value.secret);
+  const hasValue = flag(value.hasValue);
+  const valueLength = count(value.valueLength);
+  const text = optionalText(nullable(value.value), MAX_INLINE_CHARS);
+  const state = oneOf<ZshValueState>(value.state, ZSH_VALUE_STATES);
+  const rawReason = nullable(value.reason);
+  const rawSegments = nullable(value.pathSegments);
+  const segments =
+    rawSegments === undefined
+      ? undefined
+      : list(rawSegments, MAX_ZSH_SEGMENTS).map(decodeZshSegment);
+  // A secret never arrives with its value (or the path items that would carry
+  // it), a present value matches the reported length, and a dynamic state
+  // always says why.
+  if (
+    endLine < line ||
+    hasValue !== valueLength > 0 ||
+    (secret && (text !== undefined || segments !== undefined)) ||
+    // `valueLength` counts characters, `String.length` UTF-16 units.
+    (text !== undefined && [...text].length !== valueLength) ||
+    (state === "DYNAMIC") !== (rawReason !== undefined)
+  ) {
+    return fail();
+  }
+  return {
+    kind: "ENTRY",
+    line,
+    endLine,
+    name,
+    exported: flag(value.exported),
+    operation: oneOf<ZshOperation>(value.operation, ZSH_OPERATIONS),
+    secret,
+    hasValue,
+    valueLength,
+    ...(text === undefined ? {} : { value: text }),
+    state,
+    ...(rawReason === undefined
+      ? {}
+      : { reason: oneOf<ZshDynamicReason>(rawReason, ZSH_REASONS) }),
+    ...(segments === undefined ? {} : { pathSegments: segments }),
+  };
+}
+
+function decodeZshRow(value: unknown): ZshRow {
+  if (!isRecord(value)) return fail();
+  const line = count(value.line);
+  if (line < 1) return fail();
+  switch (value.kind) {
+    case "BLANK":
+      return { kind: "BLANK", line };
+    case "COMMENT": {
+      const text = optionalText(nullable(value.text), MAX_INLINE_CHARS);
+      const withheld = flag(value.withheld);
+      if (withheld !== (text === undefined)) return fail();
+      return { kind: "COMMENT", line, ...(text === undefined ? {} : { text }), withheld };
+    }
+    case "DYNAMIC":
+    case "UNRECOGNIZED": {
+      const endLine = count(value.endLine);
+      const text = optionalText(nullable(value.text), MAX_INLINE_CHARS);
+      const withheld = flag(value.withheld);
+      if (endLine < line || withheld !== (text === undefined)) return fail();
+      const common = { line, endLine, ...(text === undefined ? {} : { text }), withheld };
+      return value.kind === "DYNAMIC"
+        ? {
+            kind: "DYNAMIC",
+            ...common,
+            reason: oneOf<ZshDynamicReason>(value.reason, ZSH_REASONS),
+          }
+        : { kind: "UNRECOGNIZED", ...common };
+    }
+    case "ENTRY":
+      return decodeZshEntry(value, line);
+    default:
+      return fail();
+  }
+}
+
+function decodeZshOutcome(value: unknown): ZshFileOutcome {
+  if (!isRecord(value)) return fail();
+  switch (value.status) {
+    case "READY":
+      return {
+        status: "READY",
+        contentHash:
+          typeof value.contentHash === "string" && HASH_PATTERN.test(value.contentHash)
+            ? value.contentHash
+            : fail(),
+        sizeBytes: count(value.sizeBytes),
+        lineCount: count(value.lineCount),
+        rows: list(value.rows, MAX_ROWS).map(decodeZshRow),
+        rowsTruncated: flag(value.rowsTruncated),
+        entryCount: count(value.entryCount),
+        secretCount: count(value.secretCount),
+        dynamicCount: count(value.dynamicCount),
+        unrecognizedCount: count(value.unrecognizedCount),
+      };
+    case "UNAVAILABLE":
+      return {
+        status: "UNAVAILABLE",
+        reason: oneOf<FailureKind>(value.reason, FAILURE_KINDS),
+        message: boundedText(value.message, MAX_MESSAGE_LENGTH),
+      };
+    case "OUTSIDE_HOME":
+    case "NOT_LOCATED":
+      return {
+        status: value.status,
+        message: boundedText(value.message, MAX_MESSAGE_LENGTH),
+      };
+    default:
+      return fail();
+  }
+}
+
+function decodeZshFile(value: unknown): ZshFile {
+  if (!isRecord(value)) return fail();
+  const file = oneOf<ZshFileKey>(value.file, ZSH_FILE_KEYS);
+  const appliesTo = oneOf<ZshAppliesTo>(value.appliesTo, ZSH_APPLIES_TO);
+  const outcome = decodeZshOutcome(value.outcome);
+  const rawPath = nullable(value.displayPath);
+  const displayPath =
+    rawPath === undefined ? undefined : boundedText(rawPath, MAX_PATH_LENGTH);
+  // A file whose location is unknown has no path; every other outcome has one.
+  if ((outcome.status === "NOT_LOCATED") !== (displayPath === undefined)) {
+    return fail();
+  }
+  return {
+    file,
+    name: value.name === ZSH_FILE_NAMES[file] ? ZSH_FILE_NAMES[file] : fail(),
+    appliesTo,
+    position: count(value.position),
+    ...(displayPath === undefined ? {} : { displayPath }),
+    outcome,
+  };
+}
+
+export function decodeZshOverview(value: unknown): ZshOverview {
+  if (!isRecord(value)) return fail();
+  const order = decodeZshOrder(value.order);
+  const files = list(value.files, ZSH_FILE_KEYS.length).map(decodeZshFile);
+  const seen = new Set<ZshFileKey>();
+  for (const file of files) {
+    const step = order.find((candidate) => candidate.file === file.file);
+    // Position and shell type must agree with the documented order.
+    if (
+      seen.has(file.file) ||
+      step === undefined ||
+      step.position !== file.position ||
+      step.appliesTo !== file.appliesTo
+    ) {
+      return fail();
+    }
+    seen.add(file.file);
+  }
+  return {
+    source: decodeZshSource(value.source),
+    order,
+    zdotdir: decodeZshZdotdir(value.zdotdir),
+    files,
+  };
+}
+
+/**
+ * Reads the four startup files. `zdotdirGrantId` is the directory
+ * authorization the user chose for an undetermined `ZDOTDIR`; it is ignored by
+ * the backend when `ZDOTDIR` can be determined statically.
+ */
+export function readZshStartupFiles(
+  zdotdirGrantId?: string,
+): Promise<ZshOverview> {
+  if (zdotdirGrantId !== undefined && !isGrantId(zdotdirGrantId)) {
+    return invalidInput("Authorization id is invalid.");
+  }
+  return invokeCommand("read_zsh_startup_files", decodeZshOverview, {
+    input: zdotdirGrantId === undefined ? {} : { zdotdirGrantId },
+  });
+}
+
+export interface ZshEntryReference {
+  readonly file: ZshFileKey;
+  readonly line: number;
+  readonly name: string;
+}
+
+/** Fetches one entry's value on explicit request; the result must not be stored. */
+export function revealZshValue(
+  target: ZshEntryReference,
+  zdotdirGrantId?: string,
+): Promise<string> {
+  if (zdotdirGrantId !== undefined && !isGrantId(zdotdirGrantId)) {
+    return invalidInput("Authorization id is invalid.");
+  }
+  if (
+    !ZSH_FILE_KEYS.includes(target.file) ||
+    !Number.isSafeInteger(target.line) ||
+    target.line < 1 ||
+    typeof target.name !== "string" ||
+    !KEY_PATTERN.test(target.name)
+  ) {
+    return invalidInput("Entry reference is invalid.");
+  }
+  return invokeCommand("reveal_zsh_value", decodeRevealedValue, {
+    input: {
+      file: target.file,
+      line: target.line,
+      name: target.name,
+      ...(zdotdirGrantId === undefined ? {} : { zdotdirGrantId }),
+    },
+  });
+}

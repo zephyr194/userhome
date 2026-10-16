@@ -1,4 +1,6 @@
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { classNames } from "../../components/ui/classNames";
 import { decodeAppError } from "../../ipc/core";
 import {
   readEnvironmentFile,
@@ -20,8 +22,59 @@ import {
   environmentReducer,
 } from "./environmentModel";
 import { useDotenvEditor } from "./useDotenvEditor";
+import { ZshPage } from "./ZshPage";
 
 type GrantNotice = EnvironmentViewProps["grantNotice"];
+
+const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
+  classNames(
+    "-mb-px border-b-2 px-ui-xl py-ui-md text-sm font-medium",
+    selected
+      ? "border-primary text-foreground"
+      : "border-transparent text-muted-foreground hover:text-foreground",
+  );
+
+/**
+ * The environment page has two sections in one place, without a new
+ * navigation entry: dotenv files in authorized directories, and the current
+ * user's zsh startup files. The zsh section only reads the files once it is
+ * opened for the first time, and then stays mounted so the user's directory
+ * choice survives switching back and forth.
+ */
+export function EnvironmentPage() {
+  const [zshOpened, setZshOpened] = useState(false);
+  return (
+    <TabGroup
+      as="div"
+      className="grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+      onChange={(index) => {
+        if (index === 1) setZshOpened(true);
+      }}
+    >
+      <TabList
+        aria-label="环境配置分区"
+        className="flex min-w-0 flex-wrap items-end gap-ui-sm border-b border-border bg-surface px-ui-xl"
+      >
+        <Tab className={TAB_CLASSES}>dotenv 文件</Tab>
+        <Tab className={TAB_CLASSES}>zsh 启动文件</Tab>
+      </TabList>
+      <TabPanels className="min-h-0 min-w-0 overflow-hidden">
+        <TabPanel
+          className="h-full min-h-0 min-w-0 overflow-hidden"
+          unmount={false}
+        >
+          <DotenvPage />
+        </TabPanel>
+        <TabPanel
+          className="h-full min-h-0 min-w-0 overflow-hidden"
+          unmount={false}
+        >
+          {zshOpened ? <ZshPage /> : null}
+        </TabPanel>
+      </TabPanels>
+    </TabGroup>
+  );
+}
 
 /**
  * Wires the environment view and the key editor to the backend. Nothing is
@@ -29,7 +82,7 @@ type GrantNotice = EnvironmentViewProps["grantNotice"];
  * editor drafts only live in component state, and every response is matched
  * to the request that asked for it.
  */
-export function EnvironmentPage() {
+function DotenvPage() {
   const [state, dispatch] = useReducer(
     environmentReducer,
     INITIAL_ENVIRONMENT_STATE,
