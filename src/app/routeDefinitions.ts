@@ -3,6 +3,7 @@ export type AppRouteId =
   | "applications"
   | "homebrew"
   | "services"
+  | "environment"
   | "settings";
 
 export type AppRouteIcon =
@@ -10,6 +11,7 @@ export type AppRouteIcon =
   | "applications"
   | "homebrew"
   | "services"
+  | "environment"
   | "settings";
 
 export type NavGroupId = "system-tools" | "toolset" | "support";
@@ -73,6 +75,13 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrow: "后台服务",
     description: "检查并管理 Homebrew 后台服务。",
     group: "support",
+  },
+  environment: {
+    icon: "environment",
+    label: "环境变量",
+    eyebrow: "环境文件",
+    description: "在指定目录中只读查看 dotenv 文件，秘密值默认遮盖。",
+    group: "system-tools",
   },
   settings: {
     icon: "settings",

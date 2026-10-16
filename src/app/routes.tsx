@@ -1,6 +1,7 @@
 import { ApplicationsPage } from "../features/apps/ApplicationsPage";
 import { BrewInventoryPage } from "../features/brew/BrewInventoryPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
+import { EnvironmentPage } from "../features/environment/EnvironmentPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { Button, StatusBadge } from "../components/ui";
@@ -284,6 +285,10 @@ export function RoutePanel({
         }
       />
     );
+  }
+
+  if (route.id === "environment") {
+    return <EnvironmentPage />;
   }
 
   if (route.id === "settings") {

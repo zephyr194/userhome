@@ -47,4 +47,11 @@ describe("route registry", () => {
       NAV_GROUPS.map((group) => group.id),
     );
   });
+
+  it("lists the environment variables page first under system tools", () => {
+    const tools = groupNavigationRoutes(APP_ROUTES).find(
+      (entry) => entry.group.id === "system-tools",
+    );
+    expect(tools?.routes.map((route) => route.label)).toEqual(["环境变量"]);
+  });
 });
