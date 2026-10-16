@@ -291,7 +291,7 @@ const ORDER: [(u8, StepScope, &str, AppliesTo, Option<StartupFile>); 8] = [
 impl StartupFile {
     const ALL: [Self; 4] = [Self::Zshenv, Self::Zprofile, Self::Zshrc, Self::Zlogin];
 
-    fn file_name(self) -> &'static str {
+    pub(super) fn file_name(self) -> &'static str {
         match self {
             Self::Zshenv => ".zshenv",
             Self::Zprofile => ".zprofile",
@@ -300,7 +300,9 @@ impl StartupFile {
         }
     }
 
-    fn step(self) -> &'static (u8, StepScope, &'static str, AppliesTo, Option<StartupFile>) {
+    pub(super) fn step(
+        self,
+    ) -> &'static (u8, StepScope, &'static str, AppliesTo, Option<StartupFile>) {
         ORDER
             .iter()
             .find(|step| step.4 == Some(self))
@@ -326,22 +328,22 @@ fn order_steps() -> Vec<OrderStep> {
 
 // ---- locating and reading ----------------------------------------------------
 
-struct Loaded {
-    text: String,
-    content_hash: String,
-    size_bytes: u64,
+pub(super) struct Loaded {
+    pub(super) text: String,
+    pub(super) content_hash: String,
+    pub(super) size_bytes: u64,
 }
 
 /// Why a file was not read; `Outside` is not a read failure but a refusal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Problem {
+pub(super) enum Problem {
     Outside,
     Failed(FailureKind),
 }
 
 /// One read through the same `$HOME` rule as authorizations. The size limit is
 /// the default 1 MiB of CORE-5.
-fn load(path: &Path, home: Option<&Path>) -> Result<Loaded, Problem> {
+pub(super) fn load(path: &Path, home: Option<&Path>) -> Result<Loaded, Problem> {
     let read = read_built_in(path, home, DEFAULT_MAX_READ_BYTES).map_err(|error| match error {
         BuiltInReadError::Outside => Problem::Outside,
         BuiltInReadError::Failed(kind) => Problem::Failed(kind.into()),
@@ -358,22 +360,22 @@ fn load(path: &Path, home: Option<&Path>) -> Result<Loaded, Problem> {
 }
 
 /// Where the three files after `.zshenv` live.
-enum Dir {
+pub(super) enum Dir {
     Path(PathBuf),
     /// A literal `ZDOTDIR` outside `$HOME`; kept only to show what was refused.
     Outside(PathBuf),
     Unknown,
 }
 
-struct Layout {
-    zdotdir: ZdotdirView,
-    zshenv: Result<Loaded, Problem>,
-    dir: Dir,
+pub(super) struct Layout {
+    pub(super) zdotdir: ZdotdirView,
+    pub(super) zshenv: Result<Loaded, Problem>,
+    pub(super) dir: Dir,
 }
 
 /// `$HOME` must be absolute, not the file system root, and free of NUL; the
 /// canonical value is supplied by the caller.
-fn usable_home(home: Option<&Path>) -> Option<&Path> {
+pub(super) fn usable_home(home: Option<&Path>) -> Option<&Path> {
     home.filter(|home| {
         home.is_absolute()
             && home.parent().is_some()
@@ -381,7 +383,7 @@ fn usable_home(home: Option<&Path>) -> Option<&Path> {
     })
 }
 
-fn display_path(path: &Path, home: &Path) -> String {
+pub(super) fn display_path(path: &Path, home: &Path) -> String {
     match path.strip_prefix(home) {
         Ok(relative) if relative.as_os_str().is_empty() => "~".to_owned(),
         Ok(relative) => format!("~/{}", relative.to_string_lossy()),
@@ -463,7 +465,11 @@ fn chosen_directory(coordinator: &GrantCoordinator, id: &GrantId) -> Result<Path
     }
 }
 
-fn resolve(coordinator: &GrantCoordinator, home: Option<&Path>, request: &ZshRequest) -> Layout {
+pub(super) fn resolve(
+    coordinator: &GrantCoordinator,
+    home: Option<&Path>,
+    request: &ZshRequest,
+) -> Layout {
     let Some(home_dir) = usable_home(home) else {
         return Layout {
             zdotdir: ZdotdirView::Undetermined {
@@ -533,8 +539,10 @@ fn resolve(coordinator: &GrantCoordinator, home: Option<&Path>, request: &ZshReq
 
 // ---- views ---------------------------------------------------------------------
 
-const OUTSIDE_MESSAGE: &str = "该文件解析到主目录之外（或指向受保护位置），未读取、未跟随。";
-const NOT_LOCATED_MESSAGE: &str = "ZDOTDIR 未确定，位置未知，未读取。请先选择 ZDOTDIR 所在目录。";
+pub(super) const OUTSIDE_MESSAGE: &str =
+    "该文件解析到主目录之外（或指向受保护位置），未读取、未跟随。";
+pub(super) const NOT_LOCATED_MESSAGE: &str =
+    "ZDOTDIR 未确定，位置未知，未读取。请先选择 ZDOTDIR 所在目录。";
 
 pub fn read_overview(
     coordinator: &GrantCoordinator,

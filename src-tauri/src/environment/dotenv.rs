@@ -828,7 +828,7 @@ fn render_checked(
     })
 }
 
-fn is_forbidden_character(character: char) -> bool {
+pub(super) fn is_forbidden_character(character: char) -> bool {
     character.is_control()
         || matches!(
             character,

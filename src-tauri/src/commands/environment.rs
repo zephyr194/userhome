@@ -15,6 +15,11 @@ use crate::{
         },
         scan::{ScanConfig, ScanLimits, ScanOutcome},
         zsh::{self, StartupFile, ZshOverview, ZshRequest, ZshRevealRequest},
+        zsh_block::{BlockEdit, MAX_PATH_ITEMS, MAX_VARIABLES, VarEdit},
+        zsh_edit::{
+            self, ZshEditCoordinator, ZshEditEnabled, ZshEditExecuteRequest, ZshEditExecution,
+            ZshEditOutcome, ZshEditPreview, ZshEditPreviewRequest, ZshEditTarget,
+        },
     },
     error::AppError,
     grants::{
@@ -495,6 +500,268 @@ pub async fn execute_environment_edit(
     .map_err(|_| AppError::internal())?
 }
 
+// ---- zsh managed block (editing) ---------------------------------------------
+//
+// The four startup files stay built-in sources: no input here carries a path or
+// an authorization id for the file. "Enable editing" creates the authorization
+// in the backend from the fixed file name and the canonical `$HOME`; preview and
+// confirm find it again from the file. Values travel only from the frontend to
+// the backend and no input type prints them.
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReadZshEditStateInput {
+    pub file: StartupFile,
+    #[serde(default)]
+    pub zdotdir_grant_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct EnableZshEditInput {
+    pub file: StartupFile,
+    #[serde(default)]
+    pub zdotdir_grant_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(
+    tag = "op",
+    rename_all = "SCREAMING_SNAKE_CASE",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum ZshVariableEditInput {
+    Set { name: String, value: String },
+    Remove { name: String },
+}
+
+impl From<ZshVariableEditInput> for VarEdit {
+    fn from(input: ZshVariableEditInput) -> Self {
+        match input {
+            ZshVariableEditInput::Set { name, value } => Self::Set { name, value },
+            ZshVariableEditInput::Remove { name } => Self::Remove { name },
+        }
+    }
+}
+
+// Values may be secrets: show the same redacted form `VarEdit` does.
+impl fmt::Debug for ZshVariableEditInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let edit = match self {
+            Self::Set { name, value } => VarEdit::Set {
+                name: name.clone(),
+                value: value.clone(),
+            },
+            Self::Remove { name } => VarEdit::Remove { name: name.clone() },
+        };
+        edit.fmt(formatter)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ZshBlockEditInput {
+    #[serde(default)]
+    pub variables: Vec<ZshVariableEditInput>,
+    /// The complete managed PATH list; absent leaves PATH as it is.
+    #[serde(default)]
+    pub path: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PreviewZshEditInput {
+    pub file: StartupFile,
+    #[serde(default)]
+    pub zdotdir_grant_id: Option<String>,
+    /// Hash of the content the editor was showing; `null` for a missing file.
+    pub expected_hash: Option<String>,
+    pub edit: ZshBlockEditInput,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExecuteZshEditInput {
+    pub operation_id: String,
+    pub file: StartupFile,
+    #[serde(default)]
+    pub zdotdir_grant_id: Option<String>,
+}
+
+fn zsh_target(
+    file: StartupFile,
+    zdotdir_grant_id: Option<String>,
+) -> Result<ZshEditTarget, AppError> {
+    Ok(ZshEditTarget {
+        zsh: zsh_request(zdotdir_grant_id)?,
+        file,
+    })
+}
+
+impl ZshBlockEditInput {
+    fn into_edit(self) -> Result<BlockEdit, AppError> {
+        if self.variables.len() > MAX_VARIABLES
+            || self
+                .path
+                .as_ref()
+                .is_some_and(|path| path.len() > MAX_PATH_ITEMS)
+        {
+            return Err(AppError::invalid_input("一次保存的变量或 PATH 项过多。"));
+        }
+        Ok(BlockEdit {
+            variables: self.variables.into_iter().map(VarEdit::from).collect(),
+            path: self.path,
+        })
+    }
+}
+
+pub fn read_zsh_edit_state_with(
+    coordinator: &GrantCoordinator,
+    home: Option<&std::path::Path>,
+    input: ReadZshEditStateInput,
+) -> Result<ZshEditOutcome, AppError> {
+    let target = zsh_target(input.file, input.zdotdir_grant_id)?;
+    Ok(zsh_edit::read_state(coordinator, home, &target))
+}
+
+pub fn enable_zsh_edit_with(
+    coordinator: &GrantCoordinator,
+    home: Option<&std::path::Path>,
+    input: EnableZshEditInput,
+) -> Result<ZshEditEnabled, AppError> {
+    let target = zsh_target(input.file, input.zdotdir_grant_id)?;
+    zsh_edit::enable(coordinator, home, &target)
+}
+
+pub fn preview_zsh_edit_with(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    coordinator: &ZshEditCoordinator,
+    home: Option<&std::path::Path>,
+    input: PreviewZshEditInput,
+) -> Result<ZshEditPreview, AppError> {
+    if input
+        .expected_hash
+        .as_deref()
+        .is_some_and(|hash| !is_sha256_hex(hash))
+    {
+        return Err(AppError::invalid_input(
+            "The content hash must be a lowercase SHA-256 hex digest.",
+        ));
+    }
+    let request = ZshEditPreviewRequest {
+        target: zsh_target(input.file, input.zdotdir_grant_id)?,
+        expected_hash: input.expected_hash,
+        edit: input.edit.into_edit()?,
+    };
+    coordinator.preview(ctx, writes, home, &request)
+}
+
+pub fn execute_zsh_edit_with(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    coordinator: &ZshEditCoordinator,
+    home: Option<&std::path::Path>,
+    input: ExecuteZshEditInput,
+) -> Result<ZshEditExecution, AppError> {
+    let request = ZshEditExecuteRequest {
+        target: zsh_target(input.file, input.zdotdir_grant_id)?,
+        operation_id: input.operation_id,
+    };
+    coordinator.execute(ctx, writes, home, &request)
+}
+
+/// Runs `action` with the write context and the zsh edit coordinator built from
+/// the managed state.
+fn with_zsh_write_context<T>(
+    app: &AppHandle,
+    action: impl FnOnce(
+        &ResourceWriteContext<'_>,
+        &ResourceWriteCoordinator,
+        &ZshEditCoordinator,
+    ) -> Result<T, AppError>,
+) -> Result<T, AppError> {
+    let grants = app.state::<GrantCoordinator>();
+    let operations = app.state::<OperationCoordinator>();
+    let writes = app.state::<ResourceWriteCoordinator>();
+    let edits = app.state::<ZshEditCoordinator>();
+    let config = app.state::<ConfigCoordinator>();
+    let settings = app.state::<SettingsCoordinator>();
+    let ctx = ResourceWriteContext {
+        grants: &grants,
+        operations: &operations,
+        environment: config.environment()?,
+        retention: settings.get()?.preferences().backup_retention(),
+    };
+    action(&ctx, &writes, &edits)
+}
+
+/// Reads one startup file for editing: the managed block, what the file says
+/// outside it and whether editing was enabled. Never starts a shell or runs a
+/// file; secret values are not part of the result.
+#[tauri::command]
+pub async fn read_zsh_edit_state(
+    app: AppHandle,
+    input: ReadZshEditStateInput,
+) -> Result<ZshEditOutcome, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        read_zsh_edit_state_with(
+            &app.state::<GrantCoordinator>(),
+            canonical_home().as_deref(),
+            input,
+        )
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Creates the authorization for exactly one startup file (revocable like any
+/// other). The path is built in the backend; nothing is written.
+#[tauri::command]
+pub async fn enable_zsh_edit(
+    app: AppHandle,
+    input: EnableZshEditInput,
+) -> Result<ZshEditEnabled, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        enable_zsh_edit_with(
+            &app.state::<GrantCoordinator>(),
+            canonical_home().as_deref(),
+            input,
+        )
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn preview_zsh_edit(
+    app: AppHandle,
+    input: PreviewZshEditInput,
+) -> Result<ZshEditPreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_zsh_write_context(&app, |ctx, writes, edits| {
+            preview_zsh_edit_with(ctx, writes, edits, canonical_home().as_deref(), input)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn execute_zsh_edit(
+    app: AppHandle,
+    input: ExecuteZshEditInput,
+) -> Result<ZshEditExecution, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_zsh_write_context(&app, |ctx, writes, edits| {
+            execute_zsh_edit_with(ctx, writes, edits, canonical_home().as_deref(), input)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -698,5 +965,112 @@ mod tests {
             let error = reveal(line, name).expect_err("invalid reference");
             assert_eq!(error.code(), AppErrorCode::InvalidInput, "{line} {name:?}");
         }
+    }
+    #[test]
+    fn zsh_edit_inputs_never_carry_a_path_or_a_file_authorization() {
+        use super::{
+            EnableZshEditInput, ExecuteZshEditInput, PreviewZshEditInput, ReadZshEditStateInput,
+        };
+
+        for ok in [
+            json!({ "file": "ZSHRC" }),
+            json!({ "file": "ZSHENV", "zdotdirGrantId": ID }),
+        ] {
+            assert!(serde_json::from_value::<ReadZshEditStateInput>(ok.clone()).is_ok());
+            assert!(serde_json::from_value::<EnableZshEditInput>(ok).is_ok());
+        }
+        for bad in [
+            json!({ "file": "ZSHRC", "path": "/Users/x/.zshrc" }),
+            json!({ "file": "ZSHRC", "grantId": ID }),
+            json!({ "file": ".zshrc" }),
+            json!({}),
+        ] {
+            assert!(serde_json::from_value::<ReadZshEditStateInput>(bad.clone()).is_err());
+            assert!(serde_json::from_value::<EnableZshEditInput>(bad).is_err());
+        }
+        let preview = |value| serde_json::from_value::<PreviewZshEditInput>(value);
+        assert!(
+            preview(json!({
+                "file": "ZSHRC", "expectedHash": HASH,
+                "edit": {
+                    "variables": [
+                        { "op": "SET", "name": "A", "value": "1" },
+                        { "op": "REMOVE", "name": "B" }
+                    ],
+                    "path": ["/opt/a", "~/bin"]
+                }
+            }))
+            .is_ok()
+        );
+        assert!(
+            preview(json!({ "file": "ZSHRC", "expectedHash": null, "edit": { "path": [] } }))
+                .is_ok()
+        );
+        for bad in [
+            json!({ "file": "ZSHRC", "expectedHash": 7, "edit": {} }),
+            json!({ "file": "ZSHRC", "expectedHash": HASH, "edit": { "path": "/a" } }),
+            json!({ "file": "ZSHRC", "expectedHash": HASH, "edit": { "variables": [{ "op": "TRUNCATE", "name": "A" }] } }),
+            json!({ "file": "ZSHRC", "expectedHash": HASH, "edit": { "variables": [{ "op": "SET", "name": "A" }] } }),
+            json!({ "file": "ZSHRC", "expectedHash": HASH, "edit": { "variables": [{ "op": "REMOVE", "name": "A", "value": "x" }] } }),
+            json!({ "file": "ZSHRC", "expectedHash": HASH, "edit": { "file": "/etc/zshrc" } }),
+            json!({ "file": "ZSHRC", "expectedHash": HASH, "edit": {}, "absolutePath": "/etc/zshrc" }),
+        ] {
+            assert!(preview(bad).is_err());
+        }
+        let execute = |value| serde_json::from_value::<ExecuteZshEditInput>(value);
+        assert!(execute(json!({ "operationId": "op-1", "file": "ZPROFILE" })).is_ok());
+        assert!(
+            execute(json!({ "operationId": "op-1", "file": "ZPROFILE", "grantId": ID })).is_err()
+        );
+        assert!(execute(json!({ "operationId": "op-1" })).is_err());
+    }
+
+    #[test]
+    fn zsh_edit_requests_validate_the_hash_the_grant_id_and_the_size() {
+        use super::{ReadZshEditStateInput, ZshBlockEditInput, ZshVariableEditInput, zsh_target};
+        use crate::{environment::zsh::StartupFile, error::AppErrorCode};
+
+        assert!(zsh_target(StartupFile::Zshrc, None).is_ok());
+        assert!(zsh_target(StartupFile::Zshrc, Some(ID.to_owned())).is_ok());
+        assert!(zsh_target(StartupFile::Zshrc, Some("nope".to_owned())).is_err());
+        let _ = ReadZshEditStateInput {
+            file: StartupFile::Zshrc,
+            zdotdir_grant_id: None,
+        };
+        let many = |count: usize| ZshBlockEditInput {
+            variables: (0..count)
+                .map(|index| ZshVariableEditInput::Remove {
+                    name: format!("V{index}"),
+                })
+                .collect(),
+            path: None,
+        };
+        assert!(many(128).into_edit().is_ok());
+        let error = many(129).into_edit().expect_err("too many");
+        assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        let long_path = ZshBlockEditInput {
+            variables: Vec::new(),
+            path: Some((0..65).map(|index| format!("/p{index}")).collect()),
+        };
+        assert!(long_path.into_edit().is_err());
+    }
+
+    #[test]
+    fn debug_output_of_zsh_edit_inputs_never_contains_a_value() {
+        use super::{PreviewZshEditInput, ZshVariableEditInput};
+
+        let input: PreviewZshEditInput = serde_json::from_value(json!({
+            "file": "ZSHRC", "expectedHash": null,
+            "edit": { "variables": [{ "op": "SET", "name": "API_TOKEN", "value": "very-secret-value" }] }
+        }))
+        .expect("input");
+        let printed = format!("{input:?}");
+        assert!(!printed.contains("very-secret-value"), "{printed}");
+        assert!(printed.contains("API_TOKEN"));
+        let single = ZshVariableEditInput::Set {
+            name: "A".to_owned(),
+            value: "very-secret-value".to_owned(),
+        };
+        assert!(!format!("{single:?}").contains("very-secret-value"));
     }
 }

@@ -17,6 +17,8 @@ pub mod dotenv;
 pub mod save;
 pub mod scan;
 pub mod zsh;
+pub mod zsh_block;
+pub mod zsh_edit;
 pub mod zsh_parse;
 
 use dotenv::{DotenvEntry, DotenvLine, EntryFlag, LineKind, QuoteStyle};

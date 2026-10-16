@@ -39,6 +39,7 @@ pub fn run() {
         .manage(lifecycle::LifecycleCoordinator::default())
         .manage(grants::ResourceWriteCoordinator::default())
         .manage(environment::save::EnvironmentEditCoordinator::default())
+        .manage(environment::zsh_edit::ZshEditCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
         .manage(services::actions::ServiceActionCoordinator::default())
         .manage(security::elevation::ElevationCoordinator::default())
@@ -169,6 +170,10 @@ pub fn run() {
             commands::environment::execute_environment_edit,
             commands::environment::read_zsh_startup_files,
             commands::environment::reveal_zsh_value,
+            commands::environment::read_zsh_edit_state,
+            commands::environment::enable_zsh_edit,
+            commands::environment::preview_zsh_edit,
+            commands::environment::execute_zsh_edit,
             commands::resources::preview_resource_writes,
             commands::resources::execute_resource_write,
             commands::resources::get_resource_write_batch,
