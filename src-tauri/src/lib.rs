@@ -7,6 +7,7 @@ pub mod catalog;
 pub mod commands;
 pub mod config;
 pub mod discovery;
+pub mod environment;
 pub mod error;
 pub mod grants;
 pub mod lifecycle;
@@ -159,6 +160,9 @@ pub fn run() {
             commands::grants::select_directory_grant,
             commands::grants::select_file_grant,
             commands::grants::select_save_location_grant,
+            commands::environment::scan_environment_files,
+            commands::environment::read_environment_file,
+            commands::environment::reveal_environment_value,
             commands::resources::preview_resource_writes,
             commands::resources::execute_resource_write,
             commands::resources::get_resource_write_batch,
