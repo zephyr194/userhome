@@ -253,12 +253,7 @@ fn the_parent_must_lie_strictly_inside_home() {
     fs::create_dir_all(&sibling).expect("sibling with a shared prefix");
     symlink(&outside, fixture.home.join("escape")).expect("escape link");
 
-    for parent in [
-        fixture.home.clone(),
-        outside,
-        sibling,
-        fixture.home.join("escape"),
-    ] {
+    for parent in [outside, sibling, fixture.home.join("escape")] {
         assert_eq!(
             fixture.grants.create_new_file(&parent, "a.toml"),
             Err(GrantError::OutsideHome),
@@ -573,6 +568,174 @@ fn a_newer_schema_version_is_still_reported_instead_of_read() {
         fixture.grants.list(),
         Err(GrantError::StoreUnsupportedVersion)
     );
+}
+
+// ------------------------------------------------- the parent may be $HOME
+
+#[test]
+fn home_itself_is_accepted_as_the_parent_of_a_new_file() {
+    let fixture = Fixture::new();
+
+    for name in [".zshrc", ".env", "qr.png"] {
+        let record = fixture
+            .grants
+            .create_new_file(&fixture.home, name)
+            .unwrap_or_else(|error| panic!("{name}: {error:?}"));
+        assert_eq!(record.path, fixture.home, "{name}");
+        assert_eq!(record.file_name.as_deref(), Some(name));
+        assert_eq!(record.target_path(), fixture.home.join(name));
+        assert_eq!(
+            fixture.grants.resolve(&record.id).expect("resolve"),
+            record,
+            "{name}"
+        );
+        assert_eq!(
+            record.summary(Some(&fixture.home)).display_path,
+            format!("~/{name}")
+        );
+    }
+    // The same parent and name again returns the existing grant.
+    let again = fixture
+        .grants
+        .create_new_file(&fixture.home, ".zshrc")
+        .expect("again");
+    assert_eq!(fixture.grants.list().expect("list").len(), 3);
+    assert_eq!(again.file_name.as_deref(), Some(".zshrc"));
+}
+
+#[test]
+fn a_new_file_directly_in_home_is_written_with_create_semantics() {
+    let fixture = Fixture::new();
+    let record = fixture
+        .grants
+        .create_new_file(&fixture.home, ".env")
+        .expect("grant");
+
+    let batch = fixture
+        .writes
+        .preview(
+            &fixture.ctx(),
+            vec![fixture.request(&record.id, None, "A=1\n")],
+        )
+        .expect("preview");
+    let step = &batch.steps[0];
+    assert_eq!(step.kind, WriteKind::Create);
+    assert_eq!(step.target, "~/.env");
+    fixture
+        .writes
+        .execute(
+            &fixture.ctx(),
+            &fixture.confirm_request(&step.operation.operation_id, &record.id),
+        )
+        .expect("confirm");
+
+    let created = fixture.home.join(".env");
+    assert_eq!(fs::read_to_string(&created).expect("created"), "A=1\n");
+    assert_eq!(mode(&created), 0o600);
+    assert!(!fixture.backup_dir_exists(), "no backup is fabricated");
+}
+
+#[test]
+fn the_name_below_home_may_not_be_a_credential_location() {
+    let fixture = Fixture::new();
+    fs::create_dir_all(fixture.home.join("Library")).expect("library");
+
+    for name in [".ssh", ".gnupg", ".SSH"] {
+        assert_eq!(
+            fixture.grants.create_new_file(&fixture.home, name),
+            Err(GrantError::ProtectedLocation),
+            "{name}"
+        );
+    }
+    assert!(!fixture.store_file().exists());
+}
+
+#[test]
+fn a_name_directly_in_home_that_is_a_directory_or_link_is_refused() {
+    let fixture = Fixture::new();
+    fs::create_dir(fixture.home.join("a-dir")).expect("directory");
+    fs::write(fixture.root.join("real.toml"), "x").expect("real");
+    symlink(fixture.root.join("real.toml"), fixture.home.join("a-link")).expect("link");
+    symlink(fixture.home.join("gone"), fixture.home.join("dangling")).expect("dangling");
+
+    assert_eq!(
+        fixture.grants.create_new_file(&fixture.home, "a-dir"),
+        Err(GrantError::NotFile)
+    );
+    for name in ["a-link", "dangling"] {
+        assert_eq!(
+            fixture.grants.create_new_file(&fixture.home, name),
+            Err(GrantError::SymlinkEscape),
+            "{name}"
+        );
+    }
+    assert!(!fixture.store_file().exists());
+}
+
+#[test]
+fn a_home_level_name_swapped_for_a_link_or_directory_is_refused_on_use() {
+    let fixture = Fixture::new();
+    let outside = fixture.root.join("outside.toml");
+    fs::write(&outside, "o = 1\n").expect("outside file");
+    let linked = fixture
+        .grants
+        .create_new_file(&fixture.home, ".linked")
+        .expect("grant");
+    let dir = fixture
+        .grants
+        .create_new_file(&fixture.home, ".dir")
+        .expect("grant");
+    symlink(&outside, fixture.home.join(".linked")).expect("swap in a link");
+    fs::create_dir(fixture.home.join(".dir")).expect("swap in a directory");
+
+    assert_eq!(
+        fixture.grants.resolve(&linked.id),
+        Err(GrantError::SymlinkEscape)
+    );
+    assert_eq!(fixture.grants.resolve(&dir.id), Err(GrantError::NotFile));
+    assert_eq!(fs::read_to_string(&outside).expect("untouched"), "o = 1\n");
+}
+
+#[test]
+fn other_grants_still_refuse_home_itself() {
+    let fixture = Fixture::new();
+
+    for purpose in [GrantPurpose::ConfigDirectory, GrantPurpose::ConfigFile] {
+        assert_eq!(
+            fixture.grants.create(purpose, &fixture.home),
+            Err(GrantError::OutsideHome),
+            "{purpose:?}"
+        );
+    }
+    // A directory grant below home cannot resolve to home itself either.
+    let docs = fixture
+        .grants
+        .create(GrantPurpose::ConfigDirectory, &fixture.docs)
+        .expect("docs grant");
+    assert_eq!(
+        fixture.grants.resolve_child(&docs.id, ".."),
+        Err(GrantError::InvalidRelativePath)
+    );
+}
+
+#[test]
+fn a_home_level_record_is_invalid_when_home_is_unavailable_or_elsewhere() {
+    let fixture = Fixture::new();
+    let record = fixture
+        .grants
+        .create_new_file(&fixture.home, ".zshrc")
+        .expect("grant");
+
+    let no_home = GrantCoordinator::new(GrantStore::new(fixture.root.join("support")), None);
+    assert_eq!(
+        no_home.resolve(&record.id),
+        Err(GrantError::HomeUnavailable)
+    );
+    let other_home = GrantCoordinator::new(
+        GrantStore::new(fixture.root.join("support")),
+        Some(fixture.docs.clone()),
+    );
+    assert_eq!(other_home.resolve(&record.id), Err(GrantError::OutsideHome));
 }
 
 // --------------------------------------------------------- write transaction

@@ -43,15 +43,16 @@ pub(super) fn revalidate(
     if parent != record.path {
         return Err(GrantError::SymlinkEscape);
     }
-    path::ensure_below_home(&parent, home)?;
+    path::ensure_new_file_parent(&parent, home)?;
     path::check_kind(&parent, GrantKind::Directory)?;
     check_name(&parent, name, home)?;
     Ok(parent.join(name))
 }
 
 /// The covered name must be free to create or already a readable regular
-/// file, and the resulting target must itself stay clear of the protected
-/// credential locations.
+/// file, and the resulting target must itself lie strictly below `$HOME`
+/// (the parent may be `$HOME`, the target may not) and stay clear of the
+/// protected credential locations.
 fn check_name(parent: &Path, name: &str, home: Option<&Path>) -> Result<(), GrantError> {
     let target = parent.join(name);
     path::ensure_below_home(&target, home)?;
@@ -78,8 +79,7 @@ impl GrantCoordinator {
         if !is_valid_file_name(file_name) {
             return Err(GrantError::InvalidRelativePath);
         }
-        let canonical =
-            path::validate_target(parent, GrantPurpose::ConfigDirectory, self.home.as_deref())?;
+        let canonical = path::validate_new_file_parent(parent, self.home.as_deref())?;
         check_name(&canonical, file_name, self.home.as_deref())?;
         let _guard = self.lock()?;
         let mut grants = self.store.load()?;

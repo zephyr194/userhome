@@ -708,11 +708,6 @@ mod tests {
                 AppErrorCode::PermissionDenied,
             ),
             (
-                "home itself as parent",
-                home.join("..").join("home").join("a.json"),
-                AppErrorCode::PermissionDenied,
-            ),
-            (
                 "sensitive parent",
                 ssh.join("config.json"),
                 AppErrorCode::PermissionDenied,
@@ -753,6 +748,35 @@ mod tests {
             );
         }
         assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn choosing_a_missing_target_directly_in_home_grants_it_but_not_credential_names() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let home = sandbox.root.clone();
+
+        let outcome = save_location(&coordinator, home.join("a.json"), Some(home.clone()))
+            .expect("a missing file directly in $HOME is granted");
+        let SelectGrantOutcome::Selected(summary) = &outcome else {
+            panic!("expected a selection, got {outcome:?}");
+        };
+        assert_eq!(summary.display_path, "~/a.json");
+        let wire = serde_json::to_string(&outcome).expect("serialize");
+        assert!(!wire.contains(home.to_str().expect("utf8 root")));
+        let stored = coordinator.list().expect("list");
+        assert_eq!(stored.len(), 1);
+        assert_eq!(stored[0].path, home);
+        assert_eq!(stored[0].file_name.as_deref(), Some("a.json"));
+        assert!(!home.join("a.json").exists());
+
+        // Credential names directly in $HOME are still refused.
+        for name in [".ssh", ".gnupg"] {
+            let error =
+                save_location(&coordinator, home.join(name), Some(home.clone())).expect_err(name);
+            assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{name}");
+        }
+        assert_eq!(coordinator.list().expect("list").len(), 1);
     }
 
     #[test]

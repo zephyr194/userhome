@@ -25,12 +25,34 @@ pub(super) fn validate_target(
     if !path.is_absolute() || path.to_str().is_none_or(|value| value.contains('\0')) {
         return Err(GrantError::Canonicalize);
     }
+    let canonical = canonicalize_utf8(path)?;
+    ensure_below_home(&canonical, home)?;
+    check_kind(&canonical, purpose.kind())?;
+    Ok(canonical)
+}
+
+/// Like `validate_target` for the parent directory of a new-file grant
+/// (R1-1/R1-2): the parent may be `$HOME` itself, so `~/.zshrc` can be created.
+/// Any other parent must lie strictly below `home` as usual. The caller still
+/// checks the resulting target, which must stay strictly below `home`.
+pub(super) fn validate_new_file_parent(
+    path: &Path,
+    home: Option<&Path>,
+) -> Result<PathBuf, GrantError> {
+    if !path.is_absolute() || path.to_str().is_none_or(|value| value.contains('\0')) {
+        return Err(GrantError::Canonicalize);
+    }
+    let canonical = canonicalize_utf8(path)?;
+    ensure_new_file_parent(&canonical, home)?;
+    check_kind(&canonical, GrantKind::Directory)?;
+    Ok(canonical)
+}
+
+fn canonicalize_utf8(path: &Path) -> Result<PathBuf, GrantError> {
     let canonical = fs::canonicalize(path).map_err(classify_io_error)?;
     if canonical.to_str().is_none() {
         return Err(GrantError::Canonicalize);
     }
-    ensure_below_home(&canonical, home)?;
-    check_kind(&canonical, purpose.kind())?;
     Ok(canonical)
 }
 
@@ -73,13 +95,7 @@ pub(super) fn resolve_within(
 /// `canonical` must lie strictly below `home` (component-wise, so `/Users/ab`
 /// never covers `/Users/abc`) and outside the protected credential locations.
 pub(super) fn ensure_below_home(canonical: &Path, home: Option<&Path>) -> Result<(), GrantError> {
-    let home = home
-        .filter(|home| {
-            home.is_absolute()
-                && home.parent().is_some()
-                && home.to_str().is_some_and(|value| !value.contains('\0'))
-        })
-        .ok_or(GrantError::HomeUnavailable)?;
+    let home = usable_home(home)?;
     match canonical.strip_prefix(home) {
         Ok(relative) if !relative.as_os_str().is_empty() => {}
         _ => return Err(GrantError::OutsideHome),
@@ -91,6 +107,30 @@ pub(super) fn ensure_below_home(canonical: &Path, home: Option<&Path>) -> Result
         return Err(GrantError::ProtectedLocation);
     }
     Ok(())
+}
+
+/// The parent of a new-file grant: `home` itself or anything that passes
+/// `ensure_below_home`. Only the parent gets this exception; every other
+/// grant and every target keeps the strict rule.
+pub(super) fn ensure_new_file_parent(
+    canonical: &Path,
+    home: Option<&Path>,
+) -> Result<(), GrantError> {
+    if canonical == usable_home(home)? {
+        return Ok(());
+    }
+    ensure_below_home(canonical, home)
+}
+
+/// `home` must be absolute, not the file system root, and free of NUL;
+/// otherwise every authorization fails closed.
+fn usable_home(home: Option<&Path>) -> Result<&Path, GrantError> {
+    home.filter(|home| {
+        home.is_absolute()
+            && home.parent().is_some()
+            && home.to_str().is_some_and(|value| !value.contains('\0'))
+    })
+    .ok_or(GrantError::HomeUnavailable)
 }
 
 /// Matches the protected directory by its literal location and, when it is a
