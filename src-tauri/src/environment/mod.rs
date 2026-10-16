@@ -14,6 +14,7 @@ use crate::{
 };
 
 pub mod dotenv;
+pub mod save;
 pub mod scan;
 
 use dotenv::{DotenvEntry, DotenvLine, EntryFlag, LineKind, QuoteStyle};

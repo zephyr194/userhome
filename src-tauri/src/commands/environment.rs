@@ -1,14 +1,27 @@
+use std::fmt;
+
 use serde::Deserialize;
 use tauri::{AppHandle, Manager};
 
 use crate::{
     commands::grants::canonical_home,
+    config::ConfigCoordinator,
     environment::{
         self, FileOutcome, FileRequest, RevealRequest, RevealedValue,
+        dotenv::KeyEdit,
+        save::{
+            CreatePreviewRequest, EditPreviewRequest, EnvironmentEditCoordinator,
+            EnvironmentEditPreview,
+        },
         scan::{ScanConfig, ScanLimits, ScanOutcome},
     },
     error::AppError,
-    grants::{GrantCoordinator, GrantId},
+    grants::{
+        ConfirmRequest, GrantCoordinator, GrantId, ResourceWriteContext, ResourceWriteCoordinator,
+        ResourceWriteExecution,
+    },
+    operations::OperationCoordinator,
+    settings::SettingsCoordinator,
 };
 
 // Every command names an authorization id and a path relative to it; the
@@ -143,11 +156,247 @@ pub async fn reveal_environment_value(
     .map_err(|_| AppError::internal())?
 }
 
+// ---- editing and saving ---------------------------------------------------
+//
+// Saving goes through preview → confirm. Values travel only from the frontend
+// to the backend (never back for secrets), and no input type prints them.
+
+const MAX_EDITS: usize = 64;
+
+#[derive(Deserialize)]
+#[serde(
+    tag = "op",
+    rename_all = "SCREAMING_SNAKE_CASE",
+    rename_all_fields = "camelCase",
+    deny_unknown_fields
+)]
+pub enum KeyEditInput {
+    Add {
+        key: String,
+        value: String,
+        #[serde(default)]
+        exported: bool,
+    },
+    Set {
+        key: String,
+        value: String,
+    },
+    Remove {
+        key: String,
+    },
+}
+
+impl From<KeyEditInput> for KeyEdit {
+    fn from(input: KeyEditInput) -> Self {
+        match input {
+            KeyEditInput::Add {
+                key,
+                value,
+                exported,
+            } => Self::Add {
+                key,
+                value,
+                exported,
+            },
+            KeyEditInput::Set { key, value } => Self::Set { key, value },
+            KeyEditInput::Remove { key } => Self::Remove { key },
+        }
+    }
+}
+
+// Values may be secrets: show the same redacted form `KeyEdit` does.
+impl fmt::Debug for KeyEditInput {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let edit = match self {
+            Self::Add {
+                key,
+                value,
+                exported,
+            } => KeyEdit::Add {
+                key: key.clone(),
+                value: value.clone(),
+                exported: *exported,
+            },
+            Self::Set { key, value } => KeyEdit::Set {
+                key: key.clone(),
+                value: value.clone(),
+            },
+            Self::Remove { key } => KeyEdit::Remove { key: key.clone() },
+        };
+        edit.fmt(formatter)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PreviewEnvironmentEditInput {
+    pub grant_id: String,
+    pub relative_path: String,
+    pub patterns: Vec<String>,
+    pub recursive: bool,
+    /// Hash of the file content the editor was showing.
+    pub expected_hash: String,
+    pub edits: Vec<KeyEditInput>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PreviewEnvironmentCreateInput {
+    /// A save-location authorization (`select_save_location_grant`).
+    pub grant_id: String,
+    pub edits: Vec<KeyEditInput>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExecuteEnvironmentEditInput {
+    pub operation_id: String,
+    pub grant_id: String,
+    pub relative_path: Option<String>,
+}
+
+fn edits(inputs: Vec<KeyEditInput>) -> Result<Vec<KeyEdit>, AppError> {
+    if inputs.is_empty() || inputs.len() > MAX_EDITS {
+        return Err(AppError::invalid_input("一次保存需要 1 到 64 项改动。"));
+    }
+    Ok(inputs.into_iter().map(KeyEdit::from).collect())
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+pub fn preview_edit_with(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    coordinator: &EnvironmentEditCoordinator,
+    input: PreviewEnvironmentEditInput,
+) -> Result<EnvironmentEditPreview, AppError> {
+    if !is_sha256_hex(&input.expected_hash) {
+        return Err(AppError::invalid_input(
+            "The content hash must be a lowercase SHA-256 hex digest.",
+        ));
+    }
+    let request = EditPreviewRequest {
+        grant_id: GrantId::parse(&input.grant_id)?,
+        file: FileRequest {
+            relative_path: input.relative_path,
+            config: ScanConfig {
+                patterns: input.patterns,
+                recursive: input.recursive,
+            },
+        },
+        expected_hash: input.expected_hash,
+        edits: edits(input.edits)?,
+    };
+    coordinator.preview_edit(ctx, writes, &request)
+}
+
+pub fn preview_create_with(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    coordinator: &EnvironmentEditCoordinator,
+    input: PreviewEnvironmentCreateInput,
+) -> Result<EnvironmentEditPreview, AppError> {
+    let request = CreatePreviewRequest {
+        grant_id: GrantId::parse(&input.grant_id)?,
+        edits: edits(input.edits)?,
+    };
+    coordinator.preview_create(ctx, writes, &request)
+}
+
+pub fn execute_edit_with(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    coordinator: &EnvironmentEditCoordinator,
+    input: ExecuteEnvironmentEditInput,
+) -> Result<ResourceWriteExecution, AppError> {
+    let request = ConfirmRequest {
+        operation_id: input.operation_id,
+        grant_id: GrantId::parse(&input.grant_id)?,
+        relative: input.relative_path,
+    };
+    coordinator.execute(ctx, writes, &request)
+}
+
+/// Runs `action` with the write context built from the managed state.
+fn with_write_context<T>(
+    app: &AppHandle,
+    action: impl FnOnce(
+        &ResourceWriteContext<'_>,
+        &ResourceWriteCoordinator,
+        &EnvironmentEditCoordinator,
+    ) -> Result<T, AppError>,
+) -> Result<T, AppError> {
+    let grants = app.state::<GrantCoordinator>();
+    let operations = app.state::<OperationCoordinator>();
+    let writes = app.state::<ResourceWriteCoordinator>();
+    let edits = app.state::<EnvironmentEditCoordinator>();
+    let config = app.state::<ConfigCoordinator>();
+    let settings = app.state::<SettingsCoordinator>();
+    let ctx = ResourceWriteContext {
+        grants: &grants,
+        operations: &operations,
+        environment: config.environment()?,
+        retention: settings.get()?.preferences().backup_retention(),
+    };
+    action(&ctx, &writes, &edits)
+}
+
+#[tauri::command]
+pub async fn preview_environment_edit(
+    app: AppHandle,
+    input: PreviewEnvironmentEditInput,
+) -> Result<EnvironmentEditPreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_write_context(&app, |ctx, writes, edits| {
+            preview_edit_with(ctx, writes, edits, input)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn preview_environment_create(
+    app: AppHandle,
+    input: PreviewEnvironmentCreateInput,
+) -> Result<EnvironmentEditPreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_write_context(&app, |ctx, writes, edits| {
+            preview_create_with(ctx, writes, edits, input)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn execute_environment_edit(
+    app: AppHandle,
+    input: ExecuteEnvironmentEditInput,
+) -> Result<ResourceWriteExecution, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_write_context(&app, |ctx, writes, edits| {
+            execute_edit_with(ctx, writes, edits, input)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
-    use super::{ReadEnvironmentFileInput, RevealEnvironmentValueInput, ScanEnvironmentInput};
+    use super::{
+        ExecuteEnvironmentEditInput, KeyEditInput, PreviewEnvironmentCreateInput,
+        PreviewEnvironmentEditInput, ReadEnvironmentFileInput, RevealEnvironmentValueInput,
+        ScanEnvironmentInput,
+    };
 
     const ID: &str = "3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b";
 
@@ -179,5 +428,94 @@ mod tests {
             }))
             .is_ok()
         );
+    }
+
+    const HASH: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    #[test]
+    fn edit_inputs_name_an_authorization_and_never_an_absolute_path() {
+        let edit: Result<PreviewEnvironmentEditInput, _> = serde_json::from_value(json!({
+            "grantId": ID, "relativePath": ".env", "patterns": [".env"], "recursive": false,
+            "expectedHash": HASH,
+            "edits": [
+                { "op": "ADD", "key": "A", "value": "1", "exported": true },
+                { "op": "SET", "key": "B", "value": "2" },
+                { "op": "REMOVE", "key": "C" }
+            ]
+        }));
+        assert_eq!(edit.expect("valid input").edits.len(), 3);
+        assert!(
+            serde_json::from_value::<PreviewEnvironmentCreateInput>(json!({
+                "grantId": ID, "edits": [{ "op": "ADD", "key": "A", "value": "1" }]
+            }))
+            .is_ok()
+        );
+        assert!(
+            serde_json::from_value::<ExecuteEnvironmentEditInput>(json!({
+                "operationId": "op-1", "grantId": ID, "relativePath": null
+            }))
+            .is_ok()
+        );
+        for bad in [
+            json!({ "grantId": ID, "relativePath": ".env", "patterns": [".env"], "recursive": false,
+                    "expectedHash": HASH, "edits": [], "path": "/Users/x/.env" }),
+            json!({ "grantId": ID, "relativePath": ".env", "patterns": [".env"], "recursive": false,
+                    "edits": [] }),
+            json!({ "grantId": ID, "relativePath": ".env", "patterns": [".env"], "recursive": false,
+                    "expectedHash": HASH, "edits": [{ "op": "TRUNCATE", "key": "A" }] }),
+            json!({ "grantId": ID, "relativePath": ".env", "patterns": [".env"], "recursive": false,
+                    "expectedHash": HASH, "edits": [{ "op": "SET", "key": "A" }] }),
+            json!({ "grantId": ID, "relativePath": ".env", "patterns": [".env"], "recursive": false,
+                    "expectedHash": HASH, "edits": [{ "op": "REMOVE", "key": "A", "value": "x" }] }),
+        ] {
+            assert!(serde_json::from_value::<PreviewEnvironmentEditInput>(bad).is_err());
+        }
+        assert!(
+            serde_json::from_value::<PreviewEnvironmentCreateInput>(json!({
+                "grantId": ID, "edits": [], "absolutePath": "/tmp/x"
+            }))
+            .is_err()
+        );
+        assert!(
+            serde_json::from_value::<ExecuteEnvironmentEditInput>(json!({
+                "operationId": "o", "grantId": ID, "path": "/etc/hosts"
+            }))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn debug_output_of_edit_inputs_never_contains_a_value() {
+        let input: PreviewEnvironmentCreateInput = serde_json::from_value(json!({
+            "grantId": ID, "edits": [{ "op": "ADD", "key": "API_TOKEN", "value": "very-secret-value" }]
+        }))
+        .expect("input");
+        let printed = format!("{input:?}");
+        assert!(!printed.contains("very-secret-value"), "{printed}");
+        assert!(printed.contains("API_TOKEN"));
+        let single = KeyEditInput::Set {
+            key: "A".to_owned(),
+            value: "very-secret-value".to_owned(),
+        };
+        assert!(!format!("{single:?}").contains("very-secret-value"));
+    }
+
+    #[test]
+    fn a_save_needs_between_one_and_sixty_four_edits_and_a_real_hash() {
+        let one = || KeyEditInput::Remove {
+            key: "A".to_owned(),
+        };
+        assert!(super::edits(vec![]).is_err());
+        assert!(super::edits((0..65).map(|_| one()).collect()).is_err());
+        assert_eq!(
+            super::edits((0..64).map(|_| one()).collect())
+                .expect("64")
+                .len(),
+            64
+        );
+        assert!(super::is_sha256_hex(HASH));
+        for bad in ["", "NOT-A-HASH", &HASH.to_uppercase(), &HASH[1..]] {
+            assert!(!super::is_sha256_hex(bad), "{bad}");
+        }
     }
 }

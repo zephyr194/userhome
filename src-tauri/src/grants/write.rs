@@ -348,7 +348,9 @@ impl ResourceWriteCoordinator {
         self.execute_with(ctx, request, validate_text)
     }
 
-    pub(super) fn execute_with<F>(
+    /// Like `execute`, with a caller-supplied read-back check that runs on the
+    /// written bytes; a failing check restores the previous content.
+    pub fn execute_with<F>(
         &self,
         ctx: &ResourceWriteContext<'_>,
         request: &ConfirmRequest,

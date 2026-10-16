@@ -38,6 +38,7 @@ pub fn run() {
         .manage(operations::OperationCoordinator::default())
         .manage(lifecycle::LifecycleCoordinator::default())
         .manage(grants::ResourceWriteCoordinator::default())
+        .manage(environment::save::EnvironmentEditCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
         .manage(services::actions::ServiceActionCoordinator::default())
         .manage(security::elevation::ElevationCoordinator::default())
@@ -163,6 +164,9 @@ pub fn run() {
             commands::environment::scan_environment_files,
             commands::environment::read_environment_file,
             commands::environment::reveal_environment_value,
+            commands::environment::preview_environment_edit,
+            commands::environment::preview_environment_create,
+            commands::environment::execute_environment_edit,
             commands::resources::preview_resource_writes,
             commands::resources::execute_resource_write,
             commands::resources::get_resource_write_batch,

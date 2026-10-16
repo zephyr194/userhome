@@ -10,7 +10,7 @@
 //! (`NAME = value`, a bare word, an unterminated quote, text after a closing
 //! quote) is kept as an unknown line.
 
-use std::fmt;
+use std::{collections::HashSet, fmt};
 
 use serde::Serialize;
 
@@ -414,6 +414,568 @@ pub fn looks_like_secret_assignment(text: &str) -> bool {
                     SECRET_SEGMENTS.contains(&word) || (word.len() > 3 && word.ends_with("KEY"))
                 }))
 }
+
+// ---- structured edits ----------------------------------------------------
+//
+// Edits are pure text transformations: they never touch the file system and
+// never decode, expand or normalize anything. A line that is not edited keeps
+// its exact bytes; an entry the model flags as duplicate, dynamic or
+// multi-line is refused instead of being rewritten.
+
+/// Longest value (in characters) the editor will write.
+pub const MAX_EDIT_VALUE_CHARS: usize = 8192;
+const MAX_KEY_LENGTH: usize = 255;
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum KeyEdit {
+    Add {
+        key: String,
+        value: String,
+        exported: bool,
+    },
+    Set {
+        key: String,
+        value: String,
+    },
+    Remove {
+        key: String,
+    },
+}
+
+impl KeyEdit {
+    pub fn key(&self) -> &str {
+        match self {
+            Self::Add { key, .. } | Self::Set { key, .. } | Self::Remove { key } => key,
+        }
+    }
+}
+
+// Values may be secrets: `Debug` shows only the length.
+impl fmt::Debug for KeyEdit {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Add {
+                key,
+                value,
+                exported,
+            } => formatter
+                .debug_struct("Add")
+                .field("key", key)
+                .field("value_len", &value.chars().count())
+                .field("exported", exported)
+                .finish(),
+            Self::Set { key, value } => formatter
+                .debug_struct("Set")
+                .field("key", key)
+                .field("value_len", &value.chars().count())
+                .finish(),
+            Self::Remove { key } => formatter.debug_struct("Remove").field("key", key).finish(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ChangeKind {
+    Add,
+    Modify,
+    Remove,
+}
+
+/// One key-level change, with the plain values the preview must mask for
+/// secrets. `before`/`after` are the raw values as the parser reads them.
+#[derive(Clone, PartialEq, Eq)]
+pub struct KeyChange {
+    pub key: String,
+    pub kind: ChangeKind,
+    pub secret: bool,
+    pub before: Option<String>,
+    pub after: Option<String>,
+}
+
+impl fmt::Debug for KeyChange {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("KeyChange")
+            .field("key", &self.key)
+            .field("kind", &self.kind)
+            .field("secret", &self.secret)
+            .field(
+                "before_len",
+                &self.before.as_ref().map(|v| v.chars().count()),
+            )
+            .field("after_len", &self.after.as_ref().map(|v| v.chars().count()))
+            .finish()
+    }
+}
+
+pub struct EditOutcome {
+    pub text: String,
+    pub changes: Vec<KeyChange>,
+}
+
+impl fmt::Debug for EditOutcome {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("EditOutcome")
+            .field("text_len", &self.text.len())
+            .field("changes", &self.changes)
+            .finish()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ValueProblem {
+    /// A newline, tab, other control character or invisible direction/line
+    /// separator: the value would not stay one visible line.
+    ControlCharacter,
+    TooLong,
+    /// Needs a quote kind that would also need an escape, `$` or a backtick.
+    NoSafeQuoting,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum EditError {
+    InvalidKey,
+    NoEdits,
+    DuplicateEdit(String),
+    KeyExists(String),
+    KeyNotFound(String),
+    /// A double-quoted value with backslashes: escapes are not decoded, so the
+    /// meaning of a rewritten value could change.
+    EscapedValue(String),
+    UnsupportedEntry {
+        key: String,
+        flags: Vec<EntryFlag>,
+    },
+    UnsafeValue {
+        key: String,
+        problem: ValueProblem,
+    },
+}
+
+impl EditError {
+    /// A user-facing explanation. It names keys and reasons, never values.
+    pub fn message(&self) -> String {
+        match self {
+            Self::InvalidKey => {
+                "键名必须匹配 [A-Za-z_][A-Za-z0-9_]*，且不超过 255 个字符。".to_owned()
+            }
+            Self::NoEdits => "没有需要保存的改动。".to_owned(),
+            Self::DuplicateEdit(key) => {
+                format!("同一次保存里键 {key} 出现了多次改动，请合并后再保存。")
+            }
+            Self::KeyExists(key) => format!(
+                "键 {key} 已存在（或文件中有以它开头但无法解析的行），不能再新增；请改用修改。"
+            ),
+            Self::KeyNotFound(key) => format!("文件中没有键 {key}。"),
+            Self::EscapedValue(key) => format!(
+                "键 {key} 的双引号值含反斜杠转义；本工具不解码转义，为避免改变含义，不提供结构化修改。"
+            ),
+            Self::UnsupportedEntry { key, flags } => {
+                let reasons: Vec<&str> = flags
+                    .iter()
+                    .map(|flag| match flag {
+                        EntryFlag::DuplicateKey => "重复键",
+                        EntryFlag::Interpolation => "变量插值",
+                        EntryFlag::CommandSubstitution => "命令替换",
+                        EntryFlag::MultilineValue => "多行值",
+                    })
+                    .collect();
+                format!(
+                    "键 {key} 使用了本工具不改写的写法（{}），已保持原样；请在编辑器中手动修改。",
+                    reasons.join("、")
+                )
+            }
+            Self::UnsafeValue { key, problem } => match problem {
+                ValueProblem::ControlCharacter => format!(
+                    "键 {key} 的值含换行、制表符或其他控制 / 不可见方向字符，不能安全写成单行值。"
+                ),
+                ValueProblem::TooLong => {
+                    format!("键 {key} 的值超过 {MAX_EDIT_VALUE_CHARS} 个字符。")
+                }
+                ValueProblem::NoSafeQuoting => format!(
+                    "键 {key} 的值同时含单引号与 $、反引号、反斜杠或双引号，无法在不引入转义或插值的前提下写入。"
+                ),
+            },
+        }
+    }
+}
+
+/// Name heuristic plus URL credentials: whether a value for `key` must be
+/// masked everywhere it is shown.
+pub fn value_looks_secret(key: &str, value: &str) -> bool {
+    is_secret_name(key) || has_url_credentials(value)
+}
+
+pub fn apply_edits(text: &str, edits: &[KeyEdit]) -> Result<EditOutcome, EditError> {
+    if edits.is_empty() {
+        return Err(EditError::NoEdits);
+    }
+    let mut seen = HashSet::new();
+    for edit in edits {
+        let key = edit.key();
+        if !is_valid_key(key) || key.len() > MAX_KEY_LENGTH {
+            return Err(EditError::InvalidKey);
+        }
+        if !seen.insert(key) {
+            return Err(EditError::DuplicateEdit(key.to_owned()));
+        }
+    }
+    let mut current = text.to_owned();
+    let mut changes = Vec::new();
+    for edit in edits {
+        let (next, change) = apply_one(&current, edit)?;
+        current = next;
+        changes.extend(change);
+    }
+    Ok(EditOutcome {
+        text: current,
+        changes,
+    })
+}
+
+fn apply_one(text: &str, edit: &KeyEdit) -> Result<(String, Option<KeyChange>), EditError> {
+    let document = parse(text);
+    let key = edit.key();
+    let found: Vec<(&DotenvLine, &DotenvEntry)> = document
+        .lines
+        .iter()
+        .filter_map(|line| match &line.kind {
+            LineKind::Entry(entry) if entry.key == key => Some((line, entry)),
+            _ => None,
+        })
+        .collect();
+    match edit {
+        KeyEdit::Add {
+            value, exported, ..
+        } => {
+            let claimed = document.lines.iter().any(|line| {
+                matches!(line.kind, LineKind::Unknown) && unknown_line_claims_key(&line.raw, key)
+            });
+            if !found.is_empty() || claimed {
+                return Err(EditError::KeyExists(key.to_owned()));
+            }
+            let (rendered, _) = render_checked(key, value, QuoteStyle::None)?;
+            let terminator = line_ending(&document);
+            let mut next = text.to_owned();
+            if !next.is_empty() && !next.ends_with('\n') {
+                next.push_str(terminator);
+            }
+            if *exported {
+                next.push_str("export ");
+            }
+            next.push_str(&format!("{key}={rendered}"));
+            next.push_str(terminator);
+            Ok((
+                next,
+                Some(KeyChange {
+                    key: key.to_owned(),
+                    kind: ChangeKind::Add,
+                    secret: value_looks_secret(key, value),
+                    before: None,
+                    after: Some(value.clone()),
+                }),
+            ))
+        }
+        KeyEdit::Set { value, .. } => {
+            let (line, entry) = single_supported(key, &found)?;
+            if entry.quote == QuoteStyle::Double && entry.value.contains('\\') {
+                return Err(EditError::EscapedValue(key.to_owned()));
+            }
+            if entry.value == *value {
+                return Ok((text.to_owned(), None));
+            }
+            let (rendered, _) = render_checked(key, value, entry.quote)?;
+            let rewritten = rewrite_value(&line.raw, entry, &rendered);
+            let next = replace_line(&document, line.line, Some(&rewritten));
+            Ok((
+                next,
+                Some(KeyChange {
+                    key: key.to_owned(),
+                    kind: ChangeKind::Modify,
+                    secret: entry.secret || value_looks_secret(key, value),
+                    before: Some(entry.value.clone()),
+                    after: Some(value.clone()),
+                }),
+            ))
+        }
+        KeyEdit::Remove { .. } => {
+            let (line, entry) = single_supported(key, &found)?;
+            Ok((
+                replace_line(&document, line.line, None),
+                Some(KeyChange {
+                    key: key.to_owned(),
+                    kind: ChangeKind::Remove,
+                    secret: entry.secret,
+                    before: Some(entry.value.clone()),
+                    after: None,
+                }),
+            ))
+        }
+    }
+}
+
+/// The one plain entry for `key`; anything else is refused with its reason.
+fn single_supported<'a>(
+    key: &str,
+    found: &[(&'a DotenvLine, &'a DotenvEntry)],
+) -> Result<(&'a DotenvLine, &'a DotenvEntry), EditError> {
+    let Some((line, entry)) = found.first().copied() else {
+        return Err(EditError::KeyNotFound(key.to_owned()));
+    };
+    if !entry.flags.is_empty() {
+        let mut flags: Vec<EntryFlag> = found
+            .iter()
+            .flat_map(|(_, entry)| entry.flags.iter().copied())
+            .collect();
+        flags.sort();
+        flags.dedup();
+        return Err(EditError::UnsupportedEntry {
+            key: key.to_owned(),
+            flags,
+        });
+    }
+    Ok((line, entry))
+}
+
+/// An unparsed line that starts like `[export ]KEY =…` still claims the key.
+fn unknown_line_claims_key(raw: &str, key: &str) -> bool {
+    let trimmed = raw.trim_start();
+    let rest = match trimmed.strip_prefix("export") {
+        Some(rest) if rest.starts_with(char::is_whitespace) => rest.trim_start(),
+        _ => trimmed,
+    };
+    rest.split_once('=')
+        .is_some_and(|(name, _)| name.trim_end() == key)
+}
+
+/// New lines follow the style of the file: the terminator of its last
+/// terminated line, `\n` for a file without one.
+fn line_ending(document: &DotenvDocument) -> &str {
+    document
+        .lines
+        .iter()
+        .rev()
+        .map(|line| line.terminator.as_str())
+        .find(|terminator| !terminator.is_empty())
+        .unwrap_or("\n")
+}
+
+/// Rebuilds the text with the span starting at `first_line` replaced (or
+/// dropped). Its terminator is kept when it is replaced.
+fn replace_line(document: &DotenvDocument, first_line: usize, replacement: Option<&str>) -> String {
+    let mut text = String::new();
+    for line in &document.lines {
+        if line.line == first_line {
+            if let Some(raw) = replacement {
+                text.push_str(raw);
+                text.push_str(&line.terminator);
+            }
+        } else {
+            text.push_str(&line.raw);
+            text.push_str(&line.terminator);
+        }
+    }
+    text
+}
+
+/// Replaces only the value of a single-line entry; the key, `export`, the
+/// whitespace around the value and a trailing comment keep their bytes.
+fn rewrite_value(raw: &str, entry: &DotenvEntry, rendered: &str) -> String {
+    let Some(equals) = raw.find('=') else {
+        return raw.to_owned();
+    };
+    let (prefix, region) = raw.split_at(equals + 1);
+    match entry.quote {
+        QuoteStyle::None => {
+            let stripped = strip_inline_comment(region);
+            let value_text = stripped.trim();
+            let (lead, tail) = if value_text.is_empty() {
+                (stripped, &region[stripped.len()..])
+            } else {
+                let start = stripped.len() - stripped.trim_start().len();
+                (&region[..start], &region[start + value_text.len()..])
+            };
+            let mut next = format!("{prefix}{lead}{rendered}");
+            // A comment must never end up attached to the value.
+            if tail.starts_with('#') {
+                next.push(' ');
+            }
+            next.push_str(tail);
+            next
+        }
+        QuoteStyle::Single | QuoteStyle::Double => {
+            let quote = if entry.quote == QuoteStyle::Single {
+                '\''
+            } else {
+                '"'
+            };
+            let tail = split_at_closing(&region[1..], quote).map_or("", |(_, tail)| tail);
+            format!("{prefix}{rendered}{tail}")
+        }
+    }
+}
+
+fn render_checked(
+    key: &str,
+    value: &str,
+    prefer: QuoteStyle,
+) -> Result<(String, QuoteStyle), EditError> {
+    render_value(value, prefer).map_err(|problem| EditError::UnsafeValue {
+        key: key.to_owned(),
+        problem,
+    })
+}
+
+fn is_forbidden_character(character: char) -> bool {
+    character.is_control()
+        || matches!(
+            character,
+            '\u{200b}'..='\u{200f}'
+                | '\u{2028}'..='\u{202e}'
+                | '\u{2060}'..='\u{2064}'
+                | '\u{2066}'..='\u{2069}'
+                | '\u{feff}'
+        )
+}
+
+fn is_bare_safe(value: &str) -> bool {
+    !value.starts_with('=')
+        && value.chars().all(|character| {
+            character.is_alphanumeric()
+                || matches!(
+                    character,
+                    '_' | '-' | '.' | '/' | ':' | '@' | '%' | '+' | ',' | '='
+                )
+        })
+}
+
+/// Chooses a quoting form the parser of this tool reads back unchanged, with
+/// no escape, interpolation, command substitution or extra line: bare text,
+/// single quotes (literal), or double quotes for values that only need a `'`.
+/// `prefer` is tried first so an edit keeps the style of the line it replaces.
+pub fn render_value(value: &str, prefer: QuoteStyle) -> Result<(String, QuoteStyle), ValueProblem> {
+    if value.chars().any(is_forbidden_character) {
+        return Err(ValueProblem::ControlCharacter);
+    }
+    if value.chars().count() > MAX_EDIT_VALUE_CHARS {
+        return Err(ValueProblem::TooLong);
+    }
+    let order = std::iter::once(prefer).chain(
+        [QuoteStyle::None, QuoteStyle::Single, QuoteStyle::Double]
+            .into_iter()
+            .filter(move |style| *style != prefer),
+    );
+    for style in order {
+        let rendered = match style {
+            QuoteStyle::None => is_bare_safe(value).then(|| value.to_owned()),
+            QuoteStyle::Single => (!value.contains('\'')).then(|| format!("'{value}'")),
+            QuoteStyle::Double => {
+                (!value.contains(['"', '\\', '$', '`'])).then(|| format!("\"{value}\""))
+            }
+        };
+        if let Some(rendered) = rendered
+            && reads_back_exactly(&rendered, value)
+        {
+            return Ok((rendered, style));
+        }
+    }
+    Err(ValueProblem::NoSafeQuoting)
+}
+
+fn reads_back_exactly(rendered: &str, value: &str) -> bool {
+    let document = parse(&format!("K={rendered}\n"));
+    matches!(
+        document.lines.as_slice(),
+        [DotenvLine { kind: LineKind::Entry(entry), .. }]
+            if entry.value == value && entry.flags.is_empty()
+    )
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VerifyError {
+    NotText,
+    KeyMissing(String),
+    KeyStillPresent(String),
+    /// The key appears more than once or reads as dynamic/multi-line.
+    UnexpectedFlags(String),
+    ValueMismatch(String),
+    OtherLinesChanged,
+}
+
+/// Checks written bytes against the original with an independent read-back:
+/// every changed key holds exactly the expected value (or is gone), and every
+/// other line is byte for byte what it was. Only the final line of the
+/// original may have gained a line terminator.
+pub fn verify_edit(
+    original: &str,
+    written: &[u8],
+    changes: &[KeyChange],
+) -> Result<(), VerifyError> {
+    let Ok(written) = std::str::from_utf8(written) else {
+        return Err(VerifyError::NotText);
+    };
+    let after = parse(written);
+    for change in changes {
+        let found: Vec<&DotenvEntry> = after
+            .lines
+            .iter()
+            .filter_map(|line| match &line.kind {
+                LineKind::Entry(entry) if entry.key == change.key => Some(entry),
+                _ => None,
+            })
+            .collect();
+        match (change.kind, found.as_slice()) {
+            (ChangeKind::Remove, []) => {}
+            (ChangeKind::Remove, _) => {
+                return Err(VerifyError::KeyStillPresent(change.key.clone()));
+            }
+            (_, []) => return Err(VerifyError::KeyMissing(change.key.clone())),
+            (_, [entry]) => {
+                if !entry.flags.is_empty() {
+                    return Err(VerifyError::UnexpectedFlags(change.key.clone()));
+                }
+                if Some(&entry.value) != change.after.as_ref() {
+                    return Err(VerifyError::ValueMismatch(change.key.clone()));
+                }
+            }
+            (_, _) => return Err(VerifyError::UnexpectedFlags(change.key.clone())),
+        }
+    }
+    let changed: HashSet<&str> = changes.iter().map(|change| change.key.as_str()).collect();
+    let untouched = |document: &DotenvDocument| -> Vec<(String, String)> {
+        document
+            .lines
+            .iter()
+            .filter(|line| match &line.kind {
+                LineKind::Entry(entry) => !changed.contains(entry.key.as_str()),
+                _ => true,
+            })
+            .map(|line| (line.raw.clone(), line.terminator.clone()))
+            .collect()
+    };
+    let before = untouched(&parse(original));
+    let after = untouched(&after);
+    let last = before.len().saturating_sub(1);
+    let same = before.len() == after.len()
+        && before
+            .iter()
+            .zip(&after)
+            .enumerate()
+            .all(|(index, (old, new))| {
+                old.0 == new.0 && (old.1 == new.1 || (index == last && old.1.is_empty()))
+            });
+    if same {
+        Ok(())
+    } else {
+        Err(VerifyError::OtherLinesChanged)
+    }
+}
+
+#[cfg(test)]
+#[path = "edit_tests.rs"]
+mod edit_tests;
 
 #[cfg(test)]
 mod tests {
