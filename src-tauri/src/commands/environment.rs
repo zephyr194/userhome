@@ -8,12 +8,13 @@ use crate::{
     config::ConfigCoordinator,
     environment::{
         self, FileOutcome, FileRequest, RevealRequest, RevealedValue,
-        dotenv::KeyEdit,
+        dotenv::{KeyEdit, is_valid_key},
         save::{
             CreatePreviewRequest, EditPreviewRequest, EnvironmentEditCoordinator,
             EnvironmentEditPreview,
         },
         scan::{ScanConfig, ScanLimits, ScanOutcome},
+        zsh::{self, StartupFile, ZshOverview, ZshRequest, ZshRevealRequest},
     },
     error::AppError,
     grants::{
@@ -151,6 +152,112 @@ pub async fn reveal_environment_value(
 ) -> Result<RevealedValue, AppError> {
     tauri::async_runtime::spawn_blocking(move || {
         reveal_with(&app.state::<GrantCoordinator>(), input)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+// ---- zsh startup files (read-only) ------------------------------------------
+//
+// The four files are built-in sources: nothing here accepts a path. The only
+// optional input is a directory authorization the user chose (through the
+// native picker) for a `ZDOTDIR` that cannot be determined statically.
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ReadZshStartupInput {
+    #[serde(default)]
+    pub zdotdir_grant_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RevealZshValueInput {
+    pub file: StartupFile,
+    pub line: usize,
+    pub name: String,
+    #[serde(default)]
+    pub zdotdir_grant_id: Option<String>,
+}
+
+fn zsh_request(zdotdir_grant_id: Option<String>) -> Result<ZshRequest, AppError> {
+    Ok(ZshRequest {
+        zdotdir_grant: zdotdir_grant_id
+            .as_deref()
+            .map(GrantId::parse)
+            .transpose()?,
+    })
+}
+
+impl ReadZshStartupInput {
+    fn request(self) -> Result<ZshRequest, AppError> {
+        zsh_request(self.zdotdir_grant_id)
+    }
+}
+
+impl RevealZshValueInput {
+    fn request(self) -> Result<ZshRevealRequest, AppError> {
+        if self.line == 0 || !is_valid_key(&self.name) {
+            return Err(AppError::invalid_input("The entry reference is invalid."));
+        }
+        Ok(ZshRevealRequest {
+            zsh: zsh_request(self.zdotdir_grant_id)?,
+            file: self.file,
+            line: self.line,
+            name: self.name,
+        })
+    }
+}
+
+pub fn read_zsh_with(
+    coordinator: &GrantCoordinator,
+    home: Option<&std::path::Path>,
+    input: ReadZshStartupInput,
+) -> Result<ZshOverview, AppError> {
+    Ok(zsh::read_overview(coordinator, home, &input.request()?))
+}
+
+pub fn reveal_zsh_with(
+    coordinator: &GrantCoordinator,
+    home: Option<&std::path::Path>,
+    input: RevealZshValueInput,
+) -> Result<RevealedValue, AppError> {
+    zsh::reveal_value(coordinator, home, &input.request()?)
+}
+
+/// Lists the four zsh startup files with their shell types, the documented
+/// reading order, the `ZDOTDIR` decision and the statically recognized
+/// entries. Never starts a shell or executes a file; secret values are not
+/// part of the result.
+#[tauri::command]
+pub async fn read_zsh_startup_files(
+    app: AppHandle,
+    input: ReadZshStartupInput,
+) -> Result<ZshOverview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        read_zsh_with(
+            &app.state::<GrantCoordinator>(),
+            canonical_home().as_deref(),
+            input,
+        )
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Returns one zsh entry's value on explicit request (show/copy). The value is
+/// never logged and is not part of any list or error.
+#[tauri::command]
+pub async fn reveal_zsh_value(
+    app: AppHandle,
+    input: RevealZshValueInput,
+) -> Result<RevealedValue, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        reveal_zsh_with(
+            &app.state::<GrantCoordinator>(),
+            canonical_home().as_deref(),
+            input,
+        )
     })
     .await
     .map_err(|_| AppError::internal())?
@@ -516,6 +623,80 @@ mod tests {
         assert!(super::is_sha256_hex(HASH));
         for bad in ["", "NOT-A-HASH", &HASH.to_uppercase(), &HASH[1..]] {
             assert!(!super::is_sha256_hex(bad), "{bad}");
+        }
+    }
+    #[test]
+    fn zsh_inputs_never_carry_a_path_and_only_name_an_optional_directory_authorization() {
+        use super::{ReadZshStartupInput, RevealZshValueInput};
+
+        for ok in [
+            json!({}),
+            json!({ "zdotdirGrantId": null }),
+            json!({ "zdotdirGrantId": ID }),
+        ] {
+            assert!(serde_json::from_value::<ReadZshStartupInput>(ok).is_ok());
+        }
+        for bad in [
+            json!({ "path": "/Users/x/.zshrc" }),
+            json!({ "zdotdirGrantId": ID, "directory": "/Users/x" }),
+            json!({ "zdotdir": "/Users/x/.config/zsh" }),
+            json!({ "zdotdirGrantId": 7 }),
+        ] {
+            assert!(serde_json::from_value::<ReadZshStartupInput>(bad).is_err());
+        }
+        let reveal = |value| serde_json::from_value::<RevealZshValueInput>(value);
+        assert!(reveal(json!({ "file": "ZSHRC", "line": 3, "name": "API_TOKEN" })).is_ok());
+        assert!(
+            reveal(json!({ "file": "ZSHENV", "line": 1, "name": "A", "zdotdirGrantId": ID }))
+                .is_ok()
+        );
+        for bad in [
+            json!({ "file": "ZSHRC", "line": 3 }),
+            json!({ "file": "ZSHRC", "name": "A" }),
+            json!({ "line": 3, "name": "A" }),
+            json!({ "file": ".zshrc", "line": 3, "name": "A" }),
+            json!({ "file": "ZSHRC", "line": -1, "name": "A" }),
+            json!({ "file": "ZSHRC", "line": 3, "name": "A", "path": "/etc/zshrc" }),
+        ] {
+            assert!(reveal(bad).is_err());
+        }
+    }
+
+    #[test]
+    fn zsh_requests_validate_the_authorization_id_and_the_entry_reference() {
+        use super::{ReadZshStartupInput, RevealZshValueInput};
+        use crate::error::AppErrorCode;
+
+        let read = |grant: Option<&str>| {
+            ReadZshStartupInput {
+                zdotdir_grant_id: grant.map(str::to_owned),
+            }
+            .request()
+        };
+        assert!(read(None).expect("no choice").zdotdir_grant.is_none());
+        assert!(read(Some(ID)).expect("valid id").zdotdir_grant.is_some());
+        assert!(read(Some("not-a-grant")).is_err());
+
+        let reveal = |line: usize, name: &str| {
+            RevealZshValueInput {
+                file: crate::environment::zsh::StartupFile::Zshrc,
+                line,
+                name: name.to_owned(),
+                zdotdir_grant_id: None,
+            }
+            .request()
+        };
+        assert!(reveal(1, "API_TOKEN").is_ok());
+        for (line, name) in [
+            (0, "A"),
+            (1, ""),
+            (1, "1A"),
+            (1, "A B"),
+            (1, "A=1"),
+            (1, "$(x)"),
+        ] {
+            let error = reveal(line, name).expect_err("invalid reference");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput, "{line} {name:?}");
         }
     }
 }

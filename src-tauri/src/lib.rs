@@ -167,6 +167,8 @@ pub fn run() {
             commands::environment::preview_environment_edit,
             commands::environment::preview_environment_create,
             commands::environment::execute_environment_edit,
+            commands::environment::read_zsh_startup_files,
+            commands::environment::reveal_zsh_value,
             commands::resources::preview_resource_writes,
             commands::resources::execute_resource_write,
             commands::resources::get_resource_write_batch,

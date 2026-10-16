@@ -16,6 +16,8 @@ use crate::{
 pub mod dotenv;
 pub mod save;
 pub mod scan;
+pub mod zsh;
+pub mod zsh_parse;
 
 use dotenv::{DotenvEntry, DotenvLine, EntryFlag, LineKind, QuoteStyle};
 use scan::{FileKind, ScanConfig, ScanError, ScanLimits, classify_name};

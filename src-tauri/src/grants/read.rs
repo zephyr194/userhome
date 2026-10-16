@@ -128,6 +128,48 @@ impl GrantCoordinator {
     }
 }
 
+/// Why a built-in source was not read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BuiltInReadError {
+    /// The target resolves outside `$HOME` or into a protected credential
+    /// location; it was not opened.
+    Outside,
+    Failed(ReadError),
+}
+
+/// Bounded read of a source UserHome itself names (a fixed file below the
+/// user's home), as opposed to one the user authorized. It applies the same
+/// `$HOME` rule as grants (`path::ensure_below_home`: strictly below the home
+/// directory, outside `~/.ssh`, `~/.gnupg` and `~/Library/Keychains`) to the
+/// canonical target, so a symbolic link that leads out of `$HOME` is reported
+/// as `Outside` and never opened. The limit is enforced while streaming.
+pub fn read_built_in(
+    path: &Path,
+    home: Option<&Path>,
+    max_bytes: usize,
+) -> Result<GrantedRead, BuiltInReadError> {
+    let failed = |error: io::Error| BuiltInReadError::Failed(io_error(error));
+    let canonical = fs::canonicalize(path).map_err(failed)?;
+    path::ensure_below_home(&canonical, home).map_err(|error| match error {
+        GrantError::OutsideHome | GrantError::ProtectedLocation => BuiltInReadError::Outside,
+        other => BuiltInReadError::Failed(other.into()),
+    })?;
+    if !fs::metadata(&canonical).map_err(failed)?.is_file() {
+        return Err(BuiltInReadError::Failed(ReadError::Unsupported));
+    }
+    let file = File::open(&canonical).map_err(failed)?;
+    let metadata = file.metadata().map_err(failed)?;
+    if !metadata.is_file() {
+        return Err(BuiltInReadError::Failed(ReadError::Unsupported));
+    }
+    // The path must still name the file that was opened (no swap in between).
+    if fs::canonicalize(&canonical).map_err(failed)? != canonical {
+        return Err(BuiltInReadError::Outside);
+    }
+    ensure_same_file(&canonical, &metadata).map_err(BuiltInReadError::Failed)?;
+    granted_read(&file, &metadata, max_bytes).map_err(BuiltInReadError::Failed)
+}
+
 fn read_target(
     record: &GrantRecord,
     target: &Path,
@@ -144,8 +186,15 @@ fn read_target(
         return Err(ReadError::Unsupported);
     }
     ensure_still_authorized(record, target, &metadata)?;
+    granted_read(&file, &metadata, max_bytes)
+}
 
-    let content = read_bounded(&file, max_bytes, metadata.len())?;
+fn granted_read(
+    file: &File,
+    metadata: &fs::Metadata,
+    max_bytes: usize,
+) -> Result<GrantedRead, ReadError> {
+    let content = read_bounded(file, max_bytes, metadata.len())?;
     let fingerprint = ContentFingerprint {
         size: content.len() as u64,
         modified_unix_nanos: i128::from(metadata.mtime()) * 1_000_000_000
@@ -175,7 +224,11 @@ fn ensure_still_authorized(
     if !inside {
         return Err(ReadError::Excluded);
     }
-    let named = fs::metadata(&current).map_err(io_error)?;
+    ensure_same_file(&current, opened)
+}
+
+fn ensure_same_file(current: &Path, opened: &fs::Metadata) -> Result<(), ReadError> {
+    let named = fs::metadata(current).map_err(io_error)?;
     if named.dev() != opened.dev() || named.ino() != opened.ino() {
         return Err(ReadError::Excluded);
     }
@@ -230,7 +283,7 @@ mod tests {
 
     use super::{
         super::{GrantCoordinator, GrantPurpose, GrantStore},
-        DEFAULT_MAX_READ_BYTES, ReadError, read_bounded,
+        BuiltInReadError, DEFAULT_MAX_READ_BYTES, ReadError, read_bounded, read_built_in,
     };
 
     struct Fixture {
@@ -634,5 +687,95 @@ mod tests {
             coordinator.read_resource(&grant.id, None),
             Err(ReadError::NotFound)
         );
+    }
+    // ---- built-in sources ------------------------------------------------
+
+    #[test]
+    fn a_built_in_read_stays_below_home_and_keeps_failure_kinds() {
+        let fixture = Fixture::new();
+        let home = fixture.directory("home");
+        let outside = fixture.directory("elsewhere");
+        fs::write(outside.join("secret"), b"x").expect("write outside file");
+        fs::write(home.join(".zshrc"), b"export A=1\n").expect("write file");
+        symlink(outside.join("secret"), home.join("escape")).expect("outside link");
+        symlink(".zshrc", home.join("inside")).expect("inside link");
+        fs::create_dir_all(home.join(".ssh")).expect("create .ssh");
+        fs::write(home.join(".ssh/config"), b"Host *\n").expect("write ssh file");
+        symlink(".ssh/config", home.join("ssh-link")).expect("ssh link");
+        fs::create_dir_all(home.join("dir")).expect("create directory");
+        fs::write(home.join("big"), vec![b'x'; 11]).expect("write big");
+        symlink("missing", home.join("dangling")).expect("dangling link");
+
+        let read = |name: &str, max: usize| read_built_in(&home.join(name), Some(&home), max);
+
+        let plain = read(".zshrc", 64).expect("plain file");
+        assert_eq!(plain.content, b"export A=1\n");
+        assert_eq!(plain.fingerprint.size, 11);
+        assert_eq!(
+            read("inside", 64).expect("link inside home").content,
+            plain.content
+        );
+        assert_eq!(read("escape", 64), Err(BuiltInReadError::Outside));
+        assert_eq!(read("ssh-link", 64), Err(BuiltInReadError::Outside));
+        assert_eq!(
+            read("absent", 64),
+            Err(BuiltInReadError::Failed(ReadError::NotFound))
+        );
+        assert_eq!(
+            read("dangling", 64),
+            Err(BuiltInReadError::Failed(ReadError::NotFound))
+        );
+        assert_eq!(
+            read("dir", 64),
+            Err(BuiltInReadError::Failed(ReadError::Unsupported))
+        );
+        assert_eq!(
+            read("big", 10),
+            Err(BuiltInReadError::Failed(ReadError::TooLarge))
+        );
+        assert!(read("big", 11).is_ok());
+    }
+
+    #[test]
+    fn a_built_in_read_fails_closed_without_a_usable_home() {
+        let fixture = Fixture::new();
+        let home = fixture.directory("home");
+        fs::write(home.join(".zshrc"), b"x").expect("write file");
+
+        for unusable in [
+            None,
+            Some(PathBuf::from("relative")),
+            Some(PathBuf::from("/")),
+        ] {
+            assert_eq!(
+                read_built_in(&home.join(".zshrc"), unusable.as_deref(), 64),
+                Err(BuiltInReadError::Failed(ReadError::Excluded)),
+                "{unusable:?}"
+            );
+        }
+        // `$HOME` itself is not a readable target.
+        assert_eq!(
+            read_built_in(&home, Some(&home), 64),
+            Err(BuiltInReadError::Outside)
+        );
+    }
+
+    #[test]
+    fn a_built_in_read_reports_invalid_text_and_denied_access() {
+        let fixture = Fixture::new();
+        let home = fixture.directory("home");
+        fs::write(home.join("binary"), [0xff, 0xfe]).expect("write bytes");
+        let locked = home.join("locked");
+        fs::write(&locked, b"x").expect("write locked");
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o000)).expect("lock file");
+
+        let binary = read_built_in(&home.join("binary"), Some(&home), 64).expect("bytes read");
+        assert_eq!(binary.text(), Err(ReadError::Malformed));
+        if fs::File::open(&locked).is_err() {
+            assert_eq!(
+                read_built_in(&locked, Some(&home), 64),
+                Err(BuiltInReadError::Failed(ReadError::PermissionDenied))
+            );
+        }
     }
 }
