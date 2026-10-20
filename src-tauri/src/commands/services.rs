@@ -20,7 +20,10 @@ use crate::{
             ConfigValidity, ServiceDetails, ServiceInventoryError, ServiceSummary,
             caddy_config_validity, get_service as load_service, list_services as load_services,
         },
-        launchd::{DiscoveryGate, LaunchdDiscovery, discover_system},
+        launchd::DiscoveryGate,
+        ownership::{
+            HomebrewScope, OwnedDiscovery, check_homebrew_caddy_system, discover_owned_system,
+        },
     },
 };
 
@@ -33,10 +36,11 @@ pub async fn list_services(app: AppHandle) -> Result<Vec<ServiceSummary>, AppErr
     result.map_err(map_inventory_error)
 }
 
-/// Read-only launchd discovery. It takes no label or path from the caller; one
-/// run at a time, and the partial result says which sources failed.
+/// Read-only launchd discovery with the backend's ownership verdict on every
+/// job. It takes no label or path from the caller; one run at a time, and the
+/// partial result says which sources failed.
 #[tauri::command]
-pub async fn list_launchd_services() -> Result<LaunchdDiscovery, AppError> {
+pub async fn list_launchd_services() -> Result<OwnedDiscovery, AppError> {
     let Some(gate) = DiscoveryGate::try_acquire() else {
         return Err(AppError::conflict(
             "launchd discovery is already running. Retry when it finishes.",
@@ -44,7 +48,7 @@ pub async fn list_launchd_services() -> Result<LaunchdDiscovery, AppError> {
     };
     tauri::async_runtime::spawn_blocking(move || {
         let _gate = gate;
-        discover_system()
+        discover_owned_system()
     })
     .await
     .map_err(|_| AppError::internal())
@@ -77,6 +81,7 @@ pub async fn preview_service_action(
     .map_err(|_| AppError::internal())?
     .map_err(map_inventory_error)?;
     validate_action(&input, &service).map_err(|error| map_action_error(&error))?;
+    ensure_launchd_definition_allows(homebrew_scope(service.scope())?).await?;
     if input.action == ServiceAction::Restart {
         let (validity, _) = tauri::async_runtime::spawn_blocking(caddy_config_validity)
             .await
@@ -127,6 +132,10 @@ pub async fn execute_service_action(
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
     let pending = service_actions.pending(&operation_id)?;
+    if let Err(error) = ensure_launchd_definition_allows(homebrew_scope(pending.scope)?).await {
+        service_actions.forget(&operation_id);
+        return Err(error);
+    }
     let input = pending.input;
     let intent = service_action_intent(&input, pending.scope);
     if let Err(error) = operations.authorize_mutation(&operation_id, &intent) {
@@ -197,6 +206,29 @@ pub async fn execute_service_action(
         }
     }
     operations.get(&operation_id)
+}
+
+fn homebrew_scope(
+    scope: crate::services::inventory::ServiceScope,
+) -> Result<HomebrewScope, AppError> {
+    match scope {
+        crate::services::inventory::ServiceScope::User => Ok(HomebrewScope::User),
+        crate::services::inventory::ServiceScope::System => Ok(HomebrewScope::System),
+        crate::services::inventory::ServiceScope::Unknown => {
+            Err(map_action_error(&ServiceActionError::InvalidInput))
+        }
+    }
+}
+
+/// The legacy Homebrew action is only for Caddy. Before it runs, launchd's own
+/// definition of that job is rediscovered; an Apple path, another owner, a link
+/// or an unapproved location refuses the action. Nothing the frontend sent is
+/// used: the check has no label or path input.
+async fn ensure_launchd_definition_allows(scope: HomebrewScope) -> Result<(), AppError> {
+    tauri::async_runtime::spawn_blocking(move || check_homebrew_caddy_system(scope))
+        .await
+        .map_err(|_| AppError::internal())?
+        .map_err(AppError::from)
 }
 
 fn service_action_intent(

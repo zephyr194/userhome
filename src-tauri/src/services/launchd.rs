@@ -36,7 +36,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::grants::{BuiltInReadError, ReadError, built_in_dir, is_below_home};
 
@@ -46,14 +46,14 @@ mod plist;
 #[cfg(test)]
 mod tests;
 
-pub use command::{CommandRunner, ReadOnlyCommand, RunError, SystemRunner};
+pub use command::{CommandRunner, Label, ReadOnlyCommand, RunError, SystemRunner};
 pub use output::LastExit;
 
 use command::PLUTIL;
 use output::{LoadedJob, OutputError, ParsedJobs, parse_domain_services, parse_launchctl_list};
 use plist::{PlistDetails, PlistLabel, display_path, parse_plist_json};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LaunchdDomain {
     Gui,
@@ -70,7 +70,7 @@ pub enum LaunchdDirectory {
     AppleLaunchDaemons,
 }
 
-const DIRECTORIES: [LaunchdDirectory; 5] = [
+pub const DIRECTORIES: [LaunchdDirectory; 5] = [
     LaunchdDirectory::UserLaunchAgents,
     LaunchdDirectory::GlobalLaunchAgents,
     LaunchdDirectory::GlobalLaunchDaemons,
@@ -79,7 +79,7 @@ const DIRECTORIES: [LaunchdDirectory; 5] = [
 ];
 
 impl LaunchdDirectory {
-    fn domain(self) -> LaunchdDomain {
+    pub fn domain(self) -> LaunchdDomain {
         match self {
             Self::UserLaunchAgents | Self::GlobalLaunchAgents | Self::AppleLaunchAgents => {
                 LaunchdDomain::Gui
@@ -112,7 +112,7 @@ impl LaunchdDirectory {
         }
     }
 
-    fn source(self) -> Source {
+    pub fn source(self) -> Source {
         match self {
             Self::UserLaunchAgents => Source::UserLaunchAgents,
             Self::GlobalLaunchAgents => Source::GlobalLaunchAgents,
@@ -440,21 +440,27 @@ impl Drop for DiscoveryGate {
     }
 }
 
-/// Discovery against the real system, with the fixed read-only sources.
-pub fn discover_system() -> LaunchdDiscovery {
+/// Runs `use_context` against the real system: the fixed read-only sources and
+/// the current user's uid.
+pub fn with_system<T>(use_context: impl FnOnce(&Discovery<'_>) -> T) -> T {
     let home = std::env::var_os("HOME")
         .filter(|value| !value.is_empty())
         .and_then(|value| fs::canonicalize(value).ok());
     let locations = ScanLocations::fixed(home.as_deref());
     // SAFETY: getuid takes no arguments and cannot fail.
     let uid = unsafe { libc::getuid() };
-    discover(&Discovery {
+    use_context(&Discovery {
         uid,
         home,
         locations,
         runner: &SystemRunner,
         limits: Limits::default(),
     })
+}
+
+/// Discovery against the real system, with the fixed read-only sources.
+pub fn discover_system() -> LaunchdDiscovery {
+    with_system(discover)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
