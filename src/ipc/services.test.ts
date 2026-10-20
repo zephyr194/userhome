@@ -32,6 +32,16 @@ function configFile(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function ownership(overrides: Record<string, unknown> = {}) {
+  return {
+    ownership: "CURRENT_USER_AGENT",
+    modifiable: false,
+    readOnlyReasons: ["NOT_ADOPTED"],
+    evidence: ["DOMAIN_GUI", "IN_USER_LAUNCH_AGENTS", "OWNER_CURRENT_USER"],
+    ...overrides,
+  };
+}
+
 function service(overrides: Record<string, unknown> = {}) {
   return {
     id: "gui/501/com.example.agent",
@@ -48,6 +58,7 @@ function service(overrides: Record<string, unknown> = {}) {
     configPresence: "FOUND",
     configFiles: [configFile()],
     issues: ["LABEL_FILENAME_MISMATCH"],
+    ownership: ownership(),
     ...overrides,
   };
 }
@@ -243,3 +254,144 @@ describe("launchd discovery decoding", () => {
     expect(() => decodeLaunchdSourceReport(source(overrides))).toThrow();
   });
 });
+
+const CREATED_LABEL = "com.zephyr194.userhome.agent.demo";
+
+function createdService(overrides: Record<string, unknown> = {}) {
+  return service({
+    id: `gui/501/${CREATED_LABEL}`,
+    label: CREATED_LABEL,
+    issues: [],
+    ownership: ownership({
+      ownership: "USERHOME_CREATED",
+      modifiable: true,
+      readOnlyReasons: [],
+      evidence: ["LABEL_USERHOME_NAMESPACE", "IN_USER_LAUNCH_AGENTS"],
+    }),
+    ...overrides,
+  });
+}
+
+describe("launchd ownership decoding", () => {
+  it("decodes the backend verdict, its reasons and its evidence", () => {
+    const decoded = decodeLaunchdService(service());
+    expect(decoded.ownership).toEqual({
+      kind: "CURRENT_USER_AGENT",
+      modifiable: false,
+      readOnlyReasons: ["NOT_ADOPTED"],
+      evidence: ["DOMAIN_GUI", "IN_USER_LAUNCH_AGENTS", "OWNER_CURRENT_USER"],
+    });
+    const created = decodeLaunchdService(createdService());
+    expect(created.ownership).toMatchObject({
+      kind: "USERHOME_CREATED",
+      modifiable: true,
+      readOnlyReasons: [],
+    });
+    const discovery = decodeLaunchdDiscovery(
+      discoveryWith([service(), createdService()]),
+    );
+    expect(discovery.services.map((item) => item.ownership.modifiable)).toEqual(
+      [false, true],
+    );
+  });
+
+  it.each([
+    "CURRENT_USER_AGENT",
+    "GLOBAL_AGENT",
+    "SYSTEM_DAEMON",
+    "APPLE_MANAGED",
+    "THIRD_PARTY",
+    "USERHOME_CREATED",
+    "USERHOME_ADOPTED",
+  ])("accepts the ownership class %s when it is consistent", (kind) => {
+    const modifiable = kind.startsWith("USERHOME_");
+    const verdict = ownership({
+      ownership: kind,
+      modifiable,
+      readOnlyReasons: modifiable ? [] : ["NOT_ADOPTED"],
+    });
+    expect(() =>
+      decodeLaunchdService(
+        kind === "USERHOME_CREATED"
+          ? createdService({ ownership: verdict })
+          : service({ ownership: verdict }),
+      ),
+    ).not.toThrow();
+  });
+
+  it.each([
+    ["a missing verdict", { ownership: undefined }],
+    ["a null verdict", { ownership: null }],
+    ["a string verdict", { ownership: "USERHOME_CREATED" }],
+    ["an array verdict", { ownership: [] }],
+    ["an unknown class", { ownership: ownership({ ownership: "ADMIN" }) }],
+    ["a lowercase class", { ownership: ownership({ ownership: "third_party" }) }],
+    ["a non-boolean flag", { ownership: ownership({ modifiable: "false" }) }],
+    ["a missing flag", { ownership: ownership({ modifiable: undefined }) }],
+    ["an unknown reason", { ownership: ownership({ readOnlyReasons: ["BECAUSE"] }) }],
+    ["reasons that are not a list", { ownership: ownership({ readOnlyReasons: "NOT_ADOPTED" }) }],
+    ["too many reasons", { ownership: ownership({ readOnlyReasons: Array(17).fill("NOT_ADOPTED") }) }],
+    ["unknown evidence", { ownership: ownership({ evidence: ["TRUST_ME"] }) }],
+    ["no evidence at all", { ownership: ownership({ evidence: [] }) }],
+    ["too much evidence", { ownership: ownership({ evidence: Array(33).fill("DOMAIN_GUI") }) }],
+    ["read-only without a reason", { ownership: ownership({ readOnlyReasons: [] }) }],
+    [
+      "modifiable with a reason",
+      { ownership: ownership({ ownership: "USERHOME_CREATED", modifiable: true }) },
+    ],
+  ])("rejects a service with %s", (_name, overrides) => {
+    expect(() => decodeLaunchdService(service(overrides))).toThrow();
+  });
+
+  it.each([
+    "CURRENT_USER_AGENT",
+    "GLOBAL_AGENT",
+    "SYSTEM_DAEMON",
+    "APPLE_MANAGED",
+    "THIRD_PARTY",
+  ])("never accepts %s as modifiable", (kind) => {
+    expect(() =>
+      decodeLaunchdService(
+        service({
+          ownership: ownership({
+            ownership: kind,
+            modifiable: true,
+            readOnlyReasons: [],
+          }),
+        }),
+      ),
+    ).toThrow();
+  });
+
+  it("rejects a modifiable verdict that contradicts the service's own evidence", () => {
+    const claim = createdService().ownership;
+    const cases: Record<string, unknown>[] = [
+      { domain: "SYSTEM", domainTarget: "system" },
+      { configFiles: [] },
+      {
+        configFiles: [
+          configFile({ directory: "GLOBAL_LAUNCH_AGENTS", scope: "GLOBAL_AGENT" }),
+        ],
+      },
+      {
+        configFiles: [
+          configFile({ directory: "APPLE_LAUNCH_AGENTS", isApplePath: true }),
+        ],
+      },
+      { configFiles: [configFile({ kind: "LINK", parseStatus: "LINK_NOT_READ" })] },
+      { configFiles: [configFile(), configFile()] },
+      { label: "com.apple.forged", id: "gui/501/com.apple.forged" },
+      { label: "com.example.agent" },
+    ];
+    for (const overrides of cases) {
+      expect(
+        () => decodeLaunchdService(createdService({ ownership: claim, ...overrides })),
+        JSON.stringify(overrides),
+      ).toThrow();
+    }
+  });
+});
+
+function discoveryWith(services: unknown[]) {
+  return discovery({ services });
+}

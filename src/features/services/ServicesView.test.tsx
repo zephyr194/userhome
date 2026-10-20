@@ -6,7 +6,12 @@ import { describe, expect, it } from "vitest";
 import type { AppError } from "../../ipc/core";
 import type { ServiceSummary } from "../../ipc/services";
 import {
+  APPLE_OWNERSHIP,
+  CREATED_LABEL,
+  DAEMON_OWNERSHIP,
+  THIRD_PARTY_OWNERSHIP,
   configFile,
+  createdService,
   launchdService,
   partialDiscovery,
   sampleDiscovery,
@@ -197,7 +202,7 @@ describe("services filters", () => {
     for (const label of ["来源", "作用域", "状态"]) {
       expect(markup).toContain(`>${label}</label>`);
     }
-    expect(markup.match(/<select/g)).toHaveLength(3);
+    expect(markup.match(/<select/g)).toHaveLength(4);
     expect(markup).toContain(">全部来源<");
     expect(markup).toContain(">全部作用域<");
     expect(markup).toContain(">全部状态<");
@@ -506,6 +511,131 @@ describe("services feature sources", () => {
       expect(source, name).not.toMatch(
         /previewServiceAction|executeServiceAction|ServiceActionDialog/,
       );
+    }
+  });
+});
+
+describe("ownership in the details", () => {
+  const details = (service: Parameters<typeof LaunchdServiceDetails>[0]["service"]) =>
+    renderToStaticMarkup(
+      <LaunchdServiceDetails
+        evidence={{ status: "ready", summaries: [] }}
+        service={service}
+        sources={sampleDiscovery().sources}
+      />,
+    );
+
+  it("shows the class, the read-only verdict, the reasons and the evidence", () => {
+    const markup = details(launchdService());
+    expect(markup).toContain("归属与可修改性");
+    expect(markup).toContain("当前用户代理");
+    expect(markup).toContain("只读");
+    expect(markup).toContain("尚未被 UserHome 接管");
+    expect(markup).toContain("判定依据");
+    expect(markup).toContain("位于 ~/Library/LaunchAgents");
+    expect(markup).toContain("文件所有者是当前用户");
+    // The directory classification stays a separate, labelled concept.
+    expect(markup).toContain("仅按目录归类，不是归属判定");
+  });
+
+  it.each([
+    ["Apple", APPLE_OWNERSHIP, "Apple 管理", "Apple"],
+    ["a system daemon", DAEMON_OWNERSHIP, "系统 daemon", "系统"],
+    ["a third party", THIRD_PARTY_OWNERSHIP, "第三方", "符号链接"],
+  ])("explains why %s is read-only", (_name, ownership, label, reason) => {
+    const markup = details(launchdService({ ownership }));
+    expect(markup).toContain(label);
+    expect(markup).toContain("只读");
+    expect(markup).toContain(reason);
+    expect(markup).not.toMatch(/可修改(?!性)/);
+    expect(markup).not.toContain("<button");
+  });
+
+  it("shows a created job as modifiable yet still offers no action here", () => {
+    const markup = details(createdService());
+    expect(markup).toContain("UserHome 自建");
+    expect(markup).toContain("可修改");
+    expect(markup).toContain("本页面没有修改入口");
+    expect(markup).not.toContain("<button");
+    for (const word of ["启动", "停止", "重启", "删除", "卸载", "接管", "创建"]) {
+      expect(markup).not.toContain(`>${word}<`);
+    }
+  });
+
+  it("keeps every action off the page for every ownership class", () => {
+    const selected = [
+      launchdService(),
+      launchdService({ id: "a", label: "a", ownership: APPLE_OWNERSHIP }),
+      launchdService({ id: "b", label: "b", ownership: DAEMON_OWNERSHIP }),
+      launchdService({ id: "c", label: "c", ownership: THIRD_PARTY_OWNERSHIP }),
+      createdService(),
+    ];
+    for (const service of selected) {
+      const state: DiscoveryState = ready(
+        sampleDiscovery({ services: [service] }),
+      );
+      const markup = view({ state, selectedId: service.id });
+      const buttons = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
+        .filter((match) => !match[1].includes("services-inventory-row"))
+        .map((match) => match[2].replace(/<[^>]+>/g, ""));
+      expect(buttons, service.label).toEqual(["刷新"]);
+    }
+  });
+});
+
+describe("ownership in the list", () => {
+  it("offers an ownership filter apart from the directory-based source filter", () => {
+    const markup = view();
+    expect(markup).toContain(">归属</label>");
+    expect(markup).toContain(">来源</label>");
+    expect(markup).toContain(">全部归属<");
+    for (const label of [
+      "当前用户代理",
+      "全局代理",
+      "系统 daemon",
+      "Apple 管理",
+      "第三方",
+      "UserHome 自建",
+      "UserHome 已接管",
+    ]) {
+      expect(markup).toContain(label);
+    }
+    expect(markup).toContain("来源按所在目录归类");
+    expect(markup).toContain("归属由后端按所有者、位置与文件类型判定");
+  });
+
+  it("filters the list by ownership", () => {
+    const markup = view({ filter: withFilter({ ownership: "APPLE_MANAGED" }) });
+    expect(markup).toContain("显示 1 / 6 项");
+    expect(markup).toContain("com.apple.metadata.mds");
+    expect(markup).not.toContain("com.vendor.daemon<");
+  });
+
+  it("shows each job's ownership class on its row", () => {
+    const markup = view();
+    expect(markup).toContain("归属：Apple 管理");
+    expect(markup).toContain("归属：系统 daemon");
+    expect(markup).toContain("归属：第三方");
+    expect(markup).toContain("归属：当前用户代理");
+    expect(CREATED_LABEL).toContain("userhome.agent");
+  });
+});
+
+describe("services sources never promise a modification", () => {
+  it("has no mutating verbs wired to any control", () => {
+    const directory = join(process.cwd(), "src", "features", "services");
+    const files = readdirSync(directory)
+      .filter((name) => /^(launchd|Launchd|ServicesView|ServicesPage)/.test(name))
+      .filter((name) => /\.tsx?$/.test(name) && !name.includes(".test.") && name !== "launchdFixtures.ts");
+    expect(files).toContain("LaunchdServiceDetails.tsx");
+    for (const name of files) {
+      const source = readFileSync(join(directory, name), "utf8");
+      expect(source, name).not.toMatch(
+        /ensure_modifiable|adoptService|createService|deleteService|startService|stopService|unloadService|invokeCommand/,
+      );
+      if (name === "LaunchdServiceDetails.tsx") {
+        expect(source).not.toMatch(/onClick|<Button|<button|onSubmit/);
+      }
     }
   });
 });

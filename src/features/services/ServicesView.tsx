@@ -9,6 +9,7 @@ import {
 import { classNames } from "../../components/ui/classNames";
 import {
   LAUNCHD_DOMAINS,
+  LAUNCHD_OWNERSHIPS,
   LAUNCHD_SCOPES,
   type LaunchdService,
 } from "../../ipc/services";
@@ -24,6 +25,7 @@ import {
   filterServices,
   isFilterActive,
   moveIndex,
+  ownershipLabel,
   primaryConfigFile,
   resolveSelection,
   scopeLabel,
@@ -54,6 +56,14 @@ const SCOPE_OPTIONS = [
   ...LAUNCHD_SCOPES.map((scope) => ({
     value: scope,
     label: scopeLabel(scope),
+  })),
+] as const;
+
+const OWNERSHIP_OPTIONS = [
+  { value: "ALL", label: "全部归属" },
+  ...LAUNCHD_OWNERSHIPS.map((ownership) => ({
+    value: ownership,
+    label: ownershipLabel(ownership),
   })),
 ] as const;
 
@@ -168,6 +178,15 @@ function FilterBar({
         />
         <SelectField
           className="min-w-28 flex-1"
+          label="归属"
+          options={OWNERSHIP_OPTIONS}
+          value={filter.ownership}
+          onValueChange={(ownership) =>
+            onFilterChange({ ...filter, ownership })
+          }
+        />
+        <SelectField
+          className="min-w-28 flex-1"
           label="作用域"
           options={DOMAIN_OPTIONS}
           value={filter.domain}
@@ -181,6 +200,9 @@ function FilterBar({
           onValueChange={(status) => onFilterChange({ ...filter, status })}
         />
       </div>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        来源按所在目录归类，只是位置信息；归属由后端按所有者、位置与文件类型判定，两者不同。
+      </p>
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md">
         <span className="text-xs text-muted-foreground" role="status">
           {shown === undefined || total === undefined
@@ -355,6 +377,9 @@ function ServiceList({
                 </strong>
                 <span className={`block text-xs text-muted-foreground ${WRAP}`}>
                   {scopeLabel(service.scope)} · {domainLabel(service.domain)}
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  {`归属：${ownershipLabel(service.ownership.kind)}`}
                 </span>
                 {file ? (
                   <span

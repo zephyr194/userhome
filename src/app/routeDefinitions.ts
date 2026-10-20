@@ -73,7 +73,7 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     icon: "services",
     label: "服务",
     eyebrow: "后台服务",
-    description: "检查并管理 Homebrew 后台服务。",
+    description: "发现并查看本机常驻任务（launchd），管理自建任务。",
     group: "support",
   },
   environment: {

@@ -6,9 +6,12 @@ import type {
   LaunchdDomain,
   LaunchdFileKind,
   LaunchdKeepAliveMode,
+  LaunchdEvidence,
   LaunchdLastExit,
   LaunchdLinkState,
+  LaunchdOwnershipKind,
   LaunchdParseStatus,
+  LaunchdReadOnlyReason,
   LaunchdScope,
   LaunchdService,
   LaunchdSource,
@@ -33,6 +36,116 @@ const SCOPE_LABELS: Record<LaunchdScope, string> = {
 
 export function scopeLabel(scope: LaunchdScope): string {
   return SCOPE_LABELS[scope];
+}
+
+// ---- ownership ----------------------------------------------------------------
+// Ownership is the backend's judgement from the file owner, file type, location
+// and label. It is not the directory-based "source" above, and the two are
+// shown and filtered separately.
+
+const OWNERSHIP_LABELS: Record<LaunchdOwnershipKind, string> = {
+  CURRENT_USER_AGENT: "当前用户代理",
+  GLOBAL_AGENT: "全局代理",
+  SYSTEM_DAEMON: "系统 daemon",
+  APPLE_MANAGED: "Apple 管理",
+  THIRD_PARTY: "第三方",
+  USERHOME_CREATED: "UserHome 自建",
+  USERHOME_ADOPTED: "UserHome 已接管",
+};
+
+export function ownershipLabel(kind: LaunchdOwnershipKind): string {
+  return OWNERSHIP_LABELS[kind];
+}
+
+const OWNERSHIP_DESCRIPTIONS: Record<LaunchdOwnershipKind, string> = {
+  CURRENT_USER_AGENT:
+    "位于当前用户的 ~/Library/LaunchAgents，由当前用户拥有的普通文件。",
+  GLOBAL_AGENT: "位于 /Library/LaunchAgents，对所有用户生效的代理。",
+  SYSTEM_DAEMON: "运行在系统域，或配置位于 /Library/LaunchDaemons。",
+  APPLE_MANAGED: "Apple 提供的任务：label 以 com.apple. 开头，或配置位于 /System/Library。",
+  THIRD_PARTY:
+    "其余情形：来源、位置、所有者或文件类型不满足认定为当前用户任务的条件。",
+  USERHOME_CREATED:
+    "label 使用 UserHome 专属前缀，且位于当前用户的 LaunchAgents、由当前用户拥有的普通文件。",
+  USERHOME_ADOPTED:
+    "当前用户的代理，UserHome 保存了接管记录，并且文件通过了位置、所有者与类型校验。",
+};
+
+export function ownershipDescription(kind: LaunchdOwnershipKind): string {
+  return OWNERSHIP_DESCRIPTIONS[kind];
+}
+
+const READ_ONLY_REASON_TEXTS: Record<LaunchdReadOnlyReason, string> = {
+  APPLE_MANAGED:
+    "Apple 管理的任务（label 以 com.apple. 开头，或位于 /System/Library）永远只读。",
+  SYSTEM_DAEMON_LOCATION: "系统域任务或位于 /Library/LaunchDaemons；本版本不修改系统级任务。",
+  GLOBAL_AGENT_LOCATION: "位于 /Library/LaunchAgents，是全局代理；本版本不修改。",
+  NOT_ADOPTED: "这是当前用户自己的代理，但尚未被 UserHome 接管；接管之前保持只读。",
+  NO_CONFIG_FILE: "没有找到配置文件，无法确认归属。",
+  SYMBOLIC_LINK: "配置文件是符号链接，不会被跟随，也不会被修改。",
+  LINK_TARGET_OUTSIDE: "符号链接指向预期位置之外，或无法解析目标。",
+  OWNER_NOT_CURRENT_USER: "配置文件的所有者不是当前用户（包括 root 所有）。",
+  OWNER_UNKNOWN: "无法确定配置文件的所有者。",
+  PLIST_NOT_PARSED: "配置文件无法解析，内容不可确认。",
+  LABEL_NOT_FROM_PLIST: "任务的 label 不是来自配置文件内容，而是由文件名推断。",
+  LABEL_FILENAME_MISMATCH: "配置中的 label 与文件名不一致。",
+  DUPLICATE_DEFINITION: "同一 label 有多处定义，无法确定唯一的配置文件。",
+  UNAPPROVED_LOCATION: "配置文件不在批准的位置。",
+  DISCOVERY_INCOMPLETE:
+    "本次发现不完整，无法排除其他同名定义；请刷新后重试。",
+};
+
+export function readOnlyReasonText(reason: LaunchdReadOnlyReason): string {
+  return READ_ONLY_REASON_TEXTS[reason];
+}
+
+const EVIDENCE_TEXTS: Record<LaunchdEvidence, string> = {
+  LABEL_APPLE_NAMESPACE: "label 以 com.apple. 开头",
+  APPLE_PATH: "配置文件位于 /System/Library 之下",
+  LABEL_USERHOME_NAMESPACE: "label 使用 UserHome 专属前缀（仅凭前缀不足以认定）",
+  ADOPTION_RECORD: "存在 UserHome 的接管记录",
+  DOMAIN_GUI: "属于用户会话域",
+  DOMAIN_SYSTEM: "属于系统域",
+  IN_USER_LAUNCH_AGENTS: "位于 ~/Library/LaunchAgents",
+  IN_GLOBAL_LAUNCH_AGENTS: "位于 /Library/LaunchAgents",
+  IN_GLOBAL_LAUNCH_DAEMONS: "位于 /Library/LaunchDaemons",
+  OWNER_CURRENT_USER: "文件所有者是当前用户",
+  OWNER_OTHER_USER: "文件所有者不是当前用户（包括 root）",
+  OWNER_UNKNOWN: "无法确定文件所有者",
+  REGULAR_FILE: "是普通文件",
+  SYMBOLIC_LINK: "是符号链接（不跟随、不读取）",
+  NO_CONFIG_FILE: "没有找到配置文件",
+};
+
+export function evidenceText(evidence: LaunchdEvidence): string {
+  return EVIDENCE_TEXTS[evidence];
+}
+
+export interface OwnershipSummary {
+  kind: LaunchdOwnershipKind;
+  label: string;
+  description: string;
+  modifiable: boolean;
+  badge: "只读" | "可修改";
+  reasons: string[];
+  evidence: string[];
+  note: string;
+}
+
+export function ownershipSummary(service: LaunchdService): OwnershipSummary {
+  const { ownership } = service;
+  return {
+    kind: ownership.kind,
+    label: ownershipLabel(ownership.kind),
+    description: ownershipDescription(ownership.kind),
+    modifiable: ownership.modifiable,
+    badge: ownership.modifiable ? "可修改" : "只读",
+    reasons: ownership.readOnlyReasons.map(readOnlyReasonText),
+    evidence: ownership.evidence.map(evidenceText),
+    note: ownership.modifiable
+      ? "后端判定该任务属于 UserHome，可以修改；本页面没有修改入口，任何修改都会由后端重新发现并复核归属后才执行。"
+      : "只读任务不会被修改：本页面没有修改入口，后端也会在重新判定后拒绝对它的任何修改。",
+  };
 }
 
 const DOMAIN_LABELS: Record<LaunchdDomain, string> = {
@@ -297,7 +410,10 @@ export function executionOf(service: LaunchdService): Execution | undefined {
 
 export interface ServiceFilter {
   query: string;
+  /** Where the definition sits, by directory. Not the ownership verdict. */
   scope: LaunchdScope | "ALL";
+  /** The backend's ownership verdict. */
+  ownership: LaunchdOwnershipKind | "ALL";
   domain: LaunchdDomain | "ALL";
   status: StatusCategory | "ALL";
 }
@@ -305,6 +421,7 @@ export interface ServiceFilter {
 export const EMPTY_FILTER: ServiceFilter = {
   query: "",
   scope: "ALL",
+  ownership: "ALL",
   domain: "ALL",
   status: "ALL",
 };
@@ -313,6 +430,7 @@ export function isFilterActive(filter: ServiceFilter): boolean {
   return (
     filter.query.trim() !== "" ||
     filter.scope !== "ALL" ||
+    filter.ownership !== "ALL" ||
     filter.domain !== "ALL" ||
     filter.status !== "ALL"
   );
@@ -340,6 +458,8 @@ export function filterServices(
   return services.filter(
     (service) =>
       (filter.scope === "ALL" || service.scope === filter.scope) &&
+      (filter.ownership === "ALL" ||
+        service.ownership.kind === filter.ownership) &&
       (filter.domain === "ALL" || service.domain === filter.domain) &&
       (filter.status === "ALL" || statusCategory(service) === filter.status) &&
       (query === "" ||

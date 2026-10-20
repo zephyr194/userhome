@@ -15,6 +15,7 @@ import {
   issueText,
   keepAliveText,
   linkStateText,
+  ownershipSummary,
   parseStatusText,
   scopeLabel,
   sourceLabel,
@@ -229,6 +230,7 @@ export function LaunchdServiceDetails({
   sources: readonly LaunchdSourceReport[];
 }) {
   const status = statusPresentation(service);
+  const ownership = ownershipSummary(service);
   const problems = sourceProblems(sources);
   const brew =
     evidence.status === "ready"
@@ -255,7 +257,10 @@ export function LaunchdServiceDetails({
         <div className="flex shrink-0 flex-wrap justify-end gap-ui-sm">
           <StatusBadge>{scopeLabel(service.scope)}</StatusBadge>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-          <StatusBadge tone="warning">只读</StatusBadge>
+          <StatusBadge>{ownership.label}</StatusBadge>
+          <StatusBadge tone={ownership.modifiable ? "success" : "warning"}>
+            {ownership.badge}
+          </StatusBadge>
         </div>
       </header>
 
@@ -278,6 +283,41 @@ export function LaunchdServiceDetails({
         </p>
       </Section>
 
+      <Section title="归属与可修改性">
+        <dl className="grid min-w-0 gap-px overflow-hidden rounded-control bg-border sm:grid-cols-2">
+          <Row label="归属">{ownership.label}</Row>
+          <Row label="可修改性">{ownership.badge}</Row>
+        </dl>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {ownership.description}
+        </p>
+        {ownership.reasons.length > 0 ? (
+          <div className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs">
+            <p className="font-semibold">只读原因</p>
+            <ul className="mt-ui-xs grid gap-ui-xs" aria-label="只读原因">
+              {ownership.reasons.map((reason) => (
+                <li className={WRAP} key={reason}>
+                  {reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <div className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs">
+          <p className="font-semibold">判定依据</p>
+          <ul className="mt-ui-xs grid gap-ui-xs" aria-label="判定依据">
+            {ownership.evidence.map((item) => (
+              <li className={WRAP} key={item}>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground" role="status">
+          {ownership.note}
+        </p>
+      </Section>
+
       <Section title="来源与归属依据">
         <dl className="grid min-w-0 gap-px overflow-hidden rounded-control bg-border sm:grid-cols-2">
           <Row label="按目录归类">{scopeLabel(service.scope)}</Row>
@@ -285,7 +325,7 @@ export function LaunchdServiceDetails({
           <Row label="配置文件状态">{correlationText(service)}</Row>
         </dl>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          仅按目录归类，不是归属判定；归属与可修改性不在此处判定。此页面只读，不提供启动、停止、删除或创建入口。
+          仅按目录归类，不是归属判定；归属与可修改性见上方「归属与可修改性」。此页面不提供启动、停止、删除、接管或创建入口。
         </p>
         {service.issues.length > 0 ? (
           <ul

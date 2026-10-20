@@ -1,6 +1,7 @@
 import type {
   LaunchdConfigFile,
   LaunchdDiscovery,
+  LaunchdOwnership,
   LaunchdService,
   LaunchdSourceReport,
 } from "../../ipc/services";
@@ -34,6 +35,77 @@ export function configFile(
   };
 }
 
+/** A current user's own agent, read-only until adopted: the common default. */
+export function ownership(
+  overrides: Partial<LaunchdOwnership> = {},
+): LaunchdOwnership {
+  return {
+    kind: "CURRENT_USER_AGENT",
+    modifiable: false,
+    readOnlyReasons: ["NOT_ADOPTED"],
+    evidence: [
+      "DOMAIN_GUI",
+      "IN_USER_LAUNCH_AGENTS",
+      "OWNER_CURRENT_USER",
+      "REGULAR_FILE",
+    ],
+    ...overrides,
+  };
+}
+
+export const APPLE_OWNERSHIP: LaunchdOwnership = ownership({
+  kind: "APPLE_MANAGED",
+  readOnlyReasons: ["APPLE_MANAGED"],
+  evidence: ["DOMAIN_SYSTEM", "LABEL_APPLE_NAMESPACE", "NO_CONFIG_FILE"],
+});
+
+export const DAEMON_OWNERSHIP: LaunchdOwnership = ownership({
+  kind: "SYSTEM_DAEMON",
+  readOnlyReasons: ["SYSTEM_DAEMON_LOCATION"],
+  evidence: [
+    "DOMAIN_SYSTEM",
+    "IN_GLOBAL_LAUNCH_DAEMONS",
+    "OWNER_OTHER_USER",
+    "REGULAR_FILE",
+  ],
+});
+
+export const THIRD_PARTY_OWNERSHIP: LaunchdOwnership = ownership({
+  kind: "THIRD_PARTY",
+  readOnlyReasons: ["SYMBOLIC_LINK", "LINK_TARGET_OUTSIDE", "PLIST_NOT_PARSED"],
+  evidence: ["DOMAIN_GUI", "IN_USER_LAUNCH_AGENTS", "SYMBOLIC_LINK"],
+});
+
+export const CREATED_OWNERSHIP: LaunchdOwnership = ownership({
+  kind: "USERHOME_CREATED",
+  modifiable: true,
+  readOnlyReasons: [],
+  evidence: [
+    "DOMAIN_GUI",
+    "LABEL_USERHOME_NAMESPACE",
+    "IN_USER_LAUNCH_AGENTS",
+    "OWNER_CURRENT_USER",
+    "REGULAR_FILE",
+  ],
+});
+
+export const CREATED_LABEL = "com.zephyr194.userhome.agent.demo";
+
+/** A job UserHome created: the only kind the backend calls modifiable here. */
+export function createdService(): LaunchdService {
+  return launchdService({
+    id: `gui/501/${CREATED_LABEL}`,
+    label: CREATED_LABEL,
+    labelSource: "PLIST",
+    ownership: CREATED_OWNERSHIP,
+    configFiles: [
+      configFile({
+        path: `~/Library/LaunchAgents/${CREATED_LABEL}.plist`,
+      }),
+    ],
+  });
+}
+
 export function launchdService(
   overrides: Partial<LaunchdService> = {},
 ): LaunchdService {
@@ -52,6 +124,7 @@ export function launchdService(
     configPresence: "FOUND",
     configFiles: [configFile()],
     issues: [],
+    ownership: ownership(),
     ...overrides,
   };
 }
@@ -121,6 +194,7 @@ export function sampleServices(): LaunchdService[] {
       scope: "SYSTEM_DAEMON",
       pid: 77,
       lastExit: undefined,
+      ownership: DAEMON_OWNERSHIP,
       configFiles: [
         configFile({
           path: "/Library/LaunchDaemons/com.vendor.daemon.plist",
@@ -145,6 +219,7 @@ export function sampleServices(): LaunchdService[] {
       configPresence: "NOT_FOUND_IN_SCANNED",
       pid: 91,
       lastExit: undefined,
+      ownership: APPLE_OWNERSHIP,
       configFiles: [],
     }),
     launchdService({
@@ -158,6 +233,7 @@ export function sampleServices(): LaunchdService[] {
       lastExit: undefined,
       configPresence: "UNKNOWN",
       issues: ["MISSING_LABEL"],
+      ownership: THIRD_PARTY_OWNERSHIP,
       configFiles: [
         configFile({
           path: "~/Library/LaunchAgents/broken.plist",

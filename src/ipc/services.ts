@@ -211,6 +211,60 @@ export const LAUNCHD_ISSUES = [
 ] as const;
 export type LaunchdIssue = (typeof LAUNCHD_ISSUES)[number];
 
+/**
+ * The backend's verdict on who owns a job. Unlike `LaunchdScope`, which only
+ * says which directory a file sits in, this is judged from the file owner, the
+ * file type, the location and the label together.
+ */
+export const LAUNCHD_OWNERSHIPS = [
+  "CURRENT_USER_AGENT",
+  "GLOBAL_AGENT",
+  "SYSTEM_DAEMON",
+  "APPLE_MANAGED",
+  "THIRD_PARTY",
+  "USERHOME_CREATED",
+  "USERHOME_ADOPTED",
+] as const;
+export type LaunchdOwnershipKind = (typeof LAUNCHD_OWNERSHIPS)[number];
+
+export const LAUNCHD_READ_ONLY_REASONS = [
+  "APPLE_MANAGED",
+  "SYSTEM_DAEMON_LOCATION",
+  "GLOBAL_AGENT_LOCATION",
+  "NOT_ADOPTED",
+  "NO_CONFIG_FILE",
+  "SYMBOLIC_LINK",
+  "LINK_TARGET_OUTSIDE",
+  "OWNER_NOT_CURRENT_USER",
+  "OWNER_UNKNOWN",
+  "PLIST_NOT_PARSED",
+  "LABEL_NOT_FROM_PLIST",
+  "LABEL_FILENAME_MISMATCH",
+  "DUPLICATE_DEFINITION",
+  "UNAPPROVED_LOCATION",
+  "DISCOVERY_INCOMPLETE",
+] as const;
+export type LaunchdReadOnlyReason = (typeof LAUNCHD_READ_ONLY_REASONS)[number];
+
+export const LAUNCHD_EVIDENCE = [
+  "LABEL_APPLE_NAMESPACE",
+  "APPLE_PATH",
+  "LABEL_USERHOME_NAMESPACE",
+  "ADOPTION_RECORD",
+  "DOMAIN_GUI",
+  "DOMAIN_SYSTEM",
+  "IN_USER_LAUNCH_AGENTS",
+  "IN_GLOBAL_LAUNCH_AGENTS",
+  "IN_GLOBAL_LAUNCH_DAEMONS",
+  "OWNER_CURRENT_USER",
+  "OWNER_OTHER_USER",
+  "OWNER_UNKNOWN",
+  "REGULAR_FILE",
+  "SYMBOLIC_LINK",
+  "NO_CONFIG_FILE",
+] as const;
+export type LaunchdEvidence = (typeof LAUNCHD_EVIDENCE)[number];
+
 export const LAUNCHD_FILE_KINDS = ["REGULAR", "LINK"] as const;
 export type LaunchdFileKind = (typeof LAUNCHD_FILE_KINDS)[number];
 
@@ -311,6 +365,16 @@ export interface LaunchdConfigFile {
   details?: LaunchdPlistDetails;
 }
 
+export interface LaunchdOwnership {
+  kind: LaunchdOwnershipKind;
+  /** Judged by the backend; the backend rechecks before any change. */
+  modifiable: boolean;
+  /** Empty exactly when `modifiable`. */
+  readOnlyReasons: LaunchdReadOnlyReason[];
+  /** The facts the verdict rests on; never empty. */
+  evidence: LaunchdEvidence[];
+}
+
 export interface LaunchdService {
   id: string;
   label: string;
@@ -327,6 +391,7 @@ export interface LaunchdService {
   configPresence: LaunchdConfigPresence;
   configFiles: LaunchdConfigFile[];
   issues: LaunchdIssue[];
+  ownership: LaunchdOwnership;
 }
 
 export interface LaunchdSourceReport {
@@ -496,6 +561,64 @@ export function decodeLaunchdConfigFile(value: unknown): LaunchdConfigFile {
   };
 }
 
+const MAX_READ_ONLY_REASONS = 16;
+const MAX_EVIDENCE = 32;
+
+/** The namespace of jobs UserHome creates; the backend checks more than this. */
+const USERHOME_LABEL_NAMESPACE = "com.zephyr194.userhome.agent.";
+
+const MODIFIABLE_OWNERSHIPS: readonly LaunchdOwnershipKind[] = [
+  "USERHOME_CREATED",
+  "USERHOME_ADOPTED",
+];
+
+function decodeLaunchdOwnership(value: unknown): LaunchdOwnership {
+  if (!isRecord(value)) throw createInternalError();
+  const kind = oneOf(value.ownership, LAUNCHD_OWNERSHIPS);
+  const modifiable = decodeBoolean(value.modifiable);
+  const readOnlyReasons = decodeList(
+    value.readOnlyReasons,
+    MAX_READ_ONLY_REASONS,
+    (reason) => oneOf(reason, LAUNCHD_READ_ONLY_REASONS),
+  );
+  const evidence = decodeList(value.evidence, MAX_EVIDENCE, (item) =>
+    oneOf(item, LAUNCHD_EVIDENCE),
+  );
+  // A verdict is modifiable exactly when nothing keeps it read-only, it always
+  // shows what it rests on, and only UserHome's own jobs can ever be modifiable.
+  if (
+    modifiable !== (readOnlyReasons.length === 0) ||
+    evidence.length === 0 ||
+    (modifiable && !MODIFIABLE_OWNERSHIPS.includes(kind))
+  ) {
+    throw createInternalError();
+  }
+  return { kind, modifiable, readOnlyReasons, evidence };
+}
+
+/**
+ * A modifiable verdict must agree with what the same payload shows: a user
+ * session job with one regular file in the user's LaunchAgents, no Apple label
+ * or path, and a UserHome label for a created job. Otherwise fail closed.
+ */
+function assertConsistentOwnership(service: LaunchdService): void {
+  const { ownership } = service;
+  if (!ownership.modifiable) return;
+  const [file, ...others] = service.configFiles;
+  const consistent =
+    service.domain === "GUI" &&
+    file !== undefined &&
+    others.length === 0 &&
+    file.directory === "USER_LAUNCH_AGENTS" &&
+    file.kind === "REGULAR" &&
+    !file.isApplePath &&
+    !service.label.startsWith("com.apple.") &&
+    (ownership.kind !== "USERHOME_CREATED" ||
+      (service.label.startsWith(USERHOME_LABEL_NAMESPACE) &&
+        service.label.length > USERHOME_LABEL_NAMESPACE.length));
+  if (!consistent) throw createInternalError();
+}
+
 export function decodeLaunchdService(value: unknown): LaunchdService {
   if (!isRecord(value)) throw createInternalError();
   const loadState = oneOf(value.loadState, LAUNCHD_LOAD_STATES);
@@ -506,7 +629,7 @@ export function decodeLaunchdService(value: unknown): LaunchdService {
   if (pid !== undefined && (loadState !== "LOADED" || runState !== "RUNNING")) {
     throw createInternalError();
   }
-  return {
+  const decoded: LaunchdService = {
     id: decodeLaunchdNonEmptyText(value.id),
     label: decodeLaunchdNonEmptyText(value.label),
     labelSource: oneOf(value.labelSource, LAUNCHD_LABEL_SOURCES),
@@ -527,7 +650,10 @@ export function decodeLaunchdService(value: unknown): LaunchdService {
     issues: decodeList(value.issues, 8, (issue) =>
       oneOf(issue, LAUNCHD_ISSUES),
     ),
+    ownership: decodeLaunchdOwnership(value.ownership),
   };
+  assertConsistentOwnership(decoded);
+  return decoded;
 }
 
 export function decodeLaunchdSourceReport(value: unknown): LaunchdSourceReport {

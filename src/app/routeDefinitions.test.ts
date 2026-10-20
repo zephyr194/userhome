@@ -54,4 +54,12 @@ describe("route registry", () => {
     );
     expect(tools?.routes.map((route) => route.label)).toEqual(["环境变量"]);
   });
+
+  it("describes the services page as launchd discovery, not Homebrew-only management", () => {
+    const services = APP_ROUTES.find((route) => route.id === "services");
+    expect(services?.description).toBe(
+      "发现并查看本机常驻任务（launchd），管理自建任务。",
+    );
+    expect(services?.description).not.toContain("Homebrew");
+  });
 });

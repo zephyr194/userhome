@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
 import type { AppError } from "../../ipc/core";
-import type { ServiceSummary } from "../../ipc/services";
 import {
+  LAUNCHD_EVIDENCE,
+  LAUNCHD_OWNERSHIPS,
+  LAUNCHD_READ_ONLY_REASONS,
+  type ServiceSummary,
+} from "../../ipc/services";
+import {
+  APPLE_OWNERSHIP,
+  CREATED_OWNERSHIP,
+  DAEMON_OWNERSHIP,
+  THIRD_PARTY_OWNERSHIP,
   configFile,
+  createdService,
   launchdService,
   partialDiscovery,
   sampleDiscovery,
@@ -22,8 +32,14 @@ import {
   executionOf,
   exitText,
   filterServices,
+  evidenceText,
+  isFilterActive,
   moveIndex,
+  ownershipDescription,
+  ownershipLabel,
+  ownershipSummary,
   problemSources,
+  readOnlyReasonText,
   resolveSelection,
   scopeLabel,
   sourceReasonText,
@@ -376,5 +392,86 @@ describe("refresh throttle", () => {
         now,
       }),
     ).toBe(true);
+  });
+});
+
+describe("ownership presentation", () => {
+  it("names every ownership class distinctly and in Chinese", () => {
+    const labels = LAUNCHD_OWNERSHIPS.map(ownershipLabel);
+    expect(new Set(labels).size).toBe(LAUNCHD_OWNERSHIPS.length);
+    for (const label of labels) expect(label).toMatch(/[\u4e00-\u9fff]/);
+    expect(ownershipLabel("APPLE_MANAGED")).toContain("Apple");
+    expect(ownershipLabel("USERHOME_CREATED")).toContain("UserHome");
+    for (const kind of LAUNCHD_OWNERSHIPS) {
+      expect(ownershipDescription(kind).length).toBeGreaterThan(8);
+    }
+  });
+
+  it("explains every read-only reason and every piece of evidence", () => {
+    for (const reason of LAUNCHD_READ_ONLY_REASONS) {
+      const text = readOnlyReasonText(reason);
+      expect(text, reason).toMatch(/[\u4e00-\u9fff]/);
+      expect(text, reason).not.toMatch(/[A-Z]{3,}_[A-Z]/);
+    }
+    for (const evidence of LAUNCHD_EVIDENCE) {
+      const text = evidenceText(evidence);
+      expect(text, evidence).toMatch(/[\u4e00-\u9fff]/);
+      expect(text, evidence).not.toMatch(/[A-Z]{3,}_[A-Z]/);
+    }
+  });
+
+  it("summarizes read-only and modifiable verdicts without promising an action", () => {
+    const readOnly = ownershipSummary(launchdService());
+    expect(readOnly.modifiable).toBe(false);
+    expect(readOnly.badge).toBe("只读");
+    expect(readOnly.reasons.length).toBeGreaterThan(0);
+    expect(readOnly.reasons.join("")).toContain("接管");
+
+    const created = ownershipSummary(createdService());
+    expect(created.modifiable).toBe(true);
+    expect(created.badge).toBe("可修改");
+    expect(created.reasons).toEqual([]);
+    expect(created.note).toContain("没有修改入口");
+  });
+
+  it("filters by ownership, separately from the directory-based source", () => {
+    expect(ids({ ownership: "APPLE_MANAGED" })).toEqual([
+      "com.apple.metadata.mds",
+    ]);
+    expect(ids({ ownership: "SYSTEM_DAEMON" })).toEqual(["com.vendor.daemon"]);
+    expect(ids({ ownership: "THIRD_PARTY" })).toEqual(["broken"]);
+    expect(ids({ ownership: "CURRENT_USER_AGENT" })).toEqual([
+      "com.example.agent",
+      "com.example.idle",
+      "com.example.disabled",
+    ]);
+    expect(ids({ ownership: "USERHOME_CREATED" })).toEqual([]);
+    // Source (by directory) and ownership (judged) are independent filters.
+    expect(ids({ scope: "USER_AGENT", ownership: "THIRD_PARTY" })).toEqual([
+      "broken",
+    ]);
+    expect(ids({ scope: "SYSTEM_DAEMON", ownership: "THIRD_PARTY" })).toEqual(
+      [],
+    );
+    expect(ids({ ownership: "ALL" })).toHaveLength(6);
+  });
+
+  it("counts an ownership filter as an active filter and clears with the empty filter", () => {
+    expect(isFilterActive(EMPTY_FILTER)).toBe(false);
+    expect(isFilterActive({ ...EMPTY_FILTER, ownership: "APPLE_MANAGED" })).toBe(
+      true,
+    );
+    expect(EMPTY_FILTER.ownership).toBe("ALL");
+  });
+
+  it("keeps the fixtures' verdicts self-consistent", () => {
+    for (const verdict of [
+      APPLE_OWNERSHIP,
+      DAEMON_OWNERSHIP,
+      THIRD_PARTY_OWNERSHIP,
+      CREATED_OWNERSHIP,
+    ]) {
+      expect(verdict.modifiable).toBe(verdict.readOnlyReasons.length === 0);
+    }
   });
 });
