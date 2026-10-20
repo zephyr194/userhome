@@ -277,7 +277,6 @@ export function RoutePanel({
         onSelectedServiceChange={(serviceId) =>
           onSelectionChange({ serviceId })
         }
-        onOperationChanged={onOperationChanged}
         refreshId={
           discovery.status === "ready"
             ? discovery.snapshot.refreshId

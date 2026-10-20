@@ -14,6 +14,7 @@ import {
   EMPTY_FILTER,
   INITIAL_DISCOVERY_STATE,
   canStartRefresh,
+  correlationBrief,
   correlationText,
   discoveryReducer,
   domainLabel,
@@ -93,6 +94,19 @@ describe("status presentation", () => {
     // A load-only job with an unknown presence must not claim absence.
     expect(
       correlationText(
+        launchdService({ correlation: "LOADED_ONLY", configPresence: "UNKNOWN", configFiles: [] }),
+      ),
+    ).toContain("无法确认");
+  });
+
+  it("gives list rows a short line only for non-matched entries", () => {
+    const [running, , fileOnly, , loadedOnly, unmatched] = sampleServices();
+    expect(correlationBrief(running)).toBeUndefined();
+    expect(correlationBrief(fileOnly)).toBe("有配置文件，当前未加载");
+    expect(correlationBrief(loadedOnly)).toBe("已加载，未找到配置文件");
+    expect(correlationBrief(unmatched)).toBe("配置文件无法对应到任务");
+    expect(
+      correlationBrief(
         launchdService({ correlation: "LOADED_ONLY", configPresence: "UNKNOWN", configFiles: [] }),
       ),
     ).toContain("无法确认");

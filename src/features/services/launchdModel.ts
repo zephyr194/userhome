@@ -13,6 +13,7 @@ import type {
   LaunchdService,
   LaunchdSource,
   LaunchdSourceReason,
+  LaunchdSourceReport,
   LaunchdSourceStatus,
   ServiceSummary,
 } from "../../ipc/services";
@@ -242,6 +243,22 @@ export function correlationText(service: LaunchdService): string {
   return CORRELATION_TEXTS[service.correlation];
 }
 
+/** One short line for list rows; the details view has the full explanation. */
+export function correlationBrief(service: LaunchdService): string | undefined {
+  switch (service.correlation) {
+    case "MATCHED":
+      return undefined;
+    case "FILE_ONLY":
+      return "有配置文件，当前未加载";
+    case "LOADED_ONLY":
+      return service.configPresence === "UNKNOWN"
+        ? "已加载，无法确认配置文件"
+        : "已加载，未找到配置文件";
+    case "UNMATCHED_FILE":
+      return "配置文件无法对应到任务";
+  }
+}
+
 // ---- execution ----------------------------------------------------------------
 
 export interface Execution {
@@ -371,8 +388,16 @@ export interface SourceProblem {
 }
 
 /** Sources that did not read cleanly; a missing directory is normal and is not one. */
-export function problemSources(discovery: LaunchdDiscovery): SourceProblem[] {
-  return discovery.sources.flatMap((report) => {
+export function problemSources(
+  discovery: Pick<LaunchdDiscovery, "sources">,
+): SourceProblem[] {
+  return sourceProblems(discovery.sources);
+}
+
+export function sourceProblems(
+  reports: readonly LaunchdSourceReport[],
+): SourceProblem[] {
+  return reports.flatMap((report) => {
     if (report.status === "COMPLETE" && report.failedFiles === 0) return [];
     const parts: string[] = [];
     if (report.reason !== undefined) parts.push(sourceReasonText(report.reason));
@@ -392,6 +417,12 @@ export function problemSources(discovery: LaunchdDiscovery): SourceProblem[] {
 // ---- Homebrew evidence --------------------------------------------------------
 
 const HOMEBREW_LABEL_PREFIX = "homebrew.mxcl.";
+
+/** Homebrew is read on the side; its failure never affects the launchd list. */
+export type EvidenceState =
+  | { status: "loading" }
+  | { status: "ready"; summaries: readonly ServiceSummary[] }
+  | { status: "unavailable" };
 
 /** Homebrew only supplements a launchd job whose label it created; it never adds jobs. */
 export function evidenceFor(

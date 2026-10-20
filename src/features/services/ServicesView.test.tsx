@@ -1,0 +1,511 @@
+/// <reference types="node" />
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import type { AppError } from "../../ipc/core";
+import type { ServiceSummary } from "../../ipc/services";
+import {
+  configFile,
+  launchdService,
+  partialDiscovery,
+  sampleDiscovery,
+  sourceReport,
+} from "./launchdFixtures";
+import { LaunchdServiceDetails } from "./LaunchdServiceDetails";
+import {
+  EMPTY_FILTER,
+  type DiscoveryState,
+  type ServiceFilter,
+} from "./launchdModel";
+import { ServicesView, type ServicesViewProps } from "./ServicesView";
+
+const ERROR: AppError = {
+  code: "PROCESS_FAILED",
+  message: "无法读取 launchd。",
+  retryable: true,
+};
+
+const noop = () => {};
+
+function view(overrides: Partial<ServicesViewProps> = {}): string {
+  const state: DiscoveryState = {
+    status: "ready",
+    discovery: sampleDiscovery(),
+    refreshing: false,
+  };
+  return renderToStaticMarkup(
+    <ServicesView
+      state={state}
+      evidence={{ status: "ready", summaries: [] }}
+      filter={EMPTY_FILTER}
+      selectedId={undefined}
+      refreshDisabled={false}
+      onFilterChange={noop}
+      onSelect={noop}
+      onRefresh={noop}
+      {...overrides}
+    />,
+  );
+}
+
+function ready(
+  discovery = sampleDiscovery(),
+  extra: { refreshing?: boolean; refreshError?: AppError } = {},
+): DiscoveryState {
+  return { status: "ready", discovery, refreshing: false, ...extra };
+}
+
+function withFilter(filter: Partial<ServiceFilter>): ServiceFilter {
+  return { ...EMPTY_FILTER, ...filter };
+}
+
+describe("services view states", () => {
+  it("renders loading", () => {
+    const markup = view({ state: { status: "loading" } });
+    expect(markup).toContain("正在读取常驻任务");
+    expect(markup).toContain('aria-busy="true"');
+  });
+
+  it("renders a first-load error with a retry button", () => {
+    const markup = view({ state: { status: "error", error: ERROR } });
+    expect(markup).toContain('role="alert"');
+    expect(markup).toContain(ERROR.message);
+    expect(markup).toContain(">重试<");
+  });
+
+  it("renders empty only when discovery was complete", () => {
+    const empty = view({
+      state: ready(sampleDiscovery({ services: [] })),
+    });
+    expect(empty).toContain("没有发现常驻任务");
+    const partial = view({
+      state: ready({ ...partialDiscovery(), services: [] }),
+    });
+    expect(partial).toContain("不能据此认为没有常驻任务");
+    expect(partial).not.toContain("没有发现常驻任务");
+  });
+
+  it("shows a partial notice naming each failed source and the reason", () => {
+    const markup = view({ state: ready(partialDiscovery()) });
+    expect(markup).toContain("部分来源未能读取");
+    expect(markup).toContain("结果可能不完整");
+    expect(markup).toContain("launchctl print system");
+    expect(markup).toContain("权限不足");
+    // Rows from the sources that did work are still listed.
+    expect(markup).toContain("com.example.agent");
+  });
+
+  it("says when the list was truncated", () => {
+    const markup = view({
+      state: ready(sampleDiscovery({ truncated: true, complete: false })),
+    });
+    expect(markup).toContain("已截断");
+  });
+
+  it("shows no partial notice for a complete result", () => {
+    expect(view()).not.toContain("部分来源未能读取");
+  });
+
+  it("keeps the list while refreshing and after a failed refresh", () => {
+    const refreshing = view({
+      state: ready(sampleDiscovery(), { refreshing: true }),
+      refreshDisabled: true,
+    });
+    expect(refreshing).toContain("正在刷新");
+    expect(refreshing).toContain("com.example.agent");
+    expect(refreshing).toMatch(/disabled=""[^>]*>刷新/);
+
+    const failed = view({
+      state: ready(sampleDiscovery(), { refreshError: ERROR }),
+    });
+    expect(failed).toContain("刷新失败");
+    expect(failed).toContain(ERROR.message);
+    expect(failed).toContain("以下为上次读取的结果");
+    expect(failed).toContain("com.example.agent");
+  });
+});
+
+describe("services list", () => {
+  it("shows label, scope, domain, path, executable, status, PID and exit code", () => {
+    const markup = view();
+    expect(markup).toContain("com.example.agent");
+    expect(markup).toContain("用户代理");
+    expect(markup).toContain("用户会话");
+    expect(markup).toContain("~/Library/LaunchAgents/com.example.agent.plist");
+    expect(markup).toContain("/usr/local/bin/example");
+    expect(markup).toContain("运行中");
+    expect(markup).toContain("PID 4242");
+    expect(markup).toContain("退出码 0");
+    expect(markup).toContain("退出码 78");
+    expect(markup).toContain("系统 daemon");
+    expect(markup).toContain("Apple 路径 daemon");
+  });
+
+  it("distinguishes file-only, load-only and unmatched entries in the rows", () => {
+    const markup = view();
+    expect(markup).toContain("未加载");
+    expect(markup).toContain("有配置文件，当前未加载");
+    expect(markup).toContain("未找到配置文件");
+    expect(markup).toContain("无法对应到任务");
+  });
+
+  it("is a keyboard list with a roving tab stop, labels and the selected row marked", () => {
+    const markup = view({ selectedId: "gui/501/com.example.idle" });
+    expect(markup).toMatch(/<ul[^>]*aria-label="常驻任务清单，共 6 项"/);
+    expect(markup).toContain('aria-current="true"');
+    expect(markup.match(/aria-current="true"/g)).toHaveLength(1);
+    // One tab stop: the selected row.
+    expect(markup.match(/tabindex="0"/g)).toHaveLength(1);
+    expect(markup.match(/tabindex="-1"/g)).toHaveLength(5);
+    expect(markup).toMatch(
+      /aria-label="com\.example\.idle，用户代理，已加载，未运行/,
+    );
+    expect(markup).toContain("services-inventory-row--selected");
+  });
+
+  it("falls back to the first row as the tab stop with no selection", () => {
+    const markup = view();
+    expect(markup.match(/tabindex="0"/g)).toHaveLength(1);
+    expect(markup).not.toContain('aria-current="true"');
+  });
+
+  it("never prints PID or exit text for jobs without them", () => {
+    const markup = view({
+      state: ready(
+        sampleDiscovery({
+          services: [
+            launchdService({
+              runState: "NOT_RUNNING",
+              pid: undefined,
+              lastExit: undefined,
+            }),
+          ],
+        }),
+      ),
+    });
+    expect(markup).not.toContain("PID");
+  });
+});
+
+describe("services filters", () => {
+  it("renders labelled search and select controls", () => {
+    const markup = view();
+    expect(markup).toContain('type="search"');
+    expect(markup).toContain("搜索任务");
+    expect(markup).toContain("按 label、名称或路径搜索");
+    for (const label of ["来源", "作用域", "状态"]) {
+      expect(markup).toContain(`>${label}</label>`);
+    }
+    expect(markup.match(/<select/g)).toHaveLength(3);
+    expect(markup).toContain(">全部来源<");
+    expect(markup).toContain(">全部作用域<");
+    expect(markup).toContain(">全部状态<");
+    expect(markup).toContain("系统 daemon");
+  });
+
+  it("filters the list and reports how many are shown", () => {
+    const markup = view({ filter: withFilter({ scope: "SYSTEM_DAEMON" }) });
+    expect(markup).toContain("显示 1 / 6 项");
+    expect(markup).toContain("com.vendor.daemon");
+    expect(markup).not.toContain("com.example.idle");
+  });
+
+  it("explains an empty filter result and offers to clear it", () => {
+    const markup = view({ filter: withFilter({ query: "zzz-none" }) });
+    expect(markup).toContain("没有符合筛选条件的任务");
+    expect(markup).toContain(">清除筛选<");
+    expect(markup).toContain("显示 0 / 6 项");
+  });
+});
+
+describe("stable selection in the view", () => {
+  it("shows an already-gone notice instead of switching silently", () => {
+    const markup = view({ selectedId: "gui/501/com.removed.since" });
+    expect(markup).toContain("已不存在");
+    expect(markup).toContain("gui/501/com.removed.since");
+    expect(markup).not.toContain('aria-current="true"');
+    // No other task's details are shown in its place.
+    expect(markup).not.toContain('id="service-details-heading"');
+  });
+
+  it("keeps showing a selected task that the filter hides, with a note", () => {
+    const markup = view({
+      selectedId: "gui/501/com.example.idle",
+      filter: withFilter({ scope: "SYSTEM_DAEMON" }),
+    });
+    expect(markup).toContain("被当前筛选条件隐藏");
+    expect(markup).toContain('id="service-details-heading"');
+  });
+
+  it("asks for a selection when nothing is selected", () => {
+    expect(view()).toContain("从清单中选择一项任务");
+  });
+
+  it("waits for the list before judging a restored selection", () => {
+    const markup = view({
+      state: { status: "loading" },
+      selectedId: "gui/501/com.example.agent",
+    });
+    expect(markup).toContain("正在加载服务详情");
+    expect(markup).not.toContain("已不存在");
+  });
+});
+
+describe("read-only guarantee", () => {
+  it("offers no mutating entries and no Caddy-only copy", () => {
+    const markup = view({ selectedId: "system/com.apple.metadata.mds" });
+    for (const word of [
+      "启动",
+      "停止",
+      "重启",
+      "删除",
+      "创建",
+      "卸载",
+      "加载任务",
+      "禁用",
+      "接管",
+    ]) {
+      expect(markup).not.toContain(`>${word}<`);
+    }
+    expect(markup).not.toMatch(/仅\s*Caddy|只能管理|仅限\s*Caddy|Caddyfile/);
+    expect(markup).toContain("只读");
+    // The only buttons are navigation/filter helpers.
+    const buttonLabels = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
+      .filter((match) => !match[1].includes("services-inventory-row"))
+      .map((match) => match[2].replace(/<[^>]+>/g, ""));
+    expect(buttonLabels).toEqual(["刷新"]);
+  });
+});
+
+describe("service details", () => {
+  const discovery = sampleDiscovery();
+  const [agent, , , , loadedOnly, unmatched] = discovery.services;
+
+  function details(
+    service = agent,
+    extra: Partial<Parameters<typeof LaunchdServiceDetails>[0]> = {},
+  ): string {
+    return renderToStaticMarkup(
+      <LaunchdServiceDetails
+        service={service}
+        sources={discovery.sources}
+        evidence={{ status: "ready", summaries: [] }}
+        {...extra}
+      />,
+    );
+  }
+
+  it("shows every SVC-1 service field", () => {
+    const markup = details();
+    expect(markup).toContain('id="service-details-heading"');
+    expect(markup).toContain("com.example.agent");
+    expect(markup).toContain("gui/501/com.example.agent");
+    expect(markup).toContain("label 来源");
+    expect(markup).toContain("launchctl");
+    expect(markup).toContain("用户会话");
+    expect(markup).toContain("gui/501");
+    expect(markup).toContain("用户代理");
+    expect(markup).toContain("已加载，并找到同 label 的配置文件");
+    expect(markup).toContain("运行中");
+    expect(markup).toContain("4242");
+    expect(markup).toContain("退出码 0");
+    expect(markup).toContain("不代表");
+    expect(markup).toContain("配置文件状态");
+  });
+
+  it("shows every config file field and the plist details", () => {
+    const markup = details();
+    expect(markup).toContain("~/Library/LaunchAgents/com.example.agent.plist");
+    expect(markup).toContain("~/Library/LaunchAgents");
+    expect(markup).toContain("普通文件");
+    expect(markup).toContain("所有者 UID 501");
+    expect(markup).toContain("已读取内容");
+    expect(markup).toContain("/usr/local/bin/example");
+    expect(markup).toContain("--serve");
+    expect(markup).toContain("RunAtLoad");
+    expect(markup).toContain("KeepAlive");
+    expect(markup).toContain("满足条件时保持运行");
+    expect(markup).toContain("SuccessfulExit");
+    expect(markup).toContain("~/Library/Logs/example.out.log");
+    expect(markup).toContain("~/Library/Logs/example.err.log");
+    expect(markup).toContain("Disabled");
+    expect(markup).toContain("UserName");
+    expect(markup).toContain("alice");
+  });
+
+  it("keeps masked arguments masked and lists environment keys only", () => {
+    const markup = details();
+    expect(markup).toContain("--token=••••");
+    expect(markup).toContain("API_TOKEN");
+    expect(markup).toContain("PORT");
+    expect(markup).toContain("仅显示变量名");
+    expect(markup).not.toMatch(/API_TOKEN=/);
+  });
+
+  it("notes truncated arguments", () => {
+    const markup = details(
+      launchdService({
+        configFiles: [
+          configFile({
+            details: {
+              programArguments: ["/bin/x", "-a"],
+              argumentsTruncated: true,
+              environmentKeys: [],
+            },
+          }),
+        ],
+      }),
+    );
+    expect(markup).toContain("参数过多，已截断");
+  });
+
+  it("explains links, unreadable files and load-only jobs", () => {
+    const link = details(unmatched);
+    expect(link).toContain("符号链接");
+    expect(link).toContain("指向预期位置之外");
+    expect(link).toContain("~/dev/broken.plist");
+    expect(link).toContain("符号链接，内容未读取");
+    expect(link).toContain("配置文件没有可用的 label");
+    expect(link).toContain("状态未知");
+
+    const none = details(loadedOnly);
+    expect(none).toContain("没有找到配置文件");
+    expect(none).toContain("已加载，未在扫描位置找到配置文件");
+  });
+
+  it("lists every evidence source with its result and reason", () => {
+    const partial = partialDiscovery();
+    const markup = details(agent, { sources: partial.sources });
+    for (const label of [
+      "launchctl list",
+      "launchctl print system",
+      "~/Library/LaunchAgents",
+      "/Library/LaunchAgents",
+      "/Library/LaunchDaemons",
+      "/System/Library/LaunchAgents",
+      "/System/Library/LaunchDaemons",
+    ]) {
+      expect(markup).toContain(label);
+    }
+    expect(markup).toContain("无法访问");
+    expect(markup).toContain("权限不足，无法读取。");
+    expect(markup).toContain("目录不存在");
+    expect(markup).toContain("已读取");
+    expect(markup).toContain("加载与运行状态可能不完整");
+  });
+
+  it("reports file read failures per source", () => {
+    const markup = details(agent, {
+      sources: [
+        sourceReport({
+          source: "USER_LAUNCH_AGENTS",
+          status: "PARTIAL",
+          reason: "FILE_ERRORS",
+          failedFiles: 3,
+        }),
+      ],
+    });
+    expect(markup).toContain("部分读取");
+    expect(markup).toContain("3 个文件未能读取");
+  });
+
+  it("adds Homebrew only as evidence for a Homebrew-labelled job", () => {
+    const brew = launchdService({
+      id: "gui/501/homebrew.mxcl.caddy",
+      label: "homebrew.mxcl.caddy",
+    });
+    const summary: ServiceSummary = {
+      serviceId: "caddy",
+      displayName: "Caddy",
+      state: "STARTED",
+      status: "started",
+      scope: "USER",
+      user: "alice",
+      manageable: true,
+    };
+    const withEvidence = details(brew, {
+      evidence: { status: "ready", summaries: [summary] },
+    });
+    expect(withEvidence).toContain("Homebrew 来源证据");
+    expect(withEvidence).toContain("brew services");
+    expect(withEvidence).toContain("alice");
+    expect(withEvidence).toContain("仅作证据");
+
+    const unavailable = details(brew, { evidence: { status: "unavailable" } });
+    expect(unavailable).toContain("Homebrew 证据不可用");
+
+    const unrelated = details(agent, {
+      evidence: { status: "ready", summaries: [summary] },
+    });
+    expect(unrelated).not.toContain("Homebrew");
+  });
+
+  it("has no action buttons and says it is read-only", () => {
+    const markup = details(agent);
+    expect(markup).not.toContain("<button");
+    expect(markup).toContain("只读");
+    expect(markup).toContain("仅按目录归类，不是归属判定");
+  });
+
+  it("does not truncate long values", () => {
+    const long =
+      "/opt/very/long/path/that/must/wrap/everywhere/0123456789/0123456789/0123456789/binary";
+    const markup = details(
+      launchdService({
+        configFiles: [
+          configFile({
+            details: {
+              program: long,
+              programArguments: [long, "--flag"],
+              argumentsTruncated: false,
+              environmentKeys: [],
+            },
+          }),
+        ],
+      }),
+    );
+    expect(markup).not.toContain("truncate");
+    expect(markup).toContain(long);
+  });
+});
+
+describe("services feature sources", () => {
+  const directory = join(process.cwd(), "src", "features", "services");
+  const sources = readdirSync(directory)
+    .filter((name) => /^(launchd|Launchd|ServicesView|ServicesPage)/.test(name))
+    .filter((name) => /\.tsx?$/.test(name) && !name.includes(".test."))
+    .map((name) => [name, readFileSync(join(directory, name), "utf8")] as const);
+
+  it("finds the new page sources", () => {
+    expect(sources.map(([name]) => name)).toEqual(
+      expect.arrayContaining([
+        "launchdModel.ts",
+        "LaunchdServiceDetails.tsx",
+        "ServicesView.tsx",
+        "ServicesPage.tsx",
+      ]),
+    );
+  });
+
+  it("never touches browser storage or logs", () => {
+    for (const [name, source] of sources) {
+      expect(source, name).not.toMatch(/localStorage|sessionStorage|indexedDB/);
+      expect(source, name).not.toMatch(/console\.(log|debug|info|warn|error)/);
+    }
+  });
+
+  it("has no hardcoded Caddy-only copy", () => {
+    for (const [name, source] of sources) {
+      expect(source, name).not.toMatch(/仅\s*Caddy|只能管理|仅限\s*Caddy|Caddyfile/);
+    }
+  });
+
+  it("never calls a mutating service command", () => {
+    for (const [name, source] of sources) {
+      expect(source, name).not.toMatch(
+        /previewServiceAction|executeServiceAction|ServiceActionDialog/,
+      );
+    }
+  });
+});

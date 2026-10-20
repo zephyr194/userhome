@@ -51,19 +51,17 @@ describe("Services workspace structure (T121)", () => {
     );
 
     expect(markup).toContain('type="search"');
-    expect(markup).toContain("按名称、标识符、状态或作用域筛选");
-    expect(markup).toContain('aria-label="服务详情与操作"');
+    expect(markup).toContain("按 label、名称或路径搜索");
+    expect(markup).toContain('aria-label="任务详情"');
     expect(markup).toContain("正在加载服务详情");
   });
 
-  it("keeps operation history inside the detail pane", () => {
+  it("keeps the detail pane read-only without operation history", () => {
     const markup = renderToStaticMarkup(<ServicesPage />);
 
-    expect(markup).toContain("正在加载操作历史");
-    const detailIndex = markup.indexOf('aria-label="服务详情与操作"');
-    const historyIndex = markup.indexOf("正在加载操作历史");
-    expect(detailIndex).toBeGreaterThanOrEqual(0);
-    expect(historyIndex).toBeGreaterThan(detailIndex);
+    expect(markup).not.toContain("正在加载操作历史");
+    expect(markup).not.toContain("最近操作");
+    expect(markup).toContain('aria-label="任务详情"');
   });
 
   it("keeps runtime state, config validity and manageability independent", () => {
