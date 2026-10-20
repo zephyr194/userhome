@@ -1,9 +1,12 @@
 use std::collections::BTreeMap;
 
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::{
+    commands::grants::canonical_home,
+    config::ConfigCoordinator,
     error::AppError,
+    grants::{GrantCoordinator, ResourceWriteContext, ResourceWriteCoordinator},
     operations::{
         OperationCoordinator, OperationDetails, OperationIntent, OperationKind, OperationPreview,
     },
@@ -16,6 +19,10 @@ use crate::{
             ServiceAction, ServiceActionCoordinator, ServiceActionError, ServiceActionInput,
             execute_action, validate_action, verify_refreshed_state,
         },
+        create::{
+            CreateExecution, CreatePreview, CreateServiceRequest, ServiceCreateCoordinator,
+            SystemFacts, SystemRegistry,
+        },
         inventory::{
             ConfigValidity, ServiceDetails, ServiceInventoryError, ServiceSummary,
             caddy_config_validity, get_service as load_service, list_services as load_services,
@@ -25,6 +32,7 @@ use crate::{
             HomebrewScope, OwnedDiscovery, check_homebrew_caddy_system, discover_owned_system,
         },
     },
+    settings::SettingsCoordinator,
 };
 
 #[tauri::command]
@@ -52,6 +60,72 @@ pub async fn list_launchd_services() -> Result<OwnedDiscovery, AppError> {
     })
     .await
     .map_err(|_| AppError::internal())
+}
+
+/// Previews creating one UserHome-owned launchd job from the typed form. The
+/// target is fixed in the backend (`~/Library/LaunchAgents/<label>.plist`); the
+/// request carries no file path for it, and nothing is written, loaded or
+/// started.
+#[tauri::command]
+pub async fn preview_create_launchd_service(
+    app: AppHandle,
+    input: CreateServiceRequest,
+) -> Result<CreatePreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_create_context(&app, |ctx, writes, creator| {
+            creator.preview(
+                ctx,
+                writes,
+                canonical_home().as_deref(),
+                &SystemRegistry,
+                &SystemFacts,
+                &input,
+            )
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Confirms a creation preview: creates the file and reads it back. Does not
+/// load or start the job.
+#[tauri::command]
+pub async fn execute_create_launchd_service(
+    app: AppHandle,
+    operation_id: String,
+) -> Result<CreateExecution, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_create_context(&app, |ctx, writes, creator| {
+            creator.execute(ctx, writes, &SystemRegistry, &operation_id)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Runs `action` with the write context and the creation coordinator built
+/// from the managed state.
+fn with_create_context<T>(
+    app: &AppHandle,
+    action: impl FnOnce(
+        &ResourceWriteContext<'_>,
+        &ResourceWriteCoordinator,
+        &ServiceCreateCoordinator,
+    ) -> Result<T, AppError>,
+) -> Result<T, AppError> {
+    let grants = app.state::<GrantCoordinator>();
+    let operations = app.state::<OperationCoordinator>();
+    let writes = app.state::<ResourceWriteCoordinator>();
+    let creator = app.state::<ServiceCreateCoordinator>();
+    let config = app.state::<ConfigCoordinator>();
+    let settings = app.state::<SettingsCoordinator>();
+    let ctx = ResourceWriteContext {
+        grants: &grants,
+        operations: &operations,
+        environment: config.environment()?,
+        retention: settings.get()?.preferences().backup_retention(),
+    };
+    action(&ctx, &writes, &creator)
 }
 
 #[tauri::command]

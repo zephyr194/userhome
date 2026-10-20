@@ -9,7 +9,8 @@ export type GrantPurpose =
   | "CONFIG_DIRECTORY"
   | "CONFIG_FILE"
   | "EXECUTABLE"
-  | "SHELL_STARTUP_FILE";
+  | "SHELL_STARTUP_FILE"
+  | "LAUNCH_AGENT_FILE";
 export type GrantKind = "DIRECTORY" | "FILE";
 
 export interface GrantSummary {
@@ -25,6 +26,7 @@ const GRANT_PURPOSES: readonly string[] = [
   "CONFIG_FILE",
   "EXECUTABLE",
   "SHELL_STARTUP_FILE",
+  "LAUNCH_AGENT_FILE",
 ];
 const GRANT_KINDS: readonly string[] = ["DIRECTORY", "FILE"];
 const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
@@ -32,6 +34,7 @@ const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
   CONFIG_FILE: "配置文件",
   EXECUTABLE: "可执行文件",
   SHELL_STARTUP_FILE: "shell 启动文件",
+  LAUNCH_AGENT_FILE: "launchd 自建任务配置",
 };
 const GRANT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -108,11 +111,12 @@ export function revokeGrant(grantId: string): Promise<void> {
 
 /**
  * Purposes a file dialog can authorize. A shell startup file grant is made
- * only by the startup file editor in the backend, never by a selection.
+ * only by the startup file editor in the backend, and a LaunchAgent file grant
+ * only by the launchd task creator; never by a selection.
  */
 export type FileGrantPurpose = Exclude<
   GrantPurpose,
-  "CONFIG_DIRECTORY" | "SHELL_STARTUP_FILE"
+  "CONFIG_DIRECTORY" | "SHELL_STARTUP_FILE" | "LAUNCH_AGENT_FILE"
 >;
 
 export type SelectGrantResult =

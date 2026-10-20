@@ -45,36 +45,57 @@ pub enum GrantPurpose {
     /// path refuses it (see `GrantAccess`), because what lands in such a file
     /// runs in the next terminal.
     ShellStartupFile,
+    /// A not-yet-existing `<label>.plist` in the fixed `~/Library/LaunchAgents`,
+    /// for creating a UserHome launchd job. Like a shell startup file, what
+    /// lands there runs by itself (at the next login), so only the dedicated
+    /// create entries can use it; it is never made by a dialog and never
+    /// covers an existing file.
+    LaunchAgentFile,
 }
 
 impl GrantPurpose {
     pub fn kind(self) -> GrantKind {
         match self {
             Self::ConfigDirectory => GrantKind::Directory,
-            Self::ConfigFile | Self::Executable | Self::ShellStartupFile => GrantKind::File,
+            Self::ConfigFile
+            | Self::Executable
+            | Self::ShellStartupFile
+            | Self::LaunchAgentFile => GrantKind::File,
         }
     }
 
     /// Whether a grant may name a single not-yet-existing file (new-file grant).
     pub(crate) fn allows_new_file(self) -> bool {
-        matches!(self, Self::ConfigFile | Self::ShellStartupFile)
+        matches!(
+            self,
+            Self::ConfigFile | Self::ShellStartupFile | Self::LaunchAgentFile
+        )
     }
 }
 
 /// Which kind of caller resolves a grant. The general entry points (every
 /// command that takes a grant id from the frontend) only see grants of
 /// ordinary purposes; the dedicated shell startup editor only sees
-/// `ShellStartupFile` grants. There is no way to ask for both, and the choice
-/// is never a field the frontend can set.
+/// `ShellStartupFile` grants; the dedicated LaunchAgent create entry only sees
+/// `LaunchAgentFile` grants. Each kind of caller sees exactly one set, and the
+/// choice is never a field the frontend can set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GrantAccess {
     General,
     ShellStartup,
+    LaunchAgent,
 }
 
 impl GrantAccess {
     fn admits(self, purpose: GrantPurpose) -> bool {
-        (purpose == GrantPurpose::ShellStartupFile) == (self == Self::ShellStartup)
+        let required = match purpose {
+            GrantPurpose::ShellStartupFile => Self::ShellStartup,
+            GrantPurpose::LaunchAgentFile => Self::LaunchAgent,
+            GrantPurpose::ConfigDirectory | GrantPurpose::ConfigFile | GrantPurpose::Executable => {
+                Self::General
+            }
+        };
+        self == required
     }
 }
 
@@ -226,6 +247,11 @@ impl GrantRecord {
             && self.file_name.as_deref().is_none_or(|name| {
                 self.purpose.allows_new_file() && new_file::is_valid_file_name(name)
             })
+            && (self.purpose != GrantPurpose::LaunchAgentFile
+                || self
+                    .file_name
+                    .as_deref()
+                    .is_some_and(new_file::is_launch_agent_name))
     }
 
     /// The path the grant stands for: the file itself for a file grant, the
@@ -297,6 +323,11 @@ impl GrantCoordinator {
     /// native picker. Re-granting the same canonical path and purpose returns
     /// the existing grant.
     pub fn create(&self, purpose: GrantPurpose, path: &Path) -> Result<GrantRecord, GrantError> {
+        // A LaunchAgent grant only ever stands for a file that does not exist
+        // yet (`create_new_file_with`).
+        if purpose == GrantPurpose::LaunchAgentFile {
+            return Err(GrantError::ReservedPurpose);
+        }
         let canonical = path::validate_target(path, purpose, self.home.as_deref())?;
         let _guard = self.lock()?;
         let mut grants = self.store.load()?;
@@ -349,6 +380,12 @@ impl GrantCoordinator {
         self.resolve_with(id, GrantAccess::ShellStartup)
     }
 
+    /// The same lookup for the dedicated LaunchAgent create entry: only a
+    /// `LaunchAgentFile` grant resolves, anything else is `ReservedPurpose`.
+    pub fn resolve_launch_agent(&self, id: &GrantId) -> Result<GrantRecord, GrantError> {
+        self.resolve_with(id, GrantAccess::LaunchAgent)
+    }
+
     fn resolve_with(&self, id: &GrantId, access: GrantAccess) -> Result<GrantRecord, GrantError> {
         let record = {
             let _guard = self.lock()?;
@@ -386,6 +423,8 @@ fn now_epoch_ms() -> u64 {
         .unwrap_or(0)
 }
 
+#[cfg(test)]
+mod launch_agent_tests;
 #[cfg(test)]
 mod new_file_tests;
 #[cfg(test)]

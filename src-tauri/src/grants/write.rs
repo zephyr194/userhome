@@ -279,6 +279,24 @@ impl ResourceWriteCoordinator {
         self.preview_with(ctx, requests, GrantAccess::ShellStartup)
     }
 
+    /// The dedicated entry for creating a LaunchAgent plist: only
+    /// `LaunchAgentFile` grants are accepted, one file per preview, and only
+    /// as a creation (an expected hash, which would ask to replace, is
+    /// refused). Not reachable from any command that takes a grant id from the
+    /// frontend.
+    pub fn preview_launch_agent(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        request: WriteRequest,
+    ) -> Result<ResourceWriteBatchPreview, AppError> {
+        if request.expected_sha256.is_some() || request.relative.is_some() {
+            return Err(AppError::invalid_input(
+                "A LaunchAgent file can only be created, never replaced.",
+            ));
+        }
+        self.preview_with(ctx, vec![request], GrantAccess::LaunchAgent)
+    }
+
     fn preview_with(
         &self,
         ctx: &ResourceWriteContext<'_>,
@@ -400,6 +418,20 @@ impl ResourceWriteCoordinator {
         F: FnOnce(&[u8]) -> Result<(), AppError>,
     {
         self.execute_inner(ctx, request, GrantAccess::ShellStartup, post_validate)
+    }
+
+    /// Confirms a preview made by `preview_launch_agent`, with the creator's
+    /// own read-back check (after the default text validation).
+    pub fn execute_launch_agent<F>(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        request: &ConfirmRequest,
+        post_validate: F,
+    ) -> Result<ResourceWriteExecution, AppError>
+    where
+        F: FnOnce(&[u8]) -> Result<(), AppError>,
+    {
+        self.execute_inner(ctx, request, GrantAccess::LaunchAgent, post_validate)
     }
 
     fn execute_inner<F>(

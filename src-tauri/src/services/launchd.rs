@@ -48,6 +48,7 @@ mod tests;
 
 pub use command::{CommandRunner, Label, ReadOnlyCommand, RunError, SystemRunner};
 pub use output::LastExit;
+pub use plist::redact_arguments;
 
 use command::PLUTIL;
 use output::{LoadedJob, OutputError, ParsedJobs, parse_domain_services, parse_launchctl_list};

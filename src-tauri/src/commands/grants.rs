@@ -289,6 +289,9 @@ fn validate_selection(mode: PickMode, purpose: GrantPurpose) -> Result<(), AppEr
         // Shell startup file grants are made only by the dedicated editor,
         // from a fixed file name; no dialog can produce one.
         _ if purpose == GrantPurpose::ShellStartupFile => false,
+        // LaunchAgent create grants are made only by the dedicated creator,
+        // for a fixed file name in `~/Library/LaunchAgents`.
+        _ if purpose == GrantPurpose::LaunchAgentFile => false,
         PickMode::Directory | PickMode::File => purpose.kind() == mode_kind(mode),
         PickMode::SaveLocation => purpose == GrantPurpose::ConfigFile,
     };
@@ -874,6 +877,31 @@ mod tests {
                 FakePicker(Ok(Some(file.clone()))),
                 mode,
                 GrantPurpose::ShellStartupFile,
+                None,
+            )
+            .expect_err("not selectable");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        }
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn the_frontend_cannot_select_a_launch_agent_authorization() {
+        for mode in [PickMode::Directory, PickMode::File, PickMode::SaveLocation] {
+            let error = validate_selection(mode, GrantPurpose::LaunchAgentFile)
+                .expect_err("not selectable");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        }
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let file = sandbox.root.join("a.b.plist");
+        fs::write(&file, "x\n").expect("seed");
+        for mode in [PickMode::File, PickMode::SaveLocation] {
+            let error = run_select(
+                &coordinator,
+                FakePicker(Ok(Some(file.clone()))),
+                mode,
+                GrantPurpose::LaunchAgentFile,
                 None,
             )
             .expect_err("not selectable");

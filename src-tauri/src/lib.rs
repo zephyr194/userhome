@@ -42,6 +42,7 @@ pub fn run() {
         .manage(environment::zsh_edit::ZshEditCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
         .manage(services::actions::ServiceActionCoordinator::default())
+        .manage(services::create::ServiceCreateCoordinator::default())
         .manage(security::elevation::ElevationCoordinator::default())
         .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
@@ -138,6 +139,8 @@ pub fn run() {
             commands::services::list_services,
             commands::services::list_launchd_services,
             commands::services::get_service,
+            commands::services::preview_create_launchd_service,
+            commands::services::execute_create_launchd_service,
             commands::services::preview_service_action,
             commands::services::execute_service_action,
             commands::status::get_app_status,

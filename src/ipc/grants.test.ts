@@ -478,3 +478,60 @@ describe("shell startup file grants", () => {
     ).toThrow();
   });
 });
+
+describe("launch agent file grants", () => {
+  const agentGrant = (overrides: Record<string, unknown> = {}) =>
+    wireGrant({
+      purpose: "LAUNCH_AGENT_FILE",
+      kind: "FILE",
+      displayPath: "~/Library/LaunchAgents/com.zephyr194.userhome.agent.a.plist",
+      ...overrides,
+    });
+
+  it("decodes and lists the purpose instead of failing the whole list", async () => {
+    expect(decodeGrantSummary(agentGrant())).toEqual(agentGrant());
+    mockIPC(() => [wireGrant(), agentGrant({ id: "4f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b" })]);
+
+    const grants = await listGrants();
+
+    expect(grants.map((grant) => grant.purpose)).toEqual([
+      "CONFIG_DIRECTORY",
+      "LAUNCH_AGENT_FILE",
+    ]);
+  });
+
+  it("labels the purpose distinctly from every other purpose", () => {
+    const labels = (
+      [
+        "CONFIG_DIRECTORY",
+        "CONFIG_FILE",
+        "EXECUTABLE",
+        "SHELL_STARTUP_FILE",
+        "LAUNCH_AGENT_FILE",
+      ] as const
+    ).map(grantPurposeLabel);
+    expect(new Set(labels).size).toBe(5);
+  });
+
+  it("never selects the purpose through a dialog and never calls the backend for it", async () => {
+    let called = false;
+    mockIPC(() => {
+      called = true;
+      return null;
+    });
+
+    await expect(
+      selectFileGrant("LAUNCH_AGENT_FILE" as FileGrantPurpose),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(called).toBe(false);
+  });
+
+  it("rejects a selection result that carries the purpose", () => {
+    expect(() =>
+      decodeSelectGrantResult(
+        { status: "SELECTED", grant: agentGrant() },
+        "CONFIG_FILE",
+      ),
+    ).toThrow();
+  });
+});

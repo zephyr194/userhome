@@ -26,6 +26,25 @@ pub(super) fn is_valid_file_name(name: &str) -> bool {
     name.len() <= MAX_FILE_NAME_BYTES && !name.contains('/') && is_safe_catalog_relative_path(name)
 }
 
+/// A LaunchAgent grant covers one `<something>.plist` name.
+pub(super) fn is_launch_agent_name(name: &str) -> bool {
+    name.strip_suffix(".plist")
+        .is_some_and(|stem| !stem.is_empty())
+}
+
+/// The parent of a LaunchAgent grant is exactly `$HOME/Library/LaunchAgents`
+/// (canonical): no other directory, no link that leads elsewhere.
+fn ensure_launch_agents_parent(parent: &Path, home: Option<&Path>) -> Result<(), GrantError> {
+    let fixed = home
+        .map(|home| home.join("Library").join("LaunchAgents"))
+        .and_then(|dir| fs::canonicalize(dir).ok());
+    if fixed.as_deref() == Some(parent) {
+        Ok(())
+    } else {
+        Err(GrantError::OutsideHome)
+    }
+}
+
 /// Whether the covered name currently exists. Callers have just resolved the
 /// grant, so an existing name is a regular file; plain file grants always
 /// stand for an existing file.
@@ -45,6 +64,12 @@ pub(super) fn revalidate(
     }
     path::ensure_new_file_parent(&parent, home)?;
     path::check_kind(&parent, GrantKind::Directory)?;
+    if record.purpose == GrantPurpose::LaunchAgentFile {
+        ensure_launch_agents_parent(&parent, home)?;
+        if !is_launch_agent_name(name) {
+            return Err(GrantError::InvalidRelativePath);
+        }
+    }
     check_name(&parent, name, home)?;
     Ok(parent.join(name))
 }
@@ -79,7 +104,8 @@ impl GrantCoordinator {
         self.create_new_file_with(GrantPurpose::ConfigFile, parent, file_name)
     }
 
-    /// `create_new_file` for another file purpose (`ShellStartupFile`).
+    /// `create_new_file` for another file purpose (`ShellStartupFile`,
+    /// `LaunchAgentFile`).
     /// Purposes that are not file purposes are refused.
     pub fn create_new_file_with(
         &self,
@@ -93,7 +119,18 @@ impl GrantCoordinator {
         if !is_valid_file_name(file_name) {
             return Err(GrantError::InvalidRelativePath);
         }
+        if purpose == GrantPurpose::LaunchAgentFile && !is_launch_agent_name(file_name) {
+            return Err(GrantError::InvalidRelativePath);
+        }
         let canonical = path::validate_new_file_parent(parent, self.home.as_deref())?;
+        if purpose == GrantPurpose::LaunchAgentFile {
+            ensure_launch_agents_parent(&canonical, self.home.as_deref())?;
+            // Creation only: any existing entry under this name (file, link
+            // or anything else) is not a new file.
+            if fs::symlink_metadata(canonical.join(file_name)).is_ok() {
+                return Err(GrantError::NotFile);
+            }
+        }
         check_name(&canonical, file_name, self.home.as_deref())?;
         let _guard = self.lock()?;
         let mut grants = self.store.load()?;

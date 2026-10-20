@@ -494,7 +494,7 @@ pub fn ensure_modifiable(
     })
 }
 
-fn acquire_gate() -> Result<DiscoveryGate, OwnershipError> {
+pub(super) fn acquire_gate() -> Result<DiscoveryGate, OwnershipError> {
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
         if let Some(gate) = DiscoveryGate::try_acquire() {
