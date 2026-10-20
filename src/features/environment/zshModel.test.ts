@@ -361,3 +361,12 @@ describe("entries", () => {
     expect(groups).toEqual([]);
   });
 });
+
+describe("zdotdir parent segment wording", () => {
+  it("explains why a .. in ZDOTDIR is not decided statically", () => {
+    const text = undeterminedText("PARENT_SEGMENT");
+    expect(text).toContain("ZDOTDIR");
+    expect(text).toContain("..");
+    expect(text).not.toBe(undeterminedText("UNSUPPORTED_FORM"));
+  });
+});

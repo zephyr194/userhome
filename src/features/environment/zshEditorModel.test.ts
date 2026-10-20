@@ -373,3 +373,14 @@ describe("outside conflicts and wording", () => {
     expect(previewKindText({ kind: "REPLACE", createdBlock: false })).toContain("修改");
   });
 });
+
+describe("sensitive variable warning wording", () => {
+  it("names the variable, warns about the risk and shows no value", () => {
+    const text = warningText({ kind: "SENSITIVE_VARIABLE", name: "DYLD_INSERT_LIBRARIES" });
+    expect(text).toContain("DYLD_INSERT_LIBRARIES");
+    expect(text).toContain("风险");
+    expect(text).toContain("仍可保存");
+    const other = warningText({ kind: "SENSITIVE_VARIABLE", name: "IFS" });
+    expect(other).not.toBe(text);
+  });
+});

@@ -727,7 +727,8 @@ export type ZshUndeterminedReason =
   | "DYNAMIC"
   | "MULTIPLE"
   | "UNSUPPORTED_FORM"
-  | "ZSHENV_NOT_READ";
+  | "ZSHENV_NOT_READ"
+  | "PARENT_SEGMENT";
 
 export interface ZshSource {
   readonly url: string;
@@ -870,6 +871,7 @@ const ZSH_UNDETERMINED_REASONS: readonly string[] = [
   "MULTIPLE",
   "UNSUPPORTED_FORM",
   "ZSHENV_NOT_READ",
+  "PARENT_SEGMENT",
 ];
 const ZSH_ORDER_STEPS = 8;
 const MAX_ZSH_SEGMENTS = 512;
@@ -1343,7 +1345,8 @@ export type ZshEditWarning =
   | { readonly kind: "DYNAMIC_PATH_OUTSIDE"; readonly line: number }
   | { readonly kind: "LATER_PATH_ASSIGNMENT"; readonly line: number }
   | { readonly kind: "BLOCK_APPENDED" }
-  | { readonly kind: "FILE_CREATED" };
+  | { readonly kind: "FILE_CREATED" }
+  | { readonly kind: "SENSITIVE_VARIABLE"; readonly name: string };
 
 export interface ZshEditPreview extends ResourceWritePreview {
   readonly file: ZshFileKey;
@@ -1643,6 +1646,8 @@ function decodeZshWarning(value: unknown): ZshEditWarning {
     case "OVERRIDES_EARLIER_ASSIGNMENT":
     case "OVERRIDDEN_BY_LATER_ASSIGNMENT":
       return { kind: value.kind, name: zshName(value.name), line: line() };
+    case "SENSITIVE_VARIABLE":
+      return { kind: "SENSITIVE_VARIABLE", name: zshName(value.name) };
     case "DUPLICATE_PATH_ITEM":
       return { kind: "DUPLICATE_PATH_ITEM", item: boundedText(value.item, MAX_PATH_LENGTH) };
     case "PATH_ITEM_ALSO_OUTSIDE":

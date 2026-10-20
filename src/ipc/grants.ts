@@ -5,7 +5,11 @@ import {
   isRecord,
 } from "./core";
 
-export type GrantPurpose = "CONFIG_DIRECTORY" | "CONFIG_FILE" | "EXECUTABLE";
+export type GrantPurpose =
+  | "CONFIG_DIRECTORY"
+  | "CONFIG_FILE"
+  | "EXECUTABLE"
+  | "SHELL_STARTUP_FILE";
 export type GrantKind = "DIRECTORY" | "FILE";
 
 export interface GrantSummary {
@@ -20,12 +24,23 @@ const GRANT_PURPOSES: readonly string[] = [
   "CONFIG_DIRECTORY",
   "CONFIG_FILE",
   "EXECUTABLE",
+  "SHELL_STARTUP_FILE",
 ];
 const GRANT_KINDS: readonly string[] = ["DIRECTORY", "FILE"];
+const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
+  CONFIG_DIRECTORY: "配置目录",
+  CONFIG_FILE: "配置文件",
+  EXECUTABLE: "可执行文件",
+  SHELL_STARTUP_FILE: "shell 启动文件",
+};
 const GRANT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAX_DISPLAY_PATH_LENGTH = 1024;
 const MAX_GRANTS = 256;
+
+export function grantPurposeLabel(purpose: GrantPurpose): string {
+  return GRANT_PURPOSE_LABELS[purpose];
+}
 
 export function isGrantId(value: unknown): value is string {
   return typeof value === "string" && GRANT_ID_PATTERN.test(value);
@@ -91,7 +106,14 @@ export function revokeGrant(grantId: string): Promise<void> {
   return invokeCommand("revoke_grant", decodeRevoked, { input: { grantId } });
 }
 
-export type FileGrantPurpose = Exclude<GrantPurpose, "CONFIG_DIRECTORY">;
+/**
+ * Purposes a file dialog can authorize. A shell startup file grant is made
+ * only by the startup file editor in the backend, never by a selection.
+ */
+export type FileGrantPurpose = Exclude<
+  GrantPurpose,
+  "CONFIG_DIRECTORY" | "SHELL_STARTUP_FILE"
+>;
 
 export type SelectGrantResult =
   | { readonly status: "SELECTED"; readonly grant: GrantSummary }

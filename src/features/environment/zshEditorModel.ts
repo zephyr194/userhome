@@ -399,6 +399,8 @@ export function warningText(warning: ZshEditWarning): string {
       return "文件里还没有专用块：会在文件末尾追加一个（原有内容的每个字节保持不变）。";
     case "FILE_CREATED":
       return "该文件不存在：会创建新文件（仅所有者可读写），没有恢复点。";
+    case "SENSITIVE_VARIABLE":
+      return `${warning.name}：这个变量会改变 shell 或动态链接器的行为，有风险（可能让每个新终端的行为发生变化）；仍可保存，请确认你清楚它的作用。`;
   }
 }
 

@@ -380,6 +380,15 @@ describe("the preview dialog", () => {
     expect(markup).toContain("仅所有者可读写");
   });
 
+  it("shows the risk warning for a sensitive variable name next to the other warnings", () => {
+    const markup = previewed({
+      warnings: [{ kind: "SENSITIVE_VARIABLE", name: "BASH_ENV" }, { kind: "BLOCK_APPENDED" }],
+    });
+    expect(markup).toContain("BASH_ENV");
+    expect(markup).toContain("风险");
+    expect(markup).toContain("仍可保存");
+  });
+
   it("titles an appended block and shows no warnings section when there are none", () => {
     const appended = previewed({ createdBlock: true, warnings: [] });
     expect(appended).toContain("将在文件末尾追加专用块");

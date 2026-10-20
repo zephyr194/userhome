@@ -509,3 +509,24 @@ describe("zsh payload decoding", () => {
     }
   });
 });
+
+describe("zdotdir parent segments", () => {
+  it("decodes a ZDOTDIR that was left undetermined because of a .. segment", () => {
+    const overview = decodeZshOverview(
+      wireOverview({
+        zdotdir: { status: "UNDETERMINED", reason: "PARENT_SEGMENT", selectionProblem: null },
+      }),
+    );
+    expect(overview.zdotdir).toEqual({ status: "UNDETERMINED", reason: "PARENT_SEGMENT" });
+  });
+
+  it("still refuses an unknown reason", () => {
+    expect(() =>
+      decodeZshOverview(
+        wireOverview({
+          zdotdir: { status: "UNDETERMINED", reason: "SOMETHING_ELSE", selectionProblem: null },
+        }),
+      ),
+    ).toThrow();
+  });
+});

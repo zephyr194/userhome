@@ -177,6 +177,8 @@ const UNDETERMINED_TEXT: Record<ZshUndeterminedReason, string> = {
   UNSUPPORTED_FORM:
     "~/.zshenv 里的 ZDOTDIR 写法不受支持（相对路径、空值、追加等），无法静态确定。",
   ZSHENV_NOT_READ: "~/.zshenv 无法读取，因此不知道 ZDOTDIR 是否被设置。",
+  PARENT_SEGMENT:
+    "~/.zshenv 里的 ZDOTDIR 路径含有 .. 段，不做字面折算，无法静态确定它指向哪里。",
 };
 
 export function undeterminedText(reason: ZshUndeterminedReason): string {

@@ -6,6 +6,7 @@ import {
   decodeGrantSummary,
   decodeSelectGrantResult,
   getGrantStoreStatus,
+  grantPurposeLabel,
   listGrants,
   resetGrantStore,
   revokeGrant,
@@ -419,5 +420,61 @@ describe("grant store status and reset IPC", () => {
       code: "PARTIAL_FAILURE",
       message: "set aside as grants.json.corrupt-1, try again",
     });
+  });
+});
+
+describe("shell startup file grants", () => {
+  const shellGrant = (overrides: Record<string, unknown> = {}) =>
+    wireGrant({
+      purpose: "SHELL_STARTUP_FILE",
+      kind: "FILE",
+      displayPath: "~/.zshrc",
+      ...overrides,
+    });
+
+  it("decodes and lists a shell startup file grant instead of failing on the new purpose", async () => {
+    expect(decodeGrantSummary(shellGrant())).toEqual(shellGrant());
+    mockIPC(() => [wireGrant(), shellGrant({ id: "4f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b" })]);
+
+    const grants = await listGrants();
+
+    expect(grants.map((grant) => grant.purpose)).toEqual([
+      "CONFIG_DIRECTORY",
+      "SHELL_STARTUP_FILE",
+    ]);
+  });
+
+  it("keeps the purpose and kind rule: a shell startup grant is a file grant", () => {
+    expect(() => decodeGrantSummary(shellGrant({ kind: "DIRECTORY" }))).toThrow();
+  });
+
+  it("labels every purpose, the new one as a shell startup file", () => {
+    expect(grantPurposeLabel("SHELL_STARTUP_FILE")).toBe("shell 启动文件");
+    const labels = (["CONFIG_DIRECTORY", "CONFIG_FILE", "EXECUTABLE", "SHELL_STARTUP_FILE"] as const).map(
+      grantPurposeLabel,
+    );
+    expect(new Set(labels).size).toBe(4);
+  });
+
+  it("never selects the purpose through a dialog and never calls the backend for it", async () => {
+    let called = false;
+    mockIPC(() => {
+      called = true;
+      return null;
+    });
+
+    await expect(
+      selectFileGrant("SHELL_STARTUP_FILE" as FileGrantPurpose),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(called).toBe(false);
+  });
+
+  it("rejects a selection result that carries the purpose", () => {
+    expect(() =>
+      decodeSelectGrantResult(
+        { status: "SELECTED", grant: shellGrant() },
+        "CONFIG_FILE",
+      ),
+    ).toThrow();
   });
 });

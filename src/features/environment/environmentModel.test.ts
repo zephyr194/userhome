@@ -134,6 +134,24 @@ describe("environment page state", () => {
     expect(state.selectedGrantId).toBe(FIRST);
   });
 
+  it("does not list shell startup file grants among the directory authorizations", () => {
+    const state = run([
+      {
+        type: "grantsLoaded",
+        grants: [
+          grant("5f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b", {
+            purpose: "SHELL_STARTUP_FILE",
+            kind: "FILE",
+            displayPath: "~/.zshrc",
+          }),
+          grant(FIRST),
+        ],
+      },
+    ]);
+    expect(state.grants.status === "ready" && state.grants.grants.map((item) => item.id)).toEqual([FIRST]);
+    expect(state.selectedGrantId).toBe(FIRST);
+  });
+
   it("reaches the empty state when no directory is authorized", () => {
     const state = run([{ type: "grantsLoaded", grants: [] }]);
     expect(state.selectedGrantId).toBeUndefined();

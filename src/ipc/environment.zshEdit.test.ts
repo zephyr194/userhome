@@ -678,3 +678,28 @@ describe("zsh edit execution decoding", () => {
     }
   });
 });
+
+describe("sensitive variable warnings", () => {
+  it("decodes a sensitive-variable warning with only the name", () => {
+    const preview = decodeZshEditPreview(
+      wirePreview({
+        warnings: [
+          { kind: "SENSITIVE_VARIABLE", name: "DYLD_INSERT_LIBRARIES" },
+          { kind: "SENSITIVE_VARIABLE", name: "IFS" },
+        ],
+      }),
+    );
+    expect(preview.warnings).toEqual([
+      { kind: "SENSITIVE_VARIABLE", name: "DYLD_INSERT_LIBRARIES" },
+      { kind: "SENSITIVE_VARIABLE", name: "IFS" },
+    ]);
+  });
+
+  it.each([
+    ["a missing name", { kind: "SENSITIVE_VARIABLE" }],
+    ["an invalid name", { kind: "SENSITIVE_VARIABLE", name: "A B" }],
+    ["a non-string name", { kind: "SENSITIVE_VARIABLE", name: 1 }],
+  ])("rejects %s", (_label, warning) => {
+    expect(() => decodeZshEditPreview(wirePreview({ warnings: [warning] }))).toThrow();
+  });
+});
