@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
@@ -47,6 +47,8 @@ export interface ServicesViewProps {
   onFilterChange: (filter: ServiceFilter) => void;
   onSelect: (id: string) => void;
   onRefresh: () => void;
+  /** Extra controls next to the refresh button; the page decides what they are. */
+  headerActions?: ReactNode;
 }
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
@@ -108,13 +110,16 @@ export function ServicesView(props: ServicesViewProps) {
                 launchd 常驻任务，只读查看
               </p>
             </div>
-            <Button
-              size="sm"
-              disabled={props.refreshDisabled}
-              onClick={props.onRefresh}
-            >
-              刷新
-            </Button>
+            <div className="flex min-w-0 flex-wrap items-start gap-ui-md">
+              {props.headerActions}
+              <Button
+                size="sm"
+                disabled={props.refreshDisabled}
+                onClick={props.onRefresh}
+              >
+                刷新
+              </Button>
+            </div>
           </header>
 
           <FilterBar

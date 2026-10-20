@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Button } from "../../components/ui";
 import { decodeAppError } from "../../ipc/core";
-import { listLaunchdServices, listServices } from "../../ipc/services";
+import {
+  listLaunchdServices,
+  listServices,
+  type CreateServiceExecution,
+} from "../../ipc/services";
+import { CreateServiceDialog } from "./CreateServiceDialog";
 import {
   DISCOVERY_REFRESH_MIN_INTERVAL_MS,
   EMPTY_FILTER,
@@ -13,7 +19,9 @@ import {
 import { ServicesView } from "./ServicesView";
 
 /**
- * Read-only launchd inventory. The list, the filters and the selection live
+ * launchd inventory. The discovered tasks are read-only; the one write entry is
+ * creating a new UserHome-owned task, which only adds a configuration file and
+ * neither loads nor starts it. The list, the filters and the selection live
  * only in memory; the selection is keyed by domain + label so a refresh keeps
  * it, and a vanished task is reported instead of replaced.
  */
@@ -36,6 +44,8 @@ export function ServicesPage({
   const [filter, setFilter] = useState<ServiceFilter>(EMPTY_FILTER);
   const [selectedId, setSelectedId] = useState(initialSelectedServiceId);
   const [cooling, setCooling] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createdNotice, setCreatedNotice] = useState<string | undefined>();
   const requestRef = useRef(0);
   const inFlightRef = useRef(false);
   const lastStartedRef = useRef<number | undefined>(undefined);
@@ -110,25 +120,75 @@ export function ServicesPage({
     load();
   }, [load]);
 
+  // A new file changes what discovery sees, so the list is read again at once
+  // (not throttled); the notice stays until the user dismisses it.
+  const created = useCallback(
+    (execution: CreateServiceExecution) => {
+      setCreatedNotice(
+        `已创建 ${execution.label}：新任务尚未加载，也未启动。`,
+      );
+      load();
+    },
+    [load],
+  );
+
   const select = useCallback((id: string) => {
     setSelectedId(id);
     selectionChangeRef.current?.(id);
   }, []);
 
   return (
-    <ServicesView
-      state={state}
-      evidence={evidence}
-      filter={filter}
-      selectedId={selectedId}
-      refreshDisabled={
-        cooling ||
-        state.status === "loading" ||
-        (state.status === "ready" && state.refreshing)
-      }
-      onFilterChange={setFilter}
-      onSelect={select}
-      onRefresh={refresh}
-    />
+    <>
+      <ServicesView
+        state={state}
+        evidence={evidence}
+        filter={filter}
+        selectedId={selectedId}
+        refreshDisabled={
+          cooling ||
+          state.status === "loading" ||
+          (state.status === "ready" && state.refreshing)
+        }
+        onFilterChange={setFilter}
+        onSelect={select}
+        onRefresh={refresh}
+        headerActions={
+          <div className="grid min-w-0 justify-items-end gap-ui-xs">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                setCreatedNotice(undefined);
+                setCreateOpen(true);
+              }}
+            >
+              创建自建任务
+            </Button>
+            {createdNotice ? (
+              <p
+                className="max-w-xs break-words text-right text-xs text-success [overflow-wrap:anywhere]"
+                role="status"
+                aria-live="polite"
+              >
+                {createdNotice}{" "}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setCreatedNotice(undefined)}
+                >
+                  知道了
+                </Button>
+              </p>
+            ) : null}
+          </div>
+        }
+      />
+      {createOpen ? (
+        <CreateServiceDialog
+          onClose={() => setCreateOpen(false)}
+          onCreated={created}
+        />
+      ) : null}
+    </>
   );
 }

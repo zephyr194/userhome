@@ -1,4 +1,15 @@
-import { createInternalError, invokeCommand, isRecord } from "./core";
+import {
+  createInternalError,
+  invokeCommand,
+  isRecord,
+  type AppError,
+} from "./core";
+import {
+  decodeResourceWriteExecution,
+  decodeResourceWritePreview,
+  type ResourceWriteExecution,
+  type ResourceWritePreview,
+} from "./resources";
 import {
   decodeOperationDetails,
   decodeOperationPreview,
@@ -694,4 +705,322 @@ export function decodeLaunchdDiscovery(value: unknown): LaunchdDiscovery {
 
 export function listLaunchdServices(): Promise<LaunchdDiscovery> {
   return invokeCommand("list_launchd_services", decodeLaunchdDiscovery);
+}
+
+// Creating a UserHome-owned launchd job. The request is a typed form; the file
+// path is fixed in the backend and never sent from here. Nothing is loaded or
+// started, and no environment value ever comes back.
+
+export const CREATE_SERVICE_NAMESPACE = "com.zephyr194.userhome.agent.";
+export const CREATE_SERVICE_LIMITS = {
+  labelSuffixBytes: 64,
+  arguments: 64,
+  argumentBytes: 4096,
+  environmentEntries: 32,
+  environmentKeyBytes: 128,
+  environmentValueBytes: 4096,
+  pathBytes: 1024,
+} as const;
+
+export interface CreateServiceRequest {
+  /** The part after the namespace, or the full label inside it. */
+  label: string;
+  executable: string;
+  arguments: string[];
+  workingDirectory?: string;
+  environment: Record<string, string>;
+  stdoutPath?: string;
+  stderrPath?: string;
+  runAtLoad: boolean;
+  keepAlive: boolean;
+}
+
+export interface CreateServicePreview extends ResourceWritePreview {
+  label: string;
+  /** `~/Library/LaunchAgents/<label>.plist` */
+  filePath: string;
+  executable: string;
+  /** The real argument list with secret-looking values hidden. */
+  arguments: string[];
+  argumentsRedacted: boolean;
+  workingDirectory?: string;
+  /** Names only. */
+  environmentKeys: string[];
+  stdoutPath?: string;
+  stderrPath?: string;
+  runAtLoad: boolean;
+  keepAlive: boolean;
+  persistenceNotes: string[];
+  effectNote: string;
+}
+
+export interface CreateServiceExecution extends ResourceWriteExecution {
+  label: string;
+  filePath: string;
+  loaded: false;
+  effectNote: string;
+}
+
+const ENV_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const LABEL_SUFFIX_PATTERN = /^[A-Za-z0-9._-]+$/;
+const BIDI_CONTROLS = new Set([
+  0x2028, 0x2029, 0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066, 0x2067,
+  0x2068, 0x2069,
+]);
+
+/**
+ * Control characters (C0, DEL, C1), line and paragraph separators and the
+ * bidirectional override characters: the set the backend refuses in every
+ * text field of a job definition.
+ */
+export function hasForbiddenTextCharacters(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 31 || (code >= 127 && code <= 159) || BIDI_CONTROLS.has(code)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function decodeBoundedText(value: unknown, maxBytes: number): string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    new TextEncoder().encode(value).length > maxBytes ||
+    hasForbiddenTextCharacters(value)
+  ) {
+    throw createInternalError();
+  }
+  return value;
+}
+
+function decodeDisplayPath(value: unknown): string {
+  const path = decodeBoundedText(value, CREATE_SERVICE_LIMITS.pathBytes);
+  if (!path.startsWith("/") && !path.startsWith("~/")) {
+    throw createInternalError();
+  }
+  return path;
+}
+
+function decodeOptionalDisplayPath(value: unknown): string | undefined {
+  return value === undefined || value === null
+    ? undefined
+    : decodeDisplayPath(value);
+}
+
+function decodeCreatedLabel(value: unknown): string {
+  if (typeof value !== "string" || !value.startsWith(CREATE_SERVICE_NAMESPACE)) {
+    throw createInternalError();
+  }
+  const suffix = value.slice(CREATE_SERVICE_NAMESPACE.length);
+  if (
+    suffix.length === 0 ||
+    suffix.length > CREATE_SERVICE_LIMITS.labelSuffixBytes ||
+    !LABEL_SUFFIX_PATTERN.test(suffix)
+  ) {
+    throw createInternalError();
+  }
+  return value;
+}
+
+export function createdServiceFilePath(label: string): string {
+  return `~/Library/LaunchAgents/${label}.plist`;
+}
+
+function decodeEnvironmentKeys(value: unknown): string[] {
+  if (
+    !Array.isArray(value) ||
+    value.length > CREATE_SERVICE_LIMITS.environmentEntries
+  ) {
+    throw createInternalError();
+  }
+  const keys = value.map((key): string => {
+    if (
+      typeof key !== "string" ||
+      key.length > CREATE_SERVICE_LIMITS.environmentKeyBytes ||
+      !ENV_KEY_PATTERN.test(key)
+    ) {
+      throw createInternalError();
+    }
+    return key;
+  });
+  if (new Set(keys).size !== keys.length) throw createInternalError();
+  return keys;
+}
+
+function decodeCreatedArguments(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > CREATE_SERVICE_LIMITS.arguments) {
+    throw createInternalError();
+  }
+  return value.map((item): string => {
+    // An empty argument is a real argument, so only the bounds and the
+    // character rules apply.
+    if (
+      typeof item !== "string" ||
+      new TextEncoder().encode(item).length >
+        CREATE_SERVICE_LIMITS.argumentBytes ||
+      hasForbiddenTextCharacters(item)
+    ) {
+      throw createInternalError();
+    }
+    return item;
+  });
+}
+
+function decodeBooleanField(value: unknown): boolean {
+  if (typeof value !== "boolean") throw createInternalError();
+  return value;
+}
+
+function decodeNotes(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 8) {
+    throw createInternalError();
+  }
+  return value.map((note) => decodeBoundedText(note, 1024));
+}
+
+export function decodeCreateServicePreview(
+  value: unknown,
+): CreateServicePreview {
+  const write = decodeResourceWritePreview(value);
+  if (!isRecord(value)) throw createInternalError();
+  // The backend never returns environment values, and neither do we accept any.
+  if (value.environment !== undefined || value.environmentValues !== undefined) {
+    throw createInternalError();
+  }
+  const label = decodeCreatedLabel(value.label);
+  const filePath = createdServiceFilePath(label);
+  if (
+    write.kind !== "CREATE" ||
+    write.target !== filePath ||
+    value.filePath !== filePath ||
+    !write.diff.redacted ||
+    write.diff.lines.length > 0
+  ) {
+    throw createInternalError();
+  }
+  const workingDirectory = decodeOptionalDisplayPath(value.workingDirectory);
+  const stdoutPath = decodeOptionalDisplayPath(value.stdoutPath);
+  const stderrPath = decodeOptionalDisplayPath(value.stderrPath);
+  return {
+    ...write,
+    label,
+    filePath,
+    executable: decodeDisplayPath(value.executable),
+    arguments: decodeCreatedArguments(value.arguments),
+    argumentsRedacted: decodeBooleanField(value.argumentsRedacted),
+    ...(workingDirectory === undefined ? {} : { workingDirectory }),
+    environmentKeys: decodeEnvironmentKeys(value.environmentKeys),
+    ...(stdoutPath === undefined ? {} : { stdoutPath }),
+    ...(stderrPath === undefined ? {} : { stderrPath }),
+    runAtLoad: decodeBooleanField(value.runAtLoad),
+    keepAlive: decodeBooleanField(value.keepAlive),
+    persistenceNotes: decodeNotes(value.persistenceNotes),
+    effectNote: decodeBoundedText(value.effectNote, 1024),
+  };
+}
+
+export function decodeCreateServiceExecution(
+  value: unknown,
+): CreateServiceExecution {
+  const execution = decodeResourceWriteExecution(value);
+  if (!isRecord(value)) throw createInternalError();
+  const label = decodeCreatedLabel(value.label);
+  const filePath = createdServiceFilePath(label);
+  // Creating the file never loads the job; a result that says otherwise is not trusted.
+  if (value.filePath !== filePath || value.loaded !== false) {
+    throw createInternalError();
+  }
+  return {
+    ...execution,
+    label,
+    filePath,
+    loaded: false,
+    effectNote: decodeBoundedText(value.effectNote, 1024),
+  };
+}
+
+function invalidCreateRequest(): AppError {
+  // Deliberately generic: the request may hold secrets.
+  return {
+    code: "INVALID_INPUT",
+    message: "The launchd job request is not valid.",
+    retryable: false,
+  };
+}
+
+function isText(value: unknown): value is string {
+  return typeof value === "string";
+}
+
+function createPayload(request: CreateServiceRequest): Record<string, unknown> {
+  const optional = (value: unknown): value is string | undefined =>
+    value === undefined || isText(value);
+  if (
+    !isRecord(request) ||
+    !isText(request.label) ||
+    request.label.length === 0 ||
+    !isText(request.executable) ||
+    request.executable.length === 0 ||
+    !Array.isArray(request.arguments) ||
+    !request.arguments.every(isText) ||
+    !isRecord(request.environment) ||
+    !Object.values(request.environment).every(isText) ||
+    !optional(request.workingDirectory) ||
+    !optional(request.stdoutPath) ||
+    !optional(request.stderrPath) ||
+    typeof request.runAtLoad !== "boolean" ||
+    typeof request.keepAlive !== "boolean"
+  ) {
+    throw invalidCreateRequest();
+  }
+  return {
+    label: request.label,
+    executable: request.executable,
+    arguments: [...request.arguments],
+    ...(request.workingDirectory === undefined
+      ? {}
+      : { workingDirectory: request.workingDirectory }),
+    environment: { ...request.environment },
+    ...(request.stdoutPath === undefined ? {} : { stdoutPath: request.stdoutPath }),
+    ...(request.stderrPath === undefined ? {} : { stderrPath: request.stderrPath }),
+    runAtLoad: request.runAtLoad,
+    keepAlive: request.keepAlive,
+  };
+}
+
+/** Previews creating one job; writes nothing. */
+export function previewCreateLaunchdService(
+  request: CreateServiceRequest,
+): Promise<CreateServicePreview> {
+  let input: Record<string, unknown>;
+  try {
+    input = createPayload(request);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+  return invokeCommand(
+    "preview_create_launchd_service",
+    decodeCreateServicePreview,
+    { input },
+  );
+}
+
+/** Confirms a creation preview by its operation id only. */
+export function executeCreateLaunchdService(
+  operationId: string,
+): Promise<CreateServiceExecution> {
+  if (typeof operationId !== "string" || operationId.length === 0) {
+    return Promise.reject({
+      code: "INVALID_INPUT",
+      message: "Operation id is invalid.",
+      retryable: false,
+    } satisfies AppError);
+  }
+  return invokeCommand(
+    "execute_create_launchd_service",
+    decodeCreateServiceExecution,
+    { operationId },
+  );
 }
