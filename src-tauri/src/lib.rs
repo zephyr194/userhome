@@ -136,6 +136,7 @@ pub fn run() {
             commands::brew::preview_brew_action,
             commands::brew::execute_brew_action,
             commands::services::list_services,
+            commands::services::list_launchd_services,
             commands::services::get_service,
             commands::services::preview_service_action,
             commands::services::execute_service_action,

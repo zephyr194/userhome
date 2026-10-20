@@ -23,7 +23,7 @@ mod write;
 
 pub use read::{
     BuiltInReadError, ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantedRead, ReadError,
-    read_built_in,
+    built_in_dir, is_below_home, read_built_in,
 };
 pub use recovery::{GrantResetError, GrantStoreProblem, GrantStoreReset, GrantStoreStatus};
 pub use store::{GRANT_SCHEMA_VERSION, GrantStore, MAX_GRANTS};

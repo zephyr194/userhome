@@ -20,6 +20,7 @@ use crate::{
             ConfigValidity, ServiceDetails, ServiceInventoryError, ServiceSummary,
             caddy_config_validity, get_service as load_service, list_services as load_services,
         },
+        launchd::{DiscoveryGate, LaunchdDiscovery, discover_system},
     },
 };
 
@@ -30,6 +31,23 @@ pub async fn list_services(app: AppHandle) -> Result<Vec<ServiceSummary>, AppErr
         .map_err(|_| AppError::internal())?;
     crate::tray::update_service_summary(&app, result.as_deref().map_err(|_| ()));
     result.map_err(map_inventory_error)
+}
+
+/// Read-only launchd discovery. It takes no label or path from the caller; one
+/// run at a time, and the partial result says which sources failed.
+#[tauri::command]
+pub async fn list_launchd_services() -> Result<LaunchdDiscovery, AppError> {
+    let Some(gate) = DiscoveryGate::try_acquire() else {
+        return Err(AppError::conflict(
+            "launchd discovery is already running. Retry when it finishes.",
+        ));
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let _gate = gate;
+        discover_system()
+    })
+    .await
+    .map_err(|_| AppError::internal())
 }
 
 #[tauri::command]

@@ -8,7 +8,7 @@ use std::{
     fs::{self, File},
     io::{self, Read},
     os::unix::fs::MetadataExt,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use sha2::{Digest, Sha256};
@@ -192,6 +192,29 @@ pub fn read_built_in(
     granted_read(&file, &metadata, max_bytes).map_err(BuiltInReadError::Failed)
 }
 
+/// Whether `canonical` (already resolved) is a built-in location the `$HOME`
+/// rule allows: strictly below the home directory and outside the protected
+/// credential locations. Never touches the file system.
+pub fn is_below_home(canonical: &Path, home: Option<&Path>) -> bool {
+    path::ensure_below_home(canonical, home).is_ok()
+}
+
+/// Resolves a fixed built-in directory under `$HOME` for listing. The canonical
+/// directory must pass the same `$HOME` rule as `read_built_in`, so a symbolic
+/// link that leads out of `$HOME` is reported as `Outside` and never listed.
+pub fn built_in_dir(path: &Path, home: Option<&Path>) -> Result<PathBuf, BuiltInReadError> {
+    let failed = |error: io::Error| BuiltInReadError::Failed(io_error(error));
+    let canonical = fs::canonicalize(path).map_err(failed)?;
+    path::ensure_below_home(&canonical, home).map_err(|error| match error {
+        GrantError::OutsideHome | GrantError::ProtectedLocation => BuiltInReadError::Outside,
+        other => BuiltInReadError::Failed(other.into()),
+    })?;
+    if !fs::metadata(&canonical).map_err(failed)?.is_dir() {
+        return Err(BuiltInReadError::Failed(ReadError::Unsupported));
+    }
+    Ok(canonical)
+}
+
 fn read_target(
     record: &GrantRecord,
     target: &Path,
@@ -305,7 +328,8 @@ mod tests {
 
     use super::{
         super::{GrantCoordinator, GrantPurpose, GrantStore},
-        BuiltInReadError, DEFAULT_MAX_READ_BYTES, ReadError, read_bounded, read_built_in,
+        BuiltInReadError, DEFAULT_MAX_READ_BYTES, ReadError, built_in_dir, is_below_home,
+        read_bounded, read_built_in,
     };
 
     struct Fixture {
@@ -799,5 +823,38 @@ mod tests {
                 Err(BuiltInReadError::Failed(ReadError::PermissionDenied))
             );
         }
+    }
+
+    #[test]
+    fn a_built_in_directory_must_resolve_strictly_below_home() {
+        let fixture = Fixture::new();
+        let home = fixture.directory("home");
+        let agents = home.join("Library/LaunchAgents");
+        fs::create_dir_all(&agents).expect("create agents");
+        let outside = fixture.directory("outside");
+        let escape = home.join("Library/Escape");
+        symlink(&outside, &escape).expect("link out of home");
+        fs::write(home.join("file"), b"x").expect("write file");
+
+        assert_eq!(built_in_dir(&agents, Some(&home)), Ok(agents.clone()));
+        assert_eq!(
+            built_in_dir(&escape, Some(&home)),
+            Err(BuiltInReadError::Outside)
+        );
+        assert_eq!(
+            built_in_dir(&home, Some(&home)),
+            Err(BuiltInReadError::Outside)
+        );
+        assert_eq!(
+            built_in_dir(&home.join("file"), Some(&home)),
+            Err(BuiltInReadError::Failed(ReadError::Unsupported))
+        );
+        assert_eq!(
+            built_in_dir(&home.join("missing"), Some(&home)),
+            Err(BuiltInReadError::Failed(ReadError::NotFound))
+        );
+        assert!(is_below_home(&agents, Some(&home)));
+        assert!(!is_below_home(&outside, Some(&home)));
+        assert!(!is_below_home(&agents, None));
     }
 }
