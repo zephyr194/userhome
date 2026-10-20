@@ -91,6 +91,9 @@ pub enum UndeterminedReason {
     UnsupportedForm,
     /// `~/.zshenv` could not be read, so its content is unknown.
     ZshenvNotRead,
+    /// A literal path with a `..` segment: not normalized lexically, so it is
+    /// neither taken as inside nor as outside `$HOME`.
+    ParentSegment,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -447,6 +450,11 @@ fn decide(text: &str, home: &Path) -> Decision {
             .and_then(|home| zsh_parse::expand_home_literal(&entry.value, home)),
     };
     match expanded {
+        // `..` is never folded away here: a lexical `starts_with` on such a
+        // path says nothing about where the shell really ends up.
+        Some(value) if value.starts_with('/') && value.split('/').any(|part| part == "..") => {
+            Decision::Undetermined(UndeterminedReason::ParentSegment)
+        }
         Some(value) if value.starts_with('/') => Decision::Literal {
             path: PathBuf::from(value),
             line,

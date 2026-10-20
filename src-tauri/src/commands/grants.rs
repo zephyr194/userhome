@@ -286,6 +286,9 @@ impl Drop for PickerSlot<'_> {
 
 fn validate_selection(mode: PickMode, purpose: GrantPurpose) -> Result<(), AppError> {
     let allowed = match mode {
+        // Shell startup file grants are made only by the dedicated editor,
+        // from a fixed file name; no dialog can produce one.
+        _ if purpose == GrantPurpose::ShellStartupFile => false,
         PickMode::Directory | PickMode::File => purpose.kind() == mode_kind(mode),
         PickMode::SaveLocation => purpose == GrantPurpose::ConfigFile,
     };
@@ -850,6 +853,33 @@ mod tests {
             let error = validate_selection(mode, purpose).expect_err("mismatch");
             assert_eq!(error.code(), AppErrorCode::InvalidInput);
         }
+    }
+
+    #[test]
+    fn the_frontend_cannot_select_a_shell_startup_authorization() {
+        // Only the dedicated editor creates them, from a fixed file name; no
+        // picker mode accepts the purpose, so no dialog opens either.
+        for mode in [PickMode::Directory, PickMode::File, PickMode::SaveLocation] {
+            let error = validate_selection(mode, GrantPurpose::ShellStartupFile)
+                .expect_err("not selectable");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        }
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let file = sandbox.root.join(".zshrc");
+        fs::write(&file, "x\n").expect("seed");
+        for mode in [PickMode::File, PickMode::SaveLocation] {
+            let error = run_select(
+                &coordinator,
+                FakePicker(Ok(Some(file.clone()))),
+                mode,
+                GrantPurpose::ShellStartupFile,
+                None,
+            )
+            .expect_err("not selectable");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        }
+        assert!(coordinator.list().expect("list").is_empty());
     }
 
     #[test]

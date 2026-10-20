@@ -76,6 +76,20 @@ impl GrantCoordinator {
         parent: &Path,
         file_name: &str,
     ) -> Result<GrantRecord, GrantError> {
+        self.create_new_file_with(GrantPurpose::ConfigFile, parent, file_name)
+    }
+
+    /// `create_new_file` for another file purpose (`ShellStartupFile`).
+    /// Purposes that are not file purposes are refused.
+    pub fn create_new_file_with(
+        &self,
+        purpose: GrantPurpose,
+        parent: &Path,
+        file_name: &str,
+    ) -> Result<GrantRecord, GrantError> {
+        if !purpose.allows_new_file() {
+            return Err(GrantError::NotFile);
+        }
         if !is_valid_file_name(file_name) {
             return Err(GrantError::InvalidRelativePath);
         }
@@ -84,7 +98,7 @@ impl GrantCoordinator {
         let _guard = self.lock()?;
         let mut grants = self.store.load()?;
         if let Some(existing) = grants.iter().find(|grant| {
-            grant.purpose == GrantPurpose::ConfigFile
+            grant.purpose == purpose
                 && grant.path == canonical
                 && grant.file_name.as_deref() == Some(file_name)
         }) {
@@ -92,7 +106,7 @@ impl GrantCoordinator {
         }
         let record = GrantRecord {
             id: GrantId::generate(),
-            purpose: GrantPurpose::ConfigFile,
+            purpose,
             kind: GrantKind::File,
             path: canonical,
             created_at_epoch_ms: now_epoch_ms(),

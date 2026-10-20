@@ -45,8 +45,8 @@ use crate::{
 };
 
 use super::{
-    ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantCoordinator, GrantError, GrantId, GrantKind,
-    ReadError, display_path, new_file, path,
+    ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantAccess, GrantCoordinator, GrantError, GrantId,
+    GrantKind, ReadError, display_path, new_file, path,
 };
 
 pub const MAX_PENDING_WRITES: usize = 64;
@@ -217,6 +217,8 @@ struct BatchSlot {
 
 #[derive(Debug, Clone)]
 struct PendingResourceWrite {
+    /// Which kind of entry created the preview; only the same kind confirms it.
+    access: GrantAccess,
     grant_id: GrantId,
     relative: Option<String>,
     target_path: PathBuf,
@@ -238,6 +240,7 @@ struct BatchStep {
 }
 
 struct BatchRecord {
+    access: GrantAccess,
     steps: Vec<BatchStep>,
 }
 
@@ -255,11 +258,32 @@ pub struct ResourceWriteCoordinator {
 
 impl ResourceWriteCoordinator {
     /// Previews one or more writes. Every step gets its own operation and its
-    /// own confirmation; the batch only records order and progress.
+    /// own confirmation; the batch only records order and progress. This is
+    /// the general entry: a shell startup file grant is refused here.
     pub fn preview(
         &self,
         ctx: &ResourceWriteContext<'_>,
         requests: Vec<WriteRequest>,
+    ) -> Result<ResourceWriteBatchPreview, AppError> {
+        self.preview_with(ctx, requests, GrantAccess::General)
+    }
+
+    /// The dedicated entry of the shell startup editor: only shell startup
+    /// file grants are accepted. Not reachable from any command that takes a
+    /// grant id from the frontend.
+    pub fn preview_shell_startup(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        requests: Vec<WriteRequest>,
+    ) -> Result<ResourceWriteBatchPreview, AppError> {
+        self.preview_with(ctx, requests, GrantAccess::ShellStartup)
+    }
+
+    fn preview_with(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        requests: Vec<WriteRequest>,
+        access: GrantAccess,
     ) -> Result<ResourceWriteBatchPreview, AppError> {
         if requests.is_empty() || requests.len() > MAX_BATCH_STEPS {
             return Err(AppError::invalid_input(
@@ -291,7 +315,7 @@ impl ResourceWriteCoordinator {
         let mut created: Vec<(String, PendingResourceWrite)> = Vec::new();
         let mut previews = Vec::new();
         for (index, request) in requests.iter().enumerate() {
-            match prepare_step(ctx, request, &batch_id, index) {
+            match prepare_step(ctx, request, access, &batch_id, index) {
                 Ok((pending, preview)) => {
                     created.push((preview.operation.operation_id.clone(), pending));
                     previews.push(preview);
@@ -328,7 +352,7 @@ impl ResourceWriteCoordinator {
         state.batch_order.push(batch_id.clone());
         state
             .batches
-            .insert(batch_id.clone(), BatchRecord { steps });
+            .insert(batch_id.clone(), BatchRecord { access, steps });
         Ok(ResourceWriteBatchPreview {
             batch_id,
             atomic: false,
@@ -345,15 +369,44 @@ impl ResourceWriteCoordinator {
         ctx: &ResourceWriteContext<'_>,
         request: &ConfirmRequest,
     ) -> Result<ResourceWriteExecution, AppError> {
-        self.execute_with(ctx, request, validate_text)
+        self.execute_with(ctx, request, |_| Ok(()))
     }
 
     /// Like `execute`, with a caller-supplied read-back check that runs on the
-    /// written bytes; a failing check restores the previous content.
+    /// written bytes after the default text validation, so it can only tighten
+    /// it; a failing check restores the previous content. General entry: a
+    /// preview made for a shell startup file is refused here.
     pub fn execute_with<F>(
         &self,
         ctx: &ResourceWriteContext<'_>,
         request: &ConfirmRequest,
+        post_validate: F,
+    ) -> Result<ResourceWriteExecution, AppError>
+    where
+        F: FnOnce(&[u8]) -> Result<(), AppError>,
+    {
+        self.execute_inner(ctx, request, GrantAccess::General, post_validate)
+    }
+
+    /// Confirms a preview made by `preview_shell_startup`, with the editor's
+    /// own read-back check (after the default text validation).
+    pub fn execute_shell_startup<F>(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        request: &ConfirmRequest,
+        post_validate: F,
+    ) -> Result<ResourceWriteExecution, AppError>
+    where
+        F: FnOnce(&[u8]) -> Result<(), AppError>,
+    {
+        self.execute_inner(ctx, request, GrantAccess::ShellStartup, post_validate)
+    }
+
+    fn execute_inner<F>(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        request: &ConfirmRequest,
+        access: GrantAccess,
         post_validate: F,
     ) -> Result<ResourceWriteExecution, AppError>
     where
@@ -366,6 +419,11 @@ impl ResourceWriteCoordinator {
                 .get(&request.operation_id)
                 .cloned()
                 .ok_or_else(AppError::operation_not_found)?;
+            // A preview is only confirmed by the kind of entry that made it;
+            // the refusal leaves it pending.
+            if pending.access != access {
+                return Err(GrantError::ReservedPurpose.into());
+            }
             // A confirmation is only valid for the target that was previewed.
             if pending.grant_id != request.grant_id || pending.relative != request.relative {
                 return Err(AppError::operation_mismatch());
@@ -408,7 +466,7 @@ impl ResourceWriteCoordinator {
             "Re-checking authorization and content.",
         )?;
 
-        match run_transaction(ctx, &pending, post_validate) {
+        match run_transaction(ctx, &pending, with_default_validation(post_validate)) {
             Err(error) => {
                 ctx.operations
                     .finish_failure(&request.operation_id, error.clone())?;
@@ -462,6 +520,9 @@ impl ResourceWriteCoordinator {
             .batches
             .get(batch_id)
             .ok_or_else(|| AppError::not_found("The write batch was not found."))?;
+        if record.access != GrantAccess::General {
+            return Err(GrantError::ReservedPurpose.into());
+        }
         let mut blocked = false;
         let mut steps = Vec::with_capacity(record.steps.len());
         for (index, step) in record.steps.iter().enumerate() {
@@ -551,6 +612,7 @@ struct Target {
 fn prepare_step(
     ctx: &ResourceWriteContext<'_>,
     request: &WriteRequest,
+    access: GrantAccess,
     batch_id: &str,
     index: usize,
 ) -> Result<(PendingResourceWrite, ResourceWritePreview), AppError> {
@@ -560,16 +622,17 @@ fn prepare_step(
         ));
     }
     validate_text(request.content.as_bytes())?;
-    let target = resolve_target(ctx, &request.grant_id, request.relative.as_deref())?;
+    let target = resolve_target(ctx, &request.grant_id, request.relative.as_deref(), access)?;
 
     let (kind, fingerprint, current_text) = match (target.exists, &request.expected_sha256) {
         (true, Some(expected)) => {
             let read = ctx
                 .grants
-                .read_resource_with_limit(
+                .read_with_access(
                     &request.grant_id,
                     request.relative.as_deref(),
                     MAX_WRITE_BYTES,
+                    access,
                 )
                 .map_err(read_error)?;
             if &read.fingerprint.sha256 != expected {
@@ -599,6 +662,7 @@ fn prepare_step(
     let proposed_hash = hash_bytes(request.content.as_bytes());
     let current_hash = fingerprint.as_ref().map(|f| f.sha256.clone());
     let pending = PendingResourceWrite {
+        access,
         grant_id: request.grant_id.clone(),
         relative: request.relative.clone(),
         target_path: target.path.clone(),
@@ -690,8 +754,9 @@ fn resolve_target(
     ctx: &ResourceWriteContext<'_>,
     grant_id: &GrantId,
     relative: Option<&str>,
+    access: GrantAccess,
 ) -> Result<Target, AppError> {
-    let record = ctx.grants.resolve(grant_id)?;
+    let record = ctx.grants.resolve_with(grant_id, access)?;
     let home = Some(ctx.environment.home());
     match (record.kind, relative) {
         (GrantKind::File, None) => {
@@ -745,15 +810,18 @@ fn recheck(
     ctx: &ResourceWriteContext<'_>,
     pending: &PendingResourceWrite,
 ) -> Result<Option<Vec<u8>>, AppError> {
-    let target =
-        resolve_target(ctx, &pending.grant_id, pending.relative.as_deref()).map_err(|error| {
-            match error.code() {
-                AppErrorCode::NotFound | AppErrorCode::PermissionDenied => AppError::conflict(
-                    "The authorization or target is no longer available; preview again.",
-                ),
-                _ => error,
-            }
-        })?;
+    let target = resolve_target(
+        ctx,
+        &pending.grant_id,
+        pending.relative.as_deref(),
+        pending.access,
+    )
+    .map_err(|error| match error.code() {
+        AppErrorCode::NotFound | AppErrorCode::PermissionDenied => {
+            AppError::conflict("The authorization or target is no longer available; preview again.")
+        }
+        _ => error,
+    })?;
     if target.path != pending.target_path {
         return Err(AppError::conflict(
             "The write target no longer matches the preview; preview again.",
@@ -775,10 +843,11 @@ fn recheck(
                 .ok_or_else(AppError::internal)?;
             let read = ctx
                 .grants
-                .read_resource_with_limit(
+                .read_with_access(
                     &pending.grant_id,
                     pending.relative.as_deref(),
                     MAX_WRITE_BYTES,
+                    pending.access,
                 )
                 .map_err(read_error)?;
             if &read.fingerprint != expected {
@@ -897,10 +966,11 @@ where
 
     let verification = ctx
         .grants
-        .read_resource_with_limit(
+        .read_with_access(
             &pending.grant_id,
             pending.relative.as_deref(),
             MAX_WRITE_BYTES,
+            pending.access,
         )
         .map_err(read_error)
         .and_then(|written| {
@@ -1050,6 +1120,18 @@ where
     }
 }
 
+/// The default text validation always runs first; the caller's own check only
+/// runs when it passed, so a caller can tighten the check but never replace it.
+fn with_default_validation<F>(post_validate: F) -> impl FnOnce(&[u8]) -> Result<(), AppError>
+where
+    F: FnOnce(&[u8]) -> Result<(), AppError>,
+{
+    move |bytes| {
+        validate_text(bytes)?;
+        post_validate(bytes)
+    }
+}
+
 /// Default post-write check: the proposed bytes must be NUL-free UTF-8 text.
 /// Modules with a real parser pass their own check through the same hook.
 fn validate_text(bytes: &[u8]) -> Result<(), AppError> {
@@ -1091,6 +1173,20 @@ fn read_error(error: ReadError) -> AppError {
 fn backup_document_id(grant_id: &GrantId, relative: Option<&str>) -> String {
     let digest = Sha256::digest(format!("{}\0{}", grant_id.as_str(), relative.unwrap_or("")));
     format!("resource-{}", &format!("{digest:x}")[..32])
+}
+
+impl ResourceWriteCoordinator {
+    /// Test helper: swaps the proposed content of a pending write behind the
+    /// preview's back (the operation intent stays as previewed).
+    #[cfg(test)]
+    pub(super) fn poison_pending_content_for_test(&self, operation_id: &str, content: &str) {
+        let mut state = self.state.lock().expect("state");
+        state
+            .pending
+            .get_mut(operation_id)
+            .expect("pending")
+            .content = content.to_owned();
+    }
 }
 
 /// Test helper: marks a previewed operation as running, as `execute` does

@@ -40,14 +40,41 @@ pub enum GrantPurpose {
     ConfigDirectory,
     ConfigFile,
     Executable,
+    /// A shell startup file (`~/.zshrc` and the like). Only the dedicated
+    /// startup file editor can use it: every general resolve, read and write
+    /// path refuses it (see `GrantAccess`), because what lands in such a file
+    /// runs in the next terminal.
+    ShellStartupFile,
 }
 
 impl GrantPurpose {
     pub fn kind(self) -> GrantKind {
         match self {
             Self::ConfigDirectory => GrantKind::Directory,
-            Self::ConfigFile | Self::Executable => GrantKind::File,
+            Self::ConfigFile | Self::Executable | Self::ShellStartupFile => GrantKind::File,
         }
+    }
+
+    /// Whether a grant may name a single not-yet-existing file (new-file grant).
+    pub(crate) fn allows_new_file(self) -> bool {
+        matches!(self, Self::ConfigFile | Self::ShellStartupFile)
+    }
+}
+
+/// Which kind of caller resolves a grant. The general entry points (every
+/// command that takes a grant id from the frontend) only see grants of
+/// ordinary purposes; the dedicated shell startup editor only sees
+/// `ShellStartupFile` grants. There is no way to ask for both, and the choice
+/// is never a field the frontend can set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GrantAccess {
+    General,
+    ShellStartup,
+}
+
+impl GrantAccess {
+    fn admits(self, purpose: GrantPurpose) -> bool {
+        (purpose == GrantPurpose::ShellStartupFile) == (self == Self::ShellStartup)
     }
 }
 
@@ -79,6 +106,10 @@ pub enum GrantError {
     PermissionDenied,
     NotFound,
     InvalidRelativePath,
+    /// The grant exists but its purpose is reserved for another kind of
+    /// caller: a shell startup file grant used by a general path, or a
+    /// general grant used by the shell startup editor.
+    ReservedPurpose,
     /// The grant does not exist or has been revoked.
     UnknownGrant,
     LimitReached,
@@ -118,6 +149,9 @@ impl From<GrantError> for AppError {
             GrantError::InvalidRelativePath => {
                 AppError::invalid_input("The relative path is not allowed.")
             }
+            GrantError::ReservedPurpose => AppError::permission_denied(
+                "This authorization is reserved for a dedicated editor and cannot be used here.",
+            ),
             GrantError::UnknownGrant => {
                 AppError::not_found("The authorization does not exist or was revoked.")
             }
@@ -190,7 +224,7 @@ impl GrantRecord {
             && self.path.to_str().is_some_and(|path| !path.contains('\0'))
             && self.kind == self.purpose.kind()
             && self.file_name.as_deref().is_none_or(|name| {
-                self.purpose == GrantPurpose::ConfigFile && new_file::is_valid_file_name(name)
+                self.purpose.allows_new_file() && new_file::is_valid_file_name(name)
             })
     }
 
@@ -302,8 +336,20 @@ impl GrantCoordinator {
     }
 
     /// Looks up a live grant and re-validates its root against the file
-    /// system. Revoked or unknown grants are rejected.
+    /// system. Revoked or unknown grants are rejected, and so are shell
+    /// startup file grants (`ReservedPurpose`): they only resolve through
+    /// `resolve_shell_startup`.
     pub fn resolve(&self, id: &GrantId) -> Result<GrantRecord, GrantError> {
+        self.resolve_with(id, GrantAccess::General)
+    }
+
+    /// The same lookup for the dedicated shell startup editor: only a
+    /// `ShellStartupFile` grant resolves, anything else is `ReservedPurpose`.
+    pub fn resolve_shell_startup(&self, id: &GrantId) -> Result<GrantRecord, GrantError> {
+        self.resolve_with(id, GrantAccess::ShellStartup)
+    }
+
+    fn resolve_with(&self, id: &GrantId, access: GrantAccess) -> Result<GrantRecord, GrantError> {
         let record = {
             let _guard = self.lock()?;
             self.store
@@ -312,6 +358,9 @@ impl GrantCoordinator {
                 .find(|grant| &grant.id == id)
                 .ok_or(GrantError::UnknownGrant)?
         };
+        if !access.admits(record.purpose) {
+            return Err(GrantError::ReservedPurpose);
+        }
         path::revalidate(&record, self.home.as_deref())?;
         Ok(record)
     }
@@ -341,5 +390,7 @@ fn now_epoch_ms() -> u64 {
 mod new_file_tests;
 #[cfg(test)]
 mod recovery_tests;
+#[cfg(test)]
+mod shell_startup_tests;
 #[cfg(test)]
 mod tests;

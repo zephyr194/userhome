@@ -500,7 +500,8 @@ fn a_literal_zdotdir_outside_home_is_reported_and_not_read() {
             .contains("outside-value")
     );
 
-    // A `..` that climbs out of `$HOME` is caught on the canonical path.
+    // A `..` that climbs out of `$HOME` is not decided lexically any more: the
+    // literal is undetermined (`ParentSegment`), so nothing is located or read.
     let climbing = Fixture::new();
     fs::write(
         climbing.outside.join(".zshrc"),
@@ -509,7 +510,7 @@ fn a_literal_zdotdir_outside_home_is_reported_and_not_read() {
     .expect("rc");
     write_home(&climbing, ".zshenv", "export ZDOTDIR=$HOME/../outside\n");
     let overview = self::overview(&climbing);
-    assert!(is_outside(file(&overview, StartupFile::Zshrc)));
+    assert!(is_not_located(file(&overview, StartupFile::Zshrc)));
 }
 
 #[test]
@@ -569,6 +570,78 @@ fn zdotdir_values_that_cannot_be_read_statically_are_undetermined() {
             file(&overview, StartupFile::Zshenv).outcome,
             ZshFileOutcome::Ready(_)
         ));
+    }
+}
+
+#[test]
+fn a_zdotdir_literal_with_parent_segments_is_undetermined_and_never_guessed() {
+    // `..` is not folded away lexically: neither the escape nor the "still
+    // inside" reading is trusted, so nothing below the literal is located.
+    let cases = [
+        "export ZDOTDIR=$HOME/../outside\n",
+        "export ZDOTDIR=~/../outside\n",
+        "export ZDOTDIR=$HOME/.config/zsh/..\n",
+        "export ZDOTDIR=$HOME/a/../.config/zsh\n",
+        "export ZDOTDIR=\"$HOME/.config/../.config/zsh\"\n",
+        "export ZDOTDIR=/somewhere/../else\n",
+        "export ZDOTDIR=/..\n",
+        "export ZDOTDIR=$HOME/..\n",
+    ];
+    for zshenv in cases {
+        let fixture = zdotdir_fixture(zshenv);
+        fs::write(
+            fixture.outside.join(".zshrc"),
+            "export LEAKED=outside-value\n",
+        )
+        .expect("outside rc");
+        let overview = overview(&fixture);
+        assert!(
+            matches!(
+                &overview.zdotdir,
+                ZdotdirView::Undetermined {
+                    reason: UndeterminedReason::ParentSegment,
+                    selection_problem: None
+                }
+            ),
+            "{zshenv:?} -> {:?}",
+            overview.zdotdir
+        );
+        for which in [
+            StartupFile::Zprofile,
+            StartupFile::Zshrc,
+            StartupFile::Zlogin,
+        ] {
+            assert!(is_not_located(file(&overview, which)), "{zshenv:?}");
+        }
+        assert!(
+            !serde_json::to_string(&overview)
+                .expect("serialize")
+                .contains("outside-value")
+        );
+    }
+}
+
+#[test]
+fn dots_inside_a_name_are_not_parent_segments() {
+    for zshenv in [
+        "export ZDOTDIR=$HOME/.config/zsh\n",
+        "export ZDOTDIR=$HOME/..config\n",
+        "export ZDOTDIR=$HOME/a..b\n",
+        "export ZDOTDIR=$HOME/.config/zsh/.\n",
+    ] {
+        let fixture = zdotdir_fixture(zshenv);
+        let overview = overview(&fixture);
+        assert!(
+            !matches!(
+                &overview.zdotdir,
+                ZdotdirView::Undetermined {
+                    reason: UndeterminedReason::ParentSegment,
+                    ..
+                }
+            ),
+            "{zshenv:?} -> {:?}",
+            overview.zdotdir
+        );
     }
 }
 

@@ -15,7 +15,7 @@ use sha2::{Digest, Sha256};
 
 use crate::security::paths::is_contained;
 
-use super::{GrantCoordinator, GrantError, GrantId, GrantKind, GrantRecord, path};
+use super::{GrantAccess, GrantCoordinator, GrantError, GrantId, GrantKind, GrantRecord, path};
 
 /// Default text resource limit. Callers needing more must pass it explicitly.
 pub const DEFAULT_MAX_READ_BYTES: usize = 1024 * 1024;
@@ -62,6 +62,7 @@ impl From<GrantError> for ReadError {
             | GrantError::OutsideHome
             | GrantError::ProtectedLocation
             | GrantError::HomeUnavailable
+            | GrantError::ReservedPurpose
             | GrantError::UnknownGrant => Self::Excluded,
             GrantError::LimitReached => Self::Io,
         }
@@ -114,7 +115,28 @@ impl GrantCoordinator {
         relative: Option<&str>,
         max_bytes: usize,
     ) -> Result<GrantedRead, ReadError> {
-        let record = self.resolve(id)?;
+        self.read_with_access(id, relative, max_bytes, GrantAccess::General)
+    }
+
+    /// The read of the dedicated shell startup editor: only a shell startup
+    /// file grant is read, anything else is `Excluded`.
+    pub fn read_shell_startup_with_limit(
+        &self,
+        id: &GrantId,
+        relative: Option<&str>,
+        max_bytes: usize,
+    ) -> Result<GrantedRead, ReadError> {
+        self.read_with_access(id, relative, max_bytes, GrantAccess::ShellStartup)
+    }
+
+    pub(super) fn read_with_access(
+        &self,
+        id: &GrantId,
+        relative: Option<&str>,
+        max_bytes: usize,
+        access: GrantAccess,
+    ) -> Result<GrantedRead, ReadError> {
+        let record = self.resolve_with(id, access)?;
         let target = match (record.kind, relative) {
             (GrantKind::File, None) => record.target_path(),
             (GrantKind::File, Some(_)) => return Err(GrantError::InvalidRelativePath.into()),

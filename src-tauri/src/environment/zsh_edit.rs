@@ -115,10 +115,12 @@ fn located(
     }
 }
 
-/// The live `ConfigFile` authorization that stands for exactly `path`: a file
-/// authorization for its canonical location, or a new-file authorization for
-/// its name in its canonical parent. Anything revoked, moved, swapped for a
-/// symbolic link or no longer valid is not found.
+/// The live `ShellStartupFile` authorization that stands for exactly `path`: a
+/// file authorization for its canonical location, or a new-file authorization
+/// for its name in its canonical parent. Anything revoked, moved, swapped for a
+/// symbolic link or no longer valid is not found. A plain `ConfigFile`
+/// authorization for the same file (made by an earlier version) is not one:
+/// the general write commands can use it, so editing is never enabled by it.
 fn find_grant(coordinator: &GrantCoordinator, path: &Path) -> Option<GrantRecord> {
     let name = path.file_name()?.to_str()?;
     let parent = fs::canonicalize(path.parent()?).ok()?;
@@ -127,12 +129,12 @@ fn find_grant(coordinator: &GrantCoordinator, path: &Path) -> Option<GrantRecord
         .list()
         .ok()?
         .into_iter()
-        .filter(|grant| grant.purpose == GrantPurpose::ConfigFile)
+        .filter(|grant| grant.purpose == GrantPurpose::ShellStartupFile)
         .filter(|grant| match &grant.file_name {
             Some(file_name) => file_name == name && grant.path == parent,
             None => canonical.as_deref() == Some(grant.path.as_path()),
         })
-        .find(|grant| coordinator.resolve(&grant.id).is_ok())
+        .find(|grant| coordinator.resolve_shell_startup(&grant.id).is_ok())
 }
 
 fn grant_error(error: GrantError) -> AppError {
@@ -537,7 +539,8 @@ pub struct ZshEditEnabled {
 
 /// Creates the authorization for exactly this file: a file authorization when
 /// it exists, a new-file authorization (existing parent + the fixed name)
-/// otherwise. The path is built here from the fixed name and the canonical
+/// otherwise. Both carry the `ShellStartupFile` purpose, which only this
+/// module's entry points can use; the general write commands refuse it. The path is built here from the fixed name and the canonical
 /// `$HOME`; the grant coordinator applies its own `$HOME` rules to it.
 pub fn enable(
     coordinator: &GrantCoordinator,
@@ -547,10 +550,14 @@ pub fn enable(
     let path = located(coordinator, home, target)?;
     let exists = fs::symlink_metadata(&path).is_ok();
     let record = if exists {
-        coordinator.create(GrantPurpose::ConfigFile, &path)
+        coordinator.create(GrantPurpose::ShellStartupFile, &path)
     } else {
         let parent = path.parent().ok_or_else(AppError::internal)?;
-        coordinator.create_new_file(parent, target.file.file_name())
+        coordinator.create_new_file_with(
+            GrantPurpose::ShellStartupFile,
+            parent,
+            target.file.file_name(),
+        )
     }
     .map_err(grant_error)?;
     let shown = home.map_or_else(
@@ -632,6 +639,10 @@ pub enum EditWarning {
     BlockAppended,
     /// The file does not exist and is created (owner-only, no recovery point).
     FileCreated,
+    /// The variable changes how the shell or the dynamic loader behaves
+    /// (`IFS`, `ZDOTDIR`, `BASH_ENV`, `ENV`, `PROMPT_COMMAND`, `DYLD_*`,
+    /// `LD_*`). Not refused; shown so the user decides knowingly.
+    SensitiveVariable { name: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -755,6 +766,17 @@ fn block_diff(applied: &zsh_block::Applied) -> Vec<BlockDiffLine> {
     lines
 }
 
+/// Variables that change how the shell, a child shell or the dynamic loader
+/// behaves. Names are compared exactly as the shell does (case-sensitive);
+/// `DYLD_` and `LD_` are prefixes.
+fn is_sensitive_name(name: &str) -> bool {
+    matches!(
+        name,
+        "IFS" | "ZDOTDIR" | "BASH_ENV" | "ENV" | "PROMPT_COMMAND"
+    ) || name.starts_with("DYLD_")
+        || name.starts_with("LD_")
+}
+
 fn warnings_for(
     applied: &zsh_block::Applied,
     scan: &OutsideScan,
@@ -770,6 +792,11 @@ fn warnings_for(
     for change in &applied.variable_changes {
         if change.kind == ChangeKind::Remove {
             continue;
+        }
+        if is_sensitive_name(&change.name) {
+            warnings.push(EditWarning::SensitiveVariable {
+                name: change.name.clone(),
+            });
         }
         for entry in scan
             .entries
@@ -852,7 +879,7 @@ impl ZshEditCoordinator {
         let (original, content_hash) =
             match ctx
                 .grants
-                .read_resource_with_limit(&record.id, None, DEFAULT_MAX_READ_BYTES)
+                .read_shell_startup_with_limit(&record.id, None, DEFAULT_MAX_READ_BYTES)
             {
                 Ok(read) => (
                     read.text()
@@ -898,7 +925,7 @@ impl ZshEditCoordinator {
         let warnings = warnings_for(&applied, &scan, content_hash.is_none());
         let diff = block_diff(&applied);
         let step = writes
-            .preview(
+            .preview_shell_startup(
                 ctx,
                 vec![WriteRequest {
                     grant_id: record.id.clone(),
@@ -974,7 +1001,7 @@ impl ZshEditCoordinator {
             pending
         };
         // Whatever happens next consumes the preview.
-        let execution = writes.execute_with(
+        let execution = writes.execute_shell_startup(
             ctx,
             &ConfirmRequest {
                 operation_id: request.operation_id.clone(),
