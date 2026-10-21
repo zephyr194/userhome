@@ -38,6 +38,10 @@ pub struct AppError {
 }
 
 impl AppError {
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
     pub fn internal() -> Self {
         Self {
             code: AppErrorCode::Internal,

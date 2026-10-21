@@ -1,4 +1,5 @@
 import { createInternalError, invokeCommand, isRecord } from "./core";
+import { isGrantId } from "./grants";
 
 // Wire shapes mirror src-tauri/src/caddy/{config,detect,diff,store}.rs and
 // commands/caddy.rs. The frontend sends structured rules only; it never sends a
@@ -80,10 +81,17 @@ export interface CaddyUpstream {
   port: number;
 }
 
+export interface CaddyTls {
+  certificateGrantId: string;
+  privateKeyGrantId: string;
+}
+
 export interface CaddySite {
   enabled: boolean;
   listen: CaddyListen;
   upstreams: CaddyUpstream[];
+  tls?: CaddyTls;
+  accessLog?: boolean;
 }
 
 export interface CaddyRules {
@@ -238,13 +246,27 @@ function decodeUpstream(value: unknown): CaddyUpstream {
   };
 }
 
+function decodeTls(value: unknown): CaddyTls {
+  const wire = record(value);
+  exactKeys(wire, ["certificateGrantId", "privateKeyGrantId"]);
+  if (!isGrantId(wire.certificateGrantId) || !isGrantId(wire.privateKeyGrantId)) {
+    throw createInternalError();
+  }
+  return {
+    certificateGrantId: wire.certificateGrantId,
+    privateKeyGrantId: wire.privateKeyGrantId,
+  };
+}
+
 function decodeSite(value: unknown): CaddySite {
   const wire = record(value);
-  exactKeys(wire, ["enabled", "listen", "upstreams"]);
+  exactKeys(wire, ["enabled", "listen", "upstreams"], ["tls", "accessLog"]);
   return {
     enabled: boolean(wire.enabled),
     listen: decodeListen(wire.listen),
     upstreams: list(wire.upstreams, MAX_UPSTREAMS, decodeUpstream),
+    ...(wire.tls === undefined ? {} : { tls: decodeTls(wire.tls) }),
+    ...(wire.accessLog === undefined ? {} : { accessLog: boolean(wire.accessLog) }),
   };
 }
 
@@ -405,8 +427,87 @@ export function toRulesRequest(rules: CaddyRules): CaddyRules {
         host: upstream.host,
         port: upstream.port,
       })),
+      ...(site.tls === undefined
+        ? {}
+        : {
+            tls: {
+              certificateGrantId: site.tls.certificateGrantId,
+              privateKeyGrantId: site.tls.privateKeyGrantId,
+            },
+          }),
+      ...(site.accessLog === undefined ? {} : { accessLog: site.accessLog }),
     })),
   };
+}
+
+export const CADDY_TLS_STATES = ["READY", "WARNING", "BLOCKED"] as const;
+export type CaddyTlsState = (typeof CADDY_TLS_STATES)[number];
+export const CADDY_TLS_WARNINGS = ["PRIVATE_KEY_READABLE_BY_OTHERS"] as const;
+export type CaddyTlsWarning = (typeof CADDY_TLS_WARNINGS)[number];
+
+export interface CaddyTlsSiteStatus {
+  site: number;
+  state: CaddyTlsState;
+  certificateName?: string;
+  privateKeyName?: string;
+  warnings: CaddyTlsWarning[];
+  message?: string;
+}
+
+const MAX_TLS_STATUSES = 32;
+const MAX_FILE_NAME_LENGTH = 255;
+const MAX_TLS_MESSAGE_LENGTH = 512;
+
+function decodeFileName(value: unknown): string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > MAX_FILE_NAME_LENGTH ||
+    value.includes("/")
+  ) {
+    throw createInternalError();
+  }
+  return value;
+}
+
+function decodeTlsWarning(value: unknown): CaddyTlsWarning {
+  if (typeof value !== "string" || !(CADDY_TLS_WARNINGS as readonly string[]).includes(value)) {
+    throw createInternalError();
+  }
+  return value as CaddyTlsWarning;
+}
+
+function decodeTlsSiteStatus(value: unknown): CaddyTlsSiteStatus {
+  const wire = record(value);
+  exactKeys(wire, ["site", "state", "warnings"], ["certificateName", "privateKeyName", "message"]);
+  if (typeof wire.state !== "string" || !(CADDY_TLS_STATES as readonly string[]).includes(wire.state)) {
+    throw createInternalError();
+  }
+  if (typeof wire.message === "string" && wire.message.length > MAX_TLS_MESSAGE_LENGTH) {
+    throw createInternalError();
+  }
+  return {
+    site: nonNegativeInteger(wire.site),
+    state: wire.state as CaddyTlsState,
+    warnings: list(wire.warnings, CADDY_TLS_WARNINGS.length, decodeTlsWarning),
+    ...(wire.certificateName === undefined
+      ? {}
+      : { certificateName: decodeFileName(wire.certificateName) }),
+    ...(wire.privateKeyName === undefined
+      ? {}
+      : { privateKeyName: decodeFileName(wire.privateKeyName) }),
+    ...(typeof wire.message === "string" ? { message: wire.message } : {}),
+  };
+}
+
+export function decodeTlsStatuses(value: unknown): CaddyTlsSiteStatus[] {
+  return list(value, MAX_TLS_STATUSES, decodeTlsSiteStatus);
+}
+
+export function caddyTlsStatus(rules: CaddyRules): Promise<CaddyTlsSiteStatus[]> {
+  return invokeCommand("caddy_tls_status", decodeTlsStatuses, {
+    input: toRulesRequest(rules),
+  });
 }
 
 export function caddyLoadRules(): Promise<LoadedCaddyRules> {

@@ -7,6 +7,8 @@ import type {
   CaddyPreview,
   CaddyRules,
   CaddySite,
+  CaddyTls,
+  CaddyTlsSiteStatus,
   CaddyUpstreamScheme,
 } from "../../ipc/caddy";
 
@@ -16,6 +18,11 @@ export const DEFAULT_LISTEN_HOST = "127.0.0.1";
 const RULES_VERSION = 1;
 const PORT_PATTERN = /^\d{1,5}$/;
 const PORT_MESSAGE = "端口必须是 0 到 65535 之间的整数。";
+const TLS_MISSING_MESSAGE = "请选择证书文件与私钥文件，或关闭 HTTPS。";
+export const ACCESS_LOG_PRIVACY_NOTICE =
+  "开启后会记录请求的 URL、客户端地址等信息，可能包含个人数据或凭据。日志只保留在本应用的有界缓冲中，不会自动外发。";
+export const TLS_FILES_NOTICE =
+  "应用只检查文件是否存在、是否为普通文件以及私钥权限，不读取证书或私钥内容，也未检查证书有效期与域名是否匹配。不会申请证书，也不会安装信任。";
 
 export interface UpstreamDraft {
   key: number;
@@ -24,12 +31,21 @@ export interface UpstreamDraft {
   port: string;
 }
 
+export type TlsSlot = "certificate" | "privateKey";
+
+export interface TlsDraft {
+  certificateGrantId?: string;
+  privateKeyGrantId?: string;
+}
+
 export interface SiteDraft {
   key: number;
   enabled: boolean;
   host: string;
   port: string;
   upstreams: UpstreamDraft[];
+  tls: TlsDraft | null;
+  accessLog: boolean;
 }
 
 export interface IdSource {
@@ -57,6 +73,8 @@ export function newSiteDraft(ids: IdSource): SiteDraft {
     host: DEFAULT_LISTEN_HOST,
     port: "",
     upstreams: [newUpstreamDraft(ids)],
+    tls: null,
+    accessLog: false,
   };
 }
 
@@ -72,7 +90,45 @@ export function siteDraftsFromRules(rules: CaddyRules, ids: IdSource): SiteDraft
       host: upstream.host,
       port: String(upstream.port),
     })),
+    tls:
+      site.tls === undefined
+        ? null
+        : {
+            certificateGrantId: site.tls.certificateGrantId,
+            privateKeyGrantId: site.tls.privateKeyGrantId,
+          },
+    accessLog: site.accessLog === true,
   }));
+}
+
+export function siteTlsKey(site: number): string {
+  return `site.${site}.tls`;
+}
+
+function tlsOf(draft: TlsDraft | null): CaddyTls | undefined {
+  if (draft === null || draft.certificateGrantId === undefined || draft.privateKeyGrantId === undefined) {
+    return undefined;
+  }
+  return { certificateGrantId: draft.certificateGrantId, privateKeyGrantId: draft.privateKeyGrantId };
+}
+
+export function withTlsGrant(
+  sites: SiteDraft[],
+  siteIndex: number,
+  slot: TlsSlot,
+  grantId: string,
+): SiteDraft[] {
+  return sites.map((site, position) => {
+    if (position !== siteIndex) return site;
+    const current = site.tls ?? {};
+    return {
+      ...site,
+      tls:
+        slot === "certificate"
+          ? { ...current, certificateGrantId: grantId }
+          : { ...current, privateKeyGrantId: grantId },
+    };
+  });
 }
 
 export function parsePort(text: string): number | undefined {
@@ -102,6 +158,10 @@ export function rulesFromDraft(sites: SiteDraft[]): DraftResult {
     if (listenPort === undefined) {
       errors[siteFieldKey(siteIndex, "listen.port")] = PORT_MESSAGE;
     }
+    const tls = tlsOf(site.tls);
+    if (site.tls !== null && tls === undefined) {
+      errors[siteTlsKey(siteIndex)] = TLS_MISSING_MESSAGE;
+    }
     return {
       enabled: site.enabled,
       listen: { host: site.host, port: listenPort ?? 0 },
@@ -116,6 +176,8 @@ export function rulesFromDraft(sites: SiteDraft[]): DraftResult {
           port: upstreamPort ?? 0,
         };
       }),
+      ...(tls === undefined ? {} : { tls }),
+      ...(site.accessLog ? { accessLog: true } : {}),
     };
   });
   if (Object.keys(errors).length > 0) return { ok: false, errors };
@@ -225,4 +287,37 @@ export function saveGate(input: {
   if (!input.preview.preview.valid) return { enabled: false, reason: "校验未通过，无法保存。" };
   if (input.saving) return { enabled: false, reason: "保存中……" };
   return { enabled: true };
+}
+
+export interface TlsFileLine {
+  symbol: string;
+  text: string;
+}
+
+const TLS_SLOT_LABEL: Record<TlsSlot, string> = {
+  certificate: "证书",
+  privateKey: "私钥",
+};
+
+// Names come from the backend status only; a directory never reaches this text.
+export function tlsFileLine(
+  slot: TlsSlot,
+  grantId: string | undefined,
+  status: CaddyTlsSiteStatus | undefined,
+): TlsFileLine {
+  if (grantId === undefined) return { symbol: "○", text: `未选择${TLS_SLOT_LABEL[slot]}文件` };
+  if (status === undefined) return { symbol: "…", text: "正在检查" };
+  const label = TLS_SLOT_LABEL[slot];
+  if (status.state === "BLOCKED") {
+    const message = status.message ?? "授权不可用，请重新选择文件。";
+    return message.includes(label)
+      ? { symbol: "✕", text: message }
+      : { symbol: "✕", text: `未通过检查：${message}` };
+  }
+  const name = slot === "certificate" ? status.certificateName : status.privateKeyName;
+  if (name === undefined) return { symbol: "✕", text: "授权不可用，请重新选择文件。" };
+  if (slot === "privateKey" && status.warnings.includes("PRIVATE_KEY_READABLE_BY_OTHERS")) {
+    return { symbol: "⚠", text: `已选择：${name}（组或其他用户可读，建议改为仅本人可读）` };
+  }
+  return { symbol: "✓", text: `已选择：${name}` };
 }

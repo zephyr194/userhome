@@ -234,6 +234,7 @@ pub fn run() {
             commands::caddy::caddy_load_rules,
             commands::caddy::caddy_preview,
             commands::caddy::caddy_save,
+            commands::caddy::caddy_tls_status,
             commands::caddy::caddy_load_raw,
             commands::caddy::caddy_save_raw,
             commands::caddy::caddy_validate,

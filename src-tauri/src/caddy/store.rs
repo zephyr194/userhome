@@ -137,6 +137,15 @@ impl CaddyStore {
             return Err(AppError::validation_failed("规则未通过校验，未保存。"));
         }
         let caddyfile = generate_caddyfile(rules)?;
+        self.save_generated(rules, &caddyfile)
+    }
+
+    /// Saves the rules together with a Caddyfile the caller generated, which is
+    /// how a TLS site carries its resolved certificate and key paths.
+    pub fn save_generated(&self, rules: &CaddyRules, caddyfile: &str) -> Result<(), AppError> {
+        if rules.validate().is_blocking() {
+            return Err(AppError::validation_failed("规则未通过校验，未保存。"));
+        }
         let mut rules_bytes = serde_json::to_vec_pretty(rules).map_err(|_| AppError::internal())?;
         rules_bytes.push(b'\n');
         if rules_bytes.len() as u64 > MAX_STORE_BYTES {

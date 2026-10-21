@@ -5,11 +5,14 @@ import {
   caddyLoadRules,
   caddyPreview,
   caddySave,
+  caddyTlsStatus,
   type CaddyExposure,
   type CaddyIssue,
   type CaddyRulesSource,
+  type CaddyTlsSiteStatus,
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
+import { selectTlsMaterialGrant } from "../../ipc/grants";
 import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
 import { CaddyPreviewPanel } from "./CaddyPreviewPanel";
 import { CaddyRulesEditor } from "./CaddyRulesEditor";
@@ -31,9 +34,11 @@ import {
   rulesFromDraft,
   saveGate,
   siteDraftsFromRules,
+  withTlsGrant,
   type IdSource,
   type PreviewState,
   type SiteDraft,
+  type TlsSlot,
 } from "./caddyRulesModel";
 
 const PREVIEW_DEBOUNCE_MS = 250;
@@ -69,6 +74,8 @@ export function CaddyPage() {
   const [detect, setDetect] = useState<DetectState>({ status: "loading" });
   const [load, setLoad] = useState<LoadState>({ status: "loading" });
   const [sites, setSites] = useState<SiteDraft[]>([]);
+  const [tlsStatuses, setTlsStatuses] = useState<CaddyTlsSiteStatus[]>([]);
+  const [tlsError, setTlsError] = useState<string | undefined>(undefined);
   const sitesRef = useRef<SiteDraft[]>(sites);
   const [preview, setPreview] = useState<PreviewState>({ status: "pending" });
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
@@ -81,9 +88,18 @@ export function CaddyPage() {
         const local = rulesFromDraft(next);
         if (!local.ok) {
           runtime.tracker.invalidate();
+          setTlsStatuses([]);
           return;
         }
         const requestId = runtime.tracker.issue();
+        caddyTlsStatus(local.rules).then(
+          (statuses) => {
+            if (runtime.tracker.isCurrent(requestId)) setTlsStatuses(statuses);
+          },
+          () => {
+            if (runtime.tracker.isCurrent(requestId)) setTlsStatuses([]);
+          },
+        );
         caddyPreview(local.rules).then(
           (result) => {
             if (runtime.tracker.isCurrent(requestId)) {
@@ -162,6 +178,17 @@ export function CaddyPage() {
     [validation],
   );
 
+  async function pickTlsFile(siteIndex: number, slot: TlsSlot) {
+    setTlsError(undefined);
+    try {
+      const result = await selectTlsMaterialGrant();
+      if (result.status !== "SELECTED") return;
+      changeSites(withTlsGrant(sitesRef.current, siteIndex, slot, result.grant.id));
+    } catch (error) {
+      setTlsError((error as AppError).message);
+    }
+  }
+
   function changeSites(next: SiteDraft[]) {
     sitesRef.current = next;
     setSites(next);
@@ -228,14 +255,21 @@ export function CaddyPage() {
                 尚未保存任何规则，下方是默认示例。保存后才会写入私有目录。
               </p>
             ) : null}
+            {tlsError ? (
+              <p role="alert" className="m-0 text-aux text-danger">
+                {tlsError}
+              </p>
+            ) : null}
             <div className="grid min-w-0 gap-ui-xl lg:grid-cols-2">
               <CaddyRulesEditor
                 sites={sites}
                 localErrors={localResult.ok ? {} : localResult.errors}
                 mapped={mapped}
                 exposedSites={exposedSites}
+                tlsStatuses={tlsStatuses}
                 ids={ids}
                 onChange={changeSites}
+                onPickTlsFile={(siteIndex, slot) => void pickTlsFile(siteIndex, slot)}
               />
               <CaddyPreviewPanel
                 localValid={localResult.ok}

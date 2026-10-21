@@ -1,23 +1,26 @@
 use std::path::Path;
 
+#[cfg(test)]
+use crate::caddy::generate::generate_caddyfile;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
     caddy::{
-        config::{CaddyRules, RulesValidation},
+        config::{CaddyRules, RulesValidation, TlsConfig},
         conflict::{ConflictReport, ConflictTargets, SystemPortProbe, check_conflicts, start_gate},
         detect::{
             Candidate, DetectReport, DetectStatus, SystemVersionRunner, detect, fixed_candidates,
         },
         diff::{DiffLine, line_diff},
-        generate::generate_caddyfile,
+        generate::generate_caddyfile_with_tls,
         reload::ApplyReport,
         session::{
             Applied, ApplyEnvironment, CaddyRunCoordinator, ConfigSource, LogPage, PrepareInput,
             RunStatus, StartEnvironment, StartSummary, SystemAdminProbe,
         },
         store::{CaddyStore, LoadedRules, RulesSource},
+        tls::{SystemFileInspector, TlsPaths, TlsWarning, resolve_tls},
         validate::{
             CaddyRunner, CheckRequest, MAX_CHECK_BYTES, SystemCaddyRunner, ValidationReport,
             ValidationRuns, check, valid_run_id,
@@ -68,15 +71,40 @@ pub fn caddy_load_rules(store: State<'_, CaddyStore>) -> Result<LoadedRules, App
 #[tauri::command]
 pub fn caddy_preview(
     store: State<'_, CaddyStore>,
+    grants: State<'_, GrantCoordinator>,
     input: CaddyRules,
 ) -> Result<CaddyPreview, AppError> {
     let saved = store.saved_caddyfile()?;
-    build_preview(&input, saved.as_deref())
+    build_preview_with(&input, saved.as_deref(), |rules| {
+        generate_with_grants(rules, &grants)
+    })
 }
 
 #[tauri::command]
-pub fn caddy_save(store: State<'_, CaddyStore>, input: CaddyRules) -> Result<(), AppError> {
-    store.save(&input)
+pub fn caddy_save(
+    store: State<'_, CaddyStore>,
+    grants: State<'_, GrantCoordinator>,
+    input: CaddyRules,
+) -> Result<(), AppError> {
+    let caddyfile = generate_with_grants(&input, &grants)?;
+    store.save_generated(&input, &caddyfile)
+}
+
+#[tauri::command]
+pub fn caddy_tls_status(
+    grants: State<'_, GrantCoordinator>,
+    input: CaddyRules,
+) -> Vec<TlsSiteStatus> {
+    input
+        .sites
+        .iter()
+        .enumerate()
+        .filter_map(|(site, rule)| {
+            rule.tls
+                .as_ref()
+                .map(|tls| tls_site_status(&grants, site, tls))
+        })
+        .collect()
 }
 
 #[tauri::command]
@@ -96,7 +124,65 @@ pub async fn caddy_detect(
     .map_err(|_| AppError::internal())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum TlsSiteState {
+    Ready,
+    Warning,
+    Blocked,
+}
+
+/// Names and warnings only: directories, paths and key content never reach the
+/// frontend. A blocked site carries the same fixed message the save refuses with.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TlsSiteStatus {
+    pub site: usize,
+    pub state: TlsSiteState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub certificate_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private_key_name: Option<String>,
+    pub warnings: Vec<TlsWarning>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
+fn tls_site_status(grants: &GrantCoordinator, site: usize, tls: &TlsConfig) -> TlsSiteStatus {
+    match resolve_tls(grants, tls, &SystemFileInspector) {
+        Ok(resolution) => TlsSiteStatus {
+            site,
+            state: if resolution.warnings.is_empty() {
+                TlsSiteState::Ready
+            } else {
+                TlsSiteState::Warning
+            },
+            certificate_name: Some(resolution.certificate_name),
+            private_key_name: Some(resolution.private_key_name),
+            warnings: resolution.warnings,
+            message: None,
+        },
+        Err(error) => TlsSiteStatus {
+            site,
+            state: TlsSiteState::Blocked,
+            certificate_name: None,
+            private_key_name: None,
+            warnings: Vec::new(),
+            message: Some(error.message().to_owned()),
+        },
+    }
+}
+
+#[cfg(test)]
 fn build_preview(rules: &CaddyRules, saved: Option<&str>) -> Result<CaddyPreview, AppError> {
+    build_preview_with(rules, saved, crate::caddy::generate::generate_caddyfile)
+}
+
+fn build_preview_with(
+    rules: &CaddyRules,
+    saved: Option<&str>,
+    generate: impl FnOnce(&CaddyRules) -> Result<String, AppError>,
+) -> Result<CaddyPreview, AppError> {
     let validation = rules.validate();
     let has_saved_version = saved.is_some();
     if validation.is_blocking() {
@@ -108,8 +194,9 @@ fn build_preview(rules: &CaddyRules, saved: Option<&str>) -> Result<CaddyPreview
             has_saved_version,
         });
     }
-    let generated = generate_caddyfile(rules)?;
-    let diff = line_diff(saved.unwrap_or(""), &generated)?;
+    let generated = redact_tls_lines(&generate(rules)?);
+    let saved = saved.map(redact_tls_lines);
+    let diff = line_diff(saved.as_deref().unwrap_or(""), &generated)?;
     Ok(CaddyPreview {
         valid: true,
         validation,
@@ -117,6 +204,62 @@ fn build_preview(rules: &CaddyRules, saved: Option<&str>) -> Result<CaddyPreview
         diff: Some(diff),
         has_saved_version,
     })
+}
+
+fn generate_with_grants(rules: &CaddyRules, grants: &GrantCoordinator) -> Result<String, AppError> {
+    generate_caddyfile_with_tls(rules, &|tls: &TlsConfig| tls_paths(grants, tls))
+}
+
+fn tls_paths(grants: &GrantCoordinator, tls: &TlsConfig) -> Result<TlsPaths, AppError> {
+    resolve_tls(grants, tls, &SystemFileInspector).map(|resolution| resolution.paths)
+}
+
+fn ensure_tls_resolvable(rules: &CaddyRules, grants: &GrantCoordinator) -> Result<(), AppError> {
+    rules
+        .sites
+        .iter()
+        .filter(|site| site.enabled)
+        .filter_map(|site| site.tls.as_ref())
+        .try_for_each(|tls| tls_paths(grants, tls).map(|_| ()))
+}
+
+fn sensitive_tls_paths(rules: &CaddyRules, grants: &GrantCoordinator) -> Vec<String> {
+    rules
+        .sites
+        .iter()
+        .filter(|site| site.enabled)
+        .filter_map(|site| site.tls.as_ref())
+        .filter_map(|tls| tls_paths(grants, tls).ok())
+        .flat_map(|paths| [paths.certificate, paths.private_key])
+        .filter_map(|path| path.into_os_string().into_string().ok())
+        .collect()
+}
+
+/// Shows a TLS line by its file names only, so the directory of a granted file
+/// never reaches the preview or the diff.
+fn redact_tls_lines(text: &str) -> String {
+    text.split('\n')
+        .map(|line| match line.strip_prefix("\ttls ") {
+            Some(paths) => {
+                let names: Vec<&str> = paths.split(' ').map(file_name_of).collect();
+                format!("\ttls {}", names.join(" "))
+            }
+            None => line.to_owned(),
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn redact_paths(text: &str, paths: &[String]) -> String {
+    let mut longest_first = paths.to_vec();
+    longest_first.sort_by_key(|path| std::cmp::Reverse(path.len()));
+    longest_first.iter().fold(text.to_owned(), |text, path| {
+        text.replace(path.as_str(), file_name_of(path))
+    })
+}
+
+fn file_name_of(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
 }
 
 fn resolve_executable_grant(
@@ -273,12 +416,17 @@ pub async fn caddy_validate(
         .as_deref()
         .map(|raw| resolve_executable_grant(&grants, raw))
         .transpose()?;
+    let sensitive = input
+        .source
+        .rules
+        .as_ref()
+        .map_or_else(Vec::new, |rules| sensitive_tls_paths(rules, &grants));
     let text = source_text(input.source, &grants)?;
     let checks_root = store.checks_root()?;
     let allow = input.allow_external_references;
     let run = runs.begin(&input.run_id)?;
     let cancel = run.cancel_flag();
-    tauri::async_runtime::spawn_blocking(move || {
+    let mut report = tauri::async_runtime::spawn_blocking(move || {
         let detect = detect(user, &fixed_candidates(), &SystemVersionRunner);
         run_check(
             detect,
@@ -290,7 +438,11 @@ pub async fn caddy_validate(
         )
     })
     .await
-    .map_err(|_| AppError::internal())?
+    .map_err(|_| AppError::internal())??;
+    for diagnostic in &mut report.diagnostics {
+        diagnostic.message = redact_paths(&diagnostic.message, &sensitive);
+    }
+    Ok(report)
 }
 
 #[tauri::command]
@@ -349,7 +501,7 @@ fn source_text(source: ValidateSource, grants: &GrantCoordinator) -> Result<Stri
                     "规则未通过校验，请先修正表单。",
                 ));
             }
-            generate_caddyfile(&rules)
+            generate_with_grants(&rules, grants)
         }
         (SourceKind::Raw, None, Some(text), None) => Ok(text),
         (SourceKind::ExternalFile, None, None, Some(grant_id)) => {
@@ -482,6 +634,9 @@ pub async fn caddy_prepare_start(
         .map(|raw| resolve_executable_grant(&grants, raw))
         .transpose()?;
     let (text, rules) = saved_config(&store, input.source)?;
+    if let Some(rules) = rules.as_ref() {
+        ensure_tls_resolvable(rules, &grants)?;
+    }
     let targets = ConflictTargets::for_rules(rules.as_ref());
     tauri::async_runtime::spawn_blocking(move || {
         let report = detect(user, &fixed_candidates(), &SystemVersionRunner);
@@ -1427,5 +1582,151 @@ mod apply_tests {
         assert_eq!(value["applied"], json!("PENDING"));
         assert_eq!(value["lastApply"]["outcome"], json!("FAILED"));
         assert_eq!(value["lastApply"]["failure"], json!("TIMEOUT"));
+    }
+}
+
+#[cfg(test)]
+mod tls_tests {
+    use std::path::{Path, PathBuf};
+
+    use serde_json::json;
+
+    use super::*;
+    use crate::caddy::{
+        config::{Listen, SiteRule, TlsConfig, Upstream, UpstreamScheme},
+        generate::generate_caddyfile_with_tls,
+        tls::TlsWarning,
+    };
+
+    const CERT: &str = "3f2b8c1e-6a4d-4b7e-9c2f-1a2b3c4d5e6f";
+    const KEY: &str = "7c9d0e1f-2a3b-4c5d-8e6f-7a8b9c0d1e2f";
+
+    fn tls_rules() -> CaddyRules {
+        CaddyRules {
+            version: 1,
+            sites: vec![SiteRule {
+                enabled: true,
+                listen: Listen {
+                    host: "app.example.test".to_owned(),
+                    port: 8443,
+                },
+                upstreams: vec![Upstream {
+                    scheme: UpstreamScheme::Http,
+                    host: "127.0.0.1".to_owned(),
+                    port: 3000,
+                }],
+                tls: Some(TlsConfig {
+                    certificate_grant_id: CERT.to_owned(),
+                    private_key_grant_id: KEY.to_owned(),
+                }),
+                access_log: true,
+            }],
+        }
+    }
+
+    fn granted(_: &TlsConfig) -> Result<TlsPaths, AppError> {
+        Ok(TlsPaths {
+            certificate: PathBuf::from("/Users/u/certs/cert.pem"),
+            private_key: PathBuf::from("/Users/u/certs/key.pem"),
+        })
+    }
+
+    #[test]
+    fn tls_lines_show_file_names_and_never_directories() {
+        let text = "{\n\tauto_https off\n}\n\nhttps://localhost:9443 {\n\ttls /Users/u/certs/cert.pem /Users/u/certs/key.pem\n\tlog\n}\n";
+        let redacted = redact_tls_lines(text);
+
+        assert!(
+            redacted.contains("\n\ttls cert.pem key.pem\n"),
+            "{redacted}"
+        );
+        assert!(redacted.contains("\n\tlog\n"));
+        assert!(!redacted.contains("/Users"));
+    }
+
+    #[test]
+    fn redacted_paths_are_replaced_longest_first() {
+        let paths = vec!["/a/key.pem".to_owned(), "/a/key.pem.bak".to_owned()];
+
+        assert_eq!(
+            redact_paths("load /a/key.pem and /a/key.pem.bak", &paths),
+            "load key.pem and key.pem.bak"
+        );
+    }
+
+    #[test]
+    fn preview_of_a_tls_site_serializes_without_any_directory() {
+        let preview = build_preview_with(&tls_rules(), None, |rules| {
+            generate_caddyfile_with_tls(rules, &granted)
+        })
+        .expect("preview");
+
+        let text = preview.generated_text.clone().expect("generated");
+        assert!(text.contains("https://app.example.test:8443 {"));
+        assert!(text.contains("\ttls cert.pem key.pem"));
+        assert!(text.contains("\tlog"));
+        let serialized = serde_json::to_string(&preview).expect("serialize");
+        assert!(!serialized.contains("/Users"), "{serialized}");
+    }
+
+    #[test]
+    fn preview_fails_when_a_tls_authorization_cannot_be_resolved() {
+        let result = build_preview_with(&tls_rules(), None, |rules| {
+            generate_caddyfile_with_tls(rules, &|_: &TlsConfig| {
+                Err(AppError::not_found("私钥授权已撤销，请重新选择私钥文件。"))
+            })
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn tls_status_serializes_names_and_warnings_only() {
+        let status = TlsSiteStatus {
+            site: 0,
+            state: TlsSiteState::Warning,
+            certificate_name: Some("cert.pem".to_owned()),
+            private_key_name: Some("key.pem".to_owned()),
+            warnings: vec![TlsWarning::PrivateKeyReadableByOthers],
+            message: None,
+        };
+
+        assert_eq!(
+            serde_json::to_value(&status).expect("serialize"),
+            json!({
+                "site": 0,
+                "state": "WARNING",
+                "certificateName": "cert.pem",
+                "privateKeyName": "key.pem",
+                "warnings": ["PRIVATE_KEY_READABLE_BY_OTHERS"],
+            })
+        );
+    }
+
+    #[test]
+    fn blocked_tls_status_carries_only_the_fixed_message() {
+        let blocked = TlsSiteStatus {
+            site: 1,
+            state: TlsSiteState::Blocked,
+            certificate_name: None,
+            private_key_name: None,
+            warnings: Vec::new(),
+            message: Some("证书授权已撤销，请重新选择证书文件。".to_owned()),
+        };
+        let value = serde_json::to_value(&blocked).expect("serialize");
+
+        assert_eq!(value["state"], json!("BLOCKED"));
+        assert!(value.get("certificateName").is_none());
+        assert!(!value.to_string().contains('/'));
+    }
+
+    #[test]
+    fn path_helpers_never_keep_a_directory_component() {
+        assert_eq!(file_name_of("/Users/u/certs/key.pem"), "key.pem");
+        assert_eq!(file_name_of("key.pem"), "key.pem");
+        assert_eq!(
+            file_name_of(Path::new("/x/y.pem").to_str().expect("utf8")),
+            "y.pem"
+        );
     }
 }

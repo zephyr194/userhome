@@ -6,18 +6,25 @@ import {
   TextField,
   type SelectOption,
 } from "../../components/ui";
-import type { CaddyUpstreamScheme } from "../../ipc/caddy";
+import type { CaddyTlsSiteStatus, CaddyUpstreamScheme } from "../../ipc/caddy";
 import {
+  ACCESS_LOG_PRIVACY_NOTICE,
   MAX_DRAFT_SITES,
   MAX_DRAFT_UPSTREAMS,
+  TLS_FILES_NOTICE,
   feedbackForField,
   newSiteDraft,
   newUpstreamDraft,
   siteFieldKey,
+  siteTlsKey,
+  tlsFileLine,
   upstreamFieldKey,
   type IdSource,
   type MappedIssues,
   type SiteDraft,
+  type TlsDraft,
+  type TlsFileLine,
+  type TlsSlot,
   type UpstreamDraft,
 } from "./caddyRulesModel";
 
@@ -31,17 +38,23 @@ interface CaddyRulesEditorProps {
   localErrors: Record<string, string>;
   mapped: MappedIssues;
   exposedSites: ReadonlySet<number>;
+  tlsStatuses?: readonly CaddyTlsSiteStatus[];
   ids: IdSource;
   onChange: (next: SiteDraft[]) => void;
+  onPickTlsFile?: (siteIndex: number, slot: TlsSlot) => void;
 }
+
+const NO_TLS_STATUSES: readonly CaddyTlsSiteStatus[] = [];
 
 export function CaddyRulesEditor({
   sites,
   localErrors,
   mapped,
   exposedSites,
+  tlsStatuses = NO_TLS_STATUSES,
   ids,
   onChange,
+  onPickTlsFile = () => undefined,
 }: CaddyRulesEditorProps) {
   const feedback = (key: string) => feedbackForField(key, mapped, localErrors);
 
@@ -120,6 +133,18 @@ export function CaddyRulesEditor({
                 onValueChange={(port) => replaceSite(siteIndex, { ...site, port })}
               />
             </div>
+            <TlsSection
+              name={`site-${site.key}`}
+              tls={site.tls}
+              accessLog={site.accessLog}
+              status={tlsStatuses.find((entry) => entry.site === siteIndex)}
+              error={feedback(siteTlsKey(siteIndex)).error}
+              onTlsChange={(enabled) =>
+                replaceSite(siteIndex, { ...site, tls: enabled ? {} : null })
+              }
+              onPick={(slot) => onPickTlsFile(siteIndex, slot)}
+              onAccessLogChange={(accessLog) => replaceSite(siteIndex, { ...site, accessLog })}
+            />
             <div className="grid gap-ui-sm">
               <h3 className="m-0 text-sm font-semibold">上游（反向代理目标）</h3>
               <ol className="m-0 grid list-none gap-ui-md p-0">
@@ -224,4 +249,92 @@ function replaceUpstream(
       position === upstreamIndex ? next : upstream,
     ),
   });
+}
+
+interface TlsSectionProps {
+  name: string;
+  tls: TlsDraft | null;
+  accessLog: boolean;
+  status: CaddyTlsSiteStatus | undefined;
+  error: string | undefined;
+  onTlsChange: (enabled: boolean) => void;
+  onPick: (slot: TlsSlot) => void;
+  onAccessLogChange: (enabled: boolean) => void;
+}
+
+function TlsSection({
+  name,
+  tls,
+  accessLog,
+  status,
+  error,
+  onTlsChange,
+  onPick,
+  onAccessLogChange,
+}: TlsSectionProps) {
+  return (
+    <div className="grid gap-ui-sm">
+      <SwitchField
+        label="使用 HTTPS（已有证书与私钥）"
+        name={`${name}-tls`}
+        checked={tls !== null}
+        onCheckedChange={onTlsChange}
+      />
+      {tls !== null ? (
+        <div className="grid gap-ui-sm">
+          <FileRow
+            label="证书文件"
+            buttonLabel="选择证书文件"
+            line={tlsFileLine("certificate", tls.certificateGrantId, status)}
+            onPick={() => onPick("certificate")}
+          />
+          <FileRow
+            label="私钥文件"
+            buttonLabel="选择私钥文件"
+            line={tlsFileLine("privateKey", tls.privateKeyGrantId, status)}
+            onPick={() => onPick("privateKey")}
+          />
+          <p className="m-0 text-aux text-muted-foreground">{TLS_FILES_NOTICE}</p>
+          {error ? (
+            <p role="alert" className="m-0 text-aux text-danger">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <SwitchField
+        label="记录访问日志"
+        name={`${name}-access-log`}
+        checked={accessLog}
+        onCheckedChange={onAccessLogChange}
+      />
+      <p role="note" className="m-0 text-aux text-muted-foreground">
+        {ACCESS_LOG_PRIVACY_NOTICE}
+      </p>
+    </div>
+  );
+}
+
+function FileRow({
+  label,
+  buttonLabel,
+  line,
+  onPick,
+}: {
+  label: string;
+  buttonLabel: string;
+  line: TlsFileLine;
+  onPick: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-ui-sm">
+      <span className="text-sm font-medium">{label}</span>
+      <span className="text-aux text-muted-foreground">
+        {line.symbol} {line.text}
+      </span>
+      <Button size="sm" variant="secondary" onClick={onPick}>
+        {buttonLabel}
+      </Button>
+    </div>
+  );
 }

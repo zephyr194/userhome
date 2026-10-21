@@ -181,6 +181,12 @@ export function selectFileGrant(
   return selectGrant("select_file_grant", purpose);
 }
 
+// Used only by the TLS option of a Caddy site; the result's display path is not
+// shown, because the TLS panel shows file names from the backend status instead.
+export function selectTlsMaterialGrant(): Promise<SelectGrantResult> {
+  return selectGrant("select_file_grant", "TLS_MATERIAL_FILE");
+}
+
 export function selectSaveLocationGrant(): Promise<SelectGrantResult> {
   return selectGrant("select_save_location_grant", "CONFIG_FILE");
 }
