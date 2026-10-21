@@ -275,6 +275,14 @@ a {
   user-select: none;
 }
 
+.titlebar__title {
+  margin: 0;
+  font-size: var(--app-font-size-aux);
+  font-weight: 600;
+  line-height: var(--app-line-height-aux);
+  color: var(--app-muted-foreground);
+}
+
 [data-tauri-drag-region] {
   -webkit-app-region: drag;
 }
@@ -392,7 +400,7 @@ a {
 .desktop-workspace__toolbar {
   min-width: 0;
   min-height: var(--app-toolbar-height);
-  padding: var(--app-space-md) var(--app-space-3xl);
+  padding: 0 var(--app-space-3xl);
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -1533,6 +1541,7 @@ body {
 .desktop-workspace__toolbar p {
   color: var(--app-tertiary-foreground);
   font-size: var(--app-font-size-meta);
+  line-height: var(--app-line-height-meta);
 }
 
 .desktop-workspace__banner {
