@@ -44,13 +44,13 @@ export function Modal({
           aria-labelledby={titleId}
           aria-modal="true"
           className={classNames(
-            "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground shadow-[var(--app-shadow-raised)]",
+            "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
             className,
           )}
           role="dialog"
         >
           {title !== undefined ? (
-            <div className="px-ui-3xl py-ui-2xl">
+            <div className="border-b border-line px-ui-3xl py-ui-2xl">
               <div className="min-w-0 break-words text-group font-semibold">
                 {title}
               </div>
@@ -84,7 +84,7 @@ export function Modal({
       open={open}
     >
       <DialogBackdrop
-        className="fixed inset-0 bg-backdrop transition-opacity data-closed:opacity-0"
+        className="fixed inset-0 bg-backdrop state-transition data-closed:opacity-0"
         transition
       />
       <div className="fixed inset-0 overflow-hidden p-ui-xl sm:p-ui-3xl">
@@ -94,8 +94,8 @@ export function Modal({
             aria-busy={busy || undefined}
             aria-labelledby={titleId}
             className={classNames(
-              "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground shadow-[var(--app-shadow-raised)]",
-              "transition-opacity duration-150 data-closed:opacity-0",
+              "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
+              "state-transition data-closed:opacity-0",
               className,
             )}
             onKeyDown={(event) => {
@@ -106,7 +106,7 @@ export function Modal({
             transition
           >
             {title !== undefined ? (
-              <div className="px-ui-3xl py-ui-2xl">
+              <div className="border-b border-line px-ui-3xl py-ui-2xl">
                 <DialogTitle
                   as="div"
                   className="min-w-0 break-words text-group font-semibold"

@@ -169,6 +169,8 @@
   --app-focus-ring-inset-offset: -2px;
   --app-corner-tick-length: 6px;
   --app-corner-tick-inset: 4px;
+  --app-letter-spacing-label: 0.04em;
+  --app-motion-state: 120ms;
 }
 
 * {
@@ -1307,6 +1309,12 @@ a {
 body {
   letter-spacing: -0.005em;
   background: var(--app-canvas);
+}
+
+.state-transition {
+  transition-property: color, background-color, border-color, opacity;
+  transition-duration: var(--app-motion-state);
+  transition-timing-function: linear;
 }
 
 .corner-ticks {
