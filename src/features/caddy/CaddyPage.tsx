@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Panel } from "../../components/ui";
+import { Button, Panel } from "../../components/ui";
 import {
   caddyDetect,
   caddyLoadRules,
@@ -14,6 +14,7 @@ import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
 import { CaddyPreviewPanel } from "./CaddyPreviewPanel";
 import { CaddyRulesEditor } from "./CaddyRulesEditor";
 import { CaddySaveBar, type SaveState } from "./CaddySaveBar";
+import { RawEditor } from "./RawEditor";
 import {
   createDebouncer,
   createRequestTracker,
@@ -35,6 +36,8 @@ import {
 const PREVIEW_DEBOUNCE_MS = 250;
 const NO_ISSUES: CaddyIssue[] = [];
 const NO_EXPOSURES: CaddyExposure[] = [];
+
+type EditMode = "form" | "raw";
 
 type LoadState =
   | { status: "loading" }
@@ -65,6 +68,7 @@ export function CaddyPage() {
   const sitesRef = useRef<SiteDraft[]>(sites);
   const [preview, setPreview] = useState<PreviewState>({ status: "pending" });
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
+  const [mode, setMode] = useState<EditMode>("form");
 
   const schedulePreview = useCallback(
     (next: SiteDraft[]) => {
@@ -178,45 +182,64 @@ export function CaddyPage() {
   return (
     <div className="grid min-w-0 gap-ui-xl">
       <CaddyDetectPanel state={detect} onRetry={retryDetect} />
-      {load.status === "loading" ? (
-        <p role="status" className="m-0 text-body text-muted-foreground">
-          正在读取已保存的规则……
-        </p>
-      ) : null}
-      {load.status === "failed" ? (
-        <Panel role="alert" className="grid gap-ui-sm p-ui-lg">
-          <p className="m-0 text-body font-semibold text-danger">无法读取已保存的规则</p>
-          <p className="m-0 text-body">{load.error.message}</p>
-          <p className="m-0 text-aux text-muted-foreground">
-            规则未能读取，因此保存已停用，以免覆盖现有文件。
+      <div role="group" aria-label="编辑方式" className="flex flex-wrap gap-ui-sm">
+        <Button
+          variant={mode === "form" ? "primary" : "secondary"}
+          aria-pressed={mode === "form"}
+          onClick={() => setMode("form")}
+        >
+          表单规则
+        </Button>
+        <Button
+          variant={mode === "raw" ? "primary" : "secondary"}
+          aria-pressed={mode === "raw"}
+          onClick={() => setMode("raw")}
+        >
+          原文 Caddyfile
+        </Button>
+      </div>
+      <div hidden={mode !== "form"} className="grid min-w-0 gap-ui-xl">
+        {load.status === "loading" ? (
+          <p role="status" className="m-0 text-body text-muted-foreground">
+            正在读取已保存的规则……
           </p>
-        </Panel>
-      ) : null}
-      {load.status === "ready" ? (
-        <>
-          {load.source === "DEFAULT" ? (
-            <p role="status" className="m-0 text-body text-muted-foreground">
-              尚未保存任何规则，下方是默认示例。保存后才会写入私有目录。
+        ) : null}
+        {load.status === "failed" ? (
+          <Panel role="alert" className="grid gap-ui-sm p-ui-lg">
+            <p className="m-0 text-body font-semibold text-danger">无法读取已保存的规则</p>
+            <p className="m-0 text-body">{load.error.message}</p>
+            <p className="m-0 text-aux text-muted-foreground">
+              规则未能读取，因此保存已停用，以免覆盖现有文件。
             </p>
-          ) : null}
-          <div className="grid min-w-0 gap-ui-xl lg:grid-cols-2">
-            <CaddyRulesEditor
-              sites={sites}
-              localErrors={localResult.ok ? {} : localResult.errors}
-              mapped={mapped}
-              exposedSites={exposedSites}
-              ids={ids}
-              onChange={changeSites}
-            />
-            <CaddyPreviewPanel
-              localValid={localResult.ok}
-              preview={preview}
-              exposures={exposures}
-            />
-          </div>
-          <CaddySaveBar gate={gate} saveState={saveState} onSave={save} />
-        </>
-      ) : null}
+          </Panel>
+        ) : null}
+        {load.status === "ready" ? (
+          <>
+            {load.source === "DEFAULT" ? (
+              <p role="status" className="m-0 text-body text-muted-foreground">
+                尚未保存任何规则，下方是默认示例。保存后才会写入私有目录。
+              </p>
+            ) : null}
+            <div className="grid min-w-0 gap-ui-xl lg:grid-cols-2">
+              <CaddyRulesEditor
+                sites={sites}
+                localErrors={localResult.ok ? {} : localResult.errors}
+                mapped={mapped}
+                exposedSites={exposedSites}
+                ids={ids}
+                onChange={changeSites}
+              />
+              <CaddyPreviewPanel
+                localValid={localResult.ok}
+                preview={preview}
+                exposures={exposures}
+              />
+            </div>
+            <CaddySaveBar gate={gate} saveState={saveState} onSave={save} />
+          </>
+        ) : null}
+      </div>
+      <RawEditor hidden={mode !== "raw"} />
     </div>
   );
 }

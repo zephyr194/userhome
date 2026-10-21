@@ -431,3 +431,203 @@ export function caddyDetect(executableGrantId?: string): Promise<CaddyDetectRepo
     input: executableGrantId === undefined ? {} : { executableGrantId },
   });
 }
+
+export const CADDY_RAW_ORIGINS = ["SAVED", "EMPTY", "EXTERNAL"] as const;
+export type CaddyRawOrigin = (typeof CADDY_RAW_ORIGINS)[number];
+
+export const CADDY_VALIDATION_STATUSES = [
+  "VALID",
+  "INVALID",
+  "EXTERNAL_REFERENCES",
+  "TIMEOUT",
+  "CANCELLED",
+  "OUTPUT_TOO_LARGE",
+  "UNAVAILABLE",
+] as const;
+export type CaddyValidationStatus = (typeof CADDY_VALIDATION_STATUSES)[number];
+
+export const CADDY_CHECK_STAGES = ["ADAPT", "VALIDATE"] as const;
+export type CaddyCheckStage = (typeof CADDY_CHECK_STAGES)[number];
+
+export const CADDY_REFERENCE_KINDS = [
+  "IMPORT",
+  "FILE_PLACEHOLDER",
+  "ENV_PLACEHOLDER",
+  "TLS_ARGUMENTS",
+] as const;
+export type CaddyReferenceKind = (typeof CADDY_REFERENCE_KINDS)[number];
+
+export const CADDY_WRITE_KINDS = ["REPLACE", "CREATE"] as const;
+export type CaddyWriteKind = (typeof CADDY_WRITE_KINDS)[number];
+
+export interface CaddyRawDocument {
+  origin: CaddyRawOrigin;
+  text: string;
+  sha256?: string;
+}
+
+export interface CaddyExternalReference {
+  kind: CaddyReferenceKind;
+  line: number;
+}
+
+export interface CaddyDiagnostic {
+  line?: number;
+  message: string;
+}
+
+export interface CaddyValidationReport {
+  status: CaddyValidationStatus;
+  stage?: CaddyCheckStage;
+  externalReferences: CaddyExternalReference[];
+  diagnostics: CaddyDiagnostic[];
+  limitation: string;
+}
+
+export interface CaddyExternalSavePreview {
+  batchId: string;
+  operationId: string;
+  summary: string;
+  expiresAt: string;
+  kind: CaddyWriteKind;
+  target: string;
+  proposedHash: string;
+  currentHash?: string;
+}
+
+export interface CaddyExternalSaveResult {
+  operationId: string;
+  summary: string;
+  status: string;
+  writeStatus: string;
+  fileState: string;
+}
+
+const MAX_REFERENCES = 1024;
+const MAX_DIAGNOSTICS_RESPONSE = 20;
+
+export function decodeRawDocument(value: unknown): CaddyRawDocument {
+  const wire = record(value);
+  exactKeys(wire, ["origin", "text"], ["sha256"]);
+  const document: CaddyRawDocument = {
+    origin: oneOf(wire.origin, CADDY_RAW_ORIGINS),
+    text: text(wire.text),
+  };
+  if (wire.sha256 !== undefined) document.sha256 = nonEmptyText(wire.sha256);
+  return document;
+}
+
+function decodeReference(value: unknown): CaddyExternalReference {
+  const wire = record(value);
+  exactKeys(wire, ["kind", "line"]);
+  return {
+    kind: oneOf(wire.kind, CADDY_REFERENCE_KINDS),
+    line: nonNegativeInteger(wire.line),
+  };
+}
+
+function decodeDiagnostic(value: unknown): CaddyDiagnostic {
+  const wire = record(value);
+  exactKeys(wire, ["message"], ["line"]);
+  const diagnostic: CaddyDiagnostic = { message: text(wire.message) };
+  if (wire.line !== undefined) diagnostic.line = nonNegativeInteger(wire.line);
+  return diagnostic;
+}
+
+export function decodeValidationReport(value: unknown): CaddyValidationReport {
+  const wire = record(value);
+  exactKeys(
+    wire,
+    ["status", "externalReferences", "diagnostics", "limitation"],
+    ["stage"],
+  );
+  const report: CaddyValidationReport = {
+    status: oneOf(wire.status, CADDY_VALIDATION_STATUSES),
+    externalReferences: list(wire.externalReferences, MAX_REFERENCES, decodeReference),
+    diagnostics: list(wire.diagnostics, MAX_DIAGNOSTICS_RESPONSE, decodeDiagnostic),
+    limitation: nonEmptyText(wire.limitation),
+  };
+  if (wire.stage !== undefined) report.stage = oneOf(wire.stage, CADDY_CHECK_STAGES);
+  return report;
+}
+
+// Decodes the fields the UI uses from the first step of a single-file batch.
+// The full operation record is not mirrored here; unknown keys are ignored.
+export function decodeExternalSavePreview(value: unknown): CaddyExternalSavePreview {
+  const wire = record(value);
+  const steps = list(wire.steps, 1, record);
+  if (steps.length !== 1) throw createInternalError();
+  const step = steps[0];
+  const preview: CaddyExternalSavePreview = {
+    batchId: nonEmptyText(wire.batchId),
+    operationId: nonEmptyText(step.operationId),
+    summary: text(step.summary),
+    expiresAt: nonEmptyText(step.expiresAt),
+    kind: oneOf(step.kind, CADDY_WRITE_KINDS),
+    target: nonEmptyText(step.target),
+    proposedHash: nonEmptyText(step.proposedHash),
+  };
+  if (step.currentHash !== undefined) preview.currentHash = nonEmptyText(step.currentHash);
+  return preview;
+}
+
+export function decodeExternalSaveResult(value: unknown): CaddyExternalSaveResult {
+  const wire = record(value);
+  const outcome = record(wire.outcome);
+  return {
+    operationId: nonEmptyText(wire.operationId),
+    summary: text(wire.summary),
+    status: nonEmptyText(wire.status),
+    writeStatus: nonEmptyText(outcome.status),
+    fileState: nonEmptyText(outcome.fileState),
+  };
+}
+
+export interface CaddyValidateRequest {
+  text: string;
+  runId: string;
+  allowExternalReferences: boolean;
+}
+
+// Only the text and the run id cross IPC from this entry; never a path.
+export function caddyLoadRaw(): Promise<CaddyRawDocument> {
+  return invokeCommand("caddy_load_raw", decodeRawDocument, { input: {} });
+}
+
+export function caddySaveRaw(rawText: string): Promise<void> {
+  return invokeCommand("caddy_save_raw", decodeNothing, { input: { text: rawText } });
+}
+
+export function caddyValidate(request: CaddyValidateRequest): Promise<CaddyValidationReport> {
+  return invokeCommand("caddy_validate", decodeValidationReport, {
+    input: {
+      source: { kind: "raw", text: request.text },
+      runId: request.runId,
+      allowExternalReferences: request.allowExternalReferences,
+    },
+  });
+}
+
+export function caddyCancelValidate(runId: string): Promise<boolean> {
+  return invokeCommand("caddy_cancel_validate", boolean, { input: { runId } });
+}
+
+// Only a grant id chosen through the grant picker may be sent; no path is accepted.
+export function caddyPreviewExternalRawSave(
+  grantId: string,
+  rawText: string,
+  expectedSha256?: string,
+): Promise<CaddyExternalSavePreview> {
+  return invokeCommand("caddy_preview_external_raw_save", decodeExternalSavePreview, {
+    input: { grantId, text: rawText, expectedSha256 },
+  });
+}
+
+export function caddyConfirmExternalRawSave(
+  grantId: string,
+  operationId: string,
+): Promise<CaddyExternalSaveResult> {
+  return invokeCommand("caddy_confirm_external_raw_save", decodeExternalSaveResult, {
+    input: { grantId, operationId },
+  });
+}
