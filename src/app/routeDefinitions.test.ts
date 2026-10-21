@@ -62,4 +62,12 @@ describe("route registry", () => {
     );
     expect(services?.description).not.toContain("Homebrew");
   });
+
+  it("places the tools page alone in the toolset group", () => {
+    const toolset = groupNavigationRoutes(APP_ROUTES).find(
+      (entry) => entry.group.id === "toolset",
+    );
+    expect(toolset?.routes.map((route) => route.id)).toEqual(["tools"]);
+    expect(toolset?.routes[0]?.label).toBe("工具集");
+  });
 });

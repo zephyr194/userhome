@@ -4,6 +4,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { EnvironmentPage } from "../features/environment/EnvironmentPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { ToolsPage } from "../features/tools/ToolsPage";
 import { Button, StatusBadge } from "../components/ui";
 import type { SettingsGroupId } from "../features/settings/settingsGroups";
 import type {
@@ -288,6 +289,10 @@ export function RoutePanel({
 
   if (route.id === "environment") {
     return <EnvironmentPage />;
+  }
+
+  if (route.id === "tools") {
+    return <ToolsPage />;
   }
 
   if (route.id === "settings") {

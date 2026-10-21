@@ -4,6 +4,7 @@ export type AppRouteId =
   | "homebrew"
   | "services"
   | "environment"
+  | "tools"
   | "settings";
 
 export type AppRouteIcon =
@@ -12,6 +13,7 @@ export type AppRouteIcon =
   | "homebrew"
   | "services"
   | "environment"
+  | "tools"
   | "settings";
 
 export type NavGroupId = "system-tools" | "toolset" | "support";
@@ -82,6 +84,13 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrow: "环境文件",
     description: "在指定目录中只读查看 dotenv 文件，秘密值默认遮盖。",
     group: "system-tools",
+  },
+  tools: {
+    icon: "tools",
+    label: "工具集",
+    eyebrow: "文本工具",
+    description: "本机格式化与转换文本，输入只保存在本次页面中。",
+    group: "toolset",
   },
   settings: {
     icon: "settings",
