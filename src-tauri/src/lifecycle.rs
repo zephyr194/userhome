@@ -138,6 +138,13 @@ impl OwnedResourceRegistry {
     pub fn running_count(&self) -> usize {
         self.running().len()
     }
+
+    pub fn running_labels(&self) -> Vec<String> {
+        self.running()
+            .into_iter()
+            .map(|entry| entry.label)
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -371,6 +378,7 @@ pub fn confirm_quit_with(
 #[serde(rename_all = "camelCase")]
 struct QuitConfirmationPayload {
     process_count: usize,
+    items: Vec<String>,
 }
 
 impl QuitHost for AppHandle {
@@ -382,9 +390,16 @@ impl QuitHost for AppHandle {
         // A tray quit may arrive while the window is hidden; the question must be
         // visible to be answerable.
         crate::tray::show_main_window(self);
+        let items = self
+            .state::<LifecycleCoordinator>()
+            .registry()
+            .running_labels();
         if let Err(error) = self.emit(
             QUIT_CONFIRMATION_EVENT,
-            QuitConfirmationPayload { process_count },
+            QuitConfirmationPayload {
+                process_count,
+                items,
+            },
         ) {
             eprintln!("failed to emit the quit confirmation request: {error}");
         }
@@ -735,5 +750,20 @@ mod tests {
         assert_eq!(host.exits.get(), 1);
         assert_eq!(session.status().state, SessionState::Exited);
         assert_eq!(coordinator.registry().running_count(), 0);
+    }
+
+    #[test]
+    fn lifecycle_running_labels_name_only_the_entries_still_running() {
+        let coordinator = LifecycleCoordinator::default();
+        let gone = Scripted::new(exited());
+        let kept = Scripted::new(StopOutcome::Unconfirmed);
+        register(&coordinator, "gone", &gone);
+        register(&coordinator, "Caddy 自有实例（监听 127.0.0.1:8080）", &kept);
+        gone.exit_by_itself();
+
+        assert_eq!(
+            coordinator.registry().running_labels(),
+            vec!["Caddy 自有实例（监听 127.0.0.1:8080）".to_owned()]
+        );
     }
 }

@@ -4,9 +4,33 @@ import {
   QUIT_CONFIRMATION_EVENT,
   cancelQuit,
   confirmQuit,
+  decodeQuitConfirmationRequest,
   decodeQuitResult,
   registerQuitConfirmationListener,
 } from "./lifecycle";
+
+describe("quit confirmation payload", () => {
+  it("decodes the optional running items and keeps the bare count when none are sent", () => {
+    expect(decodeQuitConfirmationRequest({ processCount: 1 })).toEqual({
+      processCount: 1,
+    });
+    expect(
+      decodeQuitConfirmationRequest({
+        processCount: 1,
+        items: ["Caddy 自有实例（监听 127.0.0.1:8080）"],
+      }),
+    ).toEqual({
+      processCount: 1,
+      items: ["Caddy 自有实例（监听 127.0.0.1:8080）"],
+    });
+    expect(() =>
+      decodeQuitConfirmationRequest({ processCount: 1, items: [1] }),
+    ).toThrow();
+    expect(() =>
+      decodeQuitConfirmationRequest({ processCount: 1, items: "caddy" }),
+    ).toThrow();
+  });
+});
 
 describe("lifecycle IPC", () => {
   it("confirms the quit with no arguments and decodes both outcomes", async () => {

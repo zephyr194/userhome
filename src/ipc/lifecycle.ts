@@ -5,6 +5,7 @@ export const QUIT_CONFIRMATION_EVENT = "userhome://quit-confirmation-requested";
 
 export interface QuitConfirmationRequest {
   processCount: number;
+  items?: string[];
 }
 
 export type QuitResult =
@@ -23,13 +24,23 @@ function isCount(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
 export function decodeQuitConfirmationRequest(
   value: unknown,
 ): QuitConfirmationRequest {
   if (!isRecord(value) || !isCount(value.processCount)) {
     throw createInternalError();
   }
-  return { processCount: value.processCount };
+  if (value.items === undefined) {
+    return { processCount: value.processCount };
+  }
+  if (!isStringList(value.items)) {
+    throw createInternalError();
+  }
+  return { processCount: value.processCount, items: value.items };
 }
 
 export function decodeQuitResult(value: unknown): QuitResult {

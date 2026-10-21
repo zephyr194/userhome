@@ -416,4 +416,38 @@ describe("QuitConfirmationDialog", () => {
     expect(markup).toContain(">重试停止并退出<");
     expect(markup).toContain(">取消退出<");
   });
+
+  it("lists each running item with a symbol and its text, not colour alone", () => {
+    const markup = render({
+      phase: "asking",
+      processCount: 1,
+      items: ["Caddy 自有实例（监听 127.0.0.1:8080）"],
+    });
+
+    expect(markup).toContain('aria-label="仍在运行的项目"');
+    expect(markup).toContain("●");
+    expect(markup).toContain("Caddy 自有实例（监听 127.0.0.1:8080）");
+    expect(markup).toContain(">停止并退出<");
+    expect(markup).toContain(">取消退出<");
+  });
+
+  it("keeps the running items visible while stopping and after a failed stop", () => {
+    const items = ["Caddy 自有实例（监听 127.0.0.1:8080）"];
+
+    const stopping = render({ phase: "stopping", processCount: 1, items });
+    expect(stopping).toContain("Caddy 自有实例（监听 127.0.0.1:8080）");
+    expect(stopping.match(/<button[^>]*\sdisabled=""/g)).toHaveLength(2);
+
+    const failed = render({
+      phase: "failed",
+      processCount: 1,
+      items,
+      message:
+        "应用未退出：无法确认以下进程已退出：Caddy 自有实例（监听 127.0.0.1:8080）。它们可能仍在运行。",
+    });
+    expect(failed).toContain("Caddy 自有实例（监听 127.0.0.1:8080）");
+    expect(failed).toContain('role="alert"');
+    expect(failed).toContain(">重试停止并退出<");
+    expect(failed).toContain(">取消退出<");
+  });
 });

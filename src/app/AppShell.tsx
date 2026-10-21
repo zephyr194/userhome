@@ -77,11 +77,15 @@ function ShellNotice({
   );
 }
 
-export type QuitPrompt =
+export type QuitPrompt = {
+  /** Names of the running items, so the user sees what "stop and quit" will stop. */
+  items?: readonly string[];
+} & (
   | { phase: "asking"; processCount: number }
   | { phase: "stopping"; processCount: number }
   | { phase: "quitting"; processCount: number }
-  | { phase: "failed"; processCount: number; message: string };
+  | { phase: "failed"; processCount: number; message: string }
+);
 
 /**
  * Asked when the app is quit while it still runs processes it started. Nothing is
@@ -115,6 +119,24 @@ export function QuitConfirmationDialog({
         “停止并退出”会先停止这些进程，确认全部已退出后才退出应用；
         “取消退出”不会改变任何内容。
       </p>
+      {prompt.items?.length ? (
+        <ul
+          aria-label="仍在运行的项目"
+          className="m-0 flex list-none flex-col gap-ui-xs p-0 text-sm text-foreground"
+        >
+          {prompt.items.map((item) => (
+            <li
+              className="flex min-w-0 gap-ui-xs break-words [overflow-wrap:anywhere]"
+              key={item}
+            >
+              <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+                ●
+              </span>
+              <span className="min-w-0">{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {prompt.phase === "stopping" || prompt.phase === "quitting" ? (
         <p
           className="text-sm text-muted-foreground"
@@ -284,11 +306,11 @@ export function AppShell({
     let disposed = false;
     let unlisten: (() => void) | undefined;
 
-    void registerQuitConfirmationListener(({ processCount }) => {
+    void registerQuitConfirmationListener(({ processCount, items }) => {
       if (document.activeElement instanceof HTMLElement) {
         quitReturnFocus.current = document.activeElement;
       }
-      setQuitPrompt({ phase: "asking", processCount });
+      setQuitPrompt({ phase: "asking", processCount, items });
     })
       .then((cleanup) => {
         if (disposed) {
@@ -331,17 +353,25 @@ export function AppShell({
 
   const confirmQuitPrompt = useCallback(() => {
     setQuitPrompt((current) =>
-      current ? { phase: "stopping", processCount: current.processCount } : current,
+      current
+        ? {
+            phase: "stopping",
+            processCount: current.processCount,
+            items: current.items,
+          }
+        : current,
     );
     void confirmQuit()
       .then((result) =>
         setQuitPrompt((current) => {
           const processCount = current?.processCount ?? 0;
+          const items = current?.items;
           return result.status === "QUITTING"
-            ? { phase: "quitting", processCount }
+            ? { phase: "quitting", processCount, items }
             : {
                 phase: "failed",
                 processCount,
+                items,
                 message: `应用未退出：无法确认以下进程已退出：${result.unconfirmed.join("、")}。它们可能仍在运行。`,
               };
         }),
@@ -352,6 +382,7 @@ export function AppShell({
           return {
             phase: "failed",
             processCount,
+            items: current?.items,
             message: "无法完成退出请求，应用未退出。",
           };
         }),
