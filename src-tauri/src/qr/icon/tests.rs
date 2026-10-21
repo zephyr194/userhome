@@ -8,7 +8,9 @@ use super::{
     IconError, IconFormat, MAX_ICON_BYTES, MIN_ICON_MODULES, alignment_positions, decode_icon,
     place, thumbnail_png,
 };
-use crate::qr::{ErrorCorrection, PixelSize, QrError, encode_png, encode_png_with_icon};
+use crate::qr::{
+    ErrorCorrection, MIN_MODULE_PX, PixelSize, QrError, encode_png, encode_png_with_icon,
+};
 
 fn logo_square() -> RgbaImage {
     RgbaImage::from_fn(64, 64, |x, y| {
@@ -322,43 +324,42 @@ fn the_box_stays_within_fifteen_percent_and_inside_the_module_zone() {
 }
 
 #[test]
-fn the_box_never_overlaps_an_alignment_pattern() {
+fn the_box_never_touches_finder_timing_or_format_areas() {
     for version in 5..=40u32 {
         let core = 17 + 4 * version;
         let module_px = 4u32;
-        let Some(placed) = place(core, module_px, 0, 64, 64) else {
-            continue;
-        };
-        let positions = alignment_positions(version);
-        let first = positions[0];
-        let last = *positions.last().expect("alignment");
-        for &ax in positions {
-            for &ay in positions {
-                if (ax == first && ay == first)
-                    || (ax == first && ay == last)
-                    || (ax == last && ay == first)
-                {
-                    continue;
-                }
-                let left = (ax - 2) * module_px;
-                let right = (ax + 3) * module_px;
-                let top = (ay - 2) * module_px;
-                let bottom = (ay + 3) * module_px;
-                let overlaps = placed.x < right
-                    && placed.x + placed.width > left
-                    && placed.y < bottom
-                    && placed.y + placed.height > top;
-                assert!(!overlaps, "v{version} alignment ({ax},{ay}) overlapped");
-            }
+        let placed = place(core, module_px, 0, 64, 64)
+            .unwrap_or_else(|| panic!("a square icon fits v{version}"));
+        let n = core;
+        let mut reserved = vec![
+            (0, 9, 0, 9),
+            (n - 8, n, 0, 9),
+            (0, 9, n - 8, n),
+            (0, n, 6, 7),
+            (6, 7, 0, n),
+        ];
+        if version >= 7 {
+            reserved.push((n - 11, n - 8, 0, 6));
+            reserved.push((0, 6, n - 11, n - 8));
+        }
+        for (x0, x1, y0, y1) in reserved {
+            let overlaps = placed.x < x1 * module_px
+                && placed.x + placed.width > x0 * module_px
+                && placed.y < y1 * module_px
+                && placed.y + placed.height > y0 * module_px;
+            assert!(
+                !overlaps,
+                "v{version} box over modules {x0}..{x1} x {y0}..{y1}"
+            );
         }
     }
 }
 
 #[test]
-fn centred_icons_are_refused_for_versions_whose_centre_is_an_alignment_pattern() {
+fn centred_icons_are_placed_over_alignment_patterns_for_versions_7_to_13() {
     for version in 7..=13u32 {
         let core = 17 + 4 * version;
-        assert_eq!(place(core, 4, 0, 64, 64), None, "v{version}");
+        assert!(place(core, 4, 0, 64, 64).is_some(), "v{version}");
     }
 }
 
@@ -420,13 +421,12 @@ fn known_good_combinations_are_always_produced() {
 }
 
 #[test]
-fn symbols_whose_centre_is_an_alignment_pattern_refuse_the_icon() {
+fn symbols_whose_centre_is_an_alignment_pattern_accept_the_icon() {
     let text = text_of_length(60);
     assert_eq!(version_of(&text), 7);
-    assert_eq!(
-        encode_png_with_icon(&text, PixelSize::Px1024, &logo_square()).err(),
-        Some(QrError::IconDoesNotFit)
-    );
+    let encoded = encode_png_with_icon(&text, PixelSize::Px1024, &logo_square())
+        .expect("v7 accepts a square icon over its alignment pattern");
+    assert_eq!(decode_text(&encoded.png), text);
 }
 
 #[test]
@@ -444,6 +444,116 @@ fn text_beyond_the_level_h_capacity_is_refused_with_icon() {
         encode_png_with_icon(&text, PixelSize::Px1024, &logo_square()).err(),
         Some(QrError::TooLong { max_bytes: 1273 })
     );
+}
+
+fn try_decode_text(png: &[u8]) -> Option<String> {
+    let gray = image::load_from_memory_with_format(png, image::ImageFormat::Png)
+        .ok()?
+        .to_luma8();
+    let mut prepared = rqrr::PreparedImage::prepare(gray);
+    let grids = prepared.detect_grids();
+    if grids.len() != 1 {
+        return None;
+    }
+    grids[0].decode().ok().map(|(_, content)| content)
+}
+
+/// The longest ASCII text whose level-H symbol is still `version`, so every
+/// version is exercised at its tightest data load.
+fn longest_text_in_version(version: u32) -> String {
+    let within = |len: usize| {
+        QrCode::with_error_correction_level(text_of_length(len).as_bytes(), EcLevel::H)
+            .map(|code| matches!(code.version(), Version::Normal(v) if v as u32 <= version))
+            .unwrap_or(false)
+    };
+    let (mut low, mut high) = (1usize, ErrorCorrection::H.max_bytes());
+    while low < high {
+        let mid = (low + high).div_ceil(2);
+        if within(mid) {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
+    }
+    let text = text_of_length(low);
+    assert_eq!(version_of(&text), version);
+    text
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum Outcome {
+    Decoded,
+    Undecoded,
+    Refused(QrError),
+}
+
+fn observe(text: &str, size: PixelSize, icon: &RgbaImage) -> Outcome {
+    match encode_png_with_icon(text, size, icon) {
+        Ok(encoded) if try_decode_text(&encoded.png).as_deref() == Some(text) => Outcome::Decoded,
+        Ok(_) => Outcome::Undecoded,
+        Err(error) => Outcome::Refused(error),
+    }
+}
+
+/// Expected result where the plain symbol fits. A refusal names the rule that causes it.
+fn expected_outcome(version: u32, fixture: &str) -> Outcome {
+    match version {
+        // A 15% box cannot hold a 3-module icon plus its 1-module underlay.
+        1..=4 => Outcome::Refused(QrError::IconDoesNotFit),
+        // A 3:1 icon's short side stays below 3 modules in these symbols.
+        5..=13 if fixture == "wide" => Outcome::Refused(QrError::IconDoesNotFit),
+        _ => Outcome::Decoded,
+    }
+}
+
+fn assert_matrix_for_versions(versions: std::ops::RangeInclusive<u32>) {
+    let fixtures = [
+        ("opaque-square", logo_square()),
+        ("alpha-disc", logo_transparent()),
+        ("wide", logo_wide()),
+    ];
+    let mut failures = Vec::new();
+    for version in versions {
+        let text = longest_text_in_version(version);
+        for size in [PixelSize::Px256, PixelSize::Px512, PixelSize::Px1024] {
+            let plain = encode_png(&text, ErrorCorrection::H, size);
+            for (name, icon) in &fixtures {
+                let expected = match plain {
+                    Err(_) => Outcome::Refused(QrError::ModulesTooSmall {
+                        min_module_px: MIN_MODULE_PX,
+                    }),
+                    Ok(_) => expected_outcome(version, name),
+                };
+                let observed = observe(&text, size, icon);
+                if observed != expected {
+                    failures.push(format!(
+                        "v{version} {size:?} {name}: expected {expected:?}, got {observed:?}"
+                    ));
+                }
+            }
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
+}
+
+#[test]
+fn icon_matrix_versions_1_to_10() {
+    assert_matrix_for_versions(1..=10);
+}
+
+#[test]
+fn icon_matrix_versions_11_to_20() {
+    assert_matrix_for_versions(11..=20);
+}
+
+#[test]
+fn icon_matrix_versions_21_to_30() {
+    assert_matrix_for_versions(21..=30);
+}
+
+#[test]
+fn icon_matrix_versions_31_to_40() {
+    assert_matrix_for_versions(31..=40);
 }
 
 #[test]

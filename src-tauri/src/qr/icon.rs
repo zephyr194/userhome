@@ -18,6 +18,8 @@ pub const MIN_ICON_MODULES: u32 = 3;
 const PADDING_MODULES: u32 = 1;
 const THUMBNAIL_SIDE: u32 = 128;
 const MAX_DECODE_ALLOC: u64 = 256 * 1024 * 1024;
+/// Finder patterns and separators, timing, format and version information all lie
+/// within this many modules of the symbol edges, so the zone keeps the icon clear of them.
 const MODULE_ZONE_MARGIN: u32 = 9;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,6 +113,7 @@ pub fn thumbnail_png(icon: &RgbaImage) -> Vec<u8> {
 
 /// Alignment pattern centres (ISO/IEC 18004, annex E). The first and last
 /// positions form the finder-adjacent corners, which are never drawn.
+#[cfg(test)]
 pub fn alignment_positions(version: u32) -> &'static [u32] {
     const TABLE: [&[u32]; 41] = [
         &[],
@@ -159,7 +162,7 @@ pub fn alignment_positions(version: u32) -> &'static [u32] {
 }
 
 /// Places the icon box centred on the symbol, shrinking it step by step until it
-/// is within the module zone and clear of every alignment pattern. Returns
+/// lies inside the module zone. Alignment patterns may be covered. Returns
 /// `None` when no size satisfies the rules, so the caller refuses to export.
 pub fn place(
     core_modules: u32,
@@ -196,51 +199,25 @@ pub fn place(
             inner_width,
             inner_height,
         };
-        if clears_function_patterns(&placement, version, core_modules, module_px, core_start_px) {
+        if inside_module_zone(&placement, core_modules, module_px, core_start_px) {
             return Some(placement);
         }
     }
     None
 }
 
-fn clears_function_patterns(
+fn inside_module_zone(
     placement: &IconBox,
-    version: u32,
     core_modules: u32,
     module_px: u32,
     core_start_px: u32,
 ) -> bool {
     let zone_start = core_start_px + MODULE_ZONE_MARGIN * module_px;
     let zone_end = core_start_px + (core_modules - MODULE_ZONE_MARGIN) * module_px;
-    let inside_zone = placement.x >= zone_start
+    placement.x >= zone_start
         && placement.x + placement.width <= zone_end
         && placement.y >= zone_start
-        && placement.y + placement.height <= zone_end;
-    if !inside_zone {
-        return false;
-    }
-    let positions = alignment_positions(version);
-    let (Some(&first), Some(&last)) = (positions.first(), positions.last()) else {
-        return true;
-    };
-    positions.iter().all(|&ax| {
-        positions.iter().all(|&ay| {
-            let finder_corner = (ax == first && ay == first)
-                || (ax == first && ay == last)
-                || (ax == last && ay == first);
-            if finder_corner {
-                return true;
-            }
-            let left = core_start_px + (ax - 2) * module_px;
-            let right = core_start_px + (ax + 3) * module_px;
-            let top = core_start_px + (ay - 2) * module_px;
-            let bottom = core_start_px + (ay + 3) * module_px;
-            !(placement.x < right
-                && placement.x + placement.width > left
-                && placement.y < bottom
-                && placement.y + placement.height > top)
-        })
-    })
+        && placement.y + placement.height <= zone_end
 }
 
 /// Paints the white underlay, then the icon scaled to the inner size. Alpha is
