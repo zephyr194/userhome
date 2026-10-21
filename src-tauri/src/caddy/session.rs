@@ -37,9 +37,13 @@ use crate::{
         config::{CaddyRules, authority},
         conflict::{ConflictReport, ConflictTargets},
         detect::{DetectReport, DetectStatus},
+        reload::{
+            ApplyFailure, ApplyReport, InstanceReview, RELOAD_TIMEOUT, ServingConfig,
+            reload_arguments,
+        },
         validate::{
-            self, CaddyDiagnostic, CaddyRunner, CheckRequest, MAX_CHECK_BYTES, ValidationReport,
-            ValidationStatus,
+            self, CaddyDiagnostic, CaddyRunner, CheckRequest, MAX_CHECK_BYTES, RunFailure, RunSpec,
+            ValidationReport, ValidationStatus,
         },
     },
     error::AppError,
@@ -91,6 +95,9 @@ const BLOCKED_ADMIN: &str =
 const BLOCKED_EXTERNAL: &str =
     "原文包含 import、文件或环境变量引用、带参数的 tls 等外部引用，本阶段不允许开启。";
 const NO_EXECUTABLE: &str = "未找到可用的 Caddy 可执行文件，请先检测或选择。";
+const NOT_SERVING: &str = "没有运行中的自有实例，无法应用。";
+const STALE_SESSION: &str = "运行中的实例已变化，请刷新状态后再应用。";
+const NOTHING_PENDING: &str = "保存的配置与运行中的配置一致，无需应用。";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -250,6 +257,12 @@ impl AdminProbe for SystemAdminProbe {
 pub struct StartEnvironment<'a> {
     pub checks_root: &'a Path,
     pub runs_root: &'a Path,
+    pub runner: &'a dyn CaddyRunner,
+    pub probe: &'a dyn AdminProbe,
+}
+
+pub struct ApplyEnvironment<'a> {
+    pub checks_root: &'a Path,
     pub runner: &'a dyn CaddyRunner,
     pub probe: &'a dyn AdminProbe,
 }
@@ -433,8 +446,8 @@ impl Drop for RunDirectory {
     }
 }
 
-fn write_runtime_config(directory: &Path, text: &str) -> Result<PathBuf, AppError> {
-    let path = directory.join(validate::CONFIG_FILE);
+fn write_copy(directory: &Path, name: &str, text: &str) -> Result<PathBuf, AppError> {
+    let path = directory.join(name);
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -501,6 +514,7 @@ fn stale_plan() -> AppError {
 struct Run {
     session: ProcessSession,
     source: ConfigSource,
+    executable: PathBuf,
     directory: RunDirectory,
     active_fingerprint: Mutex<String>,
     ready: AtomicBool,
@@ -515,12 +529,14 @@ impl Run {
     fn new(
         session: ProcessSession,
         source: ConfigSource,
+        executable: PathBuf,
         directory: RunDirectory,
         fingerprint: String,
     ) -> Self {
         Self {
             session,
             source,
+            executable,
             directory,
             active_fingerprint: Mutex::new(fingerprint),
             ready: AtomicBool::new(false),
@@ -601,6 +617,7 @@ impl Run {
 #[derive(Default)]
 struct Slot {
     busy: bool,
+    reloading: bool,
     active: Option<Arc<Run>>,
     refusal: Option<Refusal>,
 }
@@ -608,6 +625,7 @@ struct Slot {
 pub struct CaddyRunCoordinator {
     slot: Mutex<Slot>,
     plan: Mutex<Option<RunPlan>>,
+    last_apply: Mutex<Option<ApplyReport>>,
     timing: Timing,
 }
 
@@ -622,6 +640,7 @@ impl CaddyRunCoordinator {
         Self {
             slot: Mutex::new(Slot::default()),
             plan: Mutex::new(None),
+            last_apply: Mutex::new(None),
             timing,
         }
     }
@@ -770,7 +789,7 @@ impl CaddyRunCoordinator {
             Err(_) => return self.refuse(FailureKind::InvalidSetup, Vec::new()),
         };
         let runtime = inject_admin(&plan.text, &directory.socket);
-        let Ok(config) = write_runtime_config(&directory.dir, &runtime) else {
+        let Ok(config) = write_copy(&directory.dir, validate::CONFIG_FILE, &runtime) else {
             return self.refuse(FailureKind::InvalidSetup, Vec::new());
         };
         let Ok(spec) = launch_spec(
@@ -791,6 +810,7 @@ impl CaddyRunCoordinator {
         let run = Arc::new(Run::new(
             session,
             plan.source,
+            plan.executable.clone(),
             directory,
             fingerprint(&runtime),
         ));
@@ -799,6 +819,7 @@ impl CaddyRunCoordinator {
             slot.active = Some(Arc::clone(&run));
             slot.refusal = None;
         }
+        *lock(&self.last_apply) = None;
         self.await_ready(&run, env.probe)
     }
 
@@ -917,13 +938,146 @@ impl CaddyRunCoordinator {
     }
 
     fn serving_run(&self) -> Option<Arc<Run>> {
-        let slot = lock(&self.slot);
-        slot.active.clone().filter(|run| {
-            !slot.busy
-                && !run.user_stopped.load(Ordering::SeqCst)
-                && run.ready.load(Ordering::SeqCst)
-                && run.session.status().state == SessionState::Running
-        })
+        serving_in(&lock(&self.slot))
+    }
+
+    pub fn last_apply(&self) -> Option<ApplyReport> {
+        lock(&self.last_apply).clone()
+    }
+
+    /// Validates the saved text, then reloads the serving instance through its own
+    /// private admin socket. Success is reported only after the review passes.
+    pub fn apply(
+        &self,
+        session_id: &str,
+        source: ConfigSource,
+        saved: &str,
+        env: &ApplyEnvironment<'_>,
+    ) -> Result<ApplyReport, AppError> {
+        let run = self.begin_reload(session_id, source, saved)?;
+        let report = self.reload(&run, saved, env);
+        lock(&self.slot).reloading = false;
+        *lock(&self.last_apply) = Some(report.clone());
+        Ok(report)
+    }
+
+    fn begin_reload(
+        &self,
+        session_id: &str,
+        source: ConfigSource,
+        saved: &str,
+    ) -> Result<Arc<Run>, AppError> {
+        let mut slot = lock(&self.slot);
+        if slot.reloading {
+            return Err(AppError::conflict("正在应用，请等待当前应用结束。"));
+        }
+        let run = serving_in(&slot).ok_or_else(|| AppError::conflict(NOT_SERVING))?;
+        if run.session.id() != session_id || run.source != source {
+            return Err(AppError::conflict(STALE_SESSION));
+        }
+        if fingerprint(&inject_admin(saved, &run.directory.socket))
+            == *lock(&run.active_fingerprint)
+        {
+            return Err(AppError::conflict(NOTHING_PENDING));
+        }
+        slot.reloading = true;
+        Ok(run)
+    }
+
+    fn reload(&self, run: &Run, saved: &str, env: &ApplyEnvironment<'_>) -> ApplyReport {
+        let session_id = run.session.id().to_owned();
+        let cancel = AtomicBool::new(false);
+        let check = CheckRequest {
+            executable: &run.executable,
+            text: saved,
+            allow_external_references: false,
+        };
+        let report = match validate::check(&check, env.checks_root, env.runner, &cancel) {
+            Ok(report) => report,
+            Err(_) => {
+                return ApplyReport::failed(
+                    session_id,
+                    ApplyFailure::ValidationFailed,
+                    None,
+                    Vec::new(),
+                );
+            }
+        };
+        let failure = match report.status {
+            ValidationStatus::Valid => None,
+            ValidationStatus::Invalid | ValidationStatus::ExternalReferences => {
+                Some(ApplyFailure::ValidationFailed)
+            }
+            ValidationStatus::Timeout => Some(ApplyFailure::Timeout),
+            ValidationStatus::Cancelled
+            | ValidationStatus::OutputTooLarge
+            | ValidationStatus::Unavailable => Some(ApplyFailure::CommandFailed),
+        };
+        if let Some(failure) = failure {
+            return ApplyReport::failed(
+                session_id,
+                failure,
+                None,
+                redact_diagnostics(report.diagnostics),
+            );
+        }
+
+        let runtime = inject_admin(saved, &run.directory.socket);
+        let candidate = fingerprint(&runtime);
+        let name = format!("reload-{}.Caddyfile", Uuid::new_v4());
+        let Ok(config) = write_copy(&run.directory.dir, &name, &runtime) else {
+            return ApplyReport::failed(
+                session_id,
+                ApplyFailure::PreparationFailed,
+                None,
+                Vec::new(),
+            );
+        };
+        let spec = RunSpec {
+            executable: run.executable.clone(),
+            arguments: reload_arguments(&config, &run.directory.socket),
+            cwd: run.directory.dir.clone(),
+            environment: validate::minimal_environment(&run.directory.dir),
+            timeout: RELOAD_TIMEOUT,
+            max_output_bytes: validate::MAX_OUTPUT_BYTES,
+        };
+        match env.runner.run(&spec, &cancel) {
+            Err(RunFailure::Timeout) => ApplyReport::failed(
+                session_id,
+                ApplyFailure::Timeout,
+                Some(review(run, env.probe, ServingConfig::Previous)),
+                Vec::new(),
+            ),
+            Err(_) => ApplyReport::failed(
+                session_id,
+                ApplyFailure::CommandFailed,
+                Some(review(run, env.probe, ServingConfig::Previous)),
+                Vec::new(),
+            ),
+            Ok(output) if !output.success => {
+                let diagnostics = validate::diagnostics_from(&output.stderr, &run.directory.dir);
+                ApplyReport::failed(
+                    session_id,
+                    ApplyFailure::CommandFailed,
+                    Some(review(run, env.probe, ServingConfig::Previous)),
+                    redact_diagnostics(diagnostics),
+                )
+            }
+            Ok(_) => {
+                let observed = review(run, env.probe, ServingConfig::Candidate);
+                if observed.alive && observed.admin_reachable {
+                    *lock(&run.active_fingerprint) = candidate;
+                    ApplyReport::succeeded(session_id, observed)
+                } else {
+                    ApplyReport::failed(
+                        session_id,
+                        ApplyFailure::ReviewFailed,
+                        Some(observed),
+                        Vec::new(),
+                    )
+                }
+            }
+        }
     }
 
     pub fn logs(
@@ -976,6 +1130,32 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+fn serving_in(slot: &Slot) -> Option<Arc<Run>> {
+    slot.active.clone().filter(|run| {
+        !slot.busy
+            && !run.user_stopped.load(Ordering::SeqCst)
+            && run.ready.load(Ordering::SeqCst)
+            && run.session.status().state == SessionState::Running
+    })
+}
+
+/// Process and admin facts only. A reachable admin socket does not prove which
+/// configuration is loaded, so `config` says what the caller can actually claim.
+fn review(run: &Run, probe: &dyn AdminProbe, serving: ServingConfig) -> InstanceReview {
+    let alive = run.session.status().state == SessionState::Running;
+    let admin_reachable = alive && probe.is_ready(&run.directory.socket);
+    let config = if alive && admin_reachable {
+        serving
+    } else {
+        ServingConfig::Unknown
+    };
+    InstanceReview {
+        alive,
+        admin_reachable,
+        config,
+    }
+}
+
 struct Page {
     text: String,
     next: u64,
@@ -1020,6 +1200,7 @@ mod tests {
     use crate::{
         caddy::{
             config::{Listen, RULES_VERSION, SiteRule, Upstream, UpstreamScheme},
+            reload::ApplyOutcome,
             validate::{RunFailure, RunOutput},
         },
         error::AppErrorCode,
@@ -1711,6 +1892,7 @@ mod tests {
 
     struct Scripted {
         reload: Result<RunOutput, RunFailure>,
+        reject: std::cell::Cell<bool>,
         calls: std::cell::RefCell<Vec<validate::RunSpec>>,
     }
 
@@ -1718,6 +1900,7 @@ mod tests {
         fn with_reload(reload: Result<RunOutput, RunFailure>) -> Self {
             Self {
                 reload,
+                reject: std::cell::Cell::new(false),
                 calls: std::cell::RefCell::new(Vec::new()),
             }
         }
@@ -1725,10 +1908,34 @@ mod tests {
         fn count(&self) -> usize {
             self.calls.borrow().len()
         }
+
+        fn calls(&self) -> Vec<validate::RunSpec> {
+            self.calls.borrow().clone()
+        }
+
+        fn reloads(&self) -> Vec<validate::RunSpec> {
+            self.calls().into_iter().filter(is_reload).collect()
+        }
     }
 
     fn is_reload(spec: &validate::RunSpec) -> bool {
         spec.arguments.first().and_then(|arg| arg.to_str()) == Some("reload")
+    }
+
+    fn ok_output() -> RunOutput {
+        RunOutput {
+            success: true,
+            stdout: b"{}".to_vec(),
+            stderr: Vec::new(),
+        }
+    }
+
+    fn failed_output(stderr: &str) -> RunOutput {
+        RunOutput {
+            success: false,
+            stdout: Vec::new(),
+            stderr: stderr.as_bytes().to_vec(),
+        }
     }
 
     impl CaddyRunner for Scripted {
@@ -1740,17 +1947,26 @@ mod tests {
             self.calls.borrow_mut().push(spec.clone());
             if is_reload(spec) {
                 self.reload.clone()
+            } else if self.reject.get() {
+                Ok(failed_output(
+                    "Error: adapting config: Caddyfile:2: unrecognized directive",
+                ))
             } else {
-                Ok(RunOutput {
-                    success: true,
-                    stdout: b"{}".to_vec(),
-                    stderr: Vec::new(),
-                })
+                Ok(ok_output())
             }
         }
     }
 
+    struct Gate(Arc<AtomicBool>);
+
+    impl AdminProbe for Gate {
+        fn is_ready(&self, _socket: &Path) -> bool {
+            self.0.load(Ordering::SeqCst)
+        }
+    }
+
     const STARTED_TEXT: &str = "example.com {\n}\n";
+    const CHANGED_TEXT: &str = "example.com {\n\trespond \"changed\"\n}\n";
 
     fn start_text(
         coordinator: &CaddyRunCoordinator,
@@ -1860,6 +2076,444 @@ mod tests {
         assert_eq!(
             *lock(&serving.active_fingerprint),
             fingerprint(&inject_admin(STARTED_TEXT, &serving.directory.socket))
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    fn serving_session(
+        coordinator: &CaddyRunCoordinator,
+        scratch: &Scratch,
+        runner: &dyn CaddyRunner,
+        flag: &Arc<AtomicBool>,
+    ) -> String {
+        let status = start_text(coordinator, scratch, runner, &Gate(Arc::clone(flag)));
+        assert_eq!(status.state, RunState::Running);
+        status.session_id.expect("session")
+    }
+
+    fn apply_with(
+        coordinator: &CaddyRunCoordinator,
+        scratch: &Scratch,
+        session_id: &str,
+        runner: &dyn CaddyRunner,
+        flag: &Arc<AtomicBool>,
+        text: &str,
+    ) -> Result<ApplyReport, AppError> {
+        let checks = scratch.checks();
+        coordinator.apply(
+            session_id,
+            ConfigSource::Raw,
+            text,
+            &ApplyEnvironment {
+                checks_root: &checks,
+                runner,
+                probe: &Gate(Arc::clone(flag)),
+            },
+        )
+    }
+
+    #[test]
+    fn a_saved_change_is_applied_only_after_the_review_passes() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("apply");
+
+        assert_eq!(report.outcome, ApplyOutcome::Succeeded);
+        assert_eq!(report.failure, None);
+        assert_eq!(
+            report.review,
+            Some(InstanceReview {
+                alive: true,
+                admin_reachable: true,
+                config: ServingConfig::Candidate,
+            })
+        );
+        assert_eq!(runner.reloads().len(), 1);
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(CHANGED_TEXT)),
+            Applied::Applied
+        );
+        assert_eq!(coordinator.last_apply(), Some(report));
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn consecutive_applies_in_one_session_each_prepare_their_own_copy() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        let second = "example.com {\n\trespond \"second\"\n}\n";
+
+        let first = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("first");
+        let next =
+            apply_with(&coordinator, &scratch, &session, &runner, &flag, second).expect("second");
+
+        assert_eq!(first.outcome, ApplyOutcome::Succeeded);
+        assert_eq!(next.outcome, ApplyOutcome::Succeeded);
+        assert_eq!(runner.reloads().len(), 2);
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(second)),
+            Applied::Applied
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn a_reload_whose_review_fails_is_never_reported_as_success() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        flag.store(false, Ordering::SeqCst);
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("report");
+
+        assert_eq!(report.outcome, ApplyOutcome::Failed);
+        assert_eq!(report.failure, Some(ApplyFailure::ReviewFailed));
+        assert_eq!(
+            report.review,
+            Some(InstanceReview {
+                alive: true,
+                admin_reachable: false,
+                config: ServingConfig::Unknown,
+            })
+        );
+        assert_eq!(runner.reloads().len(), 1);
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(CHANGED_TEXT)),
+            Applied::Pending
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn a_failed_reload_keeps_the_previous_config_and_says_so() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(failed_output("Error: loading new config")));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("report");
+
+        assert_eq!(report.outcome, ApplyOutcome::Failed);
+        assert_eq!(report.failure, Some(ApplyFailure::CommandFailed));
+        assert_eq!(
+            report.review,
+            Some(InstanceReview {
+                alive: true,
+                admin_reachable: true,
+                config: ServingConfig::Previous,
+            })
+        );
+        assert!(!report.diagnostics.is_empty());
+        assert!(report.message.contains("旧配置"));
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(CHANGED_TEXT)),
+            Applied::Pending
+        );
+        assert_eq!(coordinator.last_apply(), Some(report));
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn a_reload_timeout_is_reported_as_a_timeout_with_the_instance_review() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Err(RunFailure::Timeout));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("report");
+
+        assert_eq!(report.failure, Some(ApplyFailure::Timeout));
+        assert_eq!(
+            report.review.map(|review| review.config),
+            Some(ServingConfig::Previous)
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn an_instance_that_stops_answering_after_a_failed_reload_is_unknown() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(failed_output("Error: admin unreachable")));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        flag.store(false, Ordering::SeqCst);
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("report");
+
+        assert_eq!(
+            report.review,
+            Some(InstanceReview {
+                alive: true,
+                admin_reachable: false,
+                config: ServingConfig::Unknown,
+            })
+        );
+        assert!(report.message.contains("状态未知"));
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn a_changed_config_that_fails_validation_is_never_reloaded() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        runner.reject.set(true);
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("report");
+
+        assert_eq!(report.outcome, ApplyOutcome::Failed);
+        assert_eq!(report.failure, Some(ApplyFailure::ValidationFailed));
+        assert_eq!(report.review, None);
+        assert!(runner.reloads().is_empty());
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(CHANGED_TEXT)),
+            Applied::Pending
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn an_external_reference_in_the_changed_config_blocks_the_reload() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            "example.com {\n\timport shared\n}\n",
+        )
+        .expect("report");
+
+        assert_eq!(report.failure, Some(ApplyFailure::ValidationFailed));
+        assert!(runner.reloads().is_empty());
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn apply_is_refused_without_a_serving_session() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+
+        let error = apply_with(&coordinator, &scratch, "any", &runner, &flag, CHANGED_TEXT)
+            .expect_err("refused");
+
+        assert_eq!(error.code(), AppErrorCode::Conflict);
+        assert_eq!(runner.count(), 0);
+    }
+
+    #[test]
+    fn apply_is_refused_when_nothing_is_pending() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+
+        let error = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            STARTED_TEXT,
+        )
+        .expect_err("refused");
+
+        assert_eq!(error.code(), AppErrorCode::Conflict);
+        assert!(runner.reloads().is_empty());
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn apply_refuses_a_session_or_source_that_is_not_the_serving_one() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        let checks = scratch.checks();
+        let environment = ApplyEnvironment {
+            checks_root: &checks,
+            runner: &runner,
+            probe: &Gate(Arc::clone(&flag)),
+        };
+
+        let other_session = coordinator
+            .apply(
+                "other-session",
+                ConfigSource::Raw,
+                CHANGED_TEXT,
+                &environment,
+            )
+            .expect_err("other session");
+        let other_source = coordinator
+            .apply(&session, ConfigSource::Rules, CHANGED_TEXT, &environment)
+            .expect_err("other source");
+
+        assert_eq!(other_session.code(), AppErrorCode::Conflict);
+        assert_eq!(other_source.code(), AppErrorCode::Conflict);
+        assert!(runner.reloads().is_empty());
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn apply_is_refused_once_the_process_has_stopped_serving() {
+        let scratch = Scratch::new();
+        let executable = scratch.fixture("sleep 0.3");
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let started = start_with(
+            &coordinator,
+            &scratch,
+            &executable,
+            &runner,
+            &Gate(Arc::clone(&flag)),
+        )
+        .expect("status");
+        let session = started.session_id.expect("session");
+        wait_for(&coordinator, RunState::Failed);
+
+        let error = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect_err("refused");
+
+        assert_eq!(error.code(), AppErrorCode::Conflict);
+        assert!(runner.reloads().is_empty());
+    }
+
+    #[test]
+    fn the_reload_targets_only_the_serving_socket_and_never_stops_or_uses_the_default_admin() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        let socket = coordinator
+            .serving_run()
+            .expect("serving")
+            .directory
+            .socket
+            .clone();
+
+        let report = apply_with(
+            &coordinator,
+            &scratch,
+            &session,
+            &runner,
+            &flag,
+            CHANGED_TEXT,
+        )
+        .expect("report");
+
+        assert_eq!(report.outcome, ApplyOutcome::Succeeded);
+        assert!(
+            runner
+                .calls()
+                .iter()
+                .all(|spec| !spec.arguments.iter().any(|arg| arg == "stop"))
+        );
+        assert!(runner.calls().iter().all(|spec| {
+            !spec
+                .arguments
+                .iter()
+                .any(|arg| arg.to_string_lossy().contains("2019"))
+        }));
+        let reloads = runner.reloads();
+        assert_eq!(reloads.len(), 1);
+        let arguments = &reloads[0].arguments;
+        assert_eq!(arguments[0], std::ffi::OsString::from("reload"));
+        let address = arguments
+            .iter()
+            .position(|arg| arg == "--address")
+            .expect("address flag");
+        assert_eq!(
+            arguments[address + 1],
+            std::ffi::OsString::from(format!("unix/{}", socket.display()))
         );
         coordinator.stop().expect("stop");
     }

@@ -3,6 +3,7 @@ pub mod conflict;
 pub mod detect;
 pub mod diff;
 pub mod generate;
+pub mod reload;
 pub mod session;
 pub mod store;
 pub mod validate;
