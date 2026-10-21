@@ -142,7 +142,7 @@
       "additionalProperties": false,
       "required": [
         "id", "valueType", "allowedValues", "description", "singleInvocation",
-        "excludes", "requires", "coverage", "source"
+        "excludes", "requires", "risks", "coverage", "source"
       ],
       "properties": {
         "id": { "$ref": "#/$defs/identifier" },
@@ -152,6 +152,7 @@
         "singleInvocation": { "type": "boolean" },
         "excludes": { "$ref": "#/$defs/stringList" },
         "requires": { "$ref": "#/$defs/stringList" },
+        "risks": { "type": "array", "items": { "$ref": "#/$defs/riskFlag" } },
         "coverage": { "$ref": "#/$defs/coverageStatus" },
         "versions": { "$ref": "#/$defs/nullableVersions" },
         "source": { "$ref": "#/$defs/source" }
@@ -162,7 +163,7 @@
       "additionalProperties": false,
       "required": [
         "name", "valueType", "allowedValues", "description", "secret",
-        "excludes", "requires", "coverage", "source"
+        "excludes", "requires", "risks", "coverage", "source"
       ],
       "properties": {
         "name": { "$ref": "#/$defs/envName" },
@@ -175,6 +176,7 @@
         },
         "excludes": { "$ref": "#/$defs/stringList" },
         "requires": { "$ref": "#/$defs/stringList" },
+        "risks": { "type": "array", "items": { "$ref": "#/$defs/riskFlag" } },
         "coverage": { "$ref": "#/$defs/coverageStatus" },
         "versions": { "$ref": "#/$defs/nullableVersions" },
         "source": { "$ref": "#/$defs/source" }

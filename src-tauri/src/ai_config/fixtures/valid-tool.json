@@ -55,6 +55,7 @@
           "singleInvocation": true,
           "excludes": ["--json"],
           "requires": [],
+          "risks": [],
           "coverage": "displayOnly",
           "versions": null,
           "source": {
@@ -71,6 +72,7 @@
           "singleInvocation": true,
           "excludes": ["--print"],
           "requires": [],
+          "risks": [],
           "coverage": "displayOnly",
           "versions": null,
           "source": {
@@ -90,6 +92,7 @@
           "configAlternative": null,
           "excludes": [],
           "requires": [],
+          "risks": [],
           "coverage": "notApplicable",
           "versions": null,
           "source": {
