@@ -742,3 +742,215 @@ export function confirmClaudeEdit(input: {
     { input: { operationId: input.operationId, grantId: input.grantId } },
   );
 }
+
+// Claude Code flags and environment command builder. Mirrors ai_config/command.rs:
+// the request carries item ids and typed values only, and the response is text to
+// copy. Nothing is executed and no secret value is ever sent or returned.
+
+export const CLAUDE_OPTION_KINDS = ["flag", "env"] as const;
+export type ClaudeOptionKind = (typeof CLAUDE_OPTION_KINDS)[number];
+
+export const CLAUDE_OPTION_VALUE_TYPES = [
+  "string",
+  "boolean",
+  "number",
+  "stringArray",
+  "object",
+  "enum",
+  "unknown",
+] as const;
+export type ClaudeOptionValueType = (typeof CLAUDE_OPTION_VALUE_TYPES)[number];
+
+export const CLAUDE_OPTION_RISKS = [
+  "executesCommand",
+  "relaxesPermissions",
+  "externalServer",
+] as const;
+export type ClaudeOptionRisk = (typeof CLAUDE_OPTION_RISKS)[number];
+
+export const CLAUDE_VERSION_STATUSES = [
+  "compatible",
+  "unconfirmed",
+  "incompatible",
+  "notStated",
+] as const;
+export type ClaudeVersionStatus = (typeof CLAUDE_VERSION_STATUSES)[number];
+
+export interface ClaudeVersionRange {
+  readonly min: string;
+  readonly max: string;
+}
+
+export interface ClaudeOptionItem {
+  readonly id: string;
+  readonly kind: ClaudeOptionKind;
+  readonly valueType: ClaudeOptionValueType;
+  readonly allowedValues: readonly string[];
+  readonly description: string;
+  readonly generatable: boolean;
+  readonly secret: boolean;
+  readonly singleInvocation: boolean | null;
+  readonly excludes: readonly string[];
+  readonly requires: readonly string[];
+  readonly risks: readonly ClaudeOptionRisk[];
+  readonly versions: ClaudeVersionRange | null;
+  readonly configAlternative: string | null;
+}
+
+export interface ClaudeOptionSummary {
+  readonly items: readonly ClaudeOptionItem[];
+  readonly coverageNote: string;
+}
+
+export interface ClaudeCommandItemChoice {
+  readonly id: string;
+  readonly value: string | null;
+}
+
+export interface ClaudeCommandRequest {
+  readonly flags: readonly ClaudeCommandItemChoice[];
+  readonly env: readonly ClaudeCommandItemChoice[];
+  readonly acknowledgedRisks: readonly string[];
+  readonly detectedVersion: string | null;
+}
+
+export interface ClaudeCommandNotice {
+  readonly id: string;
+  readonly status: ClaudeVersionStatus;
+  readonly message: string;
+}
+
+export interface ClaudeBuiltCommand {
+  readonly text: string;
+  readonly notices: readonly ClaudeCommandNotice[];
+  readonly placeholders: readonly string[];
+}
+
+const CLAUDE_OPTION_ITEM_KEYS = [
+  "id",
+  "kind",
+  "valueType",
+  "allowedValues",
+  "description",
+  "generatable",
+  "secret",
+  "singleInvocation",
+  "excludes",
+  "requires",
+  "risks",
+  "versions",
+  "configAlternative",
+] as const;
+const CLAUDE_OPTION_SUMMARY_KEYS = ["items", "coverageNote"] as const;
+const CLAUDE_VERSION_RANGE_KEYS = ["min", "max"] as const;
+const CLAUDE_COMMAND_NOTICE_KEYS = ["id", "status", "message"] as const;
+const CLAUDE_BUILT_COMMAND_KEYS = ["text", "notices", "placeholders"] as const;
+const MAX_CLAUDE_OPTION_ITEMS = 500;
+const MAX_CLAUDE_ITEM_LIST = 64;
+const MAX_CLAUDE_ITEM_ID_LENGTH = 128;
+const MAX_CLAUDE_COMMAND_TEXT_LENGTH = 16_384;
+
+function requireStringList(value: unknown, maxItems: number, maxLength: number): string[] {
+  if (!Array.isArray(value) || value.length > maxItems) throw decodeFailure();
+  return value.map((item) => requireText(item, maxLength));
+}
+
+function decodeRisks(value: unknown): ClaudeOptionRisk[] {
+  if (!Array.isArray(value) || value.length > CLAUDE_OPTION_RISKS.length) {
+    throw decodeFailure();
+  }
+  return value.map((risk) => requireOneOf(CLAUDE_OPTION_RISKS, risk));
+}
+
+function decodeVersionRange(value: unknown): ClaudeVersionRange | null {
+  if (value === null) return null;
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_VERSION_RANGE_KEYS);
+  return {
+    min: requireText(record.min, MAX_CLAUDE_ITEM_ID_LENGTH),
+    max: requireText(record.max, MAX_CLAUDE_ITEM_ID_LENGTH),
+  };
+}
+
+function decodeOptionItem(value: unknown): ClaudeOptionItem {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_OPTION_ITEM_KEYS);
+  const kind = requireOneOf(CLAUDE_OPTION_KINDS, record.kind);
+  const valueType = requireOneOf(CLAUDE_OPTION_VALUE_TYPES, record.valueType);
+  const generatable = requireBoolean(record.generatable);
+  const secret = requireBoolean(record.secret);
+  if (generatable !== (valueType !== "unknown")) throw decodeFailure();
+  if (secret && kind !== "env") throw decodeFailure();
+  const allowedValues = requireStringList(
+    record.allowedValues,
+    MAX_CLAUDE_ITEM_LIST,
+    MAX_CLAUDE_ITEM_ID_LENGTH,
+  );
+  if ((valueType === "enum") !== (allowedValues.length > 0)) throw decodeFailure();
+  let singleInvocation: boolean | null = null;
+  if (kind === "flag") {
+    singleInvocation = requireBoolean(record.singleInvocation);
+  } else if (record.singleInvocation !== null) {
+    throw decodeFailure();
+  }
+  return {
+    id: requireText(record.id, MAX_CLAUDE_ITEM_ID_LENGTH),
+    kind,
+    valueType,
+    allowedValues,
+    description: requireText(record.description, MAX_CLAUDE_TEXT_LENGTH),
+    generatable,
+    secret,
+    singleInvocation,
+    excludes: requireStringList(record.excludes, MAX_CLAUDE_ITEM_LIST, MAX_CLAUDE_ITEM_ID_LENGTH),
+    requires: requireStringList(record.requires, MAX_CLAUDE_ITEM_LIST, MAX_CLAUDE_ITEM_ID_LENGTH),
+    risks: decodeRisks(record.risks),
+    versions: decodeVersionRange(record.versions),
+    configAlternative: nullableText(record.configAlternative, MAX_CLAUDE_TEXT_LENGTH),
+  };
+}
+
+export function decodeClaudeOptionSummary(value: unknown): ClaudeOptionSummary {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_OPTION_SUMMARY_KEYS);
+  if (!Array.isArray(record.items) || record.items.length > MAX_CLAUDE_OPTION_ITEMS) {
+    throw decodeFailure();
+  }
+  return {
+    items: record.items.map(decodeOptionItem),
+    coverageNote: requireText(record.coverageNote, MAX_CLAUDE_TEXT_LENGTH),
+  };
+}
+
+function decodeCommandNotice(value: unknown): ClaudeCommandNotice {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_COMMAND_NOTICE_KEYS);
+  return {
+    id: requireText(record.id, MAX_CLAUDE_ITEM_ID_LENGTH),
+    status: requireOneOf(CLAUDE_VERSION_STATUSES, record.status),
+    message: requireText(record.message, MAX_CLAUDE_TEXT_LENGTH),
+  };
+}
+
+export function decodeClaudeBuiltCommand(value: unknown): ClaudeBuiltCommand {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_BUILT_COMMAND_KEYS);
+  if (!Array.isArray(record.notices) || record.notices.length > MAX_CLAUDE_ITEM_LIST * 2) {
+    throw decodeFailure();
+  }
+  return {
+    text: requireText(record.text, MAX_CLAUDE_COMMAND_TEXT_LENGTH),
+    notices: record.notices.map(decodeCommandNotice),
+    placeholders: requireStringList(record.placeholders, MAX_CLAUDE_ITEM_LIST, MAX_CLAUDE_ITEM_ID_LENGTH),
+  };
+}
+
+export function getClaudeOptions(): Promise<ClaudeOptionSummary> {
+  return invokeCommand("ai_config_claude_flags", decodeClaudeOptionSummary);
+}
+
+export function buildClaudeCommand(request: ClaudeCommandRequest): Promise<ClaudeBuiltCommand> {
+  return invokeCommand("ai_config_claude_build_command", decodeClaudeBuiltCommand, {
+    request,
+  });
+}

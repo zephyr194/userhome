@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { detectAiConfig } from "../../ipc/aiConfig";
 import { decodeAppError } from "../../ipc/core";
 import { AiConfigView } from "./AiConfigView";
+import { CommandBuilder } from "./CommandBuilder";
 import { ToolSettings } from "./ToolSettings";
 import type { AiConfigState } from "./aiConfigModel";
 
@@ -41,6 +42,7 @@ export function AiConfigPage() {
     <div className="grid min-w-0 gap-ui-xl">
       <AiConfigView state={state} onRetry={retry} />
       <ToolSettings />
+      <CommandBuilder />
     </div>
   );
 }
