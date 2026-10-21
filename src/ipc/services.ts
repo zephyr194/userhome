@@ -7,8 +7,10 @@ import {
 import {
   decodeResourceWriteExecution,
   decodeResourceWritePreview,
+  decodeWriteOutcome,
   type ResourceWriteExecution,
   type ResourceWritePreview,
+  type WriteOutcome,
 } from "./resources";
 import {
   decodeOperationDetails,
@@ -1369,4 +1371,321 @@ export function executeLaunchdAction(
     },
     { operationId },
   );
+}
+
+export const LOG_STREAMS = ["STDOUT", "STDERR"] as const;
+export type LogStream = (typeof LOG_STREAMS)[number];
+
+export const LOG_STATES = ["CONTENT", "MISSING"] as const;
+export type LogState = (typeof LOG_STATES)[number];
+
+export const LOG_RESETS = ["REPLACED", "TRUNCATED"] as const;
+export type LogReset = (typeof LOG_RESETS)[number];
+
+/** One tail read is at most 1 MiB; replacement characters can enlarge it. */
+const MAX_LOG_TEXT_BYTES = 4 * 1024 * 1024;
+const MAX_LOG_GRANT_ID_LENGTH = 64;
+const MAX_LOG_REQUEST_BYTES = 1024 * 1024;
+
+export interface LogTarget {
+  domain: LaunchdDomain;
+  label: string;
+  stream: LogStream;
+}
+
+export interface LogIdentity {
+  device: number;
+  inode: number;
+}
+
+/** Where the next incremental read continues; the backend checks the identity. */
+export interface LogCursor extends LogIdentity {
+  offset: number;
+}
+
+/** What may be shown about an authorization: an id and the `~` display path. */
+export interface LogGrantSummary {
+  grantId: string;
+  displayPath: string;
+}
+
+export interface LogSnapshot {
+  state: LogState;
+  text: string;
+  skippedBytes: number;
+  headTrimmed: boolean;
+  lossy: boolean;
+  reset: LogReset | null;
+  nextOffset: number;
+  fileSize: number;
+  identity: LogIdentity | null;
+}
+
+export interface LogExportPreview {
+  operationId: string;
+  expiresAt: string;
+  replaces: boolean;
+  save: LogGrantSummary;
+}
+
+function invalidLogRequest(): AppError {
+  return {
+    code: "INVALID_INPUT",
+    message: "The log request is not valid.",
+    retryable: false,
+  };
+}
+
+function decodeLogGrantId(value: unknown): string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > MAX_LOG_GRANT_ID_LENGTH
+  ) {
+    throw invalidLogRequest();
+  }
+  return value;
+}
+
+function decodeSafeCount(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw createInternalError();
+  }
+  return value;
+}
+
+function decodeLogIdentity(value: unknown): LogIdentity {
+  if (!isRecord(value)) throw createInternalError();
+  return {
+    device: decodeSafeCount(value.device),
+    inode: decodeSafeCount(value.inode),
+  };
+}
+
+/** Exactly the fields the backend expects; a path, if a caller adds one, is dropped. */
+function logTargetPayload(target: LogTarget): LogTarget {
+  if (
+    !isRecord(target) ||
+    (target.domain !== "GUI" && target.domain !== "SYSTEM") ||
+    !isValidLaunchdLabel(target.label) ||
+    !(LOG_STREAMS as readonly unknown[]).includes(target.stream)
+  ) {
+    throw invalidLogRequest();
+  }
+  return {
+    domain: target.domain,
+    label: target.label,
+    stream: target.stream,
+  };
+}
+
+function rejectLog<T>(error: unknown): Promise<T> {
+  return Promise.reject(error);
+}
+
+export function decodeLogGrantSummary(value: unknown): LogGrantSummary {
+  if (!isRecord(value)) throw createInternalError();
+  return {
+    grantId: decodeLogGrantId(value.grantId),
+    displayPath: decodeLaunchdNonEmptyText(value.displayPath),
+  };
+}
+
+/**
+ * A snapshot is trusted only when its parts agree: a file that exists carries
+ * an identity, a missing one carries none and no text.
+ */
+export function decodeLogSnapshot(value: unknown): LogSnapshot {
+  if (!isRecord(value)) throw createInternalError();
+  const state = oneOf(value.state, LOG_STATES);
+  if (
+    typeof value.text !== "string" ||
+    new TextEncoder().encode(value.text).length > MAX_LOG_TEXT_BYTES ||
+    typeof value.headTrimmed !== "boolean" ||
+    typeof value.lossy !== "boolean"
+  ) {
+    throw createInternalError();
+  }
+  const reset =
+    value.reset === undefined || value.reset === null
+      ? null
+      : oneOf(value.reset, LOG_RESETS);
+  const identity =
+    value.identity === undefined || value.identity === null
+      ? null
+      : decodeLogIdentity(value.identity);
+  if (state === "MISSING") {
+    if (value.text !== "" || identity !== null || reset !== null) {
+      throw createInternalError();
+    }
+  } else if (identity === null) {
+    throw createInternalError();
+  }
+  return {
+    state,
+    text: value.text,
+    skippedBytes: decodeSafeCount(value.skippedBytes),
+    headTrimmed: value.headTrimmed,
+    lossy: value.lossy,
+    reset,
+    nextOffset: decodeSafeCount(value.nextOffset),
+    fileSize: decodeSafeCount(value.fileSize),
+    identity,
+  };
+}
+
+export function decodeLogExportPreview(value: unknown): LogExportPreview {
+  if (!isRecord(value) || typeof value.replaces !== "boolean") {
+    throw createInternalError();
+  }
+  return {
+    operationId: decodeLaunchdNonEmptyText(value.operationId),
+    expiresAt: decodeLaunchdNonEmptyText(value.expiresAt),
+    replaces: value.replaces,
+    save: decodeLogGrantSummary(value.save),
+  };
+}
+
+/** Asks for the file the plist declares; `null` means the picker was cancelled. */
+export function authorizeLaunchdLog(
+  target: LogTarget,
+): Promise<LogGrantSummary | null> {
+  let input: LogTarget;
+  try {
+    input = logTargetPayload(target);
+  } catch (error) {
+    return rejectLog(error);
+  }
+  return invokeCommand(
+    "authorize_launchd_log",
+    (value) => (value === null ? null : decodeLogGrantSummary(value)),
+    { target: input },
+  );
+}
+
+export function revokeLaunchdLog(grantId: string): Promise<void> {
+  let id: string;
+  try {
+    id = decodeLogGrantId(grantId);
+  } catch (error) {
+    return rejectLog(error);
+  }
+  return invokeCommand("revoke_launchd_log", () => undefined, {
+    input: { grantId: id },
+  });
+}
+
+export function readLaunchdLogTail(
+  target: LogTarget,
+  grantId: string,
+  maxBytes?: number,
+): Promise<LogSnapshot> {
+  let input: { target: LogTarget; grantId: string; maxBytes?: number };
+  try {
+    if (
+      maxBytes !== undefined &&
+      (!Number.isSafeInteger(maxBytes) ||
+        maxBytes < 1 ||
+        maxBytes > MAX_LOG_REQUEST_BYTES)
+    ) {
+      throw invalidLogRequest();
+    }
+    input = {
+      target: logTargetPayload(target),
+      grantId: decodeLogGrantId(grantId),
+      ...(maxBytes === undefined ? {} : { maxBytes }),
+    };
+  } catch (error) {
+    return rejectLog(error);
+  }
+  return invokeCommand("read_launchd_log_tail", decodeLogSnapshot, {
+    input,
+  });
+}
+
+export function readLaunchdLogSince(
+  target: LogTarget,
+  grantId: string,
+  cursor: LogCursor,
+): Promise<LogSnapshot> {
+  let input: LogSinceInput;
+  try {
+    input = {
+      target: logTargetPayload(target),
+      grantId: decodeLogGrantId(grantId),
+      offset: decodeSafeCount(cursor.offset),
+      device: decodeSafeCount(cursor.device),
+      inode: decodeSafeCount(cursor.inode),
+    };
+  } catch (error) {
+    return rejectLog(error);
+  }
+  return invokeCommand("read_launchd_log_since", decodeLogSnapshot, {
+    input,
+  });
+}
+
+interface LogSinceInput {
+  target: LogTarget;
+  grantId: string;
+  offset: number;
+  device: number;
+  inode: number;
+}
+
+export function prepareLaunchdLogExport(
+  target: LogTarget,
+  grantId: string,
+): Promise<LogExportPreview | null> {
+  let input: { target: LogTarget; grantId: string };
+  try {
+    input = {
+      target: logTargetPayload(target),
+      grantId: decodeLogGrantId(grantId),
+    };
+  } catch (error) {
+    return rejectLog(error);
+  }
+  return invokeCommand(
+    "prepare_launchd_log_export",
+    (value) => (value === null ? null : decodeLogExportPreview(value)),
+    { input },
+  );
+}
+
+/** Confirms a previewed export; the outcome says whether the file was written. */
+export function confirmLaunchdLogExport(
+  operationId: string,
+  grantId: string,
+): Promise<WriteOutcome> {
+  let input: { operationId: string; grantId: string };
+  try {
+    input = {
+      operationId: decodeLaunchdNonEmptyText(operationId),
+      grantId: decodeLogGrantId(grantId),
+    };
+  } catch (error) {
+    return rejectLog(error);
+  }
+  return invokeCommand("confirm_launchd_log_export", decodeWriteOutcome, {
+    input,
+  });
+}
+
+export function discardLaunchdLogExport(
+  operationId: string,
+  grantId: string,
+): Promise<void> {
+  let input: { operationId: string; grantId: string };
+  try {
+    input = {
+      operationId: decodeLaunchdNonEmptyText(operationId),
+      grantId: decodeLogGrantId(grantId),
+    };
+  } catch (error) {
+    return rejectLog(error);
+  }
+  return invokeCommand("discard_launchd_log_export", () => undefined, {
+    input,
+  });
 }

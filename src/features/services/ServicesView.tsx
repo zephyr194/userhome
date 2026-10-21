@@ -2,6 +2,7 @@ import { useRef, type KeyboardEvent, type ReactNode } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
+  Panel,
   SelectField,
   StatusBadge,
   TextField,
@@ -51,6 +52,8 @@ export interface ServicesViewProps {
   headerActions?: ReactNode;
   /** Called after an action on a modifiable job, so the list is read again. */
   onActionSettled?: () => void;
+  /** Read-only block for the selected job, supplied by the page; absent here means none is shown. */
+  renderLogs?: (service: LaunchdService) => ReactNode;
 }
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
@@ -431,6 +434,7 @@ function DetailsPane({
   evidence,
   filter,
   onActionSettled,
+  renderLogs,
   selectedId,
   state,
   visible,
@@ -477,6 +481,18 @@ function DetailsPane({
         service={resolved.service}
         sources={state.discovery.sources}
       />
+      {renderLogs ? (
+        <Panel aria-labelledby="service-logs-heading" className="min-w-0">
+          <header className="border-b border-border px-ui-3xl py-ui-xl">
+            <h3 className="text-sm font-semibold" id="service-logs-heading">
+              任务日志
+            </h3>
+          </header>
+          <div className="px-ui-3xl py-ui-xl">
+            {renderLogs(resolved.service)}
+          </div>
+        </Panel>
+      ) : null}
     </div>
   );
 }

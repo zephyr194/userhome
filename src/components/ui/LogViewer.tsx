@@ -38,6 +38,10 @@ export interface LogViewerProps {
   lines: readonly string[];
   /** 展示行数上限，超出时丢弃最旧行并显示截断提示。 */
   maxLines?: number;
+  /** 由调用方持有暂停状态；未提供时视图自行暂停。 */
+  paused?: boolean;
+  /** 用户点击暂停或继续时通知调用方。 */
+  onPauseChange?: (paused: boolean) => void;
 }
 
 export function LogViewer({
@@ -47,6 +51,8 @@ export function LogViewer({
   label,
   lines,
   maxLines = DEFAULT_LOG_MAX_LINES,
+  paused: controlledPaused,
+  onPauseChange,
 }: LogViewerProps) {
   const limit = normalizeMaxLines(maxLines);
   const live = useMemo(
@@ -57,21 +63,23 @@ export function LogViewer({
   const [copyFeedback, setCopyFeedback] = useState<CopyFeedback>("idle");
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const stickToBottomRef = useRef(true);
+  const controlled = controlledPaused !== undefined;
+  const isPaused = controlled ? controlledPaused : state.paused;
 
-  const view = currentLogView(state, live);
+  const view = currentLogView({ ...state, paused: isPaused }, live);
   const visibleLines = useMemo(
     () => filterLogLines(view.lines, state.query),
     [view.lines, state.query],
   );
-  const pending = pendingLineCount(state, live);
+  const pending = pendingLineCount({ ...state, paused: isPaused }, live);
   const filtering = state.query !== "";
 
   useEffect(() => {
     const scroller = scrollerRef.current;
-    if (scroller && !state.paused && stickToBottomRef.current) {
+    if (scroller && !isPaused && stickToBottomRef.current) {
       scroller.scrollTop = scroller.scrollHeight;
     }
-  }, [visibleLines, state.paused]);
+  }, [visibleLines, isPaused]);
 
   const handleScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
     const { clientHeight, scrollHeight, scrollTop } = event.currentTarget;
@@ -84,9 +92,11 @@ export function LogViewer({
 
   const togglePause = () => {
     setCopyFeedback("idle");
+    const next = !isPaused;
     setState((previous) =>
-      previous.paused ? resumeLogView(previous) : pauseLogView(previous, live),
+      next ? pauseLogView(previous, live) : resumeLogView(previous),
     );
+    onPauseChange?.(next);
   };
 
   const copyVisible = async () => {
@@ -117,7 +127,7 @@ export function LogViewer({
             setState((previous) => setLogQuery(previous, query));
           }}
         />
-        <Button onClick={togglePause}>{state.paused ? "继续" : "暂停"}</Button>
+        <Button onClick={togglePause}>{isPaused ? "继续" : "暂停"}</Button>
         <Button disabled={visibleLines.length === 0} onClick={copyVisible}>
           复制当前显示
         </Button>
@@ -143,7 +153,7 @@ export function LogViewer({
             ? `匹配 ${visibleLines.length} / ${view.lines.length} 行`
             : `${view.lines.length} 行`}
         </span>
-        {state.paused ? (
+        {isPaused ? (
           <span>
             已暂停，视图不再更新
             {pending > 0 ? `；另有 ${pending} 行新日志，继续后显示` : ""}
