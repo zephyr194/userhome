@@ -2,6 +2,7 @@ import { useState, type ComponentType } from "react";
 import { Button } from "../../components/ui";
 import { CodecTool } from "./CodecTool";
 import { JsonTool } from "./JsonTool";
+import { QrTool } from "./QrTool";
 import { XmlTool } from "./XmlTool";
 
 /**
@@ -24,6 +25,11 @@ const TOOL_ENTRIES = [
     label: "编解码",
     summary: "Base64、URL、HTML 实体、Unicode 转义与 UTF-8 Hex 的单次双向转换。",
   },
+  {
+    id: "qr",
+    label: "二维码",
+    summary: "生成黑白二维码并导出 PNG；文本不访问链接，输入不保存。",
+  },
 ] as const;
 
 type ToolId = (typeof TOOL_ENTRIES)[number]["id"];
@@ -32,6 +38,7 @@ const TOOL_PANELS: Record<ToolId, ComponentType> = {
   json: JsonTool,
   xml: XmlTool,
   codec: CodecTool,
+  qr: QrTool,
 };
 
 export function ToolsPage() {
