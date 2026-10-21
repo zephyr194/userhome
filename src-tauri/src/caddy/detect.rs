@@ -238,7 +238,7 @@ pub fn detect(
     }
 }
 
-fn inspect(candidate: &Candidate) -> (CandidateOutcome, Option<PathBuf>) {
+pub fn inspect(candidate: &Candidate) -> (CandidateOutcome, Option<PathBuf>) {
     let resolved = match fs::canonicalize(&candidate.path) {
         Ok(path) => path,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
