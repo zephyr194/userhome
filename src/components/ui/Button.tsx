@@ -17,8 +17,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "min-h-control-sm px-ui-lg py-ui-sm text-aux",
-  md: "min-h-control-md px-ui-2xl py-ui-md text-body",
+  sm: "min-h-control-sm px-ui-lg text-aux",
+  md: "min-h-control-md px-ui-2xl text-body",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
