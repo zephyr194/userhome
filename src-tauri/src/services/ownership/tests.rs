@@ -1192,3 +1192,9 @@ fn the_homebrew_exception_cannot_be_used_for_any_other_job() {
         );
     }
 }
+
+#[test]
+fn the_launchd_list_command_takes_no_argument_and_returns_the_judged_result() {
+    let commands = include_str!("../../commands/services.rs");
+    assert!(commands.contains("pub async fn list_launchd_services() -> Result<OwnedDiscovery"));
+}
