@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "tools": [
+    {
+      "id": "fixture-tool",
+      "displayName": "Fixture Tool",
+      "executableNames": ["fixture-tool"],
+      "source": {
+        "url": "https://example.test/fixture-tool/settings",
+        "retrievedOn": "2026-10-21",
+        "documentedVersion": "1.2.3"
+      },
+      "resources": [
+        {
+          "id": "user-settings",
+          "layer": "userLevel",
+          "format": "json",
+          "location": "{home}/.fixture-tool/settings.json",
+          "description": "用户级设置文件",
+          "coverage": "editable",
+          "versions": { "min": "1.0.0", "max": "1.2.3" },
+          "source": {
+            "url": "https://example.test/fixture-tool/settings",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "1.2.3"
+          }
+        }
+      ],
+      "settings": [
+        {
+          "id": "model",
+          "keyPath": "model",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "默认模型名称",
+          "defaultNote": "未设置时由 CLI 决定",
+          "mergeRule": "项目值覆盖用户值",
+          "risks": [],
+          "secret": false,
+          "coverage": "editable",
+          "versions": { "min": "1.0.0", "max": "1.2.3" },
+          "source": {
+            "url": "https://example.test/fixture-tool/settings",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "1.2.3"
+          }
+        }
+      ],
+      "flags": [
+        {
+          "id": "--print",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "非交互输出",
+          "singleInvocation": true,
+          "excludes": ["--json"],
+          "requires": [],
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://example.test/fixture-tool/flags",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "--json",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "JSON 输出",
+          "singleInvocation": true,
+          "excludes": ["--print"],
+          "requires": [],
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://example.test/fixture-tool/flags",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        }
+      ],
+      "env": [
+        {
+          "name": "FIXTURE_TOOL_TOKEN",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "访问令牌",
+          "secret": true,
+          "configAlternative": null,
+          "excludes": [],
+          "requires": [],
+          "coverage": "notApplicable",
+          "versions": null,
+          "source": {
+            "url": "https://example.test/fixture-tool/env",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "1.2.3"
+          }
+        }
+      ]
+    }
+  ]
+}
