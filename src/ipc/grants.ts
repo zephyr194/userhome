@@ -10,7 +10,8 @@ export type GrantPurpose =
   | "CONFIG_FILE"
   | "EXECUTABLE"
   | "SHELL_STARTUP_FILE"
-  | "LAUNCH_AGENT_FILE";
+  | "LAUNCH_AGENT_FILE"
+  | "TLS_MATERIAL_FILE";
 export type GrantKind = "DIRECTORY" | "FILE";
 
 export interface GrantSummary {
@@ -27,6 +28,7 @@ const GRANT_PURPOSES: readonly string[] = [
   "EXECUTABLE",
   "SHELL_STARTUP_FILE",
   "LAUNCH_AGENT_FILE",
+  "TLS_MATERIAL_FILE",
 ];
 const GRANT_KINDS: readonly string[] = ["DIRECTORY", "FILE"];
 const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
@@ -35,6 +37,7 @@ const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
   EXECUTABLE: "可执行文件",
   SHELL_STARTUP_FILE: "shell 启动文件",
   LAUNCH_AGENT_FILE: "launchd 自建任务配置",
+  TLS_MATERIAL_FILE: "TLS 证书或私钥文件",
 };
 const GRANT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -116,7 +119,7 @@ export function revokeGrant(grantId: string): Promise<void> {
  */
 export type FileGrantPurpose = Exclude<
   GrantPurpose,
-  "CONFIG_DIRECTORY" | "SHELL_STARTUP_FILE" | "LAUNCH_AGENT_FILE"
+  "CONFIG_DIRECTORY" | "SHELL_STARTUP_FILE" | "LAUNCH_AGENT_FILE" | "TLS_MATERIAL_FILE"
 >;
 
 export type SelectGrantResult =

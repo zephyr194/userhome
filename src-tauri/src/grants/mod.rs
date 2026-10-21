@@ -51,6 +51,10 @@ pub enum GrantPurpose {
     /// create entries can use it; it is never made by a dialog and never
     /// covers an existing file.
     LaunchAgentFile,
+    /// A certificate or private key picked for the TLS option of a site. Only
+    /// the TLS resolution of the Caddy module can use it; every general resolve,
+    /// read, write and validation path refuses it (see `GrantAccess`).
+    TlsMaterialFile,
 }
 
 impl GrantPurpose {
@@ -60,7 +64,8 @@ impl GrantPurpose {
             Self::ConfigFile
             | Self::Executable
             | Self::ShellStartupFile
-            | Self::LaunchAgentFile => GrantKind::File,
+            | Self::LaunchAgentFile
+            | Self::TlsMaterialFile => GrantKind::File,
         }
     }
 
@@ -77,13 +82,15 @@ impl GrantPurpose {
 /// command that takes a grant id from the frontend) only see grants of
 /// ordinary purposes; the dedicated shell startup editor only sees
 /// `ShellStartupFile` grants; the dedicated LaunchAgent create entry only sees
-/// `LaunchAgentFile` grants. Each kind of caller sees exactly one set, and the
-/// choice is never a field the frontend can set.
+/// `LaunchAgentFile` grants; the TLS resolution only sees `TlsMaterialFile`
+/// grants. Each kind of caller sees exactly one set, and the choice is never a
+/// field the frontend can set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GrantAccess {
     General,
     ShellStartup,
     LaunchAgent,
+    TlsMaterial,
 }
 
 impl GrantAccess {
@@ -91,6 +98,7 @@ impl GrantAccess {
         let required = match purpose {
             GrantPurpose::ShellStartupFile => Self::ShellStartup,
             GrantPurpose::LaunchAgentFile => Self::LaunchAgent,
+            GrantPurpose::TlsMaterialFile => Self::TlsMaterial,
             GrantPurpose::ConfigDirectory | GrantPurpose::ConfigFile | GrantPurpose::Executable => {
                 Self::General
             }
@@ -384,6 +392,12 @@ impl GrantCoordinator {
     /// `LaunchAgentFile` grant resolves, anything else is `ReservedPurpose`.
     pub fn resolve_launch_agent(&self, id: &GrantId) -> Result<GrantRecord, GrantError> {
         self.resolve_with(id, GrantAccess::LaunchAgent)
+    }
+
+    /// The same lookup for the TLS resolution of a site: only a
+    /// `TlsMaterialFile` grant resolves, anything else is `ReservedPurpose`.
+    pub fn resolve_tls_material(&self, id: &GrantId) -> Result<GrantRecord, GrantError> {
+        self.resolve_with(id, GrantAccess::TlsMaterial)
     }
 
     fn resolve_with(&self, id: &GrantId, access: GrantAccess) -> Result<GrantRecord, GrantError> {

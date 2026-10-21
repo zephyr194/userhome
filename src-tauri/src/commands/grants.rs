@@ -292,6 +292,9 @@ fn validate_selection(mode: PickMode, purpose: GrantPurpose) -> Result<(), AppEr
         // LaunchAgent create grants are made only by the dedicated creator,
         // for a fixed file name in `~/Library/LaunchAgents`.
         _ if purpose == GrantPurpose::LaunchAgentFile => false,
+        // TLS material is picked as one existing file and used only by the TLS
+        // resolution; a save location or a directory can never be one.
+        _ if purpose == GrantPurpose::TlsMaterialFile => mode == PickMode::File,
         PickMode::Directory | PickMode::File => purpose.kind() == mode_kind(mode),
         PickMode::SaveLocation => purpose == GrantPurpose::ConfigFile,
     };

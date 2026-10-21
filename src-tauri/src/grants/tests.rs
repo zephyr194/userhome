@@ -9,8 +9,8 @@ use uuid::Uuid;
 use crate::error::{AppError, AppErrorCode};
 
 use super::{
-    GrantCoordinator, GrantError, GrantId, GrantKind, GrantPurpose, GrantRecord, GrantStore,
-    display_path,
+    GRANT_SCHEMA_VERSION, GrantCoordinator, GrantError, GrantId, GrantKind, GrantPurpose,
+    GrantRecord, GrantStore, display_path,
 };
 
 struct Fixture {
@@ -899,4 +899,79 @@ fn home_boundary_errors_map_to_distinct_messages_that_hide_paths() {
         assert!(!message.contains('/'), "{error:?} leaks a path: {message}");
         assert!(messages.insert(message), "duplicate message for {error:?}");
     }
+}
+
+#[test]
+fn tls_material_grants_are_refused_by_every_general_entry() {
+    let fixture = Fixture::new();
+    let coordinator = fixture.coordinator();
+    let cert = fixture.file("cert.pem");
+    let record = coordinator
+        .create(GrantPurpose::TlsMaterialFile, &cert)
+        .expect("tls material grant");
+
+    assert_eq!(record.kind, GrantKind::File);
+    assert_eq!(
+        coordinator.resolve(&record.id),
+        Err(GrantError::ReservedPurpose)
+    );
+    assert_eq!(
+        coordinator.resolve_shell_startup(&record.id),
+        Err(GrantError::ReservedPurpose)
+    );
+    assert_eq!(
+        coordinator.resolve_launch_agent(&record.id),
+        Err(GrantError::ReservedPurpose)
+    );
+    assert_eq!(
+        coordinator.resolve_child(&record.id, "anything"),
+        Err(GrantError::ReservedPurpose)
+    );
+    assert!(
+        coordinator
+            .read_resource_with_limit(&record.id, None, 1024)
+            .is_err()
+    );
+}
+
+#[test]
+fn tls_material_grant_resolves_only_through_the_tls_entry_and_fails_after_revoke() {
+    let fixture = Fixture::new();
+    let coordinator = fixture.coordinator();
+    let key = fixture.file("key.pem");
+    let record = coordinator
+        .create(GrantPurpose::TlsMaterialFile, &key)
+        .expect("tls material grant");
+
+    let resolved = coordinator
+        .resolve_tls_material(&record.id)
+        .expect("tls entry resolves its own purpose");
+    assert_eq!(resolved.purpose, GrantPurpose::TlsMaterialFile);
+    assert_eq!(resolved.target_path(), key);
+
+    coordinator.revoke(&record.id).expect("revoke");
+    assert_eq!(
+        coordinator.resolve_tls_material(&record.id),
+        Err(GrantError::UnknownGrant)
+    );
+}
+
+#[test]
+fn tls_material_purpose_survives_a_reload_and_an_unknown_purpose_fails_closed() {
+    let fixture = Fixture::new();
+    let coordinator = fixture.coordinator();
+    let record = coordinator
+        .create(GrantPurpose::TlsMaterialFile, &fixture.file("cert.pem"))
+        .expect("tls material grant");
+    assert_eq!(
+        fixture.coordinator().list().expect("reload"),
+        vec![record.clone()]
+    );
+
+    let future_store = format!(
+        r#"{{"schemaVersion":{GRANT_SCHEMA_VERSION},"grants":[{{"id":"{}","purpose":"FUTURE_PURPOSE","kind":"FILE","path":"/tmp/x","createdAtEpochMs":1}}]}}"#,
+        Uuid::new_v4()
+    );
+    fixture.write_store(&future_store);
+    assert_eq!(fixture.coordinator().list(), Err(GrantError::StoreCorrupt));
 }
