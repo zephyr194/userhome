@@ -42,6 +42,7 @@ use crate::{
         },
     },
     error::AppError,
+    operations::sanitize_payload,
     process_session::{
         DEFAULT_LOG_CAPACITY, EnvSpec, LaunchSpec, ProcessSession, SessionError, SessionState,
         StopOutcome,
@@ -53,6 +54,7 @@ pub const STOP_KILL_TIMEOUT: Duration = Duration::from_secs(5);
 pub const READINESS_TIMEOUT: Duration = Duration::from_secs(10);
 pub const PLAN_TTL: Duration = Duration::from_secs(5 * 60);
 pub const MAX_LOG_PAGE_BYTES: usize = 64 * 1024;
+const MAX_DIAGNOSTIC_BYTES: usize = 500;
 pub const RUN_WORKING_DIRECTORY_LABEL: &str = "<私有运行目录>";
 pub const ADMIN_ENDPOINT_LABEL: &str = "仅本次运行的私有 Unix socket（不占用默认 localhost:2019）";
 
@@ -533,7 +535,10 @@ impl Run {
     fn captured_diagnostics(&self) -> Vec<CaddyDiagnostic> {
         lock(&self.diagnostics)
             .get_or_insert_with(|| {
-                validate::diagnostics_from(self.session.stderr().bytes(), &self.directory.dir)
+                redact_diagnostics(validate::diagnostics_from(
+                    self.session.stderr().bytes(),
+                    &self.directory.dir,
+                ))
             })
             .clone()
     }
@@ -720,7 +725,7 @@ impl CaddyRunCoordinator {
             Err(_) => return self.refuse(FailureKind::InvalidSetup, Vec::new()),
         };
         if let Some(kind) = refusal_kind(&report) {
-            return self.refuse(kind, report.diagnostics);
+            return self.refuse(kind, redact_diagnostics(report.diagnostics));
         }
         let directory = match RunDirectory::create(env.runs_root) {
             Ok(directory) => directory,
@@ -884,6 +889,16 @@ impl CaddyRunCoordinator {
             has_more: out.has_more || err.has_more,
         })
     }
+}
+
+fn redact_diagnostics(diagnostics: Vec<CaddyDiagnostic>) -> Vec<CaddyDiagnostic> {
+    diagnostics
+        .into_iter()
+        .map(|diagnostic| CaddyDiagnostic {
+            line: diagnostic.line,
+            message: sanitize_payload(&diagnostic.message, MAX_DIAGNOSTIC_BYTES, &[]),
+        })
+        .collect()
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -1520,6 +1535,16 @@ mod tests {
         assert_eq!(next.stdout, "");
         assert!(coordinator.logs("other-session", 0, 0).is_err());
         coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn diagnostics_drop_secret_assignments_before_leaving_the_session() {
+        let redacted = redact_diagnostics(vec![CaddyDiagnostic {
+            line: Some(2),
+            message: "Error: basicauth password=hunter2supersecret".to_owned(),
+        }]);
+        assert_eq!(redacted[0].line, Some(2));
+        assert!(!redacted[0].message.contains("hunter2supersecret"));
     }
 
     #[test]
