@@ -184,22 +184,6 @@ describe("AsyncState 与 LogViewer", () => {
 });
 
 describe("sticky 页脚顶部分隔线", () => {
-  it("使用 sticky 的页脚以 line 令牌画顶部 1px 线，不再引用已移除的 sticky 阴影", () => {
-    const files = [
-      "features/services/ServiceDetails.tsx",
-      "features/services/ServiceActionDialog.tsx",
-    ];
-    for (const file of files) {
-      const source = readFileSync(join(srcRoot, file), "utf8");
-      const sticky = source.match(/className="sticky[^"]*"/g) ?? [];
-      expect(sticky.length, file).toBeGreaterThan(0);
-      for (const classes of sticky) {
-        expect(classes, file).toContain("border-t border-line");
-        expect(classes, file).not.toContain("app-shadow-sticky");
-      }
-    }
-  });
-
   it("line 颜色令牌映射为 Tailwind 语义色", () => {
     expect(css).toContain("--color-line: var(--app-line-subtle);");
   });

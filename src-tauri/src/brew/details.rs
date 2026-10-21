@@ -23,12 +23,6 @@ pub struct BrewPackageDetails {
     outdated: bool,
 }
 
-impl BrewPackageDetails {
-    pub(crate) fn current_version(&self) -> Option<&str> {
-        self.current_version.as_deref()
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BrewDetailsError {
     InvalidIdentifier,

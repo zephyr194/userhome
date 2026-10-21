@@ -21,8 +21,6 @@ import {
 
 export type ServiceScope = "USER" | "SYSTEM" | "UNKNOWN";
 export type ServiceState = "STARTED" | "STOPPED" | "ERROR" | "UNKNOWN";
-export type ConfigValidity = "VALID" | "INVALID" | "UNAVAILABLE";
-export type ServiceAction = "START" | "STOP" | "RESTART";
 
 export interface ServiceSummary {
   serviceId: string;
@@ -35,17 +33,6 @@ export interface ServiceSummary {
   pid?: number;
   exitCode?: number;
   manageable: boolean;
-}
-
-export interface ServiceDetails extends ServiceSummary {
-  packageVersion?: string;
-  configValidity: ConfigValidity;
-  configIssue?: string;
-}
-
-export interface ServiceActionInput {
-  action: ServiceAction;
-  serviceId: string;
 }
 
 function decodeText(value: unknown): string {
@@ -102,54 +89,12 @@ export function decodeServiceSummary(value: unknown): ServiceSummary {
   };
 }
 
-export function decodeServiceDetails(value: unknown): ServiceDetails {
-  const summary = decodeServiceSummary(value);
-  if (
-    !isRecord(value) ||
-    !["VALID", "INVALID", "UNAVAILABLE"].includes(
-      String(value.configValidity),
-    )
-  ) {
-    throw createInternalError();
-  }
-  return {
-    ...summary,
-    ...(decodeOptionalText(value.packageVersion) === undefined
-      ? {}
-      : { packageVersion: decodeOptionalText(value.packageVersion) }),
-    configValidity: value.configValidity as ConfigValidity,
-    ...(decodeOptionalText(value.configIssue) === undefined
-      ? {}
-      : { configIssue: decodeOptionalText(value.configIssue) }),
-  };
-}
-
 export function listServices(): Promise<ServiceSummary[]> {
   return invokeCommand("list_services", (value) => {
     if (!Array.isArray(value) || value.length > 512) {
       throw createInternalError();
     }
     return value.map(decodeServiceSummary);
-  });
-}
-
-export function getService(serviceId: string): Promise<ServiceDetails> {
-  return invokeCommand("get_service", decodeServiceDetails, { serviceId });
-}
-
-export function previewServiceAction(
-  input: ServiceActionInput,
-): Promise<OperationPreview> {
-  return invokeCommand("preview_service_action", decodeOperationPreview, {
-    input,
-  });
-}
-
-export function executeServiceAction(
-  operationId: string,
-): Promise<OperationDetails> {
-  return invokeCommand("execute_service_action", decodeOperationDetails, {
-    operationId,
   });
 }
 

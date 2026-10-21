@@ -1,18 +1,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::{
-    brew::{
-        BrewPackageKind,
-        client::{BrewClient, BrewClientError, BrewCommand},
-        details,
-    },
-    config::{
-        ConfigEnvironment, builtin_catalog, read::read_config, resolve_definition,
-        validation::validate_config,
-    },
-    error::AppErrorCode,
-};
+use crate::brew::client::{BrewClient, BrewClientError, BrewCommand};
 
 const MAX_SERVICES: usize = 512;
 const MAX_TEXT_BYTES: usize = 2 * 1024;
@@ -50,35 +39,9 @@ pub struct ServiceSummary {
 }
 
 impl ServiceSummary {
-    pub(crate) fn service_id(&self) -> &str {
-        &self.service_id
-    }
-
     pub(crate) fn state(&self) -> ServiceState {
         self.state
     }
-
-    pub(crate) fn scope(&self) -> ServiceScope {
-        self.scope
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ConfigValidity {
-    Valid,
-    Invalid,
-    Unavailable,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ServiceDetails {
-    #[serde(flatten)]
-    service: ServiceSummary,
-    package_version: Option<String>,
-    config_validity: ConfigValidity,
-    config_issue: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,58 +59,6 @@ pub fn list_services() -> Result<Vec<ServiceSummary>, ServiceInventoryError> {
         .run(&BrewCommand::ServicesList)
         .map_err(map_client_error)?;
     parse_services(&output.stdout)
-}
-
-pub fn get_service(service_id: &str) -> Result<ServiceDetails, ServiceInventoryError> {
-    let services = list_services()?;
-    let service = services
-        .into_iter()
-        .find(|service| service.service_id == service_id)
-        .ok_or(ServiceInventoryError::NotFound)?;
-    if service_id != "caddy" {
-        return Ok(ServiceDetails {
-            service,
-            package_version: None,
-            config_validity: ConfigValidity::Unavailable,
-            config_issue: None,
-        });
-    }
-
-    let package_version = details::details(BrewPackageKind::Formula, "caddy")
-        .ok()
-        .and_then(|details| details.current_version().map(ToOwned::to_owned));
-    let (config_validity, config_issue) = caddy_config_validity();
-    Ok(ServiceDetails {
-        service,
-        package_version,
-        config_validity,
-        config_issue,
-    })
-}
-
-pub fn caddy_config_validity() -> (ConfigValidity, Option<String>) {
-    let result = (|| {
-        let catalog = builtin_catalog()?;
-        let environment = ConfigEnvironment::from_environment()?;
-        let definition = resolve_definition(&catalog, "caddy", "caddyfile")?;
-        let document = read_config(&catalog, &environment, "caddy", "caddyfile")?;
-        let content = document.content().ok_or_else(|| {
-            crate::error::AppError::validation_failed("Caddyfile content is unavailable.")
-        })?;
-        validate_config(definition, &environment, content)
-    })();
-
-    match result {
-        Ok(_) => (ConfigValidity::Valid, None),
-        Err(error) if error.code() == AppErrorCode::ValidationFailed => (
-            ConfigValidity::Invalid,
-            Some("Caddyfile validation failed.".to_owned()),
-        ),
-        Err(_) => (
-            ConfigValidity::Unavailable,
-            Some("Caddyfile validation is unavailable.".to_owned()),
-        ),
-    }
 }
 
 fn parse_services(source: &str) -> Result<Vec<ServiceSummary>, ServiceInventoryError> {

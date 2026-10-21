@@ -1192,29 +1192,3 @@ fn the_homebrew_exception_cannot_be_used_for_any_other_job() {
         );
     }
 }
-
-#[test]
-fn the_legacy_homebrew_commands_are_gated_and_no_command_mutates_launchd() {
-    let commands = include_str!("../../commands/services.rs");
-    let preview = commands
-        .split("pub async fn preview_service_action")
-        .nth(1)
-        .and_then(|rest| rest.split("pub async fn execute_service_action").next())
-        .expect("preview command");
-    let execute = commands
-        .split("pub async fn execute_service_action")
-        .nth(1)
-        .and_then(|rest| rest.split("fn homebrew_scope").next())
-        .expect("execute command");
-    // The gate runs before anything is recorded or executed.
-    let gate = "ensure_launchd_definition_allows(";
-    assert!(preview.find(gate) < preview.find("operations.preview("));
-    assert!(preview.contains(gate));
-    assert!(execute.find(gate) < execute.find("authorize_mutation"));
-    assert!(execute.contains(gate));
-
-    // The launchd list command takes no argument and returns the judged result.
-    assert!(commands.contains("pub async fn list_launchd_services() -> Result<OwnedDiscovery"));
-    // The gate itself accepts only a scope, never a label or a path.
-    assert!(commands.contains("async fn ensure_launchd_definition_allows(scope: HomebrewScope)"));
-}

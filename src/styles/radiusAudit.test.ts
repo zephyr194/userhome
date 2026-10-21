@@ -22,7 +22,6 @@ const ALLOWED_CSS_RADII = new Set([
 ]);
 const CIRCULAR_ALLOWLIST: Record<string, number> = {
   "components/ui/forms/index.tsx": 2,
-  "features/services/ServiceActionDialog.tsx": 1,
 };
 const CORNER_PREFIX =
   /^rounded(?:-(?:tl|tr|br|bl|ss|se|ee|es|ts|te|bs|be|t|r|b|l|s|e))?(?:-(.+))?$/;

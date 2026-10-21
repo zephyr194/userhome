@@ -33,6 +33,7 @@ pub struct ConfigDocument {
 }
 
 impl ConfigDocument {
+    #[cfg(test)]
     pub(crate) fn content(&self) -> Option<&str> {
         self.content.as_deref()
     }

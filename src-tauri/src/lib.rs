@@ -50,7 +50,6 @@ pub fn run() {
         .manage(environment::save::EnvironmentEditCoordinator::default())
         .manage(environment::zsh_edit::ZshEditCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
-        .manage(services::actions::ServiceActionCoordinator::default())
         .manage(services::create::ServiceCreateCoordinator::default())
         .manage(services::lifecycle::LaunchdActionCoordinator::default())
         .manage(services::logs::LogSessions::default())
@@ -165,7 +164,6 @@ pub fn run() {
             commands::services::list_services,
             commands::services::list_launchd_services,
             commands::services::get_resident_caddy_snapshot,
-            commands::services::get_service,
             commands::services::preview_create_launchd_service,
             commands::services::execute_create_launchd_service,
             commands::services::preview_launchd_action,
@@ -176,8 +174,6 @@ pub fn run() {
             commands::services::preview_edit_launchd_service,
             commands::services::execute_edit_launchd_service,
             commands::services::discard_edit_launchd_service,
-            commands::services::preview_service_action,
-            commands::services::execute_service_action,
             commands::services::authorize_launchd_log,
             commands::services::revoke_launchd_log,
             commands::services::read_launchd_log_tail,
