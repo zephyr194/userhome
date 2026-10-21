@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui";
 import {
+  getClaudeEditCatalog,
   getClaudeSnapshot,
   readClaudeSettings,
+  type ClaudeEditCatalog,
   type ClaudeReadView,
   type ClaudeSnapshotSummary,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import { selectDirectoryGrant } from "../../ipc/grants";
+import { selectDirectoryGrant, selectFileGrant } from "../../ipc/grants";
 import {
   entryBadges,
   isPartialView,
@@ -19,6 +21,7 @@ import {
   winnerText,
   type ProjectGrant,
 } from "./claudeSettingsModel";
+import { EditPanel, type SettingsFileSelection } from "./SettingEditor";
 
 export type ClaudeReadState =
   | { readonly status: "loading" }
@@ -30,6 +33,15 @@ export type ProjectSelection =
   | { readonly status: "selecting" }
   | { readonly status: "failed"; readonly error: AppError };
 
+export interface EditingState {
+  readonly catalog: ClaudeEditCatalog | null;
+  readonly settingsFile: SettingsFileSelection | null;
+  readonly choosing: boolean;
+  readonly chooseError: AppError | null;
+  readonly onChooseSettingsFile: () => void;
+  readonly onSaved: () => void;
+}
+
 export interface ClaudeSettingsViewProps {
   readonly state: ClaudeReadState;
   readonly snapshot: ClaudeSnapshotSummary | null;
@@ -38,6 +50,7 @@ export interface ClaudeSettingsViewProps {
   readonly onChooseProject: () => void;
   readonly onClearProject: () => void;
   readonly onRetry: () => void;
+  readonly editing?: EditingState;
 }
 
 export function ClaudeSettingsView({
@@ -48,15 +61,16 @@ export function ClaudeSettingsView({
   onChooseProject,
   onClearProject,
   onRetry,
+  editing,
 }: ClaudeSettingsViewProps) {
   const busy = state.status === "loading" || selection.status === "selecting";
   return (
     <section className="grid min-w-0 gap-ui-md" aria-label="Claude Code 设置">
       <header className="grid gap-ui-xs">
-        <h2 className="m-0 text-body font-semibold">Claude Code 设置（只读）</h2>
+        <h2 className="m-0 text-body font-semibold">Claude Code 设置</h2>
         <p className="m-0 text-aux text-muted-foreground">
           仅展示官方设置文件的内容与覆盖关系，不运行 hooks、MCP 或项目命令，不修改信任设置。
-          本版不支持编辑；所有键均为仅展示，版本未核实。
+          编辑入口存在，但在版本区间核实前整体禁用；所有键当前均为仅展示，版本未核实。
         </p>
         {snapshot ? (
           <p className="m-0 text-aux text-muted-foreground">
@@ -105,6 +119,7 @@ export function ClaudeSettingsView({
       ) : null}
 
       {state.status === "ready" ? <ReadResult view={state.view} /> : null}
+      {editing ? <EditPanel {...editing} /> : null}
     </section>
   );
 }
@@ -172,6 +187,10 @@ export function ToolSettings() {
   const [snapshot, setSnapshot] = useState<ClaudeSnapshotSummary | null>(null);
   const [projectGrant, setProjectGrant] = useState<ProjectGrant | null>(null);
   const [selection, setSelection] = useState<ProjectSelection>({ status: "idle" });
+  const [catalog, setCatalog] = useState<ClaudeEditCatalog | null>(null);
+  const [settingsFile, setSettingsFile] = useState<SettingsFileSelection | null>(null);
+  const [choosingFile, setChoosingFile] = useState(false);
+  const [chooseFileError, setChooseFileError] = useState<AppError | null>(null);
   const requestCounter = useRef(0);
 
   const fetchView = useCallback((grant: ProjectGrant | null) => {
@@ -198,6 +217,7 @@ export function ToolSettings() {
 
   useEffect(() => {
     void getClaudeSnapshot().then(setSnapshot, () => setSnapshot(null));
+    void getClaudeEditCatalog().then(setCatalog, () => setCatalog(null));
     void fetchView(null);
   }, [fetchView]);
 
@@ -224,6 +244,23 @@ export function ToolSettings() {
 
   const retry = useCallback(() => load(projectGrant), [load, projectGrant]);
 
+  const chooseSettingsFile = useCallback(() => {
+    setChoosingFile(true);
+    setChooseFileError(null);
+    selectFileGrant("CONFIG_FILE").then(
+      (result) => {
+        setChoosingFile(false);
+        if (result.status === "SELECTED") {
+          setSettingsFile({ id: result.grant.id, displayPath: result.grant.displayPath });
+        }
+      },
+      (error: unknown) => {
+        setChoosingFile(false);
+        setChooseFileError(decodeAppError(error));
+      },
+    );
+  }, []);
+
   return (
     <ClaudeSettingsView
       state={state}
@@ -233,6 +270,14 @@ export function ToolSettings() {
       onChooseProject={chooseProject}
       onClearProject={clearProject}
       onRetry={retry}
+      editing={{
+        catalog,
+        settingsFile,
+        choosing: choosingFile,
+        chooseError: chooseFileError,
+        onChooseSettingsFile: chooseSettingsFile,
+        onSaved: retry,
+      }}
     />
   );
 }

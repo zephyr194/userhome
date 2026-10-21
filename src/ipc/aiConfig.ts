@@ -1,4 +1,11 @@
-import { createInternalError, hasControlCharacters, invokeCommand, isRecord } from "./core";
+import {
+  createInternalError,
+  decodeAppError,
+  hasControlCharacters,
+  invokeCommand,
+  isRecord,
+  type AppError,
+} from "./core";
 
 // Wire shapes mirror src-tauri/src/ai_config/detect.rs and
 // commands/ai_config.rs. The command takes no arguments, and every response is
@@ -422,4 +429,316 @@ export function readClaudeSettings(projectGrantId: string | null): Promise<Claud
 
 export function getClaudeSnapshot(): Promise<ClaudeSnapshotSummary> {
   return invokeCommand("ai_config_claude_snapshot", decodeClaudeSnapshotSummary);
+}
+
+// Claude Code settings edit. Mirrors commands/ai_config.rs. The frontend names a
+// settings-file grant id, a key and a JSON value; it never sends or receives a path.
+
+export const CLAUDE_EDIT_ACTIONS = [
+  "set",
+  "restoreDefault",
+  "setNull",
+] as const;
+export type ClaudeEditAction = (typeof CLAUDE_EDIT_ACTIONS)[number];
+
+const CLAUDE_WRITE_KINDS = ["REPLACE", "CREATE"] as const;
+export type ClaudeWriteKind = (typeof CLAUDE_WRITE_KINDS)[number];
+
+const CLAUDE_RECOVERY_POINTS = [
+  "BACKUP",
+  "NONE_CREATED",
+  "NONE_UNAVAILABLE",
+] as const;
+export type ClaudeRecoveryPoint = (typeof CLAUDE_RECOVERY_POINTS)[number];
+
+const CLAUDE_OUTCOME_STATUSES = ["SUCCEEDED", "FAILED"] as const;
+export type ClaudeOutcomeStatus = (typeof CLAUDE_OUTCOME_STATUSES)[number];
+
+const CLAUDE_FILE_STATES = [
+  "WRITTEN",
+  "UNCHANGED",
+  "RESTORED",
+  "RESTORE_FAILED",
+  "CREATED_REMOVED",
+  "CREATED_REMOVE_FAILED",
+  "UNKNOWN",
+] as const;
+export type ClaudeFileState = (typeof CLAUDE_FILE_STATES)[number];
+
+const CLAUDE_DIFF_KINDS = ["REMOVED", "ADDED"] as const;
+export type ClaudeDiffKind = (typeof CLAUDE_DIFF_KINDS)[number];
+
+export interface ClaudeEditItem {
+  readonly keyPath: string;
+  readonly valueType: string;
+  readonly allowedValues: readonly string[];
+  readonly editable: boolean;
+  readonly reason: string | null;
+}
+
+export interface ClaudeEditCatalog {
+  readonly detectedVersion: string | null;
+  readonly items: readonly ClaudeEditItem[];
+}
+
+export interface ClaudeEditDiffLine {
+  readonly kind: ClaudeDiffKind;
+  readonly text: string;
+}
+
+export interface ClaudeEditDiff {
+  readonly lines: readonly ClaudeEditDiffLine[];
+  readonly redacted: boolean;
+  readonly truncated: boolean;
+}
+
+export interface ClaudeEditPreview {
+  readonly operationId: string;
+  readonly summary: string;
+  readonly effects: readonly string[];
+  readonly expiresAt: string;
+  readonly keyPath: string;
+  readonly action: ClaudeEditAction;
+  readonly kind: ClaudeWriteKind;
+  readonly recoveryPoint: ClaudeRecoveryPoint;
+  readonly diff: ClaudeEditDiff;
+  readonly reloadNote: string;
+}
+
+export interface ClaudeEditOutcome {
+  readonly kind: ClaudeWriteKind;
+  readonly status: ClaudeOutcomeStatus;
+  readonly fileState: ClaudeFileState;
+  readonly recoveryPoint: ClaudeRecoveryPoint;
+  readonly backupId: string | null;
+  readonly summary: string;
+  readonly error: AppError | null;
+}
+
+export interface ClaudeEditResult {
+  readonly operationId: string;
+  readonly outcome: ClaudeEditOutcome;
+  readonly reloadNote: string;
+}
+
+export interface ClaudeEditRequest {
+  readonly grantId: string;
+  readonly keyPath: string;
+  readonly action: ClaudeEditAction;
+  readonly value?: boolean | string;
+}
+
+const CLAUDE_EDIT_ITEM_KEYS = [
+  "keyPath",
+  "valueType",
+  "allowedValues",
+  "editable",
+  "reason",
+] as const;
+const CLAUDE_EDIT_CATALOG_KEYS = ["detectedVersion", "items"] as const;
+const CLAUDE_EDIT_PREVIEW_KEYS = [
+  "operationId",
+  "summary",
+  "effects",
+  "expiresAt",
+  "keyPath",
+  "action",
+  "kind",
+  "recoveryPoint",
+  "diff",
+  "reloadNote",
+] as const;
+const CLAUDE_EDIT_DIFF_KEYS = ["lines", "redacted", "truncated"] as const;
+const CLAUDE_EDIT_DIFF_LINE_KEYS = ["kind", "text"] as const;
+const CLAUDE_EDIT_RESULT_KEYS = [
+  "operationId",
+  "outcome",
+  "reloadNote",
+] as const;
+const CLAUDE_EDIT_OUTCOME_REQUIRED_KEYS = [
+  "kind",
+  "status",
+  "fileState",
+  "recoveryPoint",
+  "summary",
+] as const;
+const CLAUDE_EDIT_OUTCOME_OPTIONAL_KEYS = ["backupId", "error"] as const;
+const MAX_EDIT_TEXT_LENGTH = 2_000;
+const MAX_EDIT_KEY_LENGTH = 256;
+
+function requireExactKeysWithOptional(
+  record: Record<string, unknown>,
+  required: readonly string[],
+  optional: readonly string[],
+) {
+  const allowed = [...required, ...optional];
+  const actual = Object.keys(record);
+  if (actual.some((key) => !allowed.includes(key))) throw decodeFailure();
+  if (required.some((key) => !(key in record))) throw decodeFailure();
+}
+
+function requireBooleanValue(value: unknown): boolean {
+  if (typeof value !== "boolean") throw decodeFailure();
+  return value;
+}
+
+function requireEditText(value: unknown, maxLength: number): string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > maxLength
+  ) {
+    throw decodeFailure();
+  }
+  return value;
+}
+
+export function decodeClaudeEditCatalog(value: unknown): ClaudeEditCatalog {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_EDIT_CATALOG_KEYS);
+  if (!Array.isArray(record.items) || record.items.length > MAX_CLAUDE_COUNT) {
+    throw decodeFailure();
+  }
+  return {
+    detectedVersion: nullableText(record.detectedVersion, MAX_VERSION_LENGTH),
+    items: record.items.map(decodeClaudeEditItem),
+  };
+}
+
+function decodeClaudeEditItem(value: unknown): ClaudeEditItem {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_EDIT_ITEM_KEYS);
+  if (!Array.isArray(record.allowedValues)) throw decodeFailure();
+  const editable = requireBooleanValue(record.editable);
+  const reason =
+    record.reason === null
+      ? null
+      : requireText(record.reason, MAX_CLAUDE_TEXT_LENGTH);
+  if (editable !== (reason === null)) throw decodeFailure();
+  return {
+    keyPath: requireText(record.keyPath, MAX_EDIT_KEY_LENGTH),
+    valueType: requireOneOf(CLAUDE_VALUE_TYPE_LABELS, record.valueType),
+    allowedValues: record.allowedValues.map((item) => requireText(item, 128)),
+    editable,
+    reason,
+  };
+}
+
+function decodeClaudeEditDiff(value: unknown): ClaudeEditDiff {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_EDIT_DIFF_KEYS);
+  if (!Array.isArray(record.lines) || record.lines.length > 200)
+    throw decodeFailure();
+  return {
+    lines: record.lines.map((line) => {
+      const entry = requireRecord(line);
+      requireExactKeys(entry, CLAUDE_EDIT_DIFF_LINE_KEYS);
+      return {
+        kind: requireOneOf(CLAUDE_DIFF_KINDS, entry.kind),
+        text: requireEditText(entry.text, MAX_EDIT_TEXT_LENGTH),
+      };
+    }),
+    redacted: requireBooleanValue(record.redacted),
+    truncated: requireBooleanValue(record.truncated),
+  };
+}
+
+export function decodeClaudeEditPreview(
+  value: unknown,
+  request: ClaudeEditRequest,
+): ClaudeEditPreview {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_EDIT_PREVIEW_KEYS);
+  const keyPath = requireText(record.keyPath, MAX_EDIT_KEY_LENGTH);
+  const action = requireOneOf(CLAUDE_EDIT_ACTIONS, record.action);
+  if (keyPath !== request.keyPath || action !== request.action)
+    throw decodeFailure();
+  if (!Array.isArray(record.effects) || record.effects.length > 16)
+    throw decodeFailure();
+  return {
+    operationId: requireText(record.operationId, 128),
+    summary: requireEditText(record.summary, MAX_EDIT_TEXT_LENGTH),
+    effects: record.effects.map((effect) =>
+      requireEditText(effect, MAX_EDIT_TEXT_LENGTH),
+    ),
+    expiresAt: requireText(record.expiresAt, 64),
+    keyPath,
+    action,
+    kind: requireOneOf(CLAUDE_WRITE_KINDS, record.kind),
+    recoveryPoint: requireOneOf(CLAUDE_RECOVERY_POINTS, record.recoveryPoint),
+    diff: decodeClaudeEditDiff(record.diff),
+    reloadNote: requireText(record.reloadNote, MAX_CLAUDE_TEXT_LENGTH),
+  };
+}
+
+function decodeClaudeEditOutcome(value: unknown): ClaudeEditOutcome {
+  const record = requireRecord(value);
+  requireExactKeysWithOptional(
+    record,
+    CLAUDE_EDIT_OUTCOME_REQUIRED_KEYS,
+    CLAUDE_EDIT_OUTCOME_OPTIONAL_KEYS,
+  );
+  return {
+    kind: requireOneOf(CLAUDE_WRITE_KINDS, record.kind),
+    status: requireOneOf(CLAUDE_OUTCOME_STATUSES, record.status),
+    fileState: requireOneOf(CLAUDE_FILE_STATES, record.fileState),
+    recoveryPoint: requireOneOf(CLAUDE_RECOVERY_POINTS, record.recoveryPoint),
+    backupId:
+      record.backupId === undefined ? null : requireText(record.backupId, 128),
+    summary: requireEditText(record.summary, MAX_EDIT_TEXT_LENGTH),
+    error: record.error === undefined ? null : decodeAppError(record.error),
+  };
+}
+
+export function decodeClaudeEditResult(
+  value: unknown,
+  operationId: string,
+): ClaudeEditResult {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_EDIT_RESULT_KEYS);
+  if (requireText(record.operationId, 128) !== operationId)
+    throw decodeFailure();
+  return {
+    operationId,
+    outcome: decodeClaudeEditOutcome(record.outcome),
+    reloadNote: requireText(record.reloadNote, MAX_CLAUDE_TEXT_LENGTH),
+  };
+}
+
+export function getClaudeEditCatalog(): Promise<ClaudeEditCatalog> {
+  return invokeCommand(
+    "ai_config_claude_edit_catalog",
+    decodeClaudeEditCatalog,
+  );
+}
+
+function editInput(request: ClaudeEditRequest): Record<string, unknown> {
+  const input: Record<string, unknown> = {
+    grantId: request.grantId,
+    keyPath: request.keyPath,
+    action: request.action,
+  };
+  if (request.action === "set") input.value = request.value;
+  return input;
+}
+
+export function previewClaudeEdit(
+  request: ClaudeEditRequest,
+): Promise<ClaudeEditPreview> {
+  return invokeCommand(
+    "ai_config_claude_preview_edit",
+    (value) => decodeClaudeEditPreview(value, request),
+    { input: editInput(request) },
+  );
+}
+
+export function confirmClaudeEdit(input: {
+  readonly operationId: string;
+  readonly grantId: string;
+}): Promise<ClaudeEditResult> {
+  return invokeCommand(
+    "ai_config_claude_confirm_edit",
+    (value) => decodeClaudeEditResult(value, input.operationId),
+    { input: { operationId: input.operationId, grantId: input.grantId } },
+  );
 }
