@@ -147,6 +147,7 @@ pub fn run() {
             commands::brew::execute_brew_action,
             commands::services::list_services,
             commands::services::list_launchd_services,
+            commands::services::get_resident_caddy_snapshot,
             commands::services::get_service,
             commands::services::preview_create_launchd_service,
             commands::services::execute_create_launchd_service,

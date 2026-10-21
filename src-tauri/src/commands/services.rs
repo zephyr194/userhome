@@ -58,6 +58,7 @@ use crate::{
             HomebrewScope, OwnedDiscovery, ServiceRequest, check_homebrew_caddy_system,
             discover_owned_system,
         },
+        snapshot::{ResidentCaddySnapshot, read_system},
     },
     settings::SettingsCoordinator,
 };
@@ -84,6 +85,24 @@ pub async fn list_launchd_services() -> Result<OwnedDiscovery, AppError> {
     tauri::async_runtime::spawn_blocking(move || {
         let _gate = gate;
         discover_owned_system()
+    })
+    .await
+    .map_err(|_| AppError::internal())
+}
+
+/// Read-only snapshot of resident Caddy instances for the Caddy module. It takes
+/// no input and changes nothing; a discovery already running is a conflict, not
+/// a wait.
+#[tauri::command]
+pub async fn get_resident_caddy_snapshot() -> Result<ResidentCaddySnapshot, AppError> {
+    let Some(gate) = DiscoveryGate::try_acquire() else {
+        return Err(AppError::conflict(
+            "launchd discovery is already running. Retry when it finishes.",
+        ));
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let _gate = gate;
+        read_system()
     })
     .await
     .map_err(|_| AppError::internal())

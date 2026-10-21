@@ -6,3 +6,4 @@ pub mod launchd;
 pub mod lifecycle;
 pub mod logs;
 pub mod ownership;
+pub mod snapshot;
