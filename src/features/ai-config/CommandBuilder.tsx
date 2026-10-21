@@ -88,6 +88,7 @@ export function CommandBuilderView({
       ) : null}
       {options.status === "ready" ? (
         <>
+          <CoverageNotice summary={options.summary} />
           <p className="m-0 text-aux">{options.summary.coverageNote}</p>
           <TextField
             label="本机版本（可选）"
@@ -116,6 +117,43 @@ export function CommandBuilderView({
         </>
       ) : null}
     </section>
+  );
+}
+
+const COVERAGE_BOX_CLASS =
+  "grid min-w-0 gap-ui-xs rounded-control bg-surface-muted px-ui-lg py-ui-md";
+
+/**
+ * States how much of the official flag and environment list is shown. Missing
+ * coverage metadata counts as unknown, which is always treated as partial.
+ */
+function CoverageNotice({ summary }: { readonly summary: ClaudeOptionSummary }) {
+  const { flagsCoverage: flags, envCoverage: env } = summary;
+  if (flags === null || env === null) {
+    return (
+      <div role="note" className={COVERAGE_BOX_CLASS}>
+        <p className="m-0 font-semibold">
+          ⚠ 收录范围未知，按部分收录处理：官方页面更多，未收录项不可选。
+        </p>
+      </div>
+    );
+  }
+  const counts = `已收录 ${flags.listedCount} 项 flags / ${env.listedCount} 项环境变量`;
+  const complete = flags.snapshotComplete && env.snapshotComplete;
+  return (
+    <div role="note" className={COVERAGE_BOX_CLASS}>
+      <p className="m-0 font-semibold">
+        {complete
+          ? `✔ 已完整收录：${counts}。`
+          : `⚠ 部分收录：${counts}；官方页面更多，未收录项不可选。`}
+      </p>
+      {flags.coverageNote !== null ? <p className="m-0 text-aux">{flags.coverageNote}</p> : null}
+      {env.coverageNote !== null ? <p className="m-0 text-aux">{env.coverageNote}</p> : null}
+      <p className="m-0 text-aux">
+        官方来源：flags 页面 {flags.sourceUrl}（检索于 {flags.retrievedOn}）；环境变量页面{" "}
+        {env.sourceUrl}（检索于 {env.retrievedOn}）。
+      </p>
+    </div>
   );
 }
 

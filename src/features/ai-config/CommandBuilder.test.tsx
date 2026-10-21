@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { ClaudeBuiltCommand, ClaudeOptionItem, ClaudeOptionSummary } from "../../ipc/aiConfig";
+import type {
+  ClaudeBuiltCommand,
+  ClaudeListingCoverage,
+  ClaudeOptionItem,
+  ClaudeOptionSummary,
+} from "../../ipc/aiConfig";
 import { CommandBuilderView, type CommandOptionsState, type CommandPreview } from "./CommandBuilder";
 import { RISK_CONFIRM_LABEL, SECRET_NOTE, type Selection } from "./commandBuilderModel";
 
@@ -158,5 +163,83 @@ describe("CommandBuilderView", () => {
     });
     expect(markup).toContain("--effort 的取值不在官方允许范围内。");
     expect(markup).not.toContain("复制命令");
+  });
+});
+
+const FLAGS_LISTING: ClaudeListingCoverage = {
+  listedCount: 2,
+  snapshotComplete: false,
+  coverageNote: "官方 CLI 参考页的 flags 更多（未统计总数）；仅收录 2 项。",
+  sourceUrl: "https://code.claude.com/docs/en/cli-reference",
+  retrievedOn: "2026-10-21",
+};
+
+const ENV_LISTING: ClaudeListingCoverage = {
+  listedCount: 2,
+  snapshotComplete: false,
+  coverageNote: "官方环境变量页面共 230 项以上；仅收录 2 项。",
+  sourceUrl: "https://code.claude.com/docs/en/env-vars",
+  retrievedOn: "2026-10-21",
+};
+
+function withCoverage(
+  flagsCoverage: ClaudeListingCoverage | null,
+  envCoverage: ClaudeListingCoverage | null,
+): CommandOptionsState {
+  return { status: "ready", summary: { ...SUMMARY, flagsCoverage, envCoverage } };
+}
+
+function noticeOf(markup: string): string {
+  const match = /<div role="note"[\s\S]*?<\/div>/.exec(markup);
+  return match === null ? "" : match[0];
+}
+
+describe("CommandBuilderView listing coverage notice", () => {
+  it("states partial listing with counts, the unlisted caveat and plain source URLs", () => {
+    const markup = render({ options: withCoverage(FLAGS_LISTING, ENV_LISTING) });
+    const notice = noticeOf(markup);
+
+    expect(notice).toContain("⚠ 部分收录：已收录 2 项 flags / 2 项环境变量；官方页面更多，未收录项不可选。");
+    expect(notice).toContain("官方 CLI 参考页的 flags 更多");
+    expect(notice).toContain("官方环境变量页面共 230 项以上");
+    expect(notice).toContain("https://code.claude.com/docs/en/cli-reference");
+    expect(notice).toContain("https://code.claude.com/docs/en/env-vars");
+    expect(notice).toContain("2026-10-21");
+    expect(notice).not.toContain("<a ");
+  });
+
+  it("treats absent listing coverage as unknown and therefore partial", () => {
+    const markup = render({ options: withCoverage(null, null) });
+    const notice = noticeOf(markup);
+
+    expect(notice).toContain("⚠ 收录范围未知，按部分收录处理：官方页面更多，未收录项不可选。");
+    expect(notice).not.toContain("已完整收录");
+  });
+
+  it("treats a single unknown listing as unknown rather than complete", () => {
+    const notice = noticeOf(render({ options: withCoverage(FLAGS_LISTING, null) }));
+
+    expect(notice).toContain("收录范围未知，按部分收录处理");
+    expect(notice).not.toContain("已完整收录");
+  });
+
+  it("says complete only when both listings are complete", () => {
+    const notice = noticeOf(
+      render({
+        options: withCoverage(
+          { ...FLAGS_LISTING, snapshotComplete: true, coverageNote: null },
+          { ...ENV_LISTING, snapshotComplete: true, coverageNote: null },
+        ),
+      }),
+    );
+
+    expect(notice).toContain("✔ 已完整收录：已收录 2 项 flags / 2 项环境变量。");
+    expect(notice).not.toContain("部分收录");
+  });
+
+  it("keeps the coverage note line that was already shown", () => {
+    expect(render({ options: withCoverage(FLAGS_LISTING, ENV_LISTING) })).toContain(
+      "收录范围：已核实的子集。",
+    );
   });
 });
