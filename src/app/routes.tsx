@@ -1,3 +1,4 @@
+import { AiConfigPage } from "../features/ai-config/AiConfigPage";
 import { AppConfigPage } from "../features/app-config/AppConfigPage";
 import { CaddyPage } from "../features/caddy/CaddyPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
@@ -102,6 +103,10 @@ export function RoutePanel({
 
   if (route.id === "appConfig") {
     return <AppConfigPage />;
+  }
+
+  if (route.id === "aiConfig") {
+    return <AiConfigPage />;
   }
 
   if (route.id === "tools") {

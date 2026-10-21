@@ -25,3 +25,16 @@ describe("application config route wiring", () => {
     expect(source).toContain("<AppConfigPage />");
   });
 });
+
+describe("AI config route wiring", () => {
+  it("is reachable from the system tools navigation and rendered by the route panel", () => {
+    const source = readFileSync(join(process.cwd(), "src/app/routes.tsx"), "utf8");
+    const tools = groupNavigationRoutes(APP_ROUTES).find(
+      (entry) => entry.group.id === "system-tools",
+    );
+
+    expect(tools?.routes.map((route) => route.id)).toContain("aiConfig");
+    expect(source).toContain('route.id === "aiConfig"');
+    expect(source).toContain("<AiConfigPage />");
+  });
+});

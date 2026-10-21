@@ -6,6 +6,7 @@ export type AppRouteId =
   | "environment"
   | "caddy"
   | "appConfig"
+  | "aiConfig"
   | "tools"
   | "settings";
 
@@ -17,6 +18,7 @@ export type AppRouteIcon =
   | "environment"
   | "caddy"
   | "appConfig"
+  | "aiConfig"
   | "tools"
   | "settings";
 
@@ -101,6 +103,13 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     label: "应用配置",
     eyebrow: "只读配置",
     description: "按登记的默认位置只读查看应用配置，秘密值默认遮盖。",
+    group: "system-tools",
+  },
+  aiConfig: {
+    icon: "aiConfig",
+    label: "AI 配置",
+    eyebrow: "AI 工具",
+    description: "只读检测 Claude Code、Codex、Gemini 与 Copilot CLI 的安装状态、版本与配置位置。",
     group: "system-tools",
   },
   tools: {

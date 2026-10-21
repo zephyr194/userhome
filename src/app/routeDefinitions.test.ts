@@ -52,7 +52,7 @@ describe("route registry", () => {
     const tools = groupNavigationRoutes(APP_ROUTES).find(
       (entry) => entry.group.id === "system-tools",
     );
-    expect(tools?.routes.map((route) => route.label)).toEqual(["环境变量", "Caddy", "应用配置"]);
+    expect(tools?.routes.map((route) => route.label)).toEqual(["环境变量", "Caddy", "应用配置", "AI 配置"]);
   });
 
   it("describes the services page as launchd discovery, not Homebrew-only management", () => {
