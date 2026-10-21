@@ -6,6 +6,7 @@ use tauri::{AppHandle, Manager, State};
 use crate::{
     caddy::{
         config::{CaddyRules, RulesValidation},
+        conflict::{ConflictReport, ConflictTargets, SystemPortProbe, check_conflicts, start_gate},
         detect::{
             Candidate, DetectReport, DetectStatus, SystemVersionRunner, detect, fixed_candidates,
         },
@@ -29,6 +30,10 @@ use crate::{
         ResourceWriteExecution, WriteRequest,
     },
     operations::OperationCoordinator,
+    services::{
+        launchd::DiscoveryGate,
+        snapshot::{ResidentCaddySnapshot, read_system},
+    },
     settings::SettingsCoordinator,
 };
 
@@ -444,6 +449,10 @@ pub struct StartInput {
     pub plan_id: String,
     pub source: ConfigSource,
     pub confirmed: bool,
+    /// Lets a start proceed when the external state could not be confirmed.
+    /// It never overrides a blocking conflict.
+    #[serde(default)]
+    pub accept_unconfirmed: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -472,14 +481,17 @@ pub async fn caddy_prepare_start(
         .map(|raw| resolve_executable_grant(&grants, raw))
         .transpose()?;
     let (text, rules) = saved_config(&store, input.source)?;
+    let targets = ConflictTargets::for_rules(rules.as_ref());
     tauri::async_runtime::spawn_blocking(move || {
         let report = detect(user, &fixed_candidates(), &SystemVersionRunner);
-        app.state::<CaddyRunCoordinator>().prepare(PrepareInput {
+        let mut summary = app.state::<CaddyRunCoordinator>().prepare(PrepareInput {
             source: input.source,
             detect: &report,
             text: &text,
             rules: rules.as_ref(),
-        })
+        });
+        summary.conflicts = Some(system_conflicts(&targets));
+        summary
     })
     .await
     .map_err(|_| AppError::internal())
@@ -497,17 +509,23 @@ pub async fn caddy_start(
     if !valid_run_id(&input.plan_id) {
         return Err(AppError::invalid_input("开启编号无效。"));
     }
+    let targets = app
+        .state::<CaddyRunCoordinator>()
+        .plan_targets(&input.plan_id, input.source)?;
     let checks_root = store.checks_root()?;
     let runs_root = store.runs_root()?;
     tauri::async_runtime::spawn_blocking(move || {
-        let env = StartEnvironment {
-            checks_root: &checks_root,
-            runs_root: &runs_root,
-            runner: &SystemCaddyRunner,
-            probe: &SystemAdminProbe,
-        };
-        app.state::<CaddyRunCoordinator>()
-            .start(&input.plan_id, input.source, &env)
+        let report = system_conflicts(&targets);
+        guard_start(&report, input.accept_unconfirmed, || {
+            let env = StartEnvironment {
+                checks_root: &checks_root,
+                runs_root: &runs_root,
+                runner: &SystemCaddyRunner,
+                probe: &SystemAdminProbe,
+            };
+            app.state::<CaddyRunCoordinator>()
+                .start(&input.plan_id, input.source, &env)
+        })
     })
     .await
     .map_err(|_| AppError::internal())?
@@ -532,6 +550,38 @@ pub fn caddy_logs(
     input: LogsInput,
 ) -> Result<LogPage, AppError> {
     runs.logs(&input.session_id, input.stdout_offset, input.stderr_offset)
+}
+
+fn system_snapshot() -> Option<ResidentCaddySnapshot> {
+    let _gate = DiscoveryGate::try_acquire()?;
+    Some(read_system())
+}
+
+fn system_conflicts(targets: &ConflictTargets) -> ConflictReport {
+    let snapshot = system_snapshot();
+    check_conflicts(
+        targets,
+        snapshot.as_ref(),
+        &SystemPortProbe {
+            runner: &SystemCaddyRunner,
+        },
+    )
+}
+
+/// `launch` runs only when the gate allows it, so a refused start never reaches
+/// the runner and never touches a resident Caddy.
+fn guard_start<T>(
+    report: &ConflictReport,
+    accept_unconfirmed: bool,
+    launch: impl FnOnce() -> Result<T, AppError>,
+) -> Result<T, AppError> {
+    match start_gate(report, accept_unconfirmed) {
+        Some(refusal) => Err(AppError::conflict_with_reason(
+            refusal.message(),
+            refusal.code(),
+        )),
+        None => launch(),
+    }
 }
 
 fn saved_config(
@@ -1055,5 +1105,185 @@ mod tests {
         let prepare: Result<PrepareStartInput, _> =
             serde_json::from_value(json!({"source": "RULES"}));
         assert!(prepare.is_ok());
+    }
+}
+
+#[cfg(test)]
+mod start_gate_tests {
+    use std::cell::Cell;
+
+    use serde_json::{Value, json};
+
+    use super::*;
+    use crate::{
+        caddy::conflict::{
+            ConflictTargets, Endpoint, ListenProbe, Occupant, PortProbe, UpstreamProbe,
+            UpstreamState,
+        },
+        error::AppErrorCode,
+        services::{
+            launchd::{LaunchdDomain, LaunchdScope, LoadState, RunState},
+            ownership::Ownership,
+            snapshot::{ConfigLocation, ResidentCaddyInstance, UnknownReason},
+        },
+    };
+
+    struct StaticProbe {
+        listen: ListenProbe,
+        upstream: UpstreamProbe,
+    }
+
+    impl PortProbe for StaticProbe {
+        fn listen(&self, _endpoint: &Endpoint) -> ListenProbe {
+            self.listen.clone()
+        }
+
+        fn upstream(&self, _endpoint: &Endpoint) -> UpstreamProbe {
+            self.upstream
+        }
+    }
+
+    fn targets() -> ConflictTargets {
+        ConflictTargets {
+            listen: Some(vec![Endpoint {
+                host: "127.0.0.1".to_owned(),
+                port: 8080,
+            }]),
+            upstreams: vec![Endpoint {
+                host: "127.0.0.1".to_owned(),
+                port: 3000,
+            }],
+        }
+    }
+
+    fn resident(run_state: RunState, pid: Option<u32>) -> ResidentCaddyInstance {
+        ResidentCaddyInstance {
+            label: "homebrew.mxcl.caddy".to_owned(),
+            domain: LaunchdDomain::Gui,
+            scope: LaunchdScope::UserAgent,
+            ownership: Ownership::ThirdParty,
+            plist_path: None,
+            executable: None,
+            arguments: Vec::new(),
+            adapter: None,
+            config: ConfigLocation {
+                path: None,
+                flag: None,
+                unknown_reason: Some(UnknownReason::Missing),
+            },
+            load_state: LoadState::Loaded,
+            run_state,
+            pid,
+            observed_at_ms: 1,
+            complete: true,
+            incomplete_reasons: Vec::new(),
+        }
+    }
+
+    fn snapshot(instances: Vec<ResidentCaddyInstance>, complete: bool) -> ResidentCaddySnapshot {
+        ResidentCaddySnapshot {
+            observed_at_ms: 1,
+            complete,
+            can_conclude_absence: complete,
+            sources: Vec::new(),
+            instances,
+        }
+    }
+
+    fn free_ports() -> StaticProbe {
+        StaticProbe {
+            listen: ListenProbe::Free,
+            upstream: UpstreamProbe::Reachable,
+        }
+    }
+
+    fn report(snapshot: Option<&ResidentCaddySnapshot>, probe: &StaticProbe) -> ConflictReport {
+        check_conflicts(&targets(), snapshot, probe)
+    }
+
+    fn reason_of(error: &AppError) -> Value {
+        serde_json::to_value(error).expect("error json")["details"]["reason"].clone()
+    }
+
+    #[test]
+    fn external_running_caddy_refuses_the_start_and_the_launch_never_runs_even_when_accepted() {
+        let snap = snapshot(vec![resident(RunState::Running, Some(77))], true);
+        let launched = Cell::new(false);
+        let result = guard_start(&report(Some(&snap), &free_ports()), true, || {
+            launched.set(true);
+            Ok(())
+        });
+        let error = result.expect_err("refused");
+        assert_eq!(error.code(), AppErrorCode::Conflict);
+        assert_eq!(reason_of(&error), json!("EXTERNAL_RUNNING"));
+        assert!(!launched.get());
+    }
+
+    #[test]
+    fn occupied_own_port_refuses_with_the_occupant_in_the_report() {
+        let snap = snapshot(Vec::new(), true);
+        let probe = StaticProbe {
+            listen: ListenProbe::Occupied(Some(Occupant {
+                name: "caddy".to_owned(),
+                pid: 9,
+            })),
+            upstream: UpstreamProbe::Reachable,
+        };
+        let launched = Cell::new(false);
+        let conflicts = report(Some(&snap), &probe);
+        let error = guard_start(&conflicts, false, || {
+            launched.set(true);
+            Ok(())
+        })
+        .expect_err("refused");
+        assert_eq!(reason_of(&error), json!("PORT_OCCUPIED"));
+        assert_eq!(
+            conflicts.ports[0].occupant,
+            Some(Occupant {
+                name: "caddy".to_owned(),
+                pid: 9,
+            })
+        );
+        assert!(!launched.get());
+    }
+
+    #[test]
+    fn unconfirmed_snapshot_needs_an_explicit_acceptance_and_is_never_silently_allowed() {
+        let conflicts = report(None, &free_ports());
+        let launched = Cell::new(false);
+        let error = guard_start(&conflicts, false, || {
+            launched.set(true);
+            Ok(7)
+        })
+        .expect_err("needs confirmation");
+        assert_eq!(reason_of(&error), json!("UNCONFIRMED"));
+        assert!(!launched.get());
+
+        let accepted = guard_start(&conflicts, true, || {
+            launched.set(true);
+            Ok(7)
+        });
+        assert_eq!(accepted, Ok(7));
+        assert!(launched.get());
+    }
+
+    #[test]
+    fn a_clear_check_lets_the_launch_run_and_an_unreachable_upstream_only_notes_it() {
+        let snap = snapshot(Vec::new(), true);
+        let probe = StaticProbe {
+            listen: ListenProbe::Free,
+            upstream: UpstreamProbe::Unreachable,
+        };
+        let conflicts = report(Some(&snap), &probe);
+        assert_eq!(conflicts.upstreams[0].state, UpstreamState::Unreachable);
+        assert_eq!(guard_start(&conflicts, false, || Ok(1)), Ok(1));
+    }
+
+    #[test]
+    fn a_blocking_conflict_is_never_bypassed_by_the_acceptance_flag() {
+        let snap = snapshot(vec![resident(RunState::Running, Some(1))], false);
+        let conflicts = report(Some(&snap), &free_ports());
+        let error = guard_start(&conflicts, true, || Ok(())).expect_err("blocked");
+        assert_eq!(reason_of(&error), json!("EXTERNAL_RUNNING"));
     }
 }

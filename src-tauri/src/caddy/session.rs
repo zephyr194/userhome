@@ -35,6 +35,7 @@ use uuid::Uuid;
 use crate::{
     caddy::{
         config::{CaddyRules, authority},
+        conflict::{ConflictReport, ConflictTargets},
         detect::{DetectReport, DetectStatus},
         validate::{
             self, CaddyDiagnostic, CaddyRunner, CheckRequest, MAX_CHECK_BYTES, ValidationReport,
@@ -176,6 +177,8 @@ pub struct StartSummary {
     pub notes: Vec<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blocked: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conflicts: Option<ConflictReport>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -471,7 +474,18 @@ struct RunPlan {
     source: ConfigSource,
     executable: PathBuf,
     text: String,
+    targets: ConflictTargets,
     stored_at: Instant,
+}
+
+impl RunPlan {
+    fn matches(&self, id: &str, source: ConfigSource) -> bool {
+        self.id == id && self.source == source && self.stored_at.elapsed() <= PLAN_TTL
+    }
+}
+
+fn stale_plan() -> AppError {
+    AppError::conflict("开启前摘要已失效，请重新预览后再开启。")
 }
 
 /// One started own process. Logs, exit facts and the failure reason stay here
@@ -612,6 +626,7 @@ impl CaddyRunCoordinator {
             admin_endpoint: ADMIN_ENDPOINT_LABEL,
             notes: NOTES_COMMON.to_vec(),
             blocked: None,
+            conflicts: None,
         };
         let source_notes = match input.source {
             ConfigSource::Rules => NOTES_RULES,
@@ -674,6 +689,7 @@ impl CaddyRunCoordinator {
             source: input.source,
             executable,
             text: input.text.to_owned(),
+            targets: ConflictTargets::for_rules(input.rules),
             stored_at: Instant::now(),
         });
         summary
@@ -699,17 +715,24 @@ impl CaddyRunCoordinator {
         Ok(status)
     }
 
+    /// Reads the stored plan's addresses without consuming it, so a start that
+    /// the conflict gate refuses can be retried with the same plan.
+    pub fn plan_targets(
+        &self,
+        id: &str,
+        source: ConfigSource,
+    ) -> Result<ConflictTargets, AppError> {
+        match lock(&self.plan).as_ref() {
+            Some(plan) if plan.matches(id, source) => Ok(plan.targets.clone()),
+            _ => Err(stale_plan()),
+        }
+    }
+
     fn take_plan(&self, id: &str, source: ConfigSource) -> Result<RunPlan, AppError> {
         let stored = lock(&self.plan).take();
         match stored {
-            Some(plan)
-                if plan.id == id
-                    && plan.source == source
-                    && plan.stored_at.elapsed() <= PLAN_TTL =>
-            {
-                Ok(plan)
-            }
-            _ => Err(AppError::conflict("开启前摘要已失效，请重新预览后再开启。")),
+            Some(plan) if plan.matches(id, source) => Ok(plan),
+            _ => Err(stale_plan()),
         }
     }
 
@@ -1319,6 +1342,91 @@ mod tests {
         assert_eq!(summary.blocked, None);
         assert!(summary.plan_id.is_some());
         assert_eq!(summary.working_directory, RUN_WORKING_DIRECTORY_LABEL);
+    }
+
+    #[test]
+    fn plan_targets_are_read_from_the_stored_plan_without_consuming_it() {
+        use crate::caddy::conflict::Endpoint;
+
+        let scratch = Scratch::new();
+        let executable = scratch.fixture("sleep 30");
+        let rules = CaddyRules {
+            version: RULES_VERSION,
+            sites: vec![SiteRule {
+                enabled: true,
+                listen: Listen {
+                    host: "127.0.0.1".to_owned(),
+                    port: 8080,
+                },
+                upstreams: vec![Upstream {
+                    scheme: UpstreamScheme::Http,
+                    host: "127.0.0.1".to_owned(),
+                    port: 3000,
+                }],
+            }],
+        };
+        let coordinator = CaddyRunCoordinator::default();
+        let summary = coordinator.prepare(PrepareInput {
+            source: ConfigSource::Rules,
+            detect: &available(&executable),
+            text: "{\n\tauto_https off\n}\n",
+            rules: Some(&rules),
+        });
+        assert_eq!(summary.conflicts, None);
+        let plan_id = summary.plan_id.expect("plan");
+
+        let targets = coordinator
+            .plan_targets(&plan_id, ConfigSource::Rules)
+            .expect("targets");
+        assert_eq!(
+            targets.listen,
+            Some(vec![Endpoint {
+                host: "127.0.0.1".to_owned(),
+                port: 8080,
+            }])
+        );
+        assert_eq!(
+            targets.upstreams,
+            vec![Endpoint {
+                host: "127.0.0.1".to_owned(),
+                port: 3000,
+            }]
+        );
+        assert!(
+            coordinator
+                .plan_targets(&plan_id, ConfigSource::Rules)
+                .is_ok()
+        );
+        assert!(
+            coordinator
+                .plan_targets("not-the-plan", ConfigSource::Rules)
+                .is_err()
+        );
+        assert!(
+            coordinator
+                .plan_targets(&plan_id, ConfigSource::Raw)
+                .is_err()
+        );
+        assert!(coordinator.take_plan(&plan_id, ConfigSource::Rules).is_ok());
+        assert!(
+            coordinator
+                .plan_targets(&plan_id, ConfigSource::Rules)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn raw_plans_expose_no_listen_addresses_so_ports_cannot_be_assumed() {
+        let scratch = Scratch::new();
+        let executable = scratch.fixture("sleep 30");
+        let coordinator = CaddyRunCoordinator::default();
+        let summary = prepare_raw(&coordinator, &executable, "example.com {\n}\n");
+        let plan_id = summary.plan_id.expect("plan");
+        let targets = coordinator
+            .plan_targets(&plan_id, ConfigSource::Raw)
+            .expect("targets");
+        assert_eq!(targets.listen, None);
+        assert!(targets.upstreams.is_empty());
     }
 
     #[test]

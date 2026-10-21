@@ -128,6 +128,19 @@ impl AppError {
         }
     }
 
+    pub(crate) fn conflict_with_reason(message: &str, reason: &str) -> Self {
+        let details = BTreeMap::from([(
+            "reason".to_owned(),
+            AppErrorDetail::String(reason.to_owned()),
+        )]);
+        Self {
+            code: AppErrorCode::Conflict,
+            message: message.to_owned(),
+            details: Some(details),
+            retryable: false,
+        }
+    }
+
     pub(crate) fn process_failed(message: &str, retryable: bool) -> Self {
         Self {
             code: AppErrorCode::ProcessFailed,
