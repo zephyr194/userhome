@@ -1,3 +1,4 @@
+pub mod command;
 pub mod detect;
 pub mod read;
 pub mod registry;
