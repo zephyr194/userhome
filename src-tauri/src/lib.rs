@@ -17,6 +17,7 @@ pub mod process_session;
 pub mod security;
 pub mod services;
 pub mod settings;
+pub mod text_tools;
 pub mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -144,6 +145,7 @@ pub fn run() {
             commands::services::preview_service_action,
             commands::services::execute_service_action,
             commands::status::get_app_status,
+            commands::text_tools::format_json,
             commands::elevation::get_helper_status,
             commands::elevation::register_helper,
             commands::elevation::unregister_helper,

@@ -12,3 +12,4 @@ pub mod resources;
 pub mod services;
 pub mod settings;
 pub mod status;
+pub mod text_tools;

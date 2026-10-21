@@ -64,6 +64,25 @@ impl AppError {
         }
     }
 
+    pub(crate) fn invalid_input_at(message: &str, line: usize, column: usize) -> Self {
+        let details = BTreeMap::from([
+            (
+                "line".to_owned(),
+                AppErrorDetail::Number(serde_json::Number::from(line as u64)),
+            ),
+            (
+                "column".to_owned(),
+                AppErrorDetail::Number(serde_json::Number::from(column as u64)),
+            ),
+        ]);
+        Self {
+            code: AppErrorCode::InvalidInput,
+            message: message.to_owned(),
+            details: Some(details),
+            retryable: false,
+        }
+    }
+
     pub(crate) fn not_found(message: &str) -> Self {
         Self {
             code: AppErrorCode::NotFound,
