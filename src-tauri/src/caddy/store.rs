@@ -24,6 +24,8 @@ use crate::{
 pub const STORE_DIRECTORY: &str = "caddy";
 pub const RULES_FILE: &str = "rules.json";
 pub const CADDYFILE: &str = "Caddyfile";
+pub const RAW_FILE: &str = "original.caddyfile";
+pub const CHECKS_DIRECTORY: &str = "checks";
 pub const MAX_STORE_BYTES: u64 = 256 * 1024;
 const FILE_MODE: u32 = 0o600;
 const DIRECTORY_MODE: u32 = 0o700;
@@ -76,6 +78,48 @@ impl CaddyStore {
                 })
             })
             .transpose()
+    }
+
+    pub fn load_raw(&self) -> Result<Option<String>, AppError> {
+        self.read_store_file(RAW_FILE)?
+            .map(|bytes| String::from_utf8(bytes).map_err(|_| raw_not_text()))
+            .transpose()
+    }
+
+    /// Saves the original text verbatim. It is never parsed or rewritten, and
+    /// it is independent of the form rules and of the generated Caddyfile.
+    pub fn save_raw(&self, text: &str) -> Result<(), AppError> {
+        if text.len() as u64 > MAX_STORE_BYTES {
+            return Err(AppError::invalid_input("原文超过 256 KiB 上限，未保存。"));
+        }
+        if text.contains('\0') {
+            return Err(AppError::invalid_input("原文包含不允许的字符，未保存。"));
+        }
+        let _guard = self.write_lock.lock().map_err(|_| AppError::internal())?;
+        self.ensure_directory()?;
+        if let Some(existing) = self.read_store_file(RAW_FILE)? {
+            String::from_utf8(existing).map_err(|_| raw_not_text())?;
+        }
+        atomic_replace(&self.path(RAW_FILE), text.as_bytes(), FILE_MODE, None)
+            .map_err(into_app_error)
+    }
+
+    /// Private, owner-only directory for scratch copies made during checks.
+    pub fn checks_root(&self) -> Result<PathBuf, AppError> {
+        self.ensure_directory()?;
+        let path = self.path(CHECKS_DIRECTORY);
+        match fs::symlink_metadata(&path) {
+            Ok(metadata) if metadata.is_dir() => Ok(path),
+            Ok(_) => Err(AppError::permission_denied(
+                "Caddy 校验目录不是普通目录，已停止。",
+            )),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => DirBuilder::new()
+                .mode(DIRECTORY_MODE)
+                .create(&path)
+                .map(|()| path)
+                .map_err(|_| AppError::permission_denied("Caddy 校验目录无法创建。")),
+            Err(_) => Err(AppError::permission_denied("Caddy 校验目录无法访问。")),
+        }
     }
 
     pub fn save(&self, rules: &CaddyRules) -> Result<(), AppError> {
@@ -173,6 +217,10 @@ fn decode_rules(bytes: &[u8]) -> Result<CaddyRules, AppError> {
 
 fn unreadable_rules() -> AppError {
     AppError::validation_failed("规则文件损坏或版本不受支持，已停止读取，原文件未被覆盖。")
+}
+
+fn raw_not_text() -> AppError {
+    AppError::validation_failed("已保存的原文不是有效文本，已停止读取，原文件未被覆盖。")
 }
 
 fn size_limit_error() -> AppError {
@@ -558,6 +606,209 @@ mod tests {
         assert_eq!(
             store.load_rules().expect("rules were committed").rules,
             two_sites()
+        );
+    }
+
+    const ORIGINAL: &str = "# note\nexample.com {\n\tfrobnicate on\n\treverse_proxy 127.0.0.1:3000 {\n\t\tunknown_option x\n\t}\n}\r\n";
+
+    #[test]
+    fn raw_text_round_trips_verbatim_including_comments_and_unknown_directives() {
+        let root = TempRoot::new();
+        let store = root.store();
+
+        store.save_raw(ORIGINAL).expect("save");
+
+        assert_eq!(store.load_raw().expect("load"), Some(ORIGINAL.to_owned()));
+        assert_eq!(
+            fs::read(root.caddy_dir().join(RAW_FILE)).expect("file"),
+            ORIGINAL.as_bytes()
+        );
+    }
+
+    #[test]
+    fn missing_raw_text_is_none_and_loading_creates_nothing() {
+        let root = TempRoot::new();
+
+        assert_eq!(root.store().load_raw().expect("no error"), None);
+        assert!(!root.caddy_dir().exists());
+    }
+
+    #[test]
+    fn saving_raw_text_leaves_rules_and_generated_text_untouched() {
+        let root = TempRoot::new();
+        let store = root.store();
+        store.save(&two_sites()).expect("rules");
+        let before = (
+            store.load_rules().expect("rules before"),
+            store.saved_caddyfile().expect("generated before"),
+        );
+
+        store.save_raw(ORIGINAL).expect("raw");
+
+        assert_eq!(store.load_rules().expect("rules after"), before.0);
+        assert_eq!(store.saved_caddyfile().expect("generated after"), before.1);
+        assert_eq!(
+            store.load_raw().expect("raw after"),
+            Some(ORIGINAL.to_owned())
+        );
+    }
+
+    #[test]
+    fn saving_raw_text_alone_does_not_create_rules() {
+        let root = TempRoot::new();
+        let store = root.store();
+
+        store.save_raw(ORIGINAL).expect("raw");
+
+        assert_eq!(
+            store.load_rules().expect("defaults").source,
+            RulesSource::Default
+        );
+        assert_eq!(store.saved_caddyfile().expect("no generated text"), None);
+    }
+
+    #[test]
+    fn raw_file_is_owner_only_and_the_store_keeps_only_expected_files() {
+        let root = TempRoot::new();
+        let store = root.store();
+
+        store.save_raw("one").expect("first");
+        store.save_raw("two").expect("second");
+
+        let mode = fs::metadata(root.caddy_dir().join(RAW_FILE))
+            .expect("file")
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(mode, FILE_MODE);
+        assert_eq!(file_names(&root.caddy_dir()), vec![RAW_FILE.to_owned()]);
+        assert_eq!(store.load_raw().expect("load"), Some("two".to_owned()));
+    }
+
+    #[test]
+    fn raw_text_over_the_limit_is_refused_before_any_file_is_created() {
+        let root = TempRoot::new();
+        let oversized = "a".repeat(MAX_STORE_BYTES as usize + 1);
+
+        assert_eq!(
+            root.store()
+                .save_raw(&oversized)
+                .expect_err("refused")
+                .code(),
+            AppErrorCode::InvalidInput
+        );
+        assert!(!root.caddy_dir().exists());
+    }
+
+    #[test]
+    fn raw_text_exactly_at_the_limit_is_accepted() {
+        let root = TempRoot::new();
+        let exact = "a".repeat(MAX_STORE_BYTES as usize);
+
+        root.store().save_raw(&exact).expect("accepted");
+
+        assert_eq!(root.store().load_raw().expect("load"), Some(exact));
+    }
+
+    #[test]
+    fn raw_text_with_a_nul_byte_is_refused() {
+        let root = TempRoot::new();
+
+        assert_eq!(
+            root.store().save_raw("a\0b").expect_err("refused").code(),
+            AppErrorCode::InvalidInput
+        );
+        assert!(!root.caddy_dir().exists());
+    }
+
+    #[test]
+    fn malformed_raw_file_fails_closed_on_load_and_is_not_overwritten() {
+        let root = TempRoot::new();
+        write_store_file(&root.caddy_dir(), RAW_FILE, &[0xff, 0xfe, 0x00]);
+        let store = root.store();
+
+        assert_eq!(
+            store.load_raw().expect_err("fails closed").code(),
+            AppErrorCode::ValidationFailed
+        );
+        assert_eq!(
+            store.save_raw("new").expect_err("refused").code(),
+            AppErrorCode::ValidationFailed
+        );
+        assert_eq!(
+            fs::read(root.caddy_dir().join(RAW_FILE)).expect("original"),
+            vec![0xff, 0xfe, 0x00]
+        );
+    }
+
+    #[test]
+    fn oversized_raw_file_fails_closed_on_load_and_save() {
+        let root = TempRoot::new();
+        let oversized = vec![b'a'; MAX_STORE_BYTES as usize + 1];
+        write_store_file(&root.caddy_dir(), RAW_FILE, &oversized);
+        let store = root.store();
+
+        assert_eq!(
+            store.load_raw().expect_err("size limit").code(),
+            AppErrorCode::ValidationFailed
+        );
+        assert_eq!(
+            store.save_raw("new").expect_err("size limit").code(),
+            AppErrorCode::ValidationFailed
+        );
+        assert_eq!(
+            fs::read(root.caddy_dir().join(RAW_FILE))
+                .expect("original")
+                .len(),
+            oversized.len()
+        );
+    }
+
+    #[test]
+    fn symlinked_raw_file_is_never_followed_for_load_or_save() {
+        let root = TempRoot::new();
+        let outside = root.0.join("outside.txt");
+        fs::write(&outside, b"keep").expect("outside");
+        fs::create_dir_all(root.caddy_dir()).expect("store directory");
+        symlink(&outside, root.caddy_dir().join(RAW_FILE)).expect("symlink");
+        let store = root.store();
+
+        assert_eq!(
+            store.load_raw().expect_err("refused").code(),
+            AppErrorCode::PermissionDenied
+        );
+        assert_eq!(
+            store.save_raw("new").expect_err("refused").code(),
+            AppErrorCode::PermissionDenied
+        );
+        assert_eq!(fs::read(&outside).expect("outside"), b"keep");
+    }
+
+    #[test]
+    fn checks_root_is_owner_only_inside_the_store_and_idempotent() {
+        let root = TempRoot::new();
+        let store = root.store();
+
+        let first = store.checks_root().expect("created");
+        let second = store.checks_root().expect("reused");
+
+        assert_eq!(first, root.caddy_dir().join(CHECKS_DIRECTORY));
+        assert_eq!(first, second);
+        let mode = fs::metadata(&first).expect("dir").permissions().mode() & 0o777;
+        assert_eq!(mode, DIRECTORY_MODE);
+    }
+
+    #[test]
+    fn a_symlinked_checks_root_is_refused() {
+        let root = TempRoot::new();
+        let elsewhere = root.0.join("elsewhere");
+        fs::create_dir_all(&elsewhere).expect("elsewhere");
+        fs::create_dir_all(root.caddy_dir()).expect("store directory");
+        symlink(&elsewhere, root.caddy_dir().join(CHECKS_DIRECTORY)).expect("symlink");
+
+        assert_eq!(
+            root.store().checks_root().expect_err("refused").code(),
+            AppErrorCode::PermissionDenied
         );
     }
 }
