@@ -636,8 +636,8 @@ pub struct RunHandle<'a> {
 }
 
 impl RunHandle<'_> {
-    pub fn cancel_flag(&self) -> &AtomicBool {
-        &self.cancel
+    pub fn cancel_flag(&self) -> Arc<AtomicBool> {
+        Arc::clone(&self.cancel)
     }
 }
 
