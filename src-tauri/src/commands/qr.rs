@@ -8,12 +8,12 @@ use tauri::{Manager, State};
 
 use crate::{
     config::{ConfigCoordinator, read::hash_bytes},
-    error::AppError,
+    error::{AppError, AppErrorCode},
     grants::{
-        ConfirmRequest, GrantCoordinator, GrantId, GrantPurpose, ReadError, RecoveryPoint,
-        ResourceWriteContext, ResourceWriteCoordinator, WriteKind, WriteOutcome,
+        ConfirmRequest, GrantCoordinator, GrantError, GrantId, GrantPurpose, ReadError,
+        RecoveryPoint, ResourceWriteContext, ResourceWriteCoordinator, WriteKind, WriteOutcome,
     },
-    operations::OperationCoordinator,
+    operations::{OperationCoordinator, OperationStatus},
     qr::{
         ErrorCorrection, IconError, IconFormat, MAX_ICON_BYTES, PixelSize, QrError, QrImage,
         decode_icon, encode_png, encode_png_with_icon, thumbnail_png,
@@ -88,6 +88,17 @@ pub struct PreparedQrExport {
 pub enum PrepareQrExportOutcome {
     Cancelled,
     Previewed(PreparedQrExport),
+}
+
+/// `grant_release_error` is set when the write ran but the save location's grant
+/// could not be revoked; the write result is kept, the failure is reported.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfirmQrExportOutcome {
+    #[serde(flatten)]
+    pub outcome: WriteOutcome,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grant_release_error: Option<AppError>,
 }
 
 /// The icon is read once when chosen. Its bytes stay in backend memory under an
@@ -266,40 +277,73 @@ pub async fn prepare_qr_export(
     .await
     .map_err(|_| AppError::internal())??;
 
-    let selection = select_grant(
-        &grants,
-        &PICKER_OPEN,
-        native_picker(app),
-        PickMode::SaveLocation,
-        GrantPurpose::ConfigFile,
-        canonical_home(),
-    )
-    .await?;
-    let SelectGrantOutcome::Selected(summary) = selection else {
-        return Ok(PrepareQrExportOutcome::Cancelled);
-    };
-
     let ctx = ResourceWriteContext {
         grants: &grants,
         operations: &operations,
         environment: config.environment()?,
         retention: settings.get()?.preferences().backup_retention(),
     };
-    let batch = writes.preview_png_export(&ctx, &summary.id, png)?;
+    prepare_export_with(
+        &ctx,
+        &writes,
+        &PICKER_OPEN,
+        native_picker(app),
+        canonical_home(),
+        png,
+    )
+    .await
+}
+
+pub(crate) async fn prepare_export_with<P: NativePicker>(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    picker_open: &AtomicBool,
+    picker: P,
+    home: Option<PathBuf>,
+    png: Vec<u8>,
+) -> Result<PrepareQrExportOutcome, AppError> {
+    let SelectGrantOutcome::Selected(summary) = select_grant(
+        ctx.grants,
+        picker_open,
+        picker,
+        PickMode::SaveLocation,
+        GrantPurpose::ConfigFile,
+        home,
+    )
+    .await?
+    else {
+        return Ok(PrepareQrExportOutcome::Cancelled);
+    };
+    match preview_export(ctx, writes, &summary.id, png) {
+        Ok(prepared) => Ok(PrepareQrExportOutcome::Previewed(prepared)),
+        Err(error) => {
+            let _ = release_export_grant(ctx.grants, &summary.id);
+            Err(error)
+        }
+    }
+}
+
+fn preview_export(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    grant_id: &GrantId,
+    png: Vec<u8>,
+) -> Result<PreparedQrExport, AppError> {
+    let batch = writes.preview_png_export(ctx, grant_id, png)?;
     let step = batch
         .steps
         .into_iter()
         .next()
         .ok_or_else(AppError::internal)?;
-    Ok(PrepareQrExportOutcome::Previewed(PreparedQrExport {
-        grant_id: summary.id.as_str().to_owned(),
+    Ok(PreparedQrExport {
+        grant_id: grant_id.as_str().to_owned(),
         operation_id: step.operation.operation_id,
         kind: step.kind,
         recovery_point: step.recovery_point,
         target: step.target,
         current_hash: step.current_hash,
         proposed_hash: step.proposed_hash,
-    }))
+    })
 }
 
 #[tauri::command]
@@ -310,20 +354,93 @@ pub fn confirm_qr_export(
     config: State<'_, ConfigCoordinator>,
     settings: State<'_, SettingsCoordinator>,
     input: ConfirmQrExportInput,
-) -> Result<WriteOutcome, AppError> {
+) -> Result<ConfirmQrExportOutcome, AppError> {
+    let grant_id = GrantId::parse(&input.grant_id)?;
     let request = ConfirmRequest {
         operation_id: input.operation_id,
-        grant_id: GrantId::parse(&input.grant_id)?,
+        grant_id: grant_id.clone(),
         relative: None,
     };
-    let ctx = ResourceWriteContext {
-        grants: &grants,
-        operations: &operations,
-        environment: config.environment()?,
-        retention: settings.get()?.preferences().backup_retention(),
-    };
-    let execution = writes.execute_png_export(&ctx, &request, |_| Ok(()))?;
-    Ok(execution.outcome)
+    finish_confirm(&grants, &grant_id, || {
+        let ctx = ResourceWriteContext {
+            grants: &grants,
+            operations: &operations,
+            environment: config.environment()?,
+            retention: settings.get()?.preferences().backup_retention(),
+        };
+        execute_export(&ctx, &writes, &request)
+    })
+}
+
+/// The write result is always returned when there is one. The save location's
+/// grant is revoked whatever the write did, since the grant also authorizes
+/// writes to that file; a revoke failure is reported beside the result.
+pub(crate) fn finish_confirm(
+    grants: &GrantCoordinator,
+    grant_id: &GrantId,
+    run: impl FnOnce() -> Result<WriteOutcome, AppError>,
+) -> Result<ConfirmQrExportOutcome, AppError> {
+    let result = run();
+    let released = release_export_grant(grants, grant_id);
+    Ok(ConfirmQrExportOutcome {
+        outcome: result?,
+        grant_release_error: released.err(),
+    })
+}
+
+/// A grant that is already gone is not an error: the release is then complete.
+fn release_export_grant(grants: &GrantCoordinator, grant_id: &GrantId) -> Result<(), AppError> {
+    match grants.revoke(grant_id) {
+        Ok(()) | Err(GrantError::UnknownGrant) => Ok(()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn execute_export(
+    ctx: &ResourceWriteContext<'_>,
+    writes: &ResourceWriteCoordinator,
+    request: &ConfirmRequest,
+) -> Result<WriteOutcome, AppError> {
+    Ok(writes.execute_png_export(ctx, request, |_| Ok(()))?.outcome)
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DiscardQrExportInput {
+    grant_id: String,
+    operation_id: String,
+}
+
+#[tauri::command]
+pub fn discard_qr_export(
+    grants: State<'_, GrantCoordinator>,
+    operations: State<'_, OperationCoordinator>,
+    input: DiscardQrExportInput,
+) -> Result<(), AppError> {
+    discard_export(&grants, &operations, &input)
+}
+
+/// Gives up a previewed export. The grant is revoked and the preview cancelled,
+/// so a later confirmation is refused. Safe to repeat.
+pub(crate) fn discard_export(
+    grants: &GrantCoordinator,
+    operations: &OperationCoordinator,
+    input: &DiscardQrExportInput,
+) -> Result<(), AppError> {
+    let grant_id = GrantId::parse(&input.grant_id)?;
+    release_export_grant(grants, &grant_id)?;
+    discard_preview(operations, &input.operation_id)
+}
+
+fn discard_preview(operations: &OperationCoordinator, operation_id: &str) -> Result<(), AppError> {
+    match operations.get(operation_id) {
+        Ok(details) if details.status == OperationStatus::Previewed => {
+            operations.cancel(operation_id).map(|_| ())
+        }
+        Ok(_) => Ok(()),
+        Err(error) if error.code() == AppErrorCode::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
 }
 
 fn encode_preview(input: &QrInput, icon: Option<&[u8]>) -> Result<QrPreview, AppError> {
@@ -702,5 +819,325 @@ mod icon_selection_tests {
         assert_eq!(marked.level, ErrorCorrection::H);
         assert!(marked.icon_applied);
         assert_ne!(plain.sha256, marked.sha256);
+    }
+}
+
+#[cfg(test)]
+mod export_grant_tests {
+    use std::{fs, path::PathBuf, sync::atomic::AtomicBool};
+
+    use uuid::Uuid;
+
+    use crate::{
+        commands::grants::{NativePicker, PickMode},
+        config::ConfigEnvironment,
+        error::{AppError, AppErrorCode},
+        grants::{
+            ConfirmRequest, GrantCoordinator, GrantId, GrantRecord, GrantStore,
+            ResourceWriteContext, ResourceWriteCoordinator, WriteRequest, WriteStatus,
+        },
+        operations::{OperationCoordinator, OperationStatus},
+        settings::BackupRetention,
+    };
+
+    use super::{
+        ConfirmQrExportOutcome, DiscardQrExportInput, PrepareQrExportOutcome, PreparedQrExport,
+        discard_export, execute_export, finish_confirm, prepare_export_with,
+    };
+
+    const PNG_SIGNATURE: &[u8] = &[0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n'];
+
+    struct FixedPicker(Option<PathBuf>);
+
+    impl NativePicker for FixedPicker {
+        fn pick(&self, _mode: PickMode) -> Result<Option<PathBuf>, AppError> {
+            Ok(self.0.clone())
+        }
+    }
+
+    struct Sandbox {
+        root: PathBuf,
+        home: PathBuf,
+        environment: ConfigEnvironment,
+        grants: GrantCoordinator,
+        operations: OperationCoordinator,
+        writes: ResourceWriteCoordinator,
+        picker_open: AtomicBool,
+    }
+
+    impl Sandbox {
+        fn new() -> Self {
+            let root = fs::canonicalize(std::env::temp_dir())
+                .expect("temp dir")
+                .join(format!("userhome-qr-export-{}", Uuid::new_v4()));
+            let home = root.join("home");
+            fs::create_dir_all(home.join("project")).expect("create project");
+            Self {
+                environment: ConfigEnvironment::new(
+                    home.clone(),
+                    root.join("brew"),
+                    home.join("backups"),
+                ),
+                grants: GrantCoordinator::new(
+                    GrantStore::new(root.join("support")),
+                    Some(home.clone()),
+                ),
+                operations: OperationCoordinator::default(),
+                writes: ResourceWriteCoordinator::default(),
+                picker_open: AtomicBool::new(false),
+                root,
+                home,
+            }
+        }
+
+        fn project(&self, name: &str) -> PathBuf {
+            self.home.join("project").join(name)
+        }
+
+        fn ctx(&self) -> ResourceWriteContext<'_> {
+            ResourceWriteContext {
+                grants: &self.grants,
+                operations: &self.operations,
+                environment: &self.environment,
+                retention: BackupRetention::FIVE,
+            }
+        }
+
+        fn prepare(
+            &self,
+            picked: Option<PathBuf>,
+            png: Vec<u8>,
+        ) -> Result<PrepareQrExportOutcome, AppError> {
+            tauri::async_runtime::block_on(prepare_export_with(
+                &self.ctx(),
+                &self.writes,
+                &self.picker_open,
+                FixedPicker(picked),
+                Some(self.home.clone()),
+                png,
+            ))
+        }
+
+        fn confirm(&self, prepared: &PreparedQrExport) -> Result<ConfirmQrExportOutcome, AppError> {
+            let grant_id = GrantId::parse(&prepared.grant_id).expect("grant id");
+            let request = confirm_request(prepared);
+            finish_confirm(&self.grants, &grant_id, || {
+                execute_export(&self.ctx(), &self.writes, &request)
+            })
+        }
+
+        fn granted(&self) -> Vec<GrantRecord> {
+            self.grants.list().expect("list")
+        }
+
+        fn assert_unusable(&self, grant_id: &str) {
+            let grant_id = GrantId::parse(grant_id).expect("grant id");
+            assert!(
+                self.grants.resolve(&grant_id).is_err(),
+                "the authorization still resolves"
+            );
+            let request = WriteRequest {
+                grant_id,
+                relative: None,
+                expected_sha256: None,
+                content: "text\n".to_owned(),
+                sensitive: false,
+            };
+            assert!(
+                self.writes.preview(&self.ctx(), vec![request]).is_err(),
+                "a general text preview is still accepted"
+            );
+        }
+    }
+
+    impl Drop for Sandbox {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    fn confirm_request(prepared: &PreparedQrExport) -> ConfirmRequest {
+        ConfirmRequest {
+            operation_id: prepared.operation_id.clone(),
+            grant_id: GrantId::parse(&prepared.grant_id).expect("grant id"),
+            relative: None,
+        }
+    }
+
+    fn png_bytes(tag: &str) -> Vec<u8> {
+        let mut bytes = PNG_SIGNATURE.to_vec();
+        bytes.extend_from_slice(tag.as_bytes());
+        bytes.extend_from_slice(&[0, 1, 2]);
+        bytes
+    }
+
+    fn previewed(outcome: PrepareQrExportOutcome) -> PreparedQrExport {
+        match outcome {
+            PrepareQrExportOutcome::Previewed(prepared) => prepared,
+            PrepareQrExportOutcome::Cancelled => panic!("expected a preview"),
+        }
+    }
+
+    #[test]
+    fn a_confirmed_export_releases_its_grant() {
+        let sandbox = Sandbox::new();
+        let file = sandbox.project("qr.png");
+        let png = png_bytes("confirmed");
+        let prepared = previewed(
+            sandbox
+                .prepare(Some(file.clone()), png.clone())
+                .expect("prepare"),
+        );
+        assert_eq!(sandbox.granted().len(), 1);
+
+        let confirmed = sandbox.confirm(&prepared).expect("confirm");
+        assert_eq!(confirmed.outcome.status, WriteStatus::Succeeded);
+        assert_eq!(confirmed.grant_release_error, None);
+        assert_eq!(fs::read(&file).expect("written"), png);
+        assert!(sandbox.granted().is_empty());
+        sandbox.assert_unusable(&prepared.grant_id);
+    }
+
+    #[test]
+    fn a_failed_confirmation_releases_its_grant() {
+        let sandbox = Sandbox::new();
+        let file = sandbox.project("qr.png");
+        fs::write(&file, png_bytes("old")).expect("seed");
+        let prepared = previewed(
+            sandbox
+                .prepare(Some(file.clone()), png_bytes("new"))
+                .expect("prepare"),
+        );
+        let other = b"someone else's file".to_vec();
+        fs::write(&file, &other).expect("changed");
+
+        let error = sandbox.confirm(&prepared).expect_err("stale preview");
+        assert_eq!(error.code(), AppErrorCode::Conflict);
+        assert_eq!(fs::read(&file).expect("kept"), other);
+        assert!(sandbox.granted().is_empty());
+        sandbox.assert_unusable(&prepared.grant_id);
+    }
+
+    #[test]
+    fn a_failed_preview_releases_the_grant_it_just_created() {
+        let sandbox = Sandbox::new();
+        let error = sandbox
+            .prepare(Some(sandbox.project("qr.txt")), png_bytes("name"))
+            .expect_err("a PNG must be named .png");
+        assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        assert!(sandbox.granted().is_empty());
+        assert!(!sandbox.project("qr.txt").exists());
+    }
+
+    #[test]
+    fn a_failed_revoke_after_a_write_is_reported_and_the_write_is_kept() {
+        let sandbox = Sandbox::new();
+        let file = sandbox.project("qr.png");
+        let png = png_bytes("warned");
+        let prepared = previewed(
+            sandbox
+                .prepare(Some(file.clone()), png.clone())
+                .expect("prepare"),
+        );
+        let grant_id = GrantId::parse(&prepared.grant_id).expect("grant id");
+        let request = confirm_request(&prepared);
+        let store = sandbox.root.join("support").join("grants.json");
+        let confirmed = finish_confirm(&sandbox.grants, &grant_id, || {
+            let result = execute_export(&sandbox.ctx(), &sandbox.writes, &request);
+            fs::remove_file(&store).expect("remove the store file");
+            fs::create_dir(&store).expect("put a directory where the store file was");
+            result
+        })
+        .expect("the write result is returned");
+        assert_eq!(confirmed.outcome.status, WriteStatus::Succeeded);
+        assert_eq!(fs::read(&file).expect("written"), png);
+        assert!(confirmed.grant_release_error.is_some());
+    }
+
+    #[test]
+    fn cancelling_the_save_panel_creates_no_grant() {
+        let sandbox = Sandbox::new();
+        let outcome = sandbox.prepare(None, png_bytes("cancel")).expect("cancel");
+        assert_eq!(outcome, PrepareQrExportOutcome::Cancelled);
+        assert!(sandbox.granted().is_empty());
+    }
+
+    fn discard(sandbox: &Sandbox, prepared: &PreparedQrExport) -> Result<(), AppError> {
+        discard_export(
+            &sandbox.grants,
+            &sandbox.operations,
+            &DiscardQrExportInput {
+                grant_id: prepared.grant_id.clone(),
+                operation_id: prepared.operation_id.clone(),
+            },
+        )
+    }
+
+    #[test]
+    fn a_discarded_preview_is_never_confirmed_and_its_grant_is_gone() {
+        let sandbox = Sandbox::new();
+        let file = sandbox.project("qr.png");
+        let prepared = previewed(
+            sandbox
+                .prepare(Some(file.clone()), png_bytes("discard"))
+                .expect("prepare"),
+        );
+        discard(&sandbox, &prepared).expect("discard");
+
+        assert!(sandbox.granted().is_empty());
+        sandbox.assert_unusable(&prepared.grant_id);
+        assert_eq!(
+            sandbox
+                .operations
+                .get(&prepared.operation_id)
+                .expect("operation")
+                .status,
+            OperationStatus::Cancelled
+        );
+        sandbox
+            .confirm(&prepared)
+            .expect_err("a discarded preview is refused");
+        assert!(!file.exists());
+    }
+
+    #[test]
+    fn discarding_is_idempotent_and_safe_after_a_confirmation() {
+        let sandbox = Sandbox::new();
+        let prepared = previewed(
+            sandbox
+                .prepare(Some(sandbox.project("qr.png")), png_bytes("again"))
+                .expect("prepare"),
+        );
+        discard(&sandbox, &prepared).expect("first discard");
+        discard(&sandbox, &prepared).expect("the grant is already revoked");
+
+        let other = previewed(
+            sandbox
+                .prepare(Some(sandbox.project("other.png")), png_bytes("other"))
+                .expect("prepare"),
+        );
+        sandbox.confirm(&other).expect("confirm");
+        discard(&sandbox, &other).expect("a confirmed export has nothing left to discard");
+        discard(
+            &sandbox,
+            &PreparedQrExport {
+                operation_id: "no-such-operation".to_owned(),
+                ..other
+            },
+        )
+        .expect("an unknown operation is already gone");
+    }
+
+    #[test]
+    fn the_discard_request_names_only_the_grant_and_operation() {
+        let grant = "6f1c1d2e-3a4b-4c5d-8e9f-0a1b2c3d4e5f";
+        let raw = format!(r#"{{"grantId":"{grant}","operationId":"op-1"}}"#);
+        assert!(serde_json::from_str::<DiscardQrExportInput>(&raw).is_ok());
+        assert!(
+            serde_json::from_str::<DiscardQrExportInput>(&format!(
+                r#"{{"grantId":"{grant}","operationId":"op-1","path":"/x"}}"#
+            ))
+            .is_err()
+        );
     }
 }

@@ -155,6 +155,7 @@ pub fn run() {
             commands::qr::clear_qr_icon,
             commands::qr::prepare_qr_export,
             commands::qr::confirm_qr_export,
+            commands::qr::discard_qr_export,
             commands::elevation::get_helper_status,
             commands::elevation::register_helper,
             commands::elevation::unregister_helper,
