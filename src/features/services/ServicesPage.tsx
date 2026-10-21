@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Button } from "../../components/ui";
 import { decodeAppError } from "../../ipc/core";
+import type { ServiceFocus } from "../../app/routeDefinitions";
 import {
   listLaunchdServices,
   listServices,
   type CreateServiceExecution,
 } from "../../ipc/services";
 import { CreateServiceDialog } from "./CreateServiceDialog";
-import { findCreatedService } from "./launchdActionModel";
+import { findCreatedService, findServiceByFocus } from "./launchdActionModel";
 import {
   DISCOVERY_REFRESH_MIN_INTERVAL_MS,
   EMPTY_FILTER,
@@ -30,10 +31,12 @@ import { ServicesView } from "./ServicesView";
  */
 export function ServicesPage({
   initialSelectedServiceId,
+  initialFocus,
   onSelectedServiceChange,
   refreshId,
 }: {
   initialSelectedServiceId?: string;
+  initialFocus?: ServiceFocus;
   onSelectedServiceChange?: (serviceId?: string) => void;
   refreshId?: string;
 }) {
@@ -60,6 +63,8 @@ export function ServicesPage({
   );
   const selectionChangeRef = useRef(onSelectedServiceChange);
   const followLabelRef = useRef<string | undefined>(undefined);
+  // A focus handed over by another page applies to the first load only.
+  const focusRef = useRef<ServiceFocus | undefined>(initialFocus);
 
   useEffect(() => {
     selectionChangeRef.current = onSelectedServiceChange;
@@ -90,6 +95,11 @@ export function ServicesPage({
           followLabelRef.current = undefined;
           select(found.id);
         }
+        const focus = focusRef.current;
+        focusRef.current = undefined;
+        const focused =
+          focus === undefined ? undefined : findServiceByFocus(discovery.services, focus);
+        if (focused) select(focused.id);
       })
       .catch((error: unknown) => {
         if (requestRef.current !== requestId) return;

@@ -15,6 +15,7 @@ import {
   actionPanelReducer,
   availableActions,
   findCreatedService,
+  findServiceByFocus,
   INITIAL_ACTION_PANEL_STATE,
   isActionable,
   noActionsReason,
@@ -122,6 +123,16 @@ describe("outcome wording", () => {
       "进程：没有运行中的进程",
       "登录自动启动：已禁用",
     ]);
+  });
+});
+
+describe("finding a service named by another page", () => {
+  it("matches by label and domain and never by label alone", () => {
+    const user = launchdService({ label: "homebrew.mxcl.caddy", id: "gui/501/homebrew.mxcl.caddy", domain: "GUI" });
+    const system = launchdService({ label: "homebrew.mxcl.caddy", id: "system/homebrew.mxcl.caddy", domain: "SYSTEM" });
+    expect(findServiceByFocus([system, user], { label: "homebrew.mxcl.caddy", domain: "GUI" })?.id).toBe(user.id);
+    expect(findServiceByFocus([system], { label: "homebrew.mxcl.caddy", domain: "GUI" })).toBeUndefined();
+    expect(findServiceByFocus([user], { label: "other", domain: "GUI" })).toBeUndefined();
   });
 });
 

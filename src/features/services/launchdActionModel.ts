@@ -163,6 +163,15 @@ export function findCreatedService(
   );
 }
 
+export function findServiceByFocus(
+  services: readonly LaunchdService[],
+  focus: { label: string; domain: LaunchdService["domain"] },
+): LaunchdService | undefined {
+  return services.find(
+    (service) => service.domain === focus.domain && service.label === focus.label,
+  );
+}
+
 // ---- the panel's state machine --------------------------------------------
 
 export type ActionPanelState =

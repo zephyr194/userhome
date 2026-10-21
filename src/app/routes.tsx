@@ -21,7 +21,9 @@ import type {
 import type {
   AppRoute,
   NavigationIntent,
+  ServiceFocus,
 } from "./routeDefinitions";
+import { RouteNavigationContext } from "./routeNavigation";
 import type { SelectionMemory } from "./selectionMemory";
 
 interface RoutePanelProps {
@@ -35,6 +37,7 @@ interface RoutePanelProps {
   onSelectionChange: (patch: Partial<SelectionMemory>) => void;
   onSettingsGroupChange: (group: SettingsGroupId) => void;
   preferences: PreferencesState;
+  serviceFocus?: ServiceFocus;
   recentOperation: RecentOperationState;
   refresh: RefreshState;
   route: AppRoute;
@@ -57,6 +60,7 @@ export function RoutePanel({
   refresh,
   route,
   selection,
+  serviceFocus,
   settingsGroup,
 }: RoutePanelProps) {
   if (route.id === "dashboard") {
@@ -80,6 +84,7 @@ export function RoutePanel({
   if (route.id === "services") {
     return (
       <ServicesPage
+        initialFocus={serviceFocus}
         initialSelectedServiceId={selection.serviceId}
         onSelectedServiceChange={(serviceId) =>
           onSelectionChange({ serviceId })
@@ -98,7 +103,11 @@ export function RoutePanel({
   }
 
   if (route.id === "caddy") {
-    return <CaddyPage />;
+    return (
+      <RouteNavigationContext.Provider value={onNavigate}>
+        <CaddyPage />
+      </RouteNavigationContext.Provider>
+    );
   }
 
   if (route.id === "appConfig") {

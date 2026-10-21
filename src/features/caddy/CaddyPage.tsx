@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Panel } from "../../components/ui";
 import {
   caddyDetect,
@@ -13,7 +13,9 @@ import type { AppError } from "../../ipc/core";
 import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
 import { CaddyPreviewPanel } from "./CaddyPreviewPanel";
 import { CaddyRulesEditor } from "./CaddyRulesEditor";
+import { RouteNavigationContext } from "../../app/routeNavigation";
 import { CaddyRunPanel } from "./CaddyRunPanel";
+import { serviceFocusIntent, type ServiceTarget } from "./caddyConflictModel";
 import { CaddySaveBar, type SaveState } from "./CaddySaveBar";
 import { RawEditor } from "./RawEditor";
 import {
@@ -61,6 +63,7 @@ function createPreviewRuntime(): PreviewRuntime {
 }
 
 export function CaddyPage() {
+  const onNavigate = useContext(RouteNavigationContext);
   const [ids] = useState<IdSource>(createIdSource);
   const [runtime] = useState(createPreviewRuntime);
   const [detect, setDetect] = useState<DetectState>({ status: "loading" });
@@ -199,7 +202,10 @@ export function CaddyPage() {
           原文 Caddyfile
         </Button>
       </div>
-      <CaddyRunPanel source={mode === "raw" ? "RAW" : "RULES"} />
+      <CaddyRunPanel
+        source={mode === "raw" ? "RAW" : "RULES"}
+        onOpenService={(target: ServiceTarget) => onNavigate?.(serviceFocusIntent(target))}
+      />
       <div hidden={mode !== "form"} className="grid min-w-0 gap-ui-xl">
         {load.status === "loading" ? (
           <p role="status" className="m-0 text-body text-muted-foreground">

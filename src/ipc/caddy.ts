@@ -660,6 +660,76 @@ export type CaddyFailureKind = (typeof CADDY_FAILURE_KINDS)[number];
 
 const MAX_NOTES = 32;
 
+export const CADDY_CONFLICT_VERDICTS = ["CLEAR", "UNCONFIRMED", "BLOCKED"] as const;
+export type CaddyConflictVerdict = (typeof CADDY_CONFLICT_VERDICTS)[number];
+
+export const CADDY_BLOCK_REASONS = ["EXTERNAL_RUNNING", "PORT_OCCUPIED"] as const;
+export type CaddyBlockReason = (typeof CADDY_BLOCK_REASONS)[number];
+
+export const CADDY_SNAPSHOT_STATUSES = ["COMPLETE", "INCOMPLETE", "UNREADABLE"] as const;
+export type CaddySnapshotStatus = (typeof CADDY_SNAPSHOT_STATUSES)[number];
+
+export const CADDY_EXTERNAL_DOMAINS = ["GUI", "SYSTEM"] as const;
+export type CaddyExternalDomain = (typeof CADDY_EXTERNAL_DOMAINS)[number];
+
+export const CADDY_EXTERNAL_RUN_STATES = [
+  "RUNNING",
+  "NOT_RUNNING",
+  "UNKNOWN",
+  "INACCESSIBLE",
+] as const;
+export type CaddyExternalRunState = (typeof CADDY_EXTERNAL_RUN_STATES)[number];
+
+export const CADDY_PORT_STATES = ["FREE", "OCCUPIED", "UNCHECKED"] as const;
+export type CaddyPortState = (typeof CADDY_PORT_STATES)[number];
+
+export const CADDY_UPSTREAM_STATES = ["REACHABLE", "UNREACHABLE", "UNCHECKED"] as const;
+export type CaddyUpstreamState = (typeof CADDY_UPSTREAM_STATES)[number];
+
+export interface CaddyOccupant {
+  name: string;
+  pid: number;
+}
+
+export interface CaddyExternalInstance {
+  label: string;
+  domain: CaddyExternalDomain;
+  runState: CaddyExternalRunState;
+  pid?: number;
+  explanation: string;
+}
+
+export interface CaddyExternalReport {
+  snapshot: CaddySnapshotStatus;
+  explanation: string;
+  instances: CaddyExternalInstance[];
+}
+
+export interface CaddyPortFinding {
+  host: string;
+  port: number;
+  state: CaddyPortState;
+  occupant?: CaddyOccupant;
+  explanation: string;
+}
+
+export interface CaddyUpstreamFinding {
+  host: string;
+  port: number;
+  state: CaddyUpstreamState;
+  explanation: string;
+}
+
+export interface CaddyConflictReport {
+  verdict: CaddyConflictVerdict;
+  headline: string;
+  blocks: CaddyBlockReason[];
+  external: CaddyExternalReport;
+  ports: CaddyPortFinding[];
+  upstreams: CaddyUpstreamFinding[];
+  notes: string[];
+}
+
 export interface CaddyStartSummary {
   planId?: string;
   source: CaddyConfigSource;
@@ -672,6 +742,7 @@ export interface CaddyStartSummary {
   adminEndpoint: string;
   notes: string[];
   blocked?: string;
+  conflicts?: CaddyConflictReport;
 }
 
 export interface CaddyRunStatus {
@@ -726,13 +797,99 @@ export function decodeRunStatus(value: unknown): CaddyRunStatus {
   return status;
 }
 
+const MAX_CONFLICT_ITEMS = 256;
+
+function optionalOccupant(value: unknown): CaddyOccupant | undefined {
+  if (value === null) return undefined;
+  const wire = record(value);
+  exactKeys(wire, ["name", "pid"]);
+  return { name: nonEmptyText(wire.name), pid: nonNegativeInteger(wire.pid) };
+}
+
+function decodeExternalInstance(value: unknown): CaddyExternalInstance {
+  const wire = record(value);
+  exactKeys(wire, ["label", "domain", "runState", "pid", "explanation"]);
+  const instance: CaddyExternalInstance = {
+    label: nonEmptyText(wire.label),
+    domain: oneOf(wire.domain, CADDY_EXTERNAL_DOMAINS),
+    runState: oneOf(wire.runState, CADDY_EXTERNAL_RUN_STATES),
+    explanation: nonEmptyText(wire.explanation),
+  };
+  if (wire.pid !== null) instance.pid = nonNegativeInteger(wire.pid);
+  return instance;
+}
+
+function decodeExternalReport(value: unknown): CaddyExternalReport {
+  const wire = record(value);
+  exactKeys(wire, ["snapshot", "explanation", "instances"]);
+  return {
+    snapshot: oneOf(wire.snapshot, CADDY_SNAPSHOT_STATUSES),
+    explanation: nonEmptyText(wire.explanation),
+    instances: list(wire.instances, MAX_CONFLICT_ITEMS, decodeExternalInstance),
+  };
+}
+
+function decodePortFinding(value: unknown): CaddyPortFinding {
+  const wire = record(value);
+  exactKeys(wire, ["host", "port", "state", "occupant", "explanation"]);
+  const finding: CaddyPortFinding = {
+    host: nonEmptyText(wire.host),
+    port: port(wire.port),
+    state: oneOf(wire.state, CADDY_PORT_STATES),
+    explanation: nonEmptyText(wire.explanation),
+  };
+  const occupant = optionalOccupant(wire.occupant);
+  if (occupant !== undefined) finding.occupant = occupant;
+  return finding;
+}
+
+function decodeUpstreamFinding(value: unknown): CaddyUpstreamFinding {
+  const wire = record(value);
+  exactKeys(wire, ["host", "port", "state", "explanation"]);
+  return {
+    host: nonEmptyText(wire.host),
+    port: port(wire.port),
+    state: oneOf(wire.state, CADDY_UPSTREAM_STATES),
+    explanation: nonEmptyText(wire.explanation),
+  };
+}
+
+// The verdict and the blocking reasons must agree, and only a complete picture
+// with every port checked may be called clear.
+export function decodeConflictReport(value: unknown): CaddyConflictReport {
+  const wire = record(value);
+  exactKeys(wire, ["verdict", "headline", "blocks", "external", "ports", "upstreams", "notes"]);
+  const verdict = oneOf(wire.verdict, CADDY_CONFLICT_VERDICTS);
+  const blocks = list(wire.blocks, CADDY_BLOCK_REASONS.length, (item) =>
+    oneOf(item, CADDY_BLOCK_REASONS),
+  );
+  const external = decodeExternalReport(wire.external);
+  const ports = list(wire.ports, MAX_CONFLICT_ITEMS, decodePortFinding);
+  if ((verdict === "BLOCKED") !== (blocks.length > 0)) throw createInternalError();
+  if (
+    verdict === "CLEAR" &&
+    (external.snapshot !== "COMPLETE" || ports.some((port) => port.state === "UNCHECKED"))
+  ) {
+    throw createInternalError();
+  }
+  return {
+    verdict,
+    headline: nonEmptyText(wire.headline),
+    blocks,
+    external,
+    ports,
+    upstreams: list(wire.upstreams, MAX_CONFLICT_ITEMS, decodeUpstreamFinding),
+    notes: list(wire.notes, MAX_NOTES, nonEmptyText),
+  };
+}
+
 // A summary carries exactly one of a plan (ready to start) or a block reason.
 export function decodeStartSummary(value: unknown): CaddyStartSummary {
   const wire = record(value);
   exactKeys(
     wire,
     ["source", "workingDirectory", "configFingerprint", "listen", "upstreams", "adminEndpoint", "notes"],
-    ["planId", "executablePath", "version", "blocked"],
+    ["planId", "executablePath", "version", "blocked", "conflicts"],
   );
   const planId = wire.planId === undefined ? undefined : nonEmptyText(wire.planId);
   const blocked = wire.blocked === undefined ? undefined : nonEmptyText(wire.blocked);
@@ -754,6 +911,7 @@ export function decodeStartSummary(value: unknown): CaddyStartSummary {
   if (wire.executablePath !== undefined) summary.executablePath = nonEmptyText(wire.executablePath);
   if (wire.version !== undefined) summary.version = nonEmptyText(wire.version);
   if (blocked !== undefined) summary.blocked = blocked;
+  if (wire.conflicts !== undefined) summary.conflicts = decodeConflictReport(wire.conflicts);
   return summary;
 }
 
@@ -775,10 +933,24 @@ export function caddyPrepareStart(source: CaddyConfigSource): Promise<CaddyStart
   return invokeCommand("caddy_prepare_start", decodeStartSummary, { input: { source } });
 }
 
+export interface CaddyStartOptions {
+  // Only an unconfirmed external state can be accepted; a conflict is refused by the backend regardless.
+  acceptUnconfirmed?: boolean;
+}
+
 // Starting is only ever called with the plan a preview returned, after the user confirmed it.
-export function caddyStart(planId: string, source: CaddyConfigSource): Promise<CaddyRunStatus> {
+export function caddyStart(
+  planId: string,
+  source: CaddyConfigSource,
+  options: CaddyStartOptions = {},
+): Promise<CaddyRunStatus> {
   return invokeCommand("caddy_start", decodeRunStatus, {
-    input: { planId, source, confirmed: true },
+    input: {
+      planId,
+      source,
+      confirmed: true,
+      ...(options.acceptUnconfirmed === true ? { acceptUnconfirmed: true } : {}),
+    },
   });
 }
 

@@ -149,8 +149,14 @@ export function groupNavigationRoutes(
 
 export type NavigationSource = "primary-nav" | "content" | "menu" | "tray";
 
+/** Navigation only: names a task to select on the services page, never an action on it. */
+export interface ServiceFocus {
+  label: string;
+  domain: "GUI" | "SYSTEM";
+}
+
 export type NavigationIntent = (
   | { routeId: "dashboard" }
-  | { routeId: "services"; serviceId?: string }
+  | { routeId: "services"; serviceId?: string; serviceFocus?: ServiceFocus }
   | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId }
 ) & { source?: NavigationSource };

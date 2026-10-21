@@ -21,7 +21,13 @@ import {
 } from "../ipc/lifecycle";
 import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
-import { APP_ROUTES, type AppRouteId, type NavigationIntent, type NavigationSource } from "./routeDefinitions";
+import {
+  APP_ROUTES,
+  type AppRouteId,
+  type NavigationIntent,
+  type NavigationSource,
+  type ServiceFocus,
+} from "./routeDefinitions";
 import { RoutePanel } from "./routes";
 import {
   loadSelectionMemory,
@@ -215,17 +221,21 @@ export function AppShell({
     setSelection((current) => ({ ...current, ...patch }));
   }, []);
 
+  const [serviceFocus, setServiceFocus] = useState<ServiceFocus | undefined>(undefined);
+
   const navigate = useCallback((
     routeId: AppRouteId,
     source: NavigationSource = "primary-nav",
   ) => {
     pendingNavigationSource.current = source;
+    setServiceFocus(undefined);
     updateSelection({ routeId });
   }, [updateSelection]);
 
   const navigateTo = useCallback((intent: NavigationIntent) => {
     pendingNavigationSource.current = intent.source ?? "content";
     if (intent.routeId === "services") {
+      setServiceFocus(intent.serviceFocus);
       updateSelection({
         routeId: intent.routeId,
         ...(intent.serviceId ? { serviceId: intent.serviceId } : {}),
@@ -239,6 +249,7 @@ export function AppShell({
       });
       return;
     }
+    setServiceFocus(undefined);
     updateSelection({ routeId: intent.routeId });
   }, [updateSelection]);
 
@@ -523,6 +534,7 @@ export function AppShell({
               preferences={state.preferences}
               recentOperation={state.recentOperation}
               refresh={state.refresh}
+              serviceFocus={serviceFocus}
               route={activeRoute}
               selection={selection}
               settingsGroup={settingsGroup}

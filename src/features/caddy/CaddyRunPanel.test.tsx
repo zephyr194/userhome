@@ -1,6 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { CaddyRunStatus, CaddyStartSummary } from "../../ipc/caddy";
+import type {
+  CaddyConflictReport,
+  CaddyRunStatus,
+  CaddyStartSummary,
+} from "../../ipc/caddy";
 import { initialLogView } from "./caddyRunModel";
 import { CaddyRunView, type CaddyRunViewProps } from "./CaddyRunPanel";
 
@@ -175,5 +179,127 @@ describe("run logs", () => {
     });
     expect(markup).toContain("Caddy 日志");
     expect(markup).toContain("[out] hello");
+  });
+});
+
+const CONFLICT_BLOCKED: CaddyConflictReport = {
+  verdict: "BLOCKED",
+  headline: "发现冲突，已拒绝开启。",
+  blocks: ["EXTERNAL_RUNNING", "PORT_OCCUPIED"],
+  external: {
+    snapshot: "COMPLETE",
+    explanation: "已读取常驻 Caddy 任务快照，且快照完整。",
+    instances: [
+      {
+        label: "homebrew.mxcl.caddy",
+        domain: "GUI",
+        runState: "RUNNING",
+        pid: 77,
+        explanation: "外部常驻 Caddy 正在运行。本应用不会停止、重载或接管它。",
+      },
+    ],
+  },
+  ports: [
+    {
+      host: "127.0.0.1",
+      port: 8080,
+      state: "OCCUPIED",
+      occupant: { name: "caddy", pid: 77 },
+      explanation: "已被进程 caddy（pid 77）占用，无法绑定，已拒绝开启。",
+    },
+  ],
+  upstreams: [
+    {
+      host: "127.0.0.1",
+      port: 3000,
+      state: "UNREACHABLE",
+      explanation: "上游不可达。这只是提示，不等于代理进程未运行。",
+    },
+  ],
+  notes: [],
+};
+
+const CLEAR_CONFLICTS: CaddyConflictReport = {
+  verdict: "CLEAR",
+  headline: "未发现冲突，不保证绑定成功。",
+  blocks: [],
+  external: { snapshot: "COMPLETE", explanation: "快照完整。", instances: [] },
+  ports: [
+    {
+      host: "127.0.0.1",
+      port: 8080,
+      state: "FREE",
+      explanation: "预检查未发现该地址有监听（不保证绑定成功）。",
+    },
+  ],
+  upstreams: [],
+  notes: [],
+};
+
+const UNCONFIRMED_CONFLICTS: CaddyConflictReport = {
+  ...CLEAR_CONFLICTS,
+  verdict: "UNCONFIRMED",
+  headline: "有项目无法确认，开启需你显式确认。",
+  external: {
+    snapshot: "UNREADABLE",
+    explanation: "无法读取常驻任务快照，无法确认外部 Caddy 状态，需你确认后才能开启。",
+    instances: [],
+  },
+};
+
+describe("conflict report in the start summary", () => {
+  it("shows the external owner, the occupied port with its occupant and an upstream note", () => {
+    const markup = view({
+      summary: { ...READY, conflicts: CONFLICT_BLOCKED, blocked: undefined },
+    });
+    expect(markup).toContain("发现冲突，已拒绝开启。");
+    expect(markup).toContain("homebrew.mxcl.caddy");
+    expect(markup).toContain("外部常驻 Caddy 正在运行");
+    expect(markup).toContain("已被进程 caddy（pid 77）占用");
+    expect(markup).toContain("上游不可达");
+    expect(markup).toContain("不等于代理进程未运行");
+  });
+
+  it("disables confirmation for a conflict and offers no acceptance checkbox", () => {
+    const markup = view({ summary: { ...READY, conflicts: CONFLICT_BLOCKED } });
+    expect(isDisabled(markup, "确认开启")).toBe(true);
+    expect(markup).not.toContain("我已确认");
+  });
+
+  it("offers a jump to the external service only when an external instance blocks", () => {
+    expect(view({ summary: { ...READY, conflicts: CONFLICT_BLOCKED } })).toContain(
+      "查看该服务",
+    );
+    const portOnly = view({
+      summary: {
+        ...READY,
+        conflicts: {
+          ...CONFLICT_BLOCKED,
+          blocks: ["PORT_OCCUPIED"],
+          external: { ...CONFLICT_BLOCKED.external, instances: [] },
+        },
+      },
+    });
+    expect(portOnly).not.toContain("查看该服务");
+  });
+
+  it("reports a clear check as not a guarantee of binding and never as an available port", () => {
+    const markup = view({ summary: { ...READY, conflicts: CLEAR_CONFLICTS } });
+    expect(markup).toContain("未发现冲突，不保证绑定成功。");
+    expect(markup).not.toContain("端口可用");
+    expect(isDisabled(markup, "确认开启")).toBe(false);
+  });
+
+  it("requires an explicit acceptance before starting an unconfirmed state", () => {
+    const markup = view({ summary: { ...READY, conflicts: UNCONFIRMED_CONFLICTS } });
+    expect(markup).toContain("无法读取常驻任务快照");
+    expect(markup).toContain("我已确认");
+    expect(isDisabled(markup, "确认开启")).toBe(true);
+  });
+
+  it("states the symbol and label of the verdict, not colour alone", () => {
+    expect(view({ summary: { ...READY, conflicts: CONFLICT_BLOCKED } })).toContain("✕ 发现冲突");
+    expect(view({ summary: { ...READY, conflicts: CLEAR_CONFLICTS } })).toContain("✓ 未发现冲突");
+    expect(view({ summary: { ...READY, conflicts: UNCONFIRMED_CONFLICTS } })).toContain("! 需要确认");
   });
 });

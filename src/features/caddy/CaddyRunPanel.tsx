@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, LogViewer, Panel, StatusBadge } from "../../components/ui";
+import { Button, CheckboxField, LogViewer, Panel, StatusBadge } from "../../components/ui";
 import {
   caddyLogs,
   caddyPrepareStart,
@@ -7,11 +7,23 @@ import {
   caddyStatus,
   caddyStop,
   type CaddyConfigSource,
+  type CaddyConflictReport,
   type CaddyRunStatus,
   type CaddyStartSummary,
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
 import { createRequestTracker } from "./caddyPreviewFlow";
+import {
+  DOMAIN_LABELS,
+  PORT_STATE_LABELS,
+  RUN_STATE_LABELS,
+  SNAPSHOT_LABELS,
+  UPSTREAM_STATE_LABELS,
+  externalServiceTargets,
+  presentVerdict,
+  startGate,
+  type ServiceTarget,
+} from "./caddyConflictModel";
 import {
   LOG_LINE_LIMIT,
   applyLogPage,
@@ -39,13 +51,20 @@ export interface CaddyRunViewProps {
   logs: LogView;
   paused: boolean;
   onPrepare: () => void;
-  onStart: () => void;
+  onStart: (options: { acceptUnconfirmed: boolean }) => void;
   onCancelSummary: () => void;
   onStop: () => void;
   onPauseChange: (paused: boolean) => void;
+  onOpenService?: (target: ServiceTarget) => void;
 }
 
-export function CaddyRunPanel({ source }: { source: CaddyConfigSource }) {
+export function CaddyRunPanel({
+  source,
+  onOpenService,
+}: {
+  source: CaddyConfigSource;
+  onOpenService?: (target: ServiceTarget) => void;
+}) {
   const [statusTracker] = useState(createRequestTracker);
   const [previewTracker] = useState(createRequestTracker);
   const [status, setStatus] = useState<CaddyRunStatus | undefined>(undefined);
@@ -125,7 +144,7 @@ export function CaddyRunPanel({ source }: { source: CaddyConfigSource }) {
     ).finally(() => setBusy(false));
   }
 
-  function start() {
+  function start(options: { acceptUnconfirmed: boolean }) {
     const planId = visibleSummary?.planId;
     if (planId === undefined) return;
     setBusy(true);
@@ -133,7 +152,7 @@ export function CaddyRunPanel({ source }: { source: CaddyConfigSource }) {
     previewTracker.invalidate();
     setSummary(undefined);
     const id = statusTracker.issue();
-    caddyStart(planId, source).then(
+    caddyStart(planId, source, options).then(
       (next) => {
         if (statusTracker.isCurrent(id)) setStatus(next);
       },
@@ -176,6 +195,7 @@ export function CaddyRunPanel({ source }: { source: CaddyConfigSource }) {
       onCancelSummary={cancelSummary}
       onStop={stop}
       onPauseChange={setPaused}
+      onOpenService={onOpenService}
     />
   );
 }
@@ -193,6 +213,7 @@ export function CaddyRunView({
   onCancelSummary,
   onStop,
   onPauseChange,
+  onOpenService,
 }: CaddyRunViewProps) {
   const state = status?.state;
   const previewEnabled = state !== undefined && canPrepare(state) && !busy;
@@ -225,10 +246,12 @@ export function CaddyRunView({
       {status?.state === "FAILED" ? <FailureBlock status={status} /> : null}
       {summary !== undefined ? (
         <SummaryBlock
+          key={summary.planId ?? "blocked"}
           summary={summary}
           busy={busy}
           onStart={onStart}
           onCancel={onCancelSummary}
+          onOpenService={onOpenService}
         />
       ) : null}
       <div className="flex flex-wrap gap-ui-sm">
@@ -279,15 +302,20 @@ function SummaryBlock({
   busy,
   onStart,
   onCancel,
+  onOpenService,
 }: {
   summary: CaddyStartSummary;
   busy: boolean;
-  onStart: () => void;
+  onStart: (options: { acceptUnconfirmed: boolean }) => void;
   onCancel: () => void;
+  onOpenService?: (target: ServiceTarget) => void;
 }) {
+  const [accepted, setAccepted] = useState(false);
   const listen = summary.listen.length > 0 ? summary.listen.join("、") : emptyAddressText(summary);
   const upstreams =
     summary.upstreams.length > 0 ? summary.upstreams.join("、") : emptyAddressText(summary);
+  const conflicts = summary.conflicts;
+  const gate = startGate(summary, accepted);
   return (
     <section aria-label="开启前摘要" className="grid gap-ui-sm rounded-panel border border-control-border p-ui-md">
       <h3 className="m-0 text-sm font-semibold">开启前摘要</h3>
@@ -312,20 +340,109 @@ function SummaryBlock({
         <SummaryRow label="上游" value={upstreams} />
         <SummaryRow label="管理端点" value={summary.adminEndpoint} />
       </dl>
+      {conflicts !== undefined ? (
+        <ConflictBlock conflicts={conflicts} onOpenService={onOpenService} />
+      ) : null}
       <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-aux text-muted-foreground">
         {summary.notes.map((note) => (
           <li key={note}>{note}</li>
         ))}
       </ul>
       {summary.blocked === undefined ? (
-        <div className="flex flex-wrap gap-ui-sm">
-          <Button variant="primary" disabled={busy} onClick={onStart}>
-            确认开启
-          </Button>
-          <Button variant="secondary" disabled={busy} onClick={onCancel}>
-            取消
+        <div className="grid gap-ui-sm">
+          {conflicts?.verdict === "UNCONFIRMED" ? (
+            <CheckboxField
+              label="我已确认外部 Caddy 与端口状态，仍要开启"
+              description="不会停止、重载或接管外部实例。"
+              checked={accepted}
+              disabled={busy}
+              onCheckedChange={setAccepted}
+            />
+          ) : null}
+          <div className="flex flex-wrap gap-ui-sm">
+            <Button
+              variant="primary"
+              disabled={busy || !gate.canStart}
+              onClick={() => onStart({ acceptUnconfirmed: gate.acceptUnconfirmed })}
+            >
+              确认开启
+            </Button>
+            <Button variant="secondary" disabled={busy} onClick={onCancel}>
+              取消
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function ConflictBlock({
+  conflicts,
+  onOpenService,
+}: {
+  conflicts: CaddyConflictReport;
+  onOpenService?: (target: ServiceTarget) => void;
+}) {
+  const verdict = presentVerdict(conflicts.verdict);
+  const targets = externalServiceTargets(conflicts);
+  return (
+    <section aria-label="冲突检查" className="grid gap-ui-xs rounded-panel border border-control-border p-ui-md">
+      <p className="m-0 text-body font-semibold">{`${verdict.symbol} ${verdict.label}`}</p>
+      <p className="m-0 text-body">{conflicts.headline}</p>
+      <h4 className="m-0 text-sm font-semibold">外部 Caddy 归属</h4>
+      <p className="m-0 text-aux text-muted-foreground">
+        {`${SNAPSHOT_LABELS[conflicts.external.snapshot]}：${conflicts.external.explanation}`}
+      </p>
+      {conflicts.external.instances.length > 0 ? (
+        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+          {conflicts.external.instances.map((instance) => (
+            <li key={`${instance.domain}/${instance.label}`}>
+              {`${instance.label}（${DOMAIN_LABELS[instance.domain]}，${RUN_STATE_LABELS[instance.runState]}${
+                instance.pid !== undefined ? `，pid ${instance.pid}` : ""
+              }）：${instance.explanation}`}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {targets.map((target) => (
+        <div key={`${target.domain}/${target.label}`} className="flex flex-wrap items-center gap-ui-sm">
+          <span className="text-aux text-muted-foreground">{`仅跳转查看，不会停止或重载：${target.label}`}</span>
+          <Button variant="secondary" onClick={() => onOpenService?.(target)}>
+            查看该服务
           </Button>
         </div>
+      ))}
+      <h4 className="m-0 text-sm font-semibold">端口占用预检查</h4>
+      {conflicts.ports.length > 0 ? (
+        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+          {conflicts.ports.map((port) => (
+            <li key={`${port.host}:${port.port}`}>
+              {`${port.host}:${port.port}：${PORT_STATE_LABELS[port.state]}。${port.explanation}`}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="m-0 text-aux text-muted-foreground">没有可检查的监听地址。</p>
+      )}
+      {conflicts.upstreams.length > 0 ? (
+        <>
+          <h4 className="m-0 text-sm font-semibold">上游（仅提示，不阻止开启）</h4>
+          <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+            {conflicts.upstreams.map((upstream) => (
+              <li key={`${upstream.host}:${upstream.port}`}>
+                {`${upstream.host}:${upstream.port}：${UPSTREAM_STATE_LABELS[upstream.state]}。${upstream.explanation}`}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {conflicts.notes.length > 0 ? (
+        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-aux text-muted-foreground">
+          {conflicts.notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
       ) : null}
     </section>
   );

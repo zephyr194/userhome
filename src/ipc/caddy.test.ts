@@ -5,9 +5,11 @@ import {
   caddyLoadRules,
   caddyPreview,
   caddySave,
+  caddyStart,
   decodeDetectReport,
   decodeLoadedRules,
   decodePreview,
+  decodeStartSummary,
   toRulesRequest,
   type CaddyRules,
 } from "./caddy";
@@ -455,5 +457,150 @@ describe("caddy command requests", () => {
     mockIPC(() => ({ rules: "not rules", source: "SAVED" }));
 
     await expect(caddyLoadRules()).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+});
+
+const CONFLICT_BLOCKED = {
+  verdict: "BLOCKED",
+  headline: "发现冲突，已拒绝开启。",
+  blocks: ["EXTERNAL_RUNNING", "PORT_OCCUPIED"],
+  external: {
+    snapshot: "COMPLETE",
+    explanation: "已读取常驻 Caddy 任务快照，且快照完整。",
+    instances: [
+      {
+        label: "homebrew.mxcl.caddy",
+        domain: "GUI",
+        runState: "RUNNING",
+        pid: 77,
+        explanation: "外部常驻 Caddy 正在运行。",
+      },
+    ],
+  },
+  ports: [
+    {
+      host: "127.0.0.1",
+      port: 8080,
+      state: "OCCUPIED",
+      occupant: { name: "caddy", pid: 77 },
+      explanation: "已被进程 caddy（pid 77）占用，无法绑定，已拒绝开启。",
+    },
+    {
+      host: "127.0.0.1",
+      port: 8081,
+      state: "OCCUPIED",
+      occupant: null,
+      explanation: "端口已被占用，占用方未知。",
+    },
+  ],
+  upstreams: [
+    {
+      host: "127.0.0.1",
+      port: 3000,
+      state: "UNREACHABLE",
+      explanation: "上游不可达。这只是提示。",
+    },
+  ],
+  notes: [],
+};
+
+const START_SUMMARY_WITH_CONFLICTS = {
+  planId: "7f0c9a2e-1b3d-4c5e-8f60-123456789abc",
+  source: "RULES",
+  executablePath: "/opt/homebrew/bin/caddy",
+  version: "v2.8.4",
+  workingDirectory: "<私有运行目录>",
+  configFingerprint: "0123456789abcdef",
+  listen: ["http://127.0.0.1:8080"],
+  upstreams: ["http://127.0.0.1:3000"],
+  adminEndpoint: "仅本次运行的私有 Unix socket（不占用默认 localhost:2019）",
+  notes: [],
+  conflicts: CONFLICT_BLOCKED,
+};
+
+describe("caddy_prepare_start conflict decoding", () => {
+  it("decodes the conflict report with its external owner, ports and upstreams", () => {
+    const summary = decodeStartSummary(START_SUMMARY_WITH_CONFLICTS);
+    expect(summary.conflicts?.verdict).toBe("BLOCKED");
+    expect(summary.conflicts?.blocks).toEqual(["EXTERNAL_RUNNING", "PORT_OCCUPIED"]);
+    expect(summary.conflicts?.external.instances[0]).toMatchObject({
+      label: "homebrew.mxcl.caddy",
+      domain: "GUI",
+      runState: "RUNNING",
+      pid: 77,
+    });
+    expect(summary.conflicts?.ports[0].occupant).toEqual({ name: "caddy", pid: 77 });
+    expect(summary.conflicts?.ports[1].occupant).toBeUndefined();
+    expect(summary.conflicts?.upstreams[0].state).toBe("UNREACHABLE");
+  });
+
+  it("accepts a summary without a conflict report, which a non-start summary may omit", () => {
+    const withoutConflicts: Record<string, unknown> = { ...START_SUMMARY_WITH_CONFLICTS };
+    delete withoutConflicts.conflicts;
+    expect(decodeStartSummary(withoutConflicts).conflicts).toBeUndefined();
+  });
+
+  it("fails closed on an unknown verdict, block reason or port state", () => {
+    expect(() =>
+      decodeStartSummary({
+        ...START_SUMMARY_WITH_CONFLICTS,
+        conflicts: { ...CONFLICT_BLOCKED, verdict: "AVAILABLE" },
+      }),
+    ).toThrow();
+    expect(() =>
+      decodeStartSummary({
+        ...START_SUMMARY_WITH_CONFLICTS,
+        conflicts: { ...CONFLICT_BLOCKED, blocks: ["UNKNOWN_REASON"] },
+      }),
+    ).toThrow();
+    expect(() =>
+      decodeStartSummary({
+        ...START_SUMMARY_WITH_CONFLICTS,
+        conflicts: {
+          ...CONFLICT_BLOCKED,
+          ports: [{ ...CONFLICT_BLOCKED.ports[0], state: "AVAILABLE" }],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("fails closed on a stray field inside the conflict report", () => {
+    expect(() =>
+      decodeStartSummary({
+        ...START_SUMMARY_WITH_CONFLICTS,
+        conflicts: { ...CONFLICT_BLOCKED, extra: true },
+      }),
+    ).toThrow();
+  });
+
+  it("fails closed on a pid that is not a safe non-negative integer", () => {
+    expect(() =>
+      decodeStartSummary({
+        ...START_SUMMARY_WITH_CONFLICTS,
+        conflicts: {
+          ...CONFLICT_BLOCKED,
+          ports: [{ ...CONFLICT_BLOCKED.ports[0], occupant: { name: "caddy", pid: -1 } }],
+        },
+      }),
+    ).toThrow();
+  });
+});
+
+describe("caddy_start acceptance flag", () => {
+  it("sends the acceptance of an unconfirmed state only when given, leaving the default wire unchanged", async () => {
+    const sent: unknown[] = [];
+    mockIPC((cmd, payload) => {
+      if (cmd === "caddy_start") {
+        sent.push(payload);
+        return { state: "STARTING", message: "正在开启，等待管理端点就绪……", diagnostics: [] };
+      }
+      return undefined;
+    });
+    await caddyStart("plan-1", "RULES", { acceptUnconfirmed: true });
+    await caddyStart("plan-1", "RULES");
+    expect(sent).toEqual([
+      { input: { planId: "plan-1", source: "RULES", confirmed: true, acceptUnconfirmed: true } },
+      { input: { planId: "plan-1", source: "RULES", confirmed: true } },
+    ]);
   });
 });
