@@ -3,6 +3,7 @@ use tauri::{Manager, TitleBarStyle, WebviewUrl, WebviewWindowBuilder};
 use crate::tray::CloseRequestAction;
 
 pub mod brew;
+pub mod caddy;
 pub mod catalog;
 pub mod commands;
 pub mod config;
