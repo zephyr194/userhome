@@ -631,3 +631,171 @@ export function caddyConfirmExternalRawSave(
     input: { grantId, operationId },
   });
 }
+
+// Run-state wire shapes mirror src-tauri/src/caddy/session.rs. Only the source
+// kind and the confirmed plan id cross IPC; no path or Caddyfile text is sent.
+export const CADDY_CONFIG_SOURCES = ["RULES", "RAW"] as const;
+export type CaddyConfigSource = (typeof CADDY_CONFIG_SOURCES)[number];
+
+export const CADDY_RUN_STATES = [
+  "STOPPED",
+  "STARTING",
+  "RUNNING",
+  "STOPPING",
+  "FAILED",
+  "UNKNOWN",
+] as const;
+export type CaddyRunState = (typeof CADDY_RUN_STATES)[number];
+
+export const CADDY_FAILURE_KINDS = [
+  "EXECUTABLE_UNAVAILABLE",
+  "INVALID_SETUP",
+  "CONFIG_REJECTED",
+  "SPAWN_FAILED",
+  "EXITED_BEFORE_READY",
+  "READINESS_TIMEOUT",
+  "CRASHED_AFTER_READY",
+] as const;
+export type CaddyFailureKind = (typeof CADDY_FAILURE_KINDS)[number];
+
+const MAX_NOTES = 32;
+
+export interface CaddyStartSummary {
+  planId?: string;
+  source: CaddyConfigSource;
+  executablePath?: string;
+  version?: string;
+  workingDirectory: string;
+  configFingerprint: string;
+  listen: string[];
+  upstreams: string[];
+  adminEndpoint: string;
+  notes: string[];
+  blocked?: string;
+}
+
+export interface CaddyRunStatus {
+  state: CaddyRunState;
+  failure?: CaddyFailureKind;
+  message: string;
+  diagnostics: CaddyDiagnostic[];
+  sessionId?: string;
+  source?: CaddyConfigSource;
+  exitCode?: number;
+  exitSignal?: number;
+}
+
+export interface CaddyLogPage {
+  sessionId: string;
+  stdout: string;
+  stderr: string;
+  stdoutOffset: number;
+  stderrOffset: number;
+  hasMore: boolean;
+}
+
+function signedInteger(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value)) {
+    throw createInternalError();
+  }
+  return value;
+}
+
+export function decodeRunStatus(value: unknown): CaddyRunStatus {
+  const wire = record(value);
+  exactKeys(
+    wire,
+    ["state", "message", "diagnostics"],
+    ["failure", "sessionId", "source", "exitCode", "exitSignal"],
+  );
+  const state = oneOf(wire.state, CADDY_RUN_STATES);
+  const failure =
+    wire.failure === undefined ? undefined : oneOf(wire.failure, CADDY_FAILURE_KINDS);
+  if ((state === "FAILED") !== (failure !== undefined)) throw createInternalError();
+
+  const status: CaddyRunStatus = {
+    state,
+    message: nonEmptyText(wire.message),
+    diagnostics: list(wire.diagnostics, MAX_DIAGNOSTICS_RESPONSE, decodeDiagnostic),
+  };
+  if (failure !== undefined) status.failure = failure;
+  if (wire.sessionId !== undefined) status.sessionId = nonEmptyText(wire.sessionId);
+  if (wire.source !== undefined) status.source = oneOf(wire.source, CADDY_CONFIG_SOURCES);
+  if (wire.exitCode !== undefined) status.exitCode = signedInteger(wire.exitCode);
+  if (wire.exitSignal !== undefined) status.exitSignal = signedInteger(wire.exitSignal);
+  return status;
+}
+
+// A summary carries exactly one of a plan (ready to start) or a block reason.
+export function decodeStartSummary(value: unknown): CaddyStartSummary {
+  const wire = record(value);
+  exactKeys(
+    wire,
+    ["source", "workingDirectory", "configFingerprint", "listen", "upstreams", "adminEndpoint", "notes"],
+    ["planId", "executablePath", "version", "blocked"],
+  );
+  const planId = wire.planId === undefined ? undefined : nonEmptyText(wire.planId);
+  const blocked = wire.blocked === undefined ? undefined : nonEmptyText(wire.blocked);
+  if ((planId === undefined) === (blocked === undefined)) throw createInternalError();
+  if (planId !== undefined && (wire.executablePath === undefined || wire.version === undefined)) {
+    throw createInternalError();
+  }
+
+  const summary: CaddyStartSummary = {
+    source: oneOf(wire.source, CADDY_CONFIG_SOURCES),
+    workingDirectory: nonEmptyText(wire.workingDirectory),
+    configFingerprint: nonEmptyText(wire.configFingerprint),
+    listen: list(wire.listen, MAX_REPORT_ITEMS, nonEmptyText),
+    upstreams: list(wire.upstreams, MAX_REPORT_ITEMS, nonEmptyText),
+    adminEndpoint: nonEmptyText(wire.adminEndpoint),
+    notes: list(wire.notes, MAX_NOTES, nonEmptyText),
+  };
+  if (planId !== undefined) summary.planId = planId;
+  if (wire.executablePath !== undefined) summary.executablePath = nonEmptyText(wire.executablePath);
+  if (wire.version !== undefined) summary.version = nonEmptyText(wire.version);
+  if (blocked !== undefined) summary.blocked = blocked;
+  return summary;
+}
+
+export function decodeLogPage(value: unknown): CaddyLogPage {
+  const wire = record(value);
+  exactKeys(wire, ["sessionId", "stdout", "stderr", "stdoutOffset", "stderrOffset", "hasMore"]);
+  return {
+    sessionId: nonEmptyText(wire.sessionId),
+    stdout: text(wire.stdout),
+    stderr: text(wire.stderr),
+    stdoutOffset: nonNegativeInteger(wire.stdoutOffset),
+    stderrOffset: nonNegativeInteger(wire.stderrOffset),
+    hasMore: boolean(wire.hasMore),
+  };
+}
+
+// The source kind is the only choice sent; the backend reads the saved text itself.
+export function caddyPrepareStart(source: CaddyConfigSource): Promise<CaddyStartSummary> {
+  return invokeCommand("caddy_prepare_start", decodeStartSummary, { input: { source } });
+}
+
+// Starting is only ever called with the plan a preview returned, after the user confirmed it.
+export function caddyStart(planId: string, source: CaddyConfigSource): Promise<CaddyRunStatus> {
+  return invokeCommand("caddy_start", decodeRunStatus, {
+    input: { planId, source, confirmed: true },
+  });
+}
+
+export function caddyStop(): Promise<CaddyRunStatus> {
+  return invokeCommand("caddy_stop", decodeRunStatus);
+}
+
+export function caddyStatus(): Promise<CaddyRunStatus> {
+  return invokeCommand("caddy_status", decodeRunStatus);
+}
+
+export function caddyLogs(
+  sessionId: string,
+  stdoutOffset: number,
+  stderrOffset: number,
+): Promise<CaddyLogPage> {
+  return invokeCommand("caddy_logs", decodeLogPage, {
+    input: { sessionId, stdoutOffset, stderrOffset },
+  });
+}

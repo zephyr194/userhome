@@ -13,6 +13,7 @@ import type { AppError } from "../../ipc/core";
 import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
 import { CaddyPreviewPanel } from "./CaddyPreviewPanel";
 import { CaddyRulesEditor } from "./CaddyRulesEditor";
+import { CaddyRunPanel } from "./CaddyRunPanel";
 import { CaddySaveBar, type SaveState } from "./CaddySaveBar";
 import { RawEditor } from "./RawEditor";
 import {
@@ -198,6 +199,7 @@ export function CaddyPage() {
           原文 Caddyfile
         </Button>
       </div>
+      <CaddyRunPanel source={mode === "raw" ? "RAW" : "RULES"} />
       <div hidden={mode !== "form"} className="grid min-w-0 gap-ui-xl">
         {load.status === "loading" ? (
           <p role="status" className="m-0 text-body text-muted-foreground">
