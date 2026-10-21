@@ -432,7 +432,10 @@ pub(crate) fn discard_export(
     discard_preview(operations, &input.operation_id)
 }
 
-fn discard_preview(operations: &OperationCoordinator, operation_id: &str) -> Result<(), AppError> {
+pub(crate) fn discard_preview(
+    operations: &OperationCoordinator,
+    operation_id: &str,
+) -> Result<(), AppError> {
     match operations.get(operation_id) {
         Ok(details) if details.status == OperationStatus::Previewed => {
             operations.cancel(operation_id).map(|_| ())

@@ -268,10 +268,10 @@ fn canonical_home_from(raw: Option<std::ffi::OsString>) -> Option<PathBuf> {
 // instead of stacking dialogs.
 pub(crate) static PICKER_OPEN: AtomicBool = AtomicBool::new(false);
 
-struct PickerSlot<'a>(&'a AtomicBool);
+pub(crate) struct PickerSlot<'a>(&'a AtomicBool);
 
 impl<'a> PickerSlot<'a> {
-    fn acquire(flag: &'a AtomicBool) -> Result<Self, AppError> {
+    pub(crate) fn acquire(flag: &'a AtomicBool) -> Result<Self, AppError> {
         flag.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .map(|_| Self(flag))
             .map_err(|_| AppError::conflict("A selection dialog is already open."))
@@ -345,7 +345,7 @@ pub(crate) async fn select_grant<P: NativePicker>(
 /// (`create_new_file`), which re-checks the parent against `$HOME` and the
 /// protected locations. A dangling symbolic link exists as far as
 /// `symlink_metadata` is concerned, so it is never mistaken for a new file.
-fn grant_save_location(
+pub(crate) fn grant_save_location(
     coordinator: &GrantCoordinator,
     purpose: GrantPurpose,
     path: &Path,

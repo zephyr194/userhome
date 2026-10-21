@@ -6,7 +6,7 @@
 
 use std::{
     fs::{self, File},
-    io::{self, Read},
+    io::{self, Read, Seek, SeekFrom},
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
 };
@@ -94,6 +94,94 @@ impl GrantedRead {
     pub fn text(&self) -> Result<&str, ReadError> {
         std::str::from_utf8(&self.content).map_err(|_| ReadError::Malformed)
     }
+}
+
+/// Where a bounded range read of a file grant begins.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RangeStart {
+    /// The last `max_bytes` bytes (the whole file when it is shorter).
+    Tail,
+    /// Continues from this byte offset. When more than `max_bytes` were added
+    /// since, only the last `max_bytes` are returned and the passed-over bytes
+    /// are reported as `skipped`. An offset past the end yields nothing.
+    Since(u64),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GrantedRange {
+    pub content: Vec<u8>,
+    /// File offset of `content[0]`.
+    pub start: u64,
+    /// Bytes between the requested offset and `start`; zero for a tail read.
+    pub skipped: u64,
+    /// File size observed when the file was opened.
+    pub file_size: u64,
+    pub device: u64,
+    pub inode: u64,
+}
+
+impl GrantCoordinator {
+    /// Reads at most `max_bytes` from a file grant's range, never the whole file
+    /// unless it is shorter than the limit. Only file grants are accepted.
+    pub fn read_resource_range(
+        &self,
+        id: &GrantId,
+        start: RangeStart,
+        max_bytes: usize,
+    ) -> Result<GrantedRange, ReadError> {
+        let record = self.resolve_with(id, GrantAccess::General)?;
+        if record.kind != GrantKind::File {
+            return Err(ReadError::Unsupported);
+        }
+        let target = record.target_path();
+        if !fs::metadata(&target).map_err(io_error)?.is_file() {
+            return Err(ReadError::Unsupported);
+        }
+        let mut file = File::open(&target).map_err(io_error)?;
+        let opened = file.metadata().map_err(io_error)?;
+        if !opened.is_file() {
+            return Err(ReadError::Unsupported);
+        }
+        ensure_still_authorized(&record, &target, &opened)?;
+        range_read(&mut file, &opened, start, max_bytes)
+    }
+}
+
+fn range_read(
+    file: &mut File,
+    metadata: &fs::Metadata,
+    start: RangeStart,
+    max_bytes: usize,
+) -> Result<GrantedRange, ReadError> {
+    let size = metadata.len();
+    let max = max_bytes as u64;
+    let (begin, skipped) = match start {
+        RangeStart::Tail => (size.saturating_sub(max), 0),
+        RangeStart::Since(offset) if offset > size => (size, 0),
+        RangeStart::Since(offset) if size - offset > max => {
+            let begin = size - max;
+            (begin, begin - offset)
+        }
+        RangeStart::Since(offset) => (offset, 0),
+    };
+    let wanted = (size - begin).min(max);
+    file.seek(SeekFrom::Start(begin)).map_err(io_error)?;
+    let mut content = Vec::with_capacity(
+        usize::try_from(wanted)
+            .unwrap_or(usize::MAX)
+            .min(PREALLOCATION_CAP),
+    );
+    Read::take(file.by_ref(), wanted)
+        .read_to_end(&mut content)
+        .map_err(io_error)?;
+    Ok(GrantedRange {
+        content,
+        start: begin,
+        skipped,
+        file_size: size,
+        device: metadata.dev(),
+        inode: metadata.ino(),
+    })
 }
 
 impl GrantCoordinator {
@@ -328,8 +416,8 @@ mod tests {
 
     use super::{
         super::{GrantCoordinator, GrantPurpose, GrantStore},
-        BuiltInReadError, DEFAULT_MAX_READ_BYTES, ReadError, built_in_dir, is_below_home,
-        read_bounded, read_built_in,
+        BuiltInReadError, DEFAULT_MAX_READ_BYTES, RangeStart, ReadError, built_in_dir,
+        is_below_home, read_bounded, read_built_in,
     };
 
     struct Fixture {
@@ -735,6 +823,141 @@ mod tests {
         );
     }
     // ---- built-in sources ------------------------------------------------
+
+    #[test]
+    fn a_tail_range_reads_only_the_last_bytes_within_the_limit() {
+        let fixture = Fixture::new();
+        let file = fixture.file("job.log", b"0123456789");
+        let coordinator = fixture.coordinator();
+        let grant = coordinator
+            .create(GrantPurpose::ConfigFile, &file)
+            .expect("create grant");
+
+        let tail = coordinator
+            .read_resource_range(&grant.id, RangeStart::Tail, 4)
+            .expect("tail range");
+        assert_eq!(tail.content, b"6789");
+        assert_eq!(tail.start, 6);
+        assert_eq!(tail.skipped, 0);
+        assert_eq!(tail.file_size, 10);
+
+        let whole = coordinator
+            .read_resource_range(&grant.id, RangeStart::Tail, 100)
+            .expect("short file");
+        assert_eq!(whole.content, b"0123456789");
+        assert_eq!(whole.start, 0);
+    }
+
+    #[test]
+    fn a_since_range_returns_appended_bytes_and_reports_a_skipped_backlog() {
+        let fixture = Fixture::new();
+        let file = fixture.file("job.log", b"abc");
+        let coordinator = fixture.coordinator();
+        let grant = coordinator
+            .create(GrantPurpose::ConfigFile, &file)
+            .expect("create grant");
+        fs::write(&file, b"abcdefghij").expect("append");
+
+        let backlog = coordinator
+            .read_resource_range(&grant.id, RangeStart::Since(3), 4)
+            .expect("backlog range");
+        assert_eq!(backlog.content, b"ghij");
+        assert_eq!(backlog.start, 6);
+        assert_eq!(backlog.skipped, 3);
+
+        let small = coordinator
+            .read_resource_range(&grant.id, RangeStart::Since(8), 4)
+            .expect("small append");
+        assert_eq!(small.content, b"ij");
+        assert_eq!(small.start, 8);
+        assert_eq!(small.skipped, 0);
+    }
+
+    #[test]
+    fn a_since_offset_past_the_end_is_empty_and_reports_the_smaller_size() {
+        let fixture = Fixture::new();
+        let file = fixture.file("job.log", b"abc");
+        let coordinator = fixture.coordinator();
+        let grant = coordinator
+            .create(GrantPurpose::ConfigFile, &file)
+            .expect("create grant");
+
+        let past = coordinator
+            .read_resource_range(&grant.id, RangeStart::Since(10), 4)
+            .expect("past end");
+        assert!(past.content.is_empty());
+        assert_eq!(past.start, 3);
+        assert_eq!(past.skipped, 0);
+        assert_eq!(past.file_size, 3);
+    }
+
+    #[test]
+    fn a_range_read_refuses_directories_fifos_and_escaping_links() {
+        let fixture = Fixture::new();
+        let coordinator = fixture.coordinator();
+
+        let directory = fixture.directory("logs");
+        let directory_grant = coordinator
+            .create(GrantPurpose::ConfigDirectory, &directory)
+            .expect("directory grant");
+        assert_eq!(
+            coordinator
+                .read_resource_range(&directory_grant.id, RangeStart::Tail, 4)
+                .unwrap_err(),
+            ReadError::Unsupported
+        );
+
+        let file = fixture.file("fifo.log", b"data");
+        let grant = coordinator
+            .create(GrantPurpose::ConfigFile, &file)
+            .expect("file grant");
+        fs::remove_file(&file).expect("remove regular file");
+        assert!(
+            Command::new("/usr/bin/mkfifo")
+                .arg(&file)
+                .status()
+                .expect("run mkfifo")
+                .success()
+        );
+        assert_eq!(
+            coordinator
+                .read_resource_range(&grant.id, RangeStart::Tail, 4)
+                .unwrap_err(),
+            ReadError::Unsupported
+        );
+
+        let outside = fixture.file("outside.log", b"secret");
+        let linked = fixture.file("linked.log", b"inside");
+        let linked_grant = coordinator
+            .create(GrantPurpose::ConfigFile, &linked)
+            .expect("linked grant");
+        fs::remove_file(&linked).expect("remove granted file");
+        symlink(&outside, &linked).expect("replace with escaping link");
+        assert_eq!(
+            coordinator
+                .read_resource_range(&linked_grant.id, RangeStart::Tail, 4)
+                .unwrap_err(),
+            ReadError::Excluded
+        );
+    }
+
+    #[test]
+    fn a_revoked_range_grant_can_no_longer_read() {
+        let fixture = Fixture::new();
+        let file = fixture.file("job.log", b"abc");
+        let coordinator = fixture.coordinator();
+        let grant = coordinator
+            .create(GrantPurpose::ConfigFile, &file)
+            .expect("create grant");
+        coordinator.revoke(&grant.id).expect("revoke");
+
+        assert_eq!(
+            coordinator
+                .read_resource_range(&grant.id, RangeStart::Tail, 4)
+                .unwrap_err(),
+            ReadError::Excluded
+        );
+    }
 
     #[test]
     fn a_built_in_read_stays_below_home_and_keeps_failure_kinds() {

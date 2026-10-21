@@ -64,6 +64,12 @@ pub struct PlistDetails {
     pub keep_alive: Option<KeepAlive>,
     pub standard_out_path: Option<String>,
     pub standard_error_path: Option<String>,
+    /// The declared log paths exactly as written, for the log authorization
+    /// check only. Never serialized, and never shown.
+    #[serde(skip)]
+    pub declared_standard_out: Option<String>,
+    #[serde(skip)]
+    pub declared_standard_error: Option<String>,
     pub disabled: Option<bool>,
     pub user_name: Option<String>,
 }
@@ -95,6 +101,14 @@ fn text_of(object: &Map<String, Value>, key: &str) -> Option<String> {
         .get(key)
         .and_then(Value::as_str)
         .map(|text| clip(text, MAX_TEXT_BYTES))
+}
+
+fn raw_text_of(object: &Map<String, Value>, key: &str) -> Option<String> {
+    object
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|text| !text.is_empty())
+        .map(str::to_owned)
 }
 
 fn bool_of(object: &Map<String, Value>, key: &str) -> Option<bool> {
@@ -188,6 +202,8 @@ pub fn parse_plist_json(json: &str, home: Option<&Path>) -> Result<PlistDetails,
             .map(|path| display_path(&path, home)),
         standard_error_path: text_of(&object, "StandardErrorPath")
             .map(|path| display_path(&path, home)),
+        declared_standard_out: raw_text_of(&object, "StandardOutPath"),
+        declared_standard_error: raw_text_of(&object, "StandardErrorPath"),
         disabled: bool_of(&object, "Disabled"),
         user_name: text_of(&object, "UserName"),
     })
@@ -256,6 +272,29 @@ mod tests {
 
     fn strings(values: &[&str]) -> Vec<String> {
         values.iter().map(|value| (*value).to_owned()).collect()
+    }
+
+    #[test]
+    fn the_declared_log_paths_are_kept_raw_and_never_serialized() {
+        let details = parse(
+            r#"{
+              "Label": "com.example.job",
+              "StandardOutPath": "/Users/me/Library/Logs/job.log",
+              "StandardErrorPath": ""
+            }"#,
+        );
+        assert_eq!(
+            details.declared_standard_out.as_deref(),
+            Some("/Users/me/Library/Logs/job.log")
+        );
+        assert_eq!(details.declared_standard_error, None);
+        assert_eq!(
+            details.standard_out_path.as_deref(),
+            Some("~/Library/Logs/job.log")
+        );
+        let json = serde_json::to_string(&details).expect("serialize details");
+        assert!(!json.contains("declared"));
+        assert!(!json.contains("/Users/me/Library"));
     }
 
     #[test]

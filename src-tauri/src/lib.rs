@@ -47,6 +47,7 @@ pub fn run() {
         .manage(services::actions::ServiceActionCoordinator::default())
         .manage(services::create::ServiceCreateCoordinator::default())
         .manage(services::lifecycle::LaunchdActionCoordinator::default())
+        .manage(services::logs::LogSessions::default())
         .manage(security::elevation::ElevationCoordinator::default())
         .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
@@ -149,6 +150,13 @@ pub fn run() {
             commands::services::execute_launchd_action,
             commands::services::preview_service_action,
             commands::services::execute_service_action,
+            commands::services::authorize_launchd_log,
+            commands::services::revoke_launchd_log,
+            commands::services::read_launchd_log_tail,
+            commands::services::read_launchd_log_since,
+            commands::services::prepare_launchd_log_export,
+            commands::services::confirm_launchd_log_export,
+            commands::services::discard_launchd_log_export,
             commands::status::get_app_status,
             commands::text_tools::format_json,
             commands::text_tools::format_xml,
@@ -202,6 +210,9 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                commands::services::release_log_grants(app);
+            }
             // A quit nobody routed through the lifecycle entry (a system quit, for
             // example) is held back and sent through it. Programmatic exits carry
             // a code and have already passed the entry.
