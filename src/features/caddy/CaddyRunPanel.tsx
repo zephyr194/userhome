@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, CheckboxField, LogViewer, Panel, StatusBadge } from "../../components/ui";
 import {
+  caddyApply,
   caddyLogs,
   caddyPrepareStart,
   caddyStart,
   caddyStatus,
   caddyStop,
+  type CaddyApplyReport,
   type CaddyConfigSource,
   type CaddyConflictReport,
   type CaddyRunStatus,
   type CaddyStartSummary,
+  type CaddyStatus,
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
 import { createRequestTracker } from "./caddyPreviewFlow";
@@ -26,11 +29,16 @@ import {
 } from "./caddyConflictModel";
 import {
   LOG_LINE_LIMIT,
+  applyFailureLabel,
   applyLogPage,
+  canApply,
   canPrepare,
   canStop,
   initialLogView,
+  presentApplied,
   presentRunState,
+  reviewLines,
+  visibleApplyResult,
   type LogView,
 } from "./caddyRunModel";
 
@@ -42,19 +50,28 @@ const SOURCE_LABELS: Record<CaddyConfigSource, string> = {
   RAW: "原文 Caddyfile（最近保存的原文）",
 };
 
+// The start and stop responses carry only the run facts; the poll adds the apply facts.
+type PanelStatus = CaddyRunStatus & Partial<Omit<CaddyStatus, keyof CaddyRunStatus>>;
+
 export interface CaddyRunViewProps {
   source: CaddyConfigSource;
-  status?: CaddyRunStatus;
+  status?: PanelStatus;
   summary?: CaddyStartSummary;
   busy: boolean;
   error?: AppError;
   logs: LogView;
   paused: boolean;
+  applying?: boolean;
+  applyResult?: CaddyApplyReport;
+  confirmingApply?: boolean;
   onPrepare: () => void;
   onStart: (options: { acceptUnconfirmed: boolean }) => void;
   onCancelSummary: () => void;
   onStop: () => void;
   onPauseChange: (paused: boolean) => void;
+  onApply?: () => void;
+  onConfirmApply?: () => void;
+  onCancelApply?: () => void;
   onOpenService?: (target: ServiceTarget) => void;
 }
 
@@ -67,9 +84,13 @@ export function CaddyRunPanel({
 }) {
   const [statusTracker] = useState(createRequestTracker);
   const [previewTracker] = useState(createRequestTracker);
-  const [status, setStatus] = useState<CaddyRunStatus | undefined>(undefined);
+  const [applyTracker] = useState(createRequestTracker);
+  const [status, setStatus] = useState<PanelStatus | undefined>(undefined);
   const [summary, setSummary] = useState<CaddyStartSummary | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [confirmingApply, setConfirmingApply] = useState(false);
+  const [applyResult, setApplyResult] = useState<CaddyApplyReport | undefined>(undefined);
   const [error, setError] = useState<AppError | undefined>(undefined);
   const [logs, setLogs] = useState<LogView>(() => initialLogView(undefined));
   const [paused, setPaused] = useState(false);
@@ -181,6 +202,24 @@ export function CaddyRunPanel({
     setSummary(undefined);
   }
 
+  // Reloads the own instance only after the user confirmed; the response is
+  // shown only while its session is still the one on screen.
+  function apply() {
+    if (sessionId === undefined) return;
+    setConfirmingApply(false);
+    setApplying(true);
+    setError(undefined);
+    const id = applyTracker.issue();
+    caddyApply(sessionId, source).then(
+      (report) => {
+        if (applyTracker.isCurrent(id)) setApplyResult(report);
+      },
+      (failure: AppError) => {
+        if (applyTracker.isCurrent(id)) setError(failure);
+      },
+    ).finally(() => setApplying(false));
+  }
+
   return (
     <CaddyRunView
       source={source}
@@ -190,11 +229,17 @@ export function CaddyRunPanel({
       error={error}
       logs={visibleLogs}
       paused={paused}
+      applying={applying}
+      applyResult={visibleApplyResult(applyResult, sessionId) ?? status?.lastApply}
+      confirmingApply={confirmingApply}
       onPrepare={prepare}
       onStart={start}
       onCancelSummary={cancelSummary}
       onStop={stop}
       onPauseChange={setPaused}
+      onApply={() => setConfirmingApply(true)}
+      onConfirmApply={apply}
+      onCancelApply={() => setConfirmingApply(false)}
       onOpenService={onOpenService}
     />
   );
@@ -208,17 +253,31 @@ export function CaddyRunView({
   error,
   logs,
   paused,
+  applying = false,
+  applyResult,
+  confirmingApply = false,
   onPrepare,
   onStart,
   onCancelSummary,
   onStop,
   onPauseChange,
+  onApply,
+  onConfirmApply,
+  onCancelApply,
   onOpenService,
 }: CaddyRunViewProps) {
   const state = status?.state;
+  const applied = status?.applied;
   const previewEnabled = state !== undefined && canPrepare(state) && !busy;
   const stopEnabled = state !== undefined && canStop(state) && !busy;
+  const applyBlocked = busy || applying || status?.applying === true;
+  const applyEnabled =
+    state !== undefined && canApply(state, applied, applyBlocked) && !confirmingApply;
+  const confirmVisible =
+    confirmingApply && state !== undefined && canApply(state, applied, applyBlocked);
   const presentation = state === undefined ? undefined : presentRunState(state);
+  const appliedPresentation =
+    state === "RUNNING" && applied !== undefined ? presentApplied(applied) : undefined;
 
   return (
     <Panel aria-labelledby="caddy-run-heading" className="grid min-w-0 gap-ui-md p-ui-lg">
@@ -226,11 +285,18 @@ export function CaddyRunView({
         <h2 id="caddy-run-heading" className="text-sm font-semibold">
           运行（自有实例）
         </h2>
-        {presentation !== undefined ? (
-          <StatusBadge tone={presentation.tone}>
-            {`${presentation.symbol} ${presentation.label}`}
-          </StatusBadge>
-        ) : null}
+        <div className="flex flex-wrap gap-ui-xs">
+          {presentation !== undefined ? (
+            <StatusBadge tone={presentation.tone}>
+              {`${presentation.symbol} ${presentation.label}`}
+            </StatusBadge>
+          ) : null}
+          {appliedPresentation !== undefined ? (
+            <StatusBadge tone={appliedPresentation.tone}>
+              {`${appliedPresentation.symbol} ${appliedPresentation.label}`}
+            </StatusBadge>
+          ) : null}
+        </div>
       </div>
       <p role="status" aria-live="polite" className="m-0 text-body text-muted-foreground">
         {status === undefined ? "正在读取运行状态……" : status.message}
@@ -258,10 +324,29 @@ export function CaddyRunView({
         <Button variant="secondary" disabled={!previewEnabled} onClick={onPrepare}>
           开启前预览
         </Button>
+        {onApply !== undefined ? (
+          <Button variant="primary" disabled={!applyEnabled} onClick={onApply}>
+            应用到运行中的实例
+          </Button>
+        ) : null}
         <Button variant="danger" disabled={!stopEnabled} onClick={onStop}>
           关闭
         </Button>
       </div>
+      {onApply !== undefined ? (
+        <p className="m-0 text-aux text-muted-foreground">
+          保存不会启动或重载；只有点击“应用到运行中的实例”并确认后，才会重载自有实例。
+        </p>
+      ) : null}
+      {applying || status?.applying === true ? (
+        <p aria-live="polite" className="m-0 text-body">
+          正在应用：重载自有实例，结果以复核为准……
+        </p>
+      ) : null}
+      {confirmVisible ? (
+        <ApplyConfirm busy={applyBlocked} onConfirm={onConfirmApply} onCancel={onCancelApply} />
+      ) : null}
+      {applyResult !== undefined ? <ApplyResultBlock report={applyResult} /> : null}
       <LogViewer
         label="Caddy 日志"
         emptyText="暂无日志"
@@ -272,6 +357,70 @@ export function CaddyRunView({
         onPauseChange={onPauseChange}
       />
     </Panel>
+  );
+}
+
+function ApplyConfirm({
+  busy,
+  onConfirm,
+  onCancel,
+}: {
+  busy: boolean;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}) {
+  return (
+    <section
+      aria-label="应用确认"
+      className="grid gap-ui-sm rounded-panel border border-warning p-ui-md"
+    >
+      <p className="m-0 text-body font-semibold">确认应用到运行中的实例？</p>
+      <p className="m-0 text-body">
+        将重载自有实例（仅通过本次运行的私有管理端点）。失败时旧配置可能仍在运行，且不会自动重试。
+      </p>
+      <div className="flex flex-wrap gap-ui-sm">
+        <Button variant="primary" disabled={busy} onClick={onConfirm}>
+          确认应用
+        </Button>
+        <Button variant="secondary" onClick={onCancel}>
+          取消
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function ApplyResultBlock({ report }: { report: CaddyApplyReport }) {
+  const failed = report.outcome === "FAILED";
+  const headline = failed
+    ? `应用未成功：${report.failure !== undefined ? applyFailureLabel(report.failure) : "原因未知"}`
+    : "应用成功（已复核）";
+  return (
+    <section
+      aria-label="应用结果"
+      role={failed ? "alert" : undefined}
+      className={`grid gap-ui-xs rounded-panel border p-ui-md ${failed ? "border-danger" : "border-control-border"}`}
+    >
+      <p className={`m-0 text-body font-semibold ${failed ? "text-danger" : ""}`}>
+        {`${failed ? "▲" : "●"} ${headline}`}
+      </p>
+      <p className="m-0 text-body">{report.message}</p>
+      {report.review !== undefined ? (
+        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+          {reviewLines(report.review).map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+      {report.diagnostics.length > 0 ? (
+        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+          {report.diagnostics.map((diagnostic, index) => (
+            <li key={`${index}-${diagnostic.message}`}>{diagnostic.message}</li>
+          ))}
+        </ul>
+      ) : null}
+      {failed ? <p className="m-0 text-aux text-muted-foreground">未自动重试。</p> : null}
+    </section>
   );
 }
 

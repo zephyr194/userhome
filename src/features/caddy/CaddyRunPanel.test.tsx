@@ -303,3 +303,107 @@ describe("conflict report in the start summary", () => {
     expect(view({ summary: { ...READY, conflicts: UNCONFIRMED_CONFLICTS } })).toContain("! 需要确认");
   });
 });
+
+const PENDING_RUNNING: CaddyRunStatus & { applied: "PENDING"; applying: false } = {
+  ...RUNNING,
+  applied: "PENDING",
+  applying: false,
+};
+
+describe("pending saved config while running", () => {
+  it("shows an unapplied badge with a symbol and text when the saved config differs", () => {
+    expect(view({ status: PENDING_RUNNING })).toContain("△ 未应用");
+  });
+
+  it("does not show the unapplied badge once the running config matches", () => {
+    expect(view({ status: { ...RUNNING, applied: "APPLIED", applying: false } })).not.toContain(
+      "未应用",
+    );
+  });
+
+  it("enables apply only for a running instance with a pending saved config", () => {
+    const label = "应用到运行中的实例";
+    expect(isDisabled(view({ status: PENDING_RUNNING, onApply: NOOP }), label)).toBe(false);
+    expect(isDisabled(view({ status: STOPPED, onApply: NOOP }), label)).toBe(true);
+    expect(
+      isDisabled(
+        view({ status: { ...RUNNING, applied: "APPLIED", applying: false }, onApply: NOOP }),
+        label,
+      ),
+    ).toBe(true);
+    expect(isDisabled(view({ status: PENDING_RUNNING, onApply: NOOP, busy: true }), label)).toBe(
+      true,
+    );
+    expect(
+      isDisabled(view({ status: { ...PENDING_RUNNING, applying: true }, onApply: NOOP }), label),
+    ).toBe(true);
+  });
+
+  it("asks for an explicit confirmation that says the old config may keep running", () => {
+    const markup = view({
+      status: PENDING_RUNNING,
+      confirmingApply: true,
+      onConfirmApply: NOOP,
+      onCancelApply: NOOP,
+    });
+    expect(markup).toContain("确认应用到运行中的实例");
+    expect(markup).toContain("失败时旧配置可能仍在运行");
+    expect(button(markup, "确认应用")).toBeTruthy();
+  });
+
+  it("shows applying progress while the reload is in flight", () => {
+    expect(view({ status: PENDING_RUNNING, applying: true })).toContain("正在应用");
+  });
+
+  it("reports a successful apply only with its review", () => {
+    const markup = view({
+      status: { ...RUNNING, applied: "APPLIED", applying: false },
+      applyResult: {
+        sessionId: "s-1",
+        outcome: "SUCCEEDED",
+        message: "已重载并复核通过：进程存活、管理端点可连接，活动配置已记录为新版本。",
+        review: { alive: true, adminReachable: true, config: "CANDIDATE" },
+        diagnostics: [],
+      },
+    });
+    expect(markup).toContain("应用成功（已复核）");
+    expect(markup).toContain("活动配置已记录为新版本");
+    expect(markup).not.toContain("应用未成功");
+  });
+
+  it("reports a failed reload with its category, the review and that the old config may still run", () => {
+    const markup = view({
+      status: PENDING_RUNNING,
+      applyResult: {
+        sessionId: "s-1",
+        outcome: "FAILED",
+        failure: "COMMAND_FAILED",
+        message: "重载命令失败。进程存活且管理端点可连接，旧配置仍是记录中的活动配置。",
+        review: { alive: true, adminReachable: true, config: "PREVIOUS" },
+        diagnostics: [{ message: "Error: loading new config" }],
+      },
+    });
+    expect(markup).toContain("应用未成功：命令失败");
+    expect(markup).toContain("管理端点可连接");
+    expect(markup).toContain("活动配置仍为旧版本");
+    expect(markup).toContain("Error: loading new config");
+    expect(markup).toContain("未自动重试");
+  });
+
+  it("states that a review failure is not a success and leaves the instance state unknown", () => {
+    const markup = view({
+      status: PENDING_RUNNING,
+      applyResult: {
+        sessionId: "s-1",
+        outcome: "FAILED",
+        failure: "REVIEW_FAILED",
+        message: "重载命令已返回成功，但复核未通过，不能确认实例状态，不宣称成功。",
+        review: { alive: true, adminReachable: false, config: "UNKNOWN" },
+        diagnostics: [],
+      },
+    });
+    expect(markup).toContain("应用未成功：复核失败");
+    expect(markup).toContain("活动配置未知");
+    expect(markup).not.toContain("应用成功");
+  });
+});
