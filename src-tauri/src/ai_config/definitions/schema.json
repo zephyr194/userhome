@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI 配置版本化定义",
+  "description": "描述 definitions/*.json 的结构；与 registry.rs 的 serde 类型保持一致，由 schema_tests.rs 校验。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tools"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "tools": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/tool" }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._-]+$"
+    },
+    "envName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Z_][A-Z0-9_]*$"
+    },
+    "nonEmptyText": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverageStatus": {
+      "type": "string",
+      "enum": ["editable", "displayOnly", "notApplicable", "versionUnknown", "unsupported"]
+    },
+    "resourceLayer": {
+      "type": "string",
+      "enum": ["userLevel", "projectShared", "projectLocal", "managed"]
+    },
+    "resourceFormat": {
+      "type": "string",
+      "enum": ["json", "jsonc", "toml", "text"]
+    },
+    "valueType": {
+      "type": "string",
+      "enum": ["string", "boolean", "number", "stringArray", "object", "enum"]
+    },
+    "riskFlag": {
+      "type": "string",
+      "enum": ["executesCommand", "relaxesPermissions", "externalServer"]
+    },
+    "stringList": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "executableNames", "source", "resources", "settings", "flags", "env"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "displayName": { "$ref": "#/$defs/nonEmptyText" },
+        "executableNames": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "source": { "$ref": "#/$defs/source" },
+        "resources": { "type": "array", "items": { "$ref": "#/$defs/resource" } },
+        "settings": { "type": "array", "items": { "$ref": "#/$defs/setting" } },
+        "flags": { "type": "array", "items": { "$ref": "#/$defs/flag" } },
+        "env": { "type": "array", "items": { "$ref": "#/$defs/env" } }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "retrievedOn", "documentedVersion"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^https://[^/\\s]+\\S*$" },
+        "retrievedOn": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "documentedVersion": {
+          "type": "string",
+          "description": "文档适用版本号，或字面量 unknown"
+        }
+      }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "string" },
+        "max": { "type": "string" }
+      }
+    },
+    "nullableVersions": {
+      "anyOf": [{ "$ref": "#/$defs/versions" }, { "type": "null" }]
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "layer", "format", "location", "description", "coverage", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "layer": { "$ref": "#/$defs/resourceLayer" },
+        "format": { "$ref": "#/$defs/resourceFormat" },
+        "location": {
+          "type": "string",
+          "pattern": "^\\{(home|project)\\}"
+        },
+        "description": { "$ref": "#/$defs/nonEmptyText" },
+        "coverage": { "$ref": "#/$defs/coverageStatus" },
+        "versions": { "$ref": "#/$defs/nullableVersions" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "setting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "keyPath", "valueType", "allowedValues", "description", "defaultNote",
+        "mergeRule", "risks", "secret", "coverage", "source"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "keyPath": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
+        "valueType": { "$ref": "#/$defs/valueType" },
+        "allowedValues": { "$ref": "#/$defs/stringList" },
+        "description": { "$ref": "#/$defs/nonEmptyText" },
+        "defaultNote": { "$ref": "#/$defs/nonEmptyText" },
+        "mergeRule": { "$ref": "#/$defs/nonEmptyText" },
+        "risks": { "type": "array", "items": { "$ref": "#/$defs/riskFlag" } },
+        "secret": { "type": "boolean" },
+        "coverage": { "$ref": "#/$defs/coverageStatus" },
+        "versions": { "$ref": "#/$defs/nullableVersions" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "flag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "valueType", "allowedValues", "description", "singleInvocation",
+        "excludes", "requires", "coverage", "source"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "valueType": { "$ref": "#/$defs/valueType" },
+        "allowedValues": { "$ref": "#/$defs/stringList" },
+        "description": { "$ref": "#/$defs/nonEmptyText" },
+        "singleInvocation": { "type": "boolean" },
+        "excludes": { "$ref": "#/$defs/stringList" },
+        "requires": { "$ref": "#/$defs/stringList" },
+        "coverage": { "$ref": "#/$defs/coverageStatus" },
+        "versions": { "$ref": "#/$defs/nullableVersions" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name", "valueType", "allowedValues", "description", "secret",
+        "excludes", "requires", "coverage", "source"
+      ],
+      "properties": {
+        "name": { "$ref": "#/$defs/envName" },
+        "valueType": { "$ref": "#/$defs/valueType" },
+        "allowedValues": { "$ref": "#/$defs/stringList" },
+        "description": { "$ref": "#/$defs/nonEmptyText" },
+        "secret": { "type": "boolean" },
+        "configAlternative": {
+          "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+        },
+        "excludes": { "$ref": "#/$defs/stringList" },
+        "requires": { "$ref": "#/$defs/stringList" },
+        "coverage": { "$ref": "#/$defs/coverageStatus" },
+        "versions": { "$ref": "#/$defs/nullableVersions" },
+        "source": { "$ref": "#/$defs/source" }
+      }
+    }
+  }
+}
