@@ -48,11 +48,11 @@ describe("route registry", () => {
     );
   });
 
-  it("lists environment variables first and Caddy after under system tools", () => {
+  it("lists environment variables first, then Caddy and application config under system tools", () => {
     const tools = groupNavigationRoutes(APP_ROUTES).find(
       (entry) => entry.group.id === "system-tools",
     );
-    expect(tools?.routes.map((route) => route.label)).toEqual(["环境变量", "Caddy"]);
+    expect(tools?.routes.map((route) => route.label)).toEqual(["环境变量", "Caddy", "应用配置"]);
   });
 
   it("describes the services page as launchd discovery, not Homebrew-only management", () => {

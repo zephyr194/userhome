@@ -5,6 +5,7 @@ export type AppRouteId =
   | "services"
   | "environment"
   | "caddy"
+  | "appConfig"
   | "tools"
   | "settings";
 
@@ -15,6 +16,7 @@ export type AppRouteIcon =
   | "services"
   | "environment"
   | "caddy"
+  | "appConfig"
   | "tools"
   | "settings";
 
@@ -92,6 +94,13 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     label: "Caddy",
     eyebrow: "本地代理",
     description: "检测 Caddy 并编辑本机反向代理规则；保存不会启动或重载 Caddy。",
+    group: "system-tools",
+  },
+  appConfig: {
+    icon: "appConfig",
+    label: "应用配置",
+    eyebrow: "只读配置",
+    description: "按登记的默认位置只读查看应用配置，秘密值默认遮盖。",
     group: "system-tools",
   },
   tools: {
