@@ -11,6 +11,9 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::{
     ai_config::{
+        command::{
+            BuiltCommand, CommandRequest, OptionSummary, build_claude_command, option_summary,
+        },
         detect::{
             AiConfigReport, ProbeEnv, SystemVersionProbe, detect_all, detect_claude_version,
             fixed_locations,
@@ -550,6 +553,22 @@ fn with_write_context<T>(
         retention: settings.get()?.preferences().backup_retention(),
     };
     action(&ctx, &writes)
+}
+
+#[tauri::command]
+pub fn ai_config_claude_flags() -> Result<OptionSummary, AppError> {
+    let definitions = load_claude_definitions()?;
+    let tool = claude_tool(&definitions)
+        .ok_or_else(|| AppError::not_found("未找到 Claude Code 定义。"))?;
+    Ok(option_summary(tool))
+}
+
+#[tauri::command]
+pub fn ai_config_claude_build_command(request: CommandRequest) -> Result<BuiltCommand, AppError> {
+    let definitions = load_claude_definitions()?;
+    let tool = claude_tool(&definitions)
+        .ok_or_else(|| AppError::not_found("未找到 Claude Code 定义。"))?;
+    build_claude_command(tool, &request).map_err(|error| AppError::invalid_input(&error.message()))
 }
 
 #[cfg(test)]

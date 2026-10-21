@@ -133,6 +133,8 @@ pub fn run() {
             commands::ai_config::ai_config_claude_edit_catalog,
             commands::ai_config::ai_config_claude_preview_edit,
             commands::ai_config::ai_config_claude_confirm_edit,
+            commands::ai_config::ai_config_claude_flags,
+            commands::ai_config::ai_config_claude_build_command,
             commands::settings::get_discovery_exclusions,
             commands::settings::update_discovery_exclusions,
             commands::catalog::list_managed_apps,
