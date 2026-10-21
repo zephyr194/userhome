@@ -551,3 +551,7 @@ fn with_write_context<T>(
     };
     action(&ctx, &writes)
 }
+
+#[cfg(test)]
+#[path = "ai_config_tests.rs"]
+mod tests;
