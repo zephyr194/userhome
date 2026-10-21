@@ -34,6 +34,7 @@ use crate::{
         ResourceWriteBatchPreview, ResourceWriteContext, ResourceWriteCoordinator,
         ResourceWriteExecution, WriteRequest,
     },
+    lifecycle::LifecycleCoordinator,
     operations::OperationCoordinator,
     services::{
         launchd::DiscoveryGate,
@@ -673,6 +674,7 @@ pub async fn caddy_start(
         let report = system_conflicts(&targets);
         guard_start(&report, input.accept_unconfirmed, || {
             let grants = app.state::<GrantCoordinator>();
+            let lifecycle = app.state::<LifecycleCoordinator>();
             let authorize = |configs: &[TlsConfig]| authorize_tls(&grants, configs);
             let env = StartEnvironment {
                 checks_root: &checks_root,
@@ -680,6 +682,7 @@ pub async fn caddy_start(
                 runner: &SystemCaddyRunner,
                 probe: &SystemAdminProbe,
                 tls: &authorize,
+                owned: lifecycle.registry(),
             };
             app.state::<CaddyRunCoordinator>()
                 .start(&input.plan_id, input.source, &env)

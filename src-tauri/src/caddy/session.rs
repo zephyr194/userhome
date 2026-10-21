@@ -49,6 +49,7 @@ use crate::{
         },
     },
     error::AppError,
+    lifecycle::{OwnedProcess, OwnedResourceRegistry},
     operations::sanitize_payload,
     process_session::{
         DEFAULT_LOG_CAPACITY, EnvSpec, LaunchSpec, ProcessSession, SessionError, SessionState,
@@ -266,6 +267,22 @@ pub struct StartEnvironment<'a> {
     pub runner: &'a dyn CaddyRunner,
     pub probe: &'a dyn AdminProbe,
     pub tls: TlsAuthorizer<'a>,
+    pub owned: &'a OwnedResourceRegistry,
+}
+
+/// Human-readable registry label; the listen summary is what the user recognises.
+pub fn owned_label(targets: &ConflictTargets) -> String {
+    let endpoints = targets.listen.as_deref().unwrap_or_default();
+    let summary = match endpoints {
+        [] => "地址未知".to_owned(),
+        [only] => authority(&only.host, only.port),
+        [first, ..] => format!(
+            "{} 等 {} 个地址",
+            authority(&first.host, first.port),
+            endpoints.len()
+        ),
+    };
+    format!("Caddy 自有实例（监听 {summary}）")
 }
 
 pub struct ApplyEnvironment<'a> {
@@ -626,6 +643,24 @@ impl Run {
     }
 }
 
+impl OwnedProcess for Run {
+    fn is_running(&self) -> bool {
+        self.session.is_running()
+    }
+
+    fn stop(&self, grace: Duration, kill_timeout: Duration) -> StopOutcome {
+        self.user_stopped.store(true, Ordering::SeqCst);
+        let outcome = self.session.stop(grace, kill_timeout);
+        if matches!(
+            outcome,
+            StopOutcome::Terminated { .. } | StopOutcome::AlreadyExited(_)
+        ) {
+            self.settle();
+        }
+        outcome
+    }
+}
+
 #[derive(Default)]
 struct Slot {
     busy: bool,
@@ -833,6 +868,15 @@ impl CaddyRunCoordinator {
             fingerprint(&runtime),
             sensitive,
         ));
+        let process: Arc<dyn OwnedProcess> = run.clone();
+        if env
+            .owned
+            .register(&owned_label(&plan.targets), process)
+            .is_err()
+        {
+            self.finish(&run);
+            return Ok(self.refuse(FailureKind::SpawnFailed, Vec::new()));
+        }
         {
             let mut slot = lock(&self.slot);
             slot.active = Some(Arc::clone(&run));
@@ -1381,6 +1425,7 @@ mod tests {
                 runner,
                 probe,
                 tls: &no_tls,
+                owned: &OwnedResourceRegistry::default(),
             },
         )
     }
@@ -1752,6 +1797,7 @@ mod tests {
             runner: &runner,
             probe: &probe,
             tls: &no_tls,
+            owned: &OwnedResourceRegistry::default(),
         };
         let error = coordinator
             .start("not-a-plan", ConfigSource::Raw, &env)
@@ -2679,6 +2725,7 @@ mod tests {
             runner: &runner,
             probe: &Ready(true),
             tls: &revoked,
+            owned: &OwnedResourceRegistry::default(),
         };
 
         let error = coordinator
@@ -2711,6 +2758,7 @@ mod tests {
             runner: &runner,
             probe: &Ready(true),
             tls: &authorize,
+            owned: &OwnedResourceRegistry::default(),
         };
 
         let error = coordinator
@@ -2810,6 +2858,7 @@ mod tests {
             runner: &runner,
             probe: &Ready(true),
             tls: &granted,
+            owned: &OwnedResourceRegistry::default(),
         };
         let status = coordinator
             .start(&plan_id, ConfigSource::Rules, &env)

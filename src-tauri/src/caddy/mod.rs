@@ -9,3 +9,6 @@ pub mod session;
 pub mod store;
 pub mod tls;
 pub mod validate;
+
+#[cfg(test)]
+mod session_owned_tests;
