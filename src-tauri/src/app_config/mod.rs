@@ -1,7 +1,13 @@
 //! Built-in registry of known application configuration files. Entries are
-//! static data reviewed in code; nothing in this module probes or reads files.
+//! static data reviewed in code. Probing and reading go through an injectable
+//! `ConfigFs` and only ever name registered paths.
 
+pub mod discover;
 pub mod registry;
 
+#[cfg(test)]
+mod discover_tests;
+#[cfg(test)]
+mod test_support;
 #[cfg(test)]
 mod tests;
