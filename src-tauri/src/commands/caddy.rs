@@ -14,6 +14,7 @@ use crate::{
         },
         diff::{DiffLine, line_diff},
         generate::generate_caddyfile_with_tls,
+        redact::{SensitivePath, redact_text, sensitive_paths},
         reload::ApplyReport,
         session::{
             Applied, ApplyEnvironment, CaddyRunCoordinator, ConfigSource, LogPage, PrepareInput,
@@ -232,16 +233,13 @@ fn ensure_tls_resolvable(rules: &CaddyRules, grants: &GrantCoordinator) -> Resul
         .try_for_each(|tls| tls_paths(grants, tls).map(|_| ()))
 }
 
-fn sensitive_tls_paths(rules: &CaddyRules, grants: &GrantCoordinator) -> Vec<String> {
-    rules
-        .sites
+fn sensitive_tls_paths(rules: &CaddyRules, grants: &GrantCoordinator) -> Vec<SensitivePath> {
+    let resolved: Vec<TlsPaths> = rules
+        .enabled_tls()
         .iter()
-        .filter(|site| site.enabled)
-        .filter_map(|site| site.tls.as_ref())
         .filter_map(|tls| tls_paths(grants, tls).ok())
-        .flat_map(|paths| [paths.certificate, paths.private_key])
-        .filter_map(|path| path.into_os_string().into_string().ok())
-        .collect()
+        .collect();
+    sensitive_paths(&resolved)
 }
 
 /// Shows a TLS line by its file names only, so the directory of a granted file
@@ -257,14 +255,6 @@ fn redact_tls_lines(text: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-fn redact_paths(text: &str, paths: &[String]) -> String {
-    let mut longest_first = paths.to_vec();
-    longest_first.sort_by_key(|path| std::cmp::Reverse(path.len()));
-    longest_first.iter().fold(text.to_owned(), |text, path| {
-        text.replace(path.as_str(), file_name_of(path))
-    })
 }
 
 fn file_name_of(path: &str) -> &str {
@@ -449,7 +439,7 @@ pub async fn caddy_validate(
     .await
     .map_err(|_| AppError::internal())??;
     for diagnostic in &mut report.diagnostics {
-        diagnostic.message = redact_paths(&diagnostic.message, &sensitive);
+        diagnostic.message = redact_text(&diagnostic.message, &sensitive);
     }
     Ok(report)
 }
@@ -1664,11 +1654,14 @@ mod tls_tests {
 
     #[test]
     fn redacted_paths_are_replaced_longest_first() {
-        let paths = vec!["/a/key.pem".to_owned(), "/a/key.pem.bak".to_owned()];
+        let known = sensitive_paths(&[TlsPaths {
+            certificate: PathBuf::from("/a/key.pem.bak"),
+            private_key: PathBuf::from("/a/key.pem"),
+        }]);
 
         assert_eq!(
-            redact_paths("load /a/key.pem and /a/key.pem.bak", &paths),
-            "load key.pem and key.pem.bak"
+            redact_text("load /a/key.pem and /a/key.pem.bak", &known),
+            "load <私钥文件> and <证书文件>"
         );
     }
 
