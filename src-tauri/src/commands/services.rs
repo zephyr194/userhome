@@ -28,6 +28,14 @@ use crate::{
             ServiceAction, ServiceActionCoordinator, ServiceActionError, ServiceActionInput,
             execute_action, validate_action, verify_refreshed_state,
         },
+        adopt::{
+            edit::EditRequest,
+            flow::{
+                AdoptCoordinator, AdoptExecution, AdoptPreview, EditExecution, EditPreview,
+                ReleaseOutcome, release_record, with_discovery,
+            },
+            store::AdoptionStore,
+        },
         create::{
             CreateExecution, CreatePreview, CreateServiceRequest, ServiceCreateCoordinator,
             SystemFacts, SystemRegistry,
@@ -39,7 +47,7 @@ use crate::{
         launchd::{Discovery, DiscoveryGate, with_system},
         lifecycle::{
             LaunchdActionCoordinator, LifecycleExecution, LifecycleHost, LifecyclePreview,
-            LifecycleRequest,
+            LifecycleRequest, SystemResolver,
         },
         logs::{
             self as logs, LogError, LogExportConfirm, LogExportPreview, LogExportRequest,
@@ -47,7 +55,8 @@ use crate::{
             LogTailRequest, LogTarget,
         },
         ownership::{
-            HomebrewScope, OwnedDiscovery, check_homebrew_caddy_system, discover_owned_system,
+            HomebrewScope, OwnedDiscovery, ServiceRequest, check_homebrew_caddy_system,
+            discover_owned_system,
         },
     },
     settings::SettingsCoordinator,
@@ -158,7 +167,11 @@ pub async fn preview_launchd_action(
     tauri::async_runtime::spawn_blocking(move || {
         let actions = app.state::<LaunchdActionCoordinator>();
         let operations = app.state::<OperationCoordinator>();
-        actions.preview(&LifecycleHost::system(), &operations, &input)
+        let adoptions = app.state::<AdoptionStore>();
+        let resolver = SystemResolver {
+            adoptions: &*adoptions,
+        };
+        actions.preview(&LifecycleHost::system(&resolver), &operations, &input)
     })
     .await
     .map_err(|_| AppError::internal())?
@@ -174,10 +187,140 @@ pub async fn execute_launchd_action(
     tauri::async_runtime::spawn_blocking(move || {
         let actions = app.state::<LaunchdActionCoordinator>();
         let operations = app.state::<OperationCoordinator>();
-        actions.execute(&LifecycleHost::system(), &operations, &operation_id)
+        let adoptions = app.state::<AdoptionStore>();
+        let resolver = SystemResolver {
+            adoptions: &*adoptions,
+        };
+        actions.execute(
+            &LifecycleHost::system(&resolver),
+            &operations,
+            &operation_id,
+        )
     })
     .await
     .map_err(|_| AppError::internal())?
+}
+
+/// Previews adopting one existing user job. Nothing is written: the job and its
+/// plist are judged again, the original is named, and the operation waits for
+/// `execute_adopt_launchd_service`.
+#[tauri::command]
+pub async fn preview_adopt_launchd_service(
+    app: AppHandle,
+    input: ServiceRequest,
+) -> Result<AdoptPreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_adoption(&app, |discovery, adoptions, ctx, _writes, adopt| {
+            adopt.preview_adoption(discovery, adoptions, ctx.operations, &input)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Confirms an adoption preview: the original plist is backed up, the record is
+/// written and both are read back. The plist itself is never changed.
+#[tauri::command]
+pub async fn execute_adopt_launchd_service(
+    app: AppHandle,
+    operation_id: String,
+) -> Result<AdoptExecution, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_adoption(&app, |discovery, adoptions, ctx, _writes, adopt| {
+            adopt.execute_adoption(discovery, adoptions, ctx, &operation_id)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Removes UserHome's record of an adopted job. The plist and the job stay as
+/// they are.
+#[tauri::command]
+pub async fn release_adoption(
+    app: AppHandle,
+    input: ServiceRequest,
+) -> Result<ReleaseOutcome, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let adoptions = app.state::<AdoptionStore>();
+        with_discovery(|discovery| release_record(discovery, &adoptions, &input))
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Previews a structured edit of an adopted job. Only the named fields change;
+/// the replacement is confirmed by `execute_edit_launchd_service`.
+#[tauri::command]
+pub async fn preview_edit_launchd_service(
+    app: AppHandle,
+    input: EditRequest,
+) -> Result<EditPreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_adoption(&app, |discovery, adoptions, ctx, writes, adopt| {
+            adopt.preview_edit(discovery, adoptions, ctx, writes, &SystemFacts, &input)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn execute_edit_launchd_service(
+    app: AppHandle,
+    operation_id: String,
+) -> Result<EditExecution, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_adoption(&app, |discovery, adoptions, ctx, writes, adopt| {
+            adopt.execute_edit(discovery, adoptions, ctx, writes, &operation_id)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Gives up an edit preview: its one-file grant is revoked and the preview
+/// cancelled, so it can never be confirmed.
+#[tauri::command]
+pub async fn discard_edit_launchd_service(
+    app: AppHandle,
+    operation_id: String,
+) -> Result<(), AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_adoption(&app, |_discovery, _adoptions, ctx, _writes, adopt| {
+            adopt.discard_edit(ctx, &operation_id)
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Runs `action` with the discovery gate held, the adoption records and the
+/// write context built from the managed state.
+fn with_adoption<T>(
+    app: &AppHandle,
+    action: impl FnOnce(
+        &crate::services::launchd::Discovery<'_>,
+        &AdoptionStore,
+        &ResourceWriteContext<'_>,
+        &ResourceWriteCoordinator,
+        &AdoptCoordinator,
+    ) -> Result<T, AppError>,
+) -> Result<T, AppError> {
+    let grants = app.state::<GrantCoordinator>();
+    let operations = app.state::<OperationCoordinator>();
+    let writes = app.state::<ResourceWriteCoordinator>();
+    let adopt = app.state::<AdoptCoordinator>();
+    let adoptions = app.state::<AdoptionStore>();
+    let config = app.state::<ConfigCoordinator>();
+    let settings = app.state::<SettingsCoordinator>();
+    let ctx = ResourceWriteContext {
+        grants: &grants,
+        operations: &operations,
+        environment: config.environment()?,
+        retention: settings.get()?.preferences().backup_retention(),
+    };
+    with_discovery(|discovery| action(discovery, &adoptions, &ctx, &writes, &adopt))
 }
 
 /// Runs `work` against the real launchd discovery; a discovery already running

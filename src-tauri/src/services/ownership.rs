@@ -314,7 +314,7 @@ pub fn assess(
 
 /// True when every directory of `domain` was listed completely and nothing was
 /// cut off, so no unseen file can define the same label.
-fn domain_trusted(discovery: &LaunchdDiscovery, domain: LaunchdDomain) -> bool {
+pub(super) fn domain_trusted(discovery: &LaunchdDiscovery, domain: LaunchdDomain) -> bool {
     !discovery.truncated
         && DIRECTORIES
             .iter()

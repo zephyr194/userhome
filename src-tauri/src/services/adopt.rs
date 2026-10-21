@@ -3,8 +3,12 @@
 //! faithfully. Admission never changes the plist. A structured edit additionally
 //! needs the plist to survive a parse, serialize and parse again unchanged.
 
+pub mod edit;
+pub mod flow;
 pub mod store;
 
+#[cfg(test)]
+mod flow_tests;
 #[cfg(test)]
 mod tests;
 

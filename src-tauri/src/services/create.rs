@@ -458,7 +458,7 @@ fn is_command_flag(argument: &str) -> bool {
         && argument[1..].bytes().all(|byte| byte.is_ascii_alphabetic())
 }
 
-fn check_arguments(arguments: &[String]) -> Result<(), CreateError> {
+pub(super) fn check_arguments(arguments: &[String]) -> Result<(), CreateError> {
     if arguments.len() > MAX_ARGUMENTS {
         return Err(invalid(Field::Arguments, Reason::TooMany));
     }
@@ -478,7 +478,7 @@ fn check_arguments(arguments: &[String]) -> Result<(), CreateError> {
     Ok(())
 }
 
-fn check_environment(environment: &BTreeMap<String, String>) -> Result<(), CreateError> {
+pub(super) fn check_environment(environment: &BTreeMap<String, String>) -> Result<(), CreateError> {
     if environment.len() > MAX_ENVIRONMENT_ENTRIES {
         return Err(invalid(Field::EnvironmentKey, Reason::TooMany));
     }
@@ -507,7 +507,11 @@ fn under(path: &Path, home: &Path) -> bool {
     path.starts_with(home)
 }
 
-fn check_executable(text: &str, home: &Path, facts: &dyn HostFacts) -> Result<(), CreateError> {
+pub(super) fn check_executable(
+    text: &str,
+    home: &Path,
+    facts: &dyn HostFacts,
+) -> Result<(), CreateError> {
     check_path(text, Field::Executable)?;
     if is_shell_or_wrapper(file_name_of(text)) {
         return Err(CreateError::ShellWrapper(ShellUse::Executable));
@@ -549,7 +553,10 @@ fn check_executable(text: &str, home: &Path, facts: &dyn HostFacts) -> Result<()
     Ok(())
 }
 
-fn check_working_directory(text: &str, facts: &dyn HostFacts) -> Result<(), CreateError> {
+pub(super) fn check_working_directory(
+    text: &str,
+    facts: &dyn HostFacts,
+) -> Result<(), CreateError> {
     check_path(text, Field::WorkingDirectory)?;
     facts
         .resolve_directory(Path::new(text))
@@ -559,7 +566,7 @@ fn check_working_directory(text: &str, facts: &dyn HostFacts) -> Result<(), Crea
 
 /// A log file is opened (and created) by launchd, so its real location must
 /// not be a credential directory or the LaunchAgents directory itself.
-fn check_log_path(
+pub(super) fn check_log_path(
     text: &str,
     field: Field,
     home: &Path,
@@ -945,14 +952,20 @@ impl ServiceCreateCoordinator {
 /// Everything the operation history must never echo: environment values and
 /// every argument the redaction would hide.
 fn sensitive_values(service: &ValidatedService) -> Vec<String> {
-    let redacted = redact_arguments(&service.arguments);
-    service
-        .environment
-        .values()
-        .cloned()
+    sensitive_values_of(
+        &service.arguments,
+        service.environment.values().cloned().collect(),
+    )
+}
+
+/// The values a history entry or error must never echo, given the arguments
+/// and the environment values an operation writes.
+pub(super) fn sensitive_values_of(arguments: &[String], environment: Vec<String>) -> Vec<String> {
+    let redacted = redact_arguments(arguments);
+    environment
+        .into_iter()
         .chain(
-            service
-                .arguments
+            arguments
                 .iter()
                 .zip(&redacted)
                 .filter(|(original, shown)| original != shown)

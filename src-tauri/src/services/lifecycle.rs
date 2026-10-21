@@ -47,8 +47,8 @@ use super::{
         parse_launchctl_list, parse_print_disabled,
     },
     ownership::{
-        Evidence, ModifiableTarget, NoAdoptions, Ownership, OwnershipAssessment, OwnershipError,
-        ReadOnlyReason, ServiceRequest, ensure_modifiable_system,
+        AdoptionRecords, Evidence, ModifiableTarget, Ownership, OwnershipAssessment,
+        OwnershipError, ReadOnlyReason, ServiceRequest, ensure_modifiable_system,
     },
 };
 
@@ -88,11 +88,13 @@ pub trait TargetResolver: Sync {
     fn resolve(&self, request: &ServiceRequest) -> Result<ModifiableTarget, OwnershipError>;
 }
 
-pub struct SystemResolver;
+pub struct SystemResolver<'a> {
+    pub adoptions: &'a dyn AdoptionRecords,
+}
 
-impl TargetResolver for SystemResolver {
+impl TargetResolver for SystemResolver<'_> {
     fn resolve(&self, request: &ServiceRequest) -> Result<ModifiableTarget, OwnershipError> {
-        ensure_modifiable_system(&NoAdoptions, request)
+        ensure_modifiable_system(self.adoptions, request)
     }
 }
 
@@ -122,14 +124,15 @@ pub struct LifecycleHost<'a> {
     pub settle: SettlePolicy,
 }
 
-impl LifecycleHost<'static> {
-    /// The real system. Not for tests.
-    pub fn system() -> Self {
+impl<'a> LifecycleHost<'a> {
+    /// The real system, with the target resolver the caller built over the
+    /// adoption records. Not for tests.
+    pub fn system(resolver: &'a dyn TargetResolver) -> Self {
         // SAFETY: getuid takes no arguments and cannot fail.
         let uid = unsafe { libc::getuid() };
         Self {
             uid,
-            resolver: &SystemResolver,
+            resolver,
             reader: &super::launchd::SystemRunner,
             mutator: &SystemMutatingRunner,
             settle: SettlePolicy::default(),

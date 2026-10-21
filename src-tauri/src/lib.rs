@@ -48,6 +48,7 @@ pub fn run() {
         .manage(services::create::ServiceCreateCoordinator::default())
         .manage(services::lifecycle::LaunchdActionCoordinator::default())
         .manage(services::logs::LogSessions::default())
+        .manage(services::adopt::flow::AdoptCoordinator::default())
         .manage(security::elevation::ElevationCoordinator::default())
         .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
@@ -55,6 +56,9 @@ pub fn run() {
             app.manage(grants::GrantCoordinator::new(
                 grants::GrantStore::new(settings_directory.clone()),
                 commands::grants::canonical_home(),
+            ));
+            app.manage(services::adopt::store::AdoptionStore::new(
+                &settings_directory,
             ));
             let settings = settings::SettingsCoordinator::new(settings::SettingsStore::new(
                 settings_directory,
@@ -148,6 +152,12 @@ pub fn run() {
             commands::services::execute_create_launchd_service,
             commands::services::preview_launchd_action,
             commands::services::execute_launchd_action,
+            commands::services::preview_adopt_launchd_service,
+            commands::services::execute_adopt_launchd_service,
+            commands::services::release_adoption,
+            commands::services::preview_edit_launchd_service,
+            commands::services::execute_edit_launchd_service,
+            commands::services::discard_edit_launchd_service,
             commands::services::preview_service_action,
             commands::services::execute_service_action,
             commands::services::authorize_launchd_log,
