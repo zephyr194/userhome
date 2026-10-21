@@ -111,8 +111,14 @@ export type QrExportView =
   | { status: "awaiting"; snapshot: QrSnapshot; prepared: PreparedQrExport }
   | { status: "writing"; snapshot: QrSnapshot; prepared: PreparedQrExport }
   | { status: "cancelled" }
-  | { status: "written"; target: string; message: string }
-  | { status: "failed"; message: string };
+  | { status: "written"; target: string; message: string; warning?: string }
+  | { status: "failed"; message: string; warning?: string };
+
+export const GRANT_NOT_REVOKED_MESSAGE =
+  "未能撤销该文件的保存授权，请到授权列表中手动撤销。";
+
+export const DISCARD_FAILED_MESSAGE =
+  "未能撤销已放弃导出的文件授权，请到授权列表中手动撤销。";
 
 export function describePrepared(prepared: PreparedQrExport): {
   title: string;
@@ -149,8 +155,15 @@ export function exportOutcomeView(
   target: string,
   outcome: QrExportOutcome,
 ): QrExportView {
+  const warning = outcome.grantReleaseError
+    ? { warning: GRANT_NOT_REVOKED_MESSAGE }
+    : {};
   if (outcome.status === "FAILED") {
-    return { status: "failed", message: FILE_STATE_MESSAGES[outcome.fileState] };
+    return {
+      status: "failed",
+      message: FILE_STATE_MESSAGES[outcome.fileState],
+      ...warning,
+    };
   }
   return {
     status: "written",
@@ -159,7 +172,13 @@ export function exportOutcomeView(
       outcome.recoveryPoint === "BACKUP"
         ? "覆盖完成，原文件已备份，并已回读校验。"
         : "导出完成，已写入并回读校验。",
+    ...warning,
   };
+}
+
+/** The prepared export a view still holds; it must be discarded when the view is dropped. */
+export function discardTarget(view: QrExportView): PreparedQrExport | undefined {
+  return view.status === "awaiting" ? view.prepared : undefined;
 }
 
 /** Export is offered only for the snapshot the user is looking at. */

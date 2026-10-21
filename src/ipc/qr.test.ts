@@ -6,6 +6,8 @@ import {
   decodePrepareQrExportOutcome,
   decodeQrExportOutcome,
   decodeQrPreview,
+  discardQrExport,
+  discardQrExportArgs,
   exportQrArgs,
   previewQr,
   previewQrArgs,
@@ -226,5 +228,69 @@ describe("QR invoke wrappers", () => {
       "prepare_qr_export",
       "confirm_qr_export",
     ]);
+  });
+});
+
+describe("grant release warning decoding", () => {
+  const written = {
+    kind: "CREATE",
+    status: "SUCCEEDED",
+    fileState: "WRITTEN",
+    recoveryPoint: "NONE_CREATED",
+    summary: "The file was created and verified.",
+  };
+  const releaseError = {
+    code: "VALIDATION_FAILED",
+    message: "The grant store could not be updated.",
+    retryable: false,
+  };
+
+  it("keeps a verified write and reports that its grant was not revoked", () => {
+    const outcome = { ...written, grantReleaseError: releaseError };
+    expect(decodeQrExportOutcome(outcome)).toEqual(outcome);
+  });
+
+  it("keeps the write and reports a malformed release warning as internal", () => {
+    expect(
+      decodeQrExportOutcome({ ...written, grantReleaseError: { code: "NOPE" } }),
+    ).toEqual({
+      ...written,
+      grantReleaseError: {
+        code: "INTERNAL",
+        message: "An internal error occurred.",
+        retryable: false,
+      },
+    });
+  });
+});
+
+describe("discard_qr_export arguments and wrapper", () => {
+  afterEach(() => clearMocks());
+
+  it("sends only the grant and the operation", () => {
+    expect(
+      discardQrExportArgs({ grantId: GRANT_ID, operationId: "op-1" }),
+    ).toEqual({ input: { grantId: GRANT_ID, operationId: "op-1" } });
+  });
+
+  it("resolves when the backend reports no content", async () => {
+    mockIPC((cmd) => {
+      expect(cmd).toBe("discard_qr_export");
+      return null;
+    });
+    await expect(
+      discardQrExport({ grantId: GRANT_ID, operationId: "op-1" }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("refuses an unexpected payload", async () => {
+    mockIPC(() => ({ ok: true }));
+    await expect(
+      discardQrExport({ grantId: GRANT_ID, operationId: "op-1" }),
+    ).rejects.toEqual({
+      code: "INTERNAL",
+      message: "An internal error occurred.",
+      retryable: false,
+    });
   });
 });

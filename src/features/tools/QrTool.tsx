@@ -10,13 +10,16 @@ import type { AppError } from "../../ipc/core";
 import {
   clearQrIcon,
   confirmQrExport,
+  discardQrExport,
   prepareQrExport,
   previewQr,
   selectQrIcon,
+  type PreparedQrExport,
   type QrErrorCorrection,
   type QrIconSummary,
 } from "../../ipc/qr";
 import {
+  DISCARD_FAILED_MESSAGE,
   ICON_RULES_TEXT,
   LEVEL_OPTIONS,
   QR_MAX_BYTES,
@@ -24,6 +27,7 @@ import {
   canStartExport,
   describeIcon,
   describePrepared,
+  discardTarget,
   effectiveLevel,
   exportOutcomeView,
   iconLevelNotice,
@@ -48,6 +52,7 @@ export function QrTool() {
   const [exportView, setExportView] = useState<QrExportView>({
     status: "idle",
   });
+  const [discardNotice, setDiscardNotice] = useState<string | undefined>();
   const [previewTracker] = useState(createRequestTracker);
   const [exportTracker] = useState(createRequestTracker);
 
@@ -99,6 +104,21 @@ export function QrTool() {
     );
   }
 
+  function discardPrepared(prepared: PreparedQrExport) {
+    discardQrExport({
+      grantId: prepared.grantId,
+      operationId: prepared.operationId,
+    }).then(
+      () => undefined,
+      () => setDiscardNotice(DISCARD_FAILED_MESSAGE),
+    );
+  }
+
+  function dropAwaitingExport() {
+    const prepared = discardTarget(exportView);
+    if (prepared) discardPrepared(prepared);
+  }
+
   function change(next: Partial<QrSnapshot>) {
     const snapshot: QrSnapshot = {
       text: next.text ?? text,
@@ -109,6 +129,7 @@ export function QrTool() {
     setText(snapshot.text);
     setLevel(snapshot.level);
     setSize(snapshot.size);
+    dropAwaitingExport();
     exportTracker.invalidate();
     setExportView({ status: "idle" });
     generate(snapshot);
@@ -116,6 +137,7 @@ export function QrTool() {
 
   function replaceIcon(nextIcon: QrIconSummary | null) {
     setIcon(nextIcon);
+    dropAwaitingExport();
     exportTracker.invalidate();
     setExportView({ status: "idle" });
     generate({
@@ -169,6 +191,7 @@ export function QrTool() {
     }
     const { snapshot } = preview;
     const requestId = exportTracker.issue();
+    setDiscardNotice(undefined);
     setExportView({ status: "preparing" });
     prepareQrExport({
       text: snapshot.text,
@@ -178,7 +201,10 @@ export function QrTool() {
       iconId: snapshot.iconId,
     }).then(
       (outcome) => {
-        if (!exportTracker.isCurrent(requestId)) return;
+        if (!exportTracker.isCurrent(requestId)) {
+          if (outcome.status === "PREVIEWED") discardPrepared(outcome);
+          return;
+        }
         if (outcome.status === "CANCELLED") {
           setExportView({ status: "cancelled" });
           return;
@@ -216,6 +242,7 @@ export function QrTool() {
   }
 
   function discardExport() {
+    dropAwaitingExport();
     exportTracker.invalidate();
     setExportView({ status: "idle" });
   }
@@ -437,6 +464,9 @@ export function QrTool() {
             </StatusBadge>
             <p className="m-0 break-all">{exportView.target}</p>
             <p className="m-0 text-muted-foreground">{exportView.message}</p>
+            {exportView.warning ? (
+              <p className="m-0 text-danger">{exportView.warning}</p>
+            ) : null}
           </div>
         ) : null}
 
@@ -449,7 +479,16 @@ export function QrTool() {
               导出失败
             </StatusBadge>
             <p className="m-0 break-words">{exportView.message}</p>
+            {exportView.warning ? (
+              <p className="m-0 break-words">{exportView.warning}</p>
+            ) : null}
           </div>
+        ) : null}
+
+        {discardNotice ? (
+          <p role="alert" className="m-0 text-xs text-danger">
+            {discardNotice}
+          </p>
         ) : null}
       </section>
     </Panel>

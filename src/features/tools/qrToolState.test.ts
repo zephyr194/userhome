@@ -3,8 +3,10 @@ import {
   LEVEL_OPTIONS,
   QR_MAX_BYTES,
   SIZE_OPTIONS,
+  GRANT_NOT_REVOKED_MESSAGE,
   canStartExport,
   describePrepared,
+  discardTarget,
   exportOutcomeView,
   inputProblem,
   isExportBusy,
@@ -207,5 +209,80 @@ describe("export outcomes never report a failed write as success", () => {
     ] as const) {
       expect(failed(state).status).toBe("failed");
     }
+  });
+});
+
+describe("discarding an export", () => {
+  const PREPARED: PreparedQrExport = {
+    grantId: "6f1c1d2e-3a4b-4c5d-8e9f-0a1b2c3d4e5f",
+    operationId: "op-1",
+    kind: "CREATE",
+    recoveryPoint: "NONE_CREATED",
+    target: "~/qr.png",
+    proposedHash: "a".repeat(64),
+  };
+
+  it("names the prepared export only while it awaits confirmation", () => {
+    expect(
+      discardTarget({ status: "awaiting", snapshot: SNAPSHOT, prepared: PREPARED }),
+    ).toEqual(PREPARED);
+    const others: QrExportView[] = [
+      { status: "idle" },
+      { status: "preparing" },
+      { status: "writing", snapshot: SNAPSHOT, prepared: PREPARED },
+      { status: "cancelled" },
+      { status: "written", target: "~/qr.png", message: "ok" },
+      { status: "failed", message: "no" },
+    ];
+    for (const view of others) {
+      expect(discardTarget(view)).toBeUndefined();
+    }
+  });
+});
+
+describe("grant release warnings", () => {
+  const base: QrExportOutcome = {
+    kind: "CREATE",
+    status: "SUCCEEDED",
+    fileState: "WRITTEN",
+    recoveryPoint: "NONE_CREATED",
+    summary: "created",
+  };
+  const releaseError = {
+    code: "VALIDATION_FAILED" as const,
+    message: "The grant store could not be updated.",
+    retryable: false,
+  };
+
+  it("keeps a written file and warns that its grant is still authorized", () => {
+    const view = exportOutcomeView("~/qr.png", {
+      ...base,
+      grantReleaseError: releaseError,
+    });
+    expect(view).toEqual({
+      status: "written",
+      target: "~/qr.png",
+      message: "导出完成，已写入并回读校验。",
+      warning: GRANT_NOT_REVOKED_MESSAGE,
+    });
+  });
+
+  it("warns on a failed write too, without claiming success", () => {
+    const view = exportOutcomeView("~/qr.png", {
+      ...base,
+      status: "FAILED",
+      fileState: "UNCHANGED",
+      grantReleaseError: releaseError,
+    });
+    expect(view).toEqual({
+      status: "failed",
+      message: "导出失败，文件未改动。",
+      warning: GRANT_NOT_REVOKED_MESSAGE,
+    });
+  });
+
+  it("adds no warning when the grant was revoked", () => {
+    const view = exportOutcomeView("~/qr.png", base);
+    expect(view).not.toHaveProperty("warning");
   });
 });

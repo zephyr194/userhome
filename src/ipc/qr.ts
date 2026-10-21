@@ -51,6 +51,8 @@ export interface QrExportOutcome {
   backupId?: string;
   summary: string;
   error?: AppError;
+  /** Set when the write ran but the save location's grant could not be revoked. */
+  grantReleaseError?: AppError;
 }
 
 export interface PreviewQrInput {
@@ -65,6 +67,11 @@ export interface ExportQrInput extends PreviewQrInput {
 }
 
 export interface ConfirmQrExportInput {
+  operationId: string;
+  grantId: string;
+}
+
+export interface DiscardQrExportInput {
   operationId: string;
   grantId: string;
 }
@@ -236,6 +243,9 @@ export function decodeQrExportOutcome(value: unknown): QrExportOutcome {
   if (value.error !== undefined && value.error !== null) {
     outcome.error = decodeAppError(value.error);
   }
+  if (value.grantReleaseError !== undefined && value.grantReleaseError !== null) {
+    outcome.grantReleaseError = decodeAppError(value.grantReleaseError);
+  }
   return outcome;
 }
 
@@ -276,6 +286,14 @@ export function confirmQrExportArgs(input: ConfirmQrExportInput): {
   };
 }
 
+export function discardQrExportArgs(input: DiscardQrExportInput): {
+  input: DiscardQrExportInput;
+} {
+  return {
+    input: { operationId: input.operationId, grantId: input.grantId },
+  };
+}
+
 export function previewQr(input: PreviewQrInput): Promise<QrPreview> {
   return invokeCommand("preview_qr", decodeQrPreview, previewQrArgs(input));
 }
@@ -297,6 +315,14 @@ export function confirmQrExport(
     "confirm_qr_export",
     decodeQrExportOutcome,
     confirmQrExportArgs(input),
+  );
+}
+
+export function discardQrExport(input: DiscardQrExportInput): Promise<void> {
+  return invokeCommand(
+    "discard_qr_export",
+    decodeNoContent,
+    discardQrExportArgs(input),
   );
 }
 
