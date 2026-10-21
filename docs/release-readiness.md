@@ -440,3 +440,85 @@ remain open under the existing production NO-GO decision.
 ## Caddy 真实验收（CAD-7）：脚本与模板已就绪，未执行
 
 Caddy 的真实运行验收尚未执行，需用户批准后按 [`caddy-acceptance.md`](caddy-acceptance.md) 进行。该文件含前提、上游夹具、逐步预期、只读核对命令、未验证点与记录表；记录表的结果列当前均为“未执行”。
+
+## 界面调整（ui-refresh，2026-10-21）：UI-4 复核、审计与台账
+
+范围：`SPEC-ui-refresh.md` 的 UI-0 至 UI-3d（阶段 5d，纯前端视觉与尺寸）。分支 `zephyr19/ui4`，基于 main `f2e2849`。本节只记录自动化与静态证据，**不关闭任何人工门禁**，也不把自动化通过写成人工验收通过。**发布决定保持 NO-GO**（2026-09-22 决定不变）；界面调整的验收须用户在真机上审阅浅色、深色视觉后才可视为完成（CP-UI-C）。
+
+### 已执行（自动化）
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm lint` | 0 error；1 warning（`DashboardPage.tsx:309`，既有，react-refresh） |
+| `pnpm typecheck` | 通过 |
+| `pnpm test` | 123 个文件 / 1861 项通过 |
+| `pnpm build` | 通过（既有 chunk-size 提示） |
+| Rust、`pnpm check`、Tauri 运行、E2E | 未执行（本阶段仅前端，且本机拦截 Rust 测试二进制） |
+
+| 指标 | UI-4 前（f2e2849） | UI-4 后 |
+|---|---|---|
+| `global.css` 行数 | 2059 | 2063（+4，forced-colors 回退） |
+| `border-radius` 声明数 | 18 | 18 |
+| `!important`（global.css，仅 reduced motion） | 4 | 4 |
+| 前端测试 | 122 文件 / 1842 项 | 123 文件 / 1861 项（+19） |
+
+台账中的 1842 为 f2e2849 实测值；任务台账 UI-3d 记录的 1853 之后，main 上有服务与 Homebrew 清理提交，测试数随之变化，未逐项核对。
+
+### 审计范围与结论
+
+- `src/styles/uiRefreshAudit.test.ts`（新增，16 项 + forced-colors 3 项）：
+  - 圆角：global.css 所有圆角属性仅 0、1px、2px、50% 或圆角令牌，无 999px；TSX 禁止 `rounded-lg/xl/2xl/3xl`、任意值与 999px。
+  - 写死颜色：TSX 无 `#hex`、`rgb()`、`hsl()`；global.css 的字面量颜色只出现在 `:root` 与 `@theme` 令牌块。
+  - 控件高度令牌与垂直内边距互斥：覆盖全部生产 TSX。
+  - `clip-path`：全仓生产代码 0 处。
+  - `!important`：global.css 恰为 4 处，TSX 不使用 Tailwind `!` 修饰。
+  - 语义颜色类：text、bg、border、ring、divide 引用的自定义颜色名都在 `@theme` 中有 `--color-*` 定义，不接受任意值；无渐变类。
+  - sticky：带 sticky 的元素同时有顶部 1px 分隔线（当前无 sticky 使用点，断言作为防回归保留）。
+  - 窄宽度（静态）：html、body 保持 `min-width: 320px`；应用外壳与工作区为 `minmax(0, 1fr)` 且裁切溢出；侧栏、主内容与标题栏 `min-width: 0`；760px 以下侧栏收为 58px 图标栏并隐藏导航文字；工作区列表、详情、横幅、进度带 `min-w-0`。
+- 审计结论：生产代码 0 违规，无需修正。扫描器已用临时违规样例（`rounded-lg`、`text-destructive`、`bg-neutral-950`、`#abc`、`clip-path`、`!mt-0`、`sticky`、`999px`）验证能检出，样例已删除。
+- 对比度：`src/styles/contrast.test.ts` 96 项，覆盖浅色与深色的主要前景、背景组合及深色三处一致性。
+- forced-colors：`ring-line`（Panel、Modal 的发丝线）在既有 `@media (forced-colors: active)` 块内补 `border: 1px solid CanvasText`，普通外观不变。未采用 outline，因 `theme.test.ts` 约束全局样式只允许一处 outline。
+- 既有断言：未修改。
+
+### 令牌终值
+
+| 类别 | 令牌 | 终值 |
+|---|---|---|
+| 圆角 | `--app-radius-control` / `--app-radius-panel` | 2px / 0px（药丸形 999px 已改为 2px） |
+| 控件高度 | `--app-control-height-md` / `-sm` | 28px / 24px（`height`，无垂直内边距） |
+| 徽标 | `--app-status-badge-height` | 18px |
+| 行高 | compact / standard / two-line | 28 / 32 / 44px |
+| 栏高 | titlebar / toolbar | 44px / 44px |
+| 侧栏 | `--app-sidebar-width` | 188px（760px 以下 58px） |
+| 间距 | xxs / xs / sm / md / lg / xl / 2xl / 3xl | 2 / 4 / 8 / 6 / 8 / 10 / 12 / 16px |
+| 字号 | meta / aux / body / group / page-title | 11 / 12 / 13 / 14 / 18px |
+| 阴影 | sticky / raised | `none` / 单层 `0 4px 12px rgb(20 27 36 / 0.18)`（仅对话框分层） |
+
+### 未执行 / 待人工
+
+以下均未在本机运行应用、未做桌面控制，只靠类名、令牌与测试验证。浅色优先。
+
+1. 浅色真机视觉：全应用锐角、发丝线与角标的观感（角标启用处：概览 DashboardPage、应用配置 AppConfigView、Caddy 运行 CaddyRunPanel、Caddy 预览 CaddyPreviewPanel、服务详情 LaunchdServiceDetails）。
+2. 浅色控件对齐：同排按钮与输入框的 28px / 24px 档对齐；开关 16px 轨道在 24px 命中区内的外观；复选、单选行。
+3. 开关外观与开、关状态辨识。
+4. 红绿灯与 44px 标题栏垂直对齐。
+5. 侧栏悬停与当前页辨识（发丝线与色条）；悬停色对侧栏底色对比较低，只能靠视觉判断。
+6. 中文分组标题在 11px 等宽大写标签中的可读性（等宽字体的中文回退）。
+7. 窗口缩放与宽度 320、768、1024、1440：无横向页面滚动，文字不截断到不可读，760px 收缩点的切换。
+8. VoiceOver：导航（`aria-current`、分组标题）、状态徽标文字、开关 `role="switch"`、对话框焦点。
+9. 焦点环观感：inset 焦点环是否被角标或 overflow 截断。
+10. 深色主题全部页面与跟随系统。
+11. 二维码在深色主题下的扫描观感（与 QR-3 合并）。
+12. forced-colors（系统高对比）：`.ring-line` 边框回退只经静态断言，未在任何浏览器或系统高对比模式中验证。
+13. 减少动态效果（`prefers-reduced-motion`）下过渡取消的实际表现。
+14. 文件列表按钮（`EnvironmentView.tsx:330`，`h-auto` 多行）的松紧；Caddy“删除站点”同排 sm 例外的对齐。
+
+### 已知取舍与风险
+
+- Panel、Modal 的发丝线用 `ring`（box-shadow）实现。`visualSystemV4.test.ts` 只字面禁止 TSX 中被动组件使用 `border-*`，ring 绕过了字面断言，但是否违背“被动组件不加周界边框”的精神需人工审阅。
+- 保留 sm 的例外：Caddy“删除站点”按钮与开关同排，保留 sm 与 8rem 标签列（UI-3d 已接受）。
+- 无令牌的尺寸未改：对话框 `max-w-[720px]` / `[560px]`、服务列表 360px 栏宽（UI-3b）。审计例外：加载环 `rounded-full`（`radiusAudit` 白名单）与 `gap-px` 发丝线。
+- 间距 md（6px）小于 sm（8px）：按 SPEC 表执行（md 由 8 改为 6，sm 不变），序列非单调，需人工确认是否采用。
+- 静态发现，未改：`global.css` 中第二条 `.navigation-rail`（约 1388 行）设置 `overflow: hidden`，覆盖了约 313 行的 `overflow-y: auto`。窗口高度不足时导航项可能无法滚动到底部。修正会改变外观与行为，需先确认。
+- 残留：`global.css` 中仍有 23 行 `applications-*` 相关选择器（FIN-2 遗留，含约 994 行的媒体查询），本次未删除。`navigation-rail__status--*` 与 `status-glyph--*` 为动态拼接，保留。
+- 不新增依赖，不改后端、IPC、权限、CI 与锁文件。
