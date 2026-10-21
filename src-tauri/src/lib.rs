@@ -239,6 +239,7 @@ pub fn run() {
             commands::caddy::caddy_prepare_start,
             commands::caddy::caddy_start,
             commands::caddy::caddy_stop,
+            commands::caddy::caddy_apply,
             commands::caddy::caddy_status,
             commands::caddy::caddy_logs,
             commands::lifecycle::confirm_quit,

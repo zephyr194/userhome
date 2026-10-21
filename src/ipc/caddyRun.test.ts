@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
+  caddyApply,
   caddyLogs,
   caddyPrepareStart,
   caddyStart,
   caddyStatus,
   caddyStop,
+  decodeApplyReport,
+  decodeCaddyStatus,
   decodeLogPage,
   decodeRunStatus,
   decodeStartSummary,
@@ -231,7 +234,9 @@ describe("caddy run command requests", () => {
     const seen: string[] = [];
     mockIPC((command) => {
       seen.push(command);
-      return statusWire();
+      return command === "caddy_status"
+        ? { ...statusWire(), applied: "UNKNOWN", applying: false }
+        : statusWire();
     });
 
     await caddyStop();
@@ -249,5 +254,101 @@ describe("caddy run command requests", () => {
     });
 
     await expect(caddyLogs("s-1", 6, 0)).resolves.toMatchObject({ sessionId: "s-1" });
+  });
+});
+
+function applyWire(overrides: Record<string, unknown> = {}) {
+  return {
+    sessionId: "s-1",
+    outcome: "FAILED",
+    failure: "COMMAND_FAILED",
+    message: "重载命令失败。进程存活且管理端点可连接。",
+    review: { alive: true, adminReachable: true, config: "PREVIOUS" },
+    diagnostics: [{ message: "Error: loading new config" }],
+    ...overrides,
+  };
+}
+
+describe("caddy apply status decoding", () => {
+  it("decodes a status with its applied state and no last apply", () => {
+    expect(
+      decodeCaddyStatus({ ...statusWire(), applied: "PENDING", applying: false }),
+    ).toEqual({
+      state: "STOPPED",
+      message: "未运行。",
+      diagnostics: [],
+      applied: "PENDING",
+      applying: false,
+    });
+  });
+
+  it("decodes the last failed apply with its category and what the review confirmed", () => {
+    const status = decodeCaddyStatus({
+      ...statusWire(),
+      applied: "PENDING",
+      applying: false,
+      lastApply: applyWire(),
+    });
+    expect(status.lastApply).toEqual({
+      sessionId: "s-1",
+      outcome: "FAILED",
+      failure: "COMMAND_FAILED",
+      message: "重载命令失败。进程存活且管理端点可连接。",
+      review: { alive: true, adminReachable: true, config: "PREVIOUS" },
+      diagnostics: [{ message: "Error: loading new config" }],
+    });
+  });
+
+  it("decodes a successful apply that has a review and no failure", () => {
+    const report = decodeApplyReport(
+      applyWire({
+        outcome: "SUCCEEDED",
+        failure: undefined,
+        review: { alive: true, adminReachable: true, config: "CANDIDATE" },
+      }),
+    );
+    expect(report.outcome).toBe("SUCCEEDED");
+    expect(report.failure).toBeUndefined();
+  });
+
+  it("fails closed on an unknown applied state, a non-boolean applying flag or a stray field", () => {
+    expectInternal(() =>
+      decodeCaddyStatus({ ...statusWire(), applied: "MAYBE", applying: false }),
+    );
+    expectInternal(() =>
+      decodeCaddyStatus({ ...statusWire(), applied: "PENDING", applying: "no" }),
+    );
+    expectInternal(() =>
+      decodeCaddyStatus({ ...statusWire(), applied: "PENDING", applying: false, path: "/x" }),
+    );
+  });
+
+  it("fails closed when a failure and the outcome disagree, or a review has a stray field", () => {
+    expectInternal(() => decodeApplyReport(applyWire({ outcome: "SUCCEEDED" })));
+    expectInternal(() => decodeApplyReport(applyWire({ failure: undefined })));
+    expectInternal(() =>
+      decodeApplyReport(
+        applyWire({
+          review: { alive: true, adminReachable: true, config: "PREVIOUS", pid: 1 },
+        }),
+      ),
+    );
+    expectInternal(() =>
+      decodeApplyReport(applyWire({ failure: "SOMETHING_ELSE" })),
+    );
+  });
+});
+
+describe("caddy apply command requests", () => {
+  it("applies with the session id, the source and an explicit confirmation only", async () => {
+    mockIPC((command, payload) => {
+      expect(command).toBe("caddy_apply");
+      expect(payload).toEqual({
+        input: { sessionId: "s-1", source: "RULES", confirmed: true },
+      });
+      return applyWire({ outcome: "SUCCEEDED", failure: undefined });
+    });
+
+    await expect(caddyApply("s-1", "RULES")).resolves.toMatchObject({ outcome: "SUCCEEDED" });
   });
 });

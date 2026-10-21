@@ -797,6 +797,84 @@ export function decodeRunStatus(value: unknown): CaddyRunStatus {
   return status;
 }
 
+export const CADDY_APPLIED_STATES = ["APPLIED", "PENDING", "UNKNOWN"] as const;
+export type CaddyAppliedState = (typeof CADDY_APPLIED_STATES)[number];
+
+const CADDY_APPLY_OUTCOMES = ["SUCCEEDED", "FAILED"] as const;
+
+export const CADDY_APPLY_FAILURES = [
+  "VALIDATION_FAILED",
+  "PREPARATION_FAILED",
+  "COMMAND_FAILED",
+  "TIMEOUT",
+  "REVIEW_FAILED",
+] as const;
+export type CaddyApplyFailure = (typeof CADDY_APPLY_FAILURES)[number];
+
+export const CADDY_SERVING_CONFIGS = ["PREVIOUS", "CANDIDATE", "UNKNOWN"] as const;
+export type CaddyServingConfig = (typeof CADDY_SERVING_CONFIGS)[number];
+
+export interface CaddyInstanceReview {
+  alive: boolean;
+  adminReachable: boolean;
+  config: CaddyServingConfig;
+}
+
+export interface CaddyApplyReport {
+  sessionId: string;
+  outcome: (typeof CADDY_APPLY_OUTCOMES)[number];
+  failure?: CaddyApplyFailure;
+  message: string;
+  review?: CaddyInstanceReview;
+  diagnostics: CaddyDiagnostic[];
+}
+
+export interface CaddyStatus extends CaddyRunStatus {
+  applied: CaddyAppliedState;
+  applying: boolean;
+  lastApply?: CaddyApplyReport;
+}
+
+function decodeInstanceReview(value: unknown): CaddyInstanceReview {
+  const wire = record(value);
+  exactKeys(wire, ["alive", "adminReachable", "config"]);
+  return {
+    alive: boolean(wire.alive),
+    adminReachable: boolean(wire.adminReachable),
+    config: oneOf(wire.config, CADDY_SERVING_CONFIGS),
+  };
+}
+
+export function decodeApplyReport(value: unknown): CaddyApplyReport {
+  const wire = record(value);
+  exactKeys(wire, ["sessionId", "outcome", "message", "diagnostics"], ["failure", "review"]);
+  const outcome = oneOf(wire.outcome, CADDY_APPLY_OUTCOMES);
+  const failure =
+    wire.failure === undefined ? undefined : oneOf(wire.failure, CADDY_APPLY_FAILURES);
+  if ((outcome === "FAILED") !== (failure !== undefined)) throw createInternalError();
+
+  const report: CaddyApplyReport = {
+    sessionId: nonEmptyText(wire.sessionId),
+    outcome,
+    message: nonEmptyText(wire.message),
+    diagnostics: list(wire.diagnostics, MAX_DIAGNOSTICS_RESPONSE, decodeDiagnostic),
+  };
+  if (failure !== undefined) report.failure = failure;
+  if (wire.review !== undefined) report.review = decodeInstanceReview(wire.review);
+  return report;
+}
+
+export function decodeCaddyStatus(value: unknown): CaddyStatus {
+  const { applied, applying, lastApply, ...run } = record(value);
+  const status: CaddyStatus = {
+    ...decodeRunStatus(run),
+    applied: oneOf(applied, CADDY_APPLIED_STATES),
+    applying: boolean(applying),
+  };
+  if (lastApply !== undefined) status.lastApply = decodeApplyReport(lastApply);
+  return status;
+}
+
 const MAX_CONFLICT_ITEMS = 256;
 
 function optionalOccupant(value: unknown): CaddyOccupant | undefined {
@@ -958,8 +1036,15 @@ export function caddyStop(): Promise<CaddyRunStatus> {
   return invokeCommand("caddy_stop", decodeRunStatus);
 }
 
-export function caddyStatus(): Promise<CaddyRunStatus> {
-  return invokeCommand("caddy_status", decodeRunStatus);
+export function caddyStatus(): Promise<CaddyStatus> {
+  return invokeCommand("caddy_status", decodeCaddyStatus);
+}
+
+// Reloads the own running instance with the saved config. Only call after the user confirmed the reload risk.
+export function caddyApply(sessionId: string, source: CaddyConfigSource): Promise<CaddyApplyReport> {
+  return invokeCommand("caddy_apply", decodeApplyReport, {
+    input: { sessionId, source, confirmed: true },
+  });
 }
 
 export function caddyLogs(

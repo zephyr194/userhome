@@ -945,6 +945,10 @@ impl CaddyRunCoordinator {
         lock(&self.last_apply).clone()
     }
 
+    pub fn reloading(&self) -> bool {
+        lock(&self.slot).reloading
+    }
+
     /// Validates the saved text, then reloads the serving instance through its own
     /// private admin socket. Success is reported only after the review passes.
     pub fn apply(

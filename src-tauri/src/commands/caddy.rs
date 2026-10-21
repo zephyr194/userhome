@@ -12,9 +12,10 @@ use crate::{
         },
         diff::{DiffLine, line_diff},
         generate::generate_caddyfile,
+        reload::ApplyReport,
         session::{
-            CaddyRunCoordinator, ConfigSource, LogPage, PrepareInput, RunStatus, StartEnvironment,
-            StartSummary, SystemAdminProbe,
+            Applied, ApplyEnvironment, CaddyRunCoordinator, ConfigSource, LogPage, PrepareInput,
+            RunStatus, StartEnvironment, StartSummary, SystemAdminProbe,
         },
         store::{CaddyStore, LoadedRules, RulesSource},
         validate::{
@@ -539,9 +540,78 @@ pub async fn caddy_stop(app: AppHandle) -> Result<RunStatus, AppError> {
         .map_err(|_| AppError::internal())?
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ApplyInput {
+    pub session_id: String,
+    pub source: ConfigSource,
+    pub confirmed: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaddyStatusView {
+    #[serde(flatten)]
+    pub run: RunStatus,
+    pub applied: Applied,
+    pub applying: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_apply: Option<ApplyReport>,
+}
+
+fn require_confirmation(confirmed: bool) -> Result<(), AppError> {
+    if confirmed {
+        Ok(())
+    } else {
+        Err(AppError::invalid_input(
+            "应用前需先确认：将重载自有实例，失败时旧配置可能仍在运行。",
+        ))
+    }
+}
+
+/// Reloads the own serving instance with the saved text. The saved text is read
+/// here, never supplied by the caller.
 #[tauri::command]
-pub fn caddy_status(runs: State<'_, CaddyRunCoordinator>) -> RunStatus {
-    runs.status()
+pub async fn caddy_apply(
+    app: AppHandle,
+    store: State<'_, CaddyStore>,
+    input: ApplyInput,
+) -> Result<ApplyReport, AppError> {
+    require_confirmation(input.confirmed)?;
+    let (text, _) = saved_config(&store, input.source)?;
+    let checks_root = store.checks_root()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let env = ApplyEnvironment {
+            checks_root: &checks_root,
+            runner: &SystemCaddyRunner,
+            probe: &SystemAdminProbe,
+        };
+        app.state::<CaddyRunCoordinator>()
+            .apply(&input.session_id, input.source, &text, &env)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub fn caddy_status(
+    runs: State<'_, CaddyRunCoordinator>,
+    store: State<'_, CaddyStore>,
+) -> CaddyStatusView {
+    let run = runs.status();
+    let applied = match run.source {
+        Some(source) => {
+            let saved = saved_config(&store, source).ok().map(|(text, _)| text);
+            runs.applied(source, saved.as_deref())
+        }
+        None => Applied::Unknown,
+    };
+    CaddyStatusView {
+        applied,
+        applying: runs.reloading(),
+        last_apply: runs.last_apply(),
+        run,
+    }
 }
 
 #[tauri::command]
@@ -1285,5 +1355,75 @@ mod start_gate_tests {
         let conflicts = report(Some(&snap), &free_ports());
         let error = guard_start(&conflicts, true, || Ok(())).expect_err("blocked");
         assert_eq!(reason_of(&error), json!("EXTERNAL_RUNNING"));
+    }
+}
+
+#[cfg(test)]
+mod apply_tests {
+    use serde_json::{Value, json};
+
+    use super::*;
+    use crate::{caddy::reload::ApplyFailure, error::AppErrorCode};
+
+    #[test]
+    fn apply_input_takes_only_a_session_a_saved_source_and_a_confirmation() {
+        let valid = json!({"sessionId": "s", "source": "RULES", "confirmed": true});
+        assert!(serde_json::from_value::<ApplyInput>(valid).is_ok());
+
+        let with_path = json!({"sessionId": "s", "source": "RAW", "confirmed": true, "path": "/x"});
+        assert!(serde_json::from_value::<ApplyInput>(with_path).is_err());
+
+        let external = json!({"sessionId": "s", "source": "EXTERNAL", "confirmed": true});
+        assert!(serde_json::from_value::<ApplyInput>(external).is_err());
+
+        let with_text = json!({"sessionId": "s", "source": "RAW", "confirmed": true, "text": "x"});
+        assert!(serde_json::from_value::<ApplyInput>(with_text).is_err());
+    }
+
+    #[test]
+    fn an_apply_without_explicit_confirmation_is_refused_before_anything_runs() {
+        assert_eq!(
+            require_confirmation(false).expect_err("refused").code(),
+            AppErrorCode::InvalidInput
+        );
+        assert!(require_confirmation(true).is_ok());
+    }
+
+    #[test]
+    fn the_status_view_keeps_run_fields_at_the_top_level_and_adds_apply_state() {
+        let view = CaddyStatusView {
+            run: CaddyRunCoordinator::default().status(),
+            applied: Applied::Unknown,
+            applying: false,
+            last_apply: None,
+        };
+
+        let value: Value = serde_json::to_value(&view).expect("serialize");
+
+        assert_eq!(value["state"], json!("STOPPED"));
+        assert_eq!(value["applied"], json!("UNKNOWN"));
+        assert_eq!(value["applying"], json!(false));
+        assert!(value.get("lastApply").is_none());
+    }
+
+    #[test]
+    fn the_status_view_carries_the_latest_failed_apply_with_its_category() {
+        let view = CaddyStatusView {
+            run: CaddyRunCoordinator::default().status(),
+            applied: Applied::Pending,
+            applying: false,
+            last_apply: Some(ApplyReport::failed(
+                "session".to_owned(),
+                ApplyFailure::Timeout,
+                None,
+                Vec::new(),
+            )),
+        };
+
+        let value: Value = serde_json::to_value(&view).expect("serialize");
+
+        assert_eq!(value["applied"], json!("PENDING"));
+        assert_eq!(value["lastApply"]["outcome"], json!("FAILED"));
+        assert_eq!(value["lastApply"]["failure"], json!("TIMEOUT"));
     }
 }
