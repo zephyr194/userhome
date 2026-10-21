@@ -1,5 +1,6 @@
 pub mod application_config;
 pub mod brew;
+pub mod caddy;
 pub mod catalog;
 pub mod config;
 pub mod discovery;

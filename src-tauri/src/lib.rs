@@ -61,6 +61,7 @@ pub fn run() {
             app.manage(services::adopt::store::AdoptionStore::new(
                 &settings_directory,
             ));
+            app.manage(caddy::store::CaddyStore::new(&settings_directory));
             let settings = settings::SettingsCoordinator::new(settings::SettingsStore::new(
                 settings_directory,
             ));
@@ -216,6 +217,10 @@ pub fn run() {
             commands::resources::preview_resource_writes,
             commands::resources::execute_resource_write,
             commands::resources::get_resource_write_batch,
+            commands::caddy::caddy_detect,
+            commands::caddy::caddy_load_rules,
+            commands::caddy::caddy_preview,
+            commands::caddy::caddy_save,
             commands::lifecycle::confirm_quit,
             commands::lifecycle::cancel_quit
         ])
