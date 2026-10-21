@@ -1,16 +1,31 @@
 //! Deterministic Caddyfile generation from validated site rules.
 //!
 //! The output is derived data: it is produced only from rules that pass
-//! validation, every address is written in the explicit `http://host:port`
-//! form, and automatic HTTPS is switched off so nothing is requested from the
-//! network or a certificate authority.
+//! validation, every address is written in the explicit form, and automatic
+//! HTTPS is switched off so nothing is requested from the network or a
+//! certificate authority. A TLS site uses only the certificate and key files
+//! that the caller resolved from the user's authorizations.
 
 use crate::{
-    caddy::config::{CaddyRules, authority},
+    caddy::{
+        config::{CaddyRules, TlsConfig, authority},
+        tls::{TlsPaths, caddy_safe_path},
+    },
     error::AppError,
 };
 
 pub fn generate_caddyfile(rules: &CaddyRules) -> Result<String, AppError> {
+    generate_caddyfile_with_tls(rules, &|_: &TlsConfig| {
+        Err(AppError::validation_failed(
+            "TLS 站点需要先选择证书与私钥授权，未生成 Caddyfile。",
+        ))
+    })
+}
+
+pub fn generate_caddyfile_with_tls(
+    rules: &CaddyRules,
+    resolve: &dyn Fn(&TlsConfig) -> Result<TlsPaths, AppError>,
+) -> Result<String, AppError> {
     if rules.validate().is_blocking() {
         return Err(AppError::validation_failed(
             "规则未通过校验，未生成 Caddyfile。",
@@ -18,9 +33,23 @@ pub fn generate_caddyfile(rules: &CaddyRules) -> Result<String, AppError> {
     }
     let mut text = String::from("{\n\tauto_https off\n}\n");
     for site in rules.sites.iter().filter(|site| site.enabled) {
-        text.push_str("\nhttp://");
+        let scheme = if site.tls.is_some() { "https" } else { "http" };
+        text.push('\n');
+        text.push_str(scheme);
+        text.push_str("://");
         text.push_str(&authority(&site.listen.host, site.listen.port));
-        text.push_str(" {\n\treverse_proxy");
+        text.push_str(" {");
+        if let Some(tls) = &site.tls {
+            let paths = resolve(tls)?;
+            text.push_str("\n\ttls ");
+            text.push_str(caddy_safe_path(&paths.certificate)?);
+            text.push(' ');
+            text.push_str(caddy_safe_path(&paths.private_key)?);
+        }
+        if site.access_log {
+            text.push_str("\n\tlog");
+        }
+        text.push_str("\n\treverse_proxy");
         for upstream in &site.upstreams {
             text.push(' ');
             text.push_str(upstream.scheme.as_str());
@@ -36,6 +65,8 @@ pub fn generate_caddyfile(rules: &CaddyRules) -> Result<String, AppError> {
 mod tests {
     use super::*;
     use crate::caddy::config::{Listen, RULES_VERSION, SiteRule, Upstream, UpstreamScheme};
+    use crate::error::AppErrorCode;
+    use std::path::PathBuf;
 
     fn upstream(scheme: UpstreamScheme, host: &str, port: u16) -> Upstream {
         Upstream {
@@ -268,5 +299,186 @@ mod tests {
         assert_eq!(site_lines, vec!["http://0.0.0.0:8080 {"]);
         assert!(!text.contains("tls"));
         assert!(!text.contains("admin"));
+    }
+
+    const CERT: &str = "3f2b8c1e-6a4d-4b7e-9c2f-1a2b3c4d5e6f";
+    const KEY: &str = "7c9d0e1f-2a3b-4c5d-8e6f-7a8b9c0d1e2f";
+
+    fn tls_config() -> TlsConfig {
+        TlsConfig {
+            certificate_grant_id: CERT.to_owned(),
+            private_key_grant_id: KEY.to_owned(),
+        }
+    }
+
+    fn tls_site(host: &str, port: u16, access_log: bool) -> SiteRule {
+        SiteRule {
+            tls: Some(tls_config()),
+            access_log,
+            ..site(
+                true,
+                host,
+                port,
+                vec![upstream(UpstreamScheme::Http, "127.0.0.1", 3000)],
+            )
+        }
+    }
+
+    fn resolve_to(
+        certificate: &str,
+        private_key: &str,
+    ) -> impl Fn(&TlsConfig) -> Result<TlsPaths, AppError> {
+        let certificate = PathBuf::from(certificate);
+        let private_key = PathBuf::from(private_key);
+        move |_: &TlsConfig| {
+            Ok(TlsPaths {
+                certificate: certificate.clone(),
+                private_key: private_key.clone(),
+            })
+        }
+    }
+
+    #[test]
+    fn tls_site_uses_https_with_the_resolved_certificate_and_key() {
+        let text = generate_caddyfile_with_tls(
+            &rules(vec![tls_site("app.example.test", 8443, false)]),
+            &resolve_to("/Users/u/certs/cert.pem", "/Users/u/certs/key.pem"),
+        )
+        .expect("valid rules generate");
+
+        assert_eq!(
+            text,
+            lines(&[
+                "{",
+                "\tauto_https off",
+                "}",
+                "",
+                "https://app.example.test:8443 {",
+                "\ttls /Users/u/certs/cert.pem /Users/u/certs/key.pem",
+                "\treverse_proxy http://127.0.0.1:3000",
+                "}",
+            ])
+        );
+    }
+
+    #[test]
+    fn access_log_adds_one_log_directive_before_the_proxy() {
+        let text =
+            generate_caddyfile(&rules(vec![logged_http_site()])).expect("valid rules generate");
+
+        assert_eq!(
+            text,
+            lines(&[
+                "{",
+                "\tauto_https off",
+                "}",
+                "",
+                "http://127.0.0.1:8080 {",
+                "\tlog",
+                "\treverse_proxy http://127.0.0.1:3000",
+                "}",
+            ])
+        );
+    }
+
+    fn logged_http_site() -> SiteRule {
+        SiteRule {
+            access_log: true,
+            ..site(
+                true,
+                "127.0.0.1",
+                8080,
+                vec![upstream(UpstreamScheme::Http, "127.0.0.1", 3000)],
+            )
+        }
+    }
+
+    #[test]
+    fn tls_and_access_log_together_put_tls_before_log() {
+        let text = generate_caddyfile_with_tls(
+            &rules(vec![tls_site("localhost", 9443, true)]),
+            &resolve_to("/x/cert.pem", "/x/key.pem"),
+        )
+        .expect("valid rules generate");
+
+        assert_eq!(
+            text,
+            lines(&[
+                "{",
+                "\tauto_https off",
+                "}",
+                "",
+                "https://localhost:9443 {",
+                "\ttls /x/cert.pem /x/key.pem",
+                "\tlog",
+                "\treverse_proxy http://127.0.0.1:3000",
+                "}",
+            ])
+        );
+    }
+
+    #[test]
+    fn tls_site_without_a_resolver_result_is_never_generated() {
+        let result = generate_caddyfile(&rules(vec![tls_site("localhost", 9443, false)]));
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn resolution_failure_for_a_revoked_authorization_refuses_generation() {
+        let result = generate_caddyfile_with_tls(
+            &rules(vec![tls_site("localhost", 9443, false)]),
+            &|_: &TlsConfig| Err(AppError::not_found("证书授权已撤销")),
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn disabled_tls_site_is_not_resolved() {
+        let mut disabled = tls_site("localhost", 9443, false);
+        disabled.enabled = false;
+        let text = generate_caddyfile_with_tls(&rules(vec![disabled]), &|_: &TlsConfig| {
+            Err(AppError::not_found("证书授权已撤销"))
+        })
+        .expect("disabled sites are not resolved");
+
+        assert!(!text.contains("tls"));
+        assert!(!text.contains("https://"));
+    }
+
+    #[test]
+    fn unsafe_tls_paths_are_refused_for_either_file() {
+        for (certificate, private_key) in [
+            ("/x/with space.pem", "/x/key.pem"),
+            ("/x/cert.pem", "/x/{env.HOME}.pem"),
+            ("relative/cert.pem", "/x/key.pem"),
+            ("/x/cert.pem", "/x/key\"quote.pem"),
+            ("/x/cert.pem", "/x/key#hash.pem"),
+        ] {
+            let result = generate_caddyfile_with_tls(
+                &rules(vec![tls_site("localhost", 9443, false)]),
+                &resolve_to(certificate, private_key),
+            );
+
+            let error = result.expect_err("unsafe path must be refused");
+            assert_eq!(
+                error.code(),
+                AppErrorCode::ValidationFailed,
+                "{certificate} / {private_key}"
+            );
+        }
+    }
+
+    #[test]
+    fn http_only_rules_ignore_the_resolver_and_match_the_plain_generator() {
+        let input = rules(vec![logged_http_site()]);
+        let plain = generate_caddyfile(&input).expect("plain");
+        let with_resolver = generate_caddyfile_with_tls(&input, &|_: &TlsConfig| {
+            Err(AppError::not_found("unused"))
+        })
+        .expect("resolver not called for http sites");
+
+        assert_eq!(plain, with_resolver);
     }
 }

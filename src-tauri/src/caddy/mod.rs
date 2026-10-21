@@ -6,4 +6,5 @@ pub mod generate;
 pub mod reload;
 pub mod session;
 pub mod store;
+pub mod tls;
 pub mod validate;
