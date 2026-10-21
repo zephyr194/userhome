@@ -16,8 +16,8 @@ use crate::{
 
 use super::{
     ConfirmRequest, FileState, GrantCoordinator, GrantError, GrantId, GrantKind, GrantPurpose,
-    GrantRecord, GrantStore, ReadError, ResourceWriteContext, ResourceWriteCoordinator,
-    WriteRequest,
+    GrantRecord, GrantStore, ReadError, RecoveryPoint, ResourceWriteContext,
+    ResourceWriteCoordinator, WriteKind, WriteRequest, WriteStatus,
 };
 
 const PLIST: &str = "<plist>ok</plist>\n";
@@ -531,4 +531,350 @@ fn a_swapped_directory_or_a_name_that_became_a_link_stops_the_confirmation() {
         "{error:?}"
     );
     assert_eq!(fs::read_to_string(&victim).expect("read"), "untouched");
+}
+
+// ------------------------------------------------- replacement (adopt / edit)
+
+const ADOPTED: &str = "com.example.adopted";
+
+impl Fixture {
+    fn seed_plist(&self, name: &str, content: &str) -> PathBuf {
+        let path = self.agents.join(name);
+        fs::write(&path, content).expect("seed plist");
+        path
+    }
+
+    fn replacement(&self, name: &str) -> GrantRecord {
+        self.grants
+            .create_launch_agent_replacement(name)
+            .expect("replacement grant")
+    }
+
+    fn replace_request(&self, id: &GrantId, current: &str, content: &str) -> WriteRequest {
+        WriteRequest {
+            grant_id: id.clone(),
+            relative: None,
+            expected_sha256: Some(hash_bytes(current.as_bytes())),
+            content: content.to_owned(),
+            sensitive: true,
+        }
+    }
+}
+
+#[test]
+fn the_replacement_entry_backs_up_then_replaces_an_existing_plist() {
+    let fixture = Fixture::new();
+    let name = format!("{ADOPTED}.plist");
+    let path = fixture.seed_plist(&name, "mine");
+    let record = fixture.replacement(&name);
+    assert_eq!(record.purpose, GrantPurpose::LaunchAgentFile);
+
+    let preview = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            ADOPTED,
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect("previewed");
+    let step = &preview.steps[0];
+    assert_eq!(step.kind, WriteKind::Replace);
+    assert_eq!(step.recovery_point, RecoveryPoint::Backup);
+
+    let execution = fixture
+        .writes
+        .execute_launch_agent_replace(
+            &fixture.ctx(),
+            &confirm(&step.operation.operation_id, &record.id),
+            |_| Ok(()),
+        )
+        .expect("ran");
+    assert_eq!(execution.outcome.status, WriteStatus::Succeeded);
+    assert_eq!(execution.outcome.file_state, FileState::Written);
+    assert_eq!(execution.outcome.recovery_point, RecoveryPoint::Backup);
+    assert!(execution.outcome.backup_id.is_some());
+    assert_eq!(fs::read_to_string(&path).expect("read"), PLIST);
+}
+
+#[test]
+fn the_replacement_is_refused_when_the_plist_changed_after_the_preview() {
+    let fixture = Fixture::new();
+    let name = format!("{ADOPTED}.plist");
+    let path = fixture.seed_plist(&name, "mine");
+    let record = fixture.replacement(&name);
+    let preview = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            ADOPTED,
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect("previewed");
+    fs::write(&path, "theirs").expect("external change");
+
+    let error = fixture
+        .writes
+        .execute_launch_agent_replace(
+            &fixture.ctx(),
+            &confirm(&preview.steps[0].operation.operation_id, &record.id),
+            |_| Ok(()),
+        )
+        .expect_err("stale preview refused");
+    assert_eq!(error.code(), AppErrorCode::Conflict, "{error:?}");
+    assert_eq!(fs::read_to_string(&path).expect("read"), "theirs");
+}
+
+#[test]
+fn a_replacement_whose_backup_cannot_be_made_writes_nothing() {
+    let fixture = Fixture::new();
+    let name = format!("{ADOPTED}.plist");
+    let path = fixture.seed_plist(&name, "mine");
+    let record = fixture.replacement(&name);
+    // A regular file where the backup root should be makes backups fail.
+    fs::write(fixture.home.join("backups"), "not a directory").expect("block backup root");
+    let preview = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            ADOPTED,
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect("previewed");
+
+    let execution = fixture
+        .writes
+        .execute_launch_agent_replace(
+            &fixture.ctx(),
+            &confirm(&preview.steps[0].operation.operation_id, &record.id),
+            |_| Ok(()),
+        )
+        .expect("transaction ran");
+    assert_eq!(execution.outcome.status, WriteStatus::Failed);
+    assert_eq!(execution.outcome.file_state, FileState::Unchanged);
+    assert_eq!(
+        execution.outcome.recovery_point,
+        RecoveryPoint::NoneUnavailable
+    );
+    assert!(execution.outcome.backup_id.is_none());
+    assert_eq!(fs::read_to_string(&path).expect("read"), "mine");
+}
+
+#[test]
+fn a_replacement_grant_covers_only_an_existing_regular_plist() {
+    let fixture = Fixture::new();
+    assert_eq!(
+        fixture
+            .grants
+            .create_launch_agent_replacement(&format!("{ADOPTED}.plist"))
+            .expect_err("missing"),
+        GrantError::NotFound
+    );
+    fs::create_dir(fixture.agents.join("dir.plist")).expect("directory");
+    assert_eq!(
+        fixture
+            .grants
+            .create_launch_agent_replacement("dir.plist")
+            .expect_err("directory"),
+        GrantError::NotFile
+    );
+    let outside = fixture.root.join("outside.plist");
+    fs::write(&outside, "elsewhere").expect("outside");
+    std::os::unix::fs::symlink(&outside, fixture.agents.join("link.plist")).expect("link");
+    assert_eq!(
+        fixture
+            .grants
+            .create_launch_agent_replacement("link.plist")
+            .expect_err("link"),
+        GrantError::SymlinkEscape
+    );
+    fs::write(fixture.agents.join("notes.txt"), "x").expect("notes");
+    assert_eq!(
+        fixture
+            .grants
+            .create_launch_agent_replacement("notes.txt")
+            .expect_err("not a plist"),
+        GrantError::InvalidRelativePath
+    );
+    assert!(fixture.grants.list().expect("list").is_empty());
+}
+
+#[test]
+fn a_replacement_is_refused_for_a_label_other_than_its_grant_or_a_create_shaped_request() {
+    let fixture = Fixture::new();
+    let name = format!("{ADOPTED}.plist");
+    let path = fixture.seed_plist(&name, "mine");
+    let record = fixture.replacement(&name);
+
+    let error = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            "com.example.other",
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect_err("other label");
+    assert_eq!(error.code(), AppErrorCode::InvalidInput, "{error:?}");
+
+    let without_hash = WriteRequest {
+        expected_sha256: None,
+        ..fixture.replace_request(&record.id, "mine", PLIST)
+    };
+    let error = fixture
+        .writes
+        .preview_launch_agent_replace(&fixture.ctx(), ADOPTED, without_hash)
+        .expect_err("no hash");
+    assert_eq!(error.code(), AppErrorCode::InvalidInput, "{error:?}");
+
+    let relative = WriteRequest {
+        relative: Some("x".to_owned()),
+        ..fixture.replace_request(&record.id, "mine", PLIST)
+    };
+    let error = fixture
+        .writes
+        .preview_launch_agent_replace(&fixture.ctx(), ADOPTED, relative)
+        .expect_err("relative");
+    assert_eq!(error.code(), AppErrorCode::InvalidInput, "{error:?}");
+    assert_eq!(fs::read_to_string(&path).expect("read"), "mine");
+}
+
+#[test]
+fn general_and_shell_entries_refuse_a_replacement_grant_and_keep_its_preview() {
+    let fixture = Fixture::new();
+    let name = format!("{ADOPTED}.plist");
+    let path = fixture.seed_plist(&name, "mine");
+    let record = fixture.replacement(&name);
+
+    let error = fixture
+        .writes
+        .preview(
+            &fixture.ctx(),
+            vec![fixture.replace_request(&record.id, "mine", EVIL)],
+        )
+        .expect_err("general preview refused");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{error:?}");
+    let error = fixture
+        .writes
+        .preview_shell_startup(
+            &fixture.ctx(),
+            vec![fixture.replace_request(&record.id, "mine", EVIL)],
+        )
+        .expect_err("shell preview refused");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{error:?}");
+
+    let preview = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            ADOPTED,
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect("previewed");
+    let operation_id = preview.steps[0].operation.operation_id.clone();
+    let error = fixture
+        .writes
+        .execute(&fixture.ctx(), &confirm(&operation_id, &record.id))
+        .expect_err("general confirm refused");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{error:?}");
+    let error = fixture
+        .writes
+        .execute_shell_startup(&fixture.ctx(), &confirm(&operation_id, &record.id), |_| {
+            Ok(())
+        })
+        .expect_err("shell confirm refused");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{error:?}");
+    assert_eq!(fs::read_to_string(&path).expect("read"), "mine");
+
+    let execution = fixture
+        .writes
+        .execute_launch_agent_replace(&fixture.ctx(), &confirm(&operation_id, &record.id), |_| {
+            Ok(())
+        })
+        .expect("still confirmable by its own entry");
+    assert_eq!(execution.outcome.status, WriteStatus::Succeeded);
+}
+
+#[test]
+fn each_launch_agent_entry_confirms_only_the_kind_of_preview_it_made() {
+    let fixture = Fixture::new();
+    let created = format!("{ADOPTED}-created.plist");
+    let create_record = fixture.grant(&created);
+    let create_preview = fixture
+        .writes
+        .preview_launch_agent(
+            &fixture.ctx(),
+            fixture.create_request(&create_record.id, PLIST),
+        )
+        .expect("create preview");
+    let error = fixture
+        .writes
+        .execute_launch_agent_replace(
+            &fixture.ctx(),
+            &confirm(
+                &create_preview.steps[0].operation.operation_id,
+                &create_record.id,
+            ),
+            |_| Ok(()),
+        )
+        .expect_err("replacement entry refuses a create preview");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{error:?}");
+    assert!(!fixture.agents.join(&created).exists());
+
+    let name = format!("{ADOPTED}.plist");
+    fixture.seed_plist(&name, "mine");
+    let record = fixture.replacement(&name);
+    let replace_preview = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            ADOPTED,
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect("replace preview");
+    let error = fixture
+        .writes
+        .execute_launch_agent(
+            &fixture.ctx(),
+            &confirm(&replace_preview.steps[0].operation.operation_id, &record.id),
+            |_| Ok(()),
+        )
+        .expect_err("create entry refuses a replace preview");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{error:?}");
+}
+
+#[test]
+fn a_revoked_replacement_grant_can_neither_preview_nor_confirm() {
+    let fixture = Fixture::new();
+    let name = format!("{ADOPTED}.plist");
+    let path = fixture.seed_plist(&name, "mine");
+    let record = fixture.replacement(&name);
+    let preview = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            ADOPTED,
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect("previewed");
+    fixture.grants.revoke(&record.id).expect("revoked");
+
+    let error = fixture
+        .writes
+        .execute_launch_agent_replace(
+            &fixture.ctx(),
+            &confirm(&preview.steps[0].operation.operation_id, &record.id),
+            |_| Ok(()),
+        )
+        .expect_err("revoked grant refused");
+    assert_eq!(error.code(), AppErrorCode::Conflict, "{error:?}");
+    assert_eq!(fs::read_to_string(&path).expect("read"), "mine");
+
+    let error = fixture
+        .writes
+        .preview_launch_agent_replace(
+            &fixture.ctx(),
+            ADOPTED,
+            fixture.replace_request(&record.id, "mine", PLIST),
+        )
+        .expect_err("revoked grant cannot preview");
+    assert_eq!(error.code(), AppErrorCode::NotFound, "{error:?}");
 }

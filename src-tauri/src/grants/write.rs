@@ -347,6 +347,34 @@ impl ResourceWriteCoordinator {
         )
     }
 
+    /// The dedicated entry for replacing an existing LaunchAgent plist (an
+    /// adoption or a structured edit). Only a `LaunchAgentFile` grant made for
+    /// that file is accepted, the request must carry the hash of the content the
+    /// caller read, and the grant's file name must be `<label>.plist`. Not
+    /// reachable from any command that takes a grant id from the frontend.
+    pub fn preview_launch_agent_replace(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        label: &str,
+        request: WriteRequest,
+    ) -> Result<ResourceWriteBatchPreview, AppError> {
+        if request.relative.is_some() || request.expected_sha256.is_none() {
+            return Err(AppError::invalid_input(
+                "A LaunchAgent file can only be replaced with the hash of the content that was read.",
+            ));
+        }
+        let record = ctx.grants.resolve_launch_agent(&request.grant_id)?;
+        let expected_name = format!("{label}.plist");
+        if record.file_name.as_deref() != Some(expected_name.as_str()) {
+            return Err(GrantError::InvalidRelativePath.into());
+        }
+        self.preview_with(
+            ctx,
+            vec![StepInput::text(&request)],
+            GrantAccess::LaunchAgent,
+        )
+    }
+
     /// The dedicated entry of the QR export: previews one PNG for a file
     /// authorization (an existing file is replaced with a backup, a new name is
     /// created). The bytes are produced by the backend. Only
@@ -509,7 +537,8 @@ impl ResourceWriteCoordinator {
     }
 
     /// Confirms a preview made by `preview_launch_agent`, with the creator's
-    /// own read-back check (after the default text validation).
+    /// own read-back check (after the default text validation). A replacement
+    /// preview is refused here.
     pub fn execute_launch_agent<F>(
         &self,
         ctx: &ResourceWriteContext<'_>,
@@ -519,7 +548,35 @@ impl ResourceWriteCoordinator {
     where
         F: FnOnce(&[u8]) -> Result<(), AppError>,
     {
+        self.require_kind(&request.operation_id, WriteKind::Create)?;
         self.execute_inner(ctx, request, GrantAccess::LaunchAgent, false, post_validate)
+    }
+
+    /// Confirms a preview made by `preview_launch_agent_replace`, with the
+    /// caller's read-back check (after the default text validation). A creation
+    /// preview is refused here.
+    pub fn execute_launch_agent_replace<F>(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        request: &ConfirmRequest,
+        post_validate: F,
+    ) -> Result<ResourceWriteExecution, AppError>
+    where
+        F: FnOnce(&[u8]) -> Result<(), AppError>,
+    {
+        self.require_kind(&request.operation_id, WriteKind::Replace)?;
+        self.execute_inner(ctx, request, GrantAccess::LaunchAgent, false, post_validate)
+    }
+
+    /// Refuses a confirmation made through an entry of the other kind. The
+    /// preview stays pending; an unknown preview is reported by the lookup that
+    /// follows.
+    fn require_kind(&self, operation_id: &str, kind: WriteKind) -> Result<(), AppError> {
+        let state = self.state.lock().map_err(|_| AppError::internal())?;
+        match state.pending.get(operation_id) {
+            Some(pending) if pending.kind != kind => Err(GrantError::ReservedPurpose.into()),
+            _ => Ok(()),
+        }
     }
 
     fn execute_inner<F>(

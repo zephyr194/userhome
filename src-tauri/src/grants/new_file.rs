@@ -153,4 +153,46 @@ impl GrantCoordinator {
         self.store.save(&grants)?;
         Ok(record)
     }
+
+    /// Authorizes one existing `<label>.plist` in the fixed LaunchAgents
+    /// directory, for the backend to replace through the dedicated replacement
+    /// entry. Only a regular file qualifies. Every call makes a new grant, which
+    /// the caller revokes when its write or its discarded preview ends.
+    pub fn create_launch_agent_replacement(
+        &self,
+        file_name: &str,
+    ) -> Result<GrantRecord, GrantError> {
+        if !is_valid_file_name(file_name) || !is_launch_agent_name(file_name) {
+            return Err(GrantError::InvalidRelativePath);
+        }
+        let home = self.home.as_deref();
+        let agents = home
+            .ok_or(GrantError::HomeUnavailable)?
+            .join("Library")
+            .join("LaunchAgents");
+        let canonical = path::validate_new_file_parent(&agents, home)?;
+        ensure_launch_agents_parent(&canonical, home)?;
+        match fs::symlink_metadata(canonical.join(file_name)) {
+            Ok(metadata) if metadata.file_type().is_symlink() => {
+                return Err(GrantError::SymlinkEscape);
+            }
+            Ok(metadata) if metadata.file_type().is_file() => {}
+            Ok(_) => return Err(GrantError::NotFile),
+            Err(error) => return Err(path::classify_io_error(error)),
+        }
+        check_name(&canonical, file_name, home)?;
+        let _guard = self.lock()?;
+        let mut grants = self.store.load()?;
+        let record = GrantRecord {
+            id: GrantId::generate(),
+            purpose: GrantPurpose::LaunchAgentFile,
+            kind: GrantKind::File,
+            path: canonical,
+            created_at_epoch_ms: now_epoch_ms(),
+            file_name: Some(file_name.to_owned()),
+        };
+        grants.push(record.clone());
+        self.store.save(&grants)?;
+        Ok(record)
+    }
 }
