@@ -436,3 +436,7 @@ substitute hidden E2E, viewport resizing or static token checks for those gates.
 The full blocked matrix is in [`ui-correction-acceptance-v3.md`](ui-correction-acceptance-v3.md).
 T103/T109 and every signing, notarization, hosted-CI, hardware and manual gate
 remain open under the existing production NO-GO decision.
+
+## Caddy 真实验收（CAD-7）：脚本与模板已就绪，未执行
+
+Caddy 的真实运行验收尚未执行，需用户批准后按 [`caddy-acceptance.md`](caddy-acceptance.md) 进行。该文件含前提、上游夹具、逐步预期、只读核对命令、未验证点与记录表；记录表的结果列当前均为“未执行”。
