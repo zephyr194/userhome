@@ -89,9 +89,9 @@ describe("导航项尺寸与交互", () => {
     expect(lastDeclared(".navigation-rail a", "padding")).toMatch(/^0\s/);
   });
 
-  it("悬停态使用 surface-muted 背景", () => {
+  it("悬停态使用侧栏悬停令牌背景（与侧栏底色对比高于 surface-muted）", () => {
     expect(lastDeclared(".navigation-rail a:hover", "background")).toBe(
-      "var(--app-surface-muted)",
+      "var(--app-sidebar-hover)",
     );
   });
 

@@ -1483,7 +1483,7 @@ body {
 
 .navigation-rail a:hover {
   color: var(--app-foreground);
-  background: var(--app-surface-muted);
+  background: var(--app-sidebar-hover);
 }
 
 .navigation-rail a:focus-visible {
