@@ -4171,6 +4171,7 @@ name = "userhome"
 version = "0.1.0"
 dependencies = [
  "libc",
+ "quick-xml",
  "serde",
  "serde_json",
  "sha2",

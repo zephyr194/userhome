@@ -5,6 +5,7 @@ use crate::{
     text_tools::{
         codec::{self, CodecAlgorithm, CodecDirection, CodecError, Transformed},
         json::{self, FormattedJson, JsonError, JsonFormatMode},
+        xml::{self, FormattedXml, XmlError, XmlFormatMode},
     },
 };
 
@@ -13,6 +14,13 @@ use crate::{
 pub struct FormatJsonInput {
     text: String,
     mode: JsonFormatMode,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FormatXmlInput {
+    text: String,
+    mode: XmlFormatMode,
 }
 
 #[derive(Debug, Deserialize)]
@@ -29,6 +37,16 @@ pub struct TransformTextInput {
 pub async fn format_json(input: FormatJsonInput) -> Result<FormattedJson, AppError> {
     tauri::async_runtime::spawn_blocking(move || {
         json::format(&input.text, input.mode).map_err(map_json_error)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Same execution and privacy rules as `format_json`.
+#[tauri::command]
+pub async fn format_xml(input: FormatXmlInput) -> Result<FormattedXml, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        xml::format(&input.text, input.mode).map_err(map_xml_error)
     })
     .await
     .map_err(|_| AppError::internal())?
@@ -58,6 +76,20 @@ fn map_json_error(error: JsonError) -> AppError {
         JsonError::TooDeep { line, column } => {
             AppError::invalid_input_at("嵌套深度超过 256 层上限。", line, column)
         }
+    }
+}
+
+fn map_xml_error(error: XmlError) -> AppError {
+    match error {
+        XmlError::InputTooLarge => AppError::invalid_input("输入超过 1 MiB 上限，未格式化。"),
+        XmlError::OutputTooLarge => {
+            AppError::validation_failed("格式化结果超过 8 MiB 上限，未输出。")
+        }
+        XmlError::Invalid {
+            line,
+            column,
+            reason,
+        } => AppError::invalid_input_at(reason, line, column),
     }
 }
 
@@ -173,6 +205,59 @@ mod tests {
         );
         assert_eq!(
             map_codec_error(CodecError::OutputTooLarge).code(),
+            crate::error::AppErrorCode::ValidationFailed
+        );
+    }
+
+    #[test]
+    fn xml_request_rejects_unknown_fields_and_non_indent_modes() {
+        assert!(
+            serde_json::from_str::<FormatXmlInput>(
+                r#"{"text":"<a/>","mode":"INDENT2","extra":true}"#
+            )
+            .is_err()
+        );
+        assert!(
+            serde_json::from_str::<FormatXmlInput>(r#"{"text":"<a/>","mode":"MINIFY"}"#).is_err()
+        );
+    }
+
+    #[test]
+    fn xml_request_accepts_both_indent_modes() {
+        for (raw, expected) in [
+            ("INDENT2", XmlFormatMode::Indent2),
+            ("INDENT4", XmlFormatMode::Indent4),
+        ] {
+            let parsed = serde_json::from_str::<FormatXmlInput>(&format!(
+                r#"{{"text":"<a/>","mode":"{raw}"}}"#
+            ))
+            .unwrap_or_else(|error| panic!("{raw}: {error}"));
+            assert_eq!(parsed.mode, expected);
+        }
+    }
+
+    #[test]
+    fn xml_invalid_input_maps_to_invalid_input_with_line_and_column() {
+        let error = map_xml_error(XmlError::Invalid {
+            line: 3,
+            column: 4,
+            reason: "结束标签与开始标签不匹配。",
+        });
+        assert_eq!(error.code(), crate::error::AppErrorCode::InvalidInput);
+        let value = serde_json::to_value(&error).unwrap_or_default();
+        assert_eq!(value["details"]["line"], 3);
+        assert_eq!(value["details"]["column"], 4);
+        assert_eq!(value["message"], "结束标签与开始标签不匹配。");
+    }
+
+    #[test]
+    fn xml_size_limits_map_to_their_own_errors() {
+        assert_eq!(
+            map_xml_error(XmlError::InputTooLarge).code(),
+            crate::error::AppErrorCode::InvalidInput
+        );
+        assert_eq!(
+            map_xml_error(XmlError::OutputTooLarge).code(),
             crate::error::AppErrorCode::ValidationFailed
         );
     }
