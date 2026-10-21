@@ -146,6 +146,7 @@ pub fn run() {
             commands::services::execute_service_action,
             commands::status::get_app_status,
             commands::text_tools::format_json,
+            commands::text_tools::transform_text,
             commands::elevation::get_helper_status,
             commands::elevation::register_helper,
             commands::elevation::unregister_helper,
