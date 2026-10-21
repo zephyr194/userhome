@@ -1,6 +1,8 @@
-use image::{ExtendedColorType, GrayImage, ImageEncoder, codecs::png::PngEncoder};
+use image::{ExtendedColorType, GrayImage, ImageEncoder, RgbaImage, codecs::png::PngEncoder};
 use qrcode::{EcLevel, QrCode};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+use super::icon;
 
 /// Quiet zone on each side of the symbol, in modules.
 pub const QUIET_ZONE_MODULES: u32 = 4;
@@ -12,7 +14,7 @@ pub const MIN_MODULE_PX: u32 = 2;
 /// Product cap on the UTF-8 byte length, applied on top of the level capacity.
 const MAX_INPUT_BYTES: usize = 2048;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ErrorCorrection {
     L,
     M,
@@ -90,6 +92,8 @@ pub struct Layout {
 pub struct QrImage {
     pub png: Vec<u8>,
     pub layout: Layout,
+    pub level: ErrorCorrection,
+    pub icon_applied: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -98,6 +102,7 @@ pub enum QrError {
     TooLong { max_bytes: usize },
     ModulesTooSmall { min_module_px: u32 },
     UnsupportedSize,
+    IconDoesNotFit,
     Encode,
 }
 
@@ -111,6 +116,9 @@ impl std::fmt::Display for QrError {
                 "所选尺寸下每个模块不足 {min_module_px} 像素，无法可靠识别；请选择更大尺寸或缩短内容。"
             ),
             Self::UnsupportedSize => f.write_str("不支持的尺寸。"),
+            Self::IconDoesNotFit => {
+                f.write_str("当前内容的二维码无法可靠放置该图标；请调整内容长度或移除图标。")
+            }
             Self::Encode => f.write_str("二维码编码失败。"),
         }
     }
@@ -120,6 +128,25 @@ impl std::fmt::Display for QrError {
 /// at the largest whole-pixel module size that fits with its quiet zone, and
 /// centred in a white square of the requested size.
 pub fn encode_png(text: &str, level: ErrorCorrection, size: PixelSize) -> Result<QrImage, QrError> {
+    encode(text, level, size, None)
+}
+
+/// Adds a centred icon. The symbol is always encoded at level H, whatever the
+/// caller chose, and the icon is refused instead of drawn over function patterns.
+pub fn encode_png_with_icon(
+    text: &str,
+    size: PixelSize,
+    icon: &RgbaImage,
+) -> Result<QrImage, QrError> {
+    encode(text, ErrorCorrection::H, size, Some(icon))
+}
+
+fn encode(
+    text: &str,
+    level: ErrorCorrection,
+    size: PixelSize,
+    overlay: Option<&RgbaImage>,
+) -> Result<QrImage, QrError> {
     if text.is_empty() {
         return Err(QrError::Empty);
     }
@@ -165,6 +192,18 @@ pub fn encode_png(text: &str, level: ErrorCorrection, size: PixelSize) -> Result
         }
     }
 
+    if let Some(overlay) = overlay {
+        let placement = icon::place(
+            core,
+            module_px,
+            core_start,
+            overlay.width(),
+            overlay.height(),
+        )
+        .ok_or(QrError::IconDoesNotFit)?;
+        icon::draw(&mut gray, overlay, placement);
+    }
+
     let mut png = Vec::new();
     PngEncoder::new(&mut png)
         .write_image(gray.as_raw(), image_px, image_px, ExtendedColorType::L8)
@@ -178,5 +217,7 @@ pub fn encode_png(text: &str, level: ErrorCorrection, size: PixelSize) -> Result
             core_modules: core,
             origin_px,
         },
+        level,
+        icon_applied: overlay.is_some(),
     })
 }

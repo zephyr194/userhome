@@ -40,6 +40,7 @@ pub fn run() {
         .manage(operations::OperationCoordinator::default())
         .manage(lifecycle::LifecycleCoordinator::default())
         .manage(grants::ResourceWriteCoordinator::default())
+        .manage(commands::qr::QrIconStore::default())
         .manage(environment::save::EnvironmentEditCoordinator::default())
         .manage(environment::zsh_edit::ZshEditCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
@@ -150,6 +151,8 @@ pub fn run() {
             commands::text_tools::format_xml,
             commands::text_tools::transform_text,
             commands::qr::preview_qr,
+            commands::qr::select_qr_icon,
+            commands::qr::clear_qr_icon,
             commands::qr::prepare_qr_export,
             commands::qr::confirm_qr_export,
             commands::elevation::get_helper_status,

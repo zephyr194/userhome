@@ -1,20 +1,29 @@
+use std::{
+    path::PathBuf,
+    sync::{Mutex, atomic::AtomicBool},
+};
+
 use serde::{Deserialize, Serialize};
-use tauri::State;
+use tauri::{Manager, State};
 
 use crate::{
     config::{ConfigCoordinator, read::hash_bytes},
     error::AppError,
     grants::{
-        ConfirmRequest, GrantCoordinator, GrantId, GrantPurpose, RecoveryPoint,
+        ConfirmRequest, GrantCoordinator, GrantId, GrantPurpose, ReadError, RecoveryPoint,
         ResourceWriteContext, ResourceWriteCoordinator, WriteKind, WriteOutcome,
     },
     operations::OperationCoordinator,
-    qr::{ErrorCorrection, PixelSize, QrError, encode_png},
+    qr::{
+        ErrorCorrection, IconError, IconFormat, MAX_ICON_BYTES, PixelSize, QrError, QrImage,
+        decode_icon, encode_png, encode_png_with_icon, thumbnail_png,
+    },
     settings::SettingsCoordinator,
 };
 
 use super::grants::{
-    PICKER_OPEN, PickMode, SelectGrantOutcome, canonical_home, native_picker, select_grant,
+    NativePicker, PICKER_OPEN, PickMode, SelectGrantOutcome, canonical_home, native_picker,
+    select_grant,
 };
 
 // The QR bytes are always produced here from the text and the options. The
@@ -28,6 +37,7 @@ pub struct QrInput {
     text: String,
     level: ErrorCorrection,
     size: PixelSize,
+    icon_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -37,6 +47,7 @@ pub struct ExportQrInput {
     level: ErrorCorrection,
     size: PixelSize,
     expected_sha256: String,
+    icon_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,6 +65,8 @@ pub struct QrPreview {
     pub image_px: u32,
     pub module_px: u32,
     pub module_count: u32,
+    pub level: ErrorCorrection,
+    pub icon_applied: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -77,11 +90,156 @@ pub enum PrepareQrExportOutcome {
     Previewed(PreparedQrExport),
 }
 
+/// The icon is read once when chosen. Its bytes stay in backend memory under an
+/// opaque id, so the frontend never sees a path or the bytes, and the grant that
+/// allowed the read is revoked before anything else happens.
+#[derive(Default)]
+pub struct QrIconStore {
+    selected: Mutex<Option<SelectedIcon>>,
+}
+
+struct SelectedIcon {
+    id: String,
+    bytes: Vec<u8>,
+}
+
+impl QrIconStore {
+    fn replace(&self, icon: SelectedIcon) -> Result<(), AppError> {
+        *self.selected.lock().map_err(|_| AppError::internal())? = Some(icon);
+        Ok(())
+    }
+
+    fn clear(&self) -> Result<(), AppError> {
+        *self.selected.lock().map_err(|_| AppError::internal())? = None;
+        Ok(())
+    }
+
+    fn resolve(&self, icon_id: Option<&str>) -> Result<Option<Vec<u8>>, AppError> {
+        let Some(icon_id) = icon_id else {
+            return Ok(None);
+        };
+        let selected = self.selected.lock().map_err(|_| AppError::internal())?;
+        match selected.as_ref() {
+            Some(icon) if icon.id == icon_id => Ok(Some(icon.bytes.clone())),
+            _ => Err(AppError::conflict("图标已更换或失效，请重新选择。")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct QrIconSummary {
+    pub icon_id: String,
+    pub format: &'static str,
+    pub width: u32,
+    pub height: u32,
+    pub thumbnail_png_base64: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "status", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SelectQrIconOutcome {
+    Cancelled,
+    Selected(QrIconSummary),
+}
+
 #[tauri::command]
-pub async fn preview_qr(input: QrInput) -> Result<QrPreview, AppError> {
-    tauri::async_runtime::spawn_blocking(move || encode_preview(&input))
+pub async fn preview_qr(
+    input: QrInput,
+    icons: State<'_, QrIconStore>,
+) -> Result<QrPreview, AppError> {
+    let icon = icons.resolve(input.icon_id.as_deref())?;
+    tauri::async_runtime::spawn_blocking(move || encode_preview(&input, icon.as_deref()))
         .await
         .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn select_qr_icon(
+    app: tauri::AppHandle,
+    grants: State<'_, GrantCoordinator>,
+    icons: State<'_, QrIconStore>,
+) -> Result<SelectQrIconOutcome, AppError> {
+    let Some(bytes) =
+        read_selected_icon(&grants, &PICKER_OPEN, native_picker(app), canonical_home()).await?
+    else {
+        return Ok(SelectQrIconOutcome::Cancelled);
+    };
+    let icon_id = uuid::Uuid::new_v4().to_string();
+    let (summary, selected) =
+        tauri::async_runtime::spawn_blocking(move || prepare_icon(icon_id, bytes))
+            .await
+            .map_err(|_| AppError::internal())??;
+    icons.replace(selected)?;
+    Ok(SelectQrIconOutcome::Selected(summary))
+}
+
+#[tauri::command]
+pub fn clear_qr_icon(icons: State<'_, QrIconStore>) -> Result<(), AppError> {
+    icons.clear()
+}
+
+/// Opens the picker and reads the chosen file with the size limit. The grant is
+/// revoked whether or not the read succeeded: it is never left behind, since a
+/// file grant also authorizes writes to that file.
+pub(crate) async fn read_selected_icon<P: NativePicker>(
+    coordinator: &GrantCoordinator,
+    picker_open: &AtomicBool,
+    picker: P,
+    home: Option<PathBuf>,
+) -> Result<Option<Vec<u8>>, AppError> {
+    let SelectGrantOutcome::Selected(summary) = select_grant(
+        coordinator,
+        picker_open,
+        picker,
+        PickMode::File,
+        GrantPurpose::ConfigFile,
+        home,
+    )
+    .await?
+    else {
+        return Ok(None);
+    };
+    let read = coordinator.read_resource_with_limit(&summary.id, None, MAX_ICON_BYTES);
+    coordinator.revoke(&summary.id).map_err(AppError::from)?;
+    let granted = read.map_err(map_read_error)?;
+    Ok(Some(granted.content))
+}
+
+fn prepare_icon(
+    icon_id: String,
+    bytes: Vec<u8>,
+) -> Result<(QrIconSummary, SelectedIcon), AppError> {
+    let decoded = decode_icon(&bytes).map_err(map_icon_error)?;
+    let format = match decoded.format {
+        IconFormat::Png => "PNG",
+        IconFormat::Jpeg => "JPEG",
+        IconFormat::WebP => "WEBP",
+    };
+    let summary = QrIconSummary {
+        icon_id: icon_id.clone(),
+        format,
+        width: decoded.rgba.width(),
+        height: decoded.rgba.height(),
+        thumbnail_png_base64: base64_encode(&thumbnail_png(&decoded.rgba)),
+    };
+    Ok((summary, SelectedIcon { id: icon_id, bytes }))
+}
+
+fn map_read_error(error: ReadError) -> AppError {
+    let message = match error {
+        ReadError::TooLarge => "图标文件超过 5 MiB 上限。",
+        ReadError::NotFound => "所选图标文件不存在。",
+        ReadError::PermissionDenied => "没有权限读取所选图标文件。",
+        ReadError::Unsupported => "所选位置不是普通文件。",
+        ReadError::Excluded => "所选图标已不在授权范围内。",
+        ReadError::Malformed | ReadError::Io => "无法读取所选图标文件。",
+    };
+    AppError::invalid_input(message)
+}
+
+fn map_icon_error(error: IconError) -> AppError {
+    AppError::invalid_input(&error.to_string())
 }
 
 /// Opens the native save panel, authorizes the chosen file and previews the
@@ -97,8 +255,11 @@ pub async fn prepare_qr_export(
     input: ExportQrInput,
 ) -> Result<PrepareQrExportOutcome, AppError> {
     let expected = input.expected_sha256.clone();
+    let icon = app
+        .state::<QrIconStore>()
+        .resolve(input.icon_id.as_deref())?;
     let png = tauri::async_runtime::spawn_blocking(move || {
-        let encoded = encode_png(&input.text, input.level, input.size).map_err(map_qr_error)?;
+        let encoded = render(&input.text, input.level, input.size, icon.as_deref())?;
         check_expected_hash(&encoded.png, &expected)?;
         Ok::<_, AppError>(encoded.png)
     })
@@ -165,15 +326,32 @@ pub fn confirm_qr_export(
     Ok(execution.outcome)
 }
 
-fn encode_preview(input: &QrInput) -> Result<QrPreview, AppError> {
-    let image = encode_png(&input.text, input.level, input.size).map_err(map_qr_error)?;
+fn encode_preview(input: &QrInput, icon: Option<&[u8]>) -> Result<QrPreview, AppError> {
+    let image = render(&input.text, input.level, input.size, icon)?;
     Ok(QrPreview {
         png_base64: base64_encode(&image.png),
         sha256: hash_bytes(&image.png),
         image_px: image.layout.image_px,
         module_px: image.layout.module_px,
         module_count: image.layout.core_modules,
+        level: image.level,
+        icon_applied: image.icon_applied,
     })
+}
+
+// The one place that turns input into symbol bytes, so the preview and the
+// export always agree. With an icon the level is always H.
+fn render(
+    text: &str,
+    level: ErrorCorrection,
+    size: PixelSize,
+    icon: Option<&[u8]>,
+) -> Result<QrImage, AppError> {
+    let Some(bytes) = icon else {
+        return encode_png(text, level, size).map_err(map_qr_error);
+    };
+    let decoded = decode_icon(bytes).map_err(map_icon_error)?;
+    encode_png_with_icon(text, size, &decoded.rgba).map_err(map_qr_error)
 }
 
 fn check_expected_hash(png: &[u8], expected: &str) -> Result<(), AppError> {
@@ -286,9 +464,10 @@ mod tests {
             text: "https://example.com/one".to_owned(),
             level: ErrorCorrection::M,
             size: PixelSize::Px512,
+            icon_id: None,
         };
-        let first = encode_preview(&input).expect("preview");
-        let second = encode_preview(&input).expect("preview again");
+        let first = encode_preview(&input, None).expect("preview");
+        let second = encode_preview(&input, None).expect("preview again");
         assert_eq!(first, second);
         assert!(first.png_base64.starts_with("iVBORw0KGgo"));
         assert!(
@@ -308,12 +487,16 @@ mod tests {
             text: "one".to_owned(),
             level: ErrorCorrection::L,
             size: PixelSize::Px256,
+            icon_id: None,
         };
-        let preview = encode_preview(&input).expect("preview");
-        let other = encode_preview(&QrInput {
-            text: "two".to_owned(),
-            ..input
-        })
+        let preview = encode_preview(&input, None).expect("preview");
+        let other = encode_preview(
+            &QrInput {
+                text: "two".to_owned(),
+                ..input
+            },
+            None,
+        )
         .expect("other");
         let png = crate::qr::encode_png("two", ErrorCorrection::L, PixelSize::Px256)
             .unwrap()
@@ -336,5 +519,188 @@ mod tests {
                 .unwrap_or_default()
                 .contains("2048")
         );
+    }
+}
+
+#[cfg(test)]
+mod icon_selection_tests {
+    use std::{
+        fs,
+        os::unix::fs::symlink,
+        path::{Path, PathBuf},
+        sync::atomic::AtomicBool,
+    };
+
+    use image::{ExtendedColorType, ImageEncoder, Rgba, RgbaImage, codecs::png::PngEncoder};
+    use uuid::Uuid;
+
+    use crate::{
+        commands::grants::{NativePicker, PickMode},
+        error::{AppError, AppErrorCode},
+        grants::{GrantCoordinator, GrantStore},
+        qr::{ErrorCorrection, MAX_ICON_BYTES, PixelSize},
+    };
+
+    use super::{
+        QrIconStore, QrInput, SelectedIcon, encode_preview, prepare_icon, read_selected_icon,
+    };
+
+    struct FixedPicker(Option<PathBuf>);
+
+    impl NativePicker for FixedPicker {
+        fn pick(&self, _mode: PickMode) -> Result<Option<PathBuf>, AppError> {
+            Ok(self.0.clone())
+        }
+    }
+
+    struct Sandbox {
+        root: PathBuf,
+    }
+
+    impl Sandbox {
+        fn new() -> Self {
+            let root = fs::canonicalize(std::env::temp_dir())
+                .expect("temp dir")
+                .join(format!("userhome-qr-icon-{}", Uuid::new_v4()));
+            fs::create_dir_all(&root).expect("create sandbox");
+            Self { root }
+        }
+
+        fn coordinator(&self) -> GrantCoordinator {
+            GrantCoordinator::new(
+                GrantStore::new(self.root.join("support")),
+                Some(self.root.clone()),
+            )
+        }
+
+        fn file(&self, name: &str, bytes: &[u8]) -> PathBuf {
+            let path = self.root.join(name);
+            fs::write(&path, bytes).expect("write fixture");
+            path
+        }
+    }
+
+    impl Drop for Sandbox {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    fn png(width: u32, height: u32) -> Vec<u8> {
+        let image = RgbaImage::from_pixel(width, height, Rgba([30, 60, 200, 255]));
+        let mut out = Vec::new();
+        PngEncoder::new(&mut out)
+            .write_image(image.as_raw(), width, height, ExtendedColorType::Rgba8)
+            .expect("png fixture");
+        out
+    }
+
+    fn select(
+        coordinator: &GrantCoordinator,
+        picked: Option<PathBuf>,
+        home: &Path,
+    ) -> Result<Option<Vec<u8>>, AppError> {
+        tauri::async_runtime::block_on(read_selected_icon(
+            coordinator,
+            &AtomicBool::new(false),
+            FixedPicker(picked),
+            Some(home.to_path_buf()),
+        ))
+    }
+
+    #[test]
+    fn a_picked_icon_is_read_and_its_grant_is_revoked() {
+        let sandbox = Sandbox::new();
+        let bytes = png(40, 40);
+        let path = sandbox.file("logo.png", &bytes);
+        let coordinator = sandbox.coordinator();
+        let read = select(&coordinator, Some(path), &sandbox.root).expect("read");
+        assert_eq!(read, Some(bytes));
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn cancelling_the_picker_creates_no_grant() {
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        assert_eq!(
+            select(&coordinator, None, &sandbox.root).expect("cancel"),
+            None
+        );
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn an_icon_over_the_limit_is_refused_and_its_grant_is_still_revoked() {
+        let sandbox = Sandbox::new();
+        let path = sandbox.file("huge.png", &vec![0u8; MAX_ICON_BYTES + 1]);
+        let coordinator = sandbox.coordinator();
+        let error = select(&coordinator, Some(path), &sandbox.root).expect_err("too large");
+        assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn a_link_that_leaves_the_authorized_area_is_refused() {
+        let sandbox = Sandbox::new();
+        let outside = Sandbox::new();
+        let target = outside.file("logo.png", &png(16, 16));
+        let link = sandbox.root.join("link.png");
+        symlink(&target, &link).expect("symlink");
+        let coordinator = sandbox.coordinator();
+        assert!(select(&coordinator, Some(link), &sandbox.root).is_err());
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn an_svg_is_refused_before_anything_is_stored() {
+        let svg = br#"<svg xmlns="http://www.w3.org/2000/svg"></svg>"#.to_vec();
+        let error = prepare_icon("id-1".to_owned(), svg)
+            .err()
+            .expect("svg refused");
+        assert_eq!(error.code(), AppErrorCode::InvalidInput);
+    }
+
+    #[test]
+    fn the_summary_describes_the_decoded_icon_and_carries_a_png_thumbnail() {
+        let (summary, selected) = prepare_icon("id-2".to_owned(), png(64, 32)).expect("valid icon");
+        assert_eq!(summary.format, "PNG");
+        assert_eq!((summary.width, summary.height), (64, 32));
+        assert!(summary.thumbnail_png_base64.starts_with("iVBORw0KGgo"));
+        assert_eq!(selected.id, "id-2");
+    }
+
+    #[test]
+    fn the_store_serves_only_the_icon_it_holds() {
+        let store = QrIconStore::default();
+        store
+            .replace(SelectedIcon {
+                id: "a".to_owned(),
+                bytes: vec![1, 2, 3],
+            })
+            .expect("store");
+        assert_eq!(store.resolve(None).expect("none"), None);
+        assert_eq!(store.resolve(Some("a")).expect("held"), Some(vec![1, 2, 3]));
+        assert!(store.resolve(Some("b")).is_err());
+        store.clear().expect("clear");
+        assert!(store.resolve(Some("a")).is_err());
+    }
+
+    #[test]
+    fn a_preview_with_the_icon_is_forced_to_level_h_and_says_so() {
+        let icon = png(64, 64);
+        let input = QrInput {
+            text: "x".repeat(40),
+            level: ErrorCorrection::M,
+            size: PixelSize::Px512,
+            icon_id: None,
+        };
+        let plain = encode_preview(&input, None).expect("plain");
+        let marked = encode_preview(&input, Some(&icon)).expect("with icon");
+        assert_eq!(plain.level, ErrorCorrection::M);
+        assert!(!plain.icon_applied);
+        assert_eq!(marked.level, ErrorCorrection::H);
+        assert!(marked.icon_applied);
+        assert_ne!(plain.sha256, marked.sha256);
     }
 }
