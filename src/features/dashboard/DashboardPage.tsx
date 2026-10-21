@@ -10,7 +10,7 @@ import {
   selectCandidateCoverage,
   type CandidateCoverageView,
 } from "../../app/discoverySelectors";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, Panel, StatusBadge } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import type { ManagedAppCoverageClass } from "../../ipc/catalog";
 import type {
@@ -490,7 +490,8 @@ function UserDirectoryCoveragePanel({
   }
 
   return (
-    <section
+    <Panel
+      ticks
       className="overview-panel"
       aria-labelledby="user-directory-coverage-heading"
     >
@@ -513,7 +514,7 @@ function UserDirectoryCoveragePanel({
         ) : null}
         {body}
       </div>
-    </section>
+    </Panel>
   );
 }
 

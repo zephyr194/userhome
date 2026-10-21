@@ -552,24 +552,24 @@ a {
 
 .dashboard-subgroup-heading p {
   color: var(--app-muted-foreground);
-  font-size: 12px;
+  font-size: var(--app-font-size-aux);
 }
 
 .dashboard-status-row {
   min-width: 0;
-  padding: 8px 18px;
+  padding: var(--app-space-lg) var(--app-space-3xl);
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--app-space-xl);
   border-top: 1px solid color-mix(in srgb, var(--app-line-subtle) 72%, transparent);
 }
 
 .dashboard-status-row p {
-  margin: 3px 0 0;
+  margin: var(--app-space-xs) 0 0;
 }
 
 .dashboard-system-summary > section {
-  padding: 8px 18px 10px;
+  padding: var(--app-space-lg) var(--app-space-3xl) var(--app-space-xl);
   border-top: 1px solid color-mix(in srgb, var(--app-line-subtle) 72%, transparent);
 }
 
@@ -578,15 +578,15 @@ a {
 }
 
 .dashboard-subgroup-heading {
-  margin-bottom: 8px;
+  margin-bottom: var(--app-space-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--app-space-3xl);
 }
 
 .dashboard-subgroup-heading h4 {
-  font-size: 12px;
+  font-size: var(--app-font-size-aux);
 }
 
 .dashboard-machine-rows {
@@ -596,12 +596,12 @@ a {
 
 .dashboard-machine-rows > div {
   min-width: 0;
-  padding: 4px 0;
+  padding: var(--app-space-xs) 0;
   display: grid;
   grid-template-columns: minmax(76px, 104px) minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--app-space-2xl);
   border-top: 1px solid color-mix(in srgb, var(--app-line-subtle) 55%, transparent);
-  font-size: 12px;
+  font-size: var(--app-font-size-aux);
 }
 
 .dashboard-machine-rows dt {
@@ -619,17 +619,17 @@ a {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: var(--app-space-xs);
   color: var(--app-muted-foreground);
-  font-size: 11px;
-  margin-left: 8px;
+  font-size: var(--app-font-size-meta);
+  margin-left: var(--app-space-lg);
 }
 
 .dashboard-applications summary {
-  padding: 8px 0;
+  padding: var(--app-space-lg) 0;
   border-top: 1px solid var(--app-line-subtle);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--app-font-size-aux);
   font-weight: 600;
 }
 
@@ -645,7 +645,7 @@ a {
 }
 
 .dashboard-application-rows > li {
-  padding: 8px 0;
+  padding: var(--app-space-lg) 0;
   border-top: 1px solid color-mix(in srgb, var(--app-line-subtle) 55%, transparent);
 }
 
@@ -653,22 +653,22 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  font-size: 12px;
+  gap: var(--app-space-2xl);
+  font-size: var(--app-font-size-aux);
 }
 
 .dashboard-application-rows ul {
-  margin-top: 5px;
+  margin-top: var(--app-space-xs);
   display: grid;
-  gap: 4px;
+  gap: var(--app-space-xs);
   color: var(--app-muted-foreground);
-  font-size: 11px;
+  font-size: var(--app-font-size-meta);
 }
 
 .dashboard-application-rows ul li {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: var(--app-space-md);
 }
 
 .welcome-panel p:last-child,
@@ -1638,7 +1638,7 @@ button {
 
 .pulse-card {
   min-width: 0;
-  padding: 10px var(--app-space-lg);
+  padding: var(--app-space-xl) var(--app-space-lg);
   border-right: 1px solid var(--app-border);
 }
 
@@ -1651,28 +1651,28 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--app-space-md);
 }
 
 .pulse-card__label {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--app-space-lg);
   color: var(--app-muted-foreground);
   font-size: var(--app-font-size-meta);
   font-weight: 600;
 }
 
 .pulse-card .inline-flex {
-  min-height: 20px;
-  padding: 1px 6px;
+  min-height: var(--app-status-badge-height);
+  padding: 0 var(--app-space-md);
   border-radius: var(--app-radius-control);
   font-size: var(--app-font-size-meta);
 }
 
 .pulse-card > p {
-  margin: 7px 0 0 15px;
+  margin: var(--app-space-md) 0 0 var(--app-space-3xl);
   color: var(--app-tertiary-foreground);
   font-family: var(--font-mono);
   font-size: var(--app-font-size-meta);
@@ -1732,11 +1732,11 @@ button {
 
 .overview-panel__header {
   min-width: 0;
-  padding: 10px var(--app-space-lg);
+  padding: var(--app-space-xl) var(--app-space-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--app-space-xl);
   background: var(--app-surface-muted);
   border-bottom: 1px solid var(--app-border);
 }
@@ -1756,7 +1756,7 @@ button {
 .overview-panel__content {
   min-width: 0;
   min-height: 0;
-  padding: 10px var(--app-space-lg);
+  padding: var(--app-space-xl) var(--app-space-lg);
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -1771,11 +1771,11 @@ button {
 .attention-list li,
 .attention-clear {
   min-width: 0;
-  padding: 9px 0;
+  padding: var(--app-space-lg) 0;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: start;
-  gap: 9px;
+  gap: var(--app-space-lg);
   border-bottom: 1px solid var(--app-border);
 }
 
@@ -1827,7 +1827,7 @@ button {
 
 .overview-metric {
   min-width: 0;
-  padding: 9px 10px;
+  padding: var(--app-space-lg) var(--app-space-xl);
   background: var(--app-surface-muted);
   border: 1px solid var(--app-control-border);
   border-radius: var(--app-radius-control);
@@ -1894,21 +1894,21 @@ button {
 
 .overview-panel--activity .dashboard-status-row {
   min-height: 0;
-  padding: 9px var(--app-space-lg);
+  padding: var(--app-space-lg);
   border: 0;
 }
 
 .machine-summary {
-  margin: 10px 0 0;
-  padding-top: 10px;
+  margin: var(--app-space-xl) 0 0;
+  padding-top: var(--app-space-xl);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
+  gap: var(--app-space-md);
   border-top: 1px solid var(--app-border);
 }
 
 .machine-summary .overview-metric {
-  padding: 7px var(--app-space-sm);
+  padding: var(--app-space-md) var(--app-space-sm);
   background: var(--app-surface-muted);
 }
 
@@ -2030,7 +2030,7 @@ button[class*="border-border"],
 
   .system-pulse__label {
     min-height: 36px;
-    padding: var(--app-space-sm) 10px;
+    padding: var(--app-space-sm) var(--app-space-xl);
     flex-direction: row;
     align-items: center;
     border-right: 0;
