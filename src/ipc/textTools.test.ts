@@ -2,9 +2,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
   decodeFormattedJson,
+  decodeFormattedXml,
   decodeJsonWarning,
   decodeTransformedText,
   formatJsonArgs,
+  formatXml,
+  formatXmlArgs,
   transformText,
   transformTextArgs,
 } from "./textTools";
@@ -172,5 +175,58 @@ describe("transform_text request arguments", () => {
     await expect(
       transformText("a", "BASE64", "ENCODE"),
     ).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+});
+
+describe("format_xml payload decoding", () => {
+  it("decodes a successful result", () => {
+    expect(decodeFormattedXml({ text: "<a>\n  <b/>\n</a>" })).toEqual({
+      text: "<a>\n  <b/>\n</a>",
+    });
+  });
+
+  it("fails closed on malformed result shapes", () => {
+    expectInternal(() => decodeFormattedXml(null));
+    expectInternal(() => decodeFormattedXml([]));
+    expectInternal(() => decodeFormattedXml({}));
+    expectInternal(() => decodeFormattedXml({ text: 1 }));
+    expectInternal(() => decodeFormattedXml({ text: null }));
+  });
+
+  it("drops fields it does not declare instead of forwarding them", () => {
+    expect(
+      decodeFormattedXml({ text: "<a/>", warnings: [], extra: "x" }),
+    ).toEqual({ text: "<a/>" });
+  });
+});
+
+describe("format_xml request arguments", () => {
+  it("wraps the text and mode in the typed input object", () => {
+    expect(formatXmlArgs("<a/>", "INDENT4")).toEqual({
+      input: { text: "<a/>", mode: "INDENT4" },
+    });
+  });
+
+  it("invokes format_xml and decodes the typed result", async () => {
+    let seen: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      seen = { command, payload };
+      return { text: "<a>\n  <b/>\n</a>" };
+    });
+
+    await expect(formatXml("<a><b/></a>", "INDENT2")).resolves.toEqual({
+      text: "<a>\n  <b/>\n</a>",
+    });
+    expect(seen?.command).toBe("format_xml");
+    expect(seen?.payload).toEqual({
+      input: { text: "<a><b/></a>", mode: "INDENT2" },
+    });
+  });
+
+  it("rejects a malformed response instead of showing it", async () => {
+    mockIPC(() => ({ text: 1 }));
+    await expect(formatXml("<a/>", "INDENT2")).rejects.toMatchObject({
+      code: "INTERNAL",
+    });
   });
 });

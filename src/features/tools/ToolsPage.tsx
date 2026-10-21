@@ -2,6 +2,7 @@ import { useState, type ComponentType } from "react";
 import { Button } from "../../components/ui";
 import { CodecTool } from "./CodecTool";
 import { JsonTool } from "./JsonTool";
+import { XmlTool } from "./XmlTool";
 
 /**
  * Tool registry. Adding a tool means one panel file, one entry here, and one
@@ -14,6 +15,11 @@ const TOOL_ENTRIES = [
     summary: "严格校验与格式化，保留数字与重复键原文。",
   },
   {
+    id: "xml",
+    label: "XML",
+    summary: "良构校验与缩进；不解析 DTD、外部实体与 XInclude。",
+  },
+  {
     id: "codec",
     label: "编解码",
     summary: "Base64、URL、HTML 实体、Unicode 转义与 UTF-8 Hex 的单次双向转换。",
@@ -24,6 +30,7 @@ type ToolId = (typeof TOOL_ENTRIES)[number]["id"];
 
 const TOOL_PANELS: Record<ToolId, ComponentType> = {
   json: JsonTool,
+  xml: XmlTool,
   codec: CodecTool,
 };
 

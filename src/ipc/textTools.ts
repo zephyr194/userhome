@@ -80,6 +80,33 @@ export function formatJson(
   );
 }
 
+export type XmlFormatMode = "INDENT2" | "INDENT4";
+
+export interface FormattedXml {
+  text: string;
+}
+
+export function decodeFormattedXml(value: unknown): FormattedXml {
+  if (!isRecord(value) || typeof value.text !== "string") {
+    throw createInternalError();
+  }
+  return { text: value.text };
+}
+
+export function formatXmlArgs(
+  text: string,
+  mode: XmlFormatMode,
+): { input: { text: string; mode: XmlFormatMode } } {
+  return { input: { text, mode } };
+}
+
+export function formatXml(
+  text: string,
+  mode: XmlFormatMode,
+): Promise<FormattedXml> {
+  return invokeCommand("format_xml", decodeFormattedXml, formatXmlArgs(text, mode));
+}
+
 export type CodecAlgorithm =
   | "BASE64"
   | "URL_COMPONENT"

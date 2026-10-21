@@ -23,6 +23,12 @@ describe("ToolsPage", () => {
   it("offers the codec tool as a second tab beside JSON", () => {
     const html = renderToStaticMarkup(<ToolsPage />);
     expect(html).toContain("编解码");
-    expect(html.match(/role="tab"/g)).toHaveLength(2);
+    expect(html.match(/role="tab"/g)).toHaveLength(3);
+  });
+
+  it("offers the XML tool as a tab between JSON and the codec", () => {
+    const html = renderToStaticMarkup(<ToolsPage />);
+    expect(html.indexOf(">XML<")).toBeGreaterThan(html.indexOf(">JSON<"));
+    expect(html.indexOf(">XML<")).toBeLessThan(html.indexOf(">编解码<"));
   });
 });
