@@ -236,7 +236,7 @@ function EntryList({
                   aria-pressed={removing}
                   disabled={disabled}
                   onClick={() => onMode(row.key, removing ? "keep" : "remove")}
-                  size="sm"
+                  size="md"
                   variant={removing ? "secondary" : "ghost"}
                 >
                   {removing ? "撤销删除" : "删除"}

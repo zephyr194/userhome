@@ -396,7 +396,7 @@ function VariablesSection({
                       aria-pressed={removing}
                       disabled={disabled}
                       onClick={() => actions.setVariableMode(variable.name, removing ? "keep" : "remove")}
-                      size="sm"
+                      size="md"
                       variant={removing ? "secondary" : "ghost"}
                     >
                       {removing ? "撤销删除" : "删除"}
@@ -450,7 +450,7 @@ function VariablesSection({
                     aria-label={`移除新增第 ${index + 1} 行`}
                     disabled={disabled}
                     onClick={() => actions.removeVariable(row.id)}
-                    size="sm"
+                    size="md"
                     variant="ghost"
                   >
                     移除该行
