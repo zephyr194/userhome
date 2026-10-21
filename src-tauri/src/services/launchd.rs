@@ -46,15 +46,15 @@ mod plist;
 #[cfg(test)]
 mod tests;
 
+pub use self::plist::{KeepAliveMode, redact_arguments};
 pub use command::{
     CommandRunner, Domain, Label, ReadOnlyCommand, Rejected, RunError, SystemRunner,
 };
 pub use output::{LastExit, parse_launchctl_list, parse_print_disabled};
-pub use plist::{KeepAliveMode, redact_arguments};
 
+use self::plist::{PlistDetails, PlistLabel, display_path, parse_plist_json};
 use command::PLUTIL;
 use output::{LoadedJob, OutputError, ParsedJobs, parse_domain_services};
-use plist::{PlistDetails, PlistLabel, display_path, parse_plist_json};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

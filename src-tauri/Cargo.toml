@@ -27,6 +27,7 @@ tauri = { version = "2", features = ["tray-icon", "image-png"] }
 libc = "0.2.189"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+plist = "1.10"
 quick-xml = "0.42"
 sha2 = "0.10"
 time = { version = "=0.3.55", features = ["formatting"] }

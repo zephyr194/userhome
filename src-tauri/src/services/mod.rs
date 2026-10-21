@@ -1,4 +1,5 @@
 pub mod actions;
+pub mod adopt;
 pub mod create;
 pub mod inventory;
 pub mod launchd;
