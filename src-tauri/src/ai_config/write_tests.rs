@@ -1,7 +1,10 @@
+use std::path::Path;
+
 use serde_json::{Value, json};
 
 use super::{
     EditAction, EditGate, EditRefusal, EditRequest, MAX_STRING_CHARS, apply_edit, edit_gate,
+    is_settings_file,
 };
 use crate::ai_config::read::MAX_SETTINGS_BYTES;
 use crate::ai_config::registry::{ToolDefinition, VerifiedVersions, parse_definitions};
@@ -426,6 +429,27 @@ fn edit_result_is_rechecked_against_the_expected_document() {
 
     assert_eq!(parsed["alwaysThinkingEnabled"], json!(true));
     assert_eq!(parsed["language"], json!("fr"));
+}
+
+#[test]
+fn only_settings_json_files_inside_a_claude_directory_are_settings_files() {
+    assert!(is_settings_file(Path::new(
+        "/Users/u/.claude/settings.json"
+    )));
+    assert!(is_settings_file(Path::new(
+        "/Users/u/project/.claude/settings.local.json"
+    )));
+    assert!(!is_settings_file(Path::new(
+        "/Users/u/project/settings.json"
+    )));
+    assert!(!is_settings_file(Path::new("/Users/u/.claude/other.json")));
+    assert!(!is_settings_file(Path::new(
+        "/Users/u/.claude/settings.json.bak"
+    )));
+    assert!(!is_settings_file(Path::new("/Users/u/.claude.json")));
+    assert!(!is_settings_file(Path::new(
+        "/Users/u/.claude/settings.json/.."
+    )));
 }
 
 fn versions(min: &str, max: &str) -> VerifiedVersions {

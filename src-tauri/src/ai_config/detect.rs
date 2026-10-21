@@ -205,6 +205,13 @@ pub fn detect_all(env: &ProbeEnv<'_>) -> AiConfigReport {
     }
 }
 
+pub fn detect_claude_version(env: &ProbeEnv<'_>) -> Option<String> {
+    let profile = TOOL_PROFILES
+        .iter()
+        .find(|profile| profile.id == ToolId::ClaudeCode)?;
+    detect_tool(profile, env).version
+}
+
 pub fn detect_tool(profile: &ToolProfile, env: &ProbeEnv<'_>) -> ToolReport {
     let (install_status, display_path, invalid_reason, version) = match locate(profile, env) {
         Located::Found {

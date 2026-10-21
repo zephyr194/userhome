@@ -218,7 +218,7 @@ fn coverage_label(coverage: CoverageStatus) -> &'static str {
     }
 }
 
-fn value_type_label(value_type: ValueType) -> &'static str {
+pub fn value_type_label(value_type: ValueType) -> &'static str {
     match value_type {
         ValueType::String => "string",
         ValueType::Boolean => "boolean",

@@ -8,6 +8,7 @@
 //! limit) is refused; the file is never rewritten to repair it.
 
 use std::collections::HashSet;
+use std::path::Path;
 
 use serde_json::{Map, Value};
 
@@ -71,6 +72,22 @@ pub fn edit_gate(versions: Option<&VerifiedVersions>, detected: Option<&str>) ->
         CoverageStatus::VersionUnknown => EditGate::VersionUnknown,
         _ => EditGate::OutOfRange,
     }
+}
+
+const SETTINGS_FILE_NAMES: [&str; 2] = ["settings.json", "settings.local.json"];
+
+/// Claude Code settings files are `settings.json` or `settings.local.json`
+/// directly inside a `.claude` directory; anything else is not editable here.
+pub fn is_settings_file(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let in_claude_dir = path
+        .parent()
+        .and_then(Path::file_name)
+        .and_then(|name| name.to_str())
+        == Some(".claude");
+    SETTINGS_FILE_NAMES.contains(&name) && in_claude_dir
 }
 
 /// Applies one edit to the settings text and returns the new text. The result

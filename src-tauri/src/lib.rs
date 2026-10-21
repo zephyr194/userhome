@@ -43,6 +43,7 @@ pub fn run() {
         .manage(operations::OperationCoordinator::default())
         .manage(lifecycle::LifecycleCoordinator::default())
         .manage(grants::ResourceWriteCoordinator::default())
+        .manage(commands::ai_config::ClaudeEditState::default())
         .manage(commands::qr::QrIconStore::default())
         .manage(caddy::validate::ValidationRuns::default())
         .manage(caddy::session::CaddyRunCoordinator::default())
@@ -129,6 +130,9 @@ pub fn run() {
             commands::ai_config::ai_config_detect,
             commands::ai_config::ai_config_claude_snapshot,
             commands::ai_config::ai_config_claude_read,
+            commands::ai_config::ai_config_claude_edit_catalog,
+            commands::ai_config::ai_config_claude_preview_edit,
+            commands::ai_config::ai_config_claude_confirm_edit,
             commands::settings::get_discovery_exclusions,
             commands::settings::update_discovery_exclusions,
             commands::catalog::list_managed_apps,
