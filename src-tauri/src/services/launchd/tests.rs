@@ -341,6 +341,27 @@ fn system_daemons_come_from_the_system_domain() {
 }
 
 #[test]
+fn a_domain_block_pid_zero_or_marker_status_is_loaded_but_not_running() {
+    let fixture = Fixture::new();
+    Fixture::plist(&fixture.daemon("com.example.idle-daemon.plist"));
+    let runner = FakeRunner::new()
+        .system(&[("0", "(pe)", "com.example.idle-daemon")])
+        .labelled("com.example.idle-daemon.plist", "com.example.idle-daemon");
+
+    let discovery = run(&fixture, &runner);
+
+    let daemon = find(&discovery, "system/com.example.idle-daemon");
+    assert_eq!(daemon.correlation, Correlation::Matched);
+    assert_eq!(daemon.load_state, LoadState::Loaded);
+    assert_eq!(daemon.pid, None);
+    assert_eq!(daemon.run_state, RunState::NotRunning);
+    assert_eq!(
+        source(&discovery, Source::LaunchctlPrintSystem).status,
+        SourceStatus::Complete
+    );
+}
+
+#[test]
 fn the_same_label_in_agent_and_daemon_directories_stays_two_services() {
     let fixture = Fixture::new();
     Fixture::plist(&fixture.user("com.example.both.plist"));

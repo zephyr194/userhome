@@ -3,10 +3,10 @@
 //! Formats follow `man launchctl` (`list`: three columns PID, last exit status,
 //! label; a negative status is the negated signal) and the usual shape of a
 //! `print <domain>` dump (a `services = { ... }` block with the same three
-//! columns). The `print` output is documented as not being API; none of these
-//! parsers has been checked against real launchd output. Every unparsable line
-//! is counted, and output with no recognizable job is `Unparsed`, never an
-//! empty success.
+//! columns, but its own PID and status rules; see `parse_domain_services`). The
+//! `print` output is documented as not being API. Every unparsable line is
+//! counted, and output with no recognizable job is `Unparsed`, never an empty
+//! success.
 
 use serde::Serialize;
 
@@ -46,7 +46,22 @@ fn is_header(line: &str) -> bool {
     line.split_whitespace().eq(["PID", "Status", "Label"])
 }
 
-fn parse_job(line: &str) -> Option<LoadedJob> {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RowFormat {
+    List,
+    DomainBlock,
+}
+
+fn is_status_marker(text: &str) -> bool {
+    text.strip_prefix('(')
+        .and_then(|inner| inner.strip_suffix(')'))
+        .is_some_and(|letters| {
+            (1..=4).contains(&letters.len())
+                && letters.bytes().all(|byte| byte.is_ascii_lowercase())
+        })
+}
+
+fn parse_job(line: &str, format: RowFormat) -> Option<LoadedJob> {
     let (pid, rest) = split_token(line)?;
     let (status, label) = split_token(rest)?;
     let label = label.trim_end();
@@ -55,11 +70,13 @@ fn parse_job(line: &str) -> Option<LoadedJob> {
     }
     let pid = match pid {
         "-" => None,
+        "0" if format == RowFormat::DomainBlock => None,
         digits if digits.bytes().all(|byte| byte.is_ascii_digit()) => Some(digits.parse().ok()?),
         _ => return None,
     };
     let last_exit = match status {
         "-" => None,
+        marker if format == RowFormat::DomainBlock && is_status_marker(marker) => None,
         text => {
             let value: i32 = text.parse().ok()?;
             Some(if value < 0 {
@@ -76,7 +93,7 @@ fn parse_job(line: &str) -> Option<LoadedJob> {
     })
 }
 
-fn collect<'a>(lines: impl Iterator<Item = &'a str>) -> ParsedJobs {
+fn collect<'a>(lines: impl Iterator<Item = &'a str>, format: RowFormat) -> ParsedJobs {
     let mut jobs = Vec::new();
     let mut skipped_lines = 0;
     for line in lines {
@@ -84,7 +101,7 @@ fn collect<'a>(lines: impl Iterator<Item = &'a str>) -> ParsedJobs {
         if line.trim().is_empty() || is_header(line) {
             continue;
         }
-        match parse_job(line) {
+        match parse_job(line, format) {
             Some(job) => jobs.push(job),
             None => skipped_lines += 1,
         }
@@ -98,20 +115,25 @@ fn collect<'a>(lines: impl Iterator<Item = &'a str>) -> ParsedJobs {
 /// `launchctl list` with no arguments.
 pub fn parse_launchctl_list(output: &str) -> Result<ParsedJobs, OutputError> {
     let has_header = output.lines().any(is_header);
-    let parsed = collect(output.lines());
+    let parsed = collect(output.lines(), RowFormat::List);
     if parsed.jobs.is_empty() && !has_header {
         return Err(OutputError::Unparsed);
     }
     Ok(parsed)
 }
 
-/// The `services = { ... }` block of `launchctl print <domain>`.
+/// The `services = { ... }` block of `launchctl print <domain>`. A PID of `0`
+/// means no process is running, and a parenthesized status marker such as `(pe)`
+/// of unknown meaning is read as having no exit code.
 pub fn parse_domain_services(output: &str) -> Result<ParsedJobs, OutputError> {
     let mut lines = output.lines();
     if !lines.any(|line| line.trim() == "services = {") {
         return Err(OutputError::Unparsed);
     }
-    Ok(collect(lines.take_while(|line| line.trim() != "}")))
+    Ok(collect(
+        lines.take_while(|line| line.trim() != "}"),
+        RowFormat::DomainBlock,
+    ))
 }
 
 /// The overrides of `launchctl print-disabled <domain>`: one `"label" => state`
@@ -318,5 +340,88 @@ mod tests {
             parse_print_disabled("unexpected\n"),
             Err(OutputError::Unparsed)
         );
+    }
+
+    #[test]
+    fn domain_block_keeps_jobs_whose_status_is_a_parenthesized_marker() {
+        let output = "services = {\n\
+                      \t\tPID\tStatus\tLabel\n\
+                      \t\t   54834      - \tcom.example.running\n\
+                      \t\t   84852   (pe) \tcom.example.pending\n\
+                      \t\t       0   (pe) \tcom.example.idle-pending\n\
+                      \t\t       0      - \tcom.example.idle\n\
+                      \t\t       0      0 \tcom.example.exited-ok\n\
+                      \t\t     910   (jt) \tcom.example.jetsam\n\
+                      \t\t       0    -15 \tcom.example.killed\n\
+                      }\n";
+        let parsed = parse_domain_services(output).expect("parsed");
+        let jobs: Vec<_> = parsed
+            .jobs
+            .iter()
+            .map(|job| (job.label.as_str(), job.pid, job.last_exit))
+            .collect();
+        assert_eq!(
+            jobs,
+            [
+                ("com.example.running", Some(54834), None),
+                ("com.example.pending", Some(84852), None),
+                ("com.example.idle-pending", None, None),
+                ("com.example.idle", None, None),
+                ("com.example.exited-ok", None, Some(LastExit::Code(0))),
+                ("com.example.jetsam", Some(910), None),
+                ("com.example.killed", None, Some(LastExit::Signal(15))),
+            ]
+        );
+        assert_eq!(parsed.skipped_lines, 0);
+    }
+
+    #[test]
+    fn domain_block_pid_zero_means_no_process() {
+        let output = "services = {\n\
+                      \t\t0\t-\tcom.example.zero\n\
+                      \t\t0\t0\tcom.example.zero-exit\n\
+                      \t\t0\t78\tcom.example.zero-failed\n\
+                      }\n";
+        let parsed = parse_domain_services(output).expect("parsed");
+        let jobs: Vec<_> = parsed
+            .jobs
+            .iter()
+            .map(|job| (job.label.as_str(), job.pid, job.last_exit))
+            .collect();
+        assert_eq!(
+            jobs,
+            [
+                ("com.example.zero", None, None),
+                ("com.example.zero-exit", None, Some(LastExit::Code(0))),
+                ("com.example.zero-failed", None, Some(LastExit::Code(78))),
+            ]
+        );
+        assert_eq!(parsed.skipped_lines, 0);
+    }
+
+    #[test]
+    fn domain_block_marker_takes_one_to_four_lowercase_letters_only() {
+        let output = "services = {\n\
+                      \t\t-\t(p)\tcom.example.one\n\
+                      \t\t-\t(abcd)\tcom.example.four\n\
+                      \t\t-\t(abcde)\tcom.example.five\n\
+                      \t\t-\t(PE)\tcom.example.upper\n\
+                      \t\t-\t(x y)\tcom.example.spaced\n\
+                      \t\t-\t()\tcom.example.empty\n\
+                      \t\t-\t(pe1)\tcom.example.digit\n\
+                      \t\t-\t(pe\tcom.example.unclosed\n\
+                      }\n";
+        let parsed = parse_domain_services(output).expect("parsed");
+        let labels: Vec<_> = parsed.jobs.iter().map(|job| job.label.as_str()).collect();
+        assert_eq!(labels, ["com.example.one", "com.example.four"]);
+        assert_eq!(parsed.skipped_lines, 6);
+    }
+
+    #[test]
+    fn list_output_does_not_accept_domain_status_markers() {
+        let parsed = parse_launchctl_list("PID\tStatus\tLabel\n-\t(pe)\tcom.example.marker\n")
+            .expect("parsed");
+        assert!(parsed.jobs.is_empty());
+        assert_eq!(parsed.skipped_lines, 1);
     }
 }
