@@ -1,17 +1,8 @@
 import type { BrewSearchResult } from "../ipc/brew";
-import type {
-  ManagedAppCapability,
-  ManagedAppCoverageClass,
-} from "../ipc/catalog";
 import {
   APP_ROUTES,
   type AppRouteId,
-  type ApplicationsScope,
 } from "./routeDefinitions";
-import {
-  decodeApplicationsScope,
-  DEFAULT_APPLICATIONS_SCOPE,
-} from "./applicationNavigation";
 import {
   SETTINGS_GROUPS,
   type SettingsGroupId,
@@ -19,36 +10,11 @@ import {
 
 const STORAGE_KEY = "userhome.selection.v1";
 const MAX_IDENTIFIER_LENGTH = 192;
-const MAX_QUERY_LENGTH = 256;
-const MAX_APPLICATION_PAGE = 1_000;
-const MAX_SCROLL_TOP = 10_000_000;
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/+-]*$/;
-const APPLICATION_COVERAGE_CLASSES: readonly ManagedAppCoverageClass[] = [
-  "MANAGED_WRITABLE",
-  "MANAGED_READ_ONLY",
-  "DETECTED_UNSUPPORTED",
-  "EXCLUDED",
-];
-const APPLICATION_CAPABILITIES: readonly ManagedAppCapability[] = [
-  "DETECT",
-  "READ_CONFIG",
-  "WRITE_CONFIG",
-  "MANAGE_SERVICE",
-];
 
 export interface SelectionMemory {
   routeId: AppRouteId;
   settingsGroup: SettingsGroupId;
-  applicationsScope: ApplicationsScope;
-  applicationKey?: string;
-  applicationConfigIds: Record<string, string>;
-  applicationQuery: string;
-  applicationCategory?: string;
-  applicationCoverage?: ManagedAppCoverageClass;
-  applicationCapability?: ManagedAppCapability;
-  applicationDetected?: boolean;
-  applicationPage: number;
-  applicationScrollTop: number;
   brewSelection?: BrewSearchResult;
   serviceId?: string;
 }
@@ -56,11 +22,6 @@ export interface SelectionMemory {
 export const DEFAULT_SELECTION_MEMORY: SelectionMemory = {
   routeId: "dashboard",
   settingsGroup: "appearance",
-  applicationsScope: DEFAULT_APPLICATIONS_SCOPE,
-  applicationConfigIds: {},
-  applicationQuery: "",
-  applicationPage: 1,
-  applicationScrollTop: 0,
 };
 
 function warnSelectionStorage(message: string) {
@@ -91,52 +52,11 @@ function safeSettingsGroup(value: unknown): value is SettingsGroupId {
   return SETTINGS_GROUPS.some((group) => group.id === value);
 }
 
-function safeText(value: unknown): value is string {
-  if (typeof value !== "string" || value.length > MAX_QUERY_LENGTH) {
-    return false;
-  }
-  return [...value].every((character) => {
-    const codePoint = character.codePointAt(0) ?? 0;
-    return codePoint > 31 && codePoint !== 127;
-  });
-}
-
-function safeInteger(
-  value: unknown,
-  minimum: number,
-  maximum: number,
-): value is number {
-  return (
-    typeof value === "number" &&
-    Number.isSafeInteger(value) &&
-    value >= minimum &&
-    value <= maximum
-  );
-}
-
-function decodeConfigSelections(value: unknown): Record<string, string> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return Object.fromEntries(
-    Object.entries(value)
-      .filter(
-        ([applicationId, configId]) =>
-          safeIdentifier(applicationId) && safeIdentifier(configId),
-      )
-      .slice(0, 64),
-  );
-}
-
 export function decodeSelectionMemory(value: unknown): SelectionMemory {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return DEFAULT_SELECTION_MEMORY;
   }
   const stored = value as Record<string, unknown>;
-  const applicationKey =
-    typeof stored.applicationKey === "string" &&
-    stored.applicationKey.startsWith("catalog:") &&
-    safeIdentifier(stored.applicationKey.slice("catalog:".length))
-      ? stored.applicationKey
-      : undefined;
   const brew =
     stored.brewSelection &&
     typeof stored.brewSelection === "object" &&
@@ -157,51 +77,6 @@ export function decodeSelectionMemory(value: unknown): SelectionMemory {
     settingsGroup: safeSettingsGroup(stored.settingsGroup)
       ? stored.settingsGroup
       : "appearance",
-    applicationsScope: decodeApplicationsScope(stored.applicationsScope),
-    applicationConfigIds: decodeConfigSelections(
-      stored.applicationConfigIds,
-    ),
-    applicationQuery: safeText(stored.applicationQuery)
-      ? stored.applicationQuery
-      : "",
-    applicationPage: safeInteger(
-      stored.applicationPage,
-      1,
-      MAX_APPLICATION_PAGE,
-    )
-      ? stored.applicationPage
-      : 1,
-    applicationScrollTop: safeInteger(
-      stored.applicationScrollTop,
-      0,
-      MAX_SCROLL_TOP,
-    )
-      ? stored.applicationScrollTop
-      : 0,
-    ...(applicationKey ? { applicationKey } : {}),
-    ...(safeText(stored.applicationCategory) &&
-    stored.applicationCategory.length > 0
-      ? { applicationCategory: stored.applicationCategory }
-      : {}),
-    ...(APPLICATION_COVERAGE_CLASSES.includes(
-      stored.applicationCoverage as ManagedAppCoverageClass,
-    )
-      ? {
-          applicationCoverage:
-            stored.applicationCoverage as ManagedAppCoverageClass,
-        }
-      : {}),
-    ...(APPLICATION_CAPABILITIES.includes(
-      stored.applicationCapability as ManagedAppCapability,
-    )
-      ? {
-          applicationCapability:
-            stored.applicationCapability as ManagedAppCapability,
-        }
-      : {}),
-    ...(typeof stored.applicationDetected === "boolean"
-      ? { applicationDetected: stored.applicationDetected }
-      : {}),
     ...(brewSelection ? { brewSelection } : {}),
     ...(safeIdentifier(stored.serviceId)
       ? { serviceId: stored.serviceId }
@@ -210,9 +85,8 @@ export function decodeSelectionMemory(value: unknown): SelectionMemory {
 }
 
 /**
- * The exact persisted shape. Unknown or transient fields (such as a
- * `candidateId`/`sourceRefreshId` that a caller might attach) are stripped by
- * the strict decoder, so they can never reach `localStorage`.
+ * The exact persisted shape. Fields retired with the application pages are
+ * dropped by the strict decoder, so they never reach `localStorage`.
  */
 export function encodeSelectionMemory(selection: SelectionMemory): string {
   return JSON.stringify(decodeSelectionMemory(selection));

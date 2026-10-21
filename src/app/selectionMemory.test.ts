@@ -7,51 +7,51 @@ import {
   loadSelectionMemory,
 } from "./selectionMemory";
 
-describe("selection memory applications scope", () => {
-  it("defaults to the local recognized scope", () => {
-    expect(DEFAULT_SELECTION_MEMORY.applicationsScope).toBe(
-      "LOCAL_RECOGNIZED",
-    );
-    expect(decodeSelectionMemory({}).applicationsScope).toBe(
-      "LOCAL_RECOGNIZED",
-    );
+describe("selection memory retired fields", () => {
+  it("ignores application and Homebrew selections stored by older builds", () => {
+    const legacy = {
+      routeId: "services",
+      settingsGroup: "appearance",
+      serviceId: "com.example.worker",
+      applicationsScope: "CATALOG",
+      applicationKey: "catalog:git",
+      applicationConfigIds: { git: "config-1" },
+      applicationQuery: "git",
+      applicationCategory: "dev",
+      applicationCoverage: "MANAGED_WRITABLE",
+      applicationCapability: "WRITE_CONFIG",
+      applicationDetected: true,
+      applicationPage: 3,
+      applicationScrollTop: 120,
+    };
+
+    expect(decodeSelectionMemory(legacy)).toEqual({
+      routeId: "services",
+      settingsGroup: "appearance",
+      serviceId: "com.example.worker",
+    });
   });
 
-  it("round-trips a persisted catalog scope", () => {
+  it("falls back to defaults for malformed retired fields without throwing", () => {
+    const malformed = {
+      applicationsScope: 7,
+      applicationConfigIds: [1],
+    };
+
+    expect(() => decodeSelectionMemory(malformed)).not.toThrow();
+    expect(decodeSelectionMemory(malformed)).toEqual(DEFAULT_SELECTION_MEMORY);
+  });
+
+  it("never serializes the retired fields", () => {
     const encoded = encodeSelectionMemory({
       ...DEFAULT_SELECTION_MEMORY,
       applicationsScope: "CATALOG",
-    });
-
-    expect(JSON.parse(encoded).applicationsScope).toBe("CATALOG");
-    expect(
-      decodeSelectionMemory(JSON.parse(encoded)).applicationsScope,
-    ).toBe("CATALOG");
-  });
-
-  it("falls back to the local scope for an invalid stored scope", () => {
-    expect(
-      decodeSelectionMemory({ applicationsScope: "WAREHOUSE" })
-        .applicationsScope,
-    ).toBe("LOCAL_RECOGNIZED");
-    expect(
-      decodeSelectionMemory({ applicationsScope: 7 }).applicationsScope,
-    ).toBe("LOCAL_RECOGNIZED");
-  });
-
-  it("never serializes transient candidate navigation fields", () => {
-    const encoded = encodeSelectionMemory({
-      ...DEFAULT_SELECTION_MEMORY,
-      applicationsScope: "LOCAL_RECOGNIZED",
-      candidateId: "candidate-42",
-      sourceRefreshId: "refresh-42",
     } as SelectionMemory);
 
-    expect(encoded).toContain("applicationsScope");
-    expect(encoded).not.toContain("candidateId");
-    expect(encoded).not.toContain("sourceRefreshId");
-    expect(encoded).not.toContain("candidate-42");
-    expect(encoded).not.toContain("refresh-42");
+    expect(Object.keys(JSON.parse(encoded)).sort()).toEqual([
+      "routeId",
+      "settingsGroup",
+    ]);
   });
 });
 

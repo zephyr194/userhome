@@ -16,7 +16,6 @@ import {
   type PreferencesState,
   type ShellAction,
 } from "./app/shellState";
-import { queryManagedApps } from "./ipc/catalog";
 import { decodeAppError, type AppError, getAppStatus } from "./ipc/core";
 import {
   getSystemSnapshot,
@@ -125,15 +124,6 @@ function App({
           dispatch({ type: "operation-error", error });
           return false;
         }),
-      queryManagedApps({ page: 1 })
-        .then((page) => {
-          dispatch({ type: "applications-ready", page });
-          return true;
-        })
-        .catch((error: AppError) => {
-          dispatch({ type: "applications-error", error });
-          return false;
-        }),
       getSystemSnapshot()
         .then((snapshot) => {
           dispatch({ type: "discovery-ready", snapshot });
@@ -162,7 +152,6 @@ function App({
         ([
           connectionReady,
           operationReady,
-          applicationsReady,
           localDiscoveryReady,
           refreshReady,
         ]) => {
@@ -170,7 +159,6 @@ function App({
           if (
             connectionReady &&
             operationReady &&
-            applicationsReady &&
             localDiscoveryReady &&
             refreshReady
           ) {

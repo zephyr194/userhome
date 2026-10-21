@@ -6,7 +6,6 @@ import { AppearanceSettings } from "../features/settings/AppearanceSettings";
 import type { ShellState } from "./shellState";
 
 const loadingState: ShellState = {
-  applications: { status: "loading" },
   connection: { status: "loading" },
   discovery: { status: "loading" },
   preferences: { status: "loading" },
@@ -152,7 +151,6 @@ describe("AppShell", () => {
 
   it("keeps connection failures separate from an empty operation history", () => {
     const state: ShellState = {
-      applications: { status: "loading" },
       connection: {
         status: "error",
         error: {
@@ -289,7 +287,6 @@ describe("AppShell", () => {
 
   it("falls back to the dashboard when a retired Homebrew route was persisted", () => {
     const state: ShellState = {
-      applications: { status: "loading" },
       connection: { status: "loading" },
       discovery: {
         status: "error",

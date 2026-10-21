@@ -120,30 +120,10 @@ export function groupNavigationRoutes(
   }));
 }
 
-/**
- * The applications workspace has two scopes:
- * - `LOCAL_RECOGNIZED` lists the locally discovered candidates.
- * - `CATALOG` browses the curated managed application catalog.
- *
- * The scope is safe to persist in selection memory. Transient navigation
- * details such as `candidateId`/`sourceRefreshId` are intentionally kept out
- * of the persisted shape.
- */
-export type ApplicationsScope = "LOCAL_RECOGNIZED" | "CATALOG";
 export type NavigationSource = "primary-nav" | "content" | "menu" | "tray";
-
-export interface ApplicationsNavigationIntent {
-  routeId: "applications";
-  scope?: ApplicationsScope;
-  candidateId?: string;
-  sourceRefreshId?: string;
-  applicationId?: string;
-  configId?: string;
-}
 
 export type NavigationIntent = (
   | { routeId: "dashboard" }
-  | ApplicationsNavigationIntent
   | { routeId: "homebrew" }
   | { routeId: "services"; serviceId?: string }
   | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId }

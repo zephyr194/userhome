@@ -1,8 +1,4 @@
 import type { AppError, AppStatus } from "../ipc/core";
-import type {
-  ManagedAppCatalog,
-  ManagedAppPage,
-} from "../ipc/catalog";
 import type { DiscoverySnapshot } from "../ipc/discovery";
 import type { OperationDetails } from "../ipc/operations";
 import type { SettingsDiagnostic, UserPreferences } from "../ipc/settings";
@@ -24,12 +20,6 @@ export type RefreshState =
   | { status: "ready"; completedAt: string }
   | { status: "error"; message: string };
 
-export type ApplicationsState =
-  | { status: "loading" }
-  | { status: "ready"; page: ManagedAppPage }
-  | { status: "ready"; catalog: ManagedAppCatalog }
-  | { status: "error"; error: AppError };
-
 export type DiscoveryState =
   | { status: "loading" }
   | { status: "ready"; snapshot: DiscoverySnapshot }
@@ -49,7 +39,6 @@ export type PreferencesState =
     };
 
 export interface ShellState {
-  applications: ApplicationsState;
   connection: ConnectionState;
   discovery: DiscoveryState;
   preferences: PreferencesState;
@@ -58,7 +47,6 @@ export interface ShellState {
 }
 
 export const initialShellState: ShellState = {
-  applications: { status: "loading" },
   connection: { status: "loading" },
   discovery: { status: "loading" },
   preferences: { status: "loading" },
@@ -67,10 +55,6 @@ export const initialShellState: ShellState = {
 };
 
 export type ShellAction =
-  | { type: "applications-loading" }
-  | { type: "applications-ready"; page: ManagedAppPage }
-  | { type: "applications-ready"; catalog: ManagedAppCatalog }
-  | { type: "applications-error"; error: AppError }
   | { type: "connection-loading" }
   | { type: "connection-ready"; appStatus: AppStatus }
   | { type: "connection-error"; error: AppError }
@@ -100,21 +84,6 @@ export function shellReducer(
   action: ShellAction,
 ): ShellState {
   switch (action.type) {
-    case "applications-loading":
-      return { ...state, applications: { status: "loading" } };
-    case "applications-ready":
-      return {
-        ...state,
-        applications:
-          "page" in action
-            ? { status: "ready", page: action.page }
-            : { status: "ready", catalog: action.catalog },
-      };
-    case "applications-error":
-      return {
-        ...state,
-        applications: { status: "error", error: action.error },
-      };
     case "connection-loading":
       return { ...state, connection: { status: "loading" } };
     case "connection-ready":

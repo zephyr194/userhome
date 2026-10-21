@@ -10,18 +10,6 @@ const appStatus: AppStatus = {
   version: "0.1.0",
 };
 
-const applications = {
-  schemaVersion: 1 as const,
-  coveragePolicy: {
-    priorityATotal: 6,
-    priorityAUsable: 6,
-    priorityBTotal: 20,
-    priorityBCovered: 20,
-    minimumEligibleTextPercent: 90,
-  },
-  applications: [],
-};
-
 const operation: OperationDetails = {
   operationId: "operation-1",
   summary: "刷新本机状态",
@@ -39,22 +27,6 @@ const error: AppError = {
 };
 
 describe("shellReducer", () => {
-  it("tracks the application catalog independently", () => {
-    const ready = shellReducer(initialShellState, {
-      type: "applications-ready",
-      catalog: applications,
-    });
-    const failedConnection = shellReducer(ready, {
-      type: "connection-error",
-      error,
-    });
-
-    expect(failedConnection.applications).toEqual({
-      status: "ready",
-      catalog: applications,
-    });
-  });
-
   it("preserves operation data when the connection request fails", () => {
     const withOperation = shellReducer(initialShellState, {
       type: "operation-ready",
