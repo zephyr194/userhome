@@ -109,7 +109,7 @@ describe("global theme tokens", () => {
     expect(css).toMatch(/--text-meta:/);
     expect(css).toMatch(/--text-group:/);
     expect(css).toMatch(/--text-page-title:/);
-    expect(css).toMatch(/--app-control-height-sm:\s*32px/);
-    expect(css).toMatch(/--app-control-height-md:\s*36px/);
+    expect(css).toMatch(/--app-control-height-sm:\s*24px/);
+    expect(css).toMatch(/--app-control-height-md:\s*28px/);
   });
 });

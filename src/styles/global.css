@@ -39,9 +39,9 @@
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.625rem;
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
   --radius-control: var(--app-radius-control);
   --radius-panel: var(--app-radius-panel);
   --spacing-ui-xxs: var(--app-space-xxs);
@@ -92,8 +92,8 @@
   --app-danger-text: #B33A3A;
   --app-line-subtle: #D8CEC1;
   --app-focus-gap: #FCFAF6;
-  --app-shadow-raised: 0 18px 50px rgb(41 36 30 / 0.18);
-  --app-shadow-sticky: 0 -8px 20px rgb(41 36 30 / 0.08);
+  --app-shadow-raised: 0 4px 12px rgb(41 36 30 / 0.18);
+  --app-shadow-sticky: none;
   --app-primary-hover: #994619;
   --app-primary-soft: #F3E3D7;
   --app-primary-foreground: #FFFFFF;
@@ -130,28 +130,28 @@
   --app-preview-dark-border: #4F473E;
   --app-viewport-width: 1120px;
   --app-viewport-height: 720px;
-  --app-titlebar-height: 52px;
-  --app-sidebar-width: 204px;
-  --app-toolbar-height: 52px;
+  --app-titlebar-height: 44px;
+  --app-sidebar-width: 188px;
+  --app-toolbar-height: 44px;
   --app-list-min-width: 240px;
   --app-detail-min-width: 320px;
   --app-inspector-width: 232px;
   --app-space-xxs: 2px;
   --app-space-xs: 4px;
   --app-space-sm: 8px;
-  --app-space-md: 8px;
-  --app-space-lg: 12px;
-  --app-space-xl: 12px;
-  --app-space-2xl: 16px;
-  --app-space-3xl: 20px;
-  --app-radius-control: 8px;
-  --app-radius-panel: 12px;
-  --app-control-height-sm: 32px;
-  --app-control-height-md: 36px;
-  --app-status-badge-height: 22px;
-  --app-row-height-compact: 36px;
-  --app-row-height-standard: 40px;
-  --app-row-height-two-line: 52px;
+  --app-space-md: 6px;
+  --app-space-lg: 8px;
+  --app-space-xl: 10px;
+  --app-space-2xl: 12px;
+  --app-space-3xl: 16px;
+  --app-radius-control: 2px;
+  --app-radius-panel: 0px;
+  --app-control-height-sm: 24px;
+  --app-control-height-md: 28px;
+  --app-status-badge-height: 18px;
+  --app-row-height-compact: 28px;
+  --app-row-height-standard: 32px;
+  --app-row-height-two-line: 44px;
   --app-font-size-meta: 11px;
   --app-line-height-meta: 1.45;
   --app-font-size-aux: 12px;
@@ -160,7 +160,7 @@
   --app-line-height-body: 1.5;
   --app-font-size-group: 14px;
   --app-line-height-group: 1.4;
-  --app-font-size-page-title: 20px;
+  --app-font-size-page-title: 18px;
   --app-line-height-page-title: 1.25;
   --app-focus-ring-width: 3px;
   --app-focus-ring-offset: 3px;
@@ -243,7 +243,7 @@ a {
   padding: 8px 12px;
   color: var(--app-canvas);
   background: var(--app-foreground);
-  border-radius: 6px;
+  border-radius: var(--app-radius-control);
   transform: translateY(-180%);
 }
 
@@ -325,7 +325,7 @@ a {
   text-align: left;
   text-decoration: none;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--app-radius-control);
 }
 
 .navigation-rail__icon {
@@ -727,7 +727,7 @@ a {
   color: var(--app-foreground);
   background: var(--app-surface);
   border: 1px solid var(--app-line-subtle);
-  border-radius: 6px;
+  border-radius: var(--app-radius-control);
   font-size: 12px;
 }
 
@@ -1043,7 +1043,7 @@ a {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   border: 1px solid var(--app-line-subtle);
-  border-radius: 8px;
+  border-radius: var(--app-radius-control);
   background: var(--app-surface-muted);
   padding: 12px;
   color: var(--app-foreground);
@@ -1205,8 +1205,8 @@ a {
   --app-danger-text: #EE7D78;
   --app-line-subtle: #4F473E;
   --app-focus-gap: #211E1A;
-  --app-shadow-raised: 0 20px 56px rgb(0 0 0 / 0.46);
-  --app-shadow-sticky: 0 -8px 22px rgb(0 0 0 / 0.26);
+  --app-shadow-raised: 0 4px 12px rgb(0 0 0 / 0.46);
+  --app-shadow-sticky: none;
   --app-primary-hover: #F6BA83;
   --app-primary-soft: #3B2A20;
   --app-primary-foreground: #29241E;
@@ -1251,8 +1251,8 @@ a {
   --app-danger-text: #EE7D78;
   --app-line-subtle: #4F473E;
   --app-focus-gap: #211E1A;
-  --app-shadow-raised: 0 20px 56px rgb(0 0 0 / 0.46);
-  --app-shadow-sticky: 0 -8px 22px rgb(0 0 0 / 0.26);
+  --app-shadow-raised: 0 4px 12px rgb(0 0 0 / 0.46);
+  --app-shadow-sticky: none;
     --app-primary-hover: #F6BA83;
     --app-primary-soft: #3B2A20;
     --app-primary-foreground: #29241E;
@@ -1323,7 +1323,7 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--app-scrollbar-thumb);
   border: 3px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--app-radius-control);
   background-clip: padding-box;
 }
 
@@ -1602,7 +1602,7 @@ button {
 .pulse-card .inline-flex {
   min-height: 20px;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--app-radius-control);
   font-size: var(--app-font-size-meta);
 }
 
