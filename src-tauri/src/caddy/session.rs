@@ -2581,4 +2581,212 @@ mod tests {
         );
         coordinator.stop().expect("stop");
     }
+
+    const CERTIFICATE_GRANT: &str = "3f2b8c1e-6a4d-4b7e-9c2f-1a2b3c4d5e6f";
+    const PRIVATE_KEY_GRANT: &str = "7c9d0e1f-2a3b-4c5d-8e6f-7a8b9c0d1e2f";
+
+    fn tls_config() -> TlsConfig {
+        TlsConfig {
+            certificate_grant_id: CERTIFICATE_GRANT.to_owned(),
+            private_key_grant_id: PRIVATE_KEY_GRANT.to_owned(),
+        }
+    }
+
+    fn tls_rules() -> CaddyRules {
+        CaddyRules {
+            version: RULES_VERSION,
+            sites: vec![SiteRule {
+                enabled: true,
+                listen: Listen {
+                    host: "app.example.test".to_owned(),
+                    port: 8443,
+                },
+                upstreams: vec![Upstream {
+                    scheme: UpstreamScheme::Http,
+                    host: "127.0.0.1".to_owned(),
+                    port: 3000,
+                }],
+                tls: Some(tls_config()),
+                access_log: false,
+            }],
+        }
+    }
+
+    fn granted_paths() -> Vec<TlsPaths> {
+        vec![TlsPaths {
+            certificate: PathBuf::from("/Users/u/certs/cert.pem"),
+            private_key: PathBuf::from("/Users/u/certs/key.pem"),
+        }]
+    }
+
+    fn revoked_error() -> AppError {
+        AppError::not_found("证书授权已撤销，请重新选择证书文件。")
+    }
+
+    fn revoked(_: &[TlsConfig]) -> Result<Vec<TlsPaths>, AppError> {
+        Err(revoked_error())
+    }
+
+    /// Grants the first `allowed` checks and revokes every later one.
+    struct RevokedAfter {
+        allowed: usize,
+        checks: std::cell::Cell<usize>,
+    }
+
+    impl RevokedAfter {
+        fn new(allowed: usize) -> Self {
+            Self {
+                allowed,
+                checks: std::cell::Cell::new(0),
+            }
+        }
+
+        fn authorize(&self, _: &[TlsConfig]) -> Result<Vec<TlsPaths>, AppError> {
+            let index = self.checks.get();
+            self.checks.set(index + 1);
+            if index < self.allowed {
+                Ok(granted_paths())
+            } else {
+                Err(revoked_error())
+            }
+        }
+    }
+
+    fn prepare_tls(coordinator: &CaddyRunCoordinator, executable: &Path) -> StartSummary {
+        let rules = tls_rules();
+        coordinator.prepare(PrepareInput {
+            source: ConfigSource::Rules,
+            detect: &available(executable),
+            text: STARTED_TEXT,
+            rules: Some(&rules),
+        })
+    }
+
+    #[test]
+    fn start_is_refused_when_a_tls_authorization_was_revoked_before_it_ran() {
+        let scratch = Scratch::new();
+        let executable = scratch.fixture("sleep 30");
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let plan_id = prepare_tls(&coordinator, &executable)
+            .plan_id
+            .expect("plan");
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let checks = scratch.checks();
+        let runs = scratch.runs();
+        let env = StartEnvironment {
+            checks_root: &checks,
+            runs_root: &runs,
+            runner: &runner,
+            probe: &Ready(true),
+            tls: &revoked,
+        };
+
+        let error = coordinator
+            .start(&plan_id, ConfigSource::Rules, &env)
+            .expect_err("revoked authorization must refuse the start");
+
+        assert_eq!(error.code(), AppErrorCode::NotFound);
+        assert!(error.message().contains("证书授权已撤销"));
+        assert_eq!(runner.count(), 0);
+        assert_eq!(coordinator.status().state, RunState::Stopped);
+        assert_eq!(fs::read_dir(scratch.runs()).expect("runs").count(), 0);
+    }
+
+    #[test]
+    fn a_revocation_after_the_check_stops_the_start_before_the_process_is_spawned() {
+        let scratch = Scratch::new();
+        let executable = scratch.fixture("sleep 30");
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let plan_id = prepare_tls(&coordinator, &executable)
+            .plan_id
+            .expect("plan");
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let checks = scratch.checks();
+        let runs = scratch.runs();
+        let granted = RevokedAfter::new(1);
+        let authorize = |configs: &[TlsConfig]| granted.authorize(configs);
+        let env = StartEnvironment {
+            checks_root: &checks,
+            runs_root: &runs,
+            runner: &runner,
+            probe: &Ready(true),
+            tls: &authorize,
+        };
+
+        let error = coordinator
+            .start(&plan_id, ConfigSource::Rules, &env)
+            .expect_err("a revocation before the spawn must refuse the start");
+
+        assert_eq!(error.code(), AppErrorCode::NotFound);
+        assert_eq!(granted.checks.get(), 2);
+        assert_eq!(coordinator.status().state, RunState::Stopped);
+        assert_eq!(fs::read_dir(scratch.runs()).expect("runs").count(), 0);
+        assert!(runner.reloads().is_empty());
+    }
+
+    #[test]
+    fn apply_is_refused_when_a_tls_authorization_was_revoked_and_never_reloads() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        let checks = scratch.checks();
+
+        let error = coordinator
+            .apply(
+                &session,
+                ConfigSource::Raw,
+                CHANGED_TEXT,
+                &[tls_config()],
+                &ApplyEnvironment {
+                    checks_root: &checks,
+                    runner: &runner,
+                    probe: &Gate(Arc::clone(&flag)),
+                    tls: &revoked,
+                },
+            )
+            .expect_err("revoked authorization must refuse the reload");
+
+        assert_eq!(error.code(), AppErrorCode::NotFound);
+        assert!(runner.reloads().is_empty());
+        assert!(!coordinator.reloading());
+        assert!(coordinator.last_apply().is_none());
+        assert_eq!(coordinator.status().state, RunState::Running);
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn a_revocation_after_the_review_stops_the_reload_before_the_runner_reloads() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Ok(ok_output()));
+        let flag = Arc::new(AtomicBool::new(true));
+        let session = serving_session(&coordinator, &scratch, &runner, &flag);
+        let checks = scratch.checks();
+        let granted = RevokedAfter::new(1);
+        let authorize = |configs: &[TlsConfig]| granted.authorize(configs);
+
+        let error = coordinator
+            .apply(
+                &session,
+                ConfigSource::Raw,
+                CHANGED_TEXT,
+                &[tls_config()],
+                &ApplyEnvironment {
+                    checks_root: &checks,
+                    runner: &runner,
+                    probe: &Gate(Arc::clone(&flag)),
+                    tls: &authorize,
+                },
+            )
+            .expect_err("a revocation before the reload must refuse it");
+
+        assert_eq!(error.code(), AppErrorCode::NotFound);
+        assert_eq!(granted.checks.get(), 2);
+        assert!(runner.reloads().is_empty());
+        assert!(!coordinator.reloading());
+        assert!(coordinator.last_apply().is_none());
+        coordinator.stop().expect("stop");
+    }
 }
