@@ -98,7 +98,7 @@ function ResetDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-4"
+      className="space-y-ui-3xl"
       onCancel={onCancel}
       titleId="grant-store-reset-heading"
     >
@@ -125,16 +125,16 @@ function ResetDialog({
       ) : null}
       {failure ? (
         <div
-          className={`rounded-control border border-danger-border bg-danger-soft px-3 py-2.5 text-sm text-danger ${WRAP}`}
+          className={`rounded-control border border-danger-border bg-danger-soft px-ui-2xl py-ui-xl text-sm text-danger ${WRAP}`}
           role="alert"
         >
           <p className="m-0 font-medium">重置未完成：{failure.headline}</p>
           {failure.detail ? (
-            <p className="m-0 mt-1">{failure.detail}</p>
+            <p className="m-0 mt-ui-xs">{failure.detail}</p>
           ) : null}
         </div>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-ui-sm">
         <Button data-dialog-cancel disabled={busy} onClick={onCancel}>
           取消
         </Button>

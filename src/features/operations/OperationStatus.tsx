@@ -121,7 +121,7 @@ function OperationRow({
     >
       <OperationIcon kind={kind} />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-ui-2xl">
           <h4 id="operations-heading" className="text-xs font-semibold">
             最近操作
           </h4>
@@ -138,7 +138,7 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
     return (
       <OperationRow busy kind="loading" status="读取中" tone="warning">
         <p
-          className="mt-1 text-xs leading-relaxed text-muted-foreground"
+          className="mt-ui-xs text-xs leading-relaxed text-muted-foreground"
           role="status"
         >
           正在读取操作记录…
@@ -150,7 +150,7 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
   if (state.status === "error") {
     return (
       <OperationRow kind="error" status="读取失败" tone="danger">
-        <p className="mt-1 text-xs leading-relaxed text-danger" role="alert">
+        <p className="mt-ui-xs text-xs leading-relaxed text-danger" role="alert">
           {state.error.message}
         </p>
       </OperationRow>
@@ -160,7 +160,7 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
   if (state.status === "empty") {
     return (
       <OperationRow kind="empty" status="空闲">
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-ui-xs text-xs leading-relaxed text-muted-foreground">
           暂无操作记录。
         </p>
       </OperationRow>
@@ -194,24 +194,24 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
       status={status.label}
       tone={status.tone}
     >
-      <p className="mt-1 text-xs font-medium leading-relaxed">
+      <p className="mt-ui-xs text-xs font-medium leading-relaxed">
         {operation.summary}
       </p>
       {operation.status === "CANCELLING" ? (
         <p
-          className="mt-1 text-xs leading-relaxed text-muted-foreground"
+          className="mt-ui-xs text-xs leading-relaxed text-muted-foreground"
           role="status"
         >
           正在等待进程确认退出，确认前不会显示为已终止。
         </p>
       ) : null}
       {message ? (
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-ui-xs text-xs leading-relaxed text-muted-foreground">
           {message}
         </p>
       ) : null}
       {truncation.length > 0 ? (
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-ui-xs text-xs leading-relaxed text-muted-foreground">
           {truncation.join("；")}。
         </p>
       ) : null}
