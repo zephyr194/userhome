@@ -11,7 +11,11 @@ use crate::{
         },
         diff::{DiffLine, line_diff},
         generate::generate_caddyfile,
-        store::{CaddyStore, LoadedRules},
+        session::{
+            CaddyRunCoordinator, ConfigSource, LogPage, PrepareInput, RunStatus, StartEnvironment,
+            StartSummary, SystemAdminProbe,
+        },
+        store::{CaddyStore, LoadedRules, RulesSource},
         validate::{
             CaddyRunner, CheckRequest, MAX_CHECK_BYTES, SystemCaddyRunner, ValidationReport,
             ValidationRuns, check, valid_run_id,
@@ -424,6 +428,132 @@ fn with_write_context<T>(
         retention: settings.get()?.preferences().backup_retention(),
     };
     action(&ctx, &writes)
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PrepareStartInput {
+    pub source: ConfigSource,
+    #[serde(default)]
+    pub executable_grant_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct StartInput {
+    pub plan_id: String,
+    pub source: ConfigSource,
+    pub confirmed: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LogsInput {
+    pub session_id: String,
+    pub stdout_offset: u64,
+    pub stderr_offset: u64,
+}
+
+const NOT_SAVED_RULES: &str = "尚未保存表单规则，无法开启。";
+const NOT_SAVED_RAW: &str = "尚未保存原文，无法开启。";
+
+/// Read-only: resolves the executable and summarises the saved configuration.
+/// Starting later uses exactly the plan this returns.
+#[tauri::command]
+pub async fn caddy_prepare_start(
+    app: AppHandle,
+    store: State<'_, CaddyStore>,
+    grants: State<'_, GrantCoordinator>,
+    input: PrepareStartInput,
+) -> Result<StartSummary, AppError> {
+    let user = input
+        .executable_grant_id
+        .as_deref()
+        .map(|raw| resolve_executable_grant(&grants, raw))
+        .transpose()?;
+    let (text, rules) = saved_config(&store, input.source)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let report = detect(user, &fixed_candidates(), &SystemVersionRunner);
+        app.state::<CaddyRunCoordinator>().prepare(PrepareInput {
+            source: input.source,
+            detect: &report,
+            text: &text,
+            rules: rules.as_ref(),
+        })
+    })
+    .await
+    .map_err(|_| AppError::internal())
+}
+
+#[tauri::command]
+pub async fn caddy_start(
+    app: AppHandle,
+    store: State<'_, CaddyStore>,
+    input: StartInput,
+) -> Result<RunStatus, AppError> {
+    if !input.confirmed {
+        return Err(AppError::invalid_input("开启前需先确认摘要。"));
+    }
+    if !valid_run_id(&input.plan_id) {
+        return Err(AppError::invalid_input("开启编号无效。"));
+    }
+    let checks_root = store.checks_root()?;
+    let runs_root = store.runs_root()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let env = StartEnvironment {
+            checks_root: &checks_root,
+            runs_root: &runs_root,
+            runner: &SystemCaddyRunner,
+            probe: &SystemAdminProbe,
+        };
+        app.state::<CaddyRunCoordinator>()
+            .start(&input.plan_id, input.source, &env)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Waits for the grace period, so it runs off the main thread.
+#[tauri::command]
+pub async fn caddy_stop(app: AppHandle) -> Result<RunStatus, AppError> {
+    tauri::async_runtime::spawn_blocking(move || app.state::<CaddyRunCoordinator>().stop())
+        .await
+        .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub fn caddy_status(runs: State<'_, CaddyRunCoordinator>) -> RunStatus {
+    runs.status()
+}
+
+#[tauri::command]
+pub fn caddy_logs(
+    runs: State<'_, CaddyRunCoordinator>,
+    input: LogsInput,
+) -> Result<LogPage, AppError> {
+    runs.logs(&input.session_id, input.stdout_offset, input.stderr_offset)
+}
+
+fn saved_config(
+    store: &CaddyStore,
+    source: ConfigSource,
+) -> Result<(String, Option<CaddyRules>), AppError> {
+    match source {
+        ConfigSource::Rules => {
+            let loaded: LoadedRules = store.load_rules()?;
+            let text = store
+                .saved_caddyfile()?
+                .filter(|_| loaded.source == RulesSource::Saved)
+                .ok_or_else(|| AppError::not_found(NOT_SAVED_RULES))?;
+            Ok((text, Some(loaded.rules)))
+        }
+        ConfigSource::Raw => {
+            let text = store
+                .load_raw()?
+                .ok_or_else(|| AppError::not_found(NOT_SAVED_RAW))?;
+            Ok((text, None))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -892,5 +1022,38 @@ mod tests {
             runner.executables.borrow().as_slice(),
             [PathBuf::from("/opt/homebrew/bin/caddy")]
         );
+    }
+
+    #[test]
+    fn run_inputs_accept_only_their_declared_fields() {
+        let accepted: Result<StartInput, _> = serde_json::from_value(json!({
+            "planId": "7f0c9a2e-1b3d-4c5e-8f60-123456789abc",
+            "source": "RAW",
+            "confirmed": true,
+        }));
+        assert!(accepted.is_ok());
+        let with_path: Result<StartInput, _> = serde_json::from_value(json!({
+            "planId": "7f0c9a2e",
+            "source": "RAW",
+            "confirmed": true,
+            "path": "/bin/sh",
+        }));
+        assert!(with_path.is_err());
+        let unknown_source: Result<StartInput, _> = serde_json::from_value(json!({
+            "planId": "7f0c9a2e",
+            "source": "PATH",
+            "confirmed": true,
+        }));
+        assert!(unknown_source.is_err());
+        let logs_with_extra: Result<LogsInput, _> = serde_json::from_value(json!({
+            "sessionId": "s",
+            "stdoutOffset": 0,
+            "stderrOffset": 0,
+            "file": "/tmp/x",
+        }));
+        assert!(logs_with_extra.is_err());
+        let prepare: Result<PrepareStartInput, _> =
+            serde_json::from_value(json!({"source": "RULES"}));
+        assert!(prepare.is_ok());
     }
 }

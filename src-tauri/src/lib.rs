@@ -45,6 +45,7 @@ pub fn run() {
         .manage(grants::ResourceWriteCoordinator::default())
         .manage(commands::qr::QrIconStore::default())
         .manage(caddy::validate::ValidationRuns::default())
+        .manage(caddy::session::CaddyRunCoordinator::default())
         .manage(environment::save::EnvironmentEditCoordinator::default())
         .manage(environment::zsh_edit::ZshEditCoordinator::default())
         .manage(brew::actions::BrewActionCoordinator::default())
@@ -232,6 +233,11 @@ pub fn run() {
             commands::caddy::caddy_cancel_validate,
             commands::caddy::caddy_preview_external_raw_save,
             commands::caddy::caddy_confirm_external_raw_save,
+            commands::caddy::caddy_prepare_start,
+            commands::caddy::caddy_start,
+            commands::caddy::caddy_stop,
+            commands::caddy::caddy_status,
+            commands::caddy::caddy_logs,
             commands::lifecycle::confirm_quit,
             commands::lifecycle::cancel_quit
         ])
