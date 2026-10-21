@@ -101,7 +101,7 @@ export function SettingEditor({
         保存只修改该键，其余内容（包括未知键与键序）原样保留。
       </p>
       {blocked ? (
-        <p className="m-0 text-aux text-destructive" role="status">
+        <p className="m-0 text-aux text-danger" role="status">
           {blocked}
         </p>
       ) : null}
@@ -204,7 +204,7 @@ export function PhaseView({
       );
     case "writeFailed":
       return (
-        <p className="m-0 text-aux text-destructive" role="alert">
+        <p className="m-0 text-aux text-danger" role="alert">
           {resultMessage(phase.result)}
         </p>
       );
@@ -283,7 +283,7 @@ function ErrorLine({
 }) {
   return (
     <div className="grid justify-items-start gap-ui-xs">
-      <p className="m-0 text-aux text-destructive" role="alert">
+      <p className="m-0 text-aux text-danger" role="alert">
         {error.message}
       </p>
       <Button variant="ghost" onClick={onCancel}>
@@ -340,7 +340,7 @@ export function EditPanel({
         </Button>
       </div>
       {chooseError ? (
-        <p role="alert" className="m-0 text-aux text-destructive">
+        <p role="alert" className="m-0 text-aux text-danger">
           {chooseError.message}
         </p>
       ) : null}

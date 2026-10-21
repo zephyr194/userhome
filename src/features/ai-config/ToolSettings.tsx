@@ -97,7 +97,7 @@ export function ClaudeSettingsView({
           </Button>
         ) : null}
         {selection.status === "failed" ? (
-          <span role="alert" className="text-aux text-destructive">
+          <span role="alert" className="text-aux text-danger">
             {selection.error.message}
           </span>
         ) : null}
@@ -111,7 +111,7 @@ export function ClaudeSettingsView({
 
       {state.status === "failed" ? (
         <div className="grid justify-items-start gap-ui-xs" role="alert">
-          <p className="m-0 text-aux text-destructive">{state.error.message}</p>
+          <p className="m-0 text-aux text-danger">{state.error.message}</p>
           <Button size="sm" variant="secondary" disabled={busy} onClick={onRetry}>
             重新读取
           </Button>
@@ -128,7 +128,7 @@ function ReadResult({ view }: { readonly view: ClaudeReadView }) {
   return (
     <div className="grid min-w-0 gap-ui-md">
       {isPartialView(view) ? (
-        <p className="m-0 text-aux text-destructive" role="status">
+        <p className="m-0 text-aux text-danger" role="status">
           部分来源不可读或存在解析问题，结果可能不完整。
         </p>
       ) : null}
@@ -147,7 +147,7 @@ function ReadResult({ view }: { readonly view: ClaudeReadView }) {
       </section>
 
       {view.warnings.length > 0 ? (
-        <ul aria-label="解析警告" className="m-0 grid gap-ui-xs pl-ui-lg text-aux text-destructive">
+        <ul aria-label="解析警告" className="m-0 grid gap-ui-xs pl-ui-lg text-aux text-danger">
           {view.warnings.map((warning, index) => (
             <li key={`${warning.layerId}-${warning.key}-${index}`}>
               {layerTitle(warning.layerId)} · {warning.key}：{warning.message}
