@@ -49,7 +49,6 @@ pub fn run() {
         .manage(caddy::session::CaddyRunCoordinator::default())
         .manage(environment::save::EnvironmentEditCoordinator::default())
         .manage(environment::zsh_edit::ZshEditCoordinator::default())
-        .manage(brew::actions::BrewActionCoordinator::default())
         .manage(services::create::ServiceCreateCoordinator::default())
         .manage(services::lifecycle::LaunchdActionCoordinator::default())
         .manage(services::logs::LogSessions::default())
@@ -156,11 +155,6 @@ pub fn run() {
             commands::discovery::refresh_system_snapshot,
             commands::discovery::list_unmanaged_candidates,
             commands::discovery::export_sanitized_baseline,
-            commands::brew::list_brew_packages,
-            commands::brew::search_brew_packages,
-            commands::brew::get_brew_package,
-            commands::brew::preview_brew_action,
-            commands::brew::execute_brew_action,
             commands::services::list_services,
             commands::services::list_launchd_services,
             commands::services::get_resident_caddy_snapshot,

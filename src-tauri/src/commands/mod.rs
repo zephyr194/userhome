@@ -1,7 +1,6 @@
 pub mod ai_config;
 pub mod app_config;
 pub mod application_config;
-pub mod brew;
 pub mod caddy;
 pub mod catalog;
 pub mod config;

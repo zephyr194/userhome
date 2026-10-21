@@ -1,8 +1,6 @@
 pub mod actions;
 pub mod client;
-pub mod details;
 pub mod inventory;
-pub mod search;
 
 use serde::{Deserialize, Serialize};
 
