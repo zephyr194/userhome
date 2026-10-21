@@ -402,11 +402,11 @@ function PreviewDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-4"
+      className="space-y-ui-3xl"
       onCancel={actions.cancelPreview}
       titleId="dotenv-preview-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-ui-2xl">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
             待确认写入
@@ -482,7 +482,7 @@ function PreviewDialog({
           正在写入并校验…
         </p>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-ui-sm">
         <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview}>
           返回修改
         </Button>

@@ -401,7 +401,7 @@ function ReadyFile({
       ) : (
         <ol
           aria-label={`${file.name} 的内容`}
-          className="mt-ui-md grid max-h-[32rem] gap-ui-xs overflow-y-auto"
+          className="mt-ui-md grid max-h-96 gap-ui-xs overflow-y-auto"
           // The list scrolls, so keyboard users must be able to focus it.
           tabIndex={0}
         >

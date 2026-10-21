@@ -328,7 +328,7 @@ function ScanReady({
               <Button
                 aria-current={file.relativePath === selectedPath ? "true" : undefined}
                 className={classNames(
-                  "h-auto w-full min-w-0 flex-wrap justify-between gap-ui-sm text-left",
+                  "w-full min-w-0 text-left",
                   file.relativePath === selectedPath && "border-primary",
                 )}
                 disabled={locked}
@@ -336,19 +336,21 @@ function ScanReady({
                 size="sm"
                 title={file.relativePath}
               >
-                <span className="min-w-0 break-all font-mono text-aux">
-                  {file.relativePath}
-                </span>
-                <span className="flex shrink-0 flex-wrap items-center gap-ui-xs">
-                  {file.kind === "TEMPLATE" ? (
-                    <StatusBadge tone="warning">模板</StatusBadge>
-                  ) : null}
-                  {file.symlink ? <StatusBadge>符号链接</StatusBadge> : null}
-                  {file.oversized ? (
-                    <StatusBadge tone="danger">过大</StatusBadge>
-                  ) : null}
-                  <span className="text-meta text-muted-foreground">
-                    {formatBytes(file.sizeBytes)}
+                <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-ui-sm py-ui-xxs">
+                  <span className="min-w-0 break-all font-mono text-aux">
+                    {file.relativePath}
+                  </span>
+                  <span className="flex shrink-0 flex-wrap items-center gap-ui-xs">
+                    {file.kind === "TEMPLATE" ? (
+                      <StatusBadge tone="warning">模板</StatusBadge>
+                    ) : null}
+                    {file.symlink ? <StatusBadge>符号链接</StatusBadge> : null}
+                    {file.oversized ? (
+                      <StatusBadge tone="danger">过大</StatusBadge>
+                    ) : null}
+                    <span className="text-meta text-muted-foreground">
+                      {formatBytes(file.sizeBytes)}
+                    </span>
                   </span>
                 </span>
               </Button>
