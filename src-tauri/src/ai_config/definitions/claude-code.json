@@ -1,0 +1,4585 @@
+{
+  "schemaVersion": 1,
+  "tools": [
+    {
+      "id": "claude-code",
+      "displayName": "Claude Code",
+      "executableNames": [
+        "claude"
+      ],
+      "source": {
+        "url": "https://code.claude.com/docs/en/settings",
+        "retrievedOn": "2026-10-21",
+        "documentedVersion": "unknown"
+      },
+      "resources": [
+        {
+          "id": "claude-managed-settings",
+          "layer": "managed",
+          "format": "json",
+          "location": "{managed}/managed-settings.json",
+          "description": "托管设置，覆盖顺序 1（最高）。文档：托管设置高于其他一切层级。系统目录：macOS /Library/Application Support/ClaudeCode/，Linux/WSL /etc/claude-code/，Windows C:\\Program Files\\ClaudeCode\\。本快照只读该文件，不读 managed-settings.d/ 与 managed-mcp.json。",
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/managed-settings",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "claude-project-local-settings",
+          "layer": "projectLocal",
+          "format": "json",
+          "location": "{project}/.claude/settings.local.json",
+          "description": "项目本地设置，覆盖顺序 3（命令行 --settings 位于 1 与 3 之间，本快照不读取命令行参数）。文档：仅本人、仅本项目。",
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "claude-project-shared-settings",
+          "layer": "projectShared",
+          "format": "json",
+          "location": "{project}/.claude/settings.json",
+          "description": "项目共享设置，覆盖顺序 4。文档：对该文件夹内所有人生效，可提交到版本控制。",
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "claude-user-settings",
+          "layer": "userLevel",
+          "format": "json",
+          "location": "{home}/.claude/settings.json",
+          "description": "用户设置，覆盖顺序 5（最低）。文档：对本机所有项目生效。",
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "claude-sign-in-metadata",
+          "layer": "userLevel",
+          "format": "json",
+          "location": "{home}/.claude.json",
+          "description": "仅元数据：文档称该文件保存登录会话、MCP 服务器配置与项目信任决定。本快照只探测存在性，不读取内容，也不修改。",
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        }
+      ],
+      "settings": [
+        {
+          "id": "advisorModel",
+          "keyPath": "advisorModel",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Pick which model answers when Claude calls the server-side advisor tool",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "agent",
+          "keyPath": "agent",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Start every session as a named subagent with its prompt, tools, and model",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "agentPushNotifEnabled",
+          "keyPath": "agentPushNotifEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let Claude send a push notification to your phone when it decides to",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowAllClaudeAiMcps",
+          "keyPath": "allowAllClaudeAiMcps",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Load the claude.ai connectors alongside a deployed managed-mcp.json",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowClaudeInChromeWithManagedMcp",
+          "keyPath": "allowClaudeInChromeWithManagedMcp",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let the built-in Claude in Chrome server run alongside a deployed managed-mcp.json",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowedChannelPlugins",
+          "keyPath": "allowedChannelPlugins",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Replace the default allowlist of channel plugins that can push messages",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowedHttpHookUrls",
+          "keyPath": "allowedHttpHookUrls",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Limit which URLs HTTP hooks can target",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowedMcpServers",
+          "keyPath": "allowedMcpServers",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Allowlist which MCP servers users can add",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowedProviders",
+          "keyPath": "allowedProviders",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Limit which API providers a machine may use",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowManagedHooksOnly",
+          "keyPath": "allowManagedHooksOnly",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run only the hooks your organization deploys",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowManagedMcpServersOnly",
+          "keyPath": "allowManagedMcpServersOnly",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Make the managed MCP allowlist the only one that applies",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allowManagedPermissionRulesOnly",
+          "keyPath": "allowManagedPermissionRulesOnly",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Make managed settings the only settings source of permission rules",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "alwaysThinkingEnabled",
+          "keyPath": "alwaysThinkingEnabled",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Turn extended thinking off for every session",
+          "defaultNote": "文档标注默认值：unset (thinking on)",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "apiKeyHelper",
+          "keyPath": "apiKeyHelper",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Generate the API credential with your own command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "askUserQuestionTimeout",
+          "keyPath": "askUserQuestionTimeout",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let an unanswered question auto-continue after idle time",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "appendPlugins",
+          "keyPath": "appendPlugins",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run your organization's mods after every mod a user installs",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "attribution",
+          "keyPath": "attribution",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Customize the attribution Claude Code adds to commits and pull requests",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "attribution.commit",
+          "keyPath": "attribution.commit",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Change or hide the trailer Claude Code adds to commits",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "attribution.pr",
+          "keyPath": "attribution.pr",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Change or hide the attribution line in pull request descriptions",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "attribution.sessionUrl",
+          "keyPath": "attribution.sessionUrl",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Omit the claude.ai session link from cloud and Remote Control commits",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoCompactEnabled",
+          "keyPath": "autoCompactEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn automatic compaction off or on",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoCompactWindow",
+          "keyPath": "autoCompactWindow",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set how full the context gets before Claude Code compacts",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoConnectIde",
+          "keyPath": "autoConnectIde",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Connect to a running VS Code or JetBrains IDE automatically from an external terminal",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoContinueAtUsageLimit",
+          "keyPath": "autoContinueAtUsageLimit",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Wait in the open session and continue the task automatically after a claude.ai usage limit resets",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoInstallIdeExtension",
+          "keyPath": "autoInstallIdeExtension",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off automatic install of the IDE extension from a VS Code terminal",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoMemoryDirectory",
+          "keyPath": "autoMemoryDirectory",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Store auto memory in a directory you choose",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoMemoryEnabled",
+          "keyPath": "autoMemoryEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn auto memory off or on",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoMode",
+          "keyPath": "autoMode",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Add your own allow and deny rules to the auto mode classifier",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoMode.classifyAllShell",
+          "keyPath": "autoMode.classifyAllShell",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Send every shell command through the auto mode classifier, even ones a narrow allow rule matches",
+          "defaultNote": "文档标注默认值：false",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoScrollEnabled",
+          "keyPath": "autoScrollEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Follow new output to the bottom in fullscreen rendering",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoUpdatesChannel",
+          "keyPath": "autoUpdatesChannel",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Follow the stable release channel instead of latest",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "availableModels",
+          "keyPath": "availableModels",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Restrict which models people can pick",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。托管层定义时整体替换、不合并；非托管层跨层合并（文档）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "availableModelsMatch",
+          "keyPath": "availableModelsMatch",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Make each availableModels model ID entry permit only the version it names",
+          "defaultNote": "文档标注默认值：prefix",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "awaySummaryEnabled",
+          "keyPath": "awaySummaryEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off the session recap shown when you come back to the terminal",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "awsAuthRefresh",
+          "keyPath": "awsAuthRefresh",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Refresh expired Bedrock credentials in .aws with your own command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "awsCredentialExport",
+          "keyPath": "awsCredentialExport",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Supply Bedrock credentials as JSON from your own command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "axScreenReader",
+          "keyPath": "axScreenReader",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Render screen-reader friendly output",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "bashEditDiffEnabled",
+          "keyPath": "bashEditDiffEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Record the files that changed while a Bash command ran in every permission mode",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "bashOutputMaxChars",
+          "keyPath": "bashOutputMaxChars",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set how much of a successful command's output Claude receives inline",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "blockedMarketplaces",
+          "keyPath": "blockedMarketplaces",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block plugin marketplace sources for your organization",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "browserExternalPageTools",
+          "keyPath": "browserExternalPageTools",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Keep Claude's tools off external pages in the desktop Browser pane",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "channelsEnabled",
+          "keyPath": "channelsEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Allow channels for your organization",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "claudeInChromeDefaultEnabled",
+          "keyPath": "claudeInChromeDefaultEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn on Chrome integration when a session starts",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "claudeMd",
+          "keyPath": "claudeMd",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Inject organization-wide CLAUDE.md instructions from managed settings",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "claudeMdExcludes",
+          "keyPath": "claudeMdExcludes",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Skip specific CLAUDE.md files when memory loads",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "cleanupPeriodDays",
+          "keyPath": "cleanupPeriodDays",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose how many days Claude Code keeps transcripts before deleting them",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "companyAnnouncements",
+          "keyPath": "companyAnnouncements",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Show your organization's announcements at startup",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copyFullResponse",
+          "keyPath": "copyFullResponse",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Make /copy copy the full response without showing the picker",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copyOnSelect",
+          "keyPath": "copyOnSelect",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off automatic copying of text you select with the mouse",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "crossSessionInbound",
+          "keyPath": "crossSessionInbound",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose whether Claude Code delivers messages from your other sessions, shows a notice without delivering them, or refuses them",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "defaultShell",
+          "keyPath": "defaultShell",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose whether Bash or PowerShell runs shell commands typed with the ! prefix",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "defaultToAgentsView",
+          "keyPath": "defaultToAgentsView",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Open agent view instead of a new conversation when you run claude with no arguments",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "deniedMcpServers",
+          "keyPath": "deniedMcpServers",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block specific MCP servers by URL, command, or name",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "deniedModels",
+          "keyPath": "deniedModels",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block specific models, even ones availableModels permits",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "desktopSessionCleanupPeriodDays",
+          "keyPath": "desktopSessionCleanupPeriodDays",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set an age limit in days for Claude Desktop and Cowork transcripts",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "dialogExpiry",
+          "keyPath": "dialogExpiry",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set how long Claude Code waits for Remote Control or an SDK host to answer a forwarded dialog before it cancels the dialog",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "diffTool",
+          "keyPath": "diffTool",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose whether proposed file changes open in the VS Code or JetBrains diff viewer or stay in the terminal",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableAgentView",
+          "keyPath": "disableAgentView",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off background agents and agent view",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableAllHooks",
+          "keyPath": "disableAllHooks",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off hooks, a custom status line, and a custom @ file suggestion command at once",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableArtifact",
+          "keyPath": "disableArtifact",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Deprecated; use enableArtifact to turn the Artifact tool off",
+          "defaultNote": "文档未给出默认值；文档标注：已弃用",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableAutoMode",
+          "keyPath": "disableAutoMode",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Remove auto mode from the permission mode cycle; value \"disable\"",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableBrowserExternalNavigation",
+          "keyPath": "disableBrowserExternalNavigation",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Limit the desktop Browser pane to localhost for people and Claude",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableBundledSkills",
+          "keyPath": "disableBundledSkills",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off the skills and workflows included with Claude Code",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableClaudeAiConnectors",
+          "keyPath": "disableClaudeAiConnectors",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off claude.ai connectors so Claude Code does not fetch them",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableCommandPluginSources",
+          "keyPath": "disableCommandPluginSources",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block plugins that install by running a marketplace-declared command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableDeepLinkRegistration",
+          "keyPath": "disableDeepLinkRegistration",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop Claude Code from registering the claude-cli:// handler",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableDesktopLocalSessions",
+          "keyPath": "disableDesktopLocalSessions",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off Desktop Code sessions that run on the device",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disabledMcpjsonServers",
+          "keyPath": "disabledMcpjsonServers",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Reject specific servers from a project's .mcp.json",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableMobileSimulatorTools",
+          "keyPath": "disableMobileSimulatorTools",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block Claude's tools in the desktop iOS Simulator pane",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableRemoteControl",
+          "keyPath": "disableRemoteControl",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off Remote Control everywhere it can start",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableSideloadFlags",
+          "keyPath": "disableSideloadFlags",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Reject the CLI flags that sideload plugins, subagents, and MCP servers",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableSkillShellExecution",
+          "keyPath": "disableSkillShellExecution",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop skills and custom commands from running inline shell",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableWorkflows",
+          "keyPath": "disableWorkflows",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn dynamic workflows off for everyone; use enableWorkflows for yourself",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "editorMode",
+          "keyPath": "editorMode",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Use vim key bindings in the input prompt",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "effortLevel",
+          "keyPath": "effortLevel",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Set a default effort level for models without a saved level of their own",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "emojiCompletionEnabled",
+          "keyPath": "emojiCompletionEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off :shortcode: emoji suggestions and replacement in the prompt input",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enableAllProjectMcpServers",
+          "keyPath": "enableAllProjectMcpServers",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Approve every server in project .mcp.json files without a prompt",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enableArtifact",
+          "keyPath": "enableArtifact",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn the Artifact tool off with a false in any file; no file can turn it back on",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enabledMcpjsonServers",
+          "keyPath": "enabledMcpjsonServers",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Approve specific servers from a project's .mcp.json",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enabledPlugins",
+          "keyPath": "enabledPlugins",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn individual plugins on or off per scope",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enableWorkflows",
+          "keyPath": "enableWorkflows",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn dynamic workflows on or off against your plan's default",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enforceAvailableModels",
+          "keyPath": "enforceAvailableModels",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Keep the /model Default choice inside your availableModels allowlist",
+          "defaultNote": "文档标注默认值：false",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "env",
+          "keyPath": "env",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set environment variables for every session and its subprocesses",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "externalEditorContext",
+          "keyPath": "externalEditorContext",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Show Claude's last response as comments when you press Ctrl+G to edit",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "extraKnownMarketplaces",
+          "keyPath": "extraKnownMarketplaces",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Register marketplaces for a repository or an organization",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "fallbackModel",
+          "keyPath": "fallbackModel",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Name backup models for when the primary is overloaded or unavailable",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。整体取优先级最高的文件的值，不合并（文档）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "fastMode",
+          "keyPath": "fastMode",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Turn fast mode on for sessions where it is available",
+          "defaultNote": "文档标注默认值：unset (off)",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "fastModePerSessionOptIn",
+          "keyPath": "fastModePerSessionOptIn",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Require people to turn fast mode on each session",
+          "defaultNote": "文档标注默认值：false",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "feedbackDrafts",
+          "keyPath": "feedbackDrafts",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Control whether Claude queues feedback drafts for you to review",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "feedbackSurveyRate",
+          "keyPath": "feedbackSurveyRate",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Change how often the session quality survey appears",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "fileCheckpointingEnabled",
+          "keyPath": "fileCheckpointingEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off or on the file snapshots that /rewind restores",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "fileSuggestion",
+          "keyPath": "fileSuggestion",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Supply @ file autocomplete from your own command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "footerLinksRegexes",
+          "keyPath": "footerLinksRegexes",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Make issue or review IDs in output into clickable links below the input box",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "forceLoginGatewayUrl",
+          "keyPath": "forceLoginGatewayUrl",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set the gateway URL the login screen connects to",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "forceLoginMethod",
+          "keyPath": "forceLoginMethod",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Restrict login to claude.ai, Claude Console, or a cloud gateway",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "forceLoginOrgUUID",
+          "keyPath": "forceLoginOrgUUID",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Pin claude.ai logins to your organization; only a managed source enforces it",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "forceRemoteSettingsRefresh",
+          "keyPath": "forceRemoteSettingsRefresh",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block startup until server-managed settings are freshly fetched",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "gatewayInternalNetworks",
+          "keyPath": "gatewayInternalNetworks",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let /login reach a cloud gateway on public IPv4 space your organization uses internally",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "gcpAuthRefresh",
+          "keyPath": "gcpAuthRefresh",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Refresh Google Cloud credentials with your own command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "hooks",
+          "keyPath": "hooks",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run your own commands as hooks at points in Claude Code's lifecycle",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "httpHookAllowedEnvVars",
+          "keyPath": "httpHookAllowedEnvVars",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Limit which env vars HTTP hooks can put in headers",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "idleCompaction",
+          "keyPath": "idleCompaction",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop Claude Code from compacting a long conversation while your terminal session is idle",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "includeCoAuthoredBy",
+          "keyPath": "includeCoAuthoredBy",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Deprecated; use attribution to hide or change commit and PR attribution",
+          "defaultNote": "文档未给出默认值；文档标注：已弃用",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "includeGitInstructions",
+          "keyPath": "includeGitInstructions",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Remove the built-in commit and PR instructions from Claude's context",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "inputNeededNotifEnabled",
+          "keyPath": "inputNeededNotifEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Get a push notification when Claude is waiting on you",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "isolatePeerMachines",
+          "keyPath": "isolatePeerMachines",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Ask you before Claude messages one of your sessions on another machine",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "keybindingFlavor",
+          "keyPath": "keybindingFlavor",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Deprecated and has no effect",
+          "defaultNote": "文档未给出默认值；文档标注：已弃用",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "language",
+          "keyPath": "language",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Have Claude respond in a language other than English; not validated, passed verbatim",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。不校验，原样传递（文档）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "leftArrowOpensAgents",
+          "keyPath": "leftArrowOpensAgents",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off the left-arrow shortcut that backgrounds the session and opens agent view",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "managedMcpServers",
+          "keyPath": "managedMcpServers",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Provide remote MCP servers to every user alongside the ones they add",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "managedSourcesBehavior",
+          "keyPath": "managedSourcesBehavior",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Compose every managed source you deploy instead of using the highest-priority one alone",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "maxEffortLevel",
+          "keyPath": "maxEffortLevel",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Cap the effort level for every model or per model, on every provider",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "maxProseWidth",
+          "keyPath": "maxProseWidth",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Cap how wide the prose in Claude's responses runs in a wide terminal",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "minimumVersion",
+          "keyPath": "minimumVersion",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Keep auto-updates from installing anything below a version",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model",
+          "keyPath": "model",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Change the model Claude Code starts with",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "modelOverrides",
+          "keyPath": "modelOverrides",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Map model IDs to your provider's IDs, such as Bedrock ARNs",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "modelPicker",
+          "keyPath": "modelPicker",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Choose which models the /model picker lists, in your own order and with your own labels",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：用户层或托管层。整体取托管、--settings、用户层中最高的一个，忽略项目与本地层（文档）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "modelPricing",
+          "keyPath": "modelPricing",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Report spend at your organization's contracted rates instead of list price",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "modelSettings",
+          "keyPath": "modelSettings",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Keep a saved effort level or auto-compact window per model, or cap one model's effort",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。逐模型解析，与 effortLevel 一起按模型决定取值（文档）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "otelHeadersHelper",
+          "keyPath": "otelHeadersHelper",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Generate rotating OpenTelemetry headers with your own command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "outputStyle",
+          "keyPath": "outputStyle",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Change Claude's role, tone, and output format with an output style",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "parentSettingsBehavior",
+          "keyPath": "parentSettingsBehavior",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Apply or drop restrictions an SDK or IDE host passes when you deploy managed settings",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissionExplainerEnabled",
+          "keyPath": "permissionExplainerEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Removed in v2.1.257, together with the Ctrl+E command explanation",
+          "defaultNote": "文档未给出默认值；文档标注：已移除",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions",
+          "keyPath": "permissions",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Set allow, ask, and deny rules and the starting permission mode",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.additionalDirectories",
+          "keyPath": "permissions.additionalDirectories",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Give Claude file access to directories outside the current one",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.allow",
+          "keyPath": "permissions.allow",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Approve listed tool uses without a prompt; project allow rules apply only after workspace trust",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。列表键跨非托管层合并（文档：同名列表键合并而非覆盖）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.ask",
+          "keyPath": "permissions.ask",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Always prompt before listed tool uses",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。列表键跨非托管层合并（文档：同名列表键合并而非覆盖）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.blockReadsOutsideWorkingDirectories",
+          "keyPath": "permissions.blockReadsOutsideWorkingDirectories",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Make the file tools refuse reads outside the working directories in every permission mode",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.defaultMode",
+          "keyPath": "permissions.defaultMode",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set the permission mode new sessions start in",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.deny",
+          "keyPath": "permissions.deny",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block listed tool uses, including reads of files that hold secrets",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.disableBypassPermissionsMode",
+          "keyPath": "permissions.disableBypassPermissionsMode",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Prevent anyone from entering bypassPermissions mode",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "plansDirectory",
+          "keyPath": "plansDirectory",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose where plan mode writes plan files",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "pluginConfigs",
+          "keyPath": "pluginConfigs",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Store the answers you gave a plugin's configuration dialog",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "pluginSuggestionMarketplaces",
+          "keyPath": "pluginSuggestionMarketplaces",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose which marketplaces can surface plugin install suggestions in /plugin",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "pluginTrustMessage",
+          "keyPath": "pluginTrustMessage",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Add your own text to the plugin trust warning",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "policyHelper",
+          "keyPath": "policyHelper",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run an executable that computes managed settings at startup",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "policyHelper.path",
+          "keyPath": "policyHelper.path",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Name the helper executable Claude Code runs",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "policyHelper.refreshIntervalMs",
+          "keyPath": "policyHelper.refreshIntervalMs",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Re-run the helper in the background on an interval",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "policyHelper.timeoutMs",
+          "keyPath": "policyHelper.timeoutMs",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set how long Claude Code waits for the helper",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "preferredNotifChannel",
+          "keyPath": "preferredNotifChannel",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose a terminal bell or desktop notification for task completion",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "prefersReducedMotion",
+          "keyPath": "prefersReducedMotion",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Reduce or turn off spinner, shimmer, and flash animations",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "prependPlugins",
+          "keyPath": "prependPlugins",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run your organization's mods before every mod a user installs",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "processWrapper",
+          "keyPath": "processWrapper",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run Claude Code's background processes through a corporate launcher on macOS and Linux",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "promptCacheTtl",
+          "keyPath": "promptCacheTtl",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Choose the prompt cache lifetime for the main conversation",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "promptSuggestionEnabled",
+          "keyPath": "promptSuggestionEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Hide the grayed-out prompt suggestions in the input box",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "prStatusFooterEnabled",
+          "keyPath": "prStatusFooterEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off the prompt footer's PR review status badge and the pull request check behind it",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "prUrlTemplate",
+          "keyPath": "prUrlTemplate",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Point PR links at an internal code-review tool instead of github.com",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "remote.defaultEnvironmentId",
+          "keyPath": "remote.defaultEnvironmentId",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Pick the default cloud environment for claude --cloud",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "remoteControlAtStartup",
+          "keyPath": "remoteControlAtStartup",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Connect Remote Control automatically when a session starts",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "requiredMaximumVersion",
+          "keyPath": "requiredMaximumVersion",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Refuse to start on a version newer than your organization allows",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "requiredMinimumVersion",
+          "keyPath": "requiredMinimumVersion",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Refuse to start on a version older than your organization requires",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "respectGitignore",
+          "keyPath": "respectGitignore",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Keep gitignored files out of the @ file picker",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "respondToBashCommands",
+          "keyPath": "respondToBashCommands",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop Claude from responding after a ! shell command runs",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox",
+          "keyPath": "sandbox",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Isolate Bash commands from your filesystem and network on macOS, Linux, and WSL2",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.allowAppleEvents",
+          "keyPath": "sandbox.allowAppleEvents",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let sandboxed commands send Apple Events on macOS",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.allowUnsandboxedCommands",
+          "keyPath": "sandbox.allowUnsandboxedCommands",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let Claude retry a blocked command outside the sandbox, or forbid it",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.autoAllowBashIfSandboxed",
+          "keyPath": "sandbox.autoAllowBashIfSandboxed",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run sandboxed commands without a permission prompt",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.bwrapPath",
+          "keyPath": "sandbox.bwrapPath",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Point the sandbox at a bubblewrap binary outside PATH",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.credentials",
+          "keyPath": "sandbox.credentials",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Hide or mask credential files and variables inside the sandbox",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.credentials.allowPlaintextInject",
+          "keyPath": "sandbox.credentials.allowPlaintextInject",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let masked credentials reach plain HTTP services on trusted test networks",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.credentials.awsPairs",
+          "keyPath": "sandbox.credentials.awsPairs",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Link custom-named AWS key variables into one credential for re-signing",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.credentials.envVars",
+          "keyPath": "sandbox.credentials.envVars",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Unset or mask an environment variable inside the sandbox",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.credentials.files",
+          "keyPath": "sandbox.credentials.files",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block or mask reads of a credential file inside the sandbox",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.credentials.sigv4",
+          "keyPath": "sandbox.credentials.sigv4",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose whether streaming, presigned, or SigV4A AWS requests fail or pass through",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.enabled",
+          "keyPath": "sandbox.enabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn on Bash sandboxing on macOS, Linux, and WSL2",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.enableWeakerNestedSandbox",
+          "keyPath": "sandbox.enableWeakerNestedSandbox",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run the Linux sandbox inside an unprivileged container; weakens isolation",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.enableWeakerNetworkIsolation",
+          "keyPath": "sandbox.enableWeakerNetworkIsolation",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let gh, gcloud, and terraform verify TLS behind a MITM proxy inside the sandbox on macOS; weakens isolation",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.excludedCommands",
+          "keyPath": "sandbox.excludedCommands",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Name commands Claude Code can run outside the sandbox",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.failIfUnavailable",
+          "keyPath": "sandbox.failIfUnavailable",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Refuse to start when the sandbox cannot, instead of running unsandboxed",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.filesystem",
+          "keyPath": "sandbox.filesystem",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Control which paths sandboxed commands can read and write",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.allowManagedReadPathsOnly",
+          "keyPath": "sandbox.filesystem.allowManagedReadPathsOnly",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop developers from re-opening read paths your organization blocked",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.allowRead",
+          "keyPath": "sandbox.filesystem.allowRead",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Re-open reading inside a region denyRead blocks",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.allowWrite",
+          "keyPath": "sandbox.filesystem.allowWrite",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Add paths sandboxed commands can write to",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.denyRead",
+          "keyPath": "sandbox.filesystem.denyRead",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block sandboxed commands from reading specific paths",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.denyWrite",
+          "keyPath": "sandbox.filesystem.denyWrite",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block sandboxed commands from writing to specific paths",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.filesystem.disabled",
+          "keyPath": "sandbox.filesystem.disabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off filesystem isolation while keeping network isolation; weakens isolation",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.ignoreViolations",
+          "keyPath": "sandbox.ignoreViolations",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Silence violation reports for paths a command is expected to probe",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network",
+          "keyPath": "sandbox.network",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Control which hosts, ports, and sockets sandboxed commands reach",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.allowAllUnixSockets",
+          "keyPath": "sandbox.network.allowAllUnixSockets",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let sandboxed commands connect to every Unix socket",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.allowedDomains",
+          "keyPath": "sandbox.network.allowedDomains",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Pre-allow domains so sandboxed commands do not prompt for them",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.allowLocalBinding",
+          "keyPath": "sandbox.network.allowLocalBinding",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let sandboxed commands listen on network ports and connect to localhost on macOS",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.allowMachLookup",
+          "keyPath": "sandbox.network.allowMachLookup",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let macOS sandboxed tools reach their XPC services",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.allowManagedDomainsOnly",
+          "keyPath": "sandbox.network.allowManagedDomainsOnly",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Lock the network allowlist to managed settings",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.allowUnixSockets",
+          "keyPath": "sandbox.network.allowUnixSockets",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "List Unix socket paths sandboxed commands can use on macOS",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.deniedDomains",
+          "keyPath": "sandbox.network.deniedDomains",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block domains for sandboxed commands, even inside an allowed wildcard",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.httpProxyPort",
+          "keyPath": "sandbox.network.httpProxyPort",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Route sandbox HTTP traffic through your own proxy",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.socksProxyPort",
+          "keyPath": "sandbox.network.socksProxyPort",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Route sandbox SOCKS traffic through your own proxy",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.strictAllowlist",
+          "keyPath": "sandbox.network.strictAllowlist",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Deny hosts outside the allowlist instead of prompting",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.network.tlsTerminate",
+          "keyPath": "sandbox.network.tlsTerminate",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Have the sandbox proxy terminate TLS so it can read HTTPS requests",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.ripgrep",
+          "keyPath": "sandbox.ripgrep",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Use your own ripgrep binary inside the sandbox",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.socatPath",
+          "keyPath": "sandbox.socatPath",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Point the sandbox proxy at a socat binary outside PATH",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "showClearContextOnPlanAccept",
+          "keyPath": "showClearContextOnPlanAccept",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Show a clear context option on the plan accept screen",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "showThinkingSummaries",
+          "keyPath": "showThinkingSummaries",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "See summaries of Claude's thinking instead of a collapsed stub",
+          "defaultNote": "文档标注默认值：false",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "showTurnDuration",
+          "keyPath": "showTurnDuration",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Hide the Cooked for duration after each response",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skillListingBudgetFraction",
+          "keyPath": "skillListingBudgetFraction",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Reserve more or less context for the skill listing",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skillListingMaxDescChars",
+          "keyPath": "skillListingMaxDescChars",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Cap each skill's description length in the skill listing",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skillOverrides",
+          "keyPath": "skillOverrides",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Hide or collapse a skill without editing its SKILL.md",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skipAutoPermissionPrompt",
+          "keyPath": "skipAutoPermissionPrompt",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Skip the one-time notice when you first enter auto mode yourself",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skipDangerousModePermissionPrompt",
+          "keyPath": "skipDangerousModePermissionPrompt",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Skip the confirmation dialog before bypassPermissions mode",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层、项目本地层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skipWebFetchPreflight",
+          "keyPath": "skipWebFetchPreflight",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Skip the WebFetch hostname check when Anthropic is unreachable",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "spellcheck",
+          "keyPath": "spellcheck",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Underline misspelled words in the prompt input with a spell checker you install",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "spinnerTipsEnabled",
+          "keyPath": "spinnerTipsEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Hide tips in the spinner while Claude works",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "spinnerTipsOverride",
+          "keyPath": "spinnerTipsOverride",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Add your own tips to the spinner rotation, or replace the built-in tips",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "spinnerVerbs",
+          "keyPath": "spinnerVerbs",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Add or replace the verbs shown while a turn runs",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sshConfigs",
+          "keyPath": "sshConfigs",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Add SSH connections to the Desktop environment selector",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sshHostAllowlist",
+          "keyPath": "sshHostAllowlist",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Limit which hosts Desktop SSH sessions can reach",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "statusLine",
+          "keyPath": "statusLine",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Run your own command to render a status line below the prompt",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "strictKnownMarketplaces",
+          "keyPath": "strictKnownMarketplaces",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Allowlist the marketplace sources users can add and install from",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "strictPluginOnlyCustomization",
+          "keyPath": "strictPluginOnlyCustomization",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Block skills, agents, hooks, and MCP servers from user and project sources",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "strictPluginOnlyCustomization.agents",
+          "keyPath": "strictPluginOnlyCustomization.agents",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Lock agents to plugin and managed sources",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "strictPluginOnlyCustomization.hooks",
+          "keyPath": "strictPluginOnlyCustomization.hooks",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Lock hooks to plugin and managed sources",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "strictPluginOnlyCustomization.mcp",
+          "keyPath": "strictPluginOnlyCustomization.mcp",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Lock MCP servers to plugin and managed sources",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "strictPluginOnlyCustomization.skills",
+          "keyPath": "strictPluginOnlyCustomization.skills",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Lock skills to plugin and managed sources",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "subagentPromptCacheTtl",
+          "keyPath": "subagentPromptCacheTtl",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Choose the prompt cache lifetime for subagents and other requests outside the main conversation",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "subagentStatusLine",
+          "keyPath": "subagentStatusLine",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Rewrite rows in the subagent task display with your own command",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "switchModelsOnFlag",
+          "keyPath": "switchModelsOnFlag",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Switch models automatically or pause when a safety classifier flags a request",
+          "defaultNote": "文档标注：未设置（unset）",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "syncClaudeAiPlugins",
+          "keyPath": "syncClaudeAiPlugins",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop loading the plugins enabled on your claude.ai account and stop downloading new ones",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层、项目本地层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "syncClaudeAiSkills",
+          "keyPath": "syncClaudeAiSkills",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop loading the skills enabled on your claude.ai account and stop downloading new ones",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层、项目本地层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "syntaxHighlightingDisabled",
+          "keyPath": "syntaxHighlightingDisabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off syntax highlighting in diffs and code blocks",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "taskOutputMaxChars",
+          "keyPath": "taskOutputMaxChars",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Removed in v2.1.277, together with the TaskOutput tool it sized",
+          "defaultNote": "文档未给出默认值；文档标注：已移除",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "teammateDefaultModel",
+          "keyPath": "teammateDefaultModel",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Removed in v2.1.234",
+          "defaultNote": "文档未给出默认值；文档标注：已移除",
+          "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "teammateMode",
+          "keyPath": "teammateMode",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose how agent team teammates display",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "terminalProgressBarEnabled",
+          "keyPath": "terminalProgressBarEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Hide the terminal progress bar in terminals that support it",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "terminalTitleFromRename",
+          "keyPath": "terminalTitleFromRename",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Stop /rename and --name from changing the terminal tab title",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "theme",
+          "keyPath": "theme",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Pick the interface color theme, built-in or custom",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "timeFormat",
+          "keyPath": "timeFormat",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Show times on a 12-hour or 24-hour clock, in UTC, or with a strftime pattern",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "timeZone",
+          "keyPath": "timeZone",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Show times in a time zone other than your system's",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tui",
+          "keyPath": "tui",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose the fullscreen or classic terminal renderer",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "ultracode",
+          "keyPath": "ultracode",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Have Claude plan a workflow for each substantive task without being asked",
+          "defaultNote": "文档标注默认值：unset (off)",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "useAutoModeDuringPlan",
+          "keyPath": "useAutoModeDuringPlan",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Let the auto mode classifier review shell commands in plan mode; set false to get prompts instead",
+          "defaultNote": "文档标注默认值：true",
+          "mergeRule": "适用：用户层、项目本地层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "verbose",
+          "keyPath": "verbose",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Show full tool output instead of truncated summaries; viewMode takes precedence when both are set",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "viewMode",
+          "keyPath": "viewMode",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Start every session in default, verbose, or focus view",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "vimInsertModeRemaps",
+          "keyPath": "vimInsertModeRemaps",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Map a two-key INSERT-mode sequence such as jj to Escape",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "voice",
+          "keyPath": "voice",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn on voice dictation and pick hold or tap mode",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "voiceEnabled",
+          "keyPath": "voiceEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn on voice dictation with the older single-key form",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "wheelScrollAccelerationEnabled",
+          "keyPath": "wheelScrollAccelerationEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Turn off mouse-wheel acceleration in fullscreen rendering",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "workflowKeywordTriggerEnabled",
+          "keyPath": "workflowKeywordTriggerEnabled",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let the word ultracode in a prompt start a workflow; set false to type it without starting one",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "workflowSizeGuideline",
+          "keyPath": "workflowSizeGuideline",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Set the agent count Claude aims for in dynamic workflows",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktree",
+          "keyPath": "worktree",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Configure how Claude Code creates git worktrees",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktree.baseRef",
+          "keyPath": "worktree.baseRef",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Branch new worktrees from the remote default branch or your local HEAD",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktree.bgIsolation",
+          "keyPath": "worktree.bgIsolation",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Let background sessions edit the working copy without a worktree; loosens isolation",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktree.location",
+          "keyPath": "worktree.location",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Choose where Desktop SSH sessions create their worktrees on a remote machine",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅用户层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktree.sparsePaths",
+          "keyPath": "worktree.sparsePaths",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Check out only the directories you need in each worktree",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktree.symlinkDirectories",
+          "keyPath": "worktree.symlinkDirectories",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Symlink large directories into each worktree instead of duplicating them",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "wslInheritsWindowsSettings",
+          "keyPath": "wslInheritsWindowsSettings",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Have WSL read managed settings from the Windows policy chain",
+          "defaultNote": "文档未给出默认值",
+          "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://code.claude.com/docs/en/settings-reference",
+            "retrievedOn": "2026-10-21",
+            "documentedVersion": "unknown"
+          }
+        }
+      ],
+      "flags": [],
+      "env": []
+    }
+  ]
+}

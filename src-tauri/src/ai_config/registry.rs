@@ -2,6 +2,7 @@ use serde::Deserialize;
 
 pub const DEFINITION_SCHEMA_VERSION: u32 = 1;
 pub const BUILTIN_DEFINITIONS_JSON: &str = include_str!("definitions/builtin.json");
+pub const CLAUDE_CODE_DEFINITIONS_JSON: &str = include_str!("definitions/claude-code.json");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegistryError {
@@ -32,6 +33,7 @@ pub enum IssueKind {
     UnknownReference,
     SelfReference,
     InvalidEnvName,
+    UnverifiedValueType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -106,6 +108,7 @@ pub enum ValueType {
     StringArray,
     Object,
     Enum,
+    Unknown,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]

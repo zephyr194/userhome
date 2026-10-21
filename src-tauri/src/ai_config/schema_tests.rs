@@ -179,6 +179,7 @@ fn schema_enums_match_rust_variants() {
             "stringArray",
             "object",
             "enum",
+            "unknown",
         ],
     );
     assert_enum::<RiskFlag>(

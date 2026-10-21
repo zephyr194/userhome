@@ -43,7 +43,7 @@
     },
     "valueType": {
       "type": "string",
-      "enum": ["string", "boolean", "number", "stringArray", "object", "enum"]
+      "enum": ["string", "boolean", "number", "stringArray", "object", "enum", "unknown"]
     },
     "riskFlag": {
       "type": "string",
@@ -107,7 +107,7 @@
         "format": { "$ref": "#/$defs/resourceFormat" },
         "location": {
           "type": "string",
-          "pattern": "^\\{(home|project)\\}"
+          "pattern": "^\\{(home|project|managed)\\}"
         },
         "description": { "$ref": "#/$defs/nonEmptyText" },
         "coverage": { "$ref": "#/$defs/coverageStatus" },

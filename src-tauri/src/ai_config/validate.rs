@@ -2,9 +2,10 @@ use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashSet};
 
 use super::registry::{
-    BUILTIN_DEFINITIONS_JSON, CoverageStatus, DEFINITION_SCHEMA_VERSION, Definitions,
-    EnvDefinition, FlagDefinition, IssueKind, RegistryError, ResourceDefinition, SettingDefinition,
-    SourceRef, ToolDefinition, ValidationIssue, ValueType, VerifiedVersions, parse_definitions,
+    BUILTIN_DEFINITIONS_JSON, CLAUDE_CODE_DEFINITIONS_JSON, CoverageStatus,
+    DEFINITION_SCHEMA_VERSION, Definitions, EnvDefinition, FlagDefinition, IssueKind,
+    RegistryError, ResourceDefinition, SettingDefinition, SourceRef, ToolDefinition,
+    ValidationIssue, ValueType, VerifiedVersions, parse_definitions,
 };
 
 pub const UNKNOWN_DOCUMENTED_VERSION: &str = "unknown";
@@ -13,6 +14,15 @@ const MAX_VERSION_COMPONENTS: usize = 4;
 
 pub fn load_builtin() -> Result<Definitions, RegistryError> {
     load_validated(BUILTIN_DEFINITIONS_JSON)
+}
+
+pub fn load_all() -> Result<Definitions, RegistryError> {
+    let mut merged = parse_definitions(BUILTIN_DEFINITIONS_JSON)?;
+    merged
+        .tools
+        .extend(parse_definitions(CLAUDE_CODE_DEFINITIONS_JSON)?.tools);
+    validate(&merged)?;
+    Ok(merged)
 }
 
 pub fn load_validated(json: &str) -> Result<Definitions, RegistryError> {
@@ -154,6 +164,7 @@ fn validate_setting(issues: &mut Vec<ValidationIssue>, base: &str, setting: &Set
     );
     check_text(issues, &format!("{base}.mergeRule"), &setting.merge_rule);
     check_allowed_values(issues, base, setting.value_type, &setting.allowed_values);
+    check_value_type_coverage(issues, base, setting.value_type, setting.coverage);
     check_versions(issues, base, setting.coverage, setting.versions.as_ref());
     validate_source(issues, &format!("{base}.source"), &setting.source);
 }
@@ -167,6 +178,7 @@ fn validate_flag(
     check_id(issues, base, &flag.id);
     check_text(issues, &format!("{base}.description"), &flag.description);
     check_allowed_values(issues, base, flag.value_type, &flag.allowed_values);
+    check_value_type_coverage(issues, base, flag.value_type, flag.coverage);
     check_references(issues, base, "excludes", &flag.id, &flag.excludes, known);
     check_references(issues, base, "requires", &flag.id, &flag.requires, known);
     check_versions(issues, base, flag.coverage, flag.versions.as_ref());
@@ -184,6 +196,7 @@ fn validate_env(
     }
     check_text(issues, &format!("{base}.description"), &env.description);
     check_allowed_values(issues, base, env.value_type, &env.allowed_values);
+    check_value_type_coverage(issues, base, env.value_type, env.coverage);
     if let Some(alternative) = &env.config_alternative {
         check_text(issues, &format!("{base}.configAlternative"), alternative);
     }
@@ -226,6 +239,26 @@ fn check_versions(
             issues,
             format!("{base}.versions"),
             IssueKind::MissingVersions,
+        );
+    }
+}
+
+fn check_value_type_coverage(
+    issues: &mut Vec<ValidationIssue>,
+    base: &str,
+    value_type: ValueType,
+    coverage: CoverageStatus,
+) {
+    if value_type == ValueType::Unknown
+        && !matches!(
+            coverage,
+            CoverageStatus::DisplayOnly | CoverageStatus::VersionUnknown
+        )
+    {
+        push(
+            issues,
+            format!("{base}.coverage"),
+            IssueKind::UnverifiedValueType,
         );
     }
 }
@@ -346,7 +379,7 @@ fn is_valid_location(location: &str) -> bool {
             return false;
         };
         let name = &rest[start + 1..start + length];
-        if !matches!(name, "home" | "project") {
+        if !matches!(name, "home" | "project" | "managed") {
             return false;
         }
         rest = &rest[start + length + 1..];
