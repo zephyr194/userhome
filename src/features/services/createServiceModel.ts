@@ -86,7 +86,14 @@ export function setFormField<K extends PlainField>(
   return { ...state, [field]: value };
 }
 
-export function addArgument(state: CreateFormState): CreateFormState {
+/** The list-editing and validation fields, shared with the edit form. */
+export interface EditableListFields {
+  readonly arguments: readonly ArgumentRow[];
+  readonly environment: readonly EnvironmentRow[];
+  readonly nextRowId: number;
+}
+
+export function addArgument<S extends EditableListFields>(state: S): S {
   return {
     ...state,
     arguments: [...state.arguments, { id: state.nextRowId, value: "" }],
@@ -94,27 +101,27 @@ export function addArgument(state: CreateFormState): CreateFormState {
   };
 }
 
-export function updateArgument(
-  state: CreateFormState,
+export function updateArgument<S extends EditableListFields>(
+  state: S,
   id: number,
   value: string,
-): CreateFormState {
+): S {
   return {
     ...state,
     arguments: state.arguments.map((row) => (row.id === id ? { ...row, value } : row)),
   };
 }
 
-export function removeArgument(state: CreateFormState, id: number): CreateFormState {
+export function removeArgument<S extends EditableListFields>(state: S, id: number): S {
   return { ...state, arguments: state.arguments.filter((row) => row.id !== id) };
 }
 
 /** Moves one argument by `delta` places; out of range changes nothing. */
-export function moveArgument(
-  state: CreateFormState,
+export function moveArgument<S extends EditableListFields>(
+  state: S,
   id: number,
   delta: -1 | 1,
-): CreateFormState {
+): S {
   const from = state.arguments.findIndex((row) => row.id === id);
   const to = from + delta;
   if (from < 0 || to < 0 || to >= state.arguments.length) return state;
@@ -123,7 +130,7 @@ export function moveArgument(
   return { ...state, arguments: rows };
 }
 
-export function addEnvironment(state: CreateFormState): CreateFormState {
+export function addEnvironment<S extends EditableListFields>(state: S): S {
   return {
     ...state,
     environment: [...state.environment, { id: state.nextRowId, key: "", value: "" }],
@@ -131,29 +138,29 @@ export function addEnvironment(state: CreateFormState): CreateFormState {
   };
 }
 
-export function updateEnvironmentKey(
-  state: CreateFormState,
+export function updateEnvironmentKey<S extends EditableListFields>(
+  state: S,
   id: number,
   key: string,
-): CreateFormState {
+): S {
   return {
     ...state,
     environment: state.environment.map((row) => (row.id === id ? { ...row, key } : row)),
   };
 }
 
-export function updateEnvironmentValue(
-  state: CreateFormState,
+export function updateEnvironmentValue<S extends EditableListFields>(
+  state: S,
   id: number,
   value: string,
-): CreateFormState {
+): S {
   return {
     ...state,
     environment: state.environment.map((row) => (row.id === id ? { ...row, value } : row)),
   };
 }
 
-export function removeEnvironment(state: CreateFormState, id: number): CreateFormState {
+export function removeEnvironment<S extends EditableListFields>(state: S, id: number): S {
   return { ...state, environment: state.environment.filter((row) => row.id !== id) };
 }
 
@@ -281,7 +288,7 @@ function argumentErrors(rows: readonly ArgumentRow[]): Record<number, string> {
   return errors;
 }
 
-function isBlankEnvironmentRow(row: EnvironmentRow): boolean {
+export function isBlankEnvironmentRow(row: EnvironmentRow): boolean {
   return row.key.trim().length === 0 && row.value.length === 0;
 }
 
@@ -324,10 +331,16 @@ function optionalPathError(path: string, what: string): string | undefined {
   return trimmed.length === 0 ? undefined : pathError(trimmed, what);
 }
 
-export function validateCreateForm(state: CreateFormState): FormErrors {
+export interface EditableFormFields extends EditableListFields {
+  readonly executable: string;
+  readonly workingDirectory: string;
+  readonly stdoutPath: string;
+  readonly stderrPath: string;
+}
+
+/** Every rule except the label, which only a new job has. */
+export function validateEditableFields(state: EditableFormFields): FormErrors {
   const errors: FormErrors = { arguments: {}, environment: {} };
-  const label = labelError(state.labelSuffix);
-  if (label !== undefined) errors.label = label;
   const executable = executableError(state.executable.trim());
   if (executable !== undefined) errors.executable = executable;
   errors.arguments = argumentErrors(state.arguments);
@@ -348,6 +361,13 @@ export function validateCreateForm(state: CreateFormState): FormErrors {
   ) {
     errors.general = `环境变量最多 ${CREATE_SERVICE_LIMITS.environmentEntries} 项。`;
   }
+  return errors;
+}
+
+export function validateCreateForm(state: CreateFormState): FormErrors {
+  const errors = validateEditableFields(state);
+  const label = labelError(state.labelSuffix);
+  if (label !== undefined) errors.label = label;
   return errors;
 }
 

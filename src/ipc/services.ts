@@ -1124,7 +1124,7 @@ const MAX_ACTION_TEXT_BYTES = 1024;
 const MAX_LABEL_BYTES = 255;
 const MAX_EXIT_CODE = 255;
 
-function isValidLaunchdLabel(value: unknown): value is string {
+export function isValidLaunchdLabel(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.length > 0 &&
