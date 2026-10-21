@@ -45,6 +45,9 @@ pub enum OperationKind {
     ServiceStart,
     ServiceStop,
     ServiceRestart,
+    /// A lifecycle action on one launchd job (load, start, stop, restart,
+    /// enable/disable, unload).
+    LaunchdLifecycle,
     ElevationRegistration,
 }
 
@@ -259,6 +262,15 @@ impl OperationCoordinator {
     ) -> Result<OperationEvent, AppError> {
         let mut store = self.store.lock().map_err(|_| AppError::internal())?;
         store.record_progress(operation_id, message)
+    }
+
+    /// Ends a `Cancelling` operation whose work never started as `Cancelled`.
+    pub(crate) fn acknowledge_cancelled(
+        &self,
+        operation_id: &str,
+    ) -> Result<OperationEvent, AppError> {
+        let mut store = self.store.lock().map_err(|_| AppError::internal())?;
+        store.acknowledge_cancelled(operation_id)
     }
 
     pub(crate) fn finish_success(&self, operation_id: &str) -> Result<OperationEvent, AppError> {

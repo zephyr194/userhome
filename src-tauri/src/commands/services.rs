@@ -28,6 +28,10 @@ use crate::{
             caddy_config_validity, get_service as load_service, list_services as load_services,
         },
         launchd::DiscoveryGate,
+        lifecycle::{
+            LaunchdActionCoordinator, LifecycleExecution, LifecycleHost, LifecyclePreview,
+            LifecycleRequest,
+        },
         ownership::{
             HomebrewScope, OwnedDiscovery, check_homebrew_caddy_system, discover_owned_system,
         },
@@ -126,6 +130,40 @@ fn with_create_context<T>(
         retention: settings.get()?.preferences().backup_retention(),
     };
     action(&ctx, &writes, &creator)
+}
+
+/// Previews one lifecycle action (load, start, stop, restart, disable/enable,
+/// unload) on a UserHome-owned launchd job. The request is only an action, a
+/// domain and a label; the job is rediscovered and its ownership judged again
+/// here, and nothing is run.
+#[tauri::command]
+pub async fn preview_launchd_action(
+    app: AppHandle,
+    input: LifecycleRequest,
+) -> Result<LifecyclePreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let actions = app.state::<LaunchdActionCoordinator>();
+        let operations = app.state::<OperationCoordinator>();
+        actions.preview(&LifecycleHost::system(), &operations, &input)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+/// Confirms a lifecycle preview by its operation id only: the job and the plan
+/// are checked again, the command runs, and the real state is read back.
+#[tauri::command]
+pub async fn execute_launchd_action(
+    app: AppHandle,
+    operation_id: String,
+) -> Result<LifecycleExecution, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let actions = app.state::<LaunchdActionCoordinator>();
+        let operations = app.state::<OperationCoordinator>();
+        actions.execute(&LifecycleHost::system(), &operations, &operation_id)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
 }
 
 #[tauri::command]

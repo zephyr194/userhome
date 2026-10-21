@@ -17,9 +17,9 @@ use serde::{Deserialize, Serialize};
 use crate::error::AppError;
 
 use super::launchd::{
-    ConfigFile, DIRECTORIES, Discovery, DiscoveryGate, FileKind, Label, LaunchdDirectory,
-    LaunchdDiscovery, LaunchdDomain, LaunchdService, LinkState, ParseStatus, ServiceIssue,
-    SourceReport, SourceStatus, discover, with_system,
+    ConfigFile, DIRECTORIES, Discovery, DiscoveryGate, FileKind, KeepAliveMode, Label,
+    LaunchdDirectory, LaunchdDiscovery, LaunchdDomain, LaunchdService, LinkState, ParseStatus,
+    ServiceIssue, SourceReport, SourceStatus, discover, with_system,
 };
 
 /// Labels of jobs UserHome creates start with this. Shared with job creation.
@@ -392,6 +392,9 @@ pub struct ModifiableTarget {
     pub label: String,
     pub ownership: Ownership,
     pub config_path: PathBuf,
+    /// `KeepAlive` as the plist read during this rediscovery says; `None` when
+    /// the key is absent or not understood.
+    pub keep_alive: Option<KeepAliveMode>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -491,6 +494,12 @@ pub fn ensure_modifiable(
         label: service.label.clone(),
         ownership: assessment.ownership,
         config_path,
+        keep_alive: service
+            .config_files
+            .first()
+            .and_then(|file| file.details.as_ref())
+            .and_then(|details| details.keep_alive.as_ref())
+            .map(|keep_alive| keep_alive.mode),
     })
 }
 

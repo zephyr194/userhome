@@ -114,6 +114,48 @@ pub fn parse_domain_services(output: &str) -> Result<ParsedJobs, OutputError> {
     Ok(collect(lines.take_while(|line| line.trim() != "}")))
 }
 
+/// The overrides of `launchctl print-disabled <domain>`: one `"label" => state`
+/// line per job that has an override. A job with no line has no override and is
+/// enabled. Both the `enabled`/`disabled` and the older `true`/`false` spellings
+/// are accepted; a line in neither shape is counted, never guessed at.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DisabledOverrides {
+    /// `(label, disabled)` in output order.
+    pub entries: Vec<(String, bool)>,
+    pub skipped_lines: usize,
+}
+
+pub fn parse_print_disabled(output: &str) -> Result<DisabledOverrides, OutputError> {
+    let mut lines = output.lines();
+    if !lines.any(|line| line.trim() == "disabled services = {") {
+        return Err(OutputError::Unparsed);
+    }
+    let mut entries = Vec::new();
+    let mut skipped_lines = 0;
+    for line in lines.take_while(|line| line.trim() != "}") {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let parsed = line.split_once("=>").and_then(|(label, state)| {
+            let label = label.trim().strip_prefix('"')?.strip_suffix('"')?;
+            let disabled = match state.trim() {
+                "disabled" | "true" => true,
+                "enabled" | "false" => false,
+                _ => return None,
+            };
+            (!label.is_empty()).then(|| (label.to_owned(), disabled))
+        });
+        match parsed {
+            Some(entry) => entries.push(entry),
+            None => skipped_lines += 1,
+        }
+    }
+    Ok(DisabledOverrides {
+        entries,
+        skipped_lines,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -232,5 +274,49 @@ mod tests {
         let parsed = parse_domain_services(output).expect("parsed");
         assert_eq!(parsed.jobs.len(), 1);
         assert_eq!(parsed.skipped_lines, 1);
+    }
+
+    #[test]
+    fn parses_print_disabled_in_both_spellings() {
+        let output = "disabled services = {\n\
+                      \t\"com.example.off\" => disabled\n\
+                      \t\"com.example.on\" => enabled\n\
+                      \t\"com.example.old-off\" => true\n\
+                      \t\"com.example.old-on\" => false\n\
+                      }\n";
+        let parsed = parse_print_disabled(output).expect("parsed");
+        assert_eq!(
+            parsed.entries,
+            [
+                ("com.example.off".to_owned(), true),
+                ("com.example.on".to_owned(), false),
+                ("com.example.old-off".to_owned(), true),
+                ("com.example.old-on".to_owned(), false),
+            ]
+        );
+        assert_eq!(parsed.skipped_lines, 0);
+    }
+
+    #[test]
+    fn print_disabled_counts_odd_lines_and_rejects_other_output() {
+        let output = "disabled services = {\n\
+                      \t\"com.example.ok\" => disabled\n\
+                      \tcom.example.unquoted => disabled\n\
+                      \t\"com.example.odd\" => maybe\n\
+                      \t\"\" => disabled\n\
+                      }\n";
+        let parsed = parse_print_disabled(output).expect("parsed");
+        assert_eq!(parsed.entries.len(), 1);
+        assert_eq!(parsed.skipped_lines, 3);
+        // An empty block is a valid answer: nothing is overridden.
+        assert_eq!(
+            parse_print_disabled("disabled services = {\n}\n").map(|parsed| parsed.entries.len()),
+            Ok(0)
+        );
+        assert_eq!(parse_print_disabled(""), Err(OutputError::Unparsed));
+        assert_eq!(
+            parse_print_disabled("unexpected\n"),
+            Err(OutputError::Unparsed)
+        );
     }
 }
