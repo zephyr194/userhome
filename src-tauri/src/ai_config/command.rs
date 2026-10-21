@@ -8,7 +8,8 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use super::registry::{
-    EnvDefinition, FlagDefinition, RiskFlag, ToolDefinition, ValueType, VerifiedVersions,
+    EnvDefinition, FlagDefinition, ListingCoverage, RiskFlag, ToolDefinition, ValueType,
+    VerifiedVersions,
 };
 use super::validate::parse_version;
 use crate::environment::zsh_block::{ValueProblem, check_value, quote};
@@ -64,7 +65,9 @@ impl CommandError {
     pub fn message(&self) -> String {
         match self {
             Self::TooManyChoices => "选择项过多。".to_owned(),
-            Self::UnknownItem => "包含未收录的 flag 或环境变量。".to_owned(),
+            Self::UnknownItem => {
+                "未收录，不能用于命令生成：请求中的 flag 或环境变量不在已收录列表内。".to_owned()
+            }
             Self::DuplicateItem => "同一 flag 或环境变量不能重复选择。".to_owned(),
             Self::NotGeneratable(item) => {
                 format!("{item} 的取值类型未经官方确认，仅供查看，不能生成命令。")
@@ -465,9 +468,21 @@ pub struct OptionItem {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ListingSummary {
+    pub listed_count: usize,
+    pub snapshot_complete: bool,
+    pub coverage_note: Option<String>,
+    pub source_url: String,
+    pub retrieved_on: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OptionSummary {
     pub items: Vec<OptionItem>,
     pub coverage_note: &'static str,
+    pub flags_coverage: ListingSummary,
+    pub env_coverage: ListingSummary,
 }
 
 pub fn option_summary(tool: &ToolDefinition) -> OptionSummary {
@@ -504,6 +519,18 @@ pub fn option_summary(tool: &ToolDefinition) -> OptionSummary {
     OptionSummary {
         items: flags.chain(env).collect(),
         coverage_note: COVERAGE_NOTE,
+        flags_coverage: listing_summary(&tool.flags_coverage, tool.flags.len()),
+        env_coverage: listing_summary(&tool.env_coverage, tool.env.len()),
+    }
+}
+
+fn listing_summary(listing: &ListingCoverage, listed_count: usize) -> ListingSummary {
+    ListingSummary {
+        listed_count,
+        snapshot_complete: listing.snapshot_complete,
+        coverage_note: listing.coverage_note.clone(),
+        source_url: listing.source.url.clone(),
+        retrieved_on: listing.source.retrieved_on.clone(),
     }
 }
 

@@ -576,3 +576,54 @@ fn summary_marks_risks_secrets_and_display_only_items() {
             .all(|item| (item.value_type == "unknown") == !item.generatable)
     );
 }
+
+#[test]
+fn summary_carries_listing_metadata_with_counts_from_the_arrays() {
+    let definition = tool();
+    let summary = option_summary(&definition);
+
+    assert_eq!(summary.flags_coverage.listed_count, definition.flags.len());
+    assert_eq!(summary.env_coverage.listed_count, definition.env.len());
+    assert!(!summary.flags_coverage.snapshot_complete);
+    assert!(!summary.env_coverage.snapshot_complete);
+    assert_eq!(
+        summary.env_coverage.coverage_note,
+        definition.env_coverage.coverage_note
+    );
+    assert_eq!(
+        summary.env_coverage.source_url,
+        "https://code.claude.com/docs/en/env-vars"
+    );
+    assert_eq!(summary.flags_coverage.retrieved_on, "2026-10-21");
+}
+
+#[test]
+fn listed_counts_equal_the_items_of_each_kind() {
+    let summary = option_summary(&tool());
+    let flags = summary
+        .items
+        .iter()
+        .filter(|item| item.kind == "flag")
+        .count();
+    let env = summary
+        .items
+        .iter()
+        .filter(|item| item.kind == "env")
+        .count();
+
+    assert_eq!(summary.flags_coverage.listed_count, flags);
+    assert_eq!(summary.env_coverage.listed_count, env);
+}
+
+#[test]
+fn unlisted_names_are_refused_as_not_for_command_generation() {
+    let flag_error = build(&flags(vec![item("--not-listed-in-snapshot", None)]))
+        .expect_err("unlisted flag is refused");
+    let env_error = build(&env(vec![item("NOT_LISTED_IN_SNAPSHOT", Some("x"))]))
+        .expect_err("unlisted variable is refused");
+
+    assert_eq!(flag_error, CommandError::UnknownItem);
+    assert_eq!(env_error, CommandError::UnknownItem);
+    assert!(flag_error.message().contains("未收录，不能用于命令生成"));
+    assert!(env_error.message().contains("未收录，不能用于命令生成"));
+}

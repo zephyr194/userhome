@@ -797,9 +797,20 @@ export interface ClaudeOptionItem {
   readonly configAlternative: string | null;
 }
 
+export interface ClaudeListingCoverage {
+  readonly listedCount: number;
+  readonly snapshotComplete: boolean;
+  readonly coverageNote: string | null;
+  readonly sourceUrl: string;
+  readonly retrievedOn: string;
+}
+
 export interface ClaudeOptionSummary {
   readonly items: readonly ClaudeOptionItem[];
   readonly coverageNote: string;
+  /** null 表示服务端未给出收录范围，界面按部分收录处理。 */
+  readonly flagsCoverage: ClaudeListingCoverage | null;
+  readonly envCoverage: ClaudeListingCoverage | null;
 }
 
 export interface ClaudeCommandItemChoice {
@@ -842,6 +853,14 @@ const CLAUDE_OPTION_ITEM_KEYS = [
   "configAlternative",
 ] as const;
 const CLAUDE_OPTION_SUMMARY_KEYS = ["items", "coverageNote"] as const;
+const CLAUDE_OPTION_SUMMARY_OPTIONAL_KEYS = ["flagsCoverage", "envCoverage"] as const;
+const CLAUDE_LISTING_COVERAGE_KEYS = [
+  "listedCount",
+  "snapshotComplete",
+  "coverageNote",
+  "sourceUrl",
+  "retrievedOn",
+] as const;
 const CLAUDE_VERSION_RANGE_KEYS = ["min", "max"] as const;
 const CLAUDE_COMMAND_NOTICE_KEYS = ["id", "status", "message"] as const;
 const CLAUDE_BUILT_COMMAND_KEYS = ["text", "notices", "placeholders"] as const;
@@ -910,15 +929,47 @@ function decodeOptionItem(value: unknown): ClaudeOptionItem {
   };
 }
 
+function decodeListingCoverage(value: unknown, listedItems: number): ClaudeListingCoverage {
+  const record = requireRecord(value);
+  requireExactKeys(record, CLAUDE_LISTING_COVERAGE_KEYS);
+  const listedCount = record.listedCount;
+  if (typeof listedCount !== "number" || listedCount !== listedItems) throw decodeFailure();
+  const snapshotComplete = requireBoolean(record.snapshotComplete);
+  const coverageNote = nullableText(record.coverageNote, MAX_CLAUDE_TEXT_LENGTH);
+  if (!snapshotComplete && coverageNote === null) throw decodeFailure();
+  const sourceUrl = requireText(record.sourceUrl, MAX_CLAUDE_TEXT_LENGTH);
+  if (!sourceUrl.startsWith("https://")) throw decodeFailure();
+  const retrievedOn = requireText(record.retrievedOn, MAX_CLAUDE_ITEM_ID_LENGTH);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(retrievedOn)) throw decodeFailure();
+  return { listedCount, snapshotComplete, coverageNote, sourceUrl, retrievedOn };
+}
+
+function decodeOptionalListing(
+  record: Record<string, unknown>,
+  key: "flagsCoverage" | "envCoverage",
+  items: readonly ClaudeOptionItem[],
+  kind: "flag" | "env",
+): ClaudeListingCoverage | null {
+  if (!(key in record)) return null;
+  return decodeListingCoverage(record[key], items.filter((item) => item.kind === kind).length);
+}
+
 export function decodeClaudeOptionSummary(value: unknown): ClaudeOptionSummary {
   const record = requireRecord(value);
-  requireExactKeys(record, CLAUDE_OPTION_SUMMARY_KEYS);
+  requireExactKeysWithOptional(
+    record,
+    CLAUDE_OPTION_SUMMARY_KEYS,
+    CLAUDE_OPTION_SUMMARY_OPTIONAL_KEYS,
+  );
   if (!Array.isArray(record.items) || record.items.length > MAX_CLAUDE_OPTION_ITEMS) {
     throw decodeFailure();
   }
+  const items = record.items.map(decodeOptionItem);
   return {
-    items: record.items.map(decodeOptionItem),
+    items,
     coverageNote: requireText(record.coverageNote, MAX_CLAUDE_TEXT_LENGTH),
+    flagsCoverage: decodeOptionalListing(record, "flagsCoverage", items, "flag"),
+    envCoverage: decodeOptionalListing(record, "envCoverage", items, "env"),
   };
 }
 

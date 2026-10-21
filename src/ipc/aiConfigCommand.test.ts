@@ -108,6 +108,104 @@ describe("decodeClaudeOptionSummary", () => {
   });
 });
 
+function listing(overrides: Record<string, unknown> = {}) {
+  return {
+    listedCount: 1,
+    snapshotComplete: false,
+    coverageNote: "官方页面更多；仅收录 1 项，未收录项不可用于命令生成。",
+    sourceUrl: "https://code.claude.com/docs/en/cli-reference",
+    retrievedOn: "2026-10-21",
+    ...overrides,
+  };
+}
+
+describe("decodeClaudeOptionSummary listing coverage", () => {
+  it("decodes listing coverage whose counts match the items", () => {
+    const decoded = decodeClaudeOptionSummary({
+      ...summary([flagItem(), envItem()]),
+      flagsCoverage: listing(),
+      envCoverage: listing({
+        coverageNote: "官方环境变量页面共 230 项以上；仅收录 1 项。",
+        sourceUrl: "https://code.claude.com/docs/en/env-vars",
+      }),
+    });
+
+    expect(decoded.flagsCoverage).toEqual({
+      listedCount: 1,
+      snapshotComplete: false,
+      coverageNote: "官方页面更多；仅收录 1 项，未收录项不可用于命令生成。",
+      sourceUrl: "https://code.claude.com/docs/en/cli-reference",
+      retrievedOn: "2026-10-21",
+    });
+    expect(decoded.envCoverage?.sourceUrl).toBe("https://code.claude.com/docs/en/env-vars");
+  });
+
+  it("treats absent listing coverage as unknown rather than failing", () => {
+    const decoded = decodeClaudeOptionSummary(summary([flagItem()]));
+
+    expect(decoded.flagsCoverage).toBeNull();
+    expect(decoded.envCoverage).toBeNull();
+  });
+
+  it("accepts a complete listing without a coverage note", () => {
+    const decoded = decodeClaudeOptionSummary({
+      ...summary([flagItem()]),
+      flagsCoverage: listing({ snapshotComplete: true, coverageNote: null }),
+    });
+
+    expect(decoded.flagsCoverage?.snapshotComplete).toBe(true);
+    expect(decoded.flagsCoverage?.coverageNote).toBeNull();
+  });
+
+  it("rejects listing counts that disagree with the decoded items", () => {
+    expect(() =>
+      decodeClaudeOptionSummary({
+        ...summary([flagItem()]),
+        flagsCoverage: listing({ listedCount: 2 }),
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an incomplete listing without a coverage note", () => {
+    expect(() =>
+      decodeClaudeOptionSummary({
+        ...summary([flagItem()]),
+        flagsCoverage: listing({ coverageNote: null }),
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a present but null listing instead of treating it as unknown", () => {
+    expect(() =>
+      decodeClaudeOptionSummary({ ...summary([flagItem()]), flagsCoverage: null }),
+    ).toThrow();
+  });
+
+  it("rejects a non-https source and a malformed retrieval date", () => {
+    expect(() =>
+      decodeClaudeOptionSummary({
+        ...summary([flagItem()]),
+        flagsCoverage: listing({ sourceUrl: "http://code.claude.com/docs/en/cli-reference" }),
+      }),
+    ).toThrow();
+    expect(() =>
+      decodeClaudeOptionSummary({
+        ...summary([flagItem()]),
+        flagsCoverage: listing({ retrievedOn: "2026/10/21" }),
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an unknown key inside listing coverage", () => {
+    expect(() =>
+      decodeClaudeOptionSummary({
+        ...summary([flagItem()]),
+        flagsCoverage: listing({ officialTotal: 230 }),
+      }),
+    ).toThrow();
+  });
+});
+
 describe("decodeClaudeBuiltCommand", () => {
   const valid = {
     text: "ANTHROPIC_API_KEY='<在此填入，勿提交>' claude --model='sonnet'",

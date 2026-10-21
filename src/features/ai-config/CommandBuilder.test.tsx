@@ -27,6 +27,8 @@ function item(overrides: Partial<ClaudeOptionItem> = {}): ClaudeOptionItem {
 
 const SUMMARY: ClaudeOptionSummary = {
   coverageNote: "收录范围：已核实的子集。",
+  flagsCoverage: null,
+  envCoverage: null,
   items: [
     item({
       id: "--restricted",
