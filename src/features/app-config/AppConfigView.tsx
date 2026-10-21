@@ -131,20 +131,22 @@ function EntryRow({
       <Button
         aria-current={selected ? "true" : undefined}
         className={classNames(
-          "grid h-auto w-full min-w-0 justify-start gap-ui-xs py-ui-sm text-left",
+          "grid h-auto w-full min-w-0 justify-start text-left",
           selected && "border-primary bg-selection text-selection-foreground",
         )}
         onClick={() => onSelect(summary.id)}
         size="sm"
       >
-        <span className="font-medium">{summary.name}</span>
-        <span className="break-all text-aux text-muted-foreground">{summary.displayPath}</span>
-        <span className="flex flex-wrap gap-ui-xs">
-          <StatusBadge tone={badge.tone}>
-            <span aria-hidden="true">{badge.symbol} </span>
-            {badge.label}
-          </StatusBadge>
-          <StatusBadge>{CAPABILITY_LABELS[summary.capability]}</StatusBadge>
+        <span className="grid gap-ui-xs py-ui-sm">
+          <span className="font-medium">{summary.name}</span>
+          <span className="break-all text-aux text-muted-foreground">{summary.displayPath}</span>
+          <span className="flex flex-wrap gap-ui-xs">
+            <StatusBadge tone={badge.tone}>
+              <span aria-hidden="true">{badge.symbol} </span>
+              {badge.label}
+            </StatusBadge>
+            <StatusBadge>{CAPABILITY_LABELS[summary.capability]}</StatusBadge>
+          </span>
         </span>
       </Button>
     </li>
@@ -163,6 +165,7 @@ function EntryDetail({
 
   return (
     <Panel
+      ticks
       role="region"
       aria-labelledby={headingId}
       className="grid content-start gap-ui-lg p-ui-lg"
