@@ -30,8 +30,8 @@ interface FieldCopyProps {
   required?: boolean;
 }
 
-const CONTROL_CLASSES =
-  "min-h-control-md w-full min-w-0 rounded-control border border-control-border bg-surface px-ui-lg py-ui-sm text-body text-foreground disabled:cursor-not-allowed disabled:opacity-50";
+const CONTROL_BASE =
+  "w-full min-w-0 rounded-control border border-control-border bg-surface px-ui-lg text-body text-foreground disabled:cursor-not-allowed disabled:opacity-50";
 
 function RequiredMark({ required }: { required?: boolean }) {
   return required ? (
@@ -113,7 +113,7 @@ export function TextField({
       <Input
         {...props}
         ref={inputRef}
-        className={classNames(CONTROL_CLASSES, inputClassName)}
+        className={classNames(CONTROL_BASE, "h-control-md", inputClassName)}
         disabled={disabled}
         invalid={invalid}
         required={required}
@@ -157,7 +157,7 @@ export function TextAreaField({
       <Textarea
         {...props}
         className={classNames(
-          CONTROL_CLASSES,
+          CONTROL_BASE,
           "min-h-24 resize-y py-ui-lg",
           inputClassName,
         )}
@@ -211,7 +211,7 @@ export function SelectField<T extends string>({
     >
       <Select
         {...props}
-        className={classNames(CONTROL_CLASSES, inputClassName)}
+        className={classNames(CONTROL_BASE, "h-control-md", inputClassName)}
         disabled={disabled}
         invalid={invalid}
         required={required}
@@ -265,7 +265,7 @@ export function CheckboxField({
     >
       <Checkbox
         checked={checked}
-        className="group flex min-h-control-sm w-fit min-w-control-sm items-center gap-ui-sm rounded-control bg-surface-muted px-ui-sm text-body disabled:cursor-not-allowed disabled:opacity-50"
+        className="group flex h-control-sm w-fit min-w-control-sm items-center gap-ui-sm rounded-control bg-surface-muted px-ui-sm text-body disabled:cursor-not-allowed disabled:opacity-50"
         defaultChecked={defaultChecked}
         disabled={disabled}
         form={form}
@@ -309,7 +309,7 @@ export function SwitchField({
     >
       <Switch
         checked={checked}
-        className="group relative h-5 w-9 rounded-full bg-surface-muted data-checked:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+        className="group relative flex h-control-sm w-9 items-center disabled:cursor-not-allowed disabled:opacity-50"
         defaultChecked={defaultChecked}
         disabled={disabled}
         form={form}
@@ -317,7 +317,9 @@ export function SwitchField({
         onChange={onCheckedChange}
         value={value}
       >
-        <span className="absolute top-0.5 left-0.5 size-4 rounded-full bg-surface-raised transition-transform group-data-checked:translate-x-4" />
+        <span className="relative block h-4 w-9 rounded-full bg-surface-muted group-data-checked:bg-primary">
+          <span className="absolute top-0.5 left-0.5 size-3 rounded-full bg-surface-raised transition-transform group-data-checked:translate-x-5" />
+        </span>
       </Switch>
     </FieldFrame>
   );
