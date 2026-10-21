@@ -224,9 +224,53 @@ struct PendingResourceWrite {
     target_path: PathBuf,
     kind: WriteKind,
     fingerprint: Option<ContentFingerprint>,
-    content: String,
+    content: Payload,
     proposed_hash: String,
     batch: Option<BatchSlot>,
+}
+
+/// What a write carries. Text comes from the general entries and must be UTF-8.
+/// A PNG comes only from the QR export entry, which encodes it on the backend;
+/// the general confirmation refuses it and the export confirmation refuses text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Payload {
+    Text(String),
+    Png(Vec<u8>),
+}
+
+impl Payload {
+    fn bytes(&self) -> &[u8] {
+        match self {
+            Self::Text(text) => text.as_bytes(),
+            Self::Png(bytes) => bytes,
+        }
+    }
+
+    fn is_png(&self) -> bool {
+        matches!(self, Self::Png(_))
+    }
+}
+
+/// One resource write as the preview sees it, whichever entry built it.
+#[derive(Debug, Clone)]
+struct StepInput {
+    grant_id: GrantId,
+    relative: Option<String>,
+    expected_sha256: Option<String>,
+    content: Payload,
+    sensitive: bool,
+}
+
+impl StepInput {
+    fn text(request: &WriteRequest) -> Self {
+        Self {
+            grant_id: request.grant_id.clone(),
+            relative: request.relative.clone(),
+            expected_sha256: request.expected_sha256.clone(),
+            content: Payload::Text(request.content.clone()),
+            sensitive: request.sensitive,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -265,7 +309,8 @@ impl ResourceWriteCoordinator {
         ctx: &ResourceWriteContext<'_>,
         requests: Vec<WriteRequest>,
     ) -> Result<ResourceWriteBatchPreview, AppError> {
-        self.preview_with(ctx, requests, GrantAccess::General)
+        let steps = requests.iter().map(StepInput::text).collect();
+        self.preview_with(ctx, steps, GrantAccess::General)
     }
 
     /// The dedicated entry of the shell startup editor: only shell startup
@@ -276,7 +321,8 @@ impl ResourceWriteCoordinator {
         ctx: &ResourceWriteContext<'_>,
         requests: Vec<WriteRequest>,
     ) -> Result<ResourceWriteBatchPreview, AppError> {
-        self.preview_with(ctx, requests, GrantAccess::ShellStartup)
+        let steps = requests.iter().map(StepInput::text).collect();
+        self.preview_with(ctx, steps, GrantAccess::ShellStartup)
     }
 
     /// The dedicated entry for creating a LaunchAgent plist: only
@@ -294,26 +340,47 @@ impl ResourceWriteCoordinator {
                 "A LaunchAgent file can only be created, never replaced.",
             ));
         }
-        self.preview_with(ctx, vec![request], GrantAccess::LaunchAgent)
+        self.preview_with(
+            ctx,
+            vec![StepInput::text(&request)],
+            GrantAccess::LaunchAgent,
+        )
+    }
+
+    /// The dedicated entry of the QR export: previews one PNG for a file
+    /// authorization (an existing file is replaced with a backup, a new name is
+    /// created). The bytes are produced by the backend. Only
+    /// `execute_png_export` confirms it.
+    pub fn preview_png_export(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        grant_id: &GrantId,
+        png: Vec<u8>,
+    ) -> Result<ResourceWriteBatchPreview, AppError> {
+        let step = StepInput {
+            grant_id: grant_id.clone(),
+            relative: None,
+            expected_sha256: None,
+            content: Payload::Png(png),
+            sensitive: true,
+        };
+        self.preview_with(ctx, vec![step], GrantAccess::General)
     }
 
     fn preview_with(
         &self,
         ctx: &ResourceWriteContext<'_>,
-        requests: Vec<WriteRequest>,
+        steps: Vec<StepInput>,
         access: GrantAccess,
     ) -> Result<ResourceWriteBatchPreview, AppError> {
-        if requests.is_empty() || requests.len() > MAX_BATCH_STEPS {
+        if steps.is_empty() || steps.len() > MAX_BATCH_STEPS {
             return Err(AppError::invalid_input(
                 "A write batch must contain between 1 and 16 resources.",
             ));
         }
         let mut seen = BTreeSet::new();
-        for request in &requests {
-            if !seen.insert((
-                request.grant_id.as_str().to_owned(),
-                request.relative.clone(),
-            )) {
+        for step in &steps {
+            if !seen.insert((step.grant_id.as_str().to_owned(), step.relative.clone())) {
                 return Err(AppError::invalid_input(
                     "A write batch cannot target the same resource twice.",
                 ));
@@ -322,7 +389,7 @@ impl ResourceWriteCoordinator {
         self.prune(ctx.operations)?;
         {
             let state = self.state.lock().map_err(|_| AppError::internal())?;
-            if state.pending.len() + requests.len() > MAX_PENDING_WRITES {
+            if state.pending.len() + steps.len() > MAX_PENDING_WRITES {
                 return Err(AppError::conflict(
                     "Too many resource previews are pending.",
                 ));
@@ -332,8 +399,8 @@ impl ResourceWriteCoordinator {
         let batch_id = Uuid::new_v4().to_string();
         let mut created: Vec<(String, PendingResourceWrite)> = Vec::new();
         let mut previews = Vec::new();
-        for (index, request) in requests.iter().enumerate() {
-            match prepare_step(ctx, request, access, &batch_id, index) {
+        for (index, step) in steps.iter().enumerate() {
+            match prepare_step(ctx, step, access, &batch_id, index) {
                 Ok((pending, preview)) => {
                     created.push((preview.operation.operation_id.clone(), pending));
                     previews.push(preview);
@@ -393,7 +460,8 @@ impl ResourceWriteCoordinator {
     /// Like `execute`, with a caller-supplied read-back check that runs on the
     /// written bytes after the default text validation, so it can only tighten
     /// it; a failing check restores the previous content. General entry: a
-    /// preview made for a shell startup file is refused here.
+    /// preview made for a shell startup file is refused here, and so is a PNG
+    /// export preview.
     pub fn execute_with<F>(
         &self,
         ctx: &ResourceWriteContext<'_>,
@@ -403,7 +471,21 @@ impl ResourceWriteCoordinator {
     where
         F: FnOnce(&[u8]) -> Result<(), AppError>,
     {
-        self.execute_inner(ctx, request, GrantAccess::General, post_validate)
+        self.execute_inner(ctx, request, GrantAccess::General, false, post_validate)
+    }
+
+    /// Confirms a preview made by `preview_png_export`. Refuses text previews,
+    /// so bytes reach a file only through the export entry.
+    pub fn execute_png_export<F>(
+        &self,
+        ctx: &ResourceWriteContext<'_>,
+        request: &ConfirmRequest,
+        post_validate: F,
+    ) -> Result<ResourceWriteExecution, AppError>
+    where
+        F: FnOnce(&[u8]) -> Result<(), AppError>,
+    {
+        self.execute_inner(ctx, request, GrantAccess::General, true, post_validate)
     }
 
     /// Confirms a preview made by `preview_shell_startup`, with the editor's
@@ -417,7 +499,13 @@ impl ResourceWriteCoordinator {
     where
         F: FnOnce(&[u8]) -> Result<(), AppError>,
     {
-        self.execute_inner(ctx, request, GrantAccess::ShellStartup, post_validate)
+        self.execute_inner(
+            ctx,
+            request,
+            GrantAccess::ShellStartup,
+            false,
+            post_validate,
+        )
     }
 
     /// Confirms a preview made by `preview_launch_agent`, with the creator's
@@ -431,7 +519,7 @@ impl ResourceWriteCoordinator {
     where
         F: FnOnce(&[u8]) -> Result<(), AppError>,
     {
-        self.execute_inner(ctx, request, GrantAccess::LaunchAgent, post_validate)
+        self.execute_inner(ctx, request, GrantAccess::LaunchAgent, false, post_validate)
     }
 
     fn execute_inner<F>(
@@ -439,6 +527,7 @@ impl ResourceWriteCoordinator {
         ctx: &ResourceWriteContext<'_>,
         request: &ConfirmRequest,
         access: GrantAccess,
+        png: bool,
         post_validate: F,
     ) -> Result<ResourceWriteExecution, AppError>
     where
@@ -453,7 +542,7 @@ impl ResourceWriteCoordinator {
                 .ok_or_else(AppError::operation_not_found)?;
             // A preview is only confirmed by the kind of entry that made it;
             // the refusal leaves it pending.
-            if pending.access != access {
+            if pending.access != access || pending.content.is_png() != png {
                 return Err(GrantError::ReservedPurpose.into());
             }
             // A confirmation is only valid for the target that was previewed.
@@ -498,7 +587,11 @@ impl ResourceWriteCoordinator {
             "Re-checking authorization and content.",
         )?;
 
-        match run_transaction(ctx, &pending, with_default_validation(post_validate)) {
+        match run_transaction(
+            ctx,
+            &pending,
+            with_default_validation(pending.content.is_png(), post_validate),
+        ) {
             Err(error) => {
                 ctx.operations
                     .finish_failure(&request.operation_id, error.clone())?;
@@ -643,74 +736,74 @@ struct Target {
 
 fn prepare_step(
     ctx: &ResourceWriteContext<'_>,
-    request: &WriteRequest,
+    step: &StepInput,
     access: GrantAccess,
     batch_id: &str,
     index: usize,
 ) -> Result<(PendingResourceWrite, ResourceWritePreview), AppError> {
-    if request.content.len() > MAX_WRITE_BYTES {
+    let bytes = step.content.bytes();
+    if bytes.len() > MAX_WRITE_BYTES {
         return Err(AppError::validation_failed(
             "The proposed content exceeds the size limit.",
         ));
     }
-    validate_text(request.content.as_bytes())?;
-    let target = resolve_target(ctx, &request.grant_id, request.relative.as_deref(), access)?;
+    match step.content {
+        Payload::Text(_) => validate_text(bytes)?,
+        Payload::Png(_) => validate_png(bytes)?,
+    }
+    let target = resolve_target(ctx, &step.grant_id, step.relative.as_deref(), access)?;
+    if step.content.is_png()
+        && !target
+            .path
+            .extension()
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("png"))
+    {
+        return Err(AppError::invalid_input(
+            "The export file name must end with .png.",
+        ));
+    }
 
-    let (kind, fingerprint, current_text) = match (target.exists, &request.expected_sha256) {
-        (true, Some(expected)) => {
+    let (kind, fingerprint, current_text) = match &step.content {
+        Payload::Text(_) => text_current_state(ctx, step, access, target.exists)?,
+        Payload::Png(_) if target.exists => {
             let read = ctx
                 .grants
                 .read_with_access(
-                    &request.grant_id,
-                    request.relative.as_deref(),
+                    &step.grant_id,
+                    step.relative.as_deref(),
                     MAX_WRITE_BYTES,
                     access,
                 )
                 .map_err(read_error)?;
-            if &read.fingerprint.sha256 != expected {
-                return Err(stale_error());
-            }
-            let text = read
-                .text()
-                .map_err(|_| {
-                    AppError::validation_failed("The current content is not valid UTF-8 text.")
-                })?
-                .to_owned();
-            (WriteKind::Replace, Some(read.fingerprint), text)
+            (WriteKind::Replace, Some(read.fingerprint), String::new())
         }
-        (true, None) => {
-            return Err(AppError::conflict(
-                "The resource already exists; read it first and send its content hash.",
-            ));
-        }
-        (false, Some(_)) => {
-            return Err(AppError::conflict(
-                "The resource no longer exists; preview again to create it.",
-            ));
-        }
-        (false, None) => (WriteKind::Create, None, String::new()),
+        Payload::Png(_) => (WriteKind::Create, None, String::new()),
     };
 
-    let proposed_hash = hash_bytes(request.content.as_bytes());
+    let proposed_hash = hash_bytes(bytes);
     let current_hash = fingerprint.as_ref().map(|f| f.sha256.clone());
     let pending = PendingResourceWrite {
         access,
-        grant_id: request.grant_id.clone(),
-        relative: request.relative.clone(),
+        grant_id: step.grant_id.clone(),
+        relative: step.relative.clone(),
         target_path: target.path.clone(),
         kind,
         fingerprint,
-        content: request.content.clone(),
+        content: step.content.clone(),
         proposed_hash: proposed_hash.clone(),
         batch: Some(BatchSlot {
             batch_id: batch_id.to_owned(),
             index,
         }),
     };
+    let proposed_text = match &step.content {
+        Payload::Text(text) => text.as_str(),
+        Payload::Png(_) => "",
+    };
     let diff = build_diff(
         &current_text,
-        &request.content,
-        if request.sensitive {
+        proposed_text,
+        if step.sensitive || step.content.is_png() {
             "SENSITIVE"
         } else {
             "STANDARD"
@@ -748,6 +841,44 @@ fn prepare_step(
         diff,
     };
     Ok((pending, preview))
+}
+
+fn text_current_state(
+    ctx: &ResourceWriteContext<'_>,
+    step: &StepInput,
+    access: GrantAccess,
+    exists: bool,
+) -> Result<(WriteKind, Option<ContentFingerprint>, String), AppError> {
+    match (exists, &step.expected_sha256) {
+        (true, Some(expected)) => {
+            let read = ctx
+                .grants
+                .read_with_access(
+                    &step.grant_id,
+                    step.relative.as_deref(),
+                    MAX_WRITE_BYTES,
+                    access,
+                )
+                .map_err(read_error)?;
+            if &read.fingerprint.sha256 != expected {
+                return Err(stale_error());
+            }
+            let text = read
+                .text()
+                .map_err(|_| {
+                    AppError::validation_failed("The current content is not valid UTF-8 text.")
+                })?
+                .to_owned();
+            Ok((WriteKind::Replace, Some(read.fingerprint), text))
+        }
+        (true, None) => Err(AppError::conflict(
+            "The resource already exists; read it first and send its content hash.",
+        )),
+        (false, Some(_)) => Err(AppError::conflict(
+            "The resource no longer exists; preview again to create it.",
+        )),
+        (false, None) => Ok((WriteKind::Create, None, String::new())),
+    }
 }
 
 fn intent_for(pending: &PendingResourceWrite) -> OperationIntent {
@@ -967,7 +1098,7 @@ where
 
     match atomic_replace(
         target,
-        pending.content.as_bytes(),
+        pending.content.bytes(),
         mode,
         Some((expected_hash, MAX_WRITE_BYTES)),
     ) {
@@ -1006,7 +1137,7 @@ where
         )
         .map_err(read_error)
         .and_then(|written| {
-            if written.content == pending.content.as_bytes() {
+            if written.content == pending.content.bytes() {
                 post_validate(&written.content)
             } else {
                 Err(AppError::validation_failed(
@@ -1089,7 +1220,7 @@ where
         error,
     };
 
-    if let Err(error) = atomic_create_new(target, pending.content.as_bytes(), NEW_FILE_MODE) {
+    if let Err(error) = atomic_create_new(target, pending.content.bytes(), NEW_FILE_MODE) {
         let unknown = error.code() == AppErrorCode::PartialFailure;
         return outcome(
             WriteStatus::Failed,
@@ -1110,7 +1241,7 @@ where
     let verification = fs::read(target)
         .map_err(|_| AppError::permission_denied("The new file cannot be read back."))
         .and_then(|written| {
-            if written == pending.content.as_bytes() {
+            if written == pending.content.bytes() {
                 post_validate(&written)
             } else {
                 Err(AppError::validation_failed(
@@ -1152,14 +1283,21 @@ where
     }
 }
 
-/// The default text validation always runs first; the caller's own check only
+/// The default content validation always runs first; the caller's own check only
 /// runs when it passed, so a caller can tighten the check but never replace it.
-fn with_default_validation<F>(post_validate: F) -> impl FnOnce(&[u8]) -> Result<(), AppError>
+fn with_default_validation<F>(
+    png: bool,
+    post_validate: F,
+) -> impl FnOnce(&[u8]) -> Result<(), AppError>
 where
     F: FnOnce(&[u8]) -> Result<(), AppError>,
 {
     move |bytes| {
-        validate_text(bytes)?;
+        if png {
+            validate_png(bytes)?;
+        } else {
+            validate_text(bytes)?;
+        }
         post_validate(bytes)
     }
 }
@@ -1172,6 +1310,19 @@ fn validate_text(bytes: &[u8]) -> Result<(), AppError> {
         _ => Err(AppError::validation_failed(
             "The content must be UTF-8 text without NUL bytes.",
         )),
+    }
+}
+
+const PNG_SIGNATURE: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
+
+/// The export check: the bytes must start with the PNG signature.
+fn validate_png(bytes: &[u8]) -> Result<(), AppError> {
+    if bytes.starts_with(&PNG_SIGNATURE) {
+        Ok(())
+    } else {
+        Err(AppError::validation_failed(
+            "The content is not a PNG image.",
+        ))
     }
 }
 
@@ -1217,7 +1368,7 @@ impl ResourceWriteCoordinator {
             .pending
             .get_mut(operation_id)
             .expect("pending")
-            .content = content.to_owned();
+            .content = Payload::Text(content.to_owned());
     }
 }
 
@@ -1261,9 +1412,9 @@ mod resources_tests {
 
     use super::{
         super::{GrantCoordinator, GrantPurpose, GrantRecord, GrantStore},
-        ConfirmRequest, FileState, RecoveryPoint, ResourceWriteBatchPreview, ResourceWriteContext,
-        ResourceWriteCoordinator, ResourceWriteExecution, StepState, WriteKind, WriteRequest,
-        WriteStatus,
+        ConfirmRequest, FileState, MAX_WRITE_BYTES, PNG_SIGNATURE, RecoveryPoint,
+        ResourceWriteBatchPreview, ResourceWriteContext, ResourceWriteCoordinator,
+        ResourceWriteExecution, StepState, WriteKind, WriteRequest, WriteStatus,
     };
 
     #[derive(Default)]
@@ -2079,5 +2230,227 @@ mod resources_tests {
         assert!(json.contains("\"redacted\":true"));
         assert!(!json.contains("TOKEN=new"));
         assert!(!json.contains(fixture.root.to_str().expect("utf8 root")));
+    }
+
+    fn png_bytes(tag: &str) -> Vec<u8> {
+        let mut bytes = PNG_SIGNATURE.to_vec();
+        bytes.extend_from_slice(tag.as_bytes());
+        bytes.extend_from_slice(&[0, 1, 2]);
+        bytes
+    }
+
+    fn export_confirm(operation_id: &str, grant: &GrantRecord) -> ConfirmRequest {
+        ConfirmRequest {
+            operation_id: operation_id.to_owned(),
+            grant_id: grant.id.clone(),
+            relative: None,
+        }
+    }
+
+    #[test]
+    fn png_export_creates_a_new_file_with_exact_bytes_and_no_recovery_point() {
+        let fixture = Fixture::new();
+        let grant = fixture
+            .grants
+            .create_new_file(&fixture.project, "qr.png")
+            .expect("new-file grant");
+        let png = png_bytes("create");
+        let batch = fixture
+            .writes
+            .preview_png_export(&fixture.ctx(), &grant.id, png.clone())
+            .expect("preview");
+        let step = &batch.steps[0];
+        assert_eq!(step.kind, WriteKind::Create);
+        assert_eq!(step.recovery_point, RecoveryPoint::NoneCreated);
+        assert_eq!(step.proposed_hash, hash_bytes(&png));
+        assert_eq!(step.diff.changed_line_count(), 0);
+        assert!(!fixture.project.join("qr.png").exists());
+
+        let execution = fixture
+            .writes
+            .execute_png_export(
+                &fixture.ctx(),
+                &export_confirm(&step.operation.operation_id, &grant),
+                |_| Ok(()),
+            )
+            .expect("confirm");
+        assert_eq!(execution.outcome.status, WriteStatus::Succeeded);
+        assert_eq!(execution.outcome.file_state, FileState::Written);
+        assert_eq!(
+            fs::read(fixture.project.join("qr.png")).expect("written"),
+            png
+        );
+        assert_eq!(mode(&fixture.project.join("qr.png")), 0o600);
+    }
+
+    #[test]
+    fn png_export_replaces_an_existing_file_after_backing_up_the_previous_bytes() {
+        let fixture = Fixture::new();
+        let old = png_bytes("old");
+        let file = fixture.project.join("qr.png");
+        fs::write(&file, &old).expect("seed");
+        let grant = fixture
+            .grants
+            .create(GrantPurpose::ConfigFile, &file)
+            .expect("file grant");
+        let new = png_bytes("new");
+        let batch = fixture
+            .writes
+            .preview_png_export(&fixture.ctx(), &grant.id, new.clone())
+            .expect("preview");
+        let step = &batch.steps[0];
+        assert_eq!(step.kind, WriteKind::Replace);
+        assert_eq!(step.recovery_point, RecoveryPoint::Backup);
+        assert_eq!(
+            step.current_hash.as_deref(),
+            Some(hash_bytes(&old).as_str())
+        );
+        assert_eq!(fs::read(&file).expect("untouched"), old);
+
+        let execution = fixture
+            .writes
+            .execute_png_export(
+                &fixture.ctx(),
+                &export_confirm(&step.operation.operation_id, &grant),
+                |_| Ok(()),
+            )
+            .expect("confirm");
+        assert_eq!(execution.outcome.status, WriteStatus::Succeeded);
+        assert_eq!(execution.outcome.recovery_point, RecoveryPoint::Backup);
+        assert_eq!(fs::read(&file).expect("written"), new);
+        assert!(
+            fixture
+                .backup_files()
+                .iter()
+                .any(|path| fs::read(path).ok().as_deref() == Some(old.as_slice())),
+            "the previous bytes are kept as a backup"
+        );
+    }
+
+    #[test]
+    fn png_export_refuses_to_replace_a_file_that_changed_after_the_preview() {
+        let fixture = Fixture::new();
+        let file = fixture.project.join("qr.png");
+        fs::write(&file, png_bytes("old")).expect("seed");
+        let grant = fixture
+            .grants
+            .create(GrantPurpose::ConfigFile, &file)
+            .expect("file grant");
+        let batch = fixture
+            .writes
+            .preview_png_export(&fixture.ctx(), &grant.id, png_bytes("new"))
+            .expect("preview");
+        let step = &batch.steps[0];
+        let other = b"someone else's file".to_vec();
+        fs::write(&file, &other).expect("changed");
+
+        let error = fixture
+            .writes
+            .execute_png_export(
+                &fixture.ctx(),
+                &export_confirm(&step.operation.operation_id, &grant),
+                |_| Ok(()),
+            )
+            .expect_err("stale preview");
+        assert_re_preview(&error, AppErrorCode::Conflict);
+        assert_eq!(fs::read(&file).expect("kept"), other);
+    }
+
+    #[test]
+    fn general_confirmation_refuses_a_png_preview_and_keeps_it_pending() {
+        let fixture = Fixture::new();
+        let grant = fixture
+            .grants
+            .create_new_file(&fixture.project, "qr.png")
+            .expect("new-file grant");
+        let batch = fixture
+            .writes
+            .preview_png_export(&fixture.ctx(), &grant.id, png_bytes("general"))
+            .expect("preview");
+        let operation_id = batch.steps[0].operation.operation_id.clone();
+
+        fixture
+            .writes
+            .execute(&fixture.ctx(), &export_confirm(&operation_id, &grant))
+            .expect_err("a PNG is never written by the general confirmation");
+        assert_eq!(fixture.status(&operation_id), OperationStatus::Previewed);
+        assert!(!fixture.project.join("qr.png").exists());
+
+        fixture
+            .writes
+            .execute_png_export(
+                &fixture.ctx(),
+                &export_confirm(&operation_id, &grant),
+                |_| Ok(()),
+            )
+            .expect("still confirmable by the export entry");
+        assert!(fixture.project.join("qr.png").exists());
+    }
+
+    #[test]
+    fn export_confirmation_refuses_a_text_preview_and_keeps_it_pending() {
+        let fixture = Fixture::new();
+        fixture.seed("note.txt", "a\n");
+        let batch = fixture.preview(vec![fixture.request("note.txt", Some("a\n"), "b\n")]);
+        let operation_id = batch.steps[0].operation.operation_id.clone();
+
+        fixture
+            .writes
+            .execute_png_export(
+                &fixture.ctx(),
+                &fixture.confirm_request(&operation_id, "note.txt"),
+                |_| Ok(()),
+            )
+            .expect_err("text is never written by the export entry");
+        assert_eq!(fixture.status(&operation_id), OperationStatus::Previewed);
+        assert_eq!(
+            fs::read_to_string(fixture.project.join("note.txt")).expect("kept"),
+            "a\n"
+        );
+        fixture
+            .confirm(&operation_id, "note.txt")
+            .expect("text still confirms");
+    }
+
+    #[test]
+    fn png_export_refuses_non_png_bytes_wrong_names_and_oversized_content() {
+        let fixture = Fixture::new();
+        let grant = fixture
+            .grants
+            .create_new_file(&fixture.project, "qr.png")
+            .expect("new-file grant");
+        assert_eq!(
+            fixture
+                .writes
+                .preview_png_export(&fixture.ctx(), &grant.id, b"<html></html>".to_vec())
+                .expect_err("not a PNG")
+                .code(),
+            AppErrorCode::ValidationFailed
+        );
+        let mut oversized = PNG_SIGNATURE.to_vec();
+        oversized.resize(MAX_WRITE_BYTES + 1, 0);
+        assert_eq!(
+            fixture
+                .writes
+                .preview_png_export(&fixture.ctx(), &grant.id, oversized)
+                .expect_err("too large")
+                .code(),
+            AppErrorCode::ValidationFailed
+        );
+
+        let text_name = fixture
+            .grants
+            .create_new_file(&fixture.project, "qr.txt")
+            .expect("new-file grant");
+        assert_eq!(
+            fixture
+                .writes
+                .preview_png_export(&fixture.ctx(), &text_name.id, png_bytes("name"))
+                .expect_err("name must end with .png")
+                .code(),
+            AppErrorCode::InvalidInput
+        );
+        assert!(!fixture.project.join("qr.txt").exists());
+        assert!(!fixture.project.join("qr.png").exists());
     }
 }

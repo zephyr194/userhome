@@ -74,12 +74,12 @@ impl NativePicker for DialogPicker {
 }
 
 #[cfg(not(feature = "e2e"))]
-fn native_picker(app: tauri::AppHandle) -> DialogPicker {
+pub(crate) fn native_picker(app: tauri::AppHandle) -> DialogPicker {
     DialogPicker::new(app)
 }
 
 #[cfg(feature = "e2e")]
-fn native_picker(_app: tauri::AppHandle) -> e2e_fixture::FixturePicker {
+pub(crate) fn native_picker(_app: tauri::AppHandle) -> e2e_fixture::FixturePicker {
     e2e_fixture::FixturePicker::from_env()
 }
 
@@ -266,7 +266,7 @@ fn canonical_home_from(raw: Option<std::ffi::OsString>) -> Option<PathBuf> {
 
 // One native panel at a time; a second request while one is open is refused
 // instead of stacking dialogs.
-static PICKER_OPEN: AtomicBool = AtomicBool::new(false);
+pub(crate) static PICKER_OPEN: AtomicBool = AtomicBool::new(false);
 
 struct PickerSlot<'a>(&'a AtomicBool);
 
@@ -314,7 +314,7 @@ fn mode_kind(mode: PickMode) -> GrantKind {
 /// Validates the purpose, shows the picker off the async threads, and turns a
 /// chosen path into a grant through `GrantCoordinator::create`. The chosen path
 /// is never read, written or returned; only the redacted summary leaves here.
-async fn select_grant<P: NativePicker>(
+pub(crate) async fn select_grant<P: NativePicker>(
     coordinator: &GrantCoordinator,
     picker_open: &AtomicBool,
     picker: P,

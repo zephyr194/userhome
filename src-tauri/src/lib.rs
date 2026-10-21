@@ -14,6 +14,7 @@ pub mod lifecycle;
 pub mod operations;
 pub mod process;
 pub mod process_session;
+pub mod qr;
 pub mod security;
 pub mod services;
 pub mod settings;
@@ -148,6 +149,9 @@ pub fn run() {
             commands::text_tools::format_json,
             commands::text_tools::format_xml,
             commands::text_tools::transform_text,
+            commands::qr::preview_qr,
+            commands::qr::prepare_qr_export,
+            commands::qr::confirm_qr_export,
             commands::elevation::get_helper_status,
             commands::elevation::register_helper,
             commands::elevation::unregister_helper,

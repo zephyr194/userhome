@@ -8,6 +8,7 @@ pub mod environment;
 pub mod grants;
 pub mod lifecycle;
 pub mod operations;
+pub mod qr;
 pub mod resources;
 pub mod services;
 pub mod settings;
