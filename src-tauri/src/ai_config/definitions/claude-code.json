@@ -1430,8 +1430,13 @@
         {
           "id": "effortLevel",
           "keyPath": "effortLevel",
-          "valueType": "string",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "low",
+            "medium",
+            "high",
+            "xhigh"
+          ],
           "description": "Set a default effort level for models without a saved level of their own",
           "defaultNote": "文档标注：未设置（unset）",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
@@ -2700,8 +2705,11 @@
         {
           "id": "promptCacheTtl",
           "keyPath": "promptCacheTtl",
-          "valueType": "string",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "5m",
+            "1h"
+          ],
           "description": "Choose the prompt cache lifetime for the main conversation",
           "defaultNote": "文档标注：未设置（unset）",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
@@ -4000,8 +4008,11 @@
         {
           "id": "subagentPromptCacheTtl",
           "keyPath": "subagentPromptCacheTtl",
-          "valueType": "string",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "5m",
+            "1h"
+          ],
           "description": "Choose the prompt cache lifetime for subagents and other requests outside the main conversation",
           "defaultNote": "文档标注：未设置（unset）",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
