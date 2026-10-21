@@ -4,6 +4,7 @@ export type AppRouteId =
   | "homebrew"
   | "services"
   | "environment"
+  | "caddy"
   | "tools"
   | "settings";
 
@@ -13,6 +14,7 @@ export type AppRouteIcon =
   | "homebrew"
   | "services"
   | "environment"
+  | "caddy"
   | "tools"
   | "settings";
 
@@ -83,6 +85,13 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     label: "环境变量",
     eyebrow: "环境文件",
     description: "在指定目录中只读查看 dotenv 文件，秘密值默认遮盖。",
+    group: "system-tools",
+  },
+  caddy: {
+    icon: "caddy",
+    label: "Caddy",
+    eyebrow: "本地代理",
+    description: "检测 Caddy 并编辑本机反向代理规则；保存不会启动或重载 Caddy。",
     group: "system-tools",
   },
   tools: {

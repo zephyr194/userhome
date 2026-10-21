@@ -1,3 +1,4 @@
+import { CaddyPage } from "../features/caddy/CaddyPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { EnvironmentPage } from "../features/environment/EnvironmentPage";
 import { ServicesPage } from "../features/services/ServicesPage";
@@ -92,6 +93,10 @@ export function RoutePanel({
 
   if (route.id === "environment") {
     return <EnvironmentPage />;
+  }
+
+  if (route.id === "caddy") {
+    return <CaddyPage />;
   }
 
   if (route.id === "tools") {
