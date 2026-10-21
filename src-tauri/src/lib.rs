@@ -127,6 +127,8 @@ pub fn run() {
             commands::app_config::app_config_list,
             commands::app_config::app_config_read,
             commands::ai_config::ai_config_detect,
+            commands::ai_config::ai_config_claude_snapshot,
+            commands::ai_config::ai_config_claude_read,
             commands::settings::get_discovery_exclusions,
             commands::settings::update_discovery_exclusions,
             commands::catalog::list_managed_apps,
