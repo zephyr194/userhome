@@ -1457,6 +1457,7 @@ mod resources_tests {
 
     use uuid::Uuid;
 
+    use crate::grants::GrantError;
     use crate::{
         config::{ConfigEnvironment, read::hash_bytes},
         error::{AppError, AppErrorCode},
@@ -2467,6 +2468,88 @@ mod resources_tests {
         fixture
             .confirm(&operation_id, "note.txt")
             .expect("text still confirms");
+    }
+
+    fn assert_refused<T>(result: Result<T, AppError>, expected: &AppError) {
+        match result {
+            Ok(_) => panic!("tls material must be refused"),
+            Err(error) => {
+                assert_eq!(error.code(), expected.code());
+                assert_eq!(error.message(), expected.message());
+            }
+        }
+    }
+
+    #[test]
+    fn tls_material_grants_are_refused_by_the_write_coordinator_entries() {
+        let fixture = Fixture::new();
+        let key = fixture.seed("key.pem", "material\n");
+        let tls = fixture
+            .grants
+            .create(GrantPurpose::TlsMaterialFile, &key)
+            .expect("tls material grant");
+        let refused = AppError::from(GrantError::ReservedPurpose);
+
+        assert_refused(
+            fixture.writes.preview(
+                &fixture.ctx(),
+                vec![WriteRequest {
+                    grant_id: tls.id.clone(),
+                    relative: None,
+                    expected_sha256: None,
+                    content: "changed\n".to_owned(),
+                    sensitive: false,
+                }],
+            ),
+            &refused,
+        );
+        assert_refused(
+            fixture
+                .writes
+                .preview_png_export(&fixture.ctx(), &tls.id, png_bytes("tls")),
+            &refused,
+        );
+        assert_eq!(fs::read_to_string(&key).expect("key kept"), "material\n");
+    }
+
+    #[test]
+    fn a_confirmation_naming_a_tls_material_grant_never_writes_it() {
+        let fixture = Fixture::new();
+        let key = fixture.seed("key.pem", "material\n");
+        let tls = fixture
+            .grants
+            .create(GrantPurpose::TlsMaterialFile, &key)
+            .expect("tls material grant");
+        fixture.seed("note.txt", "a\n");
+        let batch = fixture.preview(vec![fixture.request("note.txt", Some("a\n"), "b\n")]);
+        let operation_id = batch.steps[0].operation.operation_id.clone();
+
+        let confirmed = fixture.writes.execute(
+            &fixture.ctx(),
+            &ConfirmRequest {
+                operation_id: operation_id.clone(),
+                grant_id: tls.id.clone(),
+                relative: None,
+            },
+        );
+        assert!(confirmed.is_err());
+        let exported = fixture.writes.execute_png_export(
+            &fixture.ctx(),
+            &ConfirmRequest {
+                operation_id: "unknown-operation".to_owned(),
+                grant_id: tls.id.clone(),
+                relative: None,
+            },
+            |_| Ok(()),
+        );
+        assert!(exported.is_err());
+
+        assert_eq!(fixture.status(&operation_id), OperationStatus::Previewed);
+        assert_eq!(fs::read_to_string(&key).expect("key kept"), "material\n");
+        assert_eq!(
+            fs::read_to_string(fixture.project.join("note.txt")).expect("note kept"),
+            "a\n"
+        );
     }
 
     #[test]

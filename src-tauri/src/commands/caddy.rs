@@ -1747,4 +1747,50 @@ mod tls_tests {
             "y.pem"
         );
     }
+
+    fn tls_material_grant(root: &Path) -> (GrantCoordinator, GrantId) {
+        let key = root.join("key.pem");
+        std::fs::write(&key, b"material").expect("material");
+        let grants = GrantCoordinator::new(
+            crate::grants::GrantStore::new(root.join("support")),
+            Some(root.to_path_buf()),
+        );
+        let record = grants
+            .create(GrantPurpose::TlsMaterialFile, &key)
+            .expect("tls material grant");
+        (grants, record.id)
+    }
+
+    #[test]
+    fn tls_material_grants_are_refused_by_the_external_raw_entries() {
+        let root = std::fs::canonicalize(std::env::temp_dir())
+            .expect("canonical temp dir")
+            .join(format!("userhome-cmd-tls-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).expect("root");
+        let (grants, id) = tls_material_grant(&root);
+        let refused = AppError::from(crate::grants::GrantError::ReservedPurpose);
+        let assert_refused = |result: Result<(), AppError>| match result {
+            Ok(()) => panic!("tls material must be refused"),
+            Err(error) => {
+                assert_eq!(error.code(), refused.code());
+                assert_eq!(error.message(), refused.message());
+            }
+        };
+
+        assert_refused(read_external(&grants, &id).map(|_| ()));
+        assert_refused(ensure_config_file(&grants, &id));
+        assert_refused(
+            source_text(
+                ValidateSource {
+                    kind: SourceKind::ExternalFile,
+                    rules: None,
+                    text: None,
+                    grant_id: Some(id.as_str().to_owned()),
+                },
+                &grants,
+            )
+            .map(|_| ()),
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }

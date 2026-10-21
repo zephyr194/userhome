@@ -2789,4 +2789,52 @@ mod tests {
         assert!(coordinator.last_apply().is_none());
         coordinator.stop().expect("stop");
     }
+
+    #[test]
+    fn the_logs_of_a_running_instance_never_keep_the_certificate_or_key_paths() {
+        let scratch = Scratch::new();
+        let executable = scratch.fixture(
+            "echo 'serving /Users/u/certs/cert.pem'\necho 'key /Users/u/certs/key.pem' >&2\nsleep 30",
+        );
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let plan_id = prepare_tls(&coordinator, &executable)
+            .plan_id
+            .expect("plan");
+        let checks = scratch.checks();
+        let runs = scratch.runs();
+        let runner = accepting();
+        let granted = |_: &[TlsConfig]| -> Result<Vec<TlsPaths>, AppError> { Ok(granted_paths()) };
+        let env = StartEnvironment {
+            checks_root: &checks,
+            runs_root: &runs,
+            runner: &runner,
+            probe: &Ready(true),
+            tls: &granted,
+        };
+        let status = coordinator
+            .start(&plan_id, ConfigSource::Rules, &env)
+            .expect("start");
+        assert_eq!(status.state, RunState::Running);
+        let session_id = status.session_id.expect("session");
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let page = loop {
+            let page = coordinator.logs(&session_id, 0, 0).expect("logs");
+            let written = page.stdout.contains("<证书文件>") && page.stderr.contains("<私钥文件>");
+            if written || Instant::now() >= deadline {
+                break page;
+            }
+            thread::sleep(Duration::from_millis(50));
+        };
+        coordinator.stop().expect("stop");
+
+        assert!(
+            page.stdout.contains("serving <证书文件>"),
+            "{}",
+            page.stdout
+        );
+        assert!(page.stderr.contains("key <私钥文件>"), "{}", page.stderr);
+        assert!(!page.stdout.contains("/Users"), "{}", page.stdout);
+        assert!(!page.stderr.contains("/Users"), "{}", page.stderr);
+    }
 }
