@@ -16,6 +16,7 @@ import {
 import {
   ALGORITHM_OPTIONS,
   DIRECTION_OPTIONS,
+  algorithmNote,
   conversionLabel,
   failureView,
   oversizedView,
@@ -116,6 +117,12 @@ export function CodecTool() {
           options={DIRECTION_OPTIONS}
         />
       </div>
+
+      {algorithmNote(algorithm) ? (
+        <p className="m-0 text-xs text-muted-foreground">
+          {algorithmNote(algorithm)}
+        </p>
+      ) : null}
 
       <TextAreaField
         label="输入"

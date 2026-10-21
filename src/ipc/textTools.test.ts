@@ -230,3 +230,39 @@ describe("format_xml request arguments", () => {
     });
   });
 });
+
+describe("transform_text URL-safe Base64 requests", () => {
+  it("sends the URL-safe algorithm as its own enum value", () => {
+    expect(transformTextArgs("😀", "BASE64_URL_SAFE", "ENCODE")).toEqual({
+      input: { text: "😀", algorithm: "BASE64_URL_SAFE", direction: "ENCODE" },
+    });
+  });
+
+  it("invokes transform_text and returns the unpadded result", async () => {
+    let seen: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      seen = { command, payload };
+      return { text: "8J-YgA", notices: [] };
+    });
+
+    await expect(
+      transformText("😀", "BASE64_URL_SAFE", "ENCODE"),
+    ).resolves.toEqual({ text: "8J-YgA", notices: [] });
+    expect(seen?.command).toBe("transform_text");
+    expect(seen?.payload).toEqual({
+      input: { text: "😀", algorithm: "BASE64_URL_SAFE", direction: "ENCODE" },
+    });
+  });
+
+  it("rejects malformed URL-safe responses instead of showing them", async () => {
+    mockIPC(() => ({ text: null, notices: [] }));
+    await expect(
+      transformText("8J-YgA", "BASE64_URL_SAFE", "DECODE"),
+    ).rejects.toMatchObject({ code: "INTERNAL" });
+
+    mockIPC(() => ({ text: "a", notices: [UNKNOWN_ENTITY_NOTICE, 7] }));
+    await expect(
+      transformText("8J-YgA", "BASE64_URL_SAFE", "DECODE"),
+    ).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+});

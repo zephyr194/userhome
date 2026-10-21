@@ -4,6 +4,7 @@ import type { TransformedText } from "../../ipc/textTools";
 import {
   ALGORITHM_OPTIONS,
   DIRECTION_OPTIONS,
+  algorithmNote,
   conversionLabel,
   failureView,
   oversizedView,
@@ -16,6 +17,7 @@ describe("codec option lists", () => {
   it("offers every algorithm and both directions with stable values", () => {
     expect(ALGORITHM_OPTIONS.map((option) => option.value)).toEqual([
       "BASE64",
+      "BASE64_URL_SAFE",
       "URL_COMPONENT",
       "HTML_ENTITIES",
       "UNICODE_ESCAPES",
@@ -30,6 +32,23 @@ describe("codec option lists", () => {
   it("labels a conversion with its algorithm and direction", () => {
     expect(conversionLabel("BASE64", "ENCODE")).toBe("Base64（UTF-8） · 编码");
     expect(conversionLabel("UTF8_HEX", "DECODE")).toBe("UTF-8 Hex · 解码");
+  });
+
+  it("labels URL-safe Base64 as its own algorithm", () => {
+    expect(conversionLabel("BASE64_URL_SAFE", "ENCODE")).toBe(
+      "Base64（URL-safe） · 编码",
+    );
+    expect(
+      ALGORITHM_OPTIONS.find((option) => option.value === "BASE64_URL_SAFE")
+        ?.label,
+    ).toBe("Base64（URL-safe）");
+  });
+
+  it("explains that URL-safe encoding is unpadded and rejects + and /", () => {
+    const note = algorithmNote("BASE64_URL_SAFE");
+    expect(note).toContain("不带 = 填充");
+    expect(note).toContain("+ 和 /");
+    expect(algorithmNote("BASE64")).toBeUndefined();
   });
 });
 

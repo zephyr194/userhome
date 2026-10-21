@@ -109,6 +109,7 @@ export function formatXml(
 
 export type CodecAlgorithm =
   | "BASE64"
+  | "BASE64_URL_SAFE"
   | "URL_COMPONENT"
   | "HTML_ENTITIES"
   | "UNICODE_ESCAPES"

@@ -187,6 +187,17 @@ mod tests {
     }
 
     #[test]
+    fn transform_request_accepts_url_safe_base64_as_its_own_algorithm() {
+        let parsed = serde_json::from_str::<TransformTextInput>(
+            r#"{"text":"a","algorithm":"BASE64_URL_SAFE","direction":"DECODE"}"#,
+        );
+        assert!(matches!(
+            parsed.map(|input| input.algorithm),
+            Ok(CodecAlgorithm::Base64UrlSafe)
+        ));
+    }
+
+    #[test]
     fn codec_invalid_input_names_the_character_position() {
         let error = map_codec_error(CodecError::Invalid {
             position: Some(5),

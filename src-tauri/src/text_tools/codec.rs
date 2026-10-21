@@ -8,6 +8,7 @@ pub const UNKNOWN_ENTITY_NOTICE: &str = "未识别的实体已保留。";
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum CodecAlgorithm {
     Base64,
+    Base64UrlSafe,
     UrlComponent,
     HtmlEntities,
     UnicodeEscapes,
@@ -50,8 +51,18 @@ pub fn transform(
     }
     let mut notices = Vec::new();
     let output = match (algorithm, direction) {
-        (CodecAlgorithm::Base64, CodecDirection::Encode) => base64_encode(text),
-        (CodecAlgorithm::Base64, CodecDirection::Decode) => base64_decode(text)?,
+        (CodecAlgorithm::Base64, CodecDirection::Encode) => {
+            base64_encode(text, Base64Flavor::Standard)
+        }
+        (CodecAlgorithm::Base64, CodecDirection::Decode) => {
+            base64_decode(text, Base64Flavor::Standard)?
+        }
+        (CodecAlgorithm::Base64UrlSafe, CodecDirection::Encode) => {
+            base64_encode(text, Base64Flavor::UrlSafe)
+        }
+        (CodecAlgorithm::Base64UrlSafe, CodecDirection::Decode) => {
+            base64_decode(text, Base64Flavor::UrlSafe)?
+        }
         (CodecAlgorithm::UrlComponent, CodecDirection::Encode) => url_encode(text),
         (CodecAlgorithm::UrlComponent, CodecDirection::Decode) => url_decode(text)?,
         (CodecAlgorithm::HtmlEntities, CodecDirection::Encode) => html_encode(text),
@@ -72,6 +83,8 @@ pub fn transform(
 
 const BASE64_ALPHABET: &[u8; 64] =
     b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const BASE64_URL_SAFE_ALPHABET: &[u8; 64] =
+    b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const HEX_LOWER: &[u8; 16] = b"0123456789abcdef";
 const HEX_UPPER: &[u8; 16] = b"0123456789ABCDEF";
 const MAX_ENTITY_NAME_BYTES: usize = 32;
@@ -93,7 +106,23 @@ fn hex_digit(byte: u8) -> Option<u8> {
     }
 }
 
-fn base64_encode(text: &str) -> String {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Base64Flavor {
+    Standard,
+    UrlSafe,
+}
+
+impl Base64Flavor {
+    fn alphabet(self) -> &'static [u8; 64] {
+        match self {
+            Self::Standard => BASE64_ALPHABET,
+            Self::UrlSafe => BASE64_URL_SAFE_ALPHABET,
+        }
+    }
+}
+
+fn base64_encode(text: &str, flavor: Base64Flavor) -> String {
+    let alphabet = flavor.alphabet();
     let mut out = String::with_capacity(text.len().div_ceil(3) * 4);
     for chunk in text.as_bytes().chunks(3) {
         let b1 = chunk.get(1).copied().unwrap_or(0);
@@ -102,8 +131,8 @@ fn base64_encode(text: &str) -> String {
         for index in 0..4 {
             if index <= chunk.len() {
                 let sextet = (block >> (18 - 6 * index)) & 0x3f;
-                out.push(char::from(BASE64_ALPHABET[sextet as usize]));
-            } else {
+                out.push(char::from(alphabet[sextet as usize]));
+            } else if flavor == Base64Flavor::Standard {
                 out.push('=');
             }
         }
@@ -111,15 +140,15 @@ fn base64_encode(text: &str) -> String {
     out
 }
 
-fn base64_value(ch: char) -> Option<u32> {
+fn base64_value(ch: char, alphabet: &[u8; 64]) -> Option<u32> {
     let byte = u8::try_from(ch).ok()?;
-    BASE64_ALPHABET
+    alphabet
         .iter()
         .position(|&candidate| candidate == byte)
         .map(|value| value as u32)
 }
 
-fn base64_decode(text: &str) -> Result<String, CodecError> {
+fn base64_decode(text: &str, flavor: Base64Flavor) -> Result<String, CodecError> {
     let mut out = Vec::with_capacity(text.len() / 4 * 3);
     let mut group: Vec<(usize, u32)> = Vec::with_capacity(4);
     let mut data_count = 0usize;
@@ -139,7 +168,14 @@ fn base64_decode(text: &str) -> Result<String, CodecError> {
         if padding > 0 {
             return Err(invalid(Some(position), "Base64 填充之后不能再有数据"));
         }
-        let value = base64_value(ch).ok_or_else(|| invalid(Some(position), "非法 Base64 字符"))?;
+        if flavor == Base64Flavor::UrlSafe && (ch == '+' || ch == '/') {
+            return Err(invalid(
+                Some(position),
+                "URL-safe Base64 不使用 + 或 /，如需标准 Base64 请选择对应算法",
+            ));
+        }
+        let value = base64_value(ch, flavor.alphabet())
+            .ok_or_else(|| invalid(Some(position), "非法 Base64 字符"))?;
         group.push((position, value));
         data_count += 1;
         if group.len() == 4 {
@@ -553,6 +589,105 @@ mod tests {
             err("/w==", Base64, Decode),
             CodecError::Invalid { position: None, .. }
         ));
+    }
+
+    #[test]
+    fn url_safe_base64_round_trips_chinese_emoji_newlines_and_empty() {
+        for sample in SAMPLES {
+            let encoded = ok(sample, Base64UrlSafe, Encode);
+            assert!(
+                !encoded.contains(['+', '/', '=']),
+                "{sample:?} -> {encoded}"
+            );
+            assert_eq!(&ok(&encoded, Base64UrlSafe, Decode), sample);
+        }
+    }
+
+    #[test]
+    fn url_safe_base64_encodes_without_padding_and_known_vectors() {
+        assert_eq!(ok("", Base64UrlSafe, Encode), "");
+        assert_eq!(ok("f", Base64UrlSafe, Encode), "Zg");
+        assert_eq!(ok("fo", Base64UrlSafe, Encode), "Zm8");
+        assert_eq!(ok("foo", Base64UrlSafe, Encode), "Zm9v");
+        assert_eq!(ok("中", Base64UrlSafe, Encode), "5Lit");
+        assert_eq!(ok("中文字符", Base64UrlSafe, Encode), "5Lit5paH5a2X56ym");
+    }
+
+    #[test]
+    fn url_safe_base64_uses_dash_and_underscore_where_standard_uses_plus_and_slash() {
+        assert_eq!(ok("😀", Base64UrlSafe, Encode), "8J-YgA");
+        assert_eq!(ok("\u{83f}", Base64UrlSafe, Encode), "4KC_");
+        assert_eq!(ok("😀", Base64, Encode), "8J+YgA==");
+        assert_eq!(ok("\u{83f}", Base64, Encode), "4KC/");
+    }
+
+    #[test]
+    fn url_safe_base64_decode_accepts_unpadded_and_correctly_padded_input() {
+        assert_eq!(ok("", Base64UrlSafe, Decode), "");
+        assert_eq!(ok("Zg", Base64UrlSafe, Decode), "f");
+        assert_eq!(ok("Zg==", Base64UrlSafe, Decode), "f");
+        assert_eq!(ok("Zm8", Base64UrlSafe, Decode), "fo");
+        assert_eq!(ok("Zm8=", Base64UrlSafe, Decode), "fo");
+        assert_eq!(ok("Zm9v", Base64UrlSafe, Decode), "foo");
+        assert_eq!(ok("8J-YgA", Base64UrlSafe, Decode), "😀");
+        assert_eq!(ok("8J-YgA==", Base64UrlSafe, Decode), "😀");
+        assert_eq!(ok("Zm8=\r\n", Base64UrlSafe, Decode), "fo");
+    }
+
+    #[test]
+    fn url_safe_base64_decode_rejects_wrong_padding() {
+        for raw in ["Zg=", "Zg===", "===", "Zm9v=", "Zg==Zg==", "Zg=Zg"] {
+            assert!(
+                matches!(err(raw, Base64UrlSafe, Decode), CodecError::Invalid { .. }),
+                "{raw}"
+            );
+        }
+    }
+
+    #[test]
+    fn url_safe_base64_decode_rejects_standard_alphabet_with_guidance() {
+        assert_eq!(position("8J+YgA", Base64UrlSafe, Decode), Some(3));
+        assert_eq!(position("4KC/", Base64UrlSafe, Decode), Some(4));
+        assert!(matches!(
+            err("8J+YgA", Base64UrlSafe, Decode),
+            CodecError::Invalid { reason, .. } if reason.contains("标准 Base64")
+        ));
+    }
+
+    #[test]
+    fn url_safe_base64_decode_tolerates_line_breaks_but_not_spaces() {
+        assert_eq!(ok("Zm9v\nYmFy", Base64UrlSafe, Decode), "foobar");
+        assert_eq!(position("Zm9v YmFy", Base64UrlSafe, Decode), Some(5));
+        assert_eq!(position("Zm9v!", Base64UrlSafe, Decode), Some(5));
+    }
+
+    #[test]
+    fn url_safe_base64_decode_rejects_non_canonical_trailing_bits() {
+        assert!(matches!(
+            err("Zh", Base64UrlSafe, Decode),
+            CodecError::Invalid { .. }
+        ));
+    }
+
+    #[test]
+    fn url_safe_base64_decode_rejects_non_utf8_bytes_without_replacement() {
+        assert!(matches!(
+            err("_w", Base64UrlSafe, Decode),
+            CodecError::Invalid { position: None, .. }
+        ));
+        assert!(matches!(
+            err("-_8", Base64UrlSafe, Decode),
+            CodecError::Invalid { position: None, .. }
+        ));
+    }
+
+    #[test]
+    fn url_safe_base64_shares_the_input_limit() {
+        let over = "a".repeat(MAX_INPUT_BYTES + 1);
+        assert_eq!(
+            transform(&over, Base64UrlSafe, Decode),
+            Err(CodecError::InputTooLarge)
+        );
     }
 
     #[test]
