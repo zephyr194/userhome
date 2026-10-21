@@ -112,6 +112,14 @@ pub enum RunState {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum Applied {
+    Applied,
+    Pending,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum FailureKind {
     ExecutableUnavailable,
     InvalidSetup,
@@ -494,6 +502,7 @@ struct Run {
     session: ProcessSession,
     source: ConfigSource,
     directory: RunDirectory,
+    active_fingerprint: Mutex<String>,
     ready: AtomicBool,
     user_stopped: AtomicBool,
     cleaned: AtomicBool,
@@ -503,11 +512,17 @@ struct Run {
 }
 
 impl Run {
-    fn new(session: ProcessSession, source: ConfigSource, directory: RunDirectory) -> Self {
+    fn new(
+        session: ProcessSession,
+        source: ConfigSource,
+        directory: RunDirectory,
+        fingerprint: String,
+    ) -> Self {
         Self {
             session,
             source,
             directory,
+            active_fingerprint: Mutex::new(fingerprint),
             ready: AtomicBool::new(false),
             user_stopped: AtomicBool::new(false),
             cleaned: AtomicBool::new(false),
@@ -773,7 +788,12 @@ impl CaddyRunCoordinator {
             }
             Err(_) => return self.refuse(FailureKind::InvalidSetup, Vec::new()),
         };
-        let run = Arc::new(Run::new(session, plan.source, directory));
+        let run = Arc::new(Run::new(
+            session,
+            plan.source,
+            directory,
+            fingerprint(&runtime),
+        ));
         {
             let mut slot = lock(&self.slot);
             slot.active = Some(Arc::clone(&run));
@@ -876,6 +896,34 @@ impl CaddyRunCoordinator {
             return RunStatus::bare(RunState::Failed, Some(kind), diagnostics);
         }
         RunStatus::bare(RunState::Stopped, None, Vec::new())
+    }
+
+    /// Compares the saved text with the configuration the serving instance was
+    /// started from. Unknown unless a ready own session of the same source exists.
+    pub fn applied(&self, source: ConfigSource, saved: Option<&str>) -> Applied {
+        let (Some(run), Some(saved)) = (self.serving_run(), saved) else {
+            return Applied::Unknown;
+        };
+        if run.source != source {
+            return Applied::Unknown;
+        }
+        if fingerprint(&inject_admin(saved, &run.directory.socket))
+            == *lock(&run.active_fingerprint)
+        {
+            Applied::Applied
+        } else {
+            Applied::Pending
+        }
+    }
+
+    fn serving_run(&self) -> Option<Arc<Run>> {
+        let slot = lock(&self.slot);
+        slot.active.clone().filter(|run| {
+            !slot.busy
+                && !run.user_stopped.load(Ordering::SeqCst)
+                && run.ready.load(Ordering::SeqCst)
+                && run.session.status().state == SessionState::Running
+        })
     }
 
     pub fn logs(
@@ -1659,5 +1707,160 @@ mod tests {
     fn stop_without_an_own_session_only_reports_status() {
         let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
         assert_eq!(coordinator.stop().expect("stop").state, RunState::Stopped);
+    }
+
+    struct Scripted {
+        reload: Result<RunOutput, RunFailure>,
+        calls: std::cell::RefCell<Vec<validate::RunSpec>>,
+    }
+
+    impl Scripted {
+        fn with_reload(reload: Result<RunOutput, RunFailure>) -> Self {
+            Self {
+                reload,
+                calls: std::cell::RefCell::new(Vec::new()),
+            }
+        }
+
+        fn count(&self) -> usize {
+            self.calls.borrow().len()
+        }
+    }
+
+    fn is_reload(spec: &validate::RunSpec) -> bool {
+        spec.arguments.first().and_then(|arg| arg.to_str()) == Some("reload")
+    }
+
+    impl CaddyRunner for Scripted {
+        fn run(
+            &self,
+            spec: &validate::RunSpec,
+            _cancel: &AtomicBool,
+        ) -> Result<RunOutput, RunFailure> {
+            self.calls.borrow_mut().push(spec.clone());
+            if is_reload(spec) {
+                self.reload.clone()
+            } else {
+                Ok(RunOutput {
+                    success: true,
+                    stdout: b"{}".to_vec(),
+                    stderr: Vec::new(),
+                })
+            }
+        }
+    }
+
+    const STARTED_TEXT: &str = "example.com {\n}\n";
+
+    fn start_text(
+        coordinator: &CaddyRunCoordinator,
+        scratch: &Scratch,
+        runner: &dyn CaddyRunner,
+        probe: &dyn AdminProbe,
+    ) -> RunStatus {
+        let executable = scratch.fixture("sleep 30");
+        start_with(coordinator, scratch, &executable, runner, probe).expect("status")
+    }
+
+    #[test]
+    fn applied_is_unknown_without_a_serving_session() {
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(STARTED_TEXT)),
+            Applied::Unknown
+        );
+    }
+
+    #[test]
+    fn saved_text_equal_to_the_started_text_is_applied() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let started = start_text(&coordinator, &scratch, &accepting(), &Ready(true));
+        assert_eq!(started.state, RunState::Running);
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(STARTED_TEXT)),
+            Applied::Applied
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn saved_text_that_changed_after_the_start_is_pending() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        start_text(&coordinator, &scratch, &accepting(), &Ready(true));
+        assert_eq!(
+            coordinator.applied(
+                ConfigSource::Raw,
+                Some("example.com {\n\trespond \"changed\"\n}\n")
+            ),
+            Applied::Pending
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn applied_is_unknown_for_another_source_or_without_a_saved_text() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        start_text(&coordinator, &scratch, &accepting(), &Ready(true));
+        assert_eq!(
+            coordinator.applied(ConfigSource::Rules, Some(STARTED_TEXT)),
+            Applied::Unknown
+        );
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, None),
+            Applied::Unknown
+        );
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn applied_is_unknown_once_the_process_is_no_longer_serving() {
+        let scratch = Scratch::new();
+        let executable = scratch.fixture("exit 1");
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let status = start_with(
+            &coordinator,
+            &scratch,
+            &executable,
+            &accepting(),
+            &Ready(false),
+        )
+        .expect("status");
+        assert_eq!(status.state, RunState::Failed);
+        assert_eq!(
+            coordinator.applied(ConfigSource::Raw, Some(STARTED_TEXT)),
+            Applied::Unknown
+        );
+    }
+
+    #[test]
+    fn applied_checks_never_invoke_the_runner() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        let runner = Scripted::with_reload(Err(RunFailure::Unavailable));
+        start_text(&coordinator, &scratch, &runner, &Ready(true));
+        let before = runner.count();
+        coordinator.applied(
+            ConfigSource::Raw,
+            Some("example.com {\n\trespond \"x\"\n}\n"),
+        );
+        coordinator.status();
+        assert_eq!(runner.count(), before);
+        coordinator.stop().expect("stop");
+    }
+
+    #[test]
+    fn the_recorded_fingerprint_is_the_runtime_copy_for_the_started_text() {
+        let scratch = Scratch::new();
+        let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+        start_text(&coordinator, &scratch, &accepting(), &Ready(true));
+        let serving = coordinator.serving_run().expect("serving");
+        assert_eq!(
+            *lock(&serving.active_fingerprint),
+            fingerprint(&inject_admin(STARTED_TEXT, &serving.directory.socket))
+        );
+        coordinator.stop().expect("stop");
     }
 }
