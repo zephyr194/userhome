@@ -79,3 +79,64 @@ export function formatJson(
     formatJsonArgs(text, mode),
   );
 }
+
+export type CodecAlgorithm =
+  | "BASE64"
+  | "URL_COMPONENT"
+  | "HTML_ENTITIES"
+  | "UNICODE_ESCAPES"
+  | "UTF8_HEX";
+
+export type CodecDirection = "ENCODE" | "DECODE";
+
+export interface TransformedText {
+  text: string;
+  notices: string[];
+}
+
+const MAX_NOTICES = 4;
+const KNOWN_NOTICES: readonly string[] = ["未识别的实体已保留。"];
+
+function decodeNotice(value: unknown): string {
+  if (typeof value !== "string" || !KNOWN_NOTICES.includes(value)) {
+    throw createInternalError();
+  }
+  return value;
+}
+
+export function decodeTransformedText(value: unknown): TransformedText {
+  if (
+    !isRecord(value) ||
+    typeof value.text !== "string" ||
+    !Array.isArray(value.notices) ||
+    value.notices.length > MAX_NOTICES
+  ) {
+    throw createInternalError();
+  }
+  return {
+    text: value.text,
+    notices: value.notices.map(decodeNotice),
+  };
+}
+
+export function transformTextArgs(
+  text: string,
+  algorithm: CodecAlgorithm,
+  direction: CodecDirection,
+): {
+  input: { text: string; algorithm: CodecAlgorithm; direction: CodecDirection };
+} {
+  return { input: { text, algorithm, direction } };
+}
+
+export function transformText(
+  text: string,
+  algorithm: CodecAlgorithm,
+  direction: CodecDirection,
+): Promise<TransformedText> {
+  return invokeCommand(
+    "transform_text",
+    decodeTransformedText,
+    transformTextArgs(text, algorithm, direction),
+  );
+}

@@ -1,9 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
   decodeFormattedJson,
   decodeJsonWarning,
+  decodeTransformedText,
   formatJsonArgs,
+  transformText,
+  transformTextArgs,
 } from "./textTools";
+
+const UNKNOWN_ENTITY_NOTICE = "未识别的实体已保留。";
 
 function expectInternal(decode: () => unknown) {
   let thrown: unknown;
@@ -98,5 +104,73 @@ describe("format_json request arguments", () => {
     expect(formatJsonArgs('{"a":1}', "INDENT4")).toEqual({
       input: { text: '{"a":1}', mode: "INDENT4" },
     });
+  });
+});
+
+afterEach(() => {
+  clearMocks();
+});
+
+describe("transform_text payload decoding", () => {
+  it("decodes a result with and without the known notice", () => {
+    expect(decodeTransformedText({ text: "f", notices: [] })).toEqual({
+      text: "f",
+      notices: [],
+    });
+    expect(
+      decodeTransformedText({
+        text: "&copy;",
+        notices: [UNKNOWN_ENTITY_NOTICE],
+      }),
+    ).toEqual({ text: "&copy;", notices: [UNKNOWN_ENTITY_NOTICE] });
+  });
+
+  it("fails closed on malformed result shapes", () => {
+    expectInternal(() => decodeTransformedText(null));
+    expectInternal(() => decodeTransformedText({ notices: [] }));
+    expectInternal(() => decodeTransformedText({ text: 1, notices: [] }));
+    expectInternal(() => decodeTransformedText({ text: "a", notices: "x" }));
+    expectInternal(() =>
+      decodeTransformedText({ text: "a", notices: ["随便一条"] }),
+    );
+    expectInternal(() => decodeTransformedText({ text: "a", notices: [1] }));
+    expectInternal(() =>
+      decodeTransformedText({
+        text: "a",
+        notices: Array.from({ length: 5 }, () => UNKNOWN_ENTITY_NOTICE),
+      }),
+    );
+  });
+});
+
+describe("transform_text request arguments", () => {
+  it("sends exactly the text, algorithm and direction", () => {
+    expect(transformTextArgs("a+b", "URL_COMPONENT", "DECODE")).toEqual({
+      input: { text: "a+b", algorithm: "URL_COMPONENT", direction: "DECODE" },
+    });
+  });
+
+  it("invokes transform_text and decodes the typed result", async () => {
+    let seen: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      seen = { command, payload };
+      return { text: "5Lit", notices: [] };
+    });
+
+    await expect(transformText("中", "BASE64", "ENCODE")).resolves.toEqual({
+      text: "5Lit",
+      notices: [],
+    });
+    expect(seen?.command).toBe("transform_text");
+    expect(seen?.payload).toEqual({
+      input: { text: "中", algorithm: "BASE64", direction: "ENCODE" },
+    });
+  });
+
+  it("rejects a malformed response instead of showing it", async () => {
+    mockIPC(() => ({ text: 1, notices: [] }));
+    await expect(
+      transformText("a", "BASE64", "ENCODE"),
+    ).rejects.toMatchObject({ code: "INTERNAL" });
   });
 });

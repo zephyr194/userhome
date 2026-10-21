@@ -19,4 +19,10 @@ describe("ToolsPage", () => {
     expect(html).not.toContain("未合并或删除");
     expect(html).not.toContain("<script");
   });
+
+  it("offers the codec tool as a second tab beside JSON", () => {
+    const html = renderToStaticMarkup(<ToolsPage />);
+    expect(html).toContain("编解码");
+    expect(html.match(/role="tab"/g)).toHaveLength(2);
+  });
 });

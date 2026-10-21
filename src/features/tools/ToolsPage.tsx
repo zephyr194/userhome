@@ -1,5 +1,6 @@
 import { useState, type ComponentType } from "react";
 import { Button } from "../../components/ui";
+import { CodecTool } from "./CodecTool";
 import { JsonTool } from "./JsonTool";
 
 /**
@@ -12,12 +13,18 @@ const TOOL_ENTRIES = [
     label: "JSON",
     summary: "严格校验与格式化，保留数字与重复键原文。",
   },
+  {
+    id: "codec",
+    label: "编解码",
+    summary: "Base64、URL、HTML 实体、Unicode 转义与 UTF-8 Hex 的单次双向转换。",
+  },
 ] as const;
 
 type ToolId = (typeof TOOL_ENTRIES)[number]["id"];
 
 const TOOL_PANELS: Record<ToolId, ComponentType> = {
   json: JsonTool,
+  codec: CodecTool,
 };
 
 export function ToolsPage() {
