@@ -8,18 +8,25 @@ import {
 } from "../../components/ui";
 import type { AppError } from "../../ipc/core";
 import {
+  clearQrIcon,
   confirmQrExport,
   prepareQrExport,
   previewQr,
+  selectQrIcon,
   type QrErrorCorrection,
+  type QrIconSummary,
 } from "../../ipc/qr";
 import {
+  ICON_RULES_TEXT,
   LEVEL_OPTIONS,
   QR_MAX_BYTES,
   SIZE_OPTIONS,
   canStartExport,
+  describeIcon,
   describePrepared,
+  effectiveLevel,
   exportOutcomeView,
+  iconLevelNotice,
   inputProblem,
   isExportBusy,
   toPixelSize,
@@ -34,6 +41,9 @@ export function QrTool() {
   const [text, setText] = useState("");
   const [level, setLevel] = useState<QrErrorCorrection>("M");
   const [size, setSize] = useState<SizeChoice>("512");
+  const [icon, setIcon] = useState<QrIconSummary | null>(null);
+  const [iconBusy, setIconBusy] = useState(false);
+  const [iconError, setIconError] = useState<string | undefined>();
   const [preview, setPreview] = useState<QrPreviewView>({ status: "idle" });
   const [exportView, setExportView] = useState<QrExportView>({
     status: "idle",
@@ -50,7 +60,10 @@ export function QrTool() {
   );
 
   const busy = isExportBusy(exportView);
-  const problem = inputProblem(text, level);
+  const inputLocked = busy || iconBusy;
+  const iconId = icon?.iconId;
+  const shownLevel = effectiveLevel(level, iconId);
+  const problem = inputProblem(text, shownLevel);
 
   function generate(next: QrSnapshot) {
     const requestId = previewTracker.issue();
@@ -58,7 +71,10 @@ export function QrTool() {
       setPreview({ status: "idle" });
       return;
     }
-    const limitMessage = inputProblem(next.text, next.level);
+    const limitMessage = inputProblem(
+      next.text,
+      effectiveLevel(next.level, next.iconId),
+    );
     if (limitMessage) {
       setPreview({ status: "error", message: limitMessage });
       return;
@@ -68,6 +84,7 @@ export function QrTool() {
       text: next.text,
       level: next.level,
       size: toPixelSize(next.size),
+      iconId: next.iconId,
     }).then(
       (result) => {
         if (previewTracker.isCurrent(requestId)) {
@@ -87,6 +104,7 @@ export function QrTool() {
       text: next.text ?? text,
       level: next.level ?? level,
       size: next.size ?? size,
+      iconId,
     };
     setText(snapshot.text);
     setLevel(snapshot.level);
@@ -94,6 +112,55 @@ export function QrTool() {
     exportTracker.invalidate();
     setExportView({ status: "idle" });
     generate(snapshot);
+  }
+
+  function replaceIcon(nextIcon: QrIconSummary | null) {
+    setIcon(nextIcon);
+    exportTracker.invalidate();
+    setExportView({ status: "idle" });
+    generate({
+      text,
+      level,
+      size,
+      iconId: nextIcon?.iconId,
+    });
+  }
+
+  function chooseIcon() {
+    setIconBusy(true);
+    setIconError(undefined);
+    selectQrIcon().then(
+      (outcome) => {
+        setIconBusy(false);
+        if (outcome.status === "CANCELLED") return;
+        replaceIcon({
+          iconId: outcome.iconId,
+          format: outcome.format,
+          width: outcome.width,
+          height: outcome.height,
+          thumbnailPngBase64: outcome.thumbnailPngBase64,
+        });
+      },
+      (error: AppError) => {
+        setIconBusy(false);
+        setIconError(error.message);
+      },
+    );
+  }
+
+  function removeIcon() {
+    setIconBusy(true);
+    setIconError(undefined);
+    clearQrIcon().then(
+      () => {
+        setIconBusy(false);
+        replaceIcon(null);
+      },
+      (error: AppError) => {
+        setIconBusy(false);
+        setIconError(error.message);
+      },
+    );
   }
 
   function startExport() {
@@ -105,9 +172,10 @@ export function QrTool() {
     setExportView({ status: "preparing" });
     prepareQrExport({
       text: snapshot.text,
-      level: snapshot.level,
+      level: effectiveLevel(snapshot.level, snapshot.iconId),
       size: toPixelSize(snapshot.size),
       expectedSha256: preview.preview.sha256,
+      iconId: snapshot.iconId,
     }).then(
       (outcome) => {
         if (!exportTracker.isCurrent(requestId)) return;
@@ -168,12 +236,12 @@ export function QrTool() {
 
       <TextAreaField
         label="文本或 URL"
-        description={`UTF-8，上限 ${QR_MAX_BYTES[level]} 字节（当前纠错等级）。`}
+        description={`UTF-8，上限 ${QR_MAX_BYTES[shownLevel]} 字节（当前纠错等级）。`}
         value={text}
         onValueChange={(next) => change({ text: next })}
         rows={4}
         spellCheck={false}
-        disabled={busy}
+        disabled={inputLocked}
         error={problem}
       />
 
@@ -183,16 +251,72 @@ export function QrTool() {
           value={level}
           onValueChange={(next) => change({ level: next })}
           options={LEVEL_OPTIONS}
-          disabled={busy}
+          disabled={inputLocked}
         />
         <SelectField
           label="尺寸"
           value={size}
           onValueChange={(next) => change({ size: next })}
           options={SIZE_OPTIONS}
-          disabled={busy}
+          disabled={inputLocked}
         />
       </div>
+
+      <section aria-labelledby="qr-icon-heading" className="grid gap-ui-md">
+        <h3 id="qr-icon-heading" className="text-body font-semibold">
+          中心图标（可选）
+        </h3>
+        <p className="m-0 text-xs text-muted-foreground">{ICON_RULES_TEXT}</p>
+
+        {icon ? (
+          <div className="flex flex-wrap items-center gap-ui-md">
+            {/* Fixed white substrate, like the preview: the thumbnail is the backend's PNG. */}
+            <div
+              className="grid w-fit rounded-control p-ui-sm"
+              style={{ backgroundColor: "#ffffff" }}
+            >
+              <img
+                alt="图标缩略图"
+                src={`data:image/png;base64,${icon.thumbnailPngBase64}`}
+                style={{ width: 64, height: 64, objectFit: "contain" }}
+              />
+            </div>
+            <p className="m-0 text-xs text-muted-foreground">
+              {describeIcon(icon)}
+            </p>
+            <Button onClick={chooseIcon} disabled={inputLocked}>
+              更换图标…
+            </Button>
+            <Button variant="ghost" onClick={removeIcon} disabled={inputLocked}>
+              移除图标
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-ui-md">
+            <Button onClick={chooseIcon} disabled={inputLocked}>
+              选择图标…
+            </Button>
+          </div>
+        )}
+
+        {iconLevelNotice(level, iconId) ? (
+          <p role="status" className="m-0 text-xs text-muted-foreground">
+            {iconLevelNotice(level, iconId)}
+          </p>
+        ) : null}
+
+        {iconError ? (
+          <div
+            role="alert"
+            className="grid gap-ui-xs rounded-control bg-danger-soft p-ui-lg text-xs text-danger"
+          >
+            <StatusBadge className="justify-self-start" tone="danger">
+              图标不可用
+            </StatusBadge>
+            <p className="m-0 break-words">{iconError}</p>
+          </div>
+        ) : null}
+      </section>
 
       <section aria-labelledby="qr-preview-heading" className="grid gap-ui-md">
         <h3 id="qr-preview-heading" className="text-body font-semibold">
@@ -241,7 +365,7 @@ export function QrTool() {
               />
             </div>
             <p className="m-0 text-xs text-muted-foreground">
-              {`${preview.preview.moduleCount} × ${preview.preview.moduleCount} 模块 · 每模块 ${preview.preview.modulePx} px · 图像 ${preview.preview.imagePx} × ${preview.preview.imagePx} px · 纠错 ${preview.snapshot.level}`}
+              {`${preview.preview.moduleCount} × ${preview.preview.moduleCount} 模块 · 每模块 ${preview.preview.modulePx} px · 图像 ${preview.preview.imagePx} × ${preview.preview.imagePx} px · 纠错 ${effectiveLevel(preview.snapshot.level, preview.snapshot.iconId)}${preview.snapshot.iconId ? " · 含中心图标" : ""}`}
             </p>
           </>
         ) : null}

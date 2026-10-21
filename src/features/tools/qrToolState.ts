@@ -4,6 +4,7 @@ import type {
   QrErrorCorrection,
   QrExportOutcome,
   QrFileState,
+  QrIconSummary,
   QrPixelSize,
   QrPreview,
 } from "../../ipc/qr";
@@ -46,6 +47,30 @@ export interface QrSnapshot {
   text: string;
   level: QrErrorCorrection;
   size: SizeChoice;
+  iconId?: string;
+}
+
+export const ICON_RULES_TEXT =
+  "图标居中并加白色底衬，外接框不超过符号宽度的 15%。加图标时纠错固定为 H。无法可靠放置时会拒绝导出，不生成损坏图片。";
+
+/** A centred icon always uses level H, whatever level the user picked. */
+export function effectiveLevel(
+  level: QrErrorCorrection,
+  iconId: string | undefined,
+): QrErrorCorrection {
+  return iconId === undefined ? level : "H";
+}
+
+export function iconLevelNotice(
+  level: QrErrorCorrection,
+  iconId: string | undefined,
+): string | undefined {
+  if (iconId === undefined || level === "H") return undefined;
+  return "加中心图标时纠错等级已自动提升为 H。";
+}
+
+export function describeIcon(icon: QrIconSummary): string {
+  return `${icon.format} · ${icon.width} × ${icon.height} px`;
 }
 
 export function utf8ByteLength(text: string): number {
@@ -66,7 +91,12 @@ export function inputProblem(
 }
 
 export function snapshotsEqual(a: QrSnapshot, b: QrSnapshot): boolean {
-  return a.text === b.text && a.level === b.level && a.size === b.size;
+  return (
+    a.text === b.text &&
+    a.level === b.level &&
+    a.size === b.size &&
+    a.iconId === b.iconId
+  );
 }
 
 export type QrPreviewView =

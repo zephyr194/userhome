@@ -11,4 +11,13 @@ describe("QrTool", () => {
     expect(html).not.toContain("<script");
     expect(html).toMatch(/<button[^>]*disabled[^>]*>导出 PNG/);
   });
+
+  it("offers an optional centred icon with its rules and no icon yet", () => {
+    const html = renderToStaticMarkup(<QrTool />);
+    expect(html).toContain("中心图标（可选）");
+    expect(html).toContain("外接框不超过符号宽度的 15%");
+    expect(html).toContain("选择图标…");
+    expect(html).not.toContain("图标缩略图");
+    expect(html).not.toContain("移除图标");
+  });
 });

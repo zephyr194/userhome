@@ -57,6 +57,7 @@ export interface PreviewQrInput {
   text: string;
   level: QrErrorCorrection;
   size: QrPixelSize;
+  iconId?: string;
 }
 
 export interface ExportQrInput extends PreviewQrInput {
@@ -68,9 +69,25 @@ export interface ConfirmQrExportInput {
   grantId: string;
 }
 
+export type QrIconFormat = "PNG" | "JPEG" | "WEBP";
+
+/** The backend's view of a chosen icon: a thumbnail and a dimension, never a path. */
+export interface QrIconSummary {
+  iconId: string;
+  format: QrIconFormat;
+  width: number;
+  height: number;
+  thumbnailPngBase64: string;
+}
+
+export type SelectQrIconOutcome =
+  | { status: "CANCELLED" }
+  | ({ status: "SELECTED" } & QrIconSummary);
+
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const PNG_BASE64_PREFIX = "iVBORw0KGgo";
+const ICON_FORMATS: readonly string[] = ["PNG", "JPEG", "WEBP"];
 const WRITE_KINDS: readonly string[] = ["REPLACE", "CREATE"];
 const RECOVERY_POINTS: readonly string[] = [
   "BACKUP",
@@ -136,6 +153,37 @@ export function decodeQrPreview(value: unknown): QrPreview {
   };
 }
 
+export function decodeQrIconSummary(value: unknown): QrIconSummary {
+  if (
+    !isRecord(value) ||
+    typeof value.thumbnailPngBase64 !== "string" ||
+    !BASE64_PATTERN.test(value.thumbnailPngBase64) ||
+    !value.thumbnailPngBase64.startsWith(PNG_BASE64_PREFIX)
+  ) {
+    throw createInternalError();
+  }
+  return {
+    iconId: decodeString(value.iconId),
+    format: decodeEnum<QrIconFormat>(value.format, ICON_FORMATS),
+    width: decodePositiveInteger(value.width),
+    height: decodePositiveInteger(value.height),
+    thumbnailPngBase64: value.thumbnailPngBase64,
+  };
+}
+
+export function decodeSelectQrIconOutcome(value: unknown): SelectQrIconOutcome {
+  if (!isRecord(value)) {
+    throw createInternalError();
+  }
+  if (value.status === "CANCELLED") {
+    return { status: "CANCELLED" };
+  }
+  if (value.status !== "SELECTED") {
+    throw createInternalError();
+  }
+  return { status: "SELECTED", ...decodeQrIconSummary(value) };
+}
+
 export function decodePrepareQrExportOutcome(
   value: unknown,
 ): PrepareQrExportOutcome {
@@ -194,7 +242,14 @@ export function decodeQrExportOutcome(value: unknown): QrExportOutcome {
 export function previewQrArgs(input: PreviewQrInput): {
   input: PreviewQrInput;
 } {
-  return { input: { text: input.text, level: input.level, size: input.size } };
+  return {
+    input: {
+      text: input.text,
+      level: input.level,
+      size: input.size,
+      ...optionalIconId(input.iconId),
+    },
+  };
 }
 
 export function exportQrArgs(input: ExportQrInput): { input: ExportQrInput } {
@@ -204,8 +259,13 @@ export function exportQrArgs(input: ExportQrInput): { input: ExportQrInput } {
       level: input.level,
       size: input.size,
       expectedSha256: input.expectedSha256,
+      ...optionalIconId(input.iconId),
     },
   };
+}
+
+function optionalIconId(iconId: string | undefined): { iconId?: string } {
+  return iconId === undefined ? {} : { iconId };
 }
 
 export function confirmQrExportArgs(input: ConfirmQrExportInput): {
@@ -238,4 +298,18 @@ export function confirmQrExport(
     decodeQrExportOutcome,
     confirmQrExportArgs(input),
   );
+}
+
+export function selectQrIcon(): Promise<SelectQrIconOutcome> {
+  return invokeCommand("select_qr_icon", decodeSelectQrIconOutcome);
+}
+
+export function clearQrIcon(): Promise<void> {
+  return invokeCommand("clear_qr_icon", decodeNoContent);
+}
+
+function decodeNoContent(value: unknown): void {
+  if (value !== null && value !== undefined) {
+    throw createInternalError();
+  }
 }
