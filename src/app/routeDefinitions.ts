@@ -124,7 +124,6 @@ export type NavigationSource = "primary-nav" | "content" | "menu" | "tray";
 
 export type NavigationIntent = (
   | { routeId: "dashboard" }
-  | { routeId: "homebrew" }
   | { routeId: "services"; serviceId?: string }
   | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId }
 ) & { source?: NavigationSource };

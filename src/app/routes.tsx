@@ -1,10 +1,8 @@
-import { BrewInventoryPage } from "../features/brew/BrewInventoryPage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { EnvironmentPage } from "../features/environment/EnvironmentPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { ToolsPage } from "../features/tools/ToolsPage";
-import { Button, StatusBadge } from "../components/ui";
 import type { SettingsGroupId } from "../features/settings/settingsGroups";
 import type {
   Appearance,
@@ -21,7 +19,6 @@ import type {
   AppRoute,
   NavigationIntent,
 } from "./routeDefinitions";
-import { selectBrewSummary } from "./brewDiscoverySelector";
 import type { SelectionMemory } from "./selectionMemory";
 
 interface RoutePanelProps {
@@ -74,77 +71,6 @@ export function RoutePanel({
         recentOperation={recentOperation}
         state={discovery}
       />
-    );
-  }
-
-  if (route.id === "homebrew") {
-    const brewView = selectBrewSummary(discovery);
-    // Ready and stale views hand the real (or retained) module to the page so
-    // previously loaded data never disappears; only a failure without any
-    // snapshot becomes a hard provider error.
-    const summary =
-      brewView.status === "ready" || brewView.status === "stale"
-        ? brewView.module
-        : brewView.status === "loading"
-          ? { status: "LOADING" as const }
-          : {
-              status: "ERROR" as const,
-              error: {
-                module: "brew",
-                message: brewView.error.message,
-                retryable: brewView.error.retryable,
-              },
-            };
-    const refreshId =
-      brewView.status === "ready" || brewView.status === "stale"
-        ? brewView.refreshId
-        : undefined;
-    const providerNotice =
-      brewView.status === "stale" ? (
-        <div
-          className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
-          role="alert"
-        >
-          <StatusBadge className="shrink-0" tone="warning">
-            数据可能过时
-          </StatusBadge>
-          <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-warning">
-            {brewView.error.message} 正在显示上次成功刷新保留的 Homebrew 数据。
-          </p>
-          <Button className="shrink-0" size="sm" onClick={onOperationChanged}>
-            重试
-          </Button>
-        </div>
-      ) : brewView.status === "error" ? (
-        <div
-          className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
-          role="alert"
-        >
-          <StatusBadge className="shrink-0" tone="danger">
-            获取失败
-          </StatusBadge>
-          <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-danger">
-            {brewView.error.message}
-          </p>
-          <Button className="shrink-0" size="sm" onClick={onOperationChanged}>
-            重试
-          </Button>
-        </div>
-      ) : undefined;
-
-    return (
-      <>
-        {providerNotice}
-        <BrewInventoryPage
-          initialSelection={selection.brewSelection}
-          onSelectionChange={(brewSelection) =>
-            onSelectionChange({ brewSelection })
-          }
-          onOperationChanged={onOperationChanged}
-          refreshId={refreshId}
-          summary={summary}
-        />
-      </>
     );
   }
 

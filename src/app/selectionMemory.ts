@@ -1,4 +1,3 @@
-import type { BrewSearchResult } from "../ipc/brew";
 import {
   APP_ROUTES,
   type AppRouteId,
@@ -15,7 +14,6 @@ const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@/+-]*$/;
 export interface SelectionMemory {
   routeId: AppRouteId;
   settingsGroup: SettingsGroupId;
-  brewSelection?: BrewSearchResult;
   serviceId?: string;
 }
 
@@ -57,27 +55,11 @@ export function decodeSelectionMemory(value: unknown): SelectionMemory {
     return DEFAULT_SELECTION_MEMORY;
   }
   const stored = value as Record<string, unknown>;
-  const brew =
-    stored.brewSelection &&
-    typeof stored.brewSelection === "object" &&
-    !Array.isArray(stored.brewSelection)
-      ? (stored.brewSelection as Record<string, unknown>)
-      : undefined;
-  let brewSelection: BrewSearchResult | undefined;
-  if (
-    brew &&
-    (brew.kind === "FORMULA" || brew.kind === "CASK") &&
-    safeIdentifier(brew.identifier)
-  ) {
-    brewSelection = { kind: brew.kind, identifier: brew.identifier };
-  }
-
   return {
     routeId: safeRoute(stored.routeId) ? stored.routeId : "dashboard",
     settingsGroup: safeSettingsGroup(stored.settingsGroup)
       ? stored.settingsGroup
       : "appearance",
-    ...(brewSelection ? { brewSelection } : {}),
     ...(safeIdentifier(stored.serviceId)
       ? { serviceId: stored.serviceId }
       : {}),
@@ -85,8 +67,8 @@ export function decodeSelectionMemory(value: unknown): SelectionMemory {
 }
 
 /**
- * The exact persisted shape. Fields retired with the application pages are
- * dropped by the strict decoder, so they never reach `localStorage`.
+ * The exact persisted shape. Fields retired with the application and Homebrew
+ * pages are dropped by the strict decoder, so they never reach `localStorage`.
  */
 export function encodeSelectionMemory(selection: SelectionMemory): string {
   return JSON.stringify(decodeSelectionMemory(selection));

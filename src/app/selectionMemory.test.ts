@@ -23,6 +23,7 @@ describe("selection memory retired fields", () => {
       applicationDetected: true,
       applicationPage: 3,
       applicationScrollTop: 120,
+      brewSelection: { kind: "FORMULA", identifier: "git" },
     };
 
     expect(decodeSelectionMemory(legacy)).toEqual({
@@ -36,6 +37,7 @@ describe("selection memory retired fields", () => {
     const malformed = {
       applicationsScope: 7,
       applicationConfigIds: [1],
+      brewSelection: "git",
     };
 
     expect(() => decodeSelectionMemory(malformed)).not.toThrow();
@@ -46,6 +48,7 @@ describe("selection memory retired fields", () => {
     const encoded = encodeSelectionMemory({
       ...DEFAULT_SELECTION_MEMORY,
       applicationsScope: "CATALOG",
+      brewSelection: { kind: "CASK", identifier: "iterm2" },
     } as SelectionMemory);
 
     expect(Object.keys(JSON.parse(encoded)).sort()).toEqual([
