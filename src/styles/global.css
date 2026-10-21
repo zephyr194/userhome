@@ -1301,6 +1301,10 @@ a {
       0 0 0 2px Canvas,
       0 0 0 4px Highlight;
   }
+
+  .ring-line {
+    border: 1px solid CanvasText;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

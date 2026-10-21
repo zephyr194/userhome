@@ -277,3 +277,27 @@ describe("窄宽度与收缩策略（静态，不能替代真机缩放）", () =
     expect(workspace).toMatch(/desktop-workspace__operation-progress min-w-0/);
   });
 });
+
+describe("forced-colors 下周界回退（UI-4）", () => {
+  const forcedRules = cssRules.filter((rule) =>
+    rule.context.includes("@media (forced-colors: active)"),
+  );
+  const ringLineRules = cssRules.filter((rule) => rule.selector === ".ring-line");
+
+  it("ring-line（Panel、Modal 的发丝线）在 forced-colors 下有系统色边框回退", () => {
+    const fallback = forcedRules.find((rule) => rule.selector === ".ring-line");
+    expect(fallback).toBeDefined();
+    expect(fallback?.body).toMatch(/border:\s*1px solid CanvasText/);
+  });
+
+  it("回退只在 forced-colors 媒体块内生效，普通外观不新增 ring-line 规则", () => {
+    expect(ringLineRules).toHaveLength(1);
+    expect(ringLineRules[0].context).toEqual(["@media (forced-colors: active)"]);
+  });
+
+  it("回退所依赖的周界类确实由 Panel 与 Modal 使用", () => {
+    for (const file of ["components/ui/Panel.tsx", "components/ui/Modal.tsx"]) {
+      expect(readFileSync(join(srcRoot, file), "utf8")).toContain("ring-line");
+    }
+  });
+});
