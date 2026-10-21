@@ -87,7 +87,7 @@ function BackupClearDialog({
         <h4 className="text-xs font-semibold" id="backup-clear-effects-heading">
           本次操作影响
         </h4>
-        <ul className="mt-ui-md mb-0 list-disc space-y-ui-xs pl-5 text-muted-foreground">
+        <ul className="mt-ui-md mb-0 list-disc space-y-ui-xs pl-ui-3xl text-muted-foreground">
           {preview.effects.map((effect) => (
             <li key={effect}>{effect}</li>
           ))}

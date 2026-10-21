@@ -12,14 +12,14 @@ export function SettingsSidebar() {
           key={group.id}
           className={({ selected }) =>
             selected
-              ? "settings-pane__tab flex min-h-12 w-full min-w-0 items-start gap-ui-lg rounded-control bg-selection px-ui-lg py-ui-md text-left text-selection-foreground shadow-[inset_3px_0_0_var(--app-selection-border)]"
-              : "settings-pane__tab flex min-h-12 w-full min-w-0 items-start gap-ui-lg rounded-control bg-transparent px-ui-lg py-ui-md text-left text-foreground hover:bg-surface"
+              ? "settings-pane__tab flex w-full min-w-0 items-start gap-ui-lg rounded-control bg-selection px-ui-lg py-ui-md text-left text-selection-foreground shadow-[inset_3px_0_0_var(--app-selection-border)]"
+              : "settings-pane__tab flex w-full min-w-0 items-start gap-ui-lg rounded-control bg-transparent px-ui-lg py-ui-md text-left text-foreground hover:bg-surface"
           }
           data-group-id={group.id}
           id={`settings-group-${group.id}`}
         >
           <span
-            className="settings-pane__tab-index grid size-6 shrink-0 place-items-center rounded-control bg-surface text-xs font-bold text-muted-foreground"
+            className="settings-pane__tab-index grid size-control-sm shrink-0 place-items-center rounded-control bg-surface text-xs font-bold text-muted-foreground"
             aria-hidden="true"
           >
             {index + 1}

@@ -1002,7 +1002,7 @@ a {
   .settings-pane__groups-header {
     display: flex;
     align-items: center;
-    padding: 6px 10px;
+    padding: var(--app-space-md) var(--app-space-xl);
     border-right: 1px solid var(--app-line-subtle);
     border-bottom: 0;
   }
@@ -1017,7 +1017,7 @@ a {
     align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 4px;
+    padding: var(--app-space-xs);
   }
 
   .settings-pane__tabs > li {
@@ -1028,40 +1028,40 @@ a {
     width: auto;
     min-height: var(--app-control-height-sm);
     align-items: center;
-    padding: 6px 10px;
+    padding: 0 var(--app-space-xl);
   }
 
   .settings-pane__tab strong {
   }
 
   .settings-pane__detail-header {
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--app-space-lg);
+    padding: var(--app-space-lg) var(--app-space-2xl);
   }
 
   .settings-pane__detail-header h2 {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--app-font-size-group);
   }
 
   .settings-pane__detail-content {
-    padding: 10px 12px;
+    padding: var(--app-space-xl) var(--app-space-2xl);
   }
 }
 
 .diagnostics-report {
   max-height: 260px;
-  margin: 10px 0 0;
+  margin: var(--app-space-xl) 0 0;
   overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   border: 1px solid var(--app-line-subtle);
   border-radius: var(--app-radius-control);
   background: var(--app-surface-muted);
-  padding: 12px;
+  padding: var(--app-space-2xl);
   color: var(--app-foreground);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 10px;
+  font-size: var(--app-font-size-meta);
   line-height: 1.55;
   scrollbar-gutter: stable;
 }
@@ -1970,8 +1970,7 @@ button {
 }
 
 .settings-pane__detail-header {
-  min-height: 60px;
-  padding: 10px var(--app-space-2xl);
+  padding: var(--app-space-xl) var(--app-space-2xl);
   align-items: center;
 }
 
@@ -1981,7 +1980,7 @@ button {
 }
 
 .settings-pane__detail-content {
-  padding: 14px var(--app-space-2xl);
+  padding: var(--app-space-2xl);
 }
 
 /* Strong control boundaries stay distinct from decorative dividers. */
