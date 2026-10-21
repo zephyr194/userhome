@@ -190,7 +190,6 @@ export function CaddyRulesEditor({
                       </div>
                       <div>
                         <Button
-                          size="sm"
                           variant="ghost"
                           aria-label={`删除上游 ${upstreamIndex + 1}（站点 ${siteIndex + 1}）`}
                           disabled={site.upstreams.length <= 1}
@@ -332,7 +331,7 @@ function FileRow({
       <span className="text-aux text-muted-foreground">
         {line.symbol} {line.text}
       </span>
-      <Button size="sm" variant="secondary" onClick={onPick}>
+      <Button variant="secondary" onClick={onPick}>
         {buttonLabel}
       </Button>
     </div>

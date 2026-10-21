@@ -280,7 +280,7 @@ export function CaddyRunView({
     state === "RUNNING" && applied !== undefined ? presentApplied(applied) : undefined;
 
   return (
-    <Panel aria-labelledby="caddy-run-heading" className="grid min-w-0 gap-ui-md p-ui-lg">
+    <Panel ticks aria-labelledby="caddy-run-heading" className="grid min-w-0 gap-ui-md p-ui-lg">
       <div className="flex flex-wrap items-center justify-between gap-ui-sm">
         <h2 id="caddy-run-heading" className="text-sm font-semibold">
           运行（自有实例）
