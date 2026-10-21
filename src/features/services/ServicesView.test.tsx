@@ -283,6 +283,12 @@ describe("read-only guarantee", () => {
   });
 });
 
+function buttonLabels(markup: string): string[] {
+  return [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
+    .filter((match) => !match[1].includes("services-inventory-row"))
+    .map((match) => match[2].replace(/<[^>]+>/g, ""));
+}
+
 describe("service details", () => {
   const discovery = sampleDiscovery();
   const [agent, , , , loadedOnly, unmatched] = discovery.services;
@@ -551,24 +557,31 @@ describe("ownership in the details", () => {
     expect(markup).not.toContain("<button");
   });
 
-  it("shows a created job as modifiable yet still offers no action here", () => {
+  it("shows a created job as modifiable with exactly the allow-listed actions", () => {
     const markup = details(createdService());
     expect(markup).toContain("UserHome 自建");
     expect(markup).toContain("可修改");
-    expect(markup).toContain("本页面没有修改入口");
-    expect(markup).not.toContain("<button");
-    for (const word of ["启动", "停止", "重启", "删除", "卸载", "接管", "创建"]) {
+    expect(markup).toContain("先预览再确认");
+    // A loaded, running job: only the actions that make sense, never delete,
+    // take over or create.
+    expect(buttonLabels(markup)).toEqual([
+      "重启",
+      "停止",
+      "卸载",
+      "禁用自启",
+      "启用自启",
+    ]);
+    for (const word of ["删除", "接管", "创建", "加载", "启动"]) {
       expect(markup).not.toContain(`>${word}<`);
     }
   });
 
-  it("keeps every action off the page for every ownership class", () => {
+  it("keeps every action off the page for every read-only ownership class", () => {
     const selected = [
       launchdService(),
       launchdService({ id: "a", label: "a", ownership: APPLE_OWNERSHIP }),
       launchdService({ id: "b", label: "b", ownership: DAEMON_OWNERSHIP }),
       launchdService({ id: "c", label: "c", ownership: THIRD_PARTY_OWNERSHIP }),
-      createdService(),
     ];
     for (const service of selected) {
       const state: DiscoveryState = ready(
@@ -580,6 +593,28 @@ describe("ownership in the details", () => {
         .map((match) => match[2].replace(/<[^>]+>/g, ""));
       expect(buttons, service.label).toEqual(["刷新"]);
     }
+  });
+
+  it("shows the allow-listed actions only for a modifiable job in the page", () => {
+    const service = createdService();
+    const state: DiscoveryState = ready(
+      sampleDiscovery({ services: [service] }),
+    );
+    const buttons = [
+      ...view({ state, selectedId: service.id }).matchAll(
+        /<button([^>]*)>([\s\S]*?)<\/button>/g,
+      ),
+    ]
+      .filter((match) => !match[1].includes("services-inventory-row"))
+      .map((match) => match[2].replace(/<[^>]+>/g, ""));
+    expect(buttons).toEqual([
+      "刷新",
+      "重启",
+      "停止",
+      "卸载",
+      "禁用自启",
+      "启用自启",
+    ]);
   });
 });
 

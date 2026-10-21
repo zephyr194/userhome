@@ -431,7 +431,7 @@ describe("ownership presentation", () => {
     expect(created.modifiable).toBe(true);
     expect(created.badge).toBe("可修改");
     expect(created.reasons).toEqual([]);
-    expect(created.note).toContain("没有修改入口");
+    expect(created.note).toContain("先预览再确认");
   });
 
   it("filters by ownership, separately from the directory-based source", () => {

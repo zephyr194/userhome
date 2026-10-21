@@ -143,7 +143,7 @@ export function ownershipSummary(service: LaunchdService): OwnershipSummary {
     reasons: ownership.readOnlyReasons.map(readOnlyReasonText),
     evidence: ownership.evidence.map(evidenceText),
     note: ownership.modifiable
-      ? "后端判定该任务属于 UserHome，可以修改；本页面没有修改入口，任何修改都会由后端重新发现并复核归属后才执行。"
+      ? "后端判定该任务属于 UserHome，可以修改；仅提供加载、启动、停止、重启、禁用自启、启用自启与卸载，每个动作先预览再确认，并由后端重新发现、复核归属后才执行；不会删除配置文件。"
       : "只读任务不会被修改：本页面没有修改入口，后端也会在重新判定后拒绝对它的任何修改。",
   };
 }

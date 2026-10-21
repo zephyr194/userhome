@@ -1024,3 +1024,349 @@ export function executeCreateLaunchdService(
     { operationId },
   );
 }
+
+// Lifecycle actions on one modifiable launchd job. The request is an action, a
+// domain and a label: no path, uid or launchctl argument. The backend
+// rediscovers the job and judges its ownership again on every preview and every
+// confirmation, then reads the real state back after the command.
+
+export const LAUNCHD_ACTIONS = [
+  "LOAD",
+  "START",
+  "STOP",
+  "RESTART",
+  "DISABLE",
+  "ENABLE",
+  "UNLOAD",
+] as const;
+export type LaunchdAction = (typeof LAUNCHD_ACTIONS)[number];
+
+export const LAUNCHD_ACTION_OUTCOMES = [
+  "SUCCEEDED",
+  "NO_CHANGE",
+  "PARTIAL",
+  "FAILED",
+  "UNKNOWN",
+  "CANCELLED",
+] as const;
+export type LaunchdActionOutcome = (typeof LAUNCHD_ACTION_OUTCOMES)[number];
+
+export const LAUNCHD_STEP_STATUSES = [
+  "SUCCEEDED",
+  "FAILED",
+  "TIMED_OUT",
+  "NOT_RUN",
+] as const;
+export type LaunchdStepStatus = (typeof LAUNCHD_STEP_STATUSES)[number];
+
+export interface LaunchdActionRequest {
+  action: LaunchdAction;
+  /** Only the current user's session domain can be acted on. */
+  domain: "GUI";
+  label: string;
+}
+
+/** A part that is absent could not be read; it never means "no". */
+export interface LaunchdObservedState {
+  loaded?: boolean;
+  running?: boolean;
+  pid?: number;
+  /** The login auto-start override; no override means enabled. */
+  disabled?: boolean;
+}
+
+export interface LaunchdExpectation {
+  loaded?: boolean;
+  running?: boolean;
+  disabled?: boolean;
+}
+
+export interface LaunchdActionPreview extends OperationPreview {
+  action: LaunchdAction;
+  domain: "GUI";
+  label: string;
+  /** What the action really does to launchd. */
+  meaning: string[];
+  /** What survives a logout or reboot. */
+  persistence: string[];
+  /** The exact commands that will run; empty when nothing needs to run. */
+  commands: string[];
+  current: LaunchdObservedState;
+  keepAlive: boolean;
+  noChange: boolean;
+}
+
+export interface LaunchdActionStep {
+  command: string;
+  status: LaunchdStepStatus;
+  exitCode?: number;
+  detail?: string;
+}
+
+export interface LaunchdActionExecution {
+  operation: OperationDetails;
+  action: LaunchdAction;
+  domain: "GUI";
+  label: string;
+  outcome: LaunchdActionOutcome;
+  message: string;
+  steps: LaunchdActionStep[];
+  expected: LaunchdExpectation;
+  observed: LaunchdObservedState;
+  cancelRequested: boolean;
+}
+
+const MAX_ACTION_TEXTS = 8;
+const MAX_ACTION_STEPS = 4;
+const MAX_ACTION_TEXT_BYTES = 1024;
+const MAX_LABEL_BYTES = 255;
+const MAX_EXIT_CODE = 255;
+
+function isValidLaunchdLabel(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    new TextEncoder().encode(value).length <= MAX_LABEL_BYTES &&
+    !value.startsWith("-") &&
+    !/[\s/]/u.test(value) &&
+    !hasForbiddenTextCharacters(value)
+  );
+}
+
+function decodeActionLabel(value: unknown): string {
+  if (!isValidLaunchdLabel(value)) throw createInternalError();
+  return value;
+}
+
+function decodeGuiDomain(value: unknown): "GUI" {
+  if (value !== "GUI") throw createInternalError();
+  return "GUI";
+}
+
+function decodeActionTexts(value: unknown, min: number): string[] {
+  if (
+    !Array.isArray(value) ||
+    value.length < min ||
+    value.length > MAX_ACTION_TEXTS
+  ) {
+    throw createInternalError();
+  }
+  return value.map((text) => decodeBoundedText(text, MAX_ACTION_TEXT_BYTES));
+}
+
+function decodeActionCommands(value: unknown): string[] {
+  const commands = decodeActionTexts(value, 0);
+  // Only launchctl commands for the user's own session domain are ever shown.
+  if (
+    commands.length > 1 ||
+    commands.some((command) => !/^launchctl (bootstrap|bootout|kickstart|kill|enable|disable) /u.test(command))
+  ) {
+    throw createInternalError();
+  }
+  return commands;
+}
+
+function decodeObservedState(value: unknown): LaunchdObservedState {
+  if (!isRecord(value)) throw createInternalError();
+  const loaded = decodeOptionalBoolean(value.loaded);
+  const running = decodeOptionalBoolean(value.running);
+  const pid = decodeOptionalCount(value.pid);
+  const disabled = decodeOptionalBoolean(value.disabled);
+  // A process can only exist for a job that is loaded and running.
+  if (
+    (running === true && loaded !== true) ||
+    (loaded === false && running === true) ||
+    (pid !== undefined && running !== true)
+  ) {
+    throw createInternalError();
+  }
+  return {
+    ...(loaded === undefined ? {} : { loaded }),
+    ...(running === undefined ? {} : { running }),
+    ...(pid === undefined ? {} : { pid }),
+    ...(disabled === undefined ? {} : { disabled }),
+  };
+}
+
+function decodeExpectation(value: unknown): LaunchdExpectation {
+  if (!isRecord(value)) throw createInternalError();
+  const loaded = decodeOptionalBoolean(value.loaded);
+  const running = decodeOptionalBoolean(value.running);
+  const disabled = decodeOptionalBoolean(value.disabled);
+  return {
+    ...(loaded === undefined ? {} : { loaded }),
+    ...(running === undefined ? {} : { running }),
+    ...(disabled === undefined ? {} : { disabled }),
+  };
+}
+
+export function decodeLaunchdActionPreview(
+  value: unknown,
+): LaunchdActionPreview {
+  const operation = decodeOperationPreview(value);
+  if (!isRecord(value)) throw createInternalError();
+  const commands = decodeActionCommands(value.commands);
+  const noChange = decodeBoolean(value.noChange);
+  // Nothing to run exactly when nothing changes.
+  if (noChange !== (commands.length === 0) || operation.requiresElevation) {
+    throw createInternalError();
+  }
+  return {
+    ...operation,
+    action: oneOf(value.action, LAUNCHD_ACTIONS),
+    domain: decodeGuiDomain(value.domain),
+    label: decodeActionLabel(value.label),
+    meaning: decodeActionTexts(value.meaning, 1),
+    persistence: decodeActionTexts(value.persistence, 1),
+    commands,
+    current: decodeObservedState(value.current),
+    keepAlive: decodeBoolean(value.keepAlive),
+    noChange,
+  };
+}
+
+function decodeActionStep(value: unknown): LaunchdActionStep {
+  if (!isRecord(value)) throw createInternalError();
+  const status = oneOf(value.status, LAUNCHD_STEP_STATUSES);
+  const exitCode = decodeOptionalCount(value.exitCode);
+  if (exitCode !== undefined && exitCode > MAX_EXIT_CODE) {
+    throw createInternalError();
+  }
+  const detail =
+    value.detail === undefined || value.detail === null
+      ? undefined
+      : decodeBoundedText(value.detail, MAX_ACTION_TEXT_BYTES);
+  return {
+    command: decodeBoundedText(value.command, MAX_ACTION_TEXT_BYTES),
+    status,
+    ...(exitCode === undefined ? {} : { exitCode }),
+    ...(detail === undefined ? {} : { detail }),
+  };
+}
+
+function matchesExpectation(
+  expected: LaunchdExpectation,
+  observed: LaunchdObservedState,
+): boolean {
+  return (["loaded", "running", "disabled"] as const).every(
+    (key) => expected[key] === undefined || observed[key] === expected[key],
+  );
+}
+
+export function decodeLaunchdActionExecution(
+  value: unknown,
+): LaunchdActionExecution {
+  if (!isRecord(value)) throw createInternalError();
+  const operation = decodeOperationDetails(value.operation);
+  const outcome = oneOf(value.outcome, LAUNCHD_ACTION_OUTCOMES);
+  const steps = decodeList(value.steps, MAX_ACTION_STEPS, decodeActionStep);
+  const expected = decodeExpectation(value.expected);
+  const observed = decodeObservedState(value.observed);
+  const allSucceeded =
+    steps.length > 0 && steps.every((step) => step.status === "SUCCEEDED");
+
+  // The outcome must agree with everything else the payload shows, and "done"
+  // is only believable when the state that was read back is the promised one.
+  // Anything contradictory fails closed instead of showing a success.
+  const consistent =
+    outcome === "SUCCEEDED"
+      ? allSucceeded &&
+        operation.status === "SUCCEEDED" &&
+        matchesExpectation(expected, observed)
+      : outcome === "NO_CHANGE"
+        ? steps.length === 0 && operation.status === "SUCCEEDED"
+        : outcome === "CANCELLED"
+          ? operation.status === "CANCELLED" &&
+            steps.every((step) => step.status === "NOT_RUN")
+          : operation.status === "FAILED" &&
+            (outcome !== "UNKNOWN" || !matchesExpectation(expected, observed));
+  if (!consistent) throw createInternalError();
+
+  return {
+    operation,
+    action: oneOf(value.action, LAUNCHD_ACTIONS),
+    domain: decodeGuiDomain(value.domain),
+    label: decodeActionLabel(value.label),
+    outcome,
+    message: decodeBoundedText(value.message, MAX_ACTION_TEXT_BYTES),
+    steps,
+    expected,
+    observed,
+    cancelRequested: decodeBoolean(value.cancelRequested),
+  };
+}
+
+function invalidActionRequest(): AppError {
+  return {
+    code: "INVALID_INPUT",
+    message: "The launchd action request is not valid.",
+    retryable: false,
+  };
+}
+
+/** Exactly `{action, domain, label}`; anything else the caller adds is dropped. */
+function launchdActionPayload(
+  request: LaunchdActionRequest,
+): LaunchdActionRequest {
+  if (
+    !isRecord(request) ||
+    !(LAUNCHD_ACTIONS as readonly unknown[]).includes(request.action) ||
+    request.domain !== "GUI" ||
+    !isValidLaunchdLabel(request.label)
+  ) {
+    throw invalidActionRequest();
+  }
+  return {
+    action: request.action,
+    domain: "GUI",
+    label: request.label,
+  };
+}
+
+/** Previews one lifecycle action; runs nothing. */
+export function previewLaunchdAction(
+  request: LaunchdActionRequest,
+): Promise<LaunchdActionPreview> {
+  let input: LaunchdActionRequest;
+  try {
+    input = launchdActionPayload(request);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+  return invokeCommand(
+    "preview_launchd_action",
+    (value) => {
+      const preview = decodeLaunchdActionPreview(value);
+      // A preview for another job or action than the one asked for is not trusted.
+      if (preview.action !== input.action || preview.label !== input.label) {
+        throw createInternalError();
+      }
+      return preview;
+    },
+    { input },
+  );
+}
+
+/** Confirms a lifecycle preview by its operation id only. */
+export function executeLaunchdAction(
+  operationId: string,
+): Promise<LaunchdActionExecution> {
+  if (typeof operationId !== "string" || operationId.length === 0) {
+    return Promise.reject({
+      code: "INVALID_INPUT",
+      message: "Operation id is invalid.",
+      retryable: false,
+    } satisfies AppError);
+  }
+  return invokeCommand(
+    "execute_launchd_action",
+    (value) => {
+      const execution = decodeLaunchdActionExecution(value);
+      if (execution.operation.operationId !== operationId) {
+        throw createInternalError();
+      }
+      return execution;
+    },
+    { operationId },
+  );
+}

@@ -49,6 +49,8 @@ export interface ServicesViewProps {
   onRefresh: () => void;
   /** Extra controls next to the refresh button; the page decides what they are. */
   headerActions?: ReactNode;
+  /** Called after an action on a modifiable job, so the list is read again. */
+  onActionSettled?: () => void;
 }
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
@@ -428,6 +430,7 @@ function ServiceList({
 function DetailsPane({
   evidence,
   filter,
+  onActionSettled,
   selectedId,
   state,
   visible,
@@ -470,6 +473,7 @@ function DetailsPane({
       ) : null}
       <LaunchdServiceDetails
         evidence={evidence}
+        onChanged={onActionSettled}
         service={resolved.service}
         sources={state.discovery.sources}
       />

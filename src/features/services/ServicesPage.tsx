@@ -7,6 +7,7 @@ import {
   type CreateServiceExecution,
 } from "../../ipc/services";
 import { CreateServiceDialog } from "./CreateServiceDialog";
+import { findCreatedService } from "./launchdActionModel";
 import {
   DISCOVERY_REFRESH_MIN_INTERVAL_MS,
   EMPTY_FILTER,
@@ -46,6 +47,9 @@ export function ServicesPage({
   const [cooling, setCooling] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createdNotice, setCreatedNotice] = useState<string | undefined>();
+  // The job just created, waiting to be found in the refreshed list so the
+  // notice can take the user to its load action.
+  const [createdLabel, setCreatedLabel] = useState<string | undefined>();
   const requestRef = useRef(0);
   const inFlightRef = useRef(false);
   const lastStartedRef = useRef<number | undefined>(undefined);
@@ -53,10 +57,16 @@ export function ServicesPage({
     undefined,
   );
   const selectionChangeRef = useRef(onSelectedServiceChange);
+  const followLabelRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     selectionChangeRef.current = onSelectedServiceChange;
   }, [onSelectedServiceChange]);
+
+  const select = useCallback((id: string) => {
+    setSelectedId(id);
+    selectionChangeRef.current?.(id);
+  }, []);
 
   const load = useCallback(() => {
     const requestId = requestRef.current + 1;
@@ -69,6 +79,15 @@ export function ServicesPage({
         if (requestRef.current !== requestId) return;
         inFlightRef.current = false;
         dispatch({ type: "loaded", discovery });
+        const followLabel = followLabelRef.current;
+        const found =
+          followLabel === undefined
+            ? undefined
+            : findCreatedService(discovery.services, followLabel);
+        if (found) {
+          followLabelRef.current = undefined;
+          select(found.id);
+        }
       })
       .catch((error: unknown) => {
         if (requestRef.current !== requestId) return;
@@ -87,7 +106,7 @@ export function ServicesPage({
           setEvidence({ status: "unavailable" });
         }
       });
-  }, []);
+  }, [select]);
 
   useEffect(() => {
     load();
@@ -127,15 +146,27 @@ export function ServicesPage({
       setCreatedNotice(
         `已创建 ${execution.label}：新任务尚未加载，也未启动。`,
       );
+      setCreatedLabel(execution.label);
       load();
     },
     [load],
   );
 
-  const select = useCallback((id: string) => {
-    setSelectedId(id);
-    selectionChangeRef.current?.(id);
-  }, []);
+  // "去加载": select the new task so its load action is in view. Nothing is
+  // loaded here; the action asks for a confirmation first.
+  const goToCreated = useCallback(() => {
+    if (createdLabel === undefined) return;
+    const found =
+      state.status === "ready"
+        ? findCreatedService(state.discovery.services, createdLabel)
+        : undefined;
+    if (found) {
+      select(found.id);
+    } else {
+      // The refreshed list is still on its way.
+      followLabelRef.current = createdLabel;
+    }
+  }, [createdLabel, select, state]);
 
   return (
     <>
@@ -152,6 +183,7 @@ export function ServicesPage({
         onFilterChange={setFilter}
         onSelect={select}
         onRefresh={refresh}
+        onActionSettled={load}
         headerActions={
           <div className="grid min-w-0 justify-items-end gap-ui-xs">
             <Button
@@ -159,6 +191,8 @@ export function ServicesPage({
               variant="primary"
               onClick={() => {
                 setCreatedNotice(undefined);
+                setCreatedLabel(undefined);
+                followLabelRef.current = undefined;
                 setCreateOpen(true);
               }}
             >
@@ -174,7 +208,18 @@ export function ServicesPage({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => setCreatedNotice(undefined)}
+                  onClick={goToCreated}
+                >
+                  去加载
+                </Button>{" "}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setCreatedNotice(undefined);
+                    setCreatedLabel(undefined);
+                    followLabelRef.current = undefined;
+                  }}
                 >
                   知道了
                 </Button>

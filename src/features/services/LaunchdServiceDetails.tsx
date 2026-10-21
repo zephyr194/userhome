@@ -5,6 +5,8 @@ import type {
   LaunchdService,
   LaunchdSourceReport,
 } from "../../ipc/services";
+import { LaunchdActionPanel } from "./LaunchdActionPanel";
+import { isActionable } from "./launchdActionModel";
 import {
   correlationText,
   domainLabel,
@@ -222,10 +224,13 @@ function SourcesSection({
 
 export function LaunchdServiceDetails({
   evidence,
+  onChanged,
   service,
   sources,
 }: {
   evidence: EvidenceState;
+  /** Called after an action, so the list is read again. */
+  onChanged?: () => void;
   service: LaunchdService;
   sources: readonly LaunchdSourceReport[];
 }) {
@@ -318,6 +323,14 @@ export function LaunchdServiceDetails({
         </p>
       </Section>
 
+      {isActionable(service) ? (
+        <LaunchdActionPanel
+          key={service.id}
+          service={service}
+          onChanged={onChanged}
+        />
+      ) : null}
+
       <Section title="来源与归属依据">
         <dl className="grid min-w-0 gap-px overflow-hidden rounded-control bg-border sm:grid-cols-2">
           <Row label="按目录归类">{scopeLabel(service.scope)}</Row>
@@ -325,7 +338,7 @@ export function LaunchdServiceDetails({
           <Row label="配置文件状态">{correlationText(service)}</Row>
         </dl>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          仅按目录归类，不是归属判定；归属与可修改性见上方「归属与可修改性」。此页面不提供启动、停止、删除、接管或创建入口。
+          仅按目录归类，不是归属判定；归属与可修改性见上方「归属与可修改性」。动作入口只出现在后端判定归属于 UserHome 的任务上，且不提供删除配置文件、接管或批量操作。
         </p>
         {service.issues.length > 0 ? (
           <ul
