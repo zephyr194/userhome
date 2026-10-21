@@ -5,6 +5,7 @@
   --color-surface: var(--app-surface);
   --color-surface-muted: var(--app-surface-muted);
   --color-border: var(--app-border);
+  --color-line: var(--app-line-subtle);
   --color-foreground: var(--app-foreground);
   --color-muted-foreground: var(--app-muted-foreground);
   --color-primary: var(--app-primary);
@@ -166,6 +167,8 @@
   --app-focus-ring-offset: 3px;
   --app-focus-ring-inset-width: 2px;
   --app-focus-ring-inset-offset: -2px;
+  --app-corner-tick-length: 6px;
+  --app-corner-tick-inset: 4px;
 }
 
 * {
@@ -1304,6 +1307,37 @@ a {
 body {
   letter-spacing: -0.005em;
   background: var(--app-canvas);
+}
+
+.corner-ticks {
+  position: relative;
+  isolation: isolate;
+}
+
+.corner-ticks::before,
+.corner-ticks::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  box-sizing: border-box;
+  width: var(--app-corner-tick-length);
+  height: var(--app-corner-tick-length);
+  border: 0 solid var(--app-control-border);
+  pointer-events: none;
+}
+
+.corner-ticks::before {
+  top: var(--app-corner-tick-inset);
+  left: var(--app-corner-tick-inset);
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.corner-ticks::after {
+  right: var(--app-corner-tick-inset);
+  bottom: var(--app-corner-tick-inset);
+  border-right-width: 1px;
+  border-bottom-width: 1px;
 }
 
 ::selection {
