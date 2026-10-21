@@ -419,7 +419,7 @@ function ServiceList({
                 ) : null}
               </span>
               <StatusBadge
-                className="min-h-5 shrink-0 self-start px-ui-sm py-0 text-meta"
+                className="shrink-0 self-start px-ui-sm text-meta"
                 tone={status.tone}
               >
                 {status.label}

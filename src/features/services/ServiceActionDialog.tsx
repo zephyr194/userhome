@@ -59,11 +59,11 @@ export function ServiceActionDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-4"
+      className="space-y-ui-3xl"
       onCancel={onCancel}
       titleId="service-action-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-ui-2xl">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
             {action ? `待确认${ACTION_LABELS[action]}` : "待确认服务操作"}
@@ -75,7 +75,7 @@ export function ServiceActionDialog({
             {preview.summary}
           </h3>
           {serviceId ? (
-            <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+            <p className="mt-ui-xs break-all font-mono text-xs text-muted-foreground">
               目标服务：{serviceId}
             </p>
           ) : null}
@@ -86,15 +86,15 @@ export function ServiceActionDialog({
       </div>
 
       <section
-        className="rounded-control bg-surface-muted px-3.5 py-3"
+        className="rounded-control bg-surface-muted px-ui-2xl py-ui-2xl"
         aria-labelledby="service-effects-heading"
       >
         <h4 className="text-sm font-semibold" id="service-effects-heading">
           本次操作影响
         </h4>
-        <ul className="mt-2 grid gap-1.5 text-sm text-muted-foreground">
+        <ul className="mt-ui-sm grid gap-ui-md text-sm text-muted-foreground">
           {preview.effects.map((effect) => (
-            <li className="flex gap-2" key={effect}>
+            <li className="flex gap-ui-sm" key={effect}>
               <span className="text-primary" aria-hidden="true">
                 •
               </span>
@@ -120,7 +120,7 @@ export function ServiceActionDialog({
 
       {busy ? (
         <div
-          className="flex items-center gap-2 rounded-control border border-warning-border bg-warning-soft px-3 py-2.5 text-sm text-warning"
+          className="flex items-center gap-ui-sm rounded-control border border-warning-border bg-warning-soft px-ui-2xl py-ui-xl text-sm text-warning"
           role="status"
           aria-live="polite"
         >
@@ -134,11 +134,11 @@ export function ServiceActionDialog({
 
       {operation ? (
         <section
-          className="rounded-control px-3.5 py-3"
+          className="rounded-control px-ui-2xl py-ui-2xl"
           aria-labelledby="service-result-heading"
           aria-live="polite"
         >
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-ui-sm">
             <h4 className="text-sm font-semibold" id="service-result-heading">
               操作结果
             </h4>
@@ -148,13 +148,13 @@ export function ServiceActionDialog({
           </div>
           {operation.events.length > 0 ? (
             <ol
-              className="mt-3 max-h-40 space-y-2 overflow-y-auto overscroll-contain text-xs"
+              className="mt-ui-2xl max-h-40 space-y-ui-sm overflow-y-auto overscroll-contain text-xs"
               aria-label="服务操作进度，可滚动"
               tabIndex={0}
             >
               {operation.events.map((event) => (
                 <li
-                  className="rounded-control bg-surface-muted px-2.5 py-2 text-muted-foreground"
+                  className="rounded-control bg-surface-muted px-ui-xl py-ui-sm text-muted-foreground"
                   key={`${event.sequence}-${event.type}`}
                 >
                   {event.type === "progress" ? (
@@ -167,17 +167,17 @@ export function ServiceActionDialog({
                         {STATUS_LABELS[event.status]}
                       </strong>
                       {event.stdoutSummary ? (
-                        <p className="mt-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                        <p className="mt-ui-xs whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                           {event.stdoutSummary}
                         </p>
                       ) : null}
                       {event.stderrSummary ? (
-                        <p className="mt-1 whitespace-pre-wrap break-words text-danger [overflow-wrap:anywhere]">
+                        <p className="mt-ui-xs whitespace-pre-wrap break-words text-danger [overflow-wrap:anywhere]">
                           {event.stderrSummary}
                         </p>
                       ) : null}
                       {event.error ? (
-                        <p className="mt-1 break-words text-danger [overflow-wrap:anywhere]">
+                        <p className="mt-ui-xs break-words text-danger [overflow-wrap:anywhere]">
                           {event.error.message}
                         </p>
                       ) : null}
@@ -187,7 +187,7 @@ export function ServiceActionDialog({
               ))}
             </ol>
           ) : (
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-ui-sm text-xs text-muted-foreground">
               服务管理器未返回额外输出。
             </p>
           )}
@@ -196,14 +196,14 @@ export function ServiceActionDialog({
 
       {error ? (
         <p
-          className="break-words rounded-control border border-danger-border bg-danger-soft px-3 py-2.5 text-sm text-danger [overflow-wrap:anywhere]"
+          className="break-words rounded-control border border-danger-border bg-danger-soft px-ui-2xl py-ui-xl text-sm text-danger [overflow-wrap:anywhere]"
           role="alert"
         >
           {error.message}
         </p>
       ) : null}
 
-      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 border-t border-line bg-surface px-5 py-4">
+      <div className="sticky bottom-0 -mx-ui-3xl -mb-ui-2xl flex flex-wrap justify-end gap-ui-sm border-t border-line bg-surface px-ui-3xl py-ui-2xl">
         {canConfirm ? (
           <Button
             variant="primary"

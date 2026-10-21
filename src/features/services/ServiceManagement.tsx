@@ -53,7 +53,7 @@ function ReleaseAdoptionDialog({
 
   return (
     <Modal
-      bodyClassName="grid gap-4"
+      bodyClassName="grid gap-ui-3xl"
       busy={busy}
       className="max-w-[560px]"
       footer={

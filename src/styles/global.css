@@ -955,11 +955,11 @@ a {
   width: 100%;
   min-width: 0;
   min-height: var(--app-row-height-two-line);
-  padding: 6px 10px;
+  padding: var(--app-space-md) var(--app-space-xl);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--app-space-sm);
   border: 0;
   border-bottom: 1px solid var(--app-line-subtle);
   border-left: 3px solid transparent;

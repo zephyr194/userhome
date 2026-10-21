@@ -22,7 +22,7 @@ const TITLE_ID = "adopt-service-heading";
 
 function Section({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="grid gap-2 rounded-control bg-surface-muted px-3.5 py-3">
+    <section className="grid gap-ui-sm rounded-control bg-surface-muted px-ui-2xl py-ui-2xl">
       <h4 className="text-sm font-semibold">{title}</h4>
       {children}
     </section>
@@ -39,7 +39,7 @@ function Mono({ children }: { children: ReactNode }) {
 
 function PreviewBody({ preview }: { preview: AdoptPreview }) {
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-ui-3xl">
       <Section title="将接管的任务">
         <p className="text-sm">
           label：<Mono>{preview.label}</Mono>
@@ -86,7 +86,7 @@ function Notice({
   detail: string;
 }) {
   return (
-    <div className="grid gap-2" role={tone === "danger" ? "alert" : "status"} aria-live="polite">
+    <div className="grid gap-ui-sm" role={tone === "danger" ? "alert" : "status"} aria-live="polite">
       <p className={`text-sm font-semibold ${tone === "success" ? "text-success" : "text-danger"}`}>
         {title}
       </p>
@@ -187,7 +187,7 @@ export function AdoptServiceDialogView({
 
   return (
     <Modal
-      bodyClassName="grid gap-4"
+      bodyClassName="grid gap-ui-3xl"
       busy={busy}
       className="max-w-[720px]"
       footer={footer}

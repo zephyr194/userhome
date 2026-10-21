@@ -243,7 +243,7 @@ export function LaunchdServiceDetails({
       : undefined;
 
   return (
-    <Panel className="min-w-0" aria-labelledby="service-details-heading">
+    <Panel className="min-w-0" aria-labelledby="service-details-heading" ticks>
       <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl border-b border-border px-ui-3xl py-ui-xl">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
