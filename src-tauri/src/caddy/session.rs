@@ -1551,6 +1551,8 @@ mod tests {
         let rules = CaddyRules {
             version: RULES_VERSION,
             sites: vec![SiteRule {
+                tls: None,
+                access_log: false,
                 enabled: true,
                 listen: Listen {
                     host: "127.0.0.1".to_owned(),
@@ -1586,6 +1588,8 @@ mod tests {
         let rules = CaddyRules {
             version: RULES_VERSION,
             sites: vec![SiteRule {
+                tls: None,
+                access_log: false,
                 enabled: true,
                 listen: Listen {
                     host: "127.0.0.1".to_owned(),

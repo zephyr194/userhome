@@ -700,6 +700,8 @@ mod tests {
 
     fn site(host: &str, port: u16, upstream_port: u16) -> SiteRule {
         SiteRule {
+            tls: None,
+            access_log: false,
             enabled: true,
             listen: Listen {
                 host: host.to_owned(),

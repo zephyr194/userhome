@@ -8,6 +8,8 @@ use std::{collections::BTreeMap, net::IpAddr};
 
 use serde::{Deserialize, Serialize};
 
+use crate::grants::GrantId;
+
 pub const RULES_VERSION: u32 = 1;
 pub const MAX_SITES: usize = 32;
 pub const MAX_UPSTREAMS: usize = 8;
@@ -28,6 +30,24 @@ pub struct SiteRule {
     pub enabled: bool,
     pub listen: Listen,
     pub upstreams: Vec<Upstream>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls: Option<TlsConfig>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub access_log: bool,
+}
+
+/// References to a user-picked certificate and private key. Only the
+/// authorization ids are stored; the backend resolves the paths and never
+/// reads the key content.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TlsConfig {
+    pub certificate_grant_id: String,
+    pub private_key_grant_id: String,
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -66,6 +86,8 @@ impl CaddyRules {
         Self {
             version: RULES_VERSION,
             sites: vec![SiteRule {
+                tls: None,
+                access_log: false,
                 enabled: true,
                 listen: Listen {
                     host: "127.0.0.1".to_owned(),
@@ -102,6 +124,7 @@ impl CaddyRules {
         }
         for (site_index, site) in self.sites.iter().enumerate() {
             let host = check_listen(&site.listen, site_index, &mut issues);
+            check_tls(site.tls.as_ref(), host.as_ref(), site_index, &mut issues);
             if site.upstreams.is_empty() {
                 issues.push(Issue::new(
                     IssueCode::NoUpstream,
@@ -171,12 +194,14 @@ pub enum IssueCode {
     ForbiddenCharacter,
     InvalidPort,
     PrivilegedPort,
+    InvalidTlsGrant,
+    TlsIpAddress,
 }
 
 impl IssueCode {
     fn severity(self) -> Severity {
         match self {
-            Self::PrivilegedPort => Severity::Warning,
+            Self::PrivilegedPort | Self::TlsIpAddress => Severity::Warning,
             _ => Severity::Error,
         }
     }
@@ -195,6 +220,10 @@ impl IssueCode {
             }
             Self::InvalidPort => "端口必须在 1 到 65535 之间。",
             Self::PrivilegedPort => "端口小于 1024 属于特权端口，普通用户通常无法绑定。",
+            Self::InvalidTlsGrant => "TLS 证书或私钥授权无效，请重新选择文件。",
+            Self::TlsIpAddress => {
+                "TLS 站点使用 IP 地址：证书需包含该 IP 的 SAN 才能被信任，应用未检查证书内容。"
+            }
         }
     }
 }
@@ -385,6 +414,43 @@ fn check_listen(listen: &Listen, site_index: usize, issues: &mut Vec<Issue>) -> 
     host
 }
 
+fn check_tls(
+    tls: Option<&TlsConfig>,
+    host: Option<&HostKind>,
+    site_index: usize,
+    issues: &mut Vec<Issue>,
+) {
+    let Some(tls) = tls else {
+        return;
+    };
+    if GrantId::parse(&tls.certificate_grant_id).is_err() {
+        issues.push(Issue::new(
+            IssueCode::InvalidTlsGrant,
+            Some(site_index),
+            None,
+            Some("tls.certificateGrantId"),
+        ));
+    }
+    if GrantId::parse(&tls.private_key_grant_id).is_err()
+        || tls.private_key_grant_id == tls.certificate_grant_id
+    {
+        issues.push(Issue::new(
+            IssueCode::InvalidTlsGrant,
+            Some(site_index),
+            None,
+            Some("tls.privateKeyGrantId"),
+        ));
+    }
+    if matches!(host, Some(HostKind::Ip(_))) {
+        issues.push(Issue::new(
+            IssueCode::TlsIpAddress,
+            Some(site_index),
+            None,
+            Some("listen.host"),
+        ));
+    }
+}
+
 fn check_upstream(
     upstream: &Upstream,
     site_index: usize,
@@ -430,6 +496,8 @@ mod tests {
 
     fn site(enabled: bool, host: &str, port: u16) -> SiteRule {
         SiteRule {
+            tls: None,
+            access_log: false,
             enabled,
             listen: listen(host, port),
             upstreams: vec![upstream("127.0.0.1", 3000)],
@@ -811,5 +879,118 @@ mod tests {
 
         assert_eq!(decoded.scheme.as_str(), "https");
         assert_eq!(decoded.port, 443);
+    }
+
+    const CERT_ID: &str = "3f2b8c1e-6a4d-4b7e-9c2f-1a2b3c4d5e6f";
+    const KEY_ID: &str = "7c9d0e1f-2a3b-4c5d-8e6f-7a8b9c0d1e2f";
+
+    fn tls_site(host: &str) -> SiteRule {
+        let mut site = site(true, host, 8443);
+        site.tls = Some(TlsConfig {
+            certificate_grant_id: CERT_ID.to_owned(),
+            private_key_grant_id: KEY_ID.to_owned(),
+        });
+        site
+    }
+
+    #[test]
+    fn rules_json_without_tls_or_access_log_decodes_with_defaults() {
+        let legacy = r#"{"version":1,"sites":[{"enabled":true,"listen":{"host":"127.0.0.1","port":8080},"upstreams":[{"scheme":"http","host":"127.0.0.1","port":3000}]}]}"#;
+        let decoded: CaddyRules = serde_json::from_str(legacy).expect("legacy rules decode");
+
+        assert_eq!(decoded.sites[0].tls, None);
+        assert!(!decoded.sites[0].access_log);
+    }
+
+    #[test]
+    fn default_http_rules_serialize_without_the_new_keys() {
+        let text = serde_json::to_string(&CaddyRules::example()).expect("serialize");
+
+        assert!(!text.contains("\"tls\""));
+        assert!(!text.contains("accessLog"));
+    }
+
+    #[test]
+    fn tls_and_access_log_round_trip_with_camel_case_keys() {
+        let mut site = tls_site("app.example.test");
+        site.access_log = true;
+        let text = serde_json::to_string(&rules(vec![site.clone()])).expect("serialize");
+
+        assert!(text.contains("\"certificateGrantId\""));
+        assert!(text.contains("\"privateKeyGrantId\""));
+        assert!(text.contains("\"accessLog\":true"));
+        let decoded: CaddyRules = serde_json::from_str(&text).expect("decode");
+        assert_eq!(decoded.sites, vec![site]);
+    }
+
+    #[test]
+    fn tls_config_refuses_path_key_material_and_missing_fields() {
+        let with_path = format!(
+            r#"{{"certificateGrantId":"{CERT_ID}","privateKeyGrantId":"{KEY_ID}","certificatePath":"/tmp/a.pem"}}"#
+        );
+        assert!(serde_json::from_str::<TlsConfig>(&with_path).is_err());
+
+        let with_key_material = format!(
+            r#"{{"certificateGrantId":"{CERT_ID}","privateKeyGrantId":"{KEY_ID}","privateKey":"-----BEGIN"}}"#
+        );
+        assert!(serde_json::from_str::<TlsConfig>(&with_key_material).is_err());
+
+        let missing_key = format!(r#"{{"certificateGrantId":"{CERT_ID}"}}"#);
+        assert!(serde_json::from_str::<TlsConfig>(&missing_key).is_err());
+    }
+
+    #[test]
+    fn access_log_refuses_non_boolean_values_and_unknown_site_keys() {
+        let non_boolean = r#"{"enabled":true,"listen":{"host":"127.0.0.1","port":8080},"upstreams":[],"accessLog":"yes"}"#;
+        assert!(serde_json::from_str::<SiteRule>(non_boolean).is_err());
+
+        let unknown = r#"{"enabled":true,"listen":{"host":"127.0.0.1","port":8080},"upstreams":[],"logPath":"/tmp/x"}"#;
+        assert!(serde_json::from_str::<SiteRule>(unknown).is_err());
+    }
+
+    #[test]
+    fn tls_site_with_domain_or_localhost_and_valid_grants_is_accepted() {
+        for host in ["app.example.test", "localhost"] {
+            let validation = rules(vec![tls_site(host)]).validate();
+
+            assert!(
+                validation.issues.is_empty(),
+                "host {host} should be accepted, got {:?}",
+                validation.issues
+            );
+            assert!(!validation.is_blocking());
+        }
+    }
+
+    #[test]
+    fn tls_on_an_ip_host_only_warns_because_the_certificate_is_not_inspected() {
+        let validation = rules(vec![tls_site("127.0.0.1")]).validate();
+
+        assert_eq!(codes(&validation), vec![IssueCode::TlsIpAddress]);
+        assert_eq!(validation.issues[0].severity, Severity::Warning);
+        assert!(!validation.is_blocking());
+    }
+
+    #[test]
+    fn malformed_or_reused_tls_grant_ids_are_refused() {
+        let mut malformed = tls_site("localhost");
+        malformed.tls = Some(TlsConfig {
+            certificate_grant_id: "/Users/someone/cert.pem".to_owned(),
+            private_key_grant_id: KEY_ID.to_owned(),
+        });
+        let validation = rules(vec![malformed]).validate();
+        assert_eq!(codes(&validation), vec![IssueCode::InvalidTlsGrant]);
+        assert_eq!(validation.issues[0].field, Some("tls.certificateGrantId"));
+        assert!(validation.is_blocking());
+
+        let mut reused = tls_site("localhost");
+        reused.tls = Some(TlsConfig {
+            certificate_grant_id: CERT_ID.to_owned(),
+            private_key_grant_id: CERT_ID.to_owned(),
+        });
+        let validation = rules(vec![reused]).validate();
+        assert_eq!(codes(&validation), vec![IssueCode::InvalidTlsGrant]);
+        assert_eq!(validation.issues[0].field, Some("tls.privateKeyGrantId"));
+        assert!(validation.is_blocking());
     }
 }

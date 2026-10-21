@@ -47,6 +47,8 @@ mod tests {
 
     fn site(enabled: bool, host: &str, port: u16, upstreams: Vec<Upstream>) -> SiteRule {
         SiteRule {
+            tls: None,
+            access_log: false,
             enabled,
             listen: Listen {
                 host: host.to_owned(),

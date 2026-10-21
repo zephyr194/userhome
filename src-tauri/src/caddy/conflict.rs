@@ -895,6 +895,8 @@ mod tests {
     #[test]
     fn disabled_sites_are_not_checked_and_duplicates_are_collapsed() {
         let site = |enabled: bool, port: u16| SiteRule {
+            tls: None,
+            access_log: false,
             enabled,
             listen: Listen {
                 host: "127.0.0.1".to_owned(),
