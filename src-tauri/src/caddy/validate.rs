@@ -317,7 +317,7 @@ fn tokens(code: &str) -> Vec<Token<'_>> {
 
 /// Removes a `#` comment. A `#` only starts a comment at the beginning of a
 /// word and outside quotes, matching how the Caddyfile lexer reads it.
-fn strip_comment(line: &str) -> &str {
+pub(crate) fn strip_comment(line: &str) -> &str {
     let mut quote: Option<char> = None;
     let mut escaped = false;
     let mut previous: Option<char> = None;

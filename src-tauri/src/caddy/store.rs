@@ -26,6 +26,7 @@ pub const RULES_FILE: &str = "rules.json";
 pub const CADDYFILE: &str = "Caddyfile";
 pub const RAW_FILE: &str = "original.caddyfile";
 pub const CHECKS_DIRECTORY: &str = "checks";
+pub const RUNS_DIRECTORY: &str = "runs";
 pub const MAX_STORE_BYTES: u64 = 256 * 1024;
 const FILE_MODE: u32 = 0o600;
 const DIRECTORY_MODE: u32 = 0o700;
@@ -106,19 +107,28 @@ impl CaddyStore {
 
     /// Private, owner-only directory for scratch copies made during checks.
     pub fn checks_root(&self) -> Result<PathBuf, AppError> {
+        self.private_directory(CHECKS_DIRECTORY)
+    }
+
+    /// Private, owner-only parent for the working directories of own runs.
+    pub fn runs_root(&self) -> Result<PathBuf, AppError> {
+        self.private_directory(RUNS_DIRECTORY)
+    }
+
+    fn private_directory(&self, name: &str) -> Result<PathBuf, AppError> {
         self.ensure_directory()?;
-        let path = self.path(CHECKS_DIRECTORY);
+        let path = self.path(name);
         match fs::symlink_metadata(&path) {
             Ok(metadata) if metadata.is_dir() => Ok(path),
             Ok(_) => Err(AppError::permission_denied(
-                "Caddy 校验目录不是普通目录，已停止。",
+                "Caddy 私有子目录不是普通目录，已停止。",
             )),
             Err(error) if error.kind() == io::ErrorKind::NotFound => DirBuilder::new()
                 .mode(DIRECTORY_MODE)
                 .create(&path)
                 .map(|()| path)
-                .map_err(|_| AppError::permission_denied("Caddy 校验目录无法创建。")),
-            Err(_) => Err(AppError::permission_denied("Caddy 校验目录无法访问。")),
+                .map_err(|_| AppError::permission_denied("Caddy 私有子目录无法创建。")),
+            Err(_) => Err(AppError::permission_denied("Caddy 私有子目录无法访问。")),
         }
     }
 
