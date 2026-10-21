@@ -214,6 +214,15 @@ fn tls_paths(grants: &GrantCoordinator, tls: &TlsConfig) -> Result<TlsPaths, App
     resolve_tls(grants, tls, &SystemFileInspector).map(|resolution| resolution.paths)
 }
 
+/// Resolves every authorization again; a start or reload runs only when all of
+/// them still resolve to regular files the user granted.
+fn authorize_tls(
+    grants: &GrantCoordinator,
+    configs: &[TlsConfig],
+) -> Result<Vec<TlsPaths>, AppError> {
+    configs.iter().map(|tls| tls_paths(grants, tls)).collect()
+}
+
 fn ensure_tls_resolvable(rules: &CaddyRules, grants: &GrantCoordinator) -> Result<(), AppError> {
     rules
         .sites
@@ -673,11 +682,14 @@ pub async fn caddy_start(
     tauri::async_runtime::spawn_blocking(move || {
         let report = system_conflicts(&targets);
         guard_start(&report, input.accept_unconfirmed, || {
+            let grants = app.state::<GrantCoordinator>();
+            let authorize = |configs: &[TlsConfig]| authorize_tls(&grants, configs);
             let env = StartEnvironment {
                 checks_root: &checks_root,
                 runs_root: &runs_root,
                 runner: &SystemCaddyRunner,
                 probe: &SystemAdminProbe,
+                tls: &authorize,
             };
             app.state::<CaddyRunCoordinator>()
                 .start(&input.plan_id, input.source, &env)
@@ -733,16 +745,22 @@ pub async fn caddy_apply(
     input: ApplyInput,
 ) -> Result<ApplyReport, AppError> {
     require_confirmation(input.confirmed)?;
-    let (text, _) = saved_config(&store, input.source)?;
+    let (text, rules) = saved_config(&store, input.source)?;
+    let tls = rules
+        .as_ref()
+        .map_or_else(Vec::new, CaddyRules::enabled_tls);
     let checks_root = store.checks_root()?;
     tauri::async_runtime::spawn_blocking(move || {
+        let grants = app.state::<GrantCoordinator>();
+        let authorize = |configs: &[TlsConfig]| authorize_tls(&grants, configs);
         let env = ApplyEnvironment {
             checks_root: &checks_root,
             runner: &SystemCaddyRunner,
             probe: &SystemAdminProbe,
+            tls: &authorize,
         };
         app.state::<CaddyRunCoordinator>()
-            .apply(&input.session_id, input.source, &text, &env)
+            .apply(&input.session_id, input.source, &text, &tls, &env)
     })
     .await
     .map_err(|_| AppError::internal())?

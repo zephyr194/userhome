@@ -82,6 +82,14 @@ impl UpstreamScheme {
 }
 
 impl CaddyRules {
+    pub fn enabled_tls(&self) -> Vec<TlsConfig> {
+        self.sites
+            .iter()
+            .filter(|site| site.enabled)
+            .filter_map(|site| site.tls.clone())
+            .collect()
+    }
+
     pub fn example() -> Self {
         Self {
             version: RULES_VERSION,

@@ -34,13 +34,15 @@ use uuid::Uuid;
 
 use crate::{
     caddy::{
-        config::{CaddyRules, authority},
+        config::{CaddyRules, TlsConfig, authority},
         conflict::{ConflictReport, ConflictTargets},
         detect::{DetectReport, DetectStatus},
+        redact::{SensitivePath, SensitiveSet, StreamRedactor, redact_text, sensitive_paths},
         reload::{
             ApplyFailure, ApplyReport, InstanceReview, RELOAD_TIMEOUT, ServingConfig,
             reload_arguments,
         },
+        tls::TlsPaths,
         validate::{
             self, CaddyDiagnostic, CaddyRunner, CheckRequest, MAX_CHECK_BYTES, RunFailure, RunSpec,
             ValidationReport, ValidationStatus,
@@ -254,17 +256,23 @@ impl AdminProbe for SystemAdminProbe {
     }
 }
 
+/// Resolves the TLS authorizations of a configuration to their paths, failing
+/// with the reason when any of them is revoked or no longer usable.
+pub type TlsAuthorizer<'a> = &'a dyn Fn(&[TlsConfig]) -> Result<Vec<TlsPaths>, AppError>;
+
 pub struct StartEnvironment<'a> {
     pub checks_root: &'a Path,
     pub runs_root: &'a Path,
     pub runner: &'a dyn CaddyRunner,
     pub probe: &'a dyn AdminProbe,
+    pub tls: TlsAuthorizer<'a>,
 }
 
 pub struct ApplyEnvironment<'a> {
     pub checks_root: &'a Path,
     pub runner: &'a dyn CaddyRunner,
     pub probe: &'a dyn AdminProbe,
+    pub tls: TlsAuthorizer<'a>,
 }
 
 pub struct PrepareInput<'a> {
@@ -496,6 +504,7 @@ struct RunPlan {
     executable: PathBuf,
     text: String,
     targets: ConflictTargets,
+    tls: Vec<TlsConfig>,
     stored_at: Instant,
 }
 
@@ -517,6 +526,7 @@ struct Run {
     executable: PathBuf,
     directory: RunDirectory,
     active_fingerprint: Mutex<String>,
+    sensitive: SensitiveSet,
     ready: AtomicBool,
     user_stopped: AtomicBool,
     cleaned: AtomicBool,
@@ -532,6 +542,7 @@ impl Run {
         executable: PathBuf,
         directory: RunDirectory,
         fingerprint: String,
+        sensitive: SensitiveSet,
     ) -> Self {
         Self {
             session,
@@ -539,6 +550,7 @@ impl Run {
             executable,
             directory,
             active_fingerprint: Mutex::new(fingerprint),
+            sensitive,
             ready: AtomicBool::new(false),
             user_stopped: AtomicBool::new(false),
             cleaned: AtomicBool::new(false),
@@ -580,10 +592,10 @@ impl Run {
     fn captured_diagnostics(&self) -> Vec<CaddyDiagnostic> {
         lock(&self.diagnostics)
             .get_or_insert_with(|| {
-                redact_diagnostics(validate::diagnostics_from(
-                    self.session.stderr().bytes(),
-                    &self.directory.dir,
-                ))
+                redact_diagnostics(
+                    validate::diagnostics_from(self.session.stderr().bytes(), &self.directory.dir),
+                    &self.sensitive.snapshot(),
+                )
             })
             .clone()
     }
@@ -724,6 +736,7 @@ impl CaddyRunCoordinator {
             executable,
             text: input.text.to_owned(),
             targets: ConflictTargets::for_rules(input.rules),
+            tls: input.rules.map_or_else(Vec::new, CaddyRules::enabled_tls),
             stored_at: Instant::now(),
         });
         summary
@@ -744,9 +757,9 @@ impl CaddyRunCoordinator {
             }
             slot.busy = true;
         }
-        let status = self.launch(&plan, env);
+        let outcome = self.launch(&plan, env);
         lock(&self.slot).busy = false;
-        Ok(status)
+        outcome
     }
 
     /// Reads the stored plan's addresses without consuming it, so a start that
@@ -770,7 +783,8 @@ impl CaddyRunCoordinator {
         }
     }
 
-    fn launch(&self, plan: &RunPlan, env: &StartEnvironment<'_>) -> RunStatus {
+    fn launch(&self, plan: &RunPlan, env: &StartEnvironment<'_>) -> Result<RunStatus, AppError> {
+        let known = sensitive_paths(&(env.tls)(&plan.tls)?);
         let cancel = AtomicBool::new(false);
         let request = CheckRequest {
             executable: &plan.executable,
@@ -779,18 +793,18 @@ impl CaddyRunCoordinator {
         };
         let report = match validate::check(&request, env.checks_root, env.runner, &cancel) {
             Ok(report) => report,
-            Err(_) => return self.refuse(FailureKind::InvalidSetup, Vec::new()),
+            Err(_) => return Ok(self.refuse(FailureKind::InvalidSetup, Vec::new())),
         };
         if let Some(kind) = refusal_kind(&report) {
-            return self.refuse(kind, redact_diagnostics(report.diagnostics));
+            return Ok(self.refuse(kind, redact_diagnostics(report.diagnostics, &known)));
         }
         let directory = match RunDirectory::create(env.runs_root) {
             Ok(directory) => directory,
-            Err(_) => return self.refuse(FailureKind::InvalidSetup, Vec::new()),
+            Err(_) => return Ok(self.refuse(FailureKind::InvalidSetup, Vec::new())),
         };
         let runtime = inject_admin(&plan.text, &directory.socket);
         let Ok(config) = write_copy(&directory.dir, validate::CONFIG_FILE, &runtime) else {
-            return self.refuse(FailureKind::InvalidSetup, Vec::new());
+            return Ok(self.refuse(FailureKind::InvalidSetup, Vec::new()));
         };
         let Ok(spec) = launch_spec(
             &plan.executable,
@@ -798,14 +812,18 @@ impl CaddyRunCoordinator {
             &config,
             self.timing.log_capacity,
         ) else {
-            return self.refuse(FailureKind::InvalidSetup, Vec::new());
+            return Ok(self.refuse(FailureKind::InvalidSetup, Vec::new()));
         };
-        let session = match ProcessSession::start(&spec) {
+        (env.tls)(&plan.tls)?;
+        let sensitive = SensitiveSet::new(known);
+        let session = match ProcessSession::start_filtered(&spec, &|| {
+            Box::new(StreamRedactor::new(sensitive.clone()))
+        }) {
             Ok(session) => session,
             Err(SessionError::Spawn | SessionError::Io) => {
-                return self.refuse(FailureKind::SpawnFailed, Vec::new());
+                return Ok(self.refuse(FailureKind::SpawnFailed, Vec::new()));
             }
-            Err(_) => return self.refuse(FailureKind::InvalidSetup, Vec::new()),
+            Err(_) => return Ok(self.refuse(FailureKind::InvalidSetup, Vec::new())),
         };
         let run = Arc::new(Run::new(
             session,
@@ -813,6 +831,7 @@ impl CaddyRunCoordinator {
             plan.executable.clone(),
             directory,
             fingerprint(&runtime),
+            sensitive,
         ));
         {
             let mut slot = lock(&self.slot);
@@ -820,7 +839,7 @@ impl CaddyRunCoordinator {
             slot.refusal = None;
         }
         *lock(&self.last_apply) = None;
-        self.await_ready(&run, env.probe)
+        Ok(self.await_ready(&run, env.probe))
     }
 
     fn refuse(&self, kind: FailureKind, diagnostics: Vec<CaddyDiagnostic>) -> RunStatus {
@@ -956,11 +975,13 @@ impl CaddyRunCoordinator {
         session_id: &str,
         source: ConfigSource,
         saved: &str,
+        tls: &[TlsConfig],
         env: &ApplyEnvironment<'_>,
     ) -> Result<ApplyReport, AppError> {
         let run = self.begin_reload(session_id, source, saved)?;
-        let report = self.reload(&run, saved, env);
+        let outcome = self.reload(&run, saved, tls, env);
         lock(&self.slot).reloading = false;
+        let report = outcome?;
         *lock(&self.last_apply) = Some(report.clone());
         Ok(report)
     }
@@ -988,7 +1009,15 @@ impl CaddyRunCoordinator {
         Ok(run)
     }
 
-    fn reload(&self, run: &Run, saved: &str, env: &ApplyEnvironment<'_>) -> ApplyReport {
+    fn reload(
+        &self,
+        run: &Run,
+        saved: &str,
+        tls: &[TlsConfig],
+        env: &ApplyEnvironment<'_>,
+    ) -> Result<ApplyReport, AppError> {
+        run.sensitive.extend(sensitive_paths(&(env.tls)(tls)?));
+        let known = run.sensitive.snapshot();
         let session_id = run.session.id().to_owned();
         let cancel = AtomicBool::new(false);
         let check = CheckRequest {
@@ -999,12 +1028,12 @@ impl CaddyRunCoordinator {
         let report = match validate::check(&check, env.checks_root, env.runner, &cancel) {
             Ok(report) => report,
             Err(_) => {
-                return ApplyReport::failed(
+                return Ok(ApplyReport::failed(
                     session_id,
                     ApplyFailure::ValidationFailed,
                     None,
                     Vec::new(),
-                );
+                ));
             }
         };
         let failure = match report.status {
@@ -1018,24 +1047,24 @@ impl CaddyRunCoordinator {
             | ValidationStatus::Unavailable => Some(ApplyFailure::CommandFailed),
         };
         if let Some(failure) = failure {
-            return ApplyReport::failed(
+            return Ok(ApplyReport::failed(
                 session_id,
                 failure,
                 None,
-                redact_diagnostics(report.diagnostics),
-            );
+                redact_diagnostics(report.diagnostics, &known),
+            ));
         }
 
         let runtime = inject_admin(saved, &run.directory.socket);
         let candidate = fingerprint(&runtime);
         let name = format!("reload-{}.Caddyfile", Uuid::new_v4());
         let Ok(config) = write_copy(&run.directory.dir, &name, &runtime) else {
-            return ApplyReport::failed(
+            return Ok(ApplyReport::failed(
                 session_id,
                 ApplyFailure::PreparationFailed,
                 None,
                 Vec::new(),
-            );
+            ));
         };
         let spec = RunSpec {
             executable: run.executable.clone(),
@@ -1045,7 +1074,8 @@ impl CaddyRunCoordinator {
             timeout: RELOAD_TIMEOUT,
             max_output_bytes: validate::MAX_OUTPUT_BYTES,
         };
-        match env.runner.run(&spec, &cancel) {
+        (env.tls)(tls)?;
+        Ok(match env.runner.run(&spec, &cancel) {
             Err(RunFailure::Timeout) => ApplyReport::failed(
                 session_id,
                 ApplyFailure::Timeout,
@@ -1064,7 +1094,7 @@ impl CaddyRunCoordinator {
                     session_id,
                     ApplyFailure::CommandFailed,
                     Some(review(run, env.probe, ServingConfig::Previous)),
-                    redact_diagnostics(diagnostics),
+                    redact_diagnostics(diagnostics, &known),
                 )
             }
             Ok(_) => {
@@ -1081,7 +1111,7 @@ impl CaddyRunCoordinator {
                     )
                 }
             }
-        }
+        })
     }
 
     pub fn logs(
@@ -1120,12 +1150,19 @@ impl CaddyRunCoordinator {
     }
 }
 
-fn redact_diagnostics(diagnostics: Vec<CaddyDiagnostic>) -> Vec<CaddyDiagnostic> {
+fn redact_diagnostics(
+    diagnostics: Vec<CaddyDiagnostic>,
+    known: &[SensitivePath],
+) -> Vec<CaddyDiagnostic> {
     diagnostics
         .into_iter()
         .map(|diagnostic| CaddyDiagnostic {
             line: diagnostic.line,
-            message: sanitize_payload(&diagnostic.message, MAX_DIAGNOSTIC_BYTES, &[]),
+            message: sanitize_payload(
+                &redact_text(&diagnostic.message, known),
+                MAX_DIAGNOSTIC_BYTES,
+                &[],
+            ),
         })
         .collect()
 }
@@ -1298,6 +1335,10 @@ mod tests {
         }
     }
 
+    fn no_tls(_: &[TlsConfig]) -> Result<Vec<TlsPaths>, AppError> {
+        Ok(Vec::new())
+    }
+
     fn fast_timing() -> Timing {
         Timing {
             stop_grace: Duration::from_millis(300),
@@ -1339,6 +1380,7 @@ mod tests {
                 runs_root: &runs,
                 runner,
                 probe,
+                tls: &no_tls,
             },
         )
     }
@@ -1709,6 +1751,7 @@ mod tests {
             runs_root: &runs,
             runner: &runner,
             probe: &probe,
+            tls: &no_tls,
         };
         let error = coordinator
             .start("not-a-plan", ConfigSource::Raw, &env)
@@ -1884,10 +1927,13 @@ mod tests {
 
     #[test]
     fn diagnostics_drop_secret_assignments_before_leaving_the_session() {
-        let redacted = redact_diagnostics(vec![CaddyDiagnostic {
-            line: Some(2),
-            message: "Error: basicauth password=hunter2supersecret".to_owned(),
-        }]);
+        let redacted = redact_diagnostics(
+            vec![CaddyDiagnostic {
+                line: Some(2),
+                message: "Error: basicauth password=hunter2supersecret".to_owned(),
+            }],
+            &[],
+        );
         assert_eq!(redacted[0].line, Some(2));
         assert!(!redacted[0].message.contains("hunter2supersecret"));
     }
@@ -2112,10 +2158,12 @@ mod tests {
             session_id,
             ConfigSource::Raw,
             text,
+            &[],
             &ApplyEnvironment {
                 checks_root: &checks,
                 runner,
                 probe: &Gate(Arc::clone(flag)),
+                tls: &no_tls,
             },
         )
     }
@@ -2422,6 +2470,7 @@ mod tests {
             checks_root: &checks,
             runner: &runner,
             probe: &Gate(Arc::clone(&flag)),
+            tls: &no_tls,
         };
 
         let other_session = coordinator
@@ -2429,11 +2478,18 @@ mod tests {
                 "other-session",
                 ConfigSource::Raw,
                 CHANGED_TEXT,
+                &[],
                 &environment,
             )
             .expect_err("other session");
         let other_source = coordinator
-            .apply(&session, ConfigSource::Rules, CHANGED_TEXT, &environment)
+            .apply(
+                &session,
+                ConfigSource::Rules,
+                CHANGED_TEXT,
+                &[],
+                &environment,
+            )
             .expect_err("other source");
 
         assert_eq!(other_session.code(), AppErrorCode::Conflict);

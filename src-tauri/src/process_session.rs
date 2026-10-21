@@ -340,8 +340,36 @@ impl fmt::Debug for ProcessSession {
     }
 }
 
+/// Transforms each output stream before its bytes enter the bounded buffer, so
+/// text that must never be kept is never stored. `finish` flushes what a filter
+/// still holds once the stream ends.
+pub trait OutputFilter: Send {
+    fn push(&mut self, chunk: &[u8]) -> Vec<u8>;
+    fn finish(&mut self) -> Vec<u8>;
+}
+
+struct PassThrough;
+
+impl OutputFilter for PassThrough {
+    fn push(&mut self, chunk: &[u8]) -> Vec<u8> {
+        chunk.to_vec()
+    }
+
+    fn finish(&mut self) -> Vec<u8> {
+        Vec::new()
+    }
+}
+
 impl ProcessSession {
     pub fn start(spec: &LaunchSpec) -> Result<Self, SessionError> {
+        Self::start_filtered(spec, &|| Box::new(PassThrough))
+    }
+
+    /// Each stream gets its own filter from `filter`.
+    pub fn start_filtered(
+        spec: &LaunchSpec,
+        filter: &dyn Fn() -> Box<dyn OutputFilter>,
+    ) -> Result<Self, SessionError> {
         spec.validate()?;
         let mut command = grouped_command(
             &spec.executable,
@@ -363,8 +391,8 @@ impl ProcessSession {
         // The monitor thread takes the child out of this slot; if any thread
         // fails to start, the child is still here to be killed and reaped.
         let slot = Arc::new(Mutex::new(Some(child)));
-        let spawned = spawn_pump(&shared, stdout, Stream::Stdout).is_ok()
-            && spawn_pump(&shared, stderr, Stream::Stderr).is_ok()
+        let spawned = spawn_pump(&shared, stdout, Stream::Stdout, filter()).is_ok()
+            && spawn_pump(&shared, stderr, Stream::Stderr, filter()).is_ok()
             && spawn_monitor(&shared, &slot).is_ok();
         if !spawned {
             let child = slot.lock().unwrap_or_else(PoisonError::into_inner).take();
@@ -506,6 +534,7 @@ fn spawn_pump(
     shared: &Arc<Shared>,
     mut reader: impl Read + Send + 'static,
     stream: Stream,
+    mut filter: Box<dyn OutputFilter>,
 ) -> Result<(), ()> {
     let shared = Arc::clone(shared);
     thread::Builder::new()
@@ -515,23 +544,29 @@ fn spawn_pump(
             loop {
                 match reader.read(&mut buffer) {
                     Ok(0) => break,
-                    Ok(read) => {
-                        let target = match stream {
-                            Stream::Stdout => &shared.stdout,
-                            Stream::Stderr => &shared.stderr,
-                        };
-                        target
-                            .lock()
-                            .unwrap_or_else(PoisonError::into_inner)
-                            .push(&buffer[..read]);
-                    }
+                    Ok(read) => push_output(&shared, stream, &filter.push(&buffer[..read])),
                     Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
                     Err(_) => break,
                 }
             }
+            push_output(&shared, stream, &filter.finish());
         })
         .map(|_| ())
         .map_err(|_| ())
+}
+
+fn push_output(shared: &Shared, stream: Stream, bytes: &[u8]) {
+    if bytes.is_empty() {
+        return;
+    }
+    let target = match stream {
+        Stream::Stdout => &shared.stdout,
+        Stream::Stderr => &shared.stderr,
+    };
+    target
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .push(bytes);
 }
 
 /// Starts the monitor thread, which takes the child from `slot` and is the only
