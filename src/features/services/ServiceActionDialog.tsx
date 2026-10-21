@@ -203,7 +203,7 @@ export function ServiceActionDialog({
         </p>
       ) : null}
 
-      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 bg-surface shadow-[var(--app-shadow-sticky)] px-5 py-4">
+      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap justify-end gap-2 border-t border-line bg-surface px-5 py-4">
         {canConfirm ? (
           <Button
             variant="primary"

@@ -133,7 +133,7 @@ export function ServiceDetails({
 
       {canManage ? (
         <div
-          className="sticky bottom-0 mt-ui-xl flex flex-wrap justify-end gap-ui-md bg-surface shadow-[var(--app-shadow-sticky)] px-ui-3xl py-ui-xl"
+          className="sticky bottom-0 mt-ui-xl flex flex-wrap justify-end gap-ui-md border-t border-line bg-surface px-ui-3xl py-ui-xl"
           aria-label={`${SCOPE_LABELS[details.scope]}服务操作`}
         >
           <Button
