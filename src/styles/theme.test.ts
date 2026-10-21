@@ -29,13 +29,15 @@ function contrast(left: string, right: string): number {
 }
 
 describe("global theme tokens", () => {
-  it("uses the approved warm-gray amber palette", () => {
+  it("uses the approved cool steel-gray palette", () => {
     for (const value of [
-      "#F5F1EA", "#FCFAF6", "#FFFFFF", "#29241E", "#746A5E",
-      "#B65C24", "#A94F1F", "#2B744F", "#8C5F12", "#B33A3A",
+      "#EDF1F5", "#F8FAFC", "#FFFFFF", "#1D242D", "#4F5B69",
+      "#B65C24", "#A64D1D", "#2B744F", "#8C5F12", "#B33A3A",
       "#171512", "#211E1A", "#2A2621", "#F3ECE2", "#F0A060",
     ]) expect(css.toUpperCase()).toContain(value);
-    expect(css).not.toMatch(/#f5f6f8|#171c24|#1663b7|#82baff/i);
+    expect(css).not.toMatch(
+      /#f5f6f8|#171c24|#1663b7|#82baff|#f5f1ea|#fcfaf6|#746a5e|#a94f1f|#948678|#f0eae2|#d8cec1|#efe9e0|#e7ddd1|#c8bcae|#a99989|#5e554b|#f3e3d7/i,
+    );
   });
 
   it("keeps matching warm dark semantics for explicit and system appearances", () => {
@@ -79,10 +81,10 @@ describe("global theme tokens", () => {
   });
 
   it("meets text and control contrast across every approved surface", () => {
-    const lightSurfaces = ["#F5F1EA", "#FCFAF6", "#FFFFFF"];
+    const lightSurfaces = ["#EDF1F5", "#F8FAFC", "#E3E9EF", "#FFFFFF"];
     const darkSurfaces = ["#171512", "#211E1A", "#2A2621"];
     for (const foreground of [
-      "#29241E", "#746A5E", "#A94F1F", "#2B744F", "#8C5F12", "#B33A3A",
+      "#1D242D", "#4F5B69", "#A64D1D", "#2B744F", "#8C5F12", "#B33A3A",
     ]) {
       for (const surface of lightSurfaces) {
         expect(contrast(foreground, surface)).toBeGreaterThanOrEqual(4.5);
@@ -96,7 +98,7 @@ describe("global theme tokens", () => {
       }
     }
     for (const surface of lightSurfaces) {
-      expect(contrast("#948678", surface)).toBeGreaterThanOrEqual(3);
+      expect(contrast("#6B7785", surface)).toBeGreaterThanOrEqual(3);
     }
     for (const surface of darkSurfaces) {
       expect(contrast("#7C7062", surface)).toBeGreaterThanOrEqual(3);
