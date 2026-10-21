@@ -28,6 +28,7 @@
   --color-selection-border: var(--app-selection-border);
   --color-selection-foreground: var(--app-selection-foreground);
   --color-surface-raised: var(--app-surface-raised);
+  --color-qr-substrate: var(--app-qr-substrate);
   --color-control-border: var(--app-control-border);
   --color-tertiary-foreground: var(--app-tertiary-foreground);
   --color-backdrop: var(--app-backdrop);
@@ -81,6 +82,7 @@
   --app-surface: #F8FAFC;
   --app-surface-muted: #E3E9EF;
   --app-surface-raised: #FFFFFF;
+  --app-qr-substrate: #FFFFFF;
   --app-border: #C5CED9;
   --app-control-border: #6B7785;
   --app-foreground: #1D242D;

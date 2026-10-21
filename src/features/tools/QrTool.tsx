@@ -298,10 +298,7 @@ export function QrTool() {
         {icon ? (
           <div className="flex flex-wrap items-center gap-ui-md">
             {/* Fixed white substrate, like the preview: the thumbnail is the backend's PNG. */}
-            <div
-              className="grid w-fit rounded-control p-ui-sm"
-              style={{ backgroundColor: "#ffffff" }}
-            >
+            <div className="grid w-fit rounded-control bg-qr-substrate p-ui-sm">
               <img
                 alt="图标缩略图"
                 src={`data:image/png;base64,${icon.thumbnailPngBase64}`}
@@ -377,10 +374,7 @@ export function QrTool() {
         {preview.status === "ready" ? (
           <>
             {/* Fixed white substrate: contrast must not follow the theme. */}
-            <div
-              className="grid w-fit gap-ui-xs rounded-control p-ui-lg"
-              style={{ backgroundColor: "#ffffff" }}
-            >
+            <div className="grid w-fit gap-ui-xs rounded-control bg-qr-substrate p-ui-lg">
               <img
                 alt="二维码预览"
                 src={`data:image/png;base64,${preview.preview.pngBase64}`}
