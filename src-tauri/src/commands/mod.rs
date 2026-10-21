@@ -1,3 +1,4 @@
+pub mod app_config;
 pub mod application_config;
 pub mod brew;
 pub mod caddy;
