@@ -56,7 +56,7 @@
     "tool": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "displayName", "executableNames", "source", "resources", "settings", "flags", "env"],
+      "required": ["id", "displayName", "executableNames", "source", "resources", "settings", "flags", "env", "flagsCoverage", "envCoverage"],
       "properties": {
         "id": { "$ref": "#/$defs/identifier" },
         "displayName": { "$ref": "#/$defs/nonEmptyText" },
@@ -69,7 +69,21 @@
         "resources": { "type": "array", "items": { "$ref": "#/$defs/resource" } },
         "settings": { "type": "array", "items": { "$ref": "#/$defs/setting" } },
         "flags": { "type": "array", "items": { "$ref": "#/$defs/flag" } },
-        "env": { "type": "array", "items": { "$ref": "#/$defs/env" } }
+        "env": { "type": "array", "items": { "$ref": "#/$defs/env" } },
+        "flagsCoverage": { "$ref": "#/$defs/listingCoverage" },
+        "envCoverage": { "$ref": "#/$defs/listingCoverage" }
+      }
+    },
+    "listingCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshotComplete", "source"],
+      "properties": {
+        "snapshotComplete": { "type": "boolean" },
+        "coverageNote": {
+          "anyOf": [{ "$ref": "#/$defs/nonEmptyText" }, { "type": "null" }]
+        },
+        "source": { "$ref": "#/$defs/source" }
       }
     },
     "source": {

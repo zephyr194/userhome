@@ -4651,7 +4651,17 @@
         {"name": "CLAUDE_CODE_POWERSHELL_RESPECT_EXECUTION_POLICY", "valueType": "unknown", "allowedValues": [], "description": "Respect the machine execution policy instead of the default -ExecutionPolicy Bypass. Group Policy MachinePolicy and UserPolicy are never overridden. The value type is not stated, so display only.", "secret": false, "configAlternative": null, "excludes": [], "requires": [], "risks": [], "coverage": "displayOnly", "versions": null, "source": {"url": "https://code.claude.com/docs/en/env-vars", "retrievedOn": "2026-10-21", "documentedVersion": "unknown"}},
         {"name": "BETA_TRACING_ENDPOINT", "valueType": "string", "allowedValues": [], "description": "OTLP/HTTP endpoint for beta tracing; detailed traces are sent to it. Ignored in project and local settings.", "secret": false, "configAlternative": null, "excludes": [], "requires": [], "risks": ["externalServer"], "coverage": "displayOnly", "versions": null, "source": {"url": "https://code.claude.com/docs/en/env-vars", "retrievedOn": "2026-10-21", "documentedVersion": "unknown"}},
         {"name": "CCR_FORCE_BUNDLE", "valueType": "boolean", "allowedValues": [], "description": "Forces claude --cloud to upload the local repository.", "secret": false, "configAlternative": null, "excludes": [], "requires": [], "risks": ["externalServer"], "coverage": "displayOnly", "versions": null, "source": {"url": "https://code.claude.com/docs/en/env-vars", "retrievedOn": "2026-10-21", "documentedVersion": "unknown"}}
-      ]
+      ],
+      "flagsCoverage": {
+        "snapshotComplete": false,
+        "coverageNote": "官方 CLI 参考页的 flags 更多（未统计总数）；本快照仅收录 30 项，其余未收录，未收录项不可用于命令生成。",
+        "source": {"url": "https://code.claude.com/docs/en/cli-reference", "retrievedOn": "2026-10-21", "documentedVersion": "unknown"}
+      },
+      "envCoverage": {
+        "snapshotComplete": false,
+        "coverageNote": "官方环境变量页面共 230 项以上；本快照抓取内容被截断，仅收录 29 项，其余未收录，未收录项不可用于命令生成。",
+        "source": {"url": "https://code.claude.com/docs/en/env-vars", "retrievedOn": "2026-10-21", "documentedVersion": "unknown"}
+      }
     }
   ]
 }

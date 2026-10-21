@@ -11,7 +11,7 @@ use crate::ai_config::registry::{
 const SCHEMA_JSON: &str = include_str!("definitions/schema.json");
 const FIXTURE_JSON: &str = include_str!("fixtures/valid-tool.json");
 
-const ITEM_POINTERS: [(&str, &str); 7] = [
+const ITEM_POINTERS: [(&str, &str); 9] = [
     ("tool", "/tools/0"),
     ("source", "/tools/0/source"),
     ("resource", "/tools/0/resources/0"),
@@ -19,6 +19,8 @@ const ITEM_POINTERS: [(&str, &str); 7] = [
     ("flag", "/tools/0/flags/0"),
     ("env", "/tools/0/env/0"),
     ("versions", "/tools/0/settings/0/versions"),
+    ("listingCoverage", "/tools/0/flagsCoverage"),
+    ("listingCoverage", "/tools/0/envCoverage"),
 ];
 
 fn schema() -> Value {

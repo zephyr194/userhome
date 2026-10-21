@@ -304,3 +304,58 @@ fn unknown_value_type_may_be_display_only_or_version_unknown() {
 
     assert!(crate::ai_config::validate::load_validated(&value.to_string()).is_ok());
 }
+
+#[test]
+fn flag_and_env_listings_are_marked_incomplete_with_lower_bound_notes() {
+    let tool = claude_tool();
+
+    assert!(!tool.flags_coverage.snapshot_complete);
+    assert!(!tool.env_coverage.snapshot_complete);
+    let flags_note = tool
+        .flags_coverage
+        .coverage_note
+        .as_deref()
+        .expect("flags listing has a note");
+    let env_note = tool
+        .env_coverage
+        .coverage_note
+        .as_deref()
+        .expect("env listing has a note");
+    assert!(env_note.contains("230 项以上"));
+    assert!(flags_note.contains("未收录"));
+    assert!(env_note.contains("未收录"));
+}
+
+#[test]
+fn listing_notes_state_the_counts_of_the_listed_arrays() {
+    let tool = claude_tool();
+    let flags_note = tool
+        .flags_coverage
+        .coverage_note
+        .as_deref()
+        .expect("flags listing has a note");
+    let env_note = tool
+        .env_coverage
+        .coverage_note
+        .as_deref()
+        .expect("env listing has a note");
+
+    assert!(flags_note.contains(&format!("仅收录 {} 项", tool.flags.len())));
+    assert!(env_note.contains(&format!("仅收录 {} 项", tool.env.len())));
+}
+
+#[test]
+fn listing_sources_point_at_the_flag_and_env_reference_pages() {
+    let tool = claude_tool();
+
+    assert_eq!(
+        tool.flags_coverage.source.url,
+        "https://code.claude.com/docs/en/cli-reference"
+    );
+    assert_eq!(
+        tool.env_coverage.source.url,
+        "https://code.claude.com/docs/en/env-vars"
+    );
+    assert_eq!(tool.flags_coverage.source.retrieved_on, SNAPSHOT_DATE);
+    assert_eq!(tool.env_coverage.source.retrieved_on, SNAPSHOT_DATE);
+}

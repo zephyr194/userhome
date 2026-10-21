@@ -34,6 +34,7 @@ pub enum IssueKind {
     SelfReference,
     InvalidEnvName,
     UnverifiedValueType,
+    MissingCoverageNote,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -54,6 +55,16 @@ pub struct ToolDefinition {
     pub settings: Vec<SettingDefinition>,
     pub flags: Vec<FlagDefinition>,
     pub env: Vec<EnvDefinition>,
+    pub flags_coverage: ListingCoverage,
+    pub env_coverage: ListingCoverage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ListingCoverage {
+    pub snapshot_complete: bool,
+    pub coverage_note: Option<String>,
+    pub source: SourceRef,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

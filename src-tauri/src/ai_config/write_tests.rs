@@ -80,7 +80,9 @@ fn tool() -> ToolDefinition {
             "resources": [],
             "settings": settings,
             "flags": [],
-            "env": []
+            "env": [],
+            "flagsCoverage": {"snapshotComplete": true, "source": {"url": SOURCE_URL, "retrievedOn": "2026-10-21", "documentedVersion": "unknown"}},
+            "envCoverage": {"snapshotComplete": true, "source": {"url": SOURCE_URL, "retrievedOn": "2026-10-21", "documentedVersion": "unknown"}}
         }]
     });
     parse_definitions(&document.to_string())

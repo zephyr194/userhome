@@ -4,8 +4,8 @@ use std::collections::{BTreeSet, HashSet};
 use super::registry::{
     BUILTIN_DEFINITIONS_JSON, CLAUDE_CODE_DEFINITIONS_JSON, CoverageStatus,
     DEFINITION_SCHEMA_VERSION, Definitions, EnvDefinition, FlagDefinition, IssueKind,
-    RegistryError, ResourceDefinition, SettingDefinition, SourceRef, ToolDefinition,
-    ValidationIssue, ValueType, VerifiedVersions, parse_definitions,
+    ListingCoverage, RegistryError, ResourceDefinition, SettingDefinition, SourceRef,
+    ToolDefinition, ValidationIssue, ValueType, VerifiedVersions, parse_definitions,
 };
 
 pub const UNKNOWN_DOCUMENTED_VERSION: &str = "unknown";
@@ -130,6 +130,25 @@ fn validate_tool(issues: &mut Vec<ValidationIssue>, tool: &ToolDefinition) {
             env,
             &env_names,
         );
+    }
+    validate_listing(
+        issues,
+        &format!("{base}.flagsCoverage"),
+        &tool.flags_coverage,
+    );
+    validate_listing(issues, &format!("{base}.envCoverage"), &tool.env_coverage);
+}
+
+fn validate_listing(issues: &mut Vec<ValidationIssue>, base: &str, listing: &ListingCoverage) {
+    validate_source(issues, &format!("{base}.source"), &listing.source);
+    match &listing.coverage_note {
+        Some(note) => check_text(issues, &format!("{base}.coverageNote"), note),
+        None if !listing.snapshot_complete => push(
+            issues,
+            format!("{base}.coverageNote"),
+            IssueKind::MissingCoverageNote,
+        ),
+        None => {}
     }
 }
 

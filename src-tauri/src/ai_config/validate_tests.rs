@@ -644,3 +644,42 @@ fn empty_definitions_report_every_snapshot_item_as_missing() {
         vec!["fixture-tool/setting/model".to_owned()]
     );
 }
+
+#[test]
+fn incomplete_flag_listing_without_note_is_rejected() {
+    let mut value = fixture();
+    tool(&mut value)["flagsCoverage"]
+        .as_object_mut()
+        .expect("listing is an object")
+        .remove("coverageNote");
+
+    assert_only(&value, IssueKind::MissingCoverageNote);
+}
+
+#[test]
+fn incomplete_env_listing_with_blank_note_is_rejected() {
+    let mut value = fixture();
+    tool(&mut value)["envCoverage"]["snapshotComplete"] = json!(false);
+    tool(&mut value)["envCoverage"]["coverageNote"] = json!("   ");
+
+    assert_only(&value, IssueKind::EmptyText);
+}
+
+#[test]
+fn complete_listing_may_omit_its_note() {
+    let mut value = fixture();
+    tool(&mut value)["envCoverage"]
+        .as_object_mut()
+        .expect("listing is an object")
+        .remove("coverageNote");
+
+    assert!(load_validated(&value.to_string()).is_ok());
+}
+
+#[test]
+fn listing_source_must_be_https() {
+    let mut value = fixture();
+    tool(&mut value)["flagsCoverage"]["source"]["url"] = json!("http://example.test/flags");
+
+    assert_only(&value, IssueKind::InvalidSourceUrl);
+}

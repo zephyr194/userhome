@@ -101,7 +101,25 @@
             "documentedVersion": "1.2.3"
           }
         }
-      ]
+      ],
+      "flagsCoverage": {
+        "snapshotComplete": false,
+        "coverageNote": "夹具收录范围说明。",
+        "source": {
+          "url": "https://example.test/fixture-tool/flags",
+          "retrievedOn": "2026-10-21",
+          "documentedVersion": "unknown"
+        }
+      },
+      "envCoverage": {
+        "snapshotComplete": true,
+        "coverageNote": "夹具环境变量收录完整。",
+        "source": {
+          "url": "https://example.test/fixture-tool/env",
+          "retrievedOn": "2026-10-21",
+          "documentedVersion": "1.2.3"
+        }
+      }
     }
   ]
 }
