@@ -224,7 +224,7 @@ describe("adoption flow", () => {
       { type: "executeFailed", error: ERROR },
     );
     expect(failed).toEqual({ phase: "failed", error: ERROR, preview: adoptPreview() });
-    expect(adoptFlowReducer(failed, { type: "backRequested" })).toEqual({ phase: "idle" });
+    expect(adoptFlowReducer(failed, { type: "previewRequested" })).toEqual({ phase: "previewing" });
   });
 });
 
@@ -233,7 +233,7 @@ describe("adoption wording", () => {
     const cases: [AppError["code"], string][] = [
       ["NOT_FOUND", "已不存在"],
       ["CONFLICT", "已变化"],
-      ["PERMISSION_DENIED", "不能接管"],
+      ["PERMISSION_DENIED", "接管被拒绝"],
       ["VALIDATION_FAILED", "接管未完成"],
     ];
     for (const [code, text] of cases) {

@@ -408,7 +408,7 @@ export function buildCreateRequest(state: CreateFormState): BuildResult {
 }
 
 /** Hides every environment value of the form wherever it shows up in `text`. */
-export function scrubSecrets(text: string, state: CreateFormState): string {
+export function scrubSecrets(text: string, state: Pick<CreateFormState, "environment">): string {
   const values = [
     ...new Set(
       state.environment

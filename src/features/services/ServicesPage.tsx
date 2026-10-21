@@ -18,6 +18,7 @@ import {
   type ServiceFilter,
 } from "./launchdModel";
 import { ServiceLogs } from "./ServiceLogs";
+import { ServiceManagement } from "./ServiceManagement";
 import { ServicesView } from "./ServicesView";
 
 /**
@@ -186,6 +187,9 @@ export function ServicesPage({
         onRefresh={refresh}
         onActionSettled={load}
         renderLogs={(service) => <ServiceLogs key={service.id} service={service} />}
+        renderManagement={(service) => (
+          <ServiceManagement key={service.id} onChanged={load} service={service} />
+        )}
         headerActions={
           <div className="grid min-w-0 justify-items-end gap-ui-xs">
             <Button

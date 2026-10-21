@@ -1,5 +1,6 @@
 import type { AppError } from "../../ipc/core";
 import type {
+  EditChangeKey,
   EditExecution,
   EditPreview,
   EditServiceRequest,
@@ -21,6 +22,20 @@ import type { NoticeText } from "./adoptServiceModel";
  * Validation and list editing are the create form's own, so the two cannot
  * drift apart.
  */
+
+const CHANGE_LABELS: Record<EditChangeKey, string> = {
+  ProgramArguments: "程序与参数",
+  WorkingDirectory: "工作目录",
+  StandardOutPath: "标准输出日志",
+  StandardErrorPath: "标准错误日志",
+  EnvironmentVariables: "环境变量",
+  RunAtLoad: "登录后自动启动",
+  KeepAlive: "退出后自动重启",
+};
+
+export function changeLabel(change: EditChangeKey): string {
+  return CHANGE_LABELS[change];
+}
 
 export const KEEP_ALIVE_CONDITIONAL_NOTE =
   "KeepAlive 是按条件设置的字典，本表单只能开启或关闭布尔值，不会改写它。";

@@ -90,8 +90,7 @@ export type AdoptFlowAction =
   | { readonly type: "previewFailed"; readonly error: AppError }
   | { readonly type: "confirmRequested" }
   | { readonly type: "executed"; readonly execution: AdoptExecution }
-  | { readonly type: "executeFailed"; readonly error: AppError }
-  | { readonly type: "backRequested" };
+  | { readonly type: "executeFailed"; readonly error: AppError };
 
 export const INITIAL_ADOPT_FLOW: AdoptFlowState = { phase: "idle" };
 
@@ -125,10 +124,6 @@ export function adoptFlowReducer(
       return state.phase === "executing"
         ? { phase: "failed", error: action.error, preview: state.preview }
         : state;
-    case "backRequested":
-      return state.phase === "previewed" || state.phase === "failed"
-        ? { phase: "idle" }
-        : state;
   }
 }
 
@@ -156,7 +151,7 @@ export function describeAdoptFailure(error: AppError): NoticeText {
       };
     case "PERMISSION_DENIED":
       return {
-        title: "该任务不能接管，没有写入任何记录",
+        title: "接管被拒绝，没有写入任何记录",
         detail: error.message,
       };
     case "VALIDATION_FAILED":

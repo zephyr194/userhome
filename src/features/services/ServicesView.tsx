@@ -54,6 +54,8 @@ export interface ServicesViewProps {
   onActionSettled?: () => void;
   /** Read-only block for the selected job, supplied by the page; absent here means none is shown. */
   renderLogs?: (service: LaunchdService) => ReactNode;
+  /** Adoption and edit entries for the selected job, supplied by the page. */
+  renderManagement?: (service: LaunchdService) => ReactNode;
 }
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
@@ -435,6 +437,7 @@ function DetailsPane({
   filter,
   onActionSettled,
   renderLogs,
+  renderManagement,
   selectedId,
   state,
   visible,
@@ -481,6 +484,7 @@ function DetailsPane({
         service={resolved.service}
         sources={state.discovery.sources}
       />
+      {renderManagement ? renderManagement(resolved.service) : null}
       {renderLogs ? (
         <Panel aria-labelledby="service-logs-heading" className="min-w-0">
           <header className="border-b border-border px-ui-3xl py-ui-xl">
