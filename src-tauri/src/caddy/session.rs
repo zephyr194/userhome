@@ -956,6 +956,20 @@ impl CaddyRunCoordinator {
         Ok(self.status())
     }
 
+    /// Exit hook: stops the own instance through its own handle and releases its
+    /// directories. No process is looked up by name.
+    pub fn shutdown(&self) {
+        let active = lock(&self.slot).active.clone();
+        let Some(run) = active else {
+            return;
+        };
+        if run.is_running() {
+            let _ = run.stop(self.timing.stop_grace, self.timing.stop_kill);
+        } else {
+            run.settle();
+        }
+    }
+
     pub fn status(&self) -> RunStatus {
         let (busy, active, refusal) = {
             let slot = lock(&self.slot);

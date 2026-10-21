@@ -255,6 +255,7 @@ pub fn run() {
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
                 commands::services::release_log_grants(app);
+                commands::caddy::shutdown_on_exit(app);
             }
             // A quit nobody routed through the lifecycle entry (a system quit, for
             // example) is held back and sent through it. Programmatic exits carry

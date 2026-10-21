@@ -2,6 +2,7 @@ use std::{
     fs,
     os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
+    process::Command,
     sync::atomic::AtomicBool,
     thread,
     time::{Duration, Instant},
@@ -335,4 +336,60 @@ fn an_instance_that_exits_by_itself_no_longer_blocks_the_quit() {
         }
     }
     assert_eq!(lifecycle.registry().running_count(), 0);
+}
+
+#[test]
+fn exit_hook_stops_a_live_instance_and_removes_its_directories() {
+    let scratch = Scratch::new();
+    let executable = scratch.fixture("sleep 30");
+    let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+    let lifecycle = lifecycle();
+    start_on(
+        &coordinator,
+        &scratch,
+        &executable,
+        &lifecycle,
+        &Ready(true),
+    )
+    .expect("start");
+
+    coordinator.shutdown();
+
+    assert_eq!(coordinator.status().state, RunState::Stopped);
+    assert_eq!(scratch.run_directories(), 0);
+    assert_eq!(lifecycle.registry().running_count(), 0);
+}
+
+#[test]
+fn exit_hook_without_an_instance_does_nothing() {
+    let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+
+    coordinator.shutdown();
+
+    assert_eq!(coordinator.status().state, RunState::Stopped);
+}
+
+#[test]
+fn exit_hook_never_signals_an_unrelated_process_even_with_a_similar_name() {
+    let scratch = Scratch::new();
+    let executable = scratch.fixture("sleep 30");
+    let similar = scratch.fixture("sleep 30");
+    let mut foreign = Command::new(&similar).spawn().expect("foreign process");
+    let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
+    let lifecycle = lifecycle();
+    start_on(
+        &coordinator,
+        &scratch,
+        &executable,
+        &lifecycle,
+        &Ready(true),
+    )
+    .expect("start");
+
+    coordinator.shutdown();
+
+    let still_running = foreign.try_wait().expect("try_wait").is_none();
+    let _ = foreign.kill();
+    let _ = foreign.wait();
+    assert!(still_running, "an unrelated process was signalled");
 }

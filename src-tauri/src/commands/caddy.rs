@@ -700,6 +700,12 @@ pub async fn caddy_stop(app: AppHandle) -> Result<RunStatus, AppError> {
         .map_err(|_| AppError::internal())?
 }
 
+/// Exit hook. Quitting already required the own instance to be confirmed gone;
+/// this only covers an exit that bypassed that gate.
+pub fn shutdown_on_exit(app: &AppHandle) {
+    app.state::<CaddyRunCoordinator>().shutdown();
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ApplyInput {
