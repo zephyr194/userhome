@@ -3,10 +3,13 @@
 //! `ConfigFs` and only ever name registered paths.
 
 pub mod discover;
+pub mod read;
 pub mod registry;
 
 #[cfg(test)]
 mod discover_tests;
+#[cfg(test)]
+mod read_tests;
 #[cfg(test)]
 mod test_support;
 #[cfg(test)]
