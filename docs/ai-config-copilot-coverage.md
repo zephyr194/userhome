@@ -48,7 +48,7 @@
 | `subagents.agents["rubber-duck"].autoInvoke` | 出现在用户设置表 | 键路径不合法，未收录 |
 | `showReasoning` 默认值 “None” | 设置表原文 | 类型按 `boolean` 收录，`defaultNote` 保留原文 `None` |
 | `mergeStrategy` 默认值 “—” | 设置表原文 | 类型按 `"rebase" \| "merge"` 收录，`defaultNote` 保留原文 `—` |
-| `detect.rs` 的 `verification_note`：“独立配置页面未找到，完整字段与格式待核验” | 官方配置页存在（上文来源） | 与事实不符，但 `detect.rs` 不在本任务范围，未修改；建议协调者另起任务更新 |
+| `detect.rs` 的 Copilot CLI `verification_note`：“官方设置表与配置路径已收录；适用版本、flags 与环境变量待核实” | 官方配置页存在（上文来源） | 与本覆盖报告一致 |
 
 以下事项未核实，因此未收录为设置项或资源：
 
