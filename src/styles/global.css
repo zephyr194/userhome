@@ -2554,3 +2554,90 @@ button[class*="border-border"],
   }
 }
 /* /r4-fe5-shell */
+
+/* r5-settings ------------------------------------------------------------ */
+.settings-pane__tab {
+  min-height: 40px;
+}
+
+.settings-pane__tab-desc::before {
+  content: "— ";
+}
+
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  vertical-align: middle;
+}
+
+.info-tip__trigger {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--app-muted-foreground);
+  cursor: pointer;
+}
+
+.info-tip__trigger:hover,
+.info-tip__trigger[data-open] {
+  color: var(--app-primary);
+}
+
+.info-tip__trigger[data-focus] {
+  background: var(--app-selection);
+  color: var(--app-foreground);
+}
+
+.info-tip__bubble {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: min(15rem, calc(100vw - 16px));
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 0;
+  background: var(--app-surface);
+  color: var(--app-foreground);
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: start;
+  white-space: normal;
+}
+
+.info-tip__bubble[data-side="top"] {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+}
+
+.info-tip__bubble[data-align="end"] {
+  left: auto;
+  right: 0;
+}
+
+@media (forced-colors: active) {
+  .info-tip__bubble {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .info-tip__trigger {
+    color: ButtonText;
+  }
+
+  .info-tip__trigger[data-focus] {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+/* /r5-settings */

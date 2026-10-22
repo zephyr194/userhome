@@ -1,5 +1,5 @@
-import { useId, type HTMLAttributes, type LabelHTMLAttributes, type ReactNode } from "react";
-import { Button, Modal, Panel, StatusBadge } from "../../components/ui";
+import { useId, type HTMLAttributes, type ReactNode } from "react";
+import { Button, InfoTip, Modal, StatusBadge } from "../../components/ui";
 import type { StatusBadgeProps } from "../../components/ui/StatusBadge";
 import { classNames } from "../../components/ui/classNames";
 
@@ -15,7 +15,7 @@ export function SettingsForm({
   return (
     <div
       aria-busy={busy || undefined}
-      className={classNames("grid min-w-0 gap-ui-12", className)}
+      className={classNames("grid min-w-0 gap-ui-24", className)}
     >
       {children}
     </div>
@@ -26,22 +26,53 @@ export function SettingsFieldList({
   children,
   className,
   ...props
-}: HTMLAttributes<HTMLElement>) {
+}: HTMLAttributes<HTMLDivElement>) {
   return (
-    <Panel
-      className={classNames(
-        "min-w-0 divide-y divide-border overflow-hidden",
-        className,
-      )}
+    <div
+      className={classNames("min-w-0 divide-y divide-line", className)}
       {...props}
     >
       {children}
-    </Panel>
+    </div>
   );
 }
 
 const FIELD_CLASSES =
-  "flex min-w-0 flex-col gap-ui-8 px-ui-12 py-ui-12 sm:flex-row sm:items-center sm:justify-between sm:gap-ui-16";
+  "flex min-w-0 flex-col gap-ui-8 py-ui-12 sm:flex-row sm:items-center sm:justify-between sm:gap-ui-16";
+
+function SettingsFieldTitle({
+  description,
+  label,
+}: {
+  description: ReactNode;
+  label: string;
+}) {
+  return (
+    <span className="flex min-w-0 items-center gap-ui-4">
+      <strong className="break-words text-body font-semibold">{label}</strong>
+      <InfoTip description={description} title={label} />
+    </span>
+  );
+}
+
+export function SettingsTipRow({
+  children,
+  className,
+  description,
+  title,
+}: {
+  children: ReactNode;
+  className?: string;
+  description: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className={classNames("flex min-w-0 items-start gap-ui-8", className)}>
+      <div className="min-w-0 flex-1">{children}</div>
+      <InfoTip className="mt-ui-2 shrink-0" description={description} title={title} />
+    </div>
+  );
+}
 
 export function SettingsField({
   children,
@@ -49,24 +80,17 @@ export function SettingsField({
   label,
   className,
   ...props
-}: LabelHTMLAttributes<HTMLLabelElement> & {
+}: HTMLAttributes<HTMLDivElement> & {
   description: ReactNode;
-  label: ReactNode;
+  label: string;
 }) {
   return (
-    <label className={classNames(FIELD_CLASSES, className)} {...props}>
-      <span className="min-w-0">
-        <strong className="block break-words text-body font-semibold">
-          {label}
-        </strong>
-        <small className="mt-ui-4 block break-words text-aux leading-relaxed text-muted-foreground">
-          {description}
-        </small>
-      </span>
+    <div className={classNames(FIELD_CLASSES, className)} {...props}>
+      <SettingsFieldTitle description={description} label={label} />
       <span className="flex min-w-0 shrink-0 items-center sm:justify-end">
         {children}
       </span>
-    </label>
+    </div>
   );
 }
 
@@ -78,18 +102,11 @@ export function SettingsValueField({
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   description: ReactNode;
-  label: ReactNode;
+  label: string;
 }) {
   return (
     <div className={classNames(FIELD_CLASSES, className)} {...props}>
-      <span className="min-w-0">
-        <strong className="block break-words text-body font-semibold">
-          {label}
-        </strong>
-        <small className="mt-ui-4 block break-words text-aux leading-relaxed text-muted-foreground">
-          {description}
-        </small>
-      </span>
+      <SettingsFieldTitle description={description} label={label} />
       <span className="flex min-w-0 shrink-0 items-center text-aux font-semibold text-muted-foreground sm:justify-end">
         {children}
       </span>
@@ -104,59 +121,24 @@ export function SettingsChoiceGroup({
   className,
   ...props
 }: HTMLAttributes<HTMLElement> & {
-  description: ReactNode;
-  legend: ReactNode;
+  description: string;
+  legend: string;
 }) {
   const headingId = useId();
   return (
     <section
       aria-labelledby={headingId}
-      className={classNames(
-        "grid min-w-0 gap-ui-8",
-        className,
-      )}
+      className={classNames("grid min-w-0 gap-ui-8", className)}
       {...props}
     >
-      <h3 id={headingId} className="text-group font-semibold">
-        {legend}
-      </h3>
-      <p className="m-0 break-words text-aux leading-relaxed text-muted-foreground">
-        {description}
-      </p>
+      <span className="flex min-w-0 items-center gap-ui-4">
+        <h3 id={headingId} className="m-0 break-words text-group font-semibold">
+          {legend}
+        </h3>
+        <InfoTip description={description} title={legend} />
+      </span>
       {children}
     </section>
-  );
-}
-
-export function SettingsChoice({
-  children,
-  description,
-  label,
-  className,
-  ...props
-}: LabelHTMLAttributes<HTMLLabelElement> & {
-  description: ReactNode;
-  label: ReactNode;
-}) {
-  return (
-    <label
-      className={classNames(
-        "flex min-w-0 items-start gap-ui-8 rounded-control bg-surface px-ui-12 py-ui-12",
-        "has-[input:checked]:border-selection-border has-[input:checked]:bg-selection",
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      <span className="min-w-0">
-        <strong className="block break-words text-body font-semibold">
-          {label}
-        </strong>
-        <small className="mt-ui-4 block break-words text-aux leading-relaxed text-muted-foreground">
-          {description}
-        </small>
-      </span>
-    </label>
   );
 }
 
@@ -168,9 +150,9 @@ export function SettingsSection({
   className,
   ...props
 }: HTMLAttributes<HTMLElement> & {
-  description?: ReactNode;
+  description?: string;
   headingId?: string;
-  title: ReactNode;
+  title: string;
 }) {
   return (
     <section
@@ -178,19 +160,14 @@ export function SettingsSection({
       className={classNames("grid min-w-0 gap-ui-8", className)}
       {...props}
     >
-      <div className="min-w-0">
-        <h3
-          className="m-0 break-words text-group font-semibold"
-          id={headingId}
-        >
+      <span className="flex min-w-0 items-center gap-ui-4">
+        <h3 className="m-0 break-words text-group font-semibold" id={headingId}>
           {title}
         </h3>
         {description ? (
-          <p className="mt-ui-4 mb-0 break-words text-aux leading-relaxed text-muted-foreground">
-            {description}
-          </p>
+          <InfoTip description={description} title={title} />
         ) : null}
-      </div>
+      </span>
       {children}
     </section>
   );

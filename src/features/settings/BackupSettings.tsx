@@ -19,6 +19,7 @@ import {
   SettingsConfirmationDialog,
   SettingsFeedback,
   SettingsSection,
+  SettingsTipRow,
 } from "./SettingsPrimitives";
 
 type StorageState =
@@ -196,7 +197,7 @@ export function BackupSettings({
 
   return (
     <section
-      className="grid min-w-0 gap-ui-12 border-t border-border pt-ui-12"
+      className="grid min-w-0 gap-ui-24"
       aria-busy={busy || previewing || pendingRetention !== undefined}
       aria-labelledby="backup-heading"
     >
@@ -206,15 +207,19 @@ export function BackupSettings({
         headingId="backup-heading"
       />
 
-      <RadioCardGroup
-        label="每个配置保留"
+      <SettingsTipRow
         description="降低数量后会立即移除超出上限的最旧备份。"
-        name="backup-retention"
-        value={String(selectedRetention)}
-        disabled={busy || previewing || pendingRetention !== undefined}
-        options={RETENTION_OPTIONS.map(([value, label, description]) => ({ value: String(value), label, description }))}
-        onValueChange={(value) => void changeRetention(Number(value) as BackupRetention)}
-      />
+        title="每个配置保留"
+      >
+        <RadioCardGroup
+          label="每个配置保留"
+          name="backup-retention"
+          value={String(selectedRetention)}
+          disabled={busy || previewing || pendingRetention !== undefined}
+          options={RETENTION_OPTIONS.map(([value, label, description]) => ({ value: String(value), label, description }))}
+          onValueChange={(value) => void changeRetention(Number(value) as BackupRetention)}
+        />
+      </SettingsTipRow>
 
       <Panel
         className="bg-surface-muted p-ui-12"

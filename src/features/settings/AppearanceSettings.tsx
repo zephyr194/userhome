@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { decodeAppError } from "../../ipc/core";
 import type { Appearance } from "../../ipc/settings";
 import { RadioCardGroup } from "../../components/ui";
-import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsValueField } from "./SettingsPrimitives";
+import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsTipRow, SettingsValueField } from "./SettingsPrimitives";
 
 interface AppearanceOption {
   description: string;
@@ -79,16 +79,20 @@ export function AppearanceSettings({
 
   return (
     <SettingsForm busy={saving}>
-      <RadioCardGroup
-        columns={3}
-        label="外观模式"
+      <SettingsTipRow
         description="选择系统、浅色或深色语义颜色；保存后立即应用。"
-        name="appearance"
-        value={selectedAppearance}
-        disabled={saving}
-        options={APPEARANCE_OPTIONS}
-        onValueChange={(value) => void selectAppearance(value)}
-      />
+        title="外观模式"
+      >
+        <RadioCardGroup
+          columns={3}
+          label="外观模式"
+          name="appearance"
+          value={selectedAppearance}
+          disabled={saving}
+          options={APPEARANCE_OPTIONS}
+          onValueChange={(value) => void selectAppearance(value)}
+        />
+      </SettingsTipRow>
 
       <SettingsFeedback
         error={error ? `无法保存外观：${error}` : undefined}

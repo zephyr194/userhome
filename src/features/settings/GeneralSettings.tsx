@@ -4,7 +4,7 @@ import type {
   UserPreferences,
 } from "../../ipc/settings";
 import { SelectField, SwitchField } from "../../components/ui";
-import { SettingsFeedback, SettingsFieldList, SettingsForm } from "./SettingsPrimitives";
+import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsTipRow } from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 export function GeneralSettings({
@@ -18,10 +18,16 @@ export function GeneralSettings({
 
   return (
     <SettingsForm busy={form.saving}>
-      <SettingsFieldList className="grid gap-ui-8 p-ui-12">
-        <SwitchField label="启动时打开主窗口" description="关闭后，UserHome 仍可从托盘手动打开。" checked={form.values.openWindowOnLaunch} disabled={form.saving} onCheckedChange={(checked) => void form.update("启动窗口偏好", { openWindowOnLaunch: checked })} />
-        <SwitchField label="恢复上次选择" description="仅保存经过校验的路由、设置组和稳定条目 ID。" checked={form.values.restoreSelection} disabled={form.saving} onCheckedChange={(checked) => void form.update("选择恢复偏好", { restoreSelection: checked })} />
-        <SelectField label="关闭主窗口时" description="选择保留托盘进程，或完全退出应用。" value={form.values.closeBehavior} disabled={form.saving} options={[{ value: "KEEP_RUNNING_IN_TRAY", label: "隐藏到托盘" }, { value: "QUIT_APPLICATION", label: "退出应用" }]} onValueChange={(closeBehavior) => void form.update("关闭行为", { closeBehavior: closeBehavior as CloseBehavior })} />
+      <SettingsFieldList>
+        <SettingsTipRow className="py-ui-12" description="关闭后，UserHome 仍可从托盘手动打开。" title="启动时打开主窗口">
+          <SwitchField label="启动时打开主窗口" checked={form.values.openWindowOnLaunch} disabled={form.saving} onCheckedChange={(checked) => void form.update("启动窗口偏好", { openWindowOnLaunch: checked })} />
+        </SettingsTipRow>
+        <SettingsTipRow className="py-ui-12" description="仅保存经过校验的路由、设置组和稳定条目 ID。" title="恢复上次选择">
+          <SwitchField label="恢复上次选择" checked={form.values.restoreSelection} disabled={form.saving} onCheckedChange={(checked) => void form.update("选择恢复偏好", { restoreSelection: checked })} />
+        </SettingsTipRow>
+        <SettingsTipRow className="py-ui-12" description="选择保留托盘进程，或完全退出应用。" title="关闭主窗口时">
+          <SelectField label="关闭主窗口时" value={form.values.closeBehavior} disabled={form.saving} options={[{ value: "KEEP_RUNNING_IN_TRAY", label: "隐藏到托盘" }, { value: "QUIT_APPLICATION", label: "退出应用" }]} onValueChange={(closeBehavior) => void form.update("关闭行为", { closeBehavior: closeBehavior as CloseBehavior })} />
+        </SettingsTipRow>
       </SettingsFieldList>
 
       <SettingsFeedback error={form.error} status={form.status} />

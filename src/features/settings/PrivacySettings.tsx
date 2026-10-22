@@ -5,7 +5,7 @@ import type {
   UserPreferences,
 } from "../../ipc/settings";
 import { CheckboxField } from "../../components/ui";
-import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsValueField } from "./SettingsPrimitives";
+import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsSection, SettingsTipRow, SettingsValueField } from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 const ROOTS: readonly {
@@ -77,13 +77,19 @@ export function PrivacySettings({
 
   return (
     <SettingsForm busy={form.saving || refreshing}>
-      <section aria-labelledby={rootsHeadingId} className="grid min-w-0 gap-ui-8">
-        <h3 id={rootsHeadingId} className="text-group font-semibold">元数据发现根</h3>
-        <p className="m-0 text-aux text-muted-foreground">只读取一层目录项名称、类型和修改时间；不会读取候选配置内容，也不接受自定义路径。</p>
-        {ROOTS.map((root) => (
-          <CheckboxField key={root.id} label={root.label} description={root.description} checked={form.values.optionalDiscoveryRoots.includes(root.id)} disabled={form.saving || refreshing} onCheckedChange={(checked) => void toggleRoot(root.id, checked)} />
-        ))}
-      </section>
+      <SettingsSection
+        description="只读取一层目录项名称、类型和修改时间；不会读取候选配置内容，也不接受自定义路径。"
+        headingId={rootsHeadingId}
+        title="元数据发现根"
+      >
+        <SettingsFieldList>
+          {ROOTS.map((root) => (
+            <SettingsTipRow key={root.id} className="py-ui-12" description={root.description} title={root.label}>
+              <CheckboxField label={root.label} checked={form.values.optionalDiscoveryRoots.includes(root.id)} disabled={form.saving || refreshing} onCheckedChange={(checked) => void toggleRoot(root.id, checked)} />
+            </SettingsTipRow>
+          ))}
+        </SettingsFieldList>
+      </SettingsSection>
 
       <SettingsFieldList>
         <SettingsValueField

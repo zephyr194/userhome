@@ -14,14 +14,14 @@ export function SettingsSidebar({ selectedGroup }: { selectedGroup: SettingsGrou
         <Tab
           key={group.id}
           aria-current={group.id === selectedGroup ? "true" : undefined}
-          className="settings-pane__tab slide-item flex w-full min-w-0 flex-col justify-center gap-ui-2 px-ui-12 py-ui-4 text-left text-foreground"
+          className="settings-pane__tab slide-item flex w-full min-w-0 flex-wrap items-baseline gap-x-ui-4 gap-y-ui-2 px-ui-12 py-ui-8 text-left text-foreground"
           data-group-id={group.id}
           id={`settings-group-${group.id}`}
         >
           <span className="block min-w-0 break-words text-body font-semibold">
             {group.label}
           </span>
-          <span className="block min-w-0 break-words text-aux font-normal text-muted-foreground">
+          <span className="block min-w-0 break-words text-aux font-normal text-muted-foreground settings-pane__tab-desc">
             {group.summary}
           </span>
         </Tab>
