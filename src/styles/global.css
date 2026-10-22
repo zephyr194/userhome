@@ -162,6 +162,12 @@
   --app-radius-control: 3px;
   --app-radius-container: 4px;
   --app-radius-panel: var(--app-radius-container);
+  --app-bracket-length: 8px;
+  --app-bracket-length-hover: 6px;
+  --app-bracket-width: 2px;
+  --app-bracket-width-hover: 1px;
+  --app-bracket-offset: 2px;
+  --app-selection-dash: 1px;
   --app-control-height-sm: 24px;
   --app-control-height-md: 28px;
   --app-status-badge-height: 18px;

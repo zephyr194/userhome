@@ -56,3 +56,27 @@ describe("圆角令牌（UIB-0）", () => {
     expect(tokenValue("radius-lg")).toBe("var(--app-radius-container)");
   });
 });
+
+describe("选中角标令牌（UIB-0）", () => {
+  it("选中角标与虚线框的尺寸取值符合规格", () => {
+    expect(tokenValue("app-bracket-length")).toBe("8px");
+    expect(tokenValue("app-bracket-length-hover")).toBe("6px");
+    expect(tokenValue("app-bracket-width")).toBe("2px");
+    expect(tokenValue("app-bracket-width-hover")).toBe("1px");
+    expect(tokenValue("app-bracket-offset")).toBe("2px");
+    expect(tokenValue("app-selection-dash")).toBe("1px");
+  });
+
+  it("选中颜色复用既有令牌，深色主题同样覆盖选中与悬停颜色", () => {
+    const darkBlock = css.match(/:root\[data-appearance="dark"\]\s*\{([^}]*)\}/)?.[1] ?? "";
+    expect(tokenValue("app-selection")).toBe("var(--app-primary-soft)");
+    expect(tokenValue("app-selection-border")).toBe("#B65C24");
+    expect(tokenValue("app-control-border")).toBe("#6B7785");
+    expect(darkBlock).toMatch(/--app-selection-border:\s*#F0A060;/);
+    expect(darkBlock).toMatch(/--app-control-border:\s*#7F8B99;/);
+  });
+
+  it("!important 仍恰好 4 处（仅 reduced motion）", () => {
+    expect(css.match(/!important/g) ?? []).toHaveLength(4);
+  });
+});
