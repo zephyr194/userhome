@@ -39,7 +39,7 @@ export function Button({
     <HeadlessButton
       ref={ref}
       className={classNames(
-        "inline-flex items-center justify-center gap-ui-8 rounded-control border font-medium transition-colors",
+        "inline-flex shrink-0 items-center justify-center gap-ui-8 whitespace-nowrap rounded-control border font-medium transition-colors",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],

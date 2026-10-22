@@ -339,7 +339,7 @@ export function CaddyRunView({
         </Button>
         {onApply !== undefined ? (
           <Button variant="primary" disabled={!applyEnabled} onClick={onApply}>
-            应用到运行中的实例
+            应用到运行实例
           </Button>
         ) : null}
         <Button variant="danger" disabled={!stopEnabled} onClick={onStop}>
@@ -348,7 +348,7 @@ export function CaddyRunView({
       </div>
       {onApply !== undefined ? (
         <p className="m-0 text-aux text-muted-foreground">
-          保存不会启动或重载；只有点击“应用到运行中的实例”并确认后，才会重载自有实例。
+          保存不会启动或重载；只有点击“应用到运行实例”并确认后，才会重载自有实例。
         </p>
       ) : null}
       {applying || status?.applying === true ? (

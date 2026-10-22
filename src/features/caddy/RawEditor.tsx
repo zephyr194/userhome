@@ -127,7 +127,7 @@ export function RawEditorView({
               disabled={running || blocked}
               onClick={onAllowExternalAndValidate}
             >
-              允许外部引用并校验
+              允许并校验
             </Button>
           ) : null}
           <Button variant="secondary" disabled={saveBlocked} onClick={onSave}>

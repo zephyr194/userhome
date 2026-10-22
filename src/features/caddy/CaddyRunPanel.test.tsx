@@ -322,7 +322,7 @@ describe("pending saved config while running", () => {
   });
 
   it("enables apply only for a running instance with a pending saved config", () => {
-    const label = "应用到运行中的实例";
+    const label = "应用到运行实例";
     expect(isDisabled(view({ status: PENDING_RUNNING, onApply: NOOP }), label)).toBe(false);
     expect(isDisabled(view({ status: STOPPED, onApply: NOOP }), label)).toBe(true);
     expect(

@@ -96,11 +96,11 @@ describe("RawEditorView", () => {
       }),
     });
     expect(external).toContain("含外部引用，需要显式允许");
-    expect(external).toContain("允许外部引用并校验");
+    expect(external).toContain("允许并校验");
 
-    expect(view({ validation: done("VALID") })).not.toContain("允许外部引用并校验");
+    expect(view({ validation: done("VALID") })).not.toContain("允许并校验");
     expect(view({ validation: done("INVALID", { stage: "ADAPT" }) })).not.toContain(
-      "允许外部引用并校验",
+      "允许并校验",
     );
   });
 

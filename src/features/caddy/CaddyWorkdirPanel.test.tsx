@@ -168,7 +168,7 @@ describe("Caddy actions while the work directory is not ready", () => {
     const html = renderToStaticMarkup(<CaddyRunView {...props} />);
     expect(html).toContain("请先选择工作目录后才能开启或应用配置。");
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>开启前预览<\/button>/);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>应用到运行中的实例<\/button>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>应用到运行实例<\/button>/);
   });
 
   it("keeps the raw editor visible but blocks reading, validating and saving", () => {
