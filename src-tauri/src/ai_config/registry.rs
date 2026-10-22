@@ -4,6 +4,7 @@ pub const DEFINITION_SCHEMA_VERSION: u32 = 1;
 pub const BUILTIN_DEFINITIONS_JSON: &str = include_str!("definitions/builtin.json");
 pub const CLAUDE_CODE_DEFINITIONS_JSON: &str = include_str!("definitions/claude-code.json");
 pub const CODEX_CLI_DEFINITIONS_JSON: &str = include_str!("definitions/codex-cli.json");
+pub const GEMINI_CLI_DEFINITIONS_JSON: &str = include_str!("definitions/gemini-cli.json");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegistryError {
