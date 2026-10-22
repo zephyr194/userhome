@@ -379,7 +379,7 @@ fn type_mismatch_against_a_stated_type_is_a_warning_and_the_value_is_kept() {
 }
 
 #[test]
-fn snapshot_summary_counts_every_documented_item_as_display_only() {
+fn snapshot_summary_counts_items_by_coverage() {
     let definitions = definitions();
     let tool = claude_tool(&definitions).expect("claude tool");
 
@@ -387,8 +387,8 @@ fn snapshot_summary_counts_every_documented_item_as_display_only() {
 
     assert_eq!(summary.setting_count, 245);
     assert_eq!(summary.resource_count, 5);
-    assert_eq!(summary.display_only, 250);
-    assert_eq!(summary.editable, 0);
+    assert_eq!(summary.display_only, 192);
+    assert_eq!(summary.editable, 58);
     assert_eq!(summary.unknown_value_type, 109);
     assert_eq!(
         summary.source_url,

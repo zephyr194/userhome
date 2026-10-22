@@ -30,12 +30,19 @@ const snapshotPath = join(
   "claude-code-settings.schema.json",
 );
 const readmePath = join(definitionsDir, "sources", "README.md");
+const editablePolicyPath = join(
+  definitionsDir,
+  "sources",
+  "claude-editable-keys.json",
+);
 
 const DOCUMENTED_SETTING_COUNT = 245;
 const PRE_MERGE_KEY_PATHS_SHA256 =
   "63176ec12ae1483b0603b202fc6058dc292a2fa2f5af117deb632eaae3f51523";
 const KEPT_UNKNOWN = ["hooks", "fallbackModel"];
 const KEPT_LOCAL_CONFLICTS = ["disableAutoMode"];
+const EDITABLE_VALUE_TYPES = ["boolean", "enum", "string"];
+const RESTRICTED_VALUE_TYPES = ["object", "stringArray", "unknown"];
 
 interface SettingItem {
   id: string;
@@ -44,10 +51,19 @@ interface SettingItem {
   allowedValues: string[];
   defaultNote: string;
   coverage: string;
+  risks: string[];
+  secret: boolean;
+  versions: { min: string; max: string } | null;
 }
 
 interface DefinitionFile {
   tools: { id: string; settings: SettingItem[] }[];
+}
+
+interface EditablePolicy {
+  verifiedVersion: string;
+  keys: string[];
+  excluded: { keyPath: string; reason: string }[];
 }
 
 function sha256(text: string): string {
@@ -91,10 +107,56 @@ describe("Claude 官方 schema 快照", () => {
     expect(sha256(keyPaths.join("\n"))).toBe(PRE_MERGE_KEY_PATHS_SHA256);
   });
 
-  it("没有任何设置项可编辑", () => {
-    expect(
-      claudeSettings().filter((setting) => setting.coverage === "editable"),
-    ).toEqual([]);
+  it("可编辑集合恰好是清单中的 58 个键，版本区间为单一的 2.1.287", () => {
+    const policy = JSON.parse(readText(editablePolicyPath)) as EditablePolicy;
+    const editable = claudeSettings().filter(
+      (setting) => setting.coverage === "editable",
+    );
+
+    expect(policy.verifiedVersion).toBe("2.1.287");
+    expect(editable).toHaveLength(58);
+    expect(editable.map((setting) => setting.keyPath).sort()).toEqual(
+      [...policy.keys].sort(),
+    );
+    for (const setting of editable) {
+      expect(setting.versions, setting.keyPath).toEqual({
+        min: "2.1.287",
+        max: "2.1.287",
+      });
+    }
+    for (const setting of claudeSettings()) {
+      if (setting.coverage !== "editable") {
+        expect(setting.versions, setting.keyPath).toBeNull();
+      }
+    }
+  });
+
+  it("风险键、秘密键、object、数组与 unknown 类型都不可编辑", () => {
+    for (const setting of claudeSettings()) {
+      const restricted =
+        setting.risks.length > 0 ||
+        setting.secret ||
+        RESTRICTED_VALUE_TYPES.includes(setting.valueType);
+      if (restricted) {
+        expect(setting.coverage, setting.keyPath).not.toBe("editable");
+      }
+      if (setting.coverage === "editable") {
+        expect(EDITABLE_VALUE_TYPES, setting.keyPath).toContain(
+          setting.valueType,
+        );
+      }
+    }
+  });
+
+  it("排除清单中的键保持 displayOnly", () => {
+    const policy = JSON.parse(readText(editablePolicyPath)) as EditablePolicy;
+
+    for (const { keyPath } of policy.excluded) {
+      const setting = claudeSettings().find(
+        (candidate) => candidate.keyPath === keyPath,
+      );
+      expect(setting?.coverage, keyPath).toBe("displayOnly");
+    }
   });
 
   it("重新合并快照得到已提交的定义（无漂移）", () => {

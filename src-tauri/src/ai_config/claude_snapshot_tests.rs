@@ -1,9 +1,17 @@
-use crate::ai_config::registry::{CoverageStatus, ResourceLayer, RiskFlag, ValueType};
+use std::collections::BTreeSet;
+
+use crate::ai_config::registry::{
+    CoverageStatus, ResourceLayer, RiskFlag, ValueType, VerifiedVersions,
+};
 use crate::ai_config::validate::{check_coverage, load_all};
+use crate::ai_config::write::{
+    EditAction, EditGate, EditRefusal, EditRequest, apply_edit, edit_gate,
+};
 
 const SNAPSHOT_DATE: &str = "2026-10-21";
 const SETTINGS_INDEX_URL: &str = "https://code.claude.com/docs/en/settings-reference";
 const DOCUMENTED_SETTING_COUNT: usize = 245;
+const EDITABLE_POLICY_JSON: &str = include_str!("definitions/sources/claude-editable-keys.json");
 
 fn claude_tool() -> crate::ai_config::registry::ToolDefinition {
     let definitions = load_all().expect("aggregated definitions validate");
@@ -58,21 +66,111 @@ fn claude_definition_records_source_url_and_retrieval_date_for_every_item() {
     }
 }
 
-#[test]
-fn nothing_is_editable_until_versions_are_verified() {
-    let tool = claude_tool();
+fn editable_policy_keys() -> BTreeSet<String> {
+    let policy: serde_json::Value =
+        serde_json::from_str(EDITABLE_POLICY_JSON).expect("editable key policy parses");
+    policy["keys"]
+        .as_array()
+        .expect("keys is an array")
+        .iter()
+        .map(|key| key.as_str().expect("key is a string").to_owned())
+        .collect()
+}
 
-    assert!(
-        tool.settings
-            .iter()
-            .all(|item| item.coverage == CoverageStatus::DisplayOnly)
-    );
+#[test]
+fn only_the_verified_scalar_keys_are_editable_at_the_single_verified_version() {
+    let tool = claude_tool();
+    let keys = editable_policy_keys();
+    let editable: BTreeSet<String> = tool
+        .settings
+        .iter()
+        .filter(|item| item.coverage == CoverageStatus::Editable)
+        .map(|item| item.key_path.clone())
+        .collect();
+
+    assert_eq!(keys.len(), 58);
+    assert_eq!(editable, keys);
+    for item in &tool.settings {
+        if keys.contains(&item.key_path) {
+            assert_eq!(
+                item.versions,
+                Some(VerifiedVersions {
+                    min: "2.1.287".to_owned(),
+                    max: "2.1.287".to_owned(),
+                }),
+                "{}",
+                item.key_path
+            );
+        } else {
+            assert_eq!(
+                item.coverage,
+                CoverageStatus::DisplayOnly,
+                "{}",
+                item.key_path
+            );
+            assert!(item.versions.is_none(), "{}", item.key_path);
+        }
+    }
     assert!(
         tool.resources
             .iter()
             .all(|item| item.coverage == CoverageStatus::DisplayOnly)
     );
-    assert!(tool.settings.iter().all(|item| item.versions.is_none()));
+}
+
+#[test]
+fn editable_keys_open_only_at_the_verified_version() {
+    let tool = claude_tool();
+    for key in editable_policy_keys() {
+        let versions = setting(&tool, &key).versions.as_ref();
+
+        assert_eq!(
+            edit_gate(versions, Some("2.1.287")),
+            EditGate::Open,
+            "{key}"
+        );
+        assert_eq!(
+            edit_gate(versions, Some("2.1.286")),
+            EditGate::OutOfRange,
+            "{key}"
+        );
+        assert_eq!(
+            edit_gate(versions, Some("2.1.288")),
+            EditGate::OutOfRange,
+            "{key}"
+        );
+        assert_eq!(edit_gate(versions, None), EditGate::VersionUnknown, "{key}");
+        assert_eq!(
+            edit_gate(versions, Some("abc")),
+            EditGate::VersionUnknown,
+            "{key}"
+        );
+    }
+}
+
+#[test]
+fn keys_outside_the_verified_list_are_not_editable() {
+    let tool = claude_tool();
+    let keys = editable_policy_keys();
+    for item in tool
+        .settings
+        .iter()
+        .filter(|item| !keys.contains(&item.key_path))
+    {
+        let request = EditRequest {
+            key_path: item.key_path.clone(),
+            action: EditAction::SetValue(serde_json::json!(true)),
+        };
+
+        assert!(
+            matches!(
+                apply_edit("{}", &tool, &request),
+                Err(EditRefusal::NotEditable(_))
+            ),
+            "{}",
+            item.key_path
+        );
+    }
 }
 
 #[test]
