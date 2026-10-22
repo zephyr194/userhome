@@ -1,7 +1,23 @@
 # UserHome
 
-A local-first macOS desktop and tray application for managing user application
-configuration, Homebrew software, services, and basic machine capabilities.
+UserHome 是一款本地优先的 macOS 桌面与托盘应用（Tauri 2 + React/TypeScript + Rust），
+用于在当前用户权限下查看和维护本机的环境变量、Caddy 反向代理、launchd 用户服务、
+应用与 AI 工具配置，并提供常用文本与二维码工具。应用不包含提权 helper，也不请求 root 权限。
+
+界面导航分为三组：
+
+| 分组 | 页面（路由） | 说明 |
+|---|---|---|
+| 系统工具 | 环境变量（`environment`） | 在指定目录中只读查看 dotenv 文件，秘密值默认遮盖；可编辑 zsh 环境块。 |
+| 系统工具 | Caddy（`caddy`） | 检测 Caddy，编辑本机反向代理规则，并以自有实例运行；保存不会启动或重载 Caddy。 |
+| 系统工具 | 应用配置（`appConfig`） | 按内置白名单只读查看应用配置，秘密值默认遮盖。 |
+| 系统工具 | AI 配置（`aiConfig`） | 只读检测 Claude Code、Codex、Gemini 与 Copilot CLI 的安装状态、版本与配置位置；Claude Code 支持可视化编辑。 |
+| 工具集 | 工具集（`tools`） | JSON 格式化、XML 校验与缩进、编解码、二维码生成；输入只保存在本次页面中。 |
+| 支撑 | 概览（`dashboard`） | 掌握系统、配置、软件与服务的实时状态。 |
+| 支撑 | 服务（`services`） | 发现并查看本机 launchd 用户域常驻任务，管理自建任务。 |
+| 支撑 | 设置（`settings`） | 外观、通用、刷新、配置与备份、隐私与发现、诊断与重置。 |
+
+“应用与配置”（`applications`）和“软件”（`homebrew`）已退出主导航，页面与代码保留但不再作为当前功能入口。
 
 历史需求规格、能力图、实施计划和任务清单已清理。发布证据与未关闭的门禁保留在
 [`docs/release-readiness.md`](docs/release-readiness.md)，清理文档不代表已通过生产发布验收。
@@ -29,10 +45,10 @@ configuration, Homebrew software, services, and basic machine capabilities.
 
 ## Requirements
 
-- macOS 13 or newer
-- Node.js 24.21.0
-- pnpm 12.11.2
-- Rust 1.95.0 with `rustfmt`, `clippy`, and Apple Silicon/Intel macOS targets
+- macOS 13 或更新版本（`minimumSystemVersion` 为 13.0）
+- Node.js 24.21.0（`package.json` 的 `engines`）
+- pnpm 12.11.2（`packageManager` 与 `engines` 固定；使用 `corepack enable` 获取）
+- Rust 1.95.0（`rust-toolchain.toml`），需包含 `rustfmt`、`clippy` 以及 Apple Silicon/Intel macOS 目标
 
 ## Commands
 
@@ -43,20 +59,26 @@ pnpm tauri dev
 pnpm lint
 pnpm typecheck
 pnpm test
-cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml
+pnpm build
+pnpm check:rust
 pnpm test:e2e
 pnpm build:unsigned
 pnpm tauri build --target universal-apple-darwin
 ```
 
-`pnpm test:e2e` builds a dedicated debug binary with the embedded WebdriverIO
-service and inspects the real macOS webview through an isolated temporary
-`HOME`/`XDG_CONFIG_HOME`. The E2E preference fixture keeps the native window
-hidden, disables optional unknown-root discovery, and is removed with the
-temporary home after the run. WDIO plugins and permissions are excluded from
-normal development and production builds.
+- `pnpm lint`、`pnpm typecheck`、`pnpm test`（Vitest）和 `pnpm build` 是前端的日常检查；
+  `pnpm build` 先执行类型检查再构建 Vite 产物。
+- `pnpm check:rust` 依次执行 `cargo fmt --check`、`cargo clippy --all-targets --all-features -D warnings`
+  与 `cargo test`，即 `src-tauri/` 的完整 Rust 门禁。`pnpm check` 汇总前端与 Rust 检查。
+- `pnpm test:e2e` 构建带嵌入式 WebdriverIO 服务的调试二进制，并在隔离的临时
+  `HOME`/`XDG_CONFIG_HOME` 中检查真实 macOS WebView。E2E 偏好夹具会隐藏原生窗口、
+  关闭可选的未知根发现，并在运行结束后随临时目录删除。WDIO 插件与权限不进入日常开发或正式构建。
+
+### Rust 测试的已知限制
+
+部分受管 Mac 上，本机安全软件可能终止并移入废纸篓 Rust 测试二进制，导致 `cargo test` 与
+`pnpm check:rust` 的测试步骤无法得出有效结果。此类环境应在 CI 或其他机器上运行 Rust 测试；
+本机仍可运行 `cargo fmt --check` 与 `clippy` 编译检查。
 
 ## 桌面韧性与可访问性
 
@@ -78,103 +100,55 @@ error 状态使用可读文本与 ARIA live region，不以颜色作为唯一状
 但 VoiceOver、完整键盘流程、对比度、显示缩放以及图标/托盘的亮暗模式外观仍需
 在真实 macOS 环境中人工验收。
 
-最近一次操作显示在 Dashboard 或相关详情窗格，配置、Homebrew 或服务操作结束
-后会刷新；关闭主窗口不会丢失当前路由、Settings 分组或安全的稳定选择。原生
-应用菜单提供 Settings、Refresh、Hide/Show 和 Quit，并由一个命令桥处理
+最近一次操作显示在概览或相关详情窗格，服务操作结束后会刷新；关闭主窗口不会
+丢失当前路由、Settings 分组或安全的稳定选择。原生应用菜单提供 Settings、Refresh、Hide/Show 和 Quit，并由一个命令桥处理
 `Command+,` 与 `Command+R`。托盘提供 Open、Refresh、Quit，并显示后端观测到
 的应用检测数和服务运行数；摘要项不可点击，不能触发变更。
 
 ## Local settings
 
-Settings 使用紧凑的七分组列表/详情工作区：Appearance、General、Refresh、
-Configuration and Backups、Privacy and Discovery、Diagnostics、Reset。
-偏好以版本化、原子替换的 JSON 保存在 UserHome 自有目录，严格拒绝未知字段和
-任意路径；System/Light/Dark 会立即应用，生命周期、刷新、provider timeout、
-编辑器模式和备份保留均使用有界枚举或预设。
+Settings 使用紧凑的七分组列表/详情工作区：外观、通用、刷新、配置与备份、隐私与发现、
+诊断、重置。偏好以版本化、原子替换的 JSON 保存在应用自有目录，严格拒绝未知字段和
+任意路径。备份保留数量可选 5、10 或 20 个（默认 20）。
 
-隐私设置只能启用或禁用四个后端定义的 metadata-only discovery root ID，
-不会授予或撤销 catalog 读写权限。备份清理需要预览与确认，偏好重置不会删除
+隐私设置只能启用或禁用后端定义的 metadata-only discovery root ID，
+不会授予或撤销读写权限。备份清理需要预览与确认，偏好重置不会删除
 备份或修改受管配置。诊断报告由后端白名单 DTO 构造，复制和导出都需要显式
 操作，且不包含配置内容、secret、用户名、绝对 home、环境转储或授权材料。
 
-## Read-only discovery
+## 只读发现
 
-UserHome discovers macOS metadata, approved catalog evidence, Homebrew
-formulae/casks, and shallow unmanaged dot-directory candidates without reading
-managed or candidate file contents. Homebrew is resolved only from
-`/opt/homebrew/bin/brew` or `/usr/local/bin/brew`, commands use fixed argument
-arrays with bounded output and timeouts, and module failures remain visible as
-partial results.
+概览与应用配置只读取已登记的元数据和资源，不读取未授权的候选文件正文。Homebrew 只从
+`/opt/homebrew/bin/brew` 或 `/usr/local/bin/brew` 解析，命令使用固定参数数组、有界输出和超时；
+模块失败会作为部分结果保留可见。启动、窗口内刷新和托盘刷新共享一次合并的后端扫描。
 
-Startup, the in-window Refresh button, and the tray Refresh action share one
-coalesced backend scan. Homebrew inventory is paginated, while search and
-package details use separately bounded commands and stable typed responses.
+## Caddy 与服务
 
-## Confirmed Homebrew and service operations
+Caddy 页面运行的是 UserHome 自有实例：使用 `caddy run`，通过私有 Unix admin socket 管理，
+不占用默认的 `localhost:2019`。停止只通过应用持有的会话句柄完成（先 SIGTERM，超时后
+SIGKILL），不调用 `caddy stop`。Caddy 工作目录由用户在界面中选择，默认建议 `~/.caddy`。
 
-Formula and cask install, upgrade, and uninstall operations require an
-expiring, intent-bound preview that identifies the action, package kind, and
-validated identifier. Rust enums produce every argument array; UserHome does
-not invoke a shell, accept arbitrary flags, request root privileges, or expose
-environment-variable overrides. Operations are serialized, progress and final
-output are bounded and redacted, and the inventory refreshes after success or
-failure. A successful command followed by a failed refresh is reported as a
-partial failure rather than success.
+服务页面解析 launchd 用户域（`~/Library/LaunchAgents`）中的常驻任务，支持启动、停止、
+创建、编辑、接管与查看日志；只管理 UserHome 自建任务的生命周期。
 
-The Services page parses bounded `brew services list --json` output into
-user/system/unknown scope. Caddy exposes start, stop, and restart with a
-separate preview for each action. User-level actions remain unprivileged;
-system-level services are no longer offered for management because the app no
-longer contains a privileged helper. Unknown services remain read-only. Caddyfile validity is displayed independently from
-runtime state, restart is blocked unless validation succeeds, and operation
-success requires the refreshed service state to match the requested outcome.
+## 授权与写入
 
-## Safe configuration management
+涉及用户文件的入口都先由用户在系统对话框中选择路径，选择动作由后端发起。授权记录保存在
+应用自有目录的 `grants.json` 中（目录 0700、文件 0600），前端只提交授权 ID，不提交任意路径。
+授权按用途隔离：Shell 启动文件、LaunchAgent 新建文件、TLS 材料与 Caddy 工作目录各自只能
+由对应入口使用。写入类操作先生成带期限的预览，确认后执行。
 
-Configuration access is authorized by the built-in Rust catalog. The frontend
-can submit only `appId`, `configId`, and app-owned `backupId` values; it cannot
-submit filesystem paths. Targets and symlinks are resolved under the configured
-home or trusted Homebrew prefix and fail closed if resolution escapes that
-root. `SENSITIVE` and `SECRET` documents expose metadata and hashes only until a
-document-specific adapter can safely classify their fields.
+受管配置的备份位于 `~/Library/Application Support/UserHome/backups`，权限、保留与恢复规则见
+[`docs/backup-and-restore.md`](docs/backup-and-restore.md)。授权根与信任边界见
+[`docs/threat-model.md`](docs/threat-model.md)。
 
-Writes require a fresh content hash and an expiring operation preview. UserHome
-validates bounded UTF-8 content, hides sensitive diffs, creates a mode `0600`
-backup under a mode `0700` app-owned directory, preserves the target mode and
-safe symlink, and atomically replaces the resolved file. Failed post-write
-validation restores the exact previous bytes and permissions. Restore follows
-the same preview, hash, validation, backup, and atomic replacement safeguards;
-only the newest 20 recognized backups per catalog document are retained.
+旧的受管 Catalog 写入链路仍保留在后端，但其页面（“应用与配置”）已退出主导航。新增受管应用
+必须遵循 [`docs/managed-app-schema.md`](docs/managed-app-schema.md) 的 schema、路径和审查约束。
 
-The Applications workspace packages 624 offline catalog definitions and uses
-Rust-side search, filtering, facets, detail lookup, and exact 50-item pages.
-The corpus is built deterministically from pinned Homebrew formula/cask facts
-and reviewed managed overlays; the client performs no runtime source fetch.
-Application detail shows official source URLs, review/license state, and a
-SHA-256 plus verification time when an immutable API snapshot is available.
-Source evidence is read-only metadata and never grants filesystem, command,
-service, or elevation authority.
+## 已退出主导航的旧功能
 
-The original 26 authorization definitions remain intact: GitHub Copilot,
-Caddy, Git, OpenSSH, Zsh, and npm are explicitly managed writable; Visual
-Studio Code, Cursor, Ghostty, Starship, tmux, Vim, Zed, Neovim, iTerm2, Claude,
-Codex, Gemini, Antigravity, Trae, Docker, Google Cloud CLI, Raycast, GitKraken
-CLI, and Apifox are bounded managed read-only definitions. OrbStack is
-explicitly excluded because its group container co-locates configuration and
-runtime data without a stable settings-file contract. All additional corpus
-entries are detection-only and expose zero configuration or mutation authority.
-`MANAGED_READ_ONLY` entries never expose preview, write, backup, restore,
-service, or elevation actions. `DETECTED_UNSUPPORTED` and `EXCLUDED`
-candidates expose only safe classification metadata (name, entry type,
-coverage class, and modification time); discovery alone never authorizes
-opening or reading their contents.
-
-All automated configuration tests use temporary fixture homes and never read or
-modify live user configuration.
-
-详细的备份位置、权限、保留与恢复规则见
-[`docs/backup-and-restore.md`](docs/backup-and-restore.md)。新增受管应用必须遵循
-[`docs/managed-app-schema.md`](docs/managed-app-schema.md) 的 schema、路径和审查约束。
+“软件”（Homebrew）页面已退出主导航，其代码与测试保留。概览中的 Homebrew 计数仍随
+只读发现展示。旧的 Homebrew 安装、升级与卸载流程不再是当前入口。
 
 ## 提权边界（已移除）
 
@@ -182,6 +156,14 @@ modify live user configuration.
 root 权限，不包含 `SMAppService` 注册或 XPC 通信，Homebrew、配置与服务操作均以
 当前用户权限执行。历史设计与人工验证记录仅作证据保留，见
 [`docs/elevation-checklist.md`](docs/elevation-checklist.md)。
+
+## 已知限制
+
+- Rust 测试的限制见上文 [Rust 测试的已知限制](#rust-测试的已知限制)。
+- 真机验收尚未完成：Caddy 真实运行、launchd 真实操作、VoiceOver、完整键盘流程、对比度、
+  显示缩放，以及托盘和图标的亮暗外观。[`docs/caddy-acceptance.md`](docs/caddy-acceptance.md)
+  中的步骤均为“未执行”，结论见 [`docs/release-readiness.md`](docs/release-readiness.md)。
+- `e2e/smoke.spec.ts` 仍通过 `a[href='#homebrew']` 等已退出主导航的入口断言，本文档任务未在当前导航下运行该冒烟。
 
 ## 发布
 
