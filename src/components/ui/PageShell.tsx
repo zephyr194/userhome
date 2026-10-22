@@ -12,7 +12,7 @@ export interface PageShellStatus {
 }
 
 export interface PageShellProps {
-  title: ReactNode;
+  title?: ReactNode;
   status?: PageShellStatus;
   actions?: ReactNode;
   boardToggle?: ReactNode;
@@ -39,25 +39,30 @@ export function PageShell({
     bodyRef.current.scrollTop = scrollMemory.switchTo(scrollKey);
   }, [scrollKey, scrollMemory]);
 
+  const hasHeader =
+    title !== undefined || status !== undefined || actions !== undefined || boardToggle !== undefined;
+
   return (
     <section className="page-shell">
-      <header className="page-shell__header">
-        <h1 className="page-shell__title">{title}</h1>
-        {status ? (
-          <span className="page-shell__status">
-            <span
-              aria-hidden="true"
-              className={classNames(
-                "page-shell__status-dot",
-                `page-shell__status-dot--${status.tone ?? "neutral"}`,
-              )}
-            />
-            <span className="page-shell__status-text">{status.text}</span>
-          </span>
-        ) : null}
-        {actions ? <div className="page-shell__actions">{actions}</div> : null}
-        {boardToggle ? <div className="page-shell__board-toggle">{boardToggle}</div> : null}
-      </header>
+      {hasHeader ? (
+        <header className="page-shell__header">
+          {title !== undefined ? <h1 className="page-shell__title">{title}</h1> : null}
+          {status ? (
+            <span className="page-shell__status">
+              <span
+                aria-hidden="true"
+                className={classNames(
+                  "page-shell__status-dot",
+                  `page-shell__status-dot--${status.tone ?? "neutral"}`,
+                )}
+              />
+              <span className="page-shell__status-text">{status.text}</span>
+            </span>
+          ) : null}
+          {actions ? <div className="page-shell__actions">{actions}</div> : null}
+          {boardToggle ? <div className="page-shell__board-toggle">{boardToggle}</div> : null}
+        </header>
+      ) : null}
       <div
         className="page-shell__body"
         onScroll={(event) => scrollMemory.record(event.currentTarget.scrollTop)}

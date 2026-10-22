@@ -88,6 +88,32 @@ describe("PageShell 舱头", () => {
     expect(markup).toContain("需要关注");
   });
 
+  it("没有任何舱头插槽时只渲染舱体，不输出 header 与 h1", () => {
+    const markup = renderToStaticMarkup(
+      <PageShell layout="board">
+        <BoardCell span={12}>内容</BoardCell>
+      </PageShell>,
+    );
+    expect(markup).not.toContain("page-shell__header");
+    expect(markup).not.toContain("<h1");
+    expect(markup).toContain("page-shell__layout--board");
+    expect(markup).toContain("内容");
+  });
+
+  it("只传状态与操作时渲染舱头，但不输出 h1（页面标题由外层工具栏承担）", () => {
+    const markup = renderToStaticMarkup(
+      <PageShell
+        status={{ tone: "success", text: "当前状态稳定" }}
+        actions={<button type="button">重新扫描</button>}
+        layout="board"
+      />,
+    );
+    expect(markup).toContain("page-shell__header");
+    expect(markup).not.toContain("<h1");
+    expect(markup).toContain("当前状态稳定");
+    expect(markup).toContain("重新扫描");
+  });
+
   it("ui 索引导出 PageShell", () => {
     expect(PageShellFromIndex).toBe(PageShell);
   });
