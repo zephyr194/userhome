@@ -1,3 +1,4 @@
+export { BoardToggle } from "./BoardToggle";
 export { Button, type ButtonProps } from "./Button";
 export { Modal } from "./Modal";
 export { Panel } from "./Panel";
