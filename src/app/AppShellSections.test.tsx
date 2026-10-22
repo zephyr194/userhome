@@ -94,9 +94,19 @@ describe("AppShell tool sections", () => {
     fireEvent.click(sidebar.getByRole("link", { name: /^工具集：/ }));
     expect(pageTitle()).toBe("工具集");
 
-    fireEvent.click(sidebar.getByRole("link", { name: /^Caddy：/ }));
+    fireEvent.click(sidebar.getByRole("link", { name: /^系统工具：/ }));
+    expect(pageTitle()).toBe("系统工具");
+
+    fireEvent.click(screen.getByRole("button", { name: /^Caddy/ }));
     expect(pageTitle()).toBe("Caddy");
     expect(selected("原文 Caddyfile")).toBe("true");
     expect(selected("站点规则")).toBe("false");
+  });
+
+  it("highlights the system tools entry while a saved Caddy selection shows Caddy", () => {
+    const markup = renderPersistedRoute("caddy");
+    expect(markup).toContain('<h1 class="desktop-workspace__page-title">Caddy</h1>');
+    expect(sidebarOf(markup)).toMatch(/<a href="#systemTools"[^>]*aria-current="page"/);
+    expect(sidebarOf(markup)).not.toContain('href="#caddy"');
   });
 });

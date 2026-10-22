@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APP_ROUTES, activeSectionOf, groupNavigationRoutes, routeSectionsOf, type AppRouteId } from "./routeDefinitions";
+import { APP_ROUTES, activeSectionOf, primaryNavigationRoutes, routeSectionsOf, type AppRouteId } from "./routeDefinitions";
 
 function routeOf(id: AppRouteId) {
   const route = APP_ROUTES.find((entry) => entry.id === id);
@@ -36,8 +36,7 @@ describe("route sections", () => {
   });
 
   it("keeps eight primary navigation entries", () => {
-    const entries = groupNavigationRoutes(APP_ROUTES).flatMap((entry) => entry.routes);
-    expect(entries).toHaveLength(8);
+    expect(primaryNavigationRoutes(APP_ROUTES)).toHaveLength(8);
   });
 
   it("uses the stored section when the route declares it and the first section otherwise", () => {

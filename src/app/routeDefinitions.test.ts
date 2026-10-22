@@ -1,58 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { APP_ROUTES, NAV_GROUPS, groupNavigationRoutes } from "./routeDefinitions";
+import {
+  APP_ROUTES,
+  isRestorableRoute,
+  navigationRouteOf,
+  primaryNavigationRoutes,
+} from "./routeDefinitions";
 
 describe("route registry", () => {
   it("registers every route id exactly once", () => {
     const ids = APP_ROUTES.map((route) => route.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual(
-      expect.arrayContaining(["dashboard", "services", "settings"]),
+      expect.arrayContaining(["dashboard", "services", "settings", "systemTools"]),
     );
   });
 
-  it("declares the tool groups and the support group in display order", () => {
-    expect(NAV_GROUPS.map((group) => group.label)).toEqual([
+  it("lists the sidebar entries flat, in the fixed order", () => {
+    expect(primaryNavigationRoutes(APP_ROUTES).map((route) => route.label)).toEqual([
+      "概览",
+      "环境变量",
+      "应用配置",
+      "AI 工具",
       "系统工具",
       "工具集",
-      "支撑",
+      "服务",
+      "设置",
     ]);
   });
 
-  it("keeps overview, services and settings as support entries", () => {
-    const support = groupNavigationRoutes(APP_ROUTES).find(
-      (entry) => entry.group.id === "support",
-    );
-    expect(support?.routes.map((route) => route.id)).toEqual([
-      "dashboard",
-      "services",
-      "settings",
-    ]);
-  });
-
-  it("keeps the applications and homebrew routes registered but out of the primary navigation", () => {
+  it("keeps the applications and homebrew routes registered but out of the sidebar", () => {
     const registered = APP_ROUTES.map((route) => route.id);
     expect(registered).toContain("applications");
     expect(registered).toContain("homebrew");
 
-    const navigable = groupNavigationRoutes(APP_ROUTES).flatMap((entry) =>
-      entry.routes.map((route) => route.id),
-    );
+    const navigable = primaryNavigationRoutes(APP_ROUTES).map((route) => route.id);
     expect(navigable).not.toContain("applications");
     expect(navigable).not.toContain("homebrew");
   });
 
-  it("returns every declared group even when it has no routes yet", () => {
-    const grouped = groupNavigationRoutes(APP_ROUTES);
-    expect(grouped.map((entry) => entry.group.id)).toEqual(
-      NAV_GROUPS.map((group) => group.id),
-    );
+  it("gives the system tools route its label, eyebrow and description", () => {
+    const tools = APP_ROUTES.find((route) => route.id === "systemTools");
+    expect(tools).toMatchObject({
+      label: "系统工具",
+      eyebrow: "系统工具",
+      description: "本机常用系统工具入口。",
+    });
   });
 
-  it("lists environment variables first, then Caddy and application config under system tools", () => {
-    const tools = groupNavigationRoutes(APP_ROUTES).find(
-      (entry) => entry.group.id === "system-tools",
-    );
-    expect(tools?.routes.map((route) => route.label)).toEqual(["环境变量", "Caddy", "应用配置", "AI 工具"]);
+  it("keeps Caddy out of the sidebar and under the system tools page", () => {
+    const caddy = APP_ROUTES.find((route) => route.id === "caddy");
+    expect(caddy?.parent).toBe("systemTools");
+    expect(primaryNavigationRoutes(APP_ROUTES).map((route) => route.id)).not.toContain("caddy");
+  });
+
+  it("highlights the parent entry while a child page is open", () => {
+    expect(navigationRouteOf("caddy")).toBe("systemTools");
+    expect(navigationRouteOf("systemTools")).toBe("systemTools");
+    expect(navigationRouteOf("environment")).toBe("environment");
+  });
+
+  it("restores sidebar entries and child pages but not retired routes", () => {
+    expect(isRestorableRoute("caddy")).toBe(true);
+    expect(isRestorableRoute("systemTools")).toBe(true);
+    expect(isRestorableRoute("settings")).toBe(true);
+    expect(isRestorableRoute("applications")).toBe(false);
+    expect(isRestorableRoute("homebrew")).toBe(false);
+    expect(isRestorableRoute("unknown")).toBe(false);
   });
 
   it("describes the services page as launchd discovery, not Homebrew-only management", () => {
@@ -63,11 +76,9 @@ describe("route registry", () => {
     expect(services?.description).not.toContain("Homebrew");
   });
 
-  it("places the tools page alone in the toolset group", () => {
-    const toolset = groupNavigationRoutes(APP_ROUTES).find(
-      (entry) => entry.group.id === "toolset",
-    );
-    expect(toolset?.routes.map((route) => route.id)).toEqual(["tools"]);
-    expect(toolset?.routes[0]?.label).toBe("工具集");
+  it("places the tools page between system tools and services", () => {
+    const labels = primaryNavigationRoutes(APP_ROUTES).map((route) => route.id);
+    expect(labels.indexOf("tools")).toBe(labels.indexOf("systemTools") + 1);
+    expect(labels.indexOf("services")).toBe(labels.indexOf("tools") + 1);
   });
 });

@@ -1,5 +1,5 @@
 import {
-  APP_ROUTES,
+  isRestorableRoute,
   type AppRouteId,
 } from "./routeDefinitions";
 import {
@@ -37,15 +37,6 @@ function safeIdentifier(value: unknown): value is string {
   );
 }
 
-/**
- * Only routes that still have a navigation entry are restorable. A persisted
- * id for a retired route (registered but without a group) or an unknown id
- * falls back to the dashboard instead of failing.
- */
-function safeRoute(value: unknown): value is AppRouteId {
-  return APP_ROUTES.some((route) => route.id === value && route.group);
-}
-
 function safeSettingsGroup(value: unknown): value is SettingsGroupId {
   return SETTINGS_GROUPS.some((group) => group.id === value);
 }
@@ -56,7 +47,7 @@ export function decodeSelectionMemory(value: unknown): SelectionMemory {
   }
   const stored = value as Record<string, unknown>;
   return {
-    routeId: safeRoute(stored.routeId) ? stored.routeId : "dashboard",
+    routeId: isRestorableRoute(stored.routeId) ? stored.routeId : "dashboard",
     settingsGroup: safeSettingsGroup(stored.settingsGroup)
       ? stored.settingsGroup
       : "appearance",

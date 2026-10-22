@@ -59,6 +59,17 @@ describe("selection memory retired fields", () => {
 });
 
 describe("selection memory route restore", () => {
+  it("restores a saved Caddy selection, which is a child page of system tools", () => {
+    expect(decodeSelectionMemory({ routeId: "caddy", settingsGroup: "appearance" })).toEqual({
+      routeId: "caddy",
+      settingsGroup: "appearance",
+    });
+  });
+
+  it("restores the system tools card page", () => {
+    expect(decodeSelectionMemory({ routeId: "systemTools" }).routeId).toBe("systemTools");
+  });
+
   it("restores a route that still has a navigation entry", () => {
     expect(decodeSelectionMemory({ routeId: "services" }).routeId).toBe(
       "services",

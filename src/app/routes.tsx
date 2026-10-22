@@ -5,6 +5,7 @@ import { DashboardPage } from "../features/dashboard/DashboardPage";
 import { EnvironmentPage } from "../features/environment/EnvironmentPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { SystemToolsPage } from "../features/system-tools/SystemToolsPage";
 import { ToolsPage } from "../features/tools/ToolsPage";
 import type { SettingsGroupId } from "../features/settings/settingsGroups";
 import type {
@@ -108,6 +109,10 @@ export function RoutePanel({
         <CaddyPage />
       </RouteNavigationContext.Provider>
     );
+  }
+
+  if (route.id === "systemTools") {
+    return <SystemToolsPage onOpen={(routeId) => onNavigate({ routeId })} />;
   }
 
   if (route.id === "appConfig") {

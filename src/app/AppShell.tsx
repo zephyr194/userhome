@@ -25,6 +25,7 @@ import { registerSettingsRequestListener } from "./refreshEvents";
 import {
   APP_ROUTES,
   activeSectionOf,
+  navigationRouteOf,
   type AppRouteId,
   type NavigationIntent,
   type NavigationSource,
@@ -504,8 +505,7 @@ export function AppShell({
         <DesktopWorkspace
           sidebar={
             <NavigationRail
-              activeRouteId={activeRouteId}
-              connection={state.connection}
+              activeRouteId={navigationRouteOf(activeRouteId)}
               onNavigate={navigate}
               routes={APP_ROUTES}
             />

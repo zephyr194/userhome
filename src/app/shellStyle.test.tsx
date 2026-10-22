@@ -123,26 +123,14 @@ describe("导航项尺寸与交互", () => {
   });
 });
 
-describe("分组标题等宽标签", () => {
-  it("分组标题渲染为带分组类名的标题，并保留原文", () => {
+describe("侧栏不再有分组标题", () => {
+  it("侧栏只有扁平列表，不渲染分组标题，也没有分组标题的样式", () => {
     const markup = renderRail();
-    for (const group of ["系统工具", "工具集", "支撑"]) {
-      expect(markup).toContain(`>${group}</p>`);
-    }
-    expect(markup.match(/class="navigation-rail__section-label"/g)).toHaveLength(3);
-  });
-
-  it("使用等宽字体与大写，字距不超过 0.04em，字号为 meta 令牌", () => {
-    const selector = ".navigation-rail__section-label";
-    expect(lastDeclared(selector, "font-family")).toBe("var(--font-mono)");
-    expect(lastDeclared(selector, "text-transform")).toBe("uppercase");
-    expect(lastDeclared(selector, "font-size")).toBe("var(--app-font-size-meta)");
-
-    const spacing = resolve(lastDeclared(selector, "letter-spacing"));
-    expect(spacing).toBe("0.04em");
-    expect(Number.parseFloat(spacing)).toBeLessThanOrEqual(0.04);
+    expect(markup).not.toContain("navigation-rail__section-label");
+    expect(rulesFor(".navigation-rail__section-label")).toEqual([]);
   });
 });
+
 
 describe("状态指示不只靠颜色", () => {
   it("在线、连接中、异常三种状态各有形状符号", () => {
