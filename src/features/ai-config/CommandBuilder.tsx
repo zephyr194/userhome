@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   buildClaudeCommand,
   getClaudeOptions,
+  openClaudeCommandInTerminal,
   type ClaudeBuiltCommand,
   type ClaudeOptionItem,
   type ClaudeOptionSummary,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import { Button } from "../../components/ui";
+import { Button, Modal } from "../../components/ui";
 import { CheckboxField, SelectField, TextField } from "../../components/ui/forms";
 import {
   NOTICE_LABELS,
@@ -26,6 +27,13 @@ import {
   type Selection,
   type ItemSelection,
 } from "./commandBuilderModel";
+import {
+  TERMINAL_IDLE,
+  reduceTerminalOpen,
+  terminalBlockReason,
+  type TerminalOpenEvent,
+  type TerminalOpenState,
+} from "./terminalOpenModel";
 
 export type CommandOptionsState =
   | { readonly status: "loading" }
@@ -47,6 +55,7 @@ interface CommandBuilderViewProps {
   readonly detectedVersion: string;
   readonly preview: CommandPreview;
   readonly copyMessage: string | null;
+  readonly terminalControl?: ReactNode;
   readonly onToggle: (id: string, checked: boolean) => void;
   readonly onValueChange: (id: string, value: string) => void;
   readonly onAcknowledge: (id: string, acknowledged: boolean) => void;
@@ -61,6 +70,7 @@ export function CommandBuilderView({
   detectedVersion,
   preview,
   copyMessage,
+  terminalControl,
   onToggle,
   onValueChange,
   onAcknowledge,
@@ -114,6 +124,7 @@ export function CommandBuilderView({
             </ul>
           )}
           <PreviewPanel preview={preview} copyMessage={copyMessage} onCopy={onCopy} />
+          {terminalControl ?? null}
         </>
       ) : null}
     </section>
@@ -295,6 +306,103 @@ function PreviewPanel({
   );
 }
 
+interface TerminalOpenControlProps {
+  readonly preview: CommandPreview;
+  readonly terminal: TerminalOpenState;
+  readonly onRequest: () => void;
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+}
+
+export function TerminalOpenControl({
+  preview,
+  terminal,
+  onRequest,
+  onCancel,
+  onConfirm,
+}: TerminalOpenControlProps) {
+  const blockReason = terminalBlockReason(preview);
+
+  const busy = terminal.status === "opening";
+  return (
+    <div className="grid min-w-0 gap-ui-sm">
+      <div className="flex flex-wrap items-center gap-ui-sm">
+        <Button disabled={blockReason !== null || busy} onClick={onRequest}>
+          在终端打开
+        </Button>
+      </div>
+      {blockReason !== null ? (
+        <p role="note" className="m-0 text-aux">
+          无法在终端打开：{blockReason}
+        </p>
+      ) : null}
+      {terminal.status === "opened" ? (
+        <p role="status" className="m-0 text-aux">
+          已在 Terminal 中打开命令。请在 Terminal 窗口中查看并按回车运行；UserHome 不会运行或读取输出。
+        </p>
+      ) : null}
+      {terminal.status === "failed" ? (
+        <p role="alert" className="m-0 text-danger">
+          {terminal.error.message}
+        </p>
+      ) : null}
+      {(terminal.status === "confirming" || terminal.status === "opening") &&
+      preview.status === "ready" ? (
+        <TerminalConfirmDialog built={preview.built} busy={busy} onCancel={onCancel} onConfirm={onConfirm} />
+      ) : null}
+    </div>
+  );
+}
+
+function TerminalConfirmDialog({
+  built,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  readonly built: ClaudeBuiltCommand;
+  readonly busy: boolean;
+  readonly onCancel: () => void;
+  readonly onConfirm: () => void;
+}) {
+  return (
+    <Modal
+      busy={busy}
+      footer={
+        <>
+          <Button data-modal-cancel disabled={busy} onClick={onCancel}>
+            取消
+          </Button>
+          <Button variant="primary" disabled={busy} onClick={onConfirm}>
+            在 Terminal 中打开
+          </Button>
+        </>
+      }
+      onClose={onCancel}
+      open
+      title="在终端中打开命令"
+    >
+      <div className="grid min-w-0 gap-ui-md">
+        <p className="m-0 text-aux">
+          将在 Terminal 中打开这条命令，需要你在终端里按回车才会运行；UserHome 不会运行或读取输出。
+        </p>
+        <p className="m-0 text-aux">工作目录：用户主目录（未选择项目目录）。</p>
+        <pre
+          aria-label="将在终端中运行的命令"
+          className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-control bg-surface-muted px-ui-lg py-ui-md font-mono text-aux"
+        >
+          {built.text}
+        </pre>
+        {built.placeholders.length > 0 ? (
+          <p role="note" className="m-0 text-aux">
+            命令含占位符，占位符需要你在终端环境中已设置。
+          </p>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
 type CommandResult =
   | { readonly ok: true; readonly built: ClaudeBuiltCommand }
   | { readonly ok: false; readonly error: AppError };
@@ -374,6 +482,30 @@ export function CommandBuilder() {
       : { status: "failed", error: result.outcome.error };
   }, [plan, result]);
 
+  const planKey = plan?.status === "ready" ? JSON.stringify(plan.request) : null;
+  const [terminalRecord, setTerminalRecord] = useState<{
+    readonly key: string | null;
+    readonly state: TerminalOpenState;
+  }>({ key: null, state: TERMINAL_IDLE });
+  const terminal = terminalRecord.key === planKey ? terminalRecord.state : TERMINAL_IDLE;
+
+  const applyTerminal = useCallback((key: string | null, event: TerminalOpenEvent) => {
+    setTerminalRecord((current) => ({
+      key,
+      state: reduceTerminalOpen(current.key === key ? current.state : TERMINAL_IDLE, event),
+    }));
+  }, []);
+
+  const confirmTerminal = useCallback(() => {
+    if (plan?.status !== "ready") return;
+    const key = JSON.stringify(plan.request);
+    applyTerminal(key, { type: "confirm" });
+    openClaudeCommandInTerminal(plan.request).then(
+      () => applyTerminal(key, { type: "succeeded" }),
+      (error: unknown) => applyTerminal(key, { type: "failed", error: decodeAppError(error) }),
+    );
+  }, [plan, applyTerminal]);
+
   const copy = useCallback((text: string) => {
     if (!navigator.clipboard?.writeText) {
       setCopyMessage("无法复制命令。请检查系统剪贴板权限后重试。");
@@ -392,6 +524,15 @@ export function CommandBuilder() {
       detectedVersion={detectedVersion}
       preview={preview}
       copyMessage={copyMessage}
+      terminalControl={
+        <TerminalOpenControl
+          preview={preview}
+          terminal={terminal}
+          onRequest={() => applyTerminal(planKey, { type: "request" })}
+          onCancel={() => applyTerminal(planKey, { type: "cancel" })}
+          onConfirm={confirmTerminal}
+        />
+      }
       onToggle={(id, checked) =>
         setSelection((current) => updateItem(current, id, { checked }))
       }
