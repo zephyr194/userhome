@@ -249,6 +249,7 @@ describe("DashboardPage user-directory configuration group", () => {
     expect(markup).toMatch(/<dt>总数<\/dt><dd>1<\/dd>/);
     // Partial + restricted are distinguishable and reasons are not hidden.
     expect(markup).toContain("部分可用");
+    expect(markup).toMatch(/status-glyph--warning" aria-hidden="true"><\/span><span>部分可用<\/span>/);
     expect(markup).toContain("受限");
     expect(markup).toContain("没有权限读取 ~/Library。");
     expect(markup).toContain("达到候选数量上限。");
@@ -501,11 +502,13 @@ describe("DashboardPage overview wall", () => {
     <DashboardPage state={{ status: "ready", snapshot: readySnapshot(readyModule(FOUR_CLASS_COVERAGE)) }} />,
   );
 
-  it("按固定顺序排列：状态行、服务 8 栏、Caddy/环境变量/AI 配置/应用配置各 4 栏，然后是系统区", () => {
+  it("按固定顺序排列：状态行、舱位墙（服务与四个模块卡片）、用户目录配置、系统区，然后是关注与软件", () => {
     const spans = [...markup.matchAll(/page-shell__cell--span-(\d+)/g)].map((match) =>
       Number(match[1]),
     );
-    expect(spans).toEqual([12, 8, 4, 4, 4, 4, 12, 12, 6, 6, 12]);
+    expect(spans).toEqual([12, 12, 12, 12, 6, 6, 12]);
+    expect(markup.match(/overview-bay-wall/g) ?? []).toHaveLength(1);
+    expect(markup.match(/class="[^"]*\boverview-bay(?![\w-])[^"]*"/g) ?? []).toHaveLength(5);
     const order = ["打开服务", "打开 Caddy", "打开环境变量", "打开 AI 配置", "打开应用配置"].map(
       (text) => markup.indexOf(text),
     );
@@ -513,11 +516,11 @@ describe("DashboardPage overview wall", () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
-  it("每个模块舱位的主操作是可见文字按钮，未加载的舱位显示未加载", () => {
+  it("每个模块舱位的主操作是可见文字按钮，未读取的舱位显示未读取", () => {
     for (const bay of ["打开 Caddy", "打开环境变量", "打开 AI 配置", "打开应用配置"]) {
       expect(markup).toMatch(new RegExp(`<button[^>]*>${bay}</button>`));
     }
-    expect(markup.match(/未加载/g) ?? []).toHaveLength(4);
+    expect(markup.match(/未读取/g) ?? []).toHaveLength(4);
   });
 
   it("服务舱位在读取中时显示读取中，不显示数字", () => {

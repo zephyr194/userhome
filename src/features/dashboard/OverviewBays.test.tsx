@@ -1,3 +1,7 @@
+/// <reference types="node" />
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
@@ -6,6 +10,8 @@ import { Button } from "../../components/ui";
 import type { ServiceState, ServiceSummary } from "../../ipc/services";
 import { ModuleBay } from "./ModuleBay";
 import { BAY_UNLOADED, OVERVIEW_MODULE_BAYS, serviceBay } from "./overviewBays";
+
+const srcRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 function service(serviceId: string, state: ServiceState): ServiceSummary {
   return {
@@ -92,7 +98,7 @@ describe("OVERVIEW_MODULE_BAYS", () => {
 describe("ModuleBay", () => {
   const bay = OVERVIEW_MODULE_BAYS[0];
 
-  it("未加载的舱位显示未加载、一个关键数字行与可见文字的主操作", () => {
+  it("未读取的舱位显示未读取、一个关键数字行与可见文字的主操作", () => {
     const markup = renderToStaticMarkup(
       <ModuleBay
         actionLabel={bay.action}
@@ -103,12 +109,38 @@ describe("ModuleBay", () => {
         title={bay.title}
       />,
     );
-    expect(markup).toContain("未加载");
+    expect(markup).toContain("未读取");
     expect(markup).toContain(bay.figureLabel);
     expect(markup).toMatch(/<button[^>]*>打开 Caddy<\/button>/);
     expect(markup).toContain('aria-labelledby="overview-bay-test-heading"');
-    expect(markup).not.toContain("status-glyph");
+    expect(markup).not.toMatch(/status-glyph--(danger|warning|success)/);
+    expect(markup).toContain("status-glyph--neutral");
   });
+
+  it("未读取且提供读取回调时，读取摘要排在打开按钮之前", () => {
+    const markup = renderToStaticMarkup(
+      <ModuleBay
+        actionLabel={bay.action}
+        figure={{ label: bay.figureLabel, value: "—" }}
+        id="overview-bay-test"
+        onOpen={() => undefined}
+        onRead={() => undefined}
+        status={BAY_UNLOADED}
+        title={bay.title}
+      />,
+    );
+    expect(markup.indexOf("读取摘要")).toBeGreaterThan(-1);
+    expect(markup.indexOf("读取摘要")).toBeLessThan(markup.indexOf("打开 Caddy"));
+  });
+
+  it("窄窗口为单列，宽窗口为 2 列与 3 列，且卡片等高", () => {
+    const css = readFileSync(join(srcRoot, "styles", "global.css"), "utf8");
+    expect(css).toMatch(/\.dashboard-workspace \.overview-bay-wall \{\s*min-width: 0;\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\);/);
+    expect(css).toMatch(/@media \(min-width: 720px\) \{\s*\.dashboard-workspace \.overview-bay-wall \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
+    expect(css).toMatch(/@media \(min-width: 1080px\) \{\s*\.dashboard-workspace \.overview-bay-wall \{\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+    expect(css).toMatch(/\.dashboard-workspace \.overview-bay \{[^}]*height: 100%;/);
+  });
+
 
   it("需要关注的舱位才带状态点", () => {
     const markup = renderToStaticMarkup(

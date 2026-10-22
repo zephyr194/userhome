@@ -99,6 +99,7 @@
   --app-primary-foreground: #FFFFFF;
   --app-success: #2B744F;
   --app-warning: #8C5F12;
+  --r4-signal: #B65C24;
   --app-danger: #B33A3A;
   --app-danger-hover: #962F2F;
   --app-danger-foreground: #FFFFFF;
@@ -1112,6 +1113,7 @@ a {
   --app-primary-foreground: #161B21;
   --app-success: #65C894;
   --app-warning: #E3B85B;
+  --r4-signal: #E9925E;
   --app-danger: #EE7D78;
   --app-danger-hover: #F09A96;
   --app-danger-foreground: #161B21;
@@ -1164,6 +1166,7 @@ a {
     --app-primary-foreground: #161B21;
     --app-success: #65C894;
     --app-warning: #E3B85B;
+    --r4-signal: #E9925E;
     --app-danger: #EE7D78;
     --app-danger-hover: #F09A96;
     --app-danger-foreground: #161B21;
@@ -2225,6 +2228,159 @@ button[class*="border-border"],
   padding: var(--app-space-8);
   color: var(--app-foreground);
   text-align: left;
+}
+
+/* r4-fe1-overview ----------------------------------------------------------- */
+.dashboard-workspace .overview-bay-wall {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--app-space-8);
+}
+
+@media (min-width: 720px) {
+  .dashboard-workspace .overview-bay-wall {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1080px) {
+  .dashboard-workspace .overview-bay-wall {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.dashboard-workspace .overview-bay {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+  padding: var(--app-space-12);
+}
+
+.overview-bay__head {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--app-space-8);
+}
+
+.overview-bay__head h2 {
+  min-width: 0;
+  margin: 0;
+  color: var(--app-foreground);
+  font-size: var(--app-font-size-group);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.overview-bay__state,
+.pulse-card__state {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-4);
+  color: var(--app-foreground);
+  font-size: var(--app-font-size-aux);
+}
+
+.overview-bay__figure {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--app-space-2);
+}
+
+.overview-bay__figure dt {
+  color: var(--app-muted-foreground);
+  font-size: var(--app-font-size-aux);
+}
+
+.overview-bay__figure dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--app-foreground);
+  font-family: var(--font-mono);
+  font-size: var(--app-font-size-body);
+  overflow-wrap: anywhere;
+}
+
+.overview-bay__detail {
+  margin: 0;
+  color: var(--app-muted-foreground);
+  font-size: var(--app-font-size-aux);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.overview-bay__actions {
+  margin-top: auto;
+}
+
+.attention-list--actions li {
+  align-items: center;
+}
+
+.attention-list__body {
+  min-width: 0;
+}
+
+.dashboard-workspace .status-glyph {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.dashboard-workspace .status-glyph--neutral {
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  color: var(--app-muted-foreground);
+}
+
+.dashboard-workspace .status-glyph--success {
+  border-radius: 50%;
+  background: currentColor;
+  color: var(--app-foreground);
+}
+
+.dashboard-workspace .status-glyph--danger {
+  background: currentColor;
+  color: var(--app-danger);
+}
+
+.dashboard-workspace .status-glyph--warning {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 9px solid var(--r4-signal);
+  color: var(--r4-signal);
+}
+
+.dashboard-workspace .status-glyph--busy {
+  width: 8px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-right-color: transparent;
+  color: var(--app-muted-foreground);
+}
+
+@media (forced-colors: active) {
+  .dashboard-workspace .overview-bay {
+    border: 1px solid CanvasText;
+  }
+
+  .dashboard-workspace .status-glyph--warning {
+    border-bottom-color: CanvasText;
+  }
 }
 
 /* End route visual system ------------------------------------------------ */
