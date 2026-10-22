@@ -15,7 +15,6 @@ use crate::{
         DiagnosticRefreshState as DiscoveryRefreshState, DiscoveryDiagnostics,
     },
     error::AppError,
-    security::elevation_macos::{HelperAvailability, HelperRegistrationState},
 };
 
 use super::{LoadedPreferences, ProviderTimeoutPreset, SettingsDiagnosticCode};
@@ -72,15 +71,6 @@ pub struct CatalogDiagnostics {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct HelperDiagnostics {
-    supported: bool,
-    signed: bool,
-    available: bool,
-    state: HelperRegistrationState,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct RefreshDiagnostics {
     state: RefreshState,
     completed_at_epoch_ms: Option<u64>,
@@ -110,7 +100,6 @@ pub struct DiagnosticsReport {
     application: ApplicationDiagnostics,
     system: SystemDiagnostics,
     catalog: CatalogDiagnostics,
-    helper: HelperDiagnostics,
     refresh: RefreshDiagnostics,
     providers: [ProviderDiagnostics; 3],
     preferences: PreferenceDiagnostics,
@@ -127,7 +116,6 @@ impl DiagnosticsReport {
     pub(crate) fn collect(
         catalog: &Catalog,
         discovery: DiscoveryDiagnostics,
-        helper: &HelperAvailability,
         preferences: &LoadedPreferences,
     ) -> Self {
         let application = ApplicationDiagnostics {
@@ -152,12 +140,6 @@ impl DiagnosticsReport {
                 .iter()
                 .map(|application| application.services().len())
                 .sum(),
-        };
-        let helper = HelperDiagnostics {
-            supported: helper.supported,
-            signed: helper.signed,
-            available: helper.available,
-            state: helper.state.clone(),
         };
         let refresh = RefreshDiagnostics {
             state: map_refresh_state(discovery.refresh_state),
@@ -194,7 +176,6 @@ impl DiagnosticsReport {
             application,
             system,
             catalog,
-            helper,
             refresh,
             providers,
             preferences,
@@ -282,11 +263,6 @@ fn render_report(report: &DiagnosticsReport) -> String {
             "Applications: {application_count}\n",
             "Managed documents: {document_count}\n",
             "Services: {service_count}\n",
-            "\nHelper\n",
-            "State: {helper_state}\n",
-            "Supported: {helper_supported}\n",
-            "Signed: {helper_signed}\n",
-            "Available: {helper_available}\n",
             "\nRefresh\n",
             "State: {refresh_state}\n",
             "Completed (epoch ms): {completed}\n",
@@ -313,10 +289,6 @@ fn render_report(report: &DiagnosticsReport) -> String {
         application_count = report.catalog.application_count,
         document_count = report.catalog.managed_document_count,
         service_count = report.catalog.service_count,
-        helper_state = helper_state_label(&report.helper.state),
-        helper_supported = report.helper.supported,
-        helper_signed = report.helper.signed,
-        helper_available = report.helper.available,
         refresh_state = refresh_state_label(report.refresh.state),
         completed = report
             .refresh
@@ -331,17 +303,6 @@ fn render_report(report: &DiagnosticsReport) -> String {
         diagnostic = diagnostic_code_label(report.preferences.diagnostic_code),
         timeout = timeout_label(report.preferences.provider_timeout_preset),
     )
-}
-
-fn helper_state_label(state: &HelperRegistrationState) -> &'static str {
-    match state {
-        HelperRegistrationState::Enabled => "ENABLED",
-        HelperRegistrationState::RequiresApproval => "REQUIRES_APPROVAL",
-        HelperRegistrationState::NotRegistered => "NOT_REGISTERED",
-        HelperRegistrationState::NotFound => "NOT_FOUND",
-        HelperRegistrationState::Unsupported => "UNSUPPORTED",
-        HelperRegistrationState::Unsigned => "UNSIGNED",
-    }
 }
 
 fn refresh_state_label(state: RefreshState) -> &'static str {
@@ -393,7 +354,6 @@ mod tests {
         discovery::refresh::{
             DiagnosticProviderState, DiagnosticRefreshState, DiscoveryDiagnostics,
         },
-        security::elevation_macos::{HelperAvailability, HelperRegistrationState},
     };
 
     use super::*;
@@ -410,21 +370,16 @@ mod tests {
             homebrew: DiagnosticProviderState::Unavailable,
             candidates: DiagnosticProviderState::Partial,
         };
-        let helper = HelperAvailability {
-            supported: true,
-            signed: false,
-            state: HelperRegistrationState::RequiresApproval,
-            available: false,
-            reason: "apiToken=secret /Users/example".to_owned(),
-        };
         let preferences = LoadedPreferences::ready(super::super::UserPreferences::default());
 
-        let report = DiagnosticsReport::collect(&catalog, discovery, &helper, &preferences);
+        let report = DiagnosticsReport::collect(&catalog, discovery, &preferences);
         let serialized = serde_json::to_string(&report).expect("serialize diagnostics");
 
         assert!(serialized.contains("\"architecture\":\""));
         assert!(serialized.contains("\"state\":\"UNAVAILABLE\""));
         assert!(serialized.contains("Configuration contents: not included"));
+        assert!(!serialized.contains("\"helper\""));
+        assert!(!report.report_text.contains("\nHelper\n"));
         assert!(!serialized.contains("/Users/"));
         assert!(!serialized.contains("apiToken"));
         assert!(!serialized.contains("secret"));

@@ -13,7 +13,6 @@ use crate::{
     operations::{
         OperationCoordinator, OperationDetails, OperationIntent, OperationKind, OperationPreview,
     },
-    security::elevation_macos::MacOsElevationTransport,
     settings::{
         LoadedPreferences, SettingsCoordinator, UpdatePreferencesRequest,
         diagnostics::{DiagnosticsExport, DiagnosticsReport},
@@ -123,9 +122,8 @@ pub fn reset_preferences(
 pub fn get_diagnostics_report(
     coordinator: State<'_, SettingsCoordinator>,
     discovery: State<'_, DiscoveryCoordinator>,
-    helper: State<'_, MacOsElevationTransport>,
 ) -> Result<DiagnosticsReport, AppError> {
-    collect_diagnostics(&coordinator, &discovery, &helper)
+    collect_diagnostics(&coordinator, &discovery)
 }
 
 #[tauri::command]
@@ -133,9 +131,8 @@ pub fn export_diagnostics_report(
     app: AppHandle,
     coordinator: State<'_, SettingsCoordinator>,
     discovery: State<'_, DiscoveryCoordinator>,
-    helper: State<'_, MacOsElevationTransport>,
 ) -> Result<DiagnosticsExport, AppError> {
-    let report = collect_diagnostics(&coordinator, &discovery, &helper)?;
+    let report = collect_diagnostics(&coordinator, &discovery)?;
     let download_directory = app
         .path()
         .download_dir()
@@ -146,14 +143,12 @@ pub fn export_diagnostics_report(
 fn collect_diagnostics(
     coordinator: &SettingsCoordinator,
     discovery: &DiscoveryCoordinator,
-    helper: &MacOsElevationTransport,
 ) -> Result<DiagnosticsReport, AppError> {
     let catalog = builtin_catalog()?;
     let preferences = coordinator.get()?;
     Ok(DiagnosticsReport::collect(
         &catalog,
         discovery.diagnostics(),
-        &helper.status(),
         &preferences,
     ))
 }
