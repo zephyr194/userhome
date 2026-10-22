@@ -1,6 +1,7 @@
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useState, type ComponentType } from "react";
 import { PageShell } from "../../components/ui";
+import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import { CodecTool } from "./CodecTool";
 import { JsonTool } from "./JsonTool";
 import { QrTool } from "./QrTool";
@@ -49,6 +50,7 @@ export function ToolsPage() {
     TOOL_ENTRIES.findIndex((tool) => tool.id === activeTool),
   );
   const active = TOOL_ENTRIES[activeIndex];
+  const tabsRef = useSlideIndicator(activeIndex, "x");
 
   return (
     <TabGroup
@@ -58,14 +60,19 @@ export function ToolsPage() {
       onChange={(index) => setActiveTool(TOOL_ENTRIES[index].id)}
     >
       <PageShell layout="strip">
-        <TabList aria-label="工具" className="flex flex-wrap items-end gap-ui-8">
+        <TabList
+          ref={tabsRef}
+          aria-label="工具"
+          className="slide-list flex flex-wrap items-end gap-ui-8"
+          data-slide-axis="x"
+        >
           {TOOL_ENTRIES.map((tool) => (
             <Tab
               key={tool.id}
               className={({ selected }) =>
                 selected
-                  ? "bracket inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-foreground"
-                  : "bracket inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-muted-foreground hover:text-foreground"
+                  ? "slide-item inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-foreground"
+                  : "slide-item inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-muted-foreground hover:text-foreground"
               }
             >
               {tool.label}

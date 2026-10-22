@@ -14,7 +14,7 @@ export function Panel({
     <section
       className={classNames(
         "rounded-panel bg-surface text-foreground ring-1 ring-inset ring-line",
-        selectable && "bracket",
+        selectable && "slide-item",
         className,
       )}
       aria-selected={selectable ? selected : undefined}

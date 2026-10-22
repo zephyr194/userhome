@@ -49,12 +49,7 @@ describe("圆角令牌（UIB-0）", () => {
 });
 
 describe("选中角标令牌（UIB-0）", () => {
-  it("选中角标与虚线框的尺寸取值符合规格", () => {
-    expect(tokenValue("app-bracket-length")).toBe("6px");
-    expect(tokenValue("app-bracket-length-hover")).toBe("6px");
-    expect(tokenValue("app-bracket-width")).toBe("2px");
-    expect(tokenValue("app-bracket-width-hover")).toBe("1px");
-    expect(tokenValue("app-bracket-offset")).toBe("2px");
+  it("虚线框令牌已随滑动指示器删除", () => {
     expect(css).not.toMatch(/--app-selection-dash\s*:/);
   });
 

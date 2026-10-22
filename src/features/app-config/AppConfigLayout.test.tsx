@@ -84,11 +84,11 @@ describe("app config page layout (UIB-4e)", () => {
     );
   });
 
-  it("marks the selected entry with the bracket language and aria-current only", () => {
+  it("marks the selected entry with the slide selection language and aria-current only", () => {
     const buttons = renderView(COMPACT, SELECTED).match(/<button[^>]*>/g) ?? [];
     const current = buttons.filter((tag) => tag.includes('aria-current="true"'));
     expect(current).toHaveLength(1);
-    expect(current[0]).toMatch(/class="[^"]*\bbracket\b/);
+    expect(current[0]).toMatch(/class="[^"]*\bslide-item\b/);
     expect(current[0]).not.toMatch(/border-primary|bg-selection/);
   });
 

@@ -6,6 +6,7 @@ import {
   type AppRouteIcon,
   type AppRouteId,
 } from "../app/routeDefinitions";
+import { useSlideIndicator } from "./ui/useSlideIndicator";
 
 interface NavigationRailProps {
   activeRouteId: AppRouteId;
@@ -51,8 +52,9 @@ export function NavigationRail({
   routes,
 }: NavigationRailProps) {
   const status = connectionDetails(connection);
+  const railRef = useSlideIndicator(`${activeRouteId}/${activeSectionId ?? ""}`);
   return (
-    <nav aria-label="主导航" className="navigation-rail">
+    <nav aria-label="主导航" className="navigation-rail slide-list" ref={railRef}>
       <div className="navigation-rail__brand">
         <span className="navigation-rail__mark" aria-hidden="true"><i /><i /><i /></span>
         <span>
@@ -71,7 +73,7 @@ export function NavigationRail({
                 <li key={route.id}>
                   <a
                     href={`#${route.id}`}
-                    className="bracket"
+                    className="slide-item"
                     aria-label={`${route.label}：${route.description}`}
                     aria-current={activeRouteId === route.id ? "page" : undefined}
                     aria-controls="main-content"
@@ -90,7 +92,7 @@ export function NavigationRail({
                         <li key={section.id}>
                           <button
                             type="button"
-                            className="bracket navigation-rail__section"
+                            className="slide-item navigation-rail__section"
                             aria-current={section.id === activeSectionId ? "true" : undefined}
                             onClick={() => onSectionSelect?.(section.id)}
                           >

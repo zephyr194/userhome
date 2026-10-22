@@ -37,13 +37,13 @@ describe("工具集布局（UIB-4f）", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("工具切换标签全部带 bracket，选中项的 aria-selected 唯一", () => {
+  it("工具切换标签全部带 slide-item，选中项的 aria-selected 唯一", () => {
     const html = renderToStaticMarkup(<ToolsPage />);
     const tabs = Array.from(html.matchAll(/<button[^>]*role="tab"[^>]*>/g), (match) => match[0]);
 
     expect(tabs).toHaveLength(4);
     for (const tab of tabs) {
-      expect(tab).toContain("bracket");
+      expect(tab).toContain("slide-item");
     }
     expect(tabs.filter((tab) => tab.includes('aria-selected="true"'))).toHaveLength(1);
   });

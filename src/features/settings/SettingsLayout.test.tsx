@@ -70,7 +70,7 @@ describe("设置页布局（UIB-4f）", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("当前分组同时带 bracket 与 aria-current，其余分组不带", () => {
+  it("当前分组同时带 slide-item 与 aria-current，其余分组不带", () => {
     const markup = render("refresh");
     const tabs = Array.from(markup.matchAll(/<button[^>]*data-group-id="[^"]*"[^>]*>/g), (match) => match[0]);
 
@@ -79,7 +79,7 @@ describe("设置页布局（UIB-4f）", () => {
     expect(current).toHaveLength(1);
     expect(current[0]).toContain('data-group-id="refresh"');
     for (const tab of tabs) {
-      expect(tab).toContain("bracket");
+      expect(tab).toContain("slide-item");
     }
   });
 });

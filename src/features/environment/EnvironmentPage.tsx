@@ -4,6 +4,7 @@ import { useBoardView } from "../../app/BoardViewContext";
 import { useToolSection } from "../../app/SectionContext";
 import { PageShell } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
+import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import { classNames } from "../../components/ui/classNames";
 import { decodeAppError } from "../../ipc/core";
 import {
@@ -32,7 +33,7 @@ type GrantNotice = EnvironmentViewProps["grantNotice"];
 
 const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
   classNames(
-    "bracket inline-flex h-control-md items-center px-ui-12 text-sm font-medium",
+    "slide-item inline-flex h-control-md items-center px-ui-12 text-sm font-medium",
     selected ? "text-foreground" : "text-muted-foreground hover:text-foreground",
   );
 
@@ -48,6 +49,7 @@ export function EnvironmentPage() {
   const [section, setSection] = useToolSection("dotenv");
   const zshSelected = section === "zsh";
   const [zshOpened, setZshOpened] = useState(zshSelected);
+  const tabsRef = useSlideIndicator(zshSelected, "x");
   if (zshSelected && !zshOpened) setZshOpened(true);
   return (
     <TabGroup
@@ -61,8 +63,10 @@ export function EnvironmentPage() {
         scrollKey={isBoard ? "board" : "compact"}
       >
         <TabList
+          ref={tabsRef}
           aria-label="环境配置分区"
-          className="col-span-full flex min-w-0 flex-wrap items-end gap-ui-8 border-b border-border"
+          className="slide-list col-span-full flex min-w-0 flex-wrap items-end gap-ui-8 border-b border-border"
+          data-slide-axis="x"
         >
           <Tab className={TAB_CLASSES}>dotenv 文件</Tab>
           <Tab className={TAB_CLASSES}>zsh 启动文件</Tab>

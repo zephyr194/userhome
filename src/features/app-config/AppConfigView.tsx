@@ -11,6 +11,7 @@ import {
   type DetailState,
   type ListState,
 } from "./appConfigModel";
+import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 
 export interface AppConfigViewProps {
   list: ListState;
@@ -104,26 +105,29 @@ function EntryList({
   selectedId: string | undefined;
   onSelect: (id: string) => void;
 }) {
+  const listRef = useSlideIndicator(selectedId);
   return (
     <Panel aria-labelledby="app-config-list-title" className="grid content-start gap-ui-8 p-ui-8">
       <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
         条目
       </h2>
-      {groupByCategory(items).map((group) => (
-        <div key={group.category} className="grid gap-ui-8">
-          <h3 className="m-0 text-meta font-semibold text-muted-foreground">{group.label}</h3>
-          <ul className="m-0 grid list-none gap-ui-8 p-0">
-            {group.items.map((item) => (
-              <EntryRow
-                key={item.summary.id}
-                item={item}
-                selected={item.summary.id === selectedId}
-                onSelect={onSelect}
-              />
-            ))}
-          </ul>
-        </div>
-      ))}
+      <div ref={listRef} className="slide-list grid gap-ui-8">
+        {groupByCategory(items).map((group) => (
+          <div key={group.category} className="grid gap-ui-8">
+            <h3 className="m-0 text-meta font-semibold text-muted-foreground">{group.label}</h3>
+            <ul className="m-0 grid list-none gap-ui-8 p-0">
+              {group.items.map((item) => (
+                <EntryRow
+                  key={item.summary.id}
+                  item={item}
+                  selected={item.summary.id === selectedId}
+                  onSelect={onSelect}
+                />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </Panel>
   );
 }
@@ -143,7 +147,7 @@ function EntryRow({
     <li>
       <Button
         aria-current={selected ? "true" : undefined}
-        className="bracket grid h-auto w-full min-w-0 justify-start text-left"
+        className="slide-item grid h-auto w-full min-w-0 justify-start text-left"
         onClick={() => onSelect(summary.id)}
         size="sm"
       >

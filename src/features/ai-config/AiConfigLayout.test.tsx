@@ -115,9 +115,9 @@ describe("AI 配置页布局（UIB-4d）", () => {
     }
   });
 
-  it("marks only the default Claude Code row as the current selection with the bracket language", () => {
+  it("marks only the default Claude Code row as the current selection with the slide selection language", () => {
     const markup = renderView(COMPACT);
-    expect(markup.match(/class="[^"]*\bbracket\b[^"]*"/g)).toHaveLength(4);
+    expect(markup.match(/class="[^"]*\bslide-item\b[^"]*"/g)).toHaveLength(4);
     expect(markup.match(/aria-current="true"/g)).toHaveLength(1);
     expect(markup).toMatch(/aria-current="true"[^>]*>(?:(?!<\/button>).)*Claude Code/);
   });

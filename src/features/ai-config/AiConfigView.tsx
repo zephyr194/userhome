@@ -22,6 +22,7 @@ import {
   type AiConfigState,
   type AiConfigSummary,
 } from "./aiConfigModel";
+import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 
 export interface AiConfigViewProps {
   state: AiConfigState;
@@ -37,6 +38,7 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
   const tools = state.status === "ready" ? state.report.tools : [];
   const selected = selectedToolOf(tools, toolIdForSection(section));
   const showClaudePanel = showsClaudePanel(selected);
+  const toolListRef = useSlideIndicator(selected?.id);
 
   return (
     <PageShell
@@ -66,7 +68,11 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
           </p>
           <StateNotice state={state} summary={summary} onRetry={onRetry} />
           {state.status === "ready" ? (
-            <ul aria-label="AI 工具列表" className="m-0 grid list-none gap-ui-4 p-0">
+            <ul
+              ref={toolListRef}
+              aria-label="AI 工具列表"
+              className="slide-list m-0 grid list-none gap-ui-4 p-0"
+            >
               {tools.map((tool) => (
                 <li key={tool.id}>
                   <ToolRow
@@ -174,7 +180,7 @@ function ToolRow({
     <Button
       variant="ghost"
       size="sm"
-      className="bracket ai-tool-row"
+      className="slide-item ai-tool-row"
       aria-current={selected ? "true" : undefined}
       onClick={() => onSelect(tool.id)}
     >

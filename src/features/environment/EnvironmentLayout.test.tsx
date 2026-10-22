@@ -75,10 +75,10 @@ describe("environment page layout (UIB-4e)", () => {
     }
   });
 
-  it("marks the selected tab with the bracket language and aria-selected", () => {
+  it("marks the selected tab with the slide selection language and aria-selected", () => {
     const tabs = renderPage(COMPACT).match(/<button[^>]*role="tab"[^>]*>|<button[^>]*>[^<]*<\/button>/g) ?? [];
     const selected = (tabs.filter((tag) => tag.includes('aria-selected="true"')));
     expect(selected).toHaveLength(1);
-    expect(selected[0]).toMatch(/class="[^"]*\bbracket\b/);
+    expect(selected[0]).toMatch(/class="[^"]*\bslide-item\b/);
   });
 });

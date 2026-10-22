@@ -68,13 +68,18 @@ describe("导航当前页", () => {
     expect(current[0]).toContain(`href="#${APP_ROUTES[0].id}"`);
   });
 
-  it("当前态样式为 1px 线、左侧 2px 色条与加深的前景色，不依赖阴影", () => {
-    const current = '.navigation-rail a[aria-current="page"]';
-    expect(lastDeclared(current, "border-color")).toBe("var(--app-selection-border)");
-    expect(lastDeclared(current, "color")).toBe("var(--app-foreground)");
-    expect(lastDeclared(current, "box-shadow")).toBe("none");
-
-    expect(lastDeclared(`${current}::before`, "background")).toBe("var(--app-primary)");
+  it("当前态由 .slide-list 滑动指示器承担：浅橙底、3px 色条与 2px 宽的旧色条都不再由 a[aria-current] 单独绘制", () => {
+    expect(rulesFor('.navigation-rail a[aria-current="page"]')).toEqual([]);
+    expect(rulesFor('.navigation-rail a[aria-current="page"]::before')).toEqual([]);
+    expect(lastDeclared(".slide-list[data-slide-ready]::before", "background")).toBe(
+      "var(--app-selection)",
+    );
+    expect(lastDeclared(".slide-list[data-slide-ready]::before", "box-shadow")).toBe(
+      "inset 3px 0 0 var(--app-selection-border)",
+    );
+    expect(css).toMatch(
+      /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection\)/,
+    );
     expect(lastDeclared(".navigation-rail a::before", "width")).toBe("2px");
   });
 });

@@ -1,6 +1,6 @@
 /// <reference types="node" />
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -9,6 +9,7 @@ import { NavigationRail } from "../components/NavigationRail";
 import { APP_ROUTES } from "../app/routeDefinitions";
 
 const srcRoot = fileURLToPath(new URL("../", import.meta.url));
+const selfPath = fileURLToPath(import.meta.url);
 const css = readFileSync(join(srcRoot, "styles/global.css"), "utf8");
 
 const SECTION_START = "/* selection language */";
@@ -17,10 +18,13 @@ const startIndex = css.indexOf(SECTION_START);
 const endIndex = css.indexOf(SECTION_END);
 const section = startIndex === -1 || endIndex === -1 ? "" : css.slice(startIndex, endIndex);
 
-const SELECTED = '.bracket[aria-selected="true"]';
-const HOVER =
-  '.bracket:hover:not([aria-selected="true"]):not([aria-current="true"]):not([aria-current="page"])';
-const FOCUS = ".bracket:focus-visible";
+const SELECTED_STATE =
+  '[aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]';
+const SELECTED_ITEM = `.slide-item:is(${SELECTED_STATE})`;
+const PROGRESSIVE_ITEM = `.slide-list:not([data-slide-ready]) ${SELECTED_ITEM}`;
+const READY_CLEARED_ITEM = `.slide-list[data-slide-ready] ${SELECTED_ITEM}`;
+const HOVER_ITEM = `.slide-item:hover:not(:is(${SELECTED_STATE}))`;
+const INDICATOR = ".slide-list[data-slide-ready]::before";
 
 function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -28,7 +32,7 @@ function stripComments(source: string): string {
 
 function rulesFor(source: string, selector: string): string[] {
   return [...stripComments(source).matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .filter((match) => match[1].split(",").map((part) => part.trim()).includes(selector))
+    .filter((match) => match[1].trim() === selector)
     .map((match) => match[2]);
 }
 
@@ -45,10 +49,6 @@ function lastDeclaredIn(source: string, selector: string, property: string): str
   return values[values.length - 1];
 }
 
-function layerCount(value: string): number {
-  return value.split(/,(?![^(]*\))/).filter((layer) => layer.trim() !== "").length;
-}
-
 function tokenValue(name: string): string {
   const match = css.match(new RegExp(`--${name}:\\s*([^;]+);`));
   if (!match) throw new Error(`missing token --${name}`);
@@ -61,63 +61,87 @@ function toMs(value: string): number {
   return match[2] === "s" ? Number(match[1]) * 1000 : Number(match[1]);
 }
 
-describe("选中语言：令牌化的角标与选中态", () => {
-  it("选中态的四个角各由横竖两条实线渐变组成（共 8 层），取值全部来自 bracket 令牌", () => {
-    expect(section, "selection language block").not.toBe("");
-    const corners = lastDeclaredIn(section, SELECTED, "--bracket-corners");
-    expect(corners.match(/linear-gradient\(/g)).toHaveLength(8);
-    expect(corners).toContain("var(--app-selection-border)");
-    expect(layerCount(lastDeclaredIn(section, SELECTED, "--bracket-sizes"))).toBe(8);
-    expect(layerCount(lastDeclaredIn(section, SELECTED, "--bracket-positions"))).toBe(8);
-    const sizes = lastDeclaredIn(section, SELECTED, "--bracket-sizes");
-    expect(sizes).toContain("var(--app-bracket-length)");
-    expect(sizes).toContain("var(--app-bracket-width)");
-    expect(lastDeclaredIn(section, SELECTED, "--bracket-positions")).toContain(
-      "var(--app-bracket-offset)",
-    );
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((entry) => {
+    const path = join(dir, entry);
+    return statSync(path).isDirectory() ? sourceFiles(path) : [path];
   });
+}
 
-  it("选中态使用浅橙底与 1px 透明实线边框，且不改变外框尺寸（不用 outline、不用内外边距）", () => {
-    const base = section.split("@media")[0];
-    expect(lastDeclaredIn(base, SELECTED, "background-color")).toBe("var(--app-selection)");
-    const border = lastDeclaredIn(base, SELECTED, "border");
-    expect(border).not.toContain("dashed");
-    expect(border).toContain("transparent");
-    expect(border).toContain("1px");
-    expect(declaredIn(base, SELECTED, "padding")).toEqual([]);
-    expect(declaredIn(base, SELECTED, "margin")).toEqual([]);
+describe("选中语言：滑动指示器", () => {
+  it("列表容器为定位上下文，指示器是容器的 ::before，位置与尺寸来自 CSS 变量", () => {
+    expect(section, "selection language block").not.toBe("");
+    expect(lastDeclaredIn(section, ".slide-list", "position")).toBe("relative");
+    expect(lastDeclaredIn(section, INDICATOR, "width")).toBe("var(--slide-w)");
+    expect(lastDeclaredIn(section, INDICATOR, "height")).toBe("var(--slide-h)");
+    expect(lastDeclaredIn(section, INDICATOR, "transform")).toBe(
+      "translate(var(--slide-x), var(--slide-y))",
+    );
+    expect(lastDeclaredIn(section, INDICATOR, "background")).toBe("var(--app-selection)");
+    expect(lastDeclaredIn(section, INDICATOR, "box-shadow")).toBe(
+      "inset 3px 0 0 var(--app-selection-border)",
+    );
+    expect(lastDeclaredIn(section, INDICATOR, "pointer-events")).toBe("none");
+    expect(
+      lastDeclaredIn(section, '.slide-list[data-slide-axis="x"][data-slide-ready]::before', "box-shadow"),
+    ).toBe("inset 0 -2px 0 var(--app-selection-border)");
     expect(section).not.toContain("outline");
   });
 
-  it("基础态预留与选中态同宽的透明边框，选中时边框不变，避免布局偏移", () => {
-    const base = section.split("@media")[0];
-    expect(lastDeclaredIn(base, ".bracket", "border")).toBe("1px solid transparent");
-    expect(declaredIn(base, SELECTED, "border-width")).toEqual([]);
-    expect(lastDeclaredIn(base, SELECTED, "border")).toMatch(/^1px solid transparent$/);
+  it("指示器过渡 120ms、标准曲线，只过渡 transform/width/height", () => {
+    expect(lastDeclaredIn(section, INDICATOR, "transition-property")).toBe("transform, width, height");
+    expect(lastDeclaredIn(section, INDICATOR, "transition-duration")).toBe("120ms");
+    expect(toMs(lastDeclaredIn(section, INDICATOR, "transition-duration"))).toBeLessThanOrEqual(120);
+    expect(lastDeclaredIn(section, INDICATOR, "transition-timing-function")).toBe(
+      "cubic-bezier(0.2, 0.7, 0.2, 1)",
+    );
   });
 
-  it("选中态不声明阴影，阴影只属于独立的焦点环", () => {
-    expect(declaredIn(section, SELECTED, "box-shadow")).toEqual([]);
+  it("选中项外框不变：选中态只改底色与阴影，不声明边框宽度、内外边距或轮廓", () => {
+    for (const selector of [PROGRESSIVE_ITEM, READY_CLEARED_ITEM]) {
+      expect(declaredIn(section, selector, "border")).toEqual([]);
+      expect(declaredIn(section, selector, "border-width")).toEqual([]);
+      expect(declaredIn(section, selector, "padding")).toEqual([]);
+      expect(declaredIn(section, selector, "margin")).toEqual([]);
+      expect(declaredIn(section, selector, "outline")).toEqual([]);
+    }
+    expect(declaredIn(section, SELECTED_ITEM, "border")).toEqual([]);
+    expect(declaredIn(section, SELECTED_ITEM, "font-weight")).toEqual(["600"]);
+    expect(lastDeclaredIn(section, SELECTED_ITEM, "color")).toBe("var(--app-foreground)");
   });
 
-  it("悬停态仅两个灰色角标（左上与右下），臂长与粗细取悬停令牌", () => {
-    const corners = lastDeclaredIn(section, HOVER, "--bracket-corners");
-    expect(corners.match(/linear-gradient\(/g)).toHaveLength(4);
-    expect(corners).toContain("var(--app-control-border)");
-    expect(corners).not.toContain("var(--app-selection-border)");
-    const sizes = lastDeclaredIn(section, HOVER, "--bracket-sizes");
-    expect(sizes).toContain("var(--app-bracket-length-hover)");
-    expect(sizes).toContain("var(--app-bracket-width-hover)");
-    expect(layerCount(sizes)).toBe(4);
+  it("渐进增强：未就绪时选中项自己绘制浅橙底与色条；就绪后清除，由指示器承担", () => {
+    expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "background")).toBe("var(--app-selection)");
+    expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "box-shadow")).toBe(
+      "inset 3px 0 0 var(--app-selection-border)",
+    );
+    expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "background")).toBe("transparent");
+    expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "box-shadow")).toBe("none");
   });
 
-  it("焦点不画外框（用户 2026-10-22 决定）：bracket 没有 focus-visible 规则，选中与悬停规则也不含 focus", () => {
-    expect(section).not.toContain(FOCUS);
-    expect(rulesFor(section, SELECTED).join("\n")).not.toContain("focus");
-    expect(rulesFor(section, HOVER).join("\n")).not.toContain("focus");
+  it("阴影只允许 inset 色条或 none，不出现外阴影或焦点环", () => {
+    const values = [...section.matchAll(/box-shadow:\s*([^;]+);/g)].map((match) => match[1].trim());
+    expect(values.length).toBeGreaterThan(0);
+    for (const value of values) {
+      expect(value === "none" || value.startsWith("inset "), value).toBe(true);
+    }
   });
 
-  it("只用令牌与发丝线，不使用 clip-path、负 z-index、!important", () => {
+  it("悬停仅对非选中项使用悬停底色，无角标与边框", () => {
+    expect(lastDeclaredIn(section, HOVER_ITEM, "background")).toBe("var(--app-surface-muted)");
+    expect(declaredIn(section, HOVER_ITEM, "border")).toEqual([]);
+    expect(declaredIn(section, HOVER_ITEM, "box-shadow")).toEqual([]);
+    expect(lastDeclaredIn(css, ".navigation-rail .slide-item:hover:not(:is(" + SELECTED_STATE + "))", "background")).toBe(
+      "var(--app-sidebar-hover)",
+    );
+  });
+
+  it("焦点不画外框（用户 2026-10-22 决定）：选中语言区块不含 focus 选择器", () => {
+    expect(section).not.toContain("focus-visible");
+    expect(section).not.toMatch(/:focus\b/);
+  });
+
+  it("只用令牌与发丝线，不使用 clip-path、负 z-index、!important 与非令牌渐变", () => {
     expect(section).not.toContain("clip-path");
     expect(section).not.toMatch(/z-index:\s*-/);
     expect(section).not.toContain("!important");
@@ -126,32 +150,32 @@ describe("选中语言：令牌化的角标与选中态", () => {
 });
 
 describe("选中语言：退化规则", () => {
-  it("forced-colors 下去掉背景角标，改用 Highlight 的 1px 实线边框", () => {
+  it("forced-colors 下隐藏指示器，选中项改用 Highlight 实线（竖向 3px、横向 2px）", () => {
     const forced = section.match(/@media \(forced-colors: active\)\s*\{([\s\S]*?)\n\}/);
     expect(forced).not.toBeNull();
     const body = forced?.[1] ?? "";
-    expect(body).toMatch(/background-image:\s*none/);
-    expect(body).toContain("solid");
-    expect(body).toContain("Highlight");
+    expect(body).toMatch(/\.slide-list\[data-slide-ready\]::before\s*\{\s*display:\s*none;/);
+    expect(body).toMatch(/border-inline-start:\s*3px solid Highlight/);
+    expect(body).toMatch(/border-bottom:\s*2px solid Highlight/);
   });
 
-  it("prefers-reduced-motion 下取消过渡", () => {
+  it("prefers-reduced-motion 下取消指示器过渡", () => {
     const motion = section.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/);
     expect(motion).not.toBeNull();
-    expect(motion?.[1]).toMatch(/\.bracket\s*\{[^}]*transition:\s*none/);
+    expect(motion?.[1]).toMatch(/\.slide-list\[data-slide-ready\]::before\s*\{[^}]*transition:\s*none/);
   });
 
-  it("过渡时长取状态令牌（≤120ms）且为线性缓动", () => {
-    expect(lastDeclaredIn(section, ".bracket", "transition-duration")).toBe(
+  it("选中项文字与指示器过渡都取线性或标准曲线，时长不超过 120ms 状态上限", () => {
+    expect(lastDeclaredIn(section, ".slide-item", "transition-duration")).toBe(
       "var(--app-motion-state)",
     );
     expect(toMs(tokenValue("app-motion-state"))).toBeLessThanOrEqual(120);
-    expect(lastDeclaredIn(section, ".bracket", "transition-timing-function")).toBe("linear");
+    expect(lastDeclaredIn(section, ".slide-item", "transition-timing-function")).toBe("linear");
   });
 });
 
-describe("选中语言：导航与 Panel 接入", () => {
-  it("导航当前项带 bracket 类，且保留 aria-current=page", () => {
+describe("选中语言：导航与列表接入", () => {
+  it("导航当前项带 slide-item 类且保留 aria-current=page，整个导航共用 slide-list 容器", () => {
     const markup = renderToStaticMarkup(
       createElement(NavigationRail, {
         activeRouteId: APP_ROUTES[0].id,
@@ -159,17 +183,39 @@ describe("选中语言：导航与 Panel 接入", () => {
         routes: APP_ROUTES,
       }),
     );
+    expect(markup).toContain('class="navigation-rail slide-list"');
     const current = markup.match(/<a[^>]*aria-current="page"[^>]*>/g) ?? [];
     expect(current).toHaveLength(1);
-    expect(current[0]).toContain('class="bracket"');
+    expect(current[0]).toContain('class="slide-item"');
+    expect(markup).not.toContain("data-slide-ready");
   });
 
-  it("导航的 background 简写会重置角标层，悬停与当前态都需恢复 background-image", () => {
-    for (const selector of ['.navigation-rail a:hover', '.navigation-rail a[aria-current="page"]']) {
-      expect(lastDeclaredIn(css, selector, "background-image"), selector).toBe(
-        "var(--bracket-corners)",
+  it("导航当前项在 SSR 中不含 data-slide-ready，渐进增强规则仍覆盖其底色与色条", () => {
+    expect(css).toMatch(
+      /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection\)/,
+    );
+  });
+});
+
+describe("选中语言：退役审计", () => {
+  it("退役的角标令牌、类名与虚线选中令牌不再出现在 src 中", () => {
+    const hits = sourceFiles(srcRoot)
+      .filter((file) => file !== selfPath)
+      .filter((file) => /bracket|--app-selection-dash\s*:/.test(readFileSync(file, "utf8")))
+      .map((file) => relative(srcRoot, file));
+    expect(hits).toEqual([]);
+  });
+
+  it("非测试源码与样式中不使用虚线边框（状态指示器的 loading 虚线除外）", () => {
+    const hits = sourceFiles(srcRoot)
+      .filter((file) => file !== selfPath)
+      .filter((file) => /\.css$|\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file))
+      .flatMap((file) =>
+        readFileSync(file, "utf8")
+          .split("\n")
+          .filter((line) => /dashed/.test(line) && !line.includes("navigation-rail__status--loading"))
+          .map((line) => `${relative(srcRoot, file)}: ${line.trim()}`),
       );
-      expect(lastDeclaredIn(css, selector, "background-repeat"), selector).toBe("no-repeat");
-    }
+    expect(hits).toEqual([]);
   });
 });

@@ -1,10 +1,13 @@
 import { Tab, TabList } from "@headlessui/react";
+import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import { SETTINGS_GROUPS, type SettingsGroupId } from "./settingsGroups";
 
 export function SettingsSidebar({ selectedGroup }: { selectedGroup: SettingsGroupId }) {
+  const listRef = useSlideIndicator(selectedGroup);
   return (
     <TabList
-      className="settings-pane__tabs m-0 grid min-h-0 min-w-0 flex-1 list-none content-start gap-ui-4 overflow-x-hidden overflow-y-auto p-ui-8 [overscroll-behavior:contain] [scrollbar-gutter:stable]"
+      ref={listRef}
+      className="slide-list settings-pane__tabs m-0 grid min-h-0 min-w-0 flex-1 list-none content-start gap-ui-4 overflow-x-hidden overflow-y-auto p-ui-8 [overscroll-behavior:contain] [scrollbar-gutter:stable]"
       aria-label="设置分组"
     >
       {SETTINGS_GROUPS.map((group, index) => (
@@ -13,8 +16,8 @@ export function SettingsSidebar({ selectedGroup }: { selectedGroup: SettingsGrou
           aria-current={group.id === selectedGroup ? "true" : undefined}
           className={({ selected }) =>
             selected
-              ? "bracket flex w-full min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-8 text-left text-selection-foreground"
-              : "bracket flex w-full min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-8 text-left text-foreground"
+              ? "slide-item flex w-full min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-8 text-left text-selection-foreground"
+              : "slide-item flex w-full min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-8 text-left text-foreground"
           }
           data-group-id={group.id}
           id={`settings-group-${group.id}`}

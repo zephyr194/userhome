@@ -41,6 +41,7 @@ import {
   type EvidenceState,
   type ServiceFilter,
 } from "./launchdModel";
+import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 
 export interface ServicesViewProps {
   state: DiscoveryState;
@@ -371,6 +372,7 @@ function ServiceList({
 }) {
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
   const selectedIsVisible = visible.some((service) => service.id === selectedId);
+  const listRef = useSlideIndicator(selectedId);
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     const next = moveIndex(event.key, index, visible.length);
@@ -383,7 +385,7 @@ function ServiceList({
   }
 
   return (
-    <ul aria-label={`常驻任务清单，共 ${visible.length} 项`}>
+    <ul ref={listRef} className="slide-list" aria-label={`常驻任务清单，共 ${visible.length} 项`}>
       {visible.map((service, index) => {
         const isSelected = service.id === selectedId;
         const isTabStop = isSelected || (!selectedIsVisible && index === 0);
@@ -400,7 +402,7 @@ function ServiceList({
                 else rowRefs.current.delete(service.id);
               }}
               className={classNames(
-                "bracket services-inventory-row",
+                "slide-item services-inventory-row",
                 isSelected && "services-inventory-row--selected",
               )}
               aria-label={`${service.label}，${scopeLabel(service.scope)}，${status.label}`}

@@ -29,6 +29,7 @@ import {
 } from "./environmentModel";
 import { DotenvEditor, type DotenvEditorProps } from "./DotenvEditor";
 import { LazySecretValue } from "./LazySecretValue";
+import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 
 export interface EnvironmentViewProps {
   state: EnvironmentState;
@@ -116,6 +117,7 @@ function GrantsSection({
   state,
 }: EnvironmentViewProps) {
   const { grants } = state;
+  const grantListRef = useSlideIndicator(state.selectedGrantId);
   return (
     <div className="border-b border-border px-ui-12 py-ui-8">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
@@ -154,7 +156,7 @@ function GrantsSection({
           还没有授权目录。点击“添加目录授权…”选择一个项目目录。
         </AsyncState>
       ) : (
-        <ul aria-label="已授权目录" className="mt-ui-8 grid gap-ui-8">
+        <ul ref={grantListRef} aria-label="已授权目录" className="slide-list mt-ui-8 grid gap-ui-8">
           {grants.grants.map((grant) => (
             <GrantRow
               grant={grant}
@@ -185,7 +187,7 @@ function GrantRow({
     <li className="flex min-w-0 items-center gap-ui-8">
       <Button
         aria-pressed={selected}
-        className="bracket min-w-0 flex-1 justify-start break-all text-left"
+        className="slide-item min-w-0 flex-1 justify-start break-all text-left"
         data-selected={selected ? "true" : undefined}
         onClick={onSelect}
         size="sm"
@@ -304,6 +306,7 @@ function ScanReady({
   outcome: ScanOutcome;
   selectedPath?: string;
 }) {
+  const fileListRef = useSlideIndicator(selectedPath);
   return (
     <>
       <p className="mt-ui-4 break-all text-xs text-muted-foreground">
@@ -323,12 +326,12 @@ function ScanReady({
       {outcome.files.length === 0 ? (
         <AsyncState kind="empty">没有匹配的环境文件。</AsyncState>
       ) : (
-        <ul aria-label="匹配的环境文件" className="mt-ui-8 grid gap-ui-4">
+        <ul ref={fileListRef} aria-label="匹配的环境文件" className="slide-list mt-ui-8 grid gap-ui-4">
           {outcome.files.map((file) => (
             <li key={file.relativePath}>
               <Button
                 aria-current={file.relativePath === selectedPath ? "true" : undefined}
-                className="bracket w-full min-w-0 text-left"
+                className="slide-item w-full min-w-0 text-left"
                 disabled={locked}
                 onClick={() => onSelectFile(file.relativePath)}
                 size="sm"
