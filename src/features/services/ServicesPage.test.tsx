@@ -8,7 +8,7 @@ describe("services", () => {
   it("renders the service inventory loading state", () => {
     const markup = renderToStaticMarkup(<ServicesPage />);
     expect(markup).toContain("服务清单");
-    expect(markup).toContain("正在读取常驻任务");
+    expect(markup).toContain("正在读取本机状态");
   });
 
   it("decodes Caddy and Unbound from mocked inventory", async () => {

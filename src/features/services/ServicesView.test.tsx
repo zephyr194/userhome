@@ -82,7 +82,7 @@ function withFilter(filter: Partial<ServiceFilter>): ServiceFilter {
 describe("services view states", () => {
   it("renders loading", () => {
     const markup = view({ state: { status: "loading" } });
-    expect(markup).toContain("正在读取常驻任务");
+    expect(markup).toContain("正在读取本机状态…");
     expect(markup).toContain('aria-busy="true"');
   });
 
@@ -146,27 +146,43 @@ describe("services view states", () => {
 });
 
 describe("services list", () => {
-  it("shows label, scope, domain, path, executable, status, PID and exit code", () => {
+  it("shows label, source, ownership and status in each row", () => {
     const markup = view();
     expect(markup).toContain("com.example.agent");
-    expect(markup).toContain("用户代理");
-    expect(markup).toContain("用户会话");
-    expect(markup).toContain("~/Library/LaunchAgents/com.example.agent.plist");
-    expect(markup).toContain("/usr/local/bin/example");
+    expect(markup).toContain("来源：用户代理");
     expect(markup).toContain("运行中");
-    expect(markup).toContain("PID 4242");
-    expect(markup).toContain("退出码 0");
-    expect(markup).toContain("退出码 78");
     expect(markup).toContain("系统 daemon");
     expect(markup).toContain("Apple 路径 daemon");
   });
 
-  it("distinguishes file-only, load-only and unmatched entries in the rows", () => {
+  it("keeps path, executable, PID and exit code out of the rows", () => {
     const markup = view();
-    expect(markup).toContain("未加载");
-    expect(markup).toContain("有配置文件，当前未加载");
-    expect(markup).toContain("未找到配置文件");
-    expect(markup).toContain("无法对应到任务");
+    expect(markup).not.toContain("~/Library/LaunchAgents/com.example.agent.plist");
+    expect(markup).not.toContain("/usr/local/bin/example");
+    expect(markup).not.toContain("PID 4242");
+    expect(markup).not.toContain("退出码 0");
+  });
+
+  it("gives the full label as a title so a truncated-looking row still shows it", () => {
+    const markup = view();
+    expect(markup).toMatch(/<strong[^>]*title="com\.example\.agent"/);
+  });
+
+  it("moves the path, domain, PID and exit code into the selected details", () => {
+    const markup = view({ selectedId: "gui/501/com.example.agent" });
+    expect(markup).toContain("用户会话");
+    expect(markup).toContain("~/Library/LaunchAgents/com.example.agent.plist");
+    expect(markup).toContain("/usr/local/bin/example");
+    expect(markup).toContain("4242");
+    expect(markup).toContain("退出码 0");
+  });
+
+  it("shows the load and file correlation in details, not in the rows", () => {
+    const rows = view();
+    expect(rows).toContain("未加载");
+    expect(rows).not.toContain("有配置文件，当前未加载");
+    const fileOnly = view({ selectedId: "gui/501/com.example.disabled" });
+    expect(fileOnly).toContain("有配置文件，当前未加载");
   });
 
   it("is a keyboard list with a roving tab stop, labels and the selected row marked", () => {
@@ -266,7 +282,7 @@ describe("stable selection in the view", () => {
       state: { status: "loading" },
       selectedId: "gui/501/com.example.agent",
     });
-    expect(markup).toContain("正在加载服务详情");
+    expect(markup).toContain("正在读取本机状态");
     expect(markup).not.toContain("已不存在");
   });
 });

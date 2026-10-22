@@ -22,16 +22,13 @@ import {
   EMPTY_FILTER,
   STATUS_CATEGORIES,
   STATUS_CATEGORY_LABELS,
-  correlationBrief,
-  domainLabel,
-  executionOf,
-  exitText,
+  discoveryErrorText,
   filterServices,
   isFilterActive,
   moveIndex,
   ownershipLabel,
-  primaryConfigFile,
   resolveSelection,
+  domainLabel,
   scopeLabel,
   sourceLabel,
   sourceProblems,
@@ -197,6 +194,10 @@ function FilterBar({
   state: DiscoveryState;
   total: number | undefined;
 }) {
+  const pickedCount = [filter.scope, filter.ownership, filter.domain, filter.status].filter(
+    (value) => value !== "ALL",
+  ).length;
+  const refreshing = state.status === "ready" && state.refreshing;
   return (
     <div className="grid min-w-0 gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
       <TextField
@@ -207,47 +208,52 @@ function FilterBar({
         value={filter.query}
         onValueChange={(query) => onFilterChange({ ...filter, query })}
       />
-      <div className="flex min-w-0 flex-wrap gap-ui-8">
-        <SelectField
-          className="min-w-28 flex-1"
-          label="来源"
-          options={SCOPE_OPTIONS}
-          value={filter.scope}
-          onValueChange={(scope) => onFilterChange({ ...filter, scope })}
-        />
-        <SelectField
-          className="min-w-28 flex-1"
-          label="归属"
-          options={OWNERSHIP_OPTIONS}
-          value={filter.ownership}
-          onValueChange={(ownership) =>
-            onFilterChange({ ...filter, ownership })
-          }
-        />
-        <SelectField
-          className="min-w-28 flex-1"
-          label="作用域"
-          options={DOMAIN_OPTIONS}
-          value={filter.domain}
-          onValueChange={(domain) => onFilterChange({ ...filter, domain })}
-        />
-        <SelectField
-          className="min-w-28 flex-1"
-          label="状态"
-          options={STATUS_OPTIONS}
-          value={filter.status}
-          onValueChange={(status) => onFilterChange({ ...filter, status })}
-        />
-      </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        来源按所在目录归类，只是位置信息；归属由后端按所有者、位置与文件类型判定，两者不同。
-      </p>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
-        <span className="text-xs text-muted-foreground" role="status">
+      <details className="services-disclosure">
+        <summary>
+          {pickedCount > 0 ? `更多筛选（已选 ${pickedCount} 项）` : "更多筛选"}
+        </summary>
+        <div className="grid min-w-0 grid-cols-2 gap-ui-8 pt-ui-8">
+          <SelectField
+            className="min-w-0"
+            label="来源"
+            options={SCOPE_OPTIONS}
+            value={filter.scope}
+            onValueChange={(scope) => onFilterChange({ ...filter, scope })}
+          />
+          <SelectField
+            className="min-w-0"
+            label="归属"
+            options={OWNERSHIP_OPTIONS}
+            value={filter.ownership}
+            onValueChange={(ownership) =>
+              onFilterChange({ ...filter, ownership })
+            }
+          />
+          <SelectField
+            className="min-w-0"
+            label="作用域"
+            options={DOMAIN_OPTIONS}
+            value={filter.domain}
+            onValueChange={(domain) => onFilterChange({ ...filter, domain })}
+          />
+          <SelectField
+            className="min-w-0"
+            label="状态"
+            options={STATUS_OPTIONS}
+            value={filter.status}
+            onValueChange={(status) => onFilterChange({ ...filter, status })}
+          />
+        </div>
+        <p className="text-aux leading-relaxed text-muted-foreground">
+          来源按所在目录归类，只是位置信息；归属由后端按所有者、位置与文件类型判定，两者不同。
+        </p>
+      </details>
+      <div className="flex h-control-sm min-w-0 items-center justify-between gap-ui-8">
+        <span className="min-w-0 text-aux text-muted-foreground" role="status">
           {shown === undefined || total === undefined
-            ? "正在读取本机状态"
+            ? "正在读取本机状态…"
             : `显示 ${shown} / ${total} 项`}
-          {state.status === "ready" && state.refreshing ? " · 正在刷新…" : ""}
+          {refreshing ? " · 正在刷新…" : ""}
         </span>
         {isFilterActive(filter) ? (
           <Button
@@ -263,6 +269,7 @@ function FilterBar({
   );
 }
 
+
 function ListBody({
   onRefresh,
   onSelect,
@@ -276,17 +283,13 @@ function ListBody({
   visible: readonly LaunchdService[];
 }) {
   if (state.status === "loading") {
-    return (
-      <div className="p-ui-12">
-        <AsyncState kind="loading">正在读取常驻任务…</AsyncState>
-      </div>
-    );
+    return <div aria-busy="true" />;
   }
   if (state.status === "error") {
     return (
       <div className="p-ui-12">
         <AsyncState kind="error">
-          <span className={WRAP}>{state.error.message}</span>
+          <span className={WRAP}>{discoveryErrorText(state.error)}</span>
         </AsyncState>
         <div className="mt-ui-8">
           <Button size="sm" disabled={refreshDisabled} onClick={onRefresh}>
@@ -305,7 +308,7 @@ function ListBody({
         <div className="px-ui-12">
           <AsyncState kind="error">
             <span className={WRAP}>
-              刷新失败：{state.refreshError.message}以下为上次读取的结果。
+              刷新失败：{discoveryErrorText(state.refreshError)}以下为上次读取的结果。
             </span>
           </AsyncState>
         </div>
@@ -390,9 +393,6 @@ function ServiceList({
         const isSelected = service.id === selectedId;
         const isTabStop = isSelected || (!selectedIsVisible && index === 0);
         const status = statusPresentation(service);
-        const file = primaryConfigFile(service);
-        const execution = executionOf(service);
-        const brief = correlationBrief(service);
         return (
           <li className="border-b border-border" key={service.id}>
             <Button
@@ -411,47 +411,17 @@ function ServiceList({
               onClick={() => onSelect(service.id)}
               onKeyDown={(event) => onKeyDown(event, index)}
             >
-              <span className="grid min-w-0 gap-ui-4">
-                <strong className={`block text-sm font-semibold ${WRAP}`}>
+              <span className="services-inventory-row__head">
+                <strong className="services-inventory-row__label" title={service.label}>
                   {service.label}
                 </strong>
-                <span className={`block text-xs text-muted-foreground ${WRAP}`}>
-                  {scopeLabel(service.scope)} · {domainLabel(service.domain)}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {`归属：${ownershipLabel(service.ownership.kind)}`}
-                </span>
-                {file ? (
-                  <span
-                    className={`block font-mono text-meta text-muted-foreground ${WRAP}`}
-                  >
-                    {file.path}
-                  </span>
-                ) : null}
-                {execution?.executable ? (
-                  <span
-                    className={`block font-mono text-meta text-muted-foreground ${WRAP}`}
-                  >
-                    {[execution.executable, ...execution.arguments].join(" ")}
-                  </span>
-                ) : null}
-                {brief ? (
-                  <span className="block text-xs text-warning">{brief}</span>
-                ) : null}
-                {service.pid !== undefined || service.lastExit ? (
-                  <span className="block text-xs text-muted-foreground">
-                    {service.pid !== undefined ? `PID ${service.pid}` : null}
-                    {service.pid !== undefined && service.lastExit ? " · " : null}
-                    {service.lastExit ? exitText(service.lastExit) : null}
-                  </span>
-                ) : null}
+                <StatusBadge className="shrink-0 px-ui-8 text-meta" tone={status.tone}>
+                  {status.label}
+                </StatusBadge>
               </span>
-              <StatusBadge
-                className="shrink-0 self-start px-ui-8 text-meta"
-                tone={status.tone}
-              >
-                {status.label}
-              </StatusBadge>
+              <span className="services-inventory-row__meta">
+                {`来源：${scopeLabel(service.scope)} · 归属：${ownershipLabel(service.ownership.kind)}`}
+              </span>
             </Button>
           </li>
         );
@@ -478,7 +448,7 @@ function DetailsPane({
     );
   }
   if (state.status === "loading") {
-    return <AsyncState kind="loading">正在加载服务详情…</AsyncState>;
+    return null;
   }
   if (state.status === "error") {
     return (

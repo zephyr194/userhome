@@ -28,7 +28,7 @@ describe("Services workspace structure (T121)", () => {
     expect(markup).toContain('type="search"');
     expect(markup).toContain("按 label、名称或路径搜索");
     expect(markup).toContain('aria-label="任务详情"');
-    expect(markup).toContain("正在加载服务详情");
+    expect(markup).toContain("正在读取本机状态");
   });
 
   it("keeps the detail pane read-only without operation history", () => {

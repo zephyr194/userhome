@@ -935,20 +935,6 @@ a {
   background: var(--app-selection);
 }
 
-.services-inventory-row {
-  width: 100%;
-  min-width: 0;
-  min-height: var(--app-row-height-two-line);
-  padding: var(--app-space-8) var(--app-space-12);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--app-space-8);
-  background: var(--app-surface);
-  color: var(--app-foreground);
-  text-align: left;
-}
-
 .diagnostics-report {
   max-height: 260px;
   margin: var(--app-space-12) 0 0;
@@ -2241,3 +2227,63 @@ button[class*="border-border"],
 }
 
 /* End route visual system ------------------------------------------------ */
+
+/* r4-fe2-services ------------------------------------------------------- */
+.services-inventory-row {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--app-row-height-two-line);
+  padding: var(--app-space-8) var(--app-space-12);
+  display: grid;
+  gap: var(--app-space-4);
+  overflow: hidden;
+  background: var(--app-surface);
+  color: var(--app-foreground);
+  text-align: left;
+}
+
+.services-inventory-row__head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--app-space-8);
+}
+
+.services-inventory-row__label {
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: var(--app-font-size-body);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.services-inventory-row__meta {
+  min-width: 0;
+  font-size: var(--app-font-size-aux);
+  color: var(--app-muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.services-disclosure > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--app-font-size-aux);
+  color: var(--app-foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.services-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.services-disclosure > p {
+  margin: var(--app-space-8) 0 0;
+}
+
+@media (forced-colors: active) {
+  .services-disclosure > summary {
+    color: LinkText;
+  }
+}
+/* /r4-fe2-services ------------------------------------------------------ */
