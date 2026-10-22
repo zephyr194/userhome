@@ -119,6 +119,23 @@ describe("AiConfigView states", () => {
   });
 });
 
+describe("AiConfigView list and loading (r4-fe4)", () => {
+  it("reserves four fixed-height skeleton rows while detection runs", () => {
+    const html = render({ status: "loading" });
+
+    expect(html.match(/ai-tool-skeleton"/g)).toHaveLength(4);
+    expect(html).toContain('aria-hidden="true" class="m-0 grid list-none');
+  });
+
+  it("keeps paths and versions out of the list rows, leaving them to the selected detail", () => {
+    const html = render(ready());
+
+    expect(html).not.toContain("未找到可执行文件");
+    expect(html).not.toContain("版本未确认");
+    expect(html).toContain("2.1.0 (Claude Code)");
+  });
+});
+
 describe("AiConfigView facts", () => {
   it("keeps the installed status and the config-file presence as separate facts", () => {
     const html = render(
@@ -134,7 +151,7 @@ describe("AiConfigView facts", () => {
   });
 
   it("shows official references and an unconfirmed version for a missing tool", () => {
-    const html = render(ready());
+    const html = render(ready([tool(), ...FOUR_TOOLS.slice(1)]));
 
     expect(html).toContain("https://code.claude.com/docs/en/settings");
     expect(html).toContain("未找到可执行文件");
@@ -149,9 +166,10 @@ describe("AiConfigView facts", () => {
   });
 
   it("states that a config location not yet registered is unknown rather than missing", () => {
-    const html = render(ready());
+    const html = render(ready([tool({ configPresence: "notRegistered" }), ...FOUR_TOOLS.slice(1)]));
 
-    expect(html).toContain("尚未收录配置位置（待各工具的快照任务）");
+    expect(html).toContain("暂未提供配置位置");
+    expect(html).not.toContain("待各工具的快照任务");
   });
 
   it("shows the found version as text when detection confirmed it", () => {

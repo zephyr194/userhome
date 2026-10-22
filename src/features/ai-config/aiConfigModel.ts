@@ -53,10 +53,10 @@ export const CONFIG_LABELS: Record<
   AiConfigPresence,
   { text: string; symbol: string }
 > = {
-  found: { text: "已发现配置文件（不代表已安装）", symbol: "●" },
+  found: { text: "已发现配置文件（不代表已安装）", symbol: "✓" },
   notFound: { text: "未发现配置文件", symbol: "○" },
   unavailable: { text: "无法检查配置位置", symbol: "!" },
-  notRegistered: { text: "尚未收录配置位置（待各工具的快照任务）", symbol: "–" },
+  notRegistered: { text: "暂未提供配置位置", symbol: "–" },
 };
 
 export const UNCONFIRMED_VERSION_TEXT = "版本未确认";

@@ -51,7 +51,7 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
       <Region span={isBoard ? 4 : undefined}>
         <Panel
           aria-labelledby="ai-tools-heading"
-          className="grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
+          className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8">
             <h2 id="ai-tools-heading" className="m-0 text-group font-semibold">
@@ -70,6 +70,7 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
             只读检测四个 AI 命令行工具。版本检测只运行固定的 --version，不读取凭据、不发起模型请求。配置文件存在不等于已安装，两者分开显示。
           </p>
           <StateNotice state={state} summary={summary} onRetry={onRetry} />
+          {state.status === "loading" ? <ToolSkeleton /> : null}
           {state.status === "ready" ? (
             <ul
               ref={toolListRef}
@@ -93,7 +94,7 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
       <Region span={isBoard ? 8 : undefined}>
         <section
           aria-label="所选工具"
-          className="grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
+          className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
           {isBoard ? null : (
             <SectionTabs
@@ -176,6 +177,19 @@ function StateNotice({
   return null;
 }
 
+function ToolSkeleton() {
+  return (
+    <ul aria-hidden="true" className="m-0 grid list-none gap-ui-4 p-0">
+      {Array.from({ length: 4 }, (_, index) => (
+        <li key={index} className="ai-tool-row ai-tool-skeleton">
+          <span className="ai-tool-skeleton__bar ai-tool-skeleton__bar--name" />
+          <span className="ai-tool-skeleton__bar ai-tool-skeleton__bar--status" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function ToolRow({
   tool,
   selected,
@@ -186,7 +200,6 @@ function ToolRow({
   onSelect: (id: string) => void;
 }) {
   const install = INSTALL_LABELS[tool.installStatus];
-  const config = CONFIG_LABELS[tool.configPresence];
   return (
     <Button
       variant="ghost"
@@ -195,25 +208,15 @@ function ToolRow({
       aria-current={selected ? "true" : undefined}
       onClick={() => onSelect(tool.id)}
     >
-      <span className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
-        <strong className="text-body font-semibold">{tool.displayName}</strong>
+      <strong className="min-w-0 text-body font-semibold">{tool.displayName}</strong>
+      <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
         <StatusBadge tone={install.tone}>
           <span aria-hidden="true">{install.symbol} </span>
           {install.label}
         </StatusBadge>
-      </span>
-      {tool.invalidReason ? (
-        <span className="text-aux">{INVALID_REASON_TEXT[tool.invalidReason]}</span>
-      ) : null}
-      <span className="break-all font-mono text-aux">
-        {tool.displayPath ?? NO_EXECUTABLE_TEXT}
-      </span>
-      <span className="break-all font-mono text-aux">
-        {tool.version ?? UNCONFIRMED_VERSION_TEXT}
-      </span>
-      <span className="text-aux">
-        <span aria-hidden="true">{config.symbol} </span>
-        {config.text}
+        {tool.invalidReason ? (
+          <span className="text-aux">{INVALID_REASON_TEXT[tool.invalidReason]}</span>
+        ) : null}
       </span>
     </Button>
   );
