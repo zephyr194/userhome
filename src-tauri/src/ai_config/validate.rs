@@ -3,10 +3,10 @@ use std::collections::{BTreeSet, HashSet};
 
 use super::registry::{
     BUILTIN_DEFINITIONS_JSON, CLAUDE_CODE_DEFINITIONS_JSON, CODEX_CLI_DEFINITIONS_JSON,
-    CoverageStatus, DEFINITION_SCHEMA_VERSION, Definitions, EnvDefinition, FlagDefinition,
-    GEMINI_CLI_DEFINITIONS_JSON, IssueKind, ListingCoverage, RegistryError, ResourceDefinition,
-    SettingDefinition, SourceRef, ToolDefinition, ValidationIssue, ValueType, VerifiedVersions,
-    parse_definitions,
+    COPILOT_CLI_DEFINITIONS_JSON, CoverageStatus, DEFINITION_SCHEMA_VERSION, Definitions,
+    EnvDefinition, FlagDefinition, GEMINI_CLI_DEFINITIONS_JSON, IssueKind, ListingCoverage,
+    RegistryError, ResourceDefinition, SettingDefinition, SourceRef, ToolDefinition,
+    ValidationIssue, ValueType, VerifiedVersions, parse_definitions,
 };
 
 pub const UNKNOWN_DOCUMENTED_VERSION: &str = "unknown";
@@ -23,6 +23,7 @@ pub fn load_all() -> Result<Definitions, RegistryError> {
         CLAUDE_CODE_DEFINITIONS_JSON,
         CODEX_CLI_DEFINITIONS_JSON,
         GEMINI_CLI_DEFINITIONS_JSON,
+        COPILOT_CLI_DEFINITIONS_JSON,
     ] {
         merged.tools.extend(parse_definitions(json)?.tools);
     }

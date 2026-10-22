@@ -5,6 +5,7 @@ pub const BUILTIN_DEFINITIONS_JSON: &str = include_str!("definitions/builtin.jso
 pub const CLAUDE_CODE_DEFINITIONS_JSON: &str = include_str!("definitions/claude-code.json");
 pub const CODEX_CLI_DEFINITIONS_JSON: &str = include_str!("definitions/codex-cli.json");
 pub const GEMINI_CLI_DEFINITIONS_JSON: &str = include_str!("definitions/gemini-cli.json");
+pub const COPILOT_CLI_DEFINITIONS_JSON: &str = include_str!("definitions/copilot-cli.json");
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegistryError {

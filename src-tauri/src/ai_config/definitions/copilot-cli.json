@@ -1,0 +1,1888 @@
+{
+  "schemaVersion": 1,
+  "tools": [
+    {
+      "id": "copilot-cli",
+      "displayName": "GitHub Copilot CLI",
+      "executableNames": [
+        "copilot"
+      ],
+      "source": {
+        "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+        "retrievedOn": "2026-10-22",
+        "documentedVersion": "unknown"
+      },
+      "resources": [
+        {
+          "id": "copilot-user-settings",
+          "layer": "userLevel",
+          "format": "json",
+          "location": "{home}/.copilot/settings.json",
+          "description": "用户设置文件（官方：'Your personal configuration settings'）。COPILOT_HOME 可整体替换 ~/.copilot（原文：'COPILOT_HOME replaces the entire ~/.copilot path'）。适用版本未核实，故 versionUnknown。本快照不读取该文件。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-repo-settings",
+          "layer": "projectShared",
+          "format": "json",
+          "location": "{project}/.github/copilot/settings.json",
+          "description": "仓库共享设置（官方：'Shared repository configuration (committed to the repository).'）。适用版本未核实。本快照不读取该文件。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-local-settings",
+          "layer": "projectLocal",
+          "format": "json",
+          "location": "{project}/.github/copilot/settings.local.json",
+          "description": "仓库本地个人覆盖设置（官方：'Personal overrides (add this to .gitignore).'）。适用版本未核实。本快照不读取该文件。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-managed-settings",
+          "layer": "managed",
+          "format": "json",
+          "location": "{managed}/managed-settings.json",
+          "description": "企业托管设置文件。官方路径：macOS /Library/Application Support/GitHubCopilot/managed-settings.json；Linux /etc/github-copilot/managed-settings.json；Windows %ProgramFiles%\\GitHubCopilot\\managed-settings.json。另有 MDM 来源（macOS plist com.github.copilot，Windows 注册表 HKLM\\SOFTWARE\\Policies\\GitHubCopilot）。托管值优先级高于用户设置。适用版本未核实。本快照不读取该文件。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-claude-compatible-settings",
+          "layer": "projectShared",
+          "format": "json",
+          "location": "{project}/.claude/settings.json",
+          "description": "官方说明 CLI 也读取 .claude/settings.json 中的共享子集（如 companyAnnouncements、disableAllHooks、enabledPlugins、extraKnownMarketplaces、hooks）。适用版本未核实。本快照不读取该文件。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-permissions-config",
+          "layer": "userLevel",
+          "format": "json",
+          "location": "{home}/.copilot/permissions-config.json",
+          "description": "已保存的工具与目录审批记录（按项目位置组织），不是设置项。位置优先级：--config-dir、COPILOT_HOME、默认 ~/.copilot。本快照不读取该文件，能力状态为 unsupported。",
+          "coverage": "unsupported",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-config-state",
+          "layer": "userLevel",
+          "format": "text",
+          "location": "{home}/.copilot/config.json",
+          "description": "仅元数据：应用内部状态文件（官方：'Automatically managed application state (authentication, installed plugins, and other internal data)'）。旧版本的用户设置曾存于此，官方称现已被忽略（'Settings left in config.json are ignored.'），因此不作为设置项编辑。格式未核实，按 text 处理。本快照不读取内容，能力状态为 unsupported。",
+          "coverage": "unsupported",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-mcp-oauth-fallback",
+          "layer": "userLevel",
+          "format": "text",
+          "location": "{home}/.copilot/mcp-oauth-config",
+          "description": "仅元数据：MCP OAuth 令牌与注册信息的回退存储目录，仅在系统钥匙串不可用时使用（官方：'Contains MCP OAuth token, registration, and PKCE fallback files when keychain-backed storage is unavailable.'）。本快照不读取任何凭据内容，能力状态为 unsupported。",
+          "coverage": "unsupported",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copilot-mcp-secrets-fallback",
+          "layer": "userLevel",
+          "format": "text",
+          "location": "{home}/.copilot/mcp-secrets",
+          "description": "仅元数据：MCP 密钥占位符的回退存储与索引目录，仅在系统钥匙串不可用时使用（官方：'Contains fallback file storage and an index for MCP secret placeholders when keychain-backed storage is unavailable.'）。本快照不读取任何凭据内容，能力状态为 unsupported。",
+          "coverage": "unsupported",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        }
+      ],
+      "settings": [
+        {
+          "id": "allowedUrls",
+          "keyPath": "allowedUrls",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "URLs or domains allowed without prompting. Supports exact URLs, domain patterns, and wildcard subdomains (for example, \"*.github.com\").",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "askUser",
+          "keyPath": "askUser",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Allow the agent to ask clarifying questions. Set to false for fully autonomous operation. Can also be set with --no-ask-user.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoTier",
+          "keyPath": "autoTier",
+          "valueType": "enum",
+          "allowedValues": [
+            "efficiency",
+            "balance",
+            "intelligence"
+          ],
+          "description": "Default Auto routing tier for new conversations when the selected model is auto. See the /model slash command. \"fast\" is no longer selectable and falls back to \"balance\" with a warning if set.",
+          "defaultNote": "文档默认值：unset",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoUpdate",
+          "keyPath": "autoUpdate",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Automatically download CLI updates and update first-party plugins at the start of each session.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "autoUpdatesChannel",
+          "keyPath": "autoUpdatesChannel",
+          "valueType": "enum",
+          "allowedValues": [
+            "stable",
+            "prerelease"
+          ],
+          "description": "Update channel. Set to \"prerelease\" to receive pre-release updates.",
+          "defaultNote": "文档默认值：\"stable\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "banner",
+          "keyPath": "banner",
+          "valueType": "enum",
+          "allowedValues": [
+            "always",
+            "once",
+            "never"
+          ],
+          "description": "Animated banner display frequency.",
+          "defaultNote": "文档默认值：\"once\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "bashEnv",
+          "keyPath": "bashEnv",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Enable BASH_ENV support for bash shells. Can also be set with --bash-env or --no-bash-env.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "beep",
+          "keyPath": "beep",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Play an audible beep when attention is required.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "beepOnSchedule",
+          "keyPath": "beepOnSchedule",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Play an audible beep when a scheduled /every or /after run finishes.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "colorMode",
+          "keyPath": "colorMode",
+          "valueType": "enum",
+          "allowedValues": [
+            "default",
+            "github",
+            "dim",
+            "high-contrast",
+            "colorblind"
+          ],
+          "description": "Deprecated alias for theme. Prefer theme.",
+          "defaultNote": "文档默认值：\"github\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "commandHistoryMaxSize",
+          "keyPath": "commandHistoryMaxSize",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Maximum number of recent commands retained for input history and reverse search. Must be an integer between 1 and 1000.",
+          "defaultNote": "文档默认值：50",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "compactPaste",
+          "keyPath": "compactPaste",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Collapse large pastes (more than 10 lines) into compact tokens.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "companyAnnouncements",
+          "keyPath": "companyAnnouncements",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Custom messages shown randomly on startup. One message is randomly selected each time the CLI starts. Useful for team announcements or reminders.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Replaced—repository takes precedence",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "connectors",
+          "keyPath": "connectors",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Enable Copilot Connectors when available. Set to false to disable.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "continueOnAutoMode",
+          "keyPath": "continueOnAutoMode",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Automatically switch to auto mode when rate-limited. When true, eligible rate limit errors trigger an automatic switch to auto mode and retry. Does not apply to global rate limits or BYOK providers.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "copyOnSelect",
+          "keyPath": "copyOnSelect",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Automatically copy mouse-selected text to the system clipboard.",
+          "defaultNote": "文档默认值：true (macOS), false (other)",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "customAgents.defaultLocalOnly",
+          "keyPath": "customAgents.defaultLocalOnly",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Only use local custom agents (no remote organization or enterprise agents).",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "deniedUrls",
+          "keyPath": "deniedUrls",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "URLs or domains that are always denied. Denial rules take precedence over allow rules.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Union—repository can add entries, never remove",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disableAllHooks",
+          "keyPath": "disableAllHooks",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Disable all hooks (both repository-level and user-level).",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Repository takes precedence",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disabledMcpServers",
+          "keyPath": "disabledMcpServers",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "MCP server names to disable. Listed servers are configured but not started.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Union—repository can add entries, never remove",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disabledSkills",
+          "keyPath": "disabledSkills",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Skill names to disable. Listed skills are discovered but not loaded.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Union—repository can add entries, never remove",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "dynamicRetrieval",
+          "keyPath": "dynamicRetrieval",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Per-category control of embeddings-based dynamic instruction retrieval. Set skills to false to disable retrieval for skills.",
+          "defaultNote": "文档默认值：unset",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "editorMode",
+          "keyPath": "editorMode",
+          "valueType": "enum",
+          "allowedValues": [
+            "normal",
+            "vim"
+          ],
+          "description": "Input composer editing mode. Set by toggling the /vim slash command. See GitHub Copilot CLI command reference.",
+          "defaultNote": "文档默认值：\"normal\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "effortLevel",
+          "keyPath": "effortLevel",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Reasoning effort level for extended thinking: \"low\", \"medium\", \"high\", or \"xhigh\". Higher levels use more compute.",
+          "defaultNote": "文档默认值：\"medium\"",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Replaced—repository takes precedence",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enabledMcpServers",
+          "keyPath": "enabledMcpServers",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Enable built-in MCP servers that are disabled by default.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "enabledPlugins",
+          "keyPath": "enabledPlugins",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Declarative plugin auto-install. Keys are plugin specs; values are true (enabled) or false (disabled).",
+          "defaultNote": "文档默认值：{}",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Merged—repository overrides user for same key",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental",
+          "keyPath": "experimental",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Enable experimental features. Can also be enabled with the --experimental command-line option or the /experimental slash command.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "extraKnownMarketplaces",
+          "keyPath": "extraKnownMarketplaces",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Additional plugin marketplaces. Each key is a marketplace name; the value specifies the required source (\"directory\", \"git\", or \"github\"). Set autoUpdate: true on an entry to opt that marketplace's installed plugins into session-start auto-update, the same as first-party plugins. This opt-in applies only to interactive and -p sessions—SDK and server sessions don't auto-update. The opt-in is honored when set in your own user settings, or in managed (MDM/server) settings. On a same-name collision, a built-in first-party marketplace wins, then a managed entry (which replaces the whole same-named user entry, so a managed entry without \"autoUpdate\": true removes the user's opt-in), then the user's own entry.",
+          "defaultNote": "文档默认值：{}",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Merged—repository overrides user for same key",
+          "risks": [
+            "executesCommand",
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "footer",
+          "keyPath": "footer",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Controls which items appear in the status line. Sub-keys include showModelEffort, showDirectory, showBranch, showContextWindow, showQuota, showAgent, showAiUsed, showCodeChanges, showUsername, showSandbox, showYolo, and showCustom (all boolean). Managed by the /statusline slash command.",
+          "defaultNote": "文档默认值：—",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "hooks",
+          "keyPath": "hooks",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Inline user-level hook definitions, keyed by event name. Uses the same schema as .github/hooks/*.json files. See Using hooks with GitHub Copilot CLI.",
+          "defaultNote": "文档默认值：—",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Merged—repository overrides user for same key",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "ide.autoConnect",
+          "keyPath": "ide.autoConnect",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Automatically connect to an IDE workspace on startup. When false, you can still connect manually using the /ide command.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "ide.openDiffOnEdit",
+          "keyPath": "ide.openDiffOnEdit",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Open file edit diffs in the connected IDE for approval. When false, file edit approvals are shown only in the terminal.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "ignoredSkillsLocations",
+          "keyPath": "ignoredSkillsLocations",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Skill directories (and their descendants) excluded from discovery, regardless of which location would otherwise surface them. Supports ~-relative paths. See GitHub Copilot CLI command reference.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "includeCoAuthoredBy",
+          "keyPath": "includeCoAuthoredBy",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Add a Co-authored-by trailer to git commits made by the agent.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Replaced—repository takes precedence",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "inlineImages",
+          "keyPath": "inlineImages",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Render images inline using the Kitty graphics protocol. Requires a supported terminal (Ghostty, kitty, or WezTerm). When disabled, image attachments show a text placeholder.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "keepAlive",
+          "keyPath": "keepAlive",
+          "valueType": "enum",
+          "allowedValues": [
+            "on",
+            "off",
+            "busy"
+          ],
+          "description": "Keep-alive mode applied at CLI startup. \"on\" always prevents the system from sleeping, \"busy\" prevents sleeping only while the agent is running, and \"off\" disables keep-alive. Also configurable with the /keep-alive slash command.",
+          "defaultNote": "文档默认值：\"off\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "logLevel",
+          "keyPath": "logLevel",
+          "valueType": "enum",
+          "allowedValues": [
+            "none",
+            "error",
+            "warning",
+            "info",
+            "debug",
+            "all",
+            "default"
+          ],
+          "description": "Logging verbosity.",
+          "defaultNote": "文档默认值：\"default\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mergeStrategy",
+          "keyPath": "mergeStrategy",
+          "valueType": "enum",
+          "allowedValues": [
+            "rebase",
+            "merge"
+          ],
+          "description": "Conflict resolution strategy for /pr fix conflicts. When set to \"rebase\", conflicts are resolved by rebasing onto the base branch. When set to \"merge\", the base branch is merged into the feature branch. If not configured, a picker dialog is shown.",
+          "defaultNote": "文档默认值：—",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Replaced—repository takes precedence",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model",
+          "keyPath": "model",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "AI model to use. Set to \"auto\" to let Copilot pick the best available model automatically. Managed by the /model slash command.",
+          "defaultNote": "文档默认值：varies",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Replaced—repository takes precedence",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mouse",
+          "keyPath": "mouse",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Enable mouse support. Can also be set with --mouse or --no-mouse.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions.disableBypassPermissionsMode",
+          "keyPath": "permissions.disableBypassPermissionsMode",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Set to \"disable\" to suppress all allow-all flags (--allow-all-tools, --allow-all-paths, --allow-all-urls, --allow-all, --yolo) at startup so they cannot be used to grant elevated permissions. Set to \"allow-auto-only\" to keep blocking full allow-all while still permitting /allow-all auto (LLM-assisted auto-approval). See GitHub Copilot CLI command reference.",
+          "defaultNote": "文档默认值：—",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "pinnedPrompts",
+          "keyPath": "pinnedPrompts",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Pin the current section's user prompt just below the top bar while scrolling the timeline, so it stays clear which request the visible output belongs to. CLI UI only—has no effect on prompts sent to the model.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "powershellFlags",
+          "keyPath": "powershellFlags",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Flags passed to PowerShell on startup. On Windows, the CLI prefers PowerShell 7+ (pwsh) and falls back to Windows PowerShell (powershell.exe) when pwsh is unavailable. Windows only.",
+          "defaultNote": "文档默认值：[\"-NoProfile\", \"-NoLogo\"]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "proxyKerberosServicePrincipal",
+          "keyPath": "proxyKerberosServicePrincipal",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Service principal name (SPN) for Kerberos/Negotiate proxy authentication, overriding the derived HTTP/<proxy-host>.",
+          "defaultNote": "文档默认值：unset",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "proxyUrl",
+          "keyPath": "proxyUrl",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Proxy URL for HTTP(S) requests (for example, http://proxy.corp.example:3128). Overridden by the HTTP_PROXY or HTTPS_PROXY environment variables (any casing).",
+          "defaultNote": "文档默认值：unset",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "remote",
+          "keyPath": "remote",
+          "valueType": "enum",
+          "allowedValues": [
+            "on",
+            "off"
+          ],
+          "description": "Controls session syncing and remote access. Set to \"off\" to keep session data local only and disable remote control. Can also be set with --remote or --no-remote.",
+          "defaultNote": "文档默认值：\"on\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "renderHexColors",
+          "keyPath": "renderHexColors",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show six-digit hex color codes written as inline code (for example, `#FF0000`) as color swatches.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "renderMarkdown",
+          "keyPath": "renderMarkdown",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Render Markdown in terminal output.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "remoteExport",
+          "keyPath": "remoteExport",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Export sessions remotely when session sync is available. Set to false to opt out of remote export by default. The remoteSessions setting when set to true, or the --remote flag, still enables export and steering regardless of this setting.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "respectGitignore",
+          "keyPath": "respectGitignore",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Exclude gitignored files from the @ file mention picker. When false, the picker includes files normally excluded by .gitignore.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "仓库设置表（https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference）：Tighten-only—repository can enable, never disable",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.allowBypass",
+          "keyPath": "sandbox.allowBypass",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Allow sandboxed commands to request a bypass for specific operations (displays a permission prompt), so tools like grep and glob keep working when the sandbox would otherwise block them. The prompt also lets you disable sandboxing for the rest of the current session if the effective policy permits bypass. Set to false to opt out.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.enabled",
+          "keyPath": "sandbox.enabled",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Restrict shell commands, MCP/LSP servers, and built-in file/web tools to a sandboxed environment with limited file system and network access. Enable it from the /sandbox dialog or with /sandbox enable.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.auth.git",
+          "keyPath": "sandbox.auth.git",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Inject Git credentials into the sandbox so commands running inside it can authenticate with Git. Set to false to opt out. Renamed from sandbox.gitAuth; the old key has no migration and is ignored wherever it still appears.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.auth.gh",
+          "keyPath": "sandbox.auth.gh",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Inject GitHub CLI (gh) credentials into the sandbox so commands running inside it can authenticate with the GitHub CLI. Set to false to opt out. Renamed from sandbox.ghAuth; the old key has no migration and is ignored wherever it still appears.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.credentials",
+          "keyPath": "sandbox.credentials",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Mask selected environment variables in sandboxed processes. Contains an envVars object keyed by variable name, with a non-empty injectHosts array for each entry. Processes receive placeholders, and the local proxy supplies the real values only in HTTPS request headers to those hosts. Stores variable names and host rules, not secret values. Requires sandboxing to be enabled. Configure from the /sandbox dialog's Credentials tab under Masked environment variables. See Configuring local sandbox settings.",
+          "defaultNote": "文档默认值：unset",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.userPolicy.network.allowLocalNetwork",
+          "keyPath": "sandbox.userPolicy.network.allowLocalNetwork",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Control local network access, such as connections to local development servers. The effect on sandboxed commands depends on the operating system. On supported Windows hosts, enabling this setting also allows connections to the host's localhost. Older Windows versions keep localhost blocked even with this setting enabled. Windows proxying and host rules require this to be true.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.userPolicy.network.proxy",
+          "keyPath": "sandbox.userPolicy.network.proxy",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Route sandboxed network traffic through an HTTP(S) proxy. Fields: url (required), username (optional), password (optional). The URL must not contain credentials. Configure credentials in the /sandbox dialog's Network tab, which masks the password field. Literal passwords use the OS credential store when available, with a local file fallback. settings.json holds a secret reference. The password can instead be a whole-field ${VAR} or $VAR environment-variable reference. Proxy enforcement differs by platform, as described below.",
+          "defaultNote": "文档默认值：unset",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.userPolicy.network.allowedHosts",
+          "keyPath": "sandbox.userPolicy.network.allowedHosts",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Hosts a sandboxed command is allowed to reach. Entries are exact hostnames, IP addresses, or *.example.com for subdomains but not the root domain (* matches every host). CIDR blocks are not supported. Do not include URLs or ports. A non-empty list blocks unmatched hosts, except for localhost, 127.0.0.1, and ::1 when outbound and local network access are both enabled. These automatic entries do not change your saved list. Explicit deny rules and enterprise allowlists still apply. Configure from the /sandbox dialog's Network tab under Host rules.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.userPolicy.network.blockedHosts",
+          "keyPath": "sandbox.userPolicy.network.blockedHosts",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Hosts a sandboxed command is denied from reaching, matched the same way as allowedHosts. blockedHosts always takes precedence over a matching allowedHosts entry, and denying a domain also denies its subdomains. Configure from the /sandbox dialog's Network tab under Host rules.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.userPolicy.filesystem.deniedPaths",
+          "keyPath": "sandbox.userPolicy.filesystem.deniedPaths",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Paths that sandboxed commands are denied access to. Windows requires a version that supports denied paths. If the host cannot enforce them, the command fails rather than running with weaker restrictions. Missing denied paths and their parents are created as directories before launch and are not automatically removed, even for a name such as .env. Preparation errors stop launch. The read-only /sandbox policy preview creates nothing and omits missing denied paths on Linux.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox.userPolicy.seatbelt.keychainAccess",
+          "keyPath": "sandbox.userPolicy.seatbelt.keychainAccess",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "macOS only. Grant sandboxed commands access to the system keychain. Configurable only in settings.json, not through /sandbox or /settings.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "screenReader",
+          "keyPath": "screenReader",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Enable screen reader optimizations.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "scrollbar",
+          "keyPath": "scrollbar",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show the scrollbar in scrollable views. Set to false to hide it and use the full terminal width.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "shellShortcut",
+          "keyPath": "shellShortcut",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Let a lone $ at the prompt, followed by Enter, open an interactive shell rooted at the session's working directory (activates only for a local, trusted, idle session on a real TTY). User- or managed-scoped only—not repo-overridable.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "showReasoning",
+          "keyPath": "showReasoning",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show model reasoning in the timeline. You can set this with /config or /settings, or toggle it with Ctrl+T. Your preference is saved across sessions.",
+          "defaultNote": "文档默认值：None",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "showTimestamps",
+          "keyPath": "showTimestamps",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show dim HH:mm timestamps next to user messages in the timeline.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "showTipsOnStartup",
+          "keyPath": "showTipsOnStartup",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show a random command tip when the CLI starts.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sidebar",
+          "keyPath": "sidebar",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Enable the current-session sidebar. Set to false to disable it entirely, hiding the composer hint and the ← open gesture. See GitHub Copilot CLI command reference.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skillDirectories",
+          "keyPath": "skillDirectories",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Additional directories to search for custom skill definitions (in addition to ~/.copilot/skills/).",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "statusLine",
+          "keyPath": "statusLine",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Custom status line display. type: must be \"command\". command: path to an executable script that receives session JSON on stdin and prints status content to stdout. padding: optional number of left-padding spaces. refreshInterval: optional integer number of seconds (1–2147483) to re-run the command on a timer instead of only on events; omit it to refresh only when the session state changes. If the command fails to spawn, exits non-zero, or fails to receive the status JSON on stdin, the CLI logs a warning once per continuous failure episode and leaves the status line blank instead of failing silently. Run with --log-level all to see the underlying error detail.",
+          "defaultNote": "文档默认值：—",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "stayInAutopilot",
+          "keyPath": "stayInAutopilot",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Remain in autopilot mode after each task completes. When enabled, the next prompt you enter after a task completes is also handled in autopilot mode. For more information, see Using Autopilot mode in GitHub Copilot CLI.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "storeTokenPlaintext",
+          "keyPath": "storeTokenPlaintext",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Allow authentication tokens to be stored in plain text in config.json when no system keychain is available.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "stream",
+          "keyPath": "stream",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Enable streaming responses.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "streamerMode",
+          "keyPath": "streamerMode",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Hide preview model names, quota details, prompt timestamps, and the update-available notice. Useful when demonstrating Copilot CLI or screen sharing.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "subagents.agents",
+          "keyPath": "subagents.agents",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Per-agent model configuration, keyed by agent name. Each value is an object with optional model (string), modelPolicy (\"preferred\" or \"required\"), effortLevel (string), and contextTier (\"default\", \"long_context\", or \"inherit\") fields. Set model, effortLevel, or contextTier to \"inherit\" to use the parent session's value at dispatch time. modelPolicy has no effect when the agent definition itself sets modelPolicy: \"required\"—that lock can't be overridden here. Use the /subagents slash command to configure these settings interactively.",
+          "defaultNote": "文档默认值：{}",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "subagents.disabledSubagents",
+          "keyPath": "subagents.disabledSubagents",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Names of subagents that are turned off. Manage this list using the On/Off control for each agent in the /subagents picker in an interactive session.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "subagents.maxConcurrency",
+          "keyPath": "subagents.maxConcurrency",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Maximum concurrent subagents for this session. Only honored for usage-based billing users; ignored for all other plans. Capped at 32. See GitHub Copilot CLI command reference.",
+          "defaultNote": "文档默认值：plan-based",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "subagents.maxDepth",
+          "keyPath": "subagents.maxDepth",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Maximum subagent nesting depth. Only honored for usage-based billing users; ignored for all other plans. Capped at 256. See GitHub Copilot CLI command reference.",
+          "defaultNote": "文档默认值：6",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tabs.enabled",
+          "keyPath": "tabs.enabled",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show the home tab bar. Set to false to hide it entirely.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tabs.hide",
+          "keyPath": "tabs.hide",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Tab identifiers to hide. Accepted values: \"copilot\", \"agents\", \"issues\", \"pull-requests\", \"gists\" (matched case-insensitively).",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tabs.sort",
+          "keyPath": "tabs.sort",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Order in which tabs are displayed. Tabs not listed keep their default relative order after the listed ones. Unknown identifiers are ignored.",
+          "defaultNote": "文档默认值：[]",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "taskbarPresence",
+          "keyPath": "taskbarPresence",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show a live Copilot session on the Windows taskbar (agent icon and hover card). Set to false to opt out. Startup-only; takes effect on the next launch. Windows only.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "terminalNotifications",
+          "keyPath": "terminalNotifications",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Prefer terminal-owned OSC 777 notifications on supported terminals (Ghostty, WezTerm) when desktop notifications are enabled, falling back to native OS notifications when unsupported or delivery fails.",
+          "defaultNote": "文档默认值：false",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "terminalProgress",
+          "keyPath": "terminalProgress",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Emit OSC 9;4 terminal progress indicators while the agent is working. Supported terminals include Windows Terminal, iTerm2, Ghostty, and ConEmu.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "theme",
+          "keyPath": "theme",
+          "valueType": "enum",
+          "allowedValues": [
+            "default",
+            "github",
+            "dim",
+            "high-contrast",
+            "colorblind"
+          ],
+          "description": "Color palette for terminal output. Managed by the /settings and /theme slash commands. colorMode is a deprecated alias for this setting.",
+          "defaultNote": "文档默认值：\"github\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "toolSearch",
+          "keyPath": "toolSearch",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Controls tool search (deferred tool loading). Set toolSearch: false to opt out of tool search.",
+          "defaultNote": "文档默认值：model- and feature-dependent",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "transcriptView",
+          "keyPath": "transcriptView",
+          "valueType": "enum",
+          "allowedValues": [
+            "default",
+            "concise"
+          ],
+          "description": "Set to \"concise\" to group tool activity into expandable work summaries in the timeline. Set to \"default\" to show the full native transcript.",
+          "defaultNote": "文档默认值：\"default\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "updateTerminalTitle",
+          "keyPath": "updateTerminalTitle",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Show the current intent in the terminal tab or window title.",
+          "defaultNote": "文档默认值：true",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktreeBaseRef",
+          "keyPath": "worktreeBaseRef",
+          "valueType": "enum",
+          "allowedValues": [
+            "head",
+            "defaultBranch"
+          ],
+          "description": "Starting point for new worktrees created by /worktree, /worktree new, /new worktree, /move, and --worktree. \"defaultBranch\" starts from the remote default branch instead of the current checkout. /fork worktree always branches off HEAD, regardless of this setting.",
+          "defaultNote": "文档默认值：\"head\"",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "worktreePathTemplate",
+          "keyPath": "worktreePathTemplate",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Where /worktree, /move, /new, and --worktree create worktrees—for example, ~/src/worktrees/{repo}/{branch}. Supports the {repoPath}, {repo}, {branch}, and {branchSlug} placeholders. When unset, the default layout, <repo>.worktrees/, is used, with slashes in the branch name flattened to dashes.",
+          "defaultNote": "文档默认值：unset",
+          "mergeRule": "文档未给出该键的合并规则（设置优先级见 copilot-cli-docs.md）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        }
+      ],
+      "flags": [],
+      "env": [],
+      "flagsCoverage": {
+        "snapshotComplete": false,
+        "coverageNote": "flags 快照待后续任务；本任务未收录命令行 flags，已在覆盖报告记录相关发现（如 copilot config --repo/--local、--config-dir 已弃用）。",
+        "source": {
+          "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference",
+          "retrievedOn": "2026-10-22",
+          "documentedVersion": "unknown"
+        }
+      },
+      "envCoverage": {
+        "snapshotComplete": false,
+        "coverageNote": "env 快照待后续任务；本任务未收录环境变量，已在覆盖报告记录 COPILOT_HOME、COPILOT_GITHUB_TOKEN 等发现。",
+        "source": {
+          "url": "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference",
+          "retrievedOn": "2026-10-22",
+          "documentedVersion": "unknown"
+        }
+      }
+    }
+  ]
+}
