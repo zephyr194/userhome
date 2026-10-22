@@ -331,16 +331,16 @@ export function SelectField<T extends string>({
             </ListboxButton>
             <ListboxOptions
               anchor="bottom start"
-              className="mt-ui-4 max-h-56 w-(--button-width) overflow-y-auto rounded-panel bg-surface-raised p-ui-4 text-body text-foreground shadow-[var(--app-shadow-raised)] ring-1 ring-line ring-inset"
+              className="mt-ui-4 max-h-56 min-w-(--button-width) max-w-[min(32rem,90vw)] w-max overflow-y-auto rounded-panel bg-surface-raised p-ui-4 text-body text-foreground shadow-[var(--app-shadow-raised)] ring-1 ring-line ring-inset"
             >
               {options.map((option) => (
                 <ListboxOption
                   key={option.value}
-                  className="group flex h-control-md cursor-pointer items-center justify-between gap-ui-8 rounded-control px-ui-8 data-disabled:cursor-not-allowed data-disabled:opacity-50 data-focus:bg-surface-muted"
+                  className="group flex min-h-control-md cursor-pointer items-center justify-between gap-ui-8 rounded-control px-ui-8 data-disabled:cursor-not-allowed data-disabled:opacity-50 data-focus:bg-surface-muted"
                   disabled={option.disabled}
                   value={option.value}
                 >
-                  <span className="min-w-0 truncate">{option.label}</span>
+                  <span className="min-w-0 break-words">{option.label}</span>
                   <svg
                     {...ICON_PROPS}
                     aria-hidden="true"
