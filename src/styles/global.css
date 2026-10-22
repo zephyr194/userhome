@@ -2346,8 +2346,8 @@ button[class*="border-border"],
 }
 
 .dashboard-workspace .ov-fact__figure {
-  font-size: var(--app-font-size-group);
-  line-height: var(--app-line-height-group);
+  font-size: var(--app-font-size-page-title);
+  line-height: var(--app-line-height-page-title);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--app-foreground);
