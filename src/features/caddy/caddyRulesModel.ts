@@ -17,8 +17,8 @@ export const MAX_DRAFT_UPSTREAMS = 8;
 export const DEFAULT_LISTEN_HOST = "127.0.0.1";
 const RULES_VERSION = 1;
 const PORT_PATTERN = /^\d{1,5}$/;
-const PORT_MESSAGE = "端口必须是 0 到 65535 之间的整数。";
-const TLS_MISSING_MESSAGE = "请选择证书文件与私钥文件，或关闭 HTTPS。";
+export const PORT_MESSAGE = "端口必须是 0 到 65535 之间的整数。";
+export const TLS_MISSING_MESSAGE = "请选择证书文件与私钥文件，或关闭 HTTPS。";
 export const ACCESS_LOG_PRIVACY_NOTICE =
   "开启后会记录请求的 URL、客户端地址等信息，可能包含个人数据或凭据。日志只保留在本应用的有界缓冲中，不会自动外发。";
 export const TLS_FILES_NOTICE =
@@ -105,7 +105,7 @@ export function siteTlsKey(site: number): string {
   return `site.${site}.tls`;
 }
 
-function tlsOf(draft: TlsDraft | null): CaddyTls | undefined {
+export function tlsOf(draft: TlsDraft | null): CaddyTls | undefined {
   if (draft === null || draft.certificateGrantId === undefined || draft.privateKeyGrantId === undefined) {
     return undefined;
   }
