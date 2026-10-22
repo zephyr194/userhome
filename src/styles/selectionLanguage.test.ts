@@ -79,7 +79,7 @@ describe("选中语言：滑动指示器", () => {
     );
     expect(lastDeclaredIn(section, INDICATOR, "background")).toBe("var(--app-selection)");
     expect(lastDeclaredIn(section, INDICATOR, "box-shadow")).toBe(
-      "inset 3px 0 0 var(--app-selection-border)",
+      "inset 0 0 0 1px var(--app-selection-border)",
     );
     expect(lastDeclaredIn(section, INDICATOR, "pointer-events")).toBe("none");
     expect(
@@ -144,10 +144,10 @@ describe("选中语言：滑动指示器", () => {
     expect(lastDeclaredIn(section, SELECTED_ITEM, "color")).toBe("var(--app-foreground)");
   });
 
-  it("渐进增强：未就绪时选中项自己绘制浅橙底与色条；就绪后清除，由指示器承担", () => {
+  it("渐进增强：未就绪时选中项自己绘制浅橙底与整块选中框；就绪后清除，由指示器承担", () => {
     expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "background")).toBe("var(--app-selection)");
     expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "box-shadow")).toBe(
-      "inset 3px 0 0 var(--app-selection-border)",
+      "inset 0 0 0 1px var(--app-selection-border)",
     );
     expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "background")).toBe("transparent");
     expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "box-shadow")).toBe("none");
@@ -184,12 +184,12 @@ describe("选中语言：滑动指示器", () => {
 });
 
 describe("选中语言：退化规则", () => {
-  it("forced-colors 下隐藏指示器，选中项改用 Highlight 实线（竖向 3px、横向 2px）", () => {
+  it("forced-colors 下隐藏指示器，选中项改用 Highlight 实线（竖向 1px 整块、横向 2px）", () => {
     const forced = section.match(/@media \(forced-colors: active\)\s*\{([\s\S]*?)\n\}/);
     expect(forced).not.toBeNull();
     const body = forced?.[1] ?? "";
     expect(body).toMatch(/\.slide-list\[data-slide-ready\]::before\s*\{\s*display:\s*none;/);
-    expect(body).toMatch(/border-inline-start:\s*3px solid Highlight/);
+    expect(body).toMatch(/border:\s*1px solid Highlight/);
     expect(body).toMatch(/border-bottom:\s*2px solid Highlight/);
   });
 

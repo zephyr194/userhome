@@ -388,7 +388,7 @@ a {
 }
 
 [role="option"][aria-selected="true"] {
-  box-shadow: inset 3px 0 var(--app-selection-border);
+  background: var(--app-selection);
 }
 
 .desktop-workspace__main {
@@ -1246,7 +1246,7 @@ body {
   transform: translate(var(--slide-x), var(--slide-y));
   border-radius: 0;
   background: var(--app-selection);
-  box-shadow: inset 3px 0 0 var(--app-selection-border);
+  box-shadow: inset 0 0 0 1px var(--app-selection-border);
   pointer-events: none;
   transition-property: transform, width, height;
   transition-duration: 120ms;
@@ -1294,7 +1294,7 @@ body {
 
 .slide-list:not([data-slide-ready]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
   background: var(--app-selection);
-  box-shadow: inset 3px 0 0 var(--app-selection-border);
+  box-shadow: inset 0 0 0 1px var(--app-selection-border);
 }
 
 .slide-list[data-slide-axis="x"]:not([data-slide-ready]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
@@ -1313,7 +1313,11 @@ body {
   }
 
   .slide-list:not([data-slide-axis="x"]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
-    border-inline-start: 3px solid Highlight;
+    border: 1px solid Highlight;
+  }
+
+  [role="option"][aria-selected="true"] {
+    border: 1px solid Highlight;
   }
 
   .slide-list[data-slide-axis="x"] .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {

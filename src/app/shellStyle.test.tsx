@@ -75,7 +75,7 @@ describe("导航当前页", () => {
       "var(--app-selection)",
     );
     expect(lastDeclared(".slide-list[data-slide-ready]::before", "box-shadow")).toBe(
-      "inset 3px 0 0 var(--app-selection-border)",
+      "inset 0 0 0 1px var(--app-selection-border)",
     );
     expect(css).toMatch(
       /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection\)/,
