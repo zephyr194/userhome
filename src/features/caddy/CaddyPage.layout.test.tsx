@@ -62,10 +62,9 @@ describe("Caddy 页布局（UIB-4c）", () => {
   });
 
   it("预览与原文编辑器在表单/原文切换中以 hidden 保持挂载", () => {
-    const markup = renderCaddy(true);
+    const markup = renderCaddy(false);
     expect(markup).toContain('aria-labelledby="raw-editor-heading"');
     expect(markup).toMatch(/<section[^>]*hidden=""/);
-    expect(markup).toContain('role="group" aria-label="编辑方式"');
   });
 
   it("Caddy 生产文件不再使用旧间距令牌名", () => {

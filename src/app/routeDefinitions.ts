@@ -36,6 +36,11 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   { id: "support", label: "支撑" },
 ];
 
+export interface AppRouteSection {
+  id: string;
+  label: string;
+}
+
 export interface AppRoute {
   id: AppRouteId;
   icon: AppRouteIcon;
@@ -50,6 +55,16 @@ export interface AppRoute {
   group?: NavGroupId;
   /** Module pages that offer a full-board view next to the compact one. */
   hasBoard?: boolean;
+  /** Third-level entries shown under the selected tool in the navigation rail. */
+  sections?: readonly AppRouteSection[];
+}
+
+/** The section a route shows: the stored id when the route declares it, otherwise its first section. */
+export function activeSectionOf(
+  route: AppRoute,
+  storedId: string | undefined,
+): AppRouteSection | undefined {
+  return route.sections?.find((section) => section.id === storedId) ?? route.sections?.[0];
 }
 
 /**
@@ -94,6 +109,10 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     description: "在指定目录中只读查看 dotenv 文件，秘密值默认遮盖。",
     group: "system-tools",
     hasBoard: true,
+    sections: [
+      { id: "dotenv", label: "dotenv 文件" },
+      { id: "zsh", label: "zsh 启动文件" },
+    ],
   },
   caddy: {
     icon: "caddy",
@@ -102,6 +121,11 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     description: "检测 Caddy 并编辑本机反向代理规则；保存不会启动或重载 Caddy。",
     group: "system-tools",
     hasBoard: true,
+    sections: [
+      { id: "rules", label: "站点规则" },
+      { id: "run", label: "运行" },
+      { id: "raw", label: "原文 Caddyfile" },
+    ],
   },
   appConfig: {
     icon: "appConfig",
@@ -118,6 +142,12 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     description: "只读检测 Claude Code、Codex、Gemini 与 Copilot CLI 的安装状态、版本与配置位置。",
     group: "system-tools",
     hasBoard: true,
+    sections: [
+      { id: "claude", label: "Claude Code" },
+      { id: "codex", label: "Codex CLI" },
+      { id: "gemini", label: "Gemini CLI" },
+      { id: "copilot", label: "GitHub Copilot CLI" },
+    ],
   },
   tools: {
     icon: "tools",
@@ -170,5 +200,5 @@ export type NavigationIntent = (
   | { routeId: "dashboard" }
   | { routeId: "services"; serviceId?: string; serviceFocus?: ServiceFocus }
   | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId }
-  | { routeId: "caddy" | "environment" | "appConfig" | "aiConfig" }
+  | { routeId: "caddy" | "environment" | "appConfig" | "aiConfig"; section?: string }
 ) & { source?: NavigationSource };

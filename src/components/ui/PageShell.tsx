@@ -74,8 +74,20 @@ export function PageShell({
   );
 }
 
-export function BoardCell({ span, children }: { span: BoardSpan; children?: ReactNode }) {
-  return <div className={`page-shell__cell page-shell__cell--span-${span}`}>{children}</div>;
+export function BoardCell({
+  span,
+  hidden,
+  children,
+}: {
+  span: BoardSpan;
+  hidden?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={`page-shell__cell page-shell__cell--span-${span}`} hidden={hidden}>
+      {children}
+    </div>
+  );
 }
 
 /** Same element in both views, so switching views never remounts its children. */

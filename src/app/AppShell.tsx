@@ -31,6 +31,7 @@ import {
 import { registerSettingsRequestListener } from "./refreshEvents";
 import {
   APP_ROUTES,
+  activeSectionOf,
   routeSupportsBoard,
   type AppRouteId,
   type NavigationIntent,
@@ -43,6 +44,7 @@ import {
   saveSelectionMemory,
   type SelectionMemory,
 } from "./selectionMemory";
+import { SectionContext, type SectionContextValue } from "./SectionContext";
 import type { ShellState } from "./shellState";
 
 interface AppShellProps {
@@ -237,6 +239,23 @@ export function AppShell({
   const settingsGroup = selection.settingsGroup;
   const activeRoute =
     APP_ROUTES.find((route) => route.id === activeRouteId) ?? APP_ROUTES[0];
+  const [sectionByRoute, setSectionByRoute] = useState<
+    Partial<Record<AppRouteId, string>>
+  >({});
+  const activeSectionId = activeSectionOf(activeRoute, sectionByRoute[activeRoute.id])?.id;
+  const selectSection = useCallback((routeId: AppRouteId, section: string) => {
+    setSectionByRoute((current) => ({ ...current, [routeId]: section }));
+  }, [setSectionByRoute]);
+  const sectionContext = useMemo<SectionContextValue | undefined>(
+    () =>
+      activeSectionId === undefined
+        ? undefined
+        : {
+            section: activeSectionId,
+            select: (section) => selectSection(activeRoute.id, section),
+          },
+    [activeRoute.id, activeSectionId, selectSection],
+  );
   const [boardState, dispatchBoard] = useReducer(
     reduceBoardView,
     activeRouteId,
@@ -289,6 +308,10 @@ export function AppShell({
 
   const navigateTo = useCallback((intent: NavigationIntent) => {
     pendingNavigationSource.current = intent.source ?? "content";
+    if ("section" in intent && intent.section !== undefined) {
+      selectSection(intent.routeId, intent.section);
+      if (intent.routeId === activeRouteId) return;
+    }
     dispatchBoard({ type: "route", routeId: intent.routeId });
     if (intent.routeId === "services") {
       setServiceFocus(intent.serviceFocus);
@@ -307,7 +330,7 @@ export function AppShell({
     }
     setServiceFocus(undefined);
     updateSelection({ routeId: intent.routeId });
-  }, [updateSelection]);
+  }, [activeRouteId, selectSection, updateSelection]);
 
   useEffect(() => {
     let disposed = false;
@@ -503,8 +526,10 @@ export function AppShell({
             sidebar={
               <NavigationRail
                 activeRouteId={activeRouteId}
+                activeSectionId={activeSectionId}
                 connection={state.connection}
                 onNavigate={navigate}
+                onSectionSelect={(section) => selectSection(activeRouteId, section)}
                 routes={APP_ROUTES}
               />
             }
@@ -574,38 +599,40 @@ export function AppShell({
             }
             detailLabel={`${activeRoute.label}内容`}
             detail={
-              <RoutePanel
-                connection={state.connection}
-                discovery={state.discovery}
-                onAppearanceChange={onAppearanceChange}
-                onNavigate={navigateTo}
-                onOperationChanged={onRefresh}
-                onPreferencesChange={
-                  onPreferencesChange ??
-                  (() =>
-                    Promise.reject(
-                      new Error("Preference updates are unavailable."),
-                    ))
-                }
-                onPreferencesReset={
-                  onPreferencesReset ??
-                  (() =>
-                    Promise.reject(
-                      new Error("Preference reset is unavailable."),
-                    ))
-                }
-                onSelectionChange={updateSelection}
-                onSettingsGroupChange={(group) =>
-                  updateSelection({ settingsGroup: group })
-                }
-                preferences={state.preferences}
-                recentOperation={state.recentOperation}
-                refresh={state.refresh}
-                serviceFocus={serviceFocus}
-                route={activeRoute}
-                selection={selection}
-                settingsGroup={settingsGroup}
-              />
+              <SectionContext.Provider value={sectionContext}>
+                <RoutePanel
+                  connection={state.connection}
+                  discovery={state.discovery}
+                  onAppearanceChange={onAppearanceChange}
+                  onNavigate={navigateTo}
+                  onOperationChanged={onRefresh}
+                  onPreferencesChange={
+                    onPreferencesChange ??
+                    (() =>
+                      Promise.reject(
+                        new Error("Preference updates are unavailable."),
+                      ))
+                  }
+                  onPreferencesReset={
+                    onPreferencesReset ??
+                    (() =>
+                      Promise.reject(
+                        new Error("Preference reset is unavailable."),
+                      ))
+                  }
+                  onSelectionChange={updateSelection}
+                  onSettingsGroupChange={(group) =>
+                    updateSelection({ settingsGroup: group })
+                  }
+                  preferences={state.preferences}
+                  recentOperation={state.recentOperation}
+                  refresh={state.refresh}
+                  serviceFocus={serviceFocus}
+                  route={activeRoute}
+                  selection={selection}
+                  settingsGroup={settingsGroup}
+                />
+              </SectionContext.Provider>
             }
           />
         </div>

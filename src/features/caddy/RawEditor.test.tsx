@@ -150,7 +150,6 @@ describe("CaddyPage mode switch", () => {
   it("offers form and raw modes with pressed state and keeps the raw editor mounted", () => {
     const markup = renderToStaticMarkup(<CaddyPage />);
 
-    expect(markup).toContain('aria-label="编辑方式"');
     expect(markup).toContain("表单规则");
     expect(markup).toContain("原文 Caddyfile");
     expect(markup).toContain('aria-labelledby="raw-editor-heading"');

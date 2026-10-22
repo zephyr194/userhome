@@ -9,8 +9,10 @@ import {
 
 interface NavigationRailProps {
   activeRouteId: AppRouteId;
+  activeSectionId?: string;
   connection?: ConnectionState;
   onNavigate: (routeId: AppRouteId) => void;
+  onSectionSelect?: (sectionId: string) => void;
   routes: readonly AppRoute[];
 }
 
@@ -42,8 +44,10 @@ function connectionDetails(connection?: ConnectionState) {
 
 export function NavigationRail({
   activeRouteId,
+  activeSectionId,
   connection,
   onNavigate,
+  onSectionSelect,
   routes,
 }: NavigationRailProps) {
   const status = connectionDetails(connection);
@@ -80,6 +84,22 @@ export function NavigationRail({
                     <span className="navigation-rail__icon"><NavigationIcon icon={route.icon} /></span>
                     <span className="navigation-rail__label">{route.label}</span>
                   </a>
+                  {route.sections && route.id === activeRouteId ? (
+                    <ul aria-label={`${route.label}分区`} className="navigation-rail__sections">
+                      {route.sections.map((section) => (
+                        <li key={section.id}>
+                          <button
+                            type="button"
+                            className="bracket navigation-rail__section"
+                            aria-current={section.id === activeSectionId ? "true" : undefined}
+                            onClick={() => onSectionSelect?.(section.id)}
+                          >
+                            {section.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </li>
               ))}
             </ul>

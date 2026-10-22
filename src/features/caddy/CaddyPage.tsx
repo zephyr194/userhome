@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { BoardCell, Button, PageShell, Panel } from "../../components/ui";
+import { BoardCell, PageShell, Panel } from "../../components/ui";
 import { useBoardView } from "../../app/BoardViewContext";
+import { useToolSection } from "../../app/SectionContext";
 import {
   caddyDetect,
   caddyLoadRules,
@@ -49,7 +50,7 @@ const PREVIEW_DEBOUNCE_MS = 250;
 const NO_ISSUES: CaddyIssue[] = [];
 const NO_EXPOSURES: CaddyExposure[] = [];
 
-type EditMode = "form" | "raw";
+type EditorSource = "rules" | "raw";
 
 type LoadState =
   | { status: "loading" }
@@ -84,7 +85,15 @@ export function CaddyPage() {
   const sitesRef = useRef<SiteDraft[]>(sites);
   const [preview, setPreview] = useState<PreviewState>({ status: "pending" });
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
-  const [mode, setMode] = useState<EditMode>("form");
+  const [section] = useToolSection("rules");
+  const [editorSource, setEditorSource] = useState<EditorSource>("rules");
+  if ((section === "rules" || section === "raw") && section !== editorSource) {
+    setEditorSource(section);
+  }
+  const showRules = isBoard || section === "rules";
+  const showRaw = isBoard || section === "raw";
+  const showRun = isBoard || section === "run";
+  const showEditor = showRules || showRaw;
   const workdir = useCaddyWorkdir();
   const workdirReason = workdir.blockReason;
   const workdirReady = workdirReason === undefined;
@@ -247,25 +256,9 @@ export function CaddyPage() {
           <CaddyDetectPanel state={detect} onRetry={retryDetect} />
         </div>
       </BoardCell>
-      <BoardCell span={8}>
+      <BoardCell span={8} hidden={!showEditor}>
         <div className="grid min-w-0 gap-ui-12">
-          <div role="group" aria-label="编辑方式" className="flex flex-wrap gap-ui-8">
-            <Button
-              variant={mode === "form" ? "primary" : "secondary"}
-              aria-pressed={mode === "form"}
-              onClick={() => setMode("form")}
-            >
-              表单规则
-            </Button>
-            <Button
-              variant={mode === "raw" ? "primary" : "secondary"}
-              aria-pressed={mode === "raw"}
-              onClick={() => setMode("raw")}
-            >
-              原文 Caddyfile
-            </Button>
-          </div>
-          <div hidden={mode !== "form"} className="grid min-w-0 gap-ui-12">
+          <div hidden={!showRules} className="grid min-w-0 gap-ui-12">
             {workdirReason !== undefined && workdir.load.status !== "loading" ? (
               <p role="status" className="m-0 text-body text-muted-foreground">
                 {workdirReason}后才能读取或保存规则。
@@ -312,24 +305,22 @@ export function CaddyPage() {
             ) : null}
           </div>
           <RawEditor
-            hidden={mode !== "raw"}
+            hidden={!showRaw}
             workdirReason={workdirReason}
             onWorkdirRequired={refreshWorkdir}
           />
         </div>
       </BoardCell>
-      <BoardCell span={4}>
+      <BoardCell span={4} hidden={!showRun}>
         <CaddyRunPanel
-          source={mode === "raw" ? "RAW" : "RULES"}
+          source={editorSource === "raw" ? "RAW" : "RULES"}
           onOpenService={(target: ServiceTarget) => onNavigate?.(serviceFocusIntent(target))}
           workdirReason={workdirReason}
         />
       </BoardCell>
-      <BoardCell span={8}>
+      <BoardCell span={8} hidden={!showRules}>
         {workdirReady && load.status === "ready" ? (
-          <div hidden={mode !== "form"}>
-            <CaddyPreviewPanel localValid={localResult.ok} preview={preview} exposures={exposures} />
-          </div>
+          <CaddyPreviewPanel localValid={localResult.ok} preview={preview} exposures={exposures} />
         ) : null}
       </BoardCell>
     </PageShell>

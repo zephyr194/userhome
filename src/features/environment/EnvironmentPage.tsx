@@ -1,6 +1,7 @@
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useBoardView } from "../../app/BoardViewContext";
+import { useToolSection } from "../../app/SectionContext";
 import { PageShell } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import { classNames } from "../../components/ui/classNames";
@@ -44,14 +45,16 @@ const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
  */
 export function EnvironmentPage() {
   const { isBoard } = useBoardView();
-  const [zshOpened, setZshOpened] = useState(false);
+  const [section, setSection] = useToolSection("dotenv");
+  const zshSelected = section === "zsh";
+  const [zshOpened, setZshOpened] = useState(zshSelected);
+  if (zshSelected && !zshOpened) setZshOpened(true);
   return (
     <TabGroup
       as="div"
       className="h-full min-h-0 min-w-0"
-      onChange={(index) => {
-        if (index === 1) setZshOpened(true);
-      }}
+      selectedIndex={zshSelected ? 1 : 0}
+      onChange={(index) => setSection(index === 1 ? "zsh" : "dotenv")}
     >
       <PageShell
         layout={isBoard ? "board" : "strip"}

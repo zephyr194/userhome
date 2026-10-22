@@ -1,21 +1,24 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useBoardView } from "../../app/BoardViewContext";
+import { useToolSection } from "../../app/SectionContext";
 import { Button, PageShell, Panel, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import type { BoardSpan } from "../../components/ui/PageShell";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import { ToolReference } from "./ToolReference";
 import {
-  CLAUDE_CODE_TOOL_ID,
+  AI_CONFIG_DEFAULT_SECTION,
   CONFIG_LABELS,
   INSTALL_LABELS,
   INVALID_REASON_TEXT,
   NO_EXECUTABLE_TEXT,
   UNCONFIRMED_VERSION_TEXT,
   countInconclusive,
+  sectionForTool,
   selectedToolOf,
   showsClaudePanel,
   summarizeState,
+  toolIdForSection,
   type AiConfigState,
   type AiConfigSummary,
 } from "./aiConfigModel";
@@ -29,10 +32,10 @@ export interface AiConfigViewProps {
 
 export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps) {
   const { isBoard } = useBoardView();
-  const [selectedId, setSelectedId] = useState(CLAUDE_CODE_TOOL_ID);
+  const [section, setSection] = useToolSection(AI_CONFIG_DEFAULT_SECTION);
   const summary = summarizeState(state);
   const tools = state.status === "ready" ? state.report.tools : [];
-  const selected = selectedToolOf(tools, selectedId);
+  const selected = selectedToolOf(tools, toolIdForSection(section));
   const showClaudePanel = showsClaudePanel(selected);
 
   return (
@@ -69,7 +72,7 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
                   <ToolRow
                     tool={tool}
                     selected={tool.id === selected?.id}
-                    onSelect={setSelectedId}
+                    onSelect={(toolId) => setSection(sectionForTool(toolId))}
                   />
                 </li>
               ))}
