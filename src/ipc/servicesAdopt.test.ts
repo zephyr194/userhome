@@ -23,7 +23,6 @@ function wireOperation(overrides: Record<string, unknown> = {}) {
     operationId: "op-1",
     summary: `接管任务 ${LABEL}`,
     effects: ["配置：~/Library/LaunchAgents/x.plist"],
-    requiresElevation: false,
     expiresAt: "2026-10-20T10:05:00Z",
     status: "PREVIEWED",
     events: [],
@@ -32,12 +31,11 @@ function wireOperation(overrides: Record<string, unknown> = {}) {
 }
 
 function wireAdoptPreview(overrides: Record<string, unknown> = {}) {
-  const { operationId, summary, effects, requiresElevation, expiresAt } = wireOperation();
+  const { operationId, summary, effects, expiresAt } = wireOperation();
   return {
     operationId,
     summary,
     effects,
-    requiresElevation,
     expiresAt,
     label: LABEL,
     domain: "GUI",

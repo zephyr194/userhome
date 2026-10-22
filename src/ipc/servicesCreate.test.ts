@@ -18,7 +18,6 @@ function wirePreview(overrides: Record<string, unknown> = {}) {
     operationId: "op-1",
     summary: `Create ${FILE}.`,
     effects: [`Target: ${FILE}`],
-    requiresElevation: false,
     expiresAt: "2026-10-20T10:05:00Z",
     kind: "CREATE",
     recoveryPoint: "NONE_CREATED",
@@ -42,12 +41,11 @@ function wirePreview(overrides: Record<string, unknown> = {}) {
 }
 
 function wireExecution(overrides: Record<string, unknown> = {}) {
-  const { operationId, summary, effects, requiresElevation, expiresAt } = wirePreview();
+  const { operationId, summary, effects, expiresAt } = wirePreview();
   return {
     operationId,
     summary,
     effects,
-    requiresElevation,
     expiresAt,
     status: "SUCCEEDED",
     events: [],

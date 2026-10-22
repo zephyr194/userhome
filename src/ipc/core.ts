@@ -10,8 +10,6 @@ export type AppErrorCode =
   | "PROCESS_FAILED"
   | "PARTIAL_FAILURE"
   | "TIMEOUT"
-  | "ELEVATION_REQUIRED"
-  | "ELEVATION_UNAVAILABLE"
   | "INTERNAL";
 
 export interface AppError {
@@ -36,8 +34,6 @@ const APP_ERROR_CODES: readonly string[] = [
   "PROCESS_FAILED",
   "PARTIAL_FAILURE",
   "TIMEOUT",
-  "ELEVATION_REQUIRED",
-  "ELEVATION_UNAVAILABLE",
   "INTERNAL",
 ];
 

@@ -83,7 +83,6 @@ describe("config IPC", () => {
         operationId: "op-1",
         summary: "Update git configuration.",
         effects: ["Apply only allowlisted structured fields."],
-        requiresElevation: false,
         expiresAt: "2026-09-20T11:00:00Z",
         currentHash: "before",
         proposedHash: "after",

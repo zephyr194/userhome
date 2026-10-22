@@ -19,7 +19,6 @@ export interface OperationPreview {
   operationId: string;
   summary: string;
   effects: string[];
-  requiresElevation: boolean;
   expiresAt: string;
 }
 
@@ -113,7 +112,6 @@ export function decodeOperationPreview(value: unknown): OperationPreview {
     !isRecord(value) ||
     typeof value.operationId !== "string" ||
     typeof value.summary !== "string" ||
-    typeof value.requiresElevation !== "boolean" ||
     typeof value.expiresAt !== "string"
   ) {
     throw createInternalError();
@@ -123,7 +121,6 @@ export function decodeOperationPreview(value: unknown): OperationPreview {
     operationId: value.operationId,
     summary: value.summary,
     effects: decodeStringArray(value.effects),
-    requiresElevation: value.requiresElevation,
     expiresAt: value.expiresAt,
   };
 }

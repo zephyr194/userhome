@@ -14,14 +14,12 @@ describe("operation IPC", () => {
         operationId: "op-1",
         summary: "Install Caddy",
         effects: ["Install formula caddy"],
-        requiresElevation: false,
         expiresAt: "2026-09-20T09:05:00Z",
       }),
     ).toEqual({
       operationId: "op-1",
       summary: "Install Caddy",
       effects: ["Install formula caddy"],
-      requiresElevation: false,
       expiresAt: "2026-09-20T09:05:00Z",
     });
   });
@@ -67,7 +65,6 @@ describe("operation IPC", () => {
         operationId: "op-1",
         summary: "Install Caddy",
         effects: ["Install formula caddy"],
-        requiresElevation: false,
         expiresAt: "2026-09-20T09:05:00Z",
         status: "CANCELLING",
         events: [],
@@ -85,7 +82,6 @@ describe("operation IPC", () => {
       operationId: "op-1",
       summary: "Stop service",
       effects: [],
-      requiresElevation: false,
       expiresAt: "2026-09-20T09:05:00Z",
       events: [],
     };

@@ -8,7 +8,6 @@ function operation(overrides: Partial<OperationDetails>): OperationDetails {
     operationId: "op-1",
     summary: "Stop fixture service",
     effects: [],
-    requiresElevation: false,
     expiresAt: "2026-09-20T09:05:00Z",
     status: "RUNNING",
     events: [],

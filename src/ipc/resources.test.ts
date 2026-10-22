@@ -15,7 +15,6 @@ function wirePreview(overrides: Record<string, unknown> = {}) {
     operationId: "op-1",
     summary: "Replace ~/project/settings.toml.",
     effects: ["Target: ~/project/settings.toml"],
-    requiresElevation: false,
     expiresAt: "2026-10-15T10:05:00Z",
     kind: "REPLACE",
     recoveryPoint: "BACKUP",
@@ -57,13 +56,12 @@ function wireOutcome(overrides: Record<string, unknown> = {}) {
 }
 
 function wireExecution(outcome: Record<string, unknown> = wireOutcome()) {
-  const { operationId, summary, effects, requiresElevation, expiresAt } =
+  const { operationId, summary, effects, expiresAt } =
     wirePreview();
   return {
     operationId,
     summary,
     effects,
-    requiresElevation,
     expiresAt,
     status: "SUCCEEDED",
     events: [],

@@ -43,7 +43,6 @@ function previewWire(stepOverrides: Record<string, unknown> = {}) {
         operationId: "op-1",
         summary: "替换 Caddyfile",
         effects: [],
-        requiresElevation: false,
         expiresAt: "2026-10-21T00:05:00Z",
         kind: "REPLACE",
         recoveryPoint: "BACKUP",

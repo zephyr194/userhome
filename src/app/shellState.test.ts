@@ -14,7 +14,6 @@ const operation: OperationDetails = {
   operationId: "operation-1",
   summary: "刷新本机状态",
   effects: [],
-  requiresElevation: false,
   expiresAt: "2026-09-20T10:00:00Z",
   status: "SUCCEEDED",
   events: [],

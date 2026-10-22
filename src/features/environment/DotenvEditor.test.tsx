@@ -104,7 +104,6 @@ function previewOf(overrides: Partial<EnvEditPreview> = {}): EnvEditPreview {
     operationId: "op-1",
     summary: "Replace ~/proj/.env.",
     effects: [],
-    requiresElevation: false,
     expiresAt: "2026-10-16T10:05:00.000Z",
     kind: "REPLACE",
     recoveryPoint: "BACKUP",

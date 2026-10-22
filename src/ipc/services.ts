@@ -1155,7 +1155,7 @@ export function decodeLaunchdActionPreview(
   const commands = decodeActionCommands(value.commands);
   const noChange = decodeBoolean(value.noChange);
   // Nothing to run exactly when nothing changes.
-  if (noChange !== (commands.length === 0) || operation.requiresElevation) {
+  if (noChange !== (commands.length === 0)) {
     throw createInternalError();
   }
   return {
