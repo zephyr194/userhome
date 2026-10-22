@@ -1848,3 +1848,65 @@ export function executeZshEdit(input: {
     input: { operationId: input.operationId, ...wire },
   });
 }
+
+// The macOS login session environment (`launchctl`) is read-only here. The
+// list carries names and, for non-secret values, the text; a secret value is
+// `null` until the explicit `revealLaunchctlValue` call returns it.
+
+export interface LaunchctlEntry {
+  key: string;
+  value: string | null;
+  secret: boolean;
+}
+
+export interface LaunchctlEnvironment {
+  entries: LaunchctlEntry[];
+  readAt: string;
+  partial: boolean;
+}
+
+const MAX_LAUNCHCTL_ENTRIES = 2000;
+const MAX_READ_AT_LENGTH = 64;
+
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]) {
+  return (
+    Object.keys(value).length === keys.length &&
+    keys.every((key) => Object.prototype.hasOwnProperty.call(value, key))
+  );
+}
+
+function decodeLaunchctlEntry(value: unknown): LaunchctlEntry {
+  if (!isRecord(value) || !hasExactKeys(value, ["key", "value", "secret"])) {
+    return fail();
+  }
+  if (typeof value.key !== "string" || !KEY_PATTERN.test(value.key)) return fail();
+  const secret = flag(value.secret);
+  if (secret) {
+    if (value.value !== null) return fail();
+    return { key: value.key, value: null, secret };
+  }
+  if (typeof value.value !== "string" || value.value.length > MAX_VALUE_CHARS) {
+    return fail();
+  }
+  return { key: value.key, value: value.value, secret };
+}
+
+export function decodeLaunchctlEnvironment(value: unknown): LaunchctlEnvironment {
+  if (!isRecord(value) || !hasExactKeys(value, ["entries", "readAt", "partial"])) {
+    return fail();
+  }
+  return {
+    entries: list(value.entries, MAX_LAUNCHCTL_ENTRIES).map(decodeLaunchctlEntry),
+    readAt: boundedText(value.readAt, MAX_READ_AT_LENGTH),
+    partial: flag(value.partial),
+  };
+}
+
+export function readLaunchctlEnvironment(): Promise<LaunchctlEnvironment> {
+  return invokeCommand("read_launchctl_environment", decodeLaunchctlEnvironment);
+}
+
+export function revealLaunchctlValue(key: string): Promise<string> {
+  if (!KEY_PATTERN.test(key)) return invalidInput("Variable name is invalid.");
+  return invokeCommand("reveal_launchctl_value", decodeRevealedValue, { key });
+}
