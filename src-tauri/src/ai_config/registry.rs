@@ -38,6 +38,7 @@ pub enum IssueKind {
     InvalidEnvName,
     UnverifiedValueType,
     MissingCoverageNote,
+    TextTooLong,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -60,6 +61,8 @@ pub struct ToolDefinition {
     pub env: Vec<EnvDefinition>,
     pub flags_coverage: ListingCoverage,
     pub env_coverage: ListingCoverage,
+    #[serde(default)]
+    pub notices: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

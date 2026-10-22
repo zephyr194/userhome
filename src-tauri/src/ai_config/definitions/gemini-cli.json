@@ -12,6 +12,9 @@
         "retrievedOn": "2026-10-22",
         "documentedVersion": "unknown"
       },
+      "notices": [
+        "官方配置页与 GitHub README 均写明：未付费用户与 Google One 用户的 Gemini CLI 已于 2026-06-18 被 Antigravity CLI 替代（来源：https://geminicli.com/docs/reference/configuration/，抓取日期 2026-10-22）。本机是否受影响无法从官方文档判断。"
+      ],
       "resources": [
         {
           "id": "gemini-user-settings",

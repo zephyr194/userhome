@@ -73,6 +73,16 @@ fn versions_may_be_absent_at_parse_time() {
 }
 
 #[test]
+fn notices_default_to_empty_when_absent() {
+    let mut value = fixture();
+    remove_key(tool(&mut value), "notices");
+
+    let definitions = parse_value_ok(&value);
+
+    assert!(definitions.tools[0].notices.is_empty());
+}
+
+#[test]
 fn builtin_definitions_parse_with_no_tools_yet() {
     let definitions = parse_definitions(BUILTIN_DEFINITIONS_JSON).expect("builtin parses");
 

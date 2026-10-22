@@ -3,7 +3,8 @@ use std::collections::BTreeSet;
 use serde_json::{Value, json};
 
 use super::{
-    check_coverage, covered_ids, effective_status, load_builtin, load_validated, parse_version,
+    check_coverage, covered_ids, effective_status, load_all, load_builtin, load_validated,
+    parse_version,
 };
 use crate::ai_config::registry::{
     CoverageStatus, Definitions, IssueKind, RegistryError, VerifiedVersions,
@@ -682,4 +683,57 @@ fn listing_source_must_be_https() {
     tool(&mut value)["flagsCoverage"]["source"]["url"] = json!("http://example.test/flags");
 
     assert_only(&value, IssueKind::InvalidSourceUrl);
+}
+
+#[test]
+fn notices_are_optional_and_accepted_with_a_source() {
+    let mut value = fixture();
+    tool(&mut value)
+        .as_object_mut()
+        .expect("tool is an object")
+        .remove("notices");
+    assert!(load_validated(&value.to_string()).is_ok());
+
+    tool(&mut value)["notices"] =
+        json!(["官方说明（https://example.test/fixture-tool/settings）。"]);
+    assert!(load_validated(&value.to_string()).is_ok());
+}
+
+#[test]
+fn blank_notice_is_rejected() {
+    let mut value = fixture();
+    tool(&mut value)["notices"] = json!(["   "]);
+
+    assert_only(&value, IssueKind::EmptyText);
+}
+
+#[test]
+fn notice_without_an_https_source_is_rejected() {
+    let mut value = fixture();
+    tool(&mut value)["notices"] = json!(["官方说明未附来源。"]);
+
+    assert_only(&value, IssueKind::InvalidSourceUrl);
+}
+
+#[test]
+fn overlong_notice_is_rejected() {
+    let mut value = fixture();
+    let text = format!("https://example.test/{}", "a".repeat(400));
+    tool(&mut value)["notices"] = json!([text]);
+
+    assert_only(&value, IssueKind::TextTooLong);
+}
+
+#[test]
+fn gemini_cli_carries_the_official_migration_notice() {
+    let definitions = load_all().expect("builtin definitions validate");
+    let gemini = definitions
+        .tools
+        .iter()
+        .find(|tool| tool.id == "gemini-cli")
+        .expect("gemini-cli is registered");
+
+    assert_eq!(gemini.notices.len(), 1);
+    assert!(gemini.notices[0].contains("Antigravity CLI"));
+    assert!(gemini.notices[0].contains("https://geminicli.com/docs/reference/configuration/"));
 }

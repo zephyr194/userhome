@@ -5,6 +5,7 @@
       "id": "fixture-tool",
       "displayName": "Fixture Tool",
       "executableNames": ["fixture-tool"],
+      "notices": [],
       "source": {
         "url": "https://example.test/fixture-tool/settings",
         "retrievedOn": "2026-10-21",

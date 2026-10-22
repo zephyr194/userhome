@@ -11,6 +11,7 @@ use super::registry::{
 
 pub const UNKNOWN_DOCUMENTED_VERSION: &str = "unknown";
 const MAX_ITEM_LENGTH: usize = 128;
+const MAX_NOTICE_LENGTH: usize = 400;
 const MAX_VERSION_COMPONENTS: usize = 4;
 
 pub fn load_builtin() -> Result<Definitions, RegistryError> {
@@ -143,6 +144,22 @@ fn validate_tool(issues: &mut Vec<ValidationIssue>, tool: &ToolDefinition) {
         &tool.flags_coverage,
     );
     validate_listing(issues, &format!("{base}.envCoverage"), &tool.env_coverage);
+    for (index, notice) in tool.notices.iter().enumerate() {
+        validate_notice(issues, &format!("{base}.notices[{index}]"), notice);
+    }
+}
+
+fn validate_notice(issues: &mut Vec<ValidationIssue>, base: &str, notice: &str) {
+    if notice.trim().is_empty() {
+        push(issues, base, IssueKind::EmptyText);
+        return;
+    }
+    if notice.chars().count() > MAX_NOTICE_LENGTH {
+        push(issues, base, IssueKind::TextTooLong);
+    }
+    if !notice.contains("https://") {
+        push(issues, base, IssueKind::InvalidSourceUrl);
+    }
 }
 
 fn validate_listing(issues: &mut Vec<ValidationIssue>, base: &str, listing: &ListingCoverage) {
