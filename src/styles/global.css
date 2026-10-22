@@ -1412,19 +1412,7 @@ body {
   fill: var(--app-brand-fg);
 }
 
-.brand-mark__rail {
-  fill: var(--app-brand-rail);
-}
-
-.brand-mark__knob {
-  fill: var(--app-brand-knob);
-}
-
-.brand-mark__knob-accent {
-  fill: var(--app-brand-accent);
-}
-
-.brand-mark__cap {
+.brand-mark__square {
   fill: var(--app-brand-accent-deep);
 }
 

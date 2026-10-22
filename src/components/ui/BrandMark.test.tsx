@@ -34,8 +34,8 @@ describe("BrandMark", () => {
     expect(markup).toMatch(/^<svg[^>]*aria-hidden="true"/);
     expect(markup).toContain('class="brand-size"');
     expect(markup).toContain('viewBox="100 100 824 824"');
-    expect(markup).toContain('d="M292 262 H388 V644 L436 692 H588 L636 644 V262 H732 V702 L646 788 H378 L292 702 Z"');
-    expect(markup.match(/<rect /g)).toHaveLength(7);
+    expect(markup).toContain('d="M290 272 H386 V528 A126 126 0 0 0 638 528 V272 H734 V528 A222 222 0 0 1 290 528 Z"');
+    expect(markup.match(/<rect /g)).toHaveLength(2);
   });
 });
 
