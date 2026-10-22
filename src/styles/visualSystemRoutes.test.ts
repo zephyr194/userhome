@@ -34,11 +34,6 @@ describe("single v4 route visual system", () => {
   it("keeps a CSS definition for every committed workspace class", () => {
     const workspaceClasses = [
       "dashboard-workspace",
-      "system-pulse",
-      "overview-panel",
-      "attention-list",
-      "machine-summary",
-      "software-service-grid",
       "applications-workspace__header",
       "applications-workspace__filters",
       "applications-workspace__body",

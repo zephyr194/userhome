@@ -57,7 +57,6 @@ export function RoutePanel({
   onSelectionChange,
   onSettingsGroupChange,
   preferences,
-  recentOperation,
   refresh,
   route,
   selection,
@@ -69,14 +68,7 @@ export function RoutePanel({
       <DashboardPage
         connection={connection}
         onNavigate={onNavigate}
-        onRefresh={onOperationChanged}
-        optionalDiscoveryRoots={
-          preferences.status === "loading"
-            ? undefined
-            : preferences.preferences.optionalDiscoveryRoots
-        }
         refresh={refresh}
-        recentOperation={recentOperation}
         state={discovery}
       />
     );

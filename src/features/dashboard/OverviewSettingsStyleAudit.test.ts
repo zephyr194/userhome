@@ -138,7 +138,7 @@ describe("概览与设置相关页面样式审计（UI-3a）", () => {
 });
 
 describe("概览舱位墙样式审计（UIB-4a）", () => {
-  const OVERVIEW_FILES = ["DashboardPage.tsx", "ModuleBay.tsx", "overviewBays.ts"].map((name) =>
+  const OVERVIEW_FILES = ["DashboardPage.tsx", "overviewFacts.ts", "useServiceOverview.ts"].map((name) =>
     join(srcRoot, "features", "dashboard", name),
   );
   const LEGACY_SPACING =

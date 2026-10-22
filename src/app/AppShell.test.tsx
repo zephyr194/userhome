@@ -205,7 +205,6 @@ describe("AppShell", () => {
 
     expect(markup).toContain('role="alert"');
     expect(markup).toContain("无法连接本地服务。");
-    expect(markup).toContain("暂无操作记录。");
     expect(markup).toContain("刷新完成，但部分信息不可用。");
     expect(markup).toContain("安全默认值");
     expect(markup).toContain("偏好设置无效，已启用安全默认值。");
