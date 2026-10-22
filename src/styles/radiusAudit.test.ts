@@ -92,14 +92,14 @@ describe("圆角审计（UI-01）", () => {
   });
 
   it("间距与字号令牌取值与 SPEC-ui-refresh 一致", () => {
-    expect(tokenValue("app-space-xxs")).toBe("2px");
-    expect(tokenValue("app-space-xs")).toBe("4px");
-    expect(tokenValue("app-space-sm")).toBe("8px");
-    expect(tokenValue("app-space-md")).toBe("6px");
-    expect(tokenValue("app-space-lg")).toBe("8px");
-    expect(tokenValue("app-space-xl")).toBe("10px");
-    expect(tokenValue("app-space-2xl")).toBe("12px");
-    expect(tokenValue("app-space-3xl")).toBe("16px");
+    expect(tokenValue("app-space-xxs")).toBe("var(--app-space-2)");
+    expect(tokenValue("app-space-xs")).toBe("var(--app-space-4)");
+    expect(tokenValue("app-space-sm")).toBe("var(--app-space-8)");
+    expect(tokenValue("app-space-md")).toBe("var(--app-space-8)");
+    expect(tokenValue("app-space-lg")).toBe("var(--app-space-8)");
+    expect(tokenValue("app-space-xl")).toBe("var(--app-space-12)");
+    expect(tokenValue("app-space-2xl")).toBe("var(--app-space-12)");
+    expect(tokenValue("app-space-3xl")).toBe("var(--app-space-16)");
     expect(tokenValue("app-font-size-page-title")).toBe("18px");
     expect(tokenValue("app-font-size-body")).toBe("13px");
   });
