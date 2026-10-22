@@ -32,8 +32,12 @@ export function Modal({
   const setPanelRef = useCallback((panel: HTMLDivElement | null) => {
     initialFocusRef.current =
       panel?.querySelector<HTMLElement>(
+        "[data-modal-initial-focus]:not(:disabled)",
+      ) ??
+      panel?.querySelector<HTMLElement>(
         "[data-modal-cancel]:not(:disabled), [data-dialog-cancel]:not(:disabled)",
-      ) ?? null;
+      ) ??
+      null;
   }, []);
 
   if (typeof document === "undefined") {

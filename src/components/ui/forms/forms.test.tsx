@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Button } from "../Button";
@@ -377,5 +384,97 @@ describe("checkbox, switch and radio interaction", () => {
     fireEvent.click(dark);
     expect(onValueChange).toHaveBeenLastCalledWith("DARK");
     expect(dark.hasAttribute("data-checked")).toBe(true);
+  });
+});
+
+describe("TextAreaField expandable editor", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders no editor trigger unless expandable is set", () => {
+    const markup = renderToStaticMarkup(
+      <TextAreaField label="输入" value="" onValueChange={() => undefined} />,
+    );
+    expect(markup).not.toContain("在独立框中打开");
+    expect(markup).not.toContain("field-emphasis");
+  });
+
+  it("renders an icon trigger named after the field, and emphasis when asked", () => {
+    const markup = renderToStaticMarkup(
+      <TextAreaField label="输入" value="" expandable emphasis />,
+    );
+    expect(markup).toContain('aria-label="在独立框中打开输入"');
+    expect(markup).toContain("field-emphasis");
+  });
+
+  it("writes the edited draft back on done", async () => {
+    const onValueChange = vi.fn();
+    render(
+      <TextAreaField
+        label="输入"
+        value="原始文本"
+        onValueChange={onValueChange}
+        expandable
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "在独立框中打开输入" }));
+    const dialog = await screen.findByRole("dialog");
+    const editor = within(dialog).getByRole("textbox") as HTMLTextAreaElement;
+    expect(editor.value).toBe("原始文本");
+    await waitFor(() => expect(document.activeElement).toBe(editor));
+
+    fireEvent.change(editor, { target: { value: "新文本" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "完成" }));
+    expect(onValueChange).toHaveBeenLastCalledWith("新文本");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        screen.getByRole("button", { name: "在独立框中打开输入" }),
+      ),
+    );
+  });
+
+  it("discards the draft on cancel", async () => {
+    const onValueChange = vi.fn();
+    render(
+      <TextAreaField
+        label="输入"
+        value="原始文本"
+        onValueChange={onValueChange}
+        expandable
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "在独立框中打开输入" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: "放弃的文本" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
+  it("closes on Escape without writing back", async () => {
+    const onValueChange = vi.fn();
+    render(
+      <TextAreaField
+        label="输入"
+        value="原始文本"
+        onValueChange={onValueChange}
+        expandable
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "在独立框中打开输入" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox"), {
+      target: { value: "放弃的文本" },
+    });
+    fireEvent.keyDown(within(dialog).getByRole("textbox"), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(onValueChange).not.toHaveBeenCalled();
   });
 });

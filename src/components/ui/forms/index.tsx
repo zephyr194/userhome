@@ -1,4 +1,5 @@
 import {
+  Button as HeadlessButton,
   Checkbox,
   Description,
   Field,
@@ -15,13 +16,16 @@ import {
   Switch,
   Textarea,
 } from "@headlessui/react";
+import { useState } from "react";
 import type {
   InputHTMLAttributes,
   ReactNode,
   Ref,
   TextareaHTMLAttributes,
 } from "react";
+import { Button } from "../Button";
 import { classNames } from "../classNames";
+import { Modal } from "../Modal";
 
 interface FieldCopyProps {
   className?: string;
@@ -130,6 +134,8 @@ type AreaProps = Omit<
   "className" | "disabled" | "onChange" | "required"
 > &
   FieldCopyProps & {
+    emphasis?: boolean;
+    expandable?: boolean;
     inputClassName?: string;
     invalid?: boolean;
     onValueChange?: (value: string) => void;
@@ -139,14 +145,21 @@ export function TextAreaField({
   className,
   description,
   disabled,
+  emphasis = false,
   error,
+  expandable = false,
   inputClassName,
   invalid = Boolean(error),
   label,
   onValueChange,
   required,
+  value,
   ...props
 }: AreaProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const expandLabel = `在独立框中打开${typeof label === "string" ? label : "文本"}`;
+
   return (
     <FieldFrame
       className={className}
@@ -156,18 +169,73 @@ export function TextAreaField({
       label={label}
       required={required}
     >
-      <Textarea
-        {...props}
-        className={classNames(
-          CONTROL_BASE,
-          "min-h-24 resize-y py-ui-8",
-          inputClassName,
-        )}
-        disabled={disabled}
-        invalid={invalid}
-        required={required}
-        onChange={(event) => onValueChange?.(event.currentTarget.value)}
-      />
+      <div className="relative min-w-0">
+        <Textarea
+          {...props}
+          className={classNames(
+            CONTROL_BASE,
+            "min-h-24 resize-y py-ui-8",
+            emphasis && "field-emphasis",
+            expandable && "pe-control-sm",
+            inputClassName,
+          )}
+          disabled={disabled}
+          invalid={invalid}
+          required={required}
+          value={value}
+          onChange={(event) => onValueChange?.(event.currentTarget.value)}
+        />
+        {expandable ? (
+          <HeadlessButton
+            aria-label={expandLabel}
+            className="absolute top-ui-4 right-ui-4 grid size-control-sm place-items-center rounded-control text-muted-foreground enabled:hover:bg-surface-muted enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled}
+            onClick={() => {
+              setDraft(String(value ?? ""));
+              setEditing(true);
+            }}
+          >
+            <svg {...ICON_PROPS} aria-hidden="true" className="size-3">
+              <path d="M7.5 1.5h3v3M4.5 10.5h-3v-3M10.5 1.5 7 5M1.5 10.5 5 7" />
+            </svg>
+          </HeadlessButton>
+        ) : null}
+        {expandable && editing ? (
+          <Modal
+            footer={
+              <>
+                <Button variant="ghost" onClick={() => setEditing(false)}>
+                  取消
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    onValueChange?.(draft);
+                    setEditing(false);
+                  }}
+                >
+                  完成
+                </Button>
+              </>
+            }
+            onClose={() => setEditing(false)}
+            open
+            title={label}
+          >
+            <TextAreaField
+              data-modal-initial-focus=""
+              description={description}
+              error={error}
+              inputClassName="font-mono text-xs"
+              label={label}
+              onValueChange={setDraft}
+              rows={16}
+              spellCheck={false}
+              value={draft}
+            />
+          </Modal>
+        ) : null}
+      </div>
     </FieldFrame>
   );
 }

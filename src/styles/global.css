@@ -242,6 +242,11 @@ a {
   border-color: var(--app-focus-ring);
 }
 
+.field-emphasis {
+  background: var(--app-surface-muted);
+  border-color: var(--app-control-border);
+}
+
 .skip-link {
   position: fixed;
   top: 12px;
