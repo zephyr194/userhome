@@ -1,6 +1,8 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
+  useReducer,
   useRef,
   useState,
   type KeyboardEvent,
@@ -20,9 +22,16 @@ import {
   registerQuitConfirmationListener,
 } from "../ipc/lifecycle";
 import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
+import { useBoardEscape } from "./boardEscape";
+import { boardViewFor, initialBoardViewState, reduceBoardView } from "./boardView";
+import {
+  BoardViewContext,
+  type BoardViewContextValue,
+} from "./BoardViewContext";
 import { registerSettingsRequestListener } from "./refreshEvents";
 import {
   APP_ROUTES,
+  routeSupportsBoard,
   type AppRouteId,
   type NavigationIntent,
   type NavigationSource,
@@ -228,6 +237,29 @@ export function AppShell({
   const settingsGroup = selection.settingsGroup;
   const activeRoute =
     APP_ROUTES.find((route) => route.id === activeRouteId) ?? APP_ROUTES[0];
+  const [boardState, dispatchBoard] = useReducer(
+    reduceBoardView,
+    activeRouteId,
+    initialBoardViewState,
+  );
+  const boardAvailable = routeSupportsBoard(activeRouteId);
+  const boardView = boardViewFor(boardState, activeRouteId);
+  const isBoard = boardAvailable && boardView === "board";
+  const enterBoard = useCallback(() => dispatchBoard({ type: "enter" }), []);
+  const exitBoard = useCallback(() => dispatchBoard({ type: "exit" }), []);
+  const toggleBoard = useCallback(() => dispatchBoard({ type: "toggle" }), []);
+  useBoardEscape(isBoard, exitBoard);
+  const boardContext = useMemo<BoardViewContextValue>(
+    () => ({
+      available: boardAvailable,
+      view: boardView,
+      isBoard,
+      enter: enterBoard,
+      exit: exitBoard,
+      toggle: toggleBoard,
+    }),
+    [boardAvailable, boardView, isBoard, enterBoard, exitBoard, toggleBoard],
+  );
 
   useEffect(() => {
     if (pendingNavigationSource.current === "primary-nav") return;
@@ -251,11 +283,13 @@ export function AppShell({
   ) => {
     pendingNavigationSource.current = source;
     setServiceFocus(undefined);
+    dispatchBoard({ type: "route", routeId });
     updateSelection({ routeId });
   }, [updateSelection]);
 
   const navigateTo = useCallback((intent: NavigationIntent) => {
     pendingNavigationSource.current = intent.source ?? "content";
+    dispatchBoard({ type: "route", routeId: intent.routeId });
     if (intent.routeId === "services") {
       setServiceFocus(intent.serviceFocus);
       updateSelection({
@@ -442,137 +476,139 @@ export function AppShell({
     ) : undefined;
 
   return (
-    <>
-      <a className="skip-link" href="#main-content">
-        跳到主要内容
-      </a>
-      {quitPrompt ? (
-        <QuitConfirmationDialog
-          onCancel={cancelQuitPrompt}
-          onConfirm={confirmQuitPrompt}
-          prompt={quitPrompt}
-        />
-      ) : null}
-      <div className="app-shell" onKeyDownCapture={clearSearchOnEscape}>
-        <header
-          className="titlebar"
-          data-tauri-drag-region
-          onDoubleClick={suppressTitlebarDoubleClick}
-        >
-          <p className="titlebar__title" data-tauri-drag-region>
-            <span data-tauri-drag-region>UserHome</span>
-          </p>
-        </header>
+    <BoardViewContext.Provider value={boardContext}>
+      <>
+        <a className="skip-link" href="#main-content">
+          跳到主要内容
+        </a>
+        {quitPrompt ? (
+          <QuitConfirmationDialog
+            onCancel={cancelQuitPrompt}
+            onConfirm={confirmQuitPrompt}
+            prompt={quitPrompt}
+          />
+        ) : null}
+        <div className="app-shell" onKeyDownCapture={clearSearchOnEscape}>
+          <header
+            className="titlebar"
+            data-tauri-drag-region
+            onDoubleClick={suppressTitlebarDoubleClick}
+          >
+            <p className="titlebar__title" data-tauri-drag-region>
+              <span data-tauri-drag-region>UserHome</span>
+            </p>
+          </header>
 
-        <DesktopWorkspace
-          sidebar={
-            <NavigationRail
-              activeRouteId={activeRouteId}
-              connection={state.connection}
-              onNavigate={navigate}
-              routes={APP_ROUTES}
-            />
-          }
-          banner={
-            commandError ||
-            preferencesNotice ||
-            refreshNotice ||
-            grantStoreVisible ? (
-              <div className="divide-y divide-border">
-                {commandError ? (
-                  <ShellNotice label="命令不可用" role="alert" tone="danger">
-                    {commandError}
-                  </ShellNotice>
-                ) : null}
-                {grantStoreVisible ? (
-                  <GrantStoreNotice
-                    controller={grantStore.controller}
-                    state={grantStore.state}
-                  />
-                ) : null}
-                {preferencesNotice}
-                {refreshNotice}
-              </div>
-            ) : undefined
-          }
-          toolbar={
-            <div className="flex w-full min-w-0 items-center justify-between gap-ui-xl">
-              <div className="min-w-0 flex-1">
-                <h1 className="desktop-workspace__page-title">
-                  {activeRoute.label}
-                </h1>
-                <p className="m-0 mt-ui-xxs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
-                  {activeRoute.description}
-                </p>
-              </div>
-              <div className="refresh-controls">
-                <Button
-                  className="toolbar-refresh-button"
-                  size="sm"
-                  disabled={
-                    state.preferences.status === "loading" ||
-                    state.refresh.status === "refreshing"
-                  }
-                  onClick={onRefresh}
-                  aria-label={
-                    state.refresh.status === "refreshing"
-                      ? "正在刷新本机状态"
-                      : "刷新本机状态"
-                  }
-                >
-                  <svg
-                    className={
+          <DesktopWorkspace
+            sidebar={
+              <NavigationRail
+                activeRouteId={activeRouteId}
+                connection={state.connection}
+                onNavigate={navigate}
+                routes={APP_ROUTES}
+              />
+            }
+            banner={
+              commandError ||
+              preferencesNotice ||
+              refreshNotice ||
+              grantStoreVisible ? (
+                <div className="divide-y divide-border">
+                  {commandError ? (
+                    <ShellNotice label="命令不可用" role="alert" tone="danger">
+                      {commandError}
+                    </ShellNotice>
+                  ) : null}
+                  {grantStoreVisible ? (
+                    <GrantStoreNotice
+                      controller={grantStore.controller}
+                      state={grantStore.state}
+                    />
+                  ) : null}
+                  {preferencesNotice}
+                  {refreshNotice}
+                </div>
+              ) : undefined
+            }
+            toolbar={
+              <div className="flex w-full min-w-0 items-center justify-between gap-ui-xl">
+                <div className="min-w-0 flex-1">
+                  <h1 className="desktop-workspace__page-title">
+                    {activeRoute.label}
+                  </h1>
+                  <p className="m-0 mt-ui-xxs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
+                    {activeRoute.description}
+                  </p>
+                </div>
+                <div className="refresh-controls">
+                  <Button
+                    className="toolbar-refresh-button"
+                    size="sm"
+                    disabled={
+                      state.preferences.status === "loading" ||
                       state.refresh.status === "refreshing"
-                        ? "animate-spin"
-                        : undefined
                     }
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
+                    onClick={onRefresh}
+                    aria-label={
+                      state.refresh.status === "refreshing"
+                        ? "正在刷新本机状态"
+                        : "刷新本机状态"
+                    }
                   >
-                    <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-                  </svg>
-                  {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
-                </Button>
+                    <svg
+                      className={
+                        state.refresh.status === "refreshing"
+                          ? "animate-spin"
+                          : undefined
+                      }
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+                    </svg>
+                    {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
+                  </Button>
+                </div>
               </div>
-            </div>
-          }
-          detailLabel={`${activeRoute.label}内容`}
-          detail={
-            <RoutePanel
-              connection={state.connection}
-              discovery={state.discovery}
-              onAppearanceChange={onAppearanceChange}
-              onNavigate={navigateTo}
-              onOperationChanged={onRefresh}
-              onPreferencesChange={
-                onPreferencesChange ??
-                (() =>
-                  Promise.reject(
-                    new Error("Preference updates are unavailable."),
-                  ))
-              }
-              onPreferencesReset={
-                onPreferencesReset ??
-                (() =>
-                  Promise.reject(
-                    new Error("Preference reset is unavailable."),
-                  ))
-              }
-              onSelectionChange={updateSelection}
-              onSettingsGroupChange={(group) =>
-                updateSelection({ settingsGroup: group })
-              }
-              preferences={state.preferences}
-              recentOperation={state.recentOperation}
-              refresh={state.refresh}
-              serviceFocus={serviceFocus}
-              route={activeRoute}
-              selection={selection}
-              settingsGroup={settingsGroup}
-            />
-          }
-        />
-      </div>
-    </>
+            }
+            detailLabel={`${activeRoute.label}内容`}
+            detail={
+              <RoutePanel
+                connection={state.connection}
+                discovery={state.discovery}
+                onAppearanceChange={onAppearanceChange}
+                onNavigate={navigateTo}
+                onOperationChanged={onRefresh}
+                onPreferencesChange={
+                  onPreferencesChange ??
+                  (() =>
+                    Promise.reject(
+                      new Error("Preference updates are unavailable."),
+                    ))
+                }
+                onPreferencesReset={
+                  onPreferencesReset ??
+                  (() =>
+                    Promise.reject(
+                      new Error("Preference reset is unavailable."),
+                    ))
+                }
+                onSelectionChange={updateSelection}
+                onSettingsGroupChange={(group) =>
+                  updateSelection({ settingsGroup: group })
+                }
+                preferences={state.preferences}
+                recentOperation={state.recentOperation}
+                refresh={state.refresh}
+                serviceFocus={serviceFocus}
+                route={activeRoute}
+                selection={selection}
+                settingsGroup={settingsGroup}
+              />
+            }
+          />
+        </div>
+      </>
+    </BoardViewContext.Provider>
   );
 }
