@@ -145,12 +145,11 @@
   --app-radius-control: 3px;
   --app-radius-container: 4px;
   --app-radius-panel: var(--app-radius-container);
-  --app-bracket-length: 8px;
+  --app-bracket-length: 6px;
   --app-bracket-length-hover: 6px;
   --app-bracket-width: 2px;
   --app-bracket-width-hover: 1px;
   --app-bracket-offset: 2px;
-  --app-selection-dash: 1px;
   --app-control-height-sm: 24px;
   --app-control-height-md: 28px;
   --app-status-badge-height: 18px;
@@ -1230,7 +1229,7 @@ body {
   --bracket-sizes: auto;
   --bracket-positions: 0 0;
   position: relative;
-  border: var(--app-selection-dash) solid transparent;
+  border: 1px solid transparent;
   background-image: var(--bracket-corners);
   background-size: var(--bracket-sizes);
   background-position: var(--bracket-positions);
@@ -1256,6 +1255,7 @@ body {
     left var(--app-bracket-offset) top var(--app-bracket-offset),
     right var(--app-bracket-offset) bottom var(--app-bracket-offset),
     right var(--app-bracket-offset) bottom var(--app-bracket-offset);
+  background-color: var(--app-sidebar-hover);
 }
 
 .bracket[aria-selected="true"],
@@ -1290,7 +1290,7 @@ body {
     right var(--app-bracket-offset) bottom var(--app-bracket-offset),
     right var(--app-bracket-offset) bottom var(--app-bracket-offset);
   background-color: var(--app-selection);
-  border: var(--app-selection-dash) dashed var(--app-selection-border);
+  border: 1px solid transparent;
 }
 
 @media (forced-colors: active) {
@@ -1302,7 +1302,7 @@ body {
   .bracket[aria-current="true"],
   .bracket[aria-current="page"],
   .bracket[data-selected="true"] {
-    border: var(--app-selection-dash) dashed Highlight;
+    border: 1px solid Highlight;
   }
 }
 

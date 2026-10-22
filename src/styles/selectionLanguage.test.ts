@@ -77,25 +77,23 @@ describe("选中语言：令牌化的角标与选中态", () => {
     );
   });
 
-  it("选中态使用浅橙底与 1px 橙色虚线框，且不改变外框尺寸（不用 outline、不用内外边距）", () => {
+  it("选中态使用浅橙底与 1px 透明实线边框，且不改变外框尺寸（不用 outline、不用内外边距）", () => {
     const base = section.split("@media")[0];
     expect(lastDeclaredIn(base, SELECTED, "background-color")).toBe("var(--app-selection)");
     const border = lastDeclaredIn(base, SELECTED, "border");
-    expect(border).toContain("dashed");
-    expect(border).toContain("var(--app-selection-border)");
-    expect(border).toContain("var(--app-selection-dash)");
+    expect(border).not.toContain("dashed");
+    expect(border).toContain("transparent");
+    expect(border).toContain("1px");
     expect(declaredIn(base, SELECTED, "padding")).toEqual([]);
     expect(declaredIn(base, SELECTED, "margin")).toEqual([]);
     expect(section).not.toContain("outline");
   });
 
-  it("基础态预留与选中态同宽的透明边框，选中时只改边框样式与颜色，避免布局偏移", () => {
+  it("基础态预留与选中态同宽的透明边框，选中时边框不变，避免布局偏移", () => {
     const base = section.split("@media")[0];
-    expect(lastDeclaredIn(base, ".bracket", "border")).toBe(
-      "var(--app-selection-dash) solid transparent",
-    );
+    expect(lastDeclaredIn(base, ".bracket", "border")).toBe("1px solid transparent");
     expect(declaredIn(base, SELECTED, "border-width")).toEqual([]);
-    expect(lastDeclaredIn(base, SELECTED, "border")).toMatch(/^var\(--app-selection-dash\) dashed /);
+    expect(lastDeclaredIn(base, SELECTED, "border")).toMatch(/^1px solid transparent$/);
   });
 
   it("选中态不声明阴影，阴影只属于独立的焦点环", () => {
@@ -128,12 +126,12 @@ describe("选中语言：令牌化的角标与选中态", () => {
 });
 
 describe("选中语言：退化规则", () => {
-  it("forced-colors 下去掉背景角标，改用 Highlight 的 1px 虚线边框", () => {
+  it("forced-colors 下去掉背景角标，改用 Highlight 的 1px 实线边框", () => {
     const forced = section.match(/@media \(forced-colors: active\)\s*\{([\s\S]*?)\n\}/);
     expect(forced).not.toBeNull();
     const body = forced?.[1] ?? "";
     expect(body).toMatch(/background-image:\s*none/);
-    expect(body).toContain("dashed");
+    expect(body).toContain("solid");
     expect(body).toContain("Highlight");
   });
 
