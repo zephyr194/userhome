@@ -6,6 +6,7 @@ import {
   caddyPreview,
   caddySave,
   caddyTlsStatus,
+  isWorkdirRequired,
   type CaddyExposure,
   type CaddyIssue,
   type CaddyRulesSource,
@@ -14,6 +15,8 @@ import {
 import type { AppError } from "../../ipc/core";
 import { selectTlsMaterialGrant } from "../../ipc/grants";
 import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
+import { CaddyWorkdirPanel } from "./CaddyWorkdirPanel";
+import { useCaddyWorkdir } from "./useCaddyWorkdir";
 import { CaddyPreviewPanel } from "./CaddyPreviewPanel";
 import { CaddyRulesEditor } from "./CaddyRulesEditor";
 import { RouteNavigationContext } from "../../app/routeNavigation";
@@ -80,6 +83,10 @@ export function CaddyPage() {
   const [preview, setPreview] = useState<PreviewState>({ status: "pending" });
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
   const [mode, setMode] = useState<EditMode>("form");
+  const workdir = useCaddyWorkdir();
+  const workdirReason = workdir.blockReason;
+  const workdirReady = workdirReason === undefined;
+  const refreshWorkdir = workdir.refresh;
 
   const schedulePreview = useCallback(
     (next: SiteDraft[]) => {
@@ -134,6 +141,7 @@ export function CaddyPage() {
   }
 
   useEffect(() => {
+    if (!workdirReady) return;
     let active = true;
     caddyLoadRules().then(
       (loaded) => {
@@ -145,13 +153,18 @@ export function CaddyPage() {
         schedulePreview(drafts);
       },
       (error: AppError) => {
-        if (active) setLoad({ status: "failed", error });
+        if (!active) return;
+        if (isWorkdirRequired(error)) {
+          refreshWorkdir();
+          return;
+        }
+        setLoad({ status: "failed", error });
       },
     );
     return () => {
       active = false;
     };
-  }, [ids, schedulePreview]);
+  }, [ids, schedulePreview, workdirReady, refreshWorkdir]);
 
   useEffect(
     () => () => {
@@ -163,7 +176,10 @@ export function CaddyPage() {
 
   const localResult = useMemo(() => rulesFromDraft(sites), [sites]);
   const saving = saveState.status === "saving";
-  const gate = saveGate({ localValid: localResult.ok, preview, saving });
+  const gate =
+    workdirReason === undefined
+      ? saveGate({ localValid: localResult.ok, preview, saving })
+      : { enabled: false, reason: workdirReason };
   const validation = useMemo(
     () => (preview.status === "ready" ? preview.preview.validation : undefined),
     [preview],
@@ -212,6 +228,18 @@ export function CaddyPage() {
 
   return (
     <div className="grid min-w-0 gap-ui-xl">
+      <CaddyWorkdirPanel
+        load={workdir.load}
+        action={workdir.action}
+        legacyPath={workdir.legacyPath}
+        onRetry={refreshWorkdir}
+        onSelect={workdir.select}
+        onUseDefault={workdir.useDefault}
+        onConfirmRevoke={workdir.confirmRevoke}
+        onCancelRevoke={workdir.cancelRevoke}
+        onRevoke={workdir.revoke}
+        onDismissLegacy={workdir.dismissLegacy}
+      />
       <CaddyDetectPanel state={detect} onRetry={retryDetect} />
       <div role="group" aria-label="编辑方式" className="flex flex-wrap gap-ui-sm">
         <Button
@@ -232,14 +260,20 @@ export function CaddyPage() {
       <CaddyRunPanel
         source={mode === "raw" ? "RAW" : "RULES"}
         onOpenService={(target: ServiceTarget) => onNavigate?.(serviceFocusIntent(target))}
+        workdirReason={workdirReason}
       />
       <div hidden={mode !== "form"} className="grid min-w-0 gap-ui-xl">
-        {load.status === "loading" ? (
+        {workdirReason !== undefined && workdir.load.status !== "loading" ? (
+          <p role="status" className="m-0 text-body text-muted-foreground">
+            {workdirReason}后才能读取或保存规则。
+          </p>
+        ) : null}
+        {load.status === "loading" && (workdirReady || workdir.load.status === "loading") ? (
           <p role="status" className="m-0 text-body text-muted-foreground">
             正在读取已保存的规则……
           </p>
         ) : null}
-        {load.status === "failed" ? (
+        {workdirReady && load.status === "failed" ? (
           <Panel role="alert" className="grid gap-ui-sm p-ui-lg">
             <p className="m-0 text-body font-semibold text-danger">无法读取已保存的规则</p>
             <p className="m-0 text-body">{load.error.message}</p>
@@ -248,7 +282,7 @@ export function CaddyPage() {
             </p>
           </Panel>
         ) : null}
-        {load.status === "ready" ? (
+        {workdirReady && load.status === "ready" ? (
           <>
             {load.source === "DEFAULT" ? (
               <p role="status" className="m-0 text-body text-muted-foreground">
@@ -281,7 +315,11 @@ export function CaddyPage() {
           </>
         ) : null}
       </div>
-      <RawEditor hidden={mode !== "raw"} />
+      <RawEditor
+        hidden={mode !== "raw"}
+        workdirReason={workdirReason}
+        onWorkdirRequired={refreshWorkdir}
+      />
     </div>
   );
 }

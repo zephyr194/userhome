@@ -5,6 +5,7 @@ import {
   caddyLoadRaw,
   caddySaveRaw,
   caddyValidate,
+  isWorkdirRequired,
   type CaddyRawOrigin,
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
@@ -33,6 +34,7 @@ const TONE_CLASS: Record<SummaryTone, string> = {
 
 interface RawEditorViewProps {
   hidden?: boolean;
+  blockReason?: string;
   text: string;
   load: RawLoadState;
   validation: ValidationState;
@@ -46,6 +48,7 @@ interface RawEditorViewProps {
 
 export function RawEditorView({
   hidden = false,
+  blockReason,
   text,
   load,
   validation,
@@ -57,9 +60,10 @@ export function RawEditorView({
   onSave,
 }: RawEditorViewProps) {
   const loading = load.status === "loading";
+  const blocked = blockReason !== undefined;
   const running = isRunning(validation);
   const saving = save.status === "saving";
-  const saveBlocked = loading || load.status === "failed" || saving;
+  const saveBlocked = loading || load.status === "failed" || saving || blocked;
   const result = resultSummary(validation);
   const stale = isResultStale(validation, text);
   const canAllow = result?.canAllowExternal === true && !allowedAlready(validation);
@@ -85,7 +89,12 @@ export function RawEditorView({
             无法读取已保存的原文：{load.error.message} 保存已停用，以免覆盖现有文件。
           </p>
         ) : null}
-        {loading ? (
+        {blockReason !== undefined ? (
+          <p role="status" className="m-0 text-body text-muted-foreground">
+            {blockReason}后才能读取、校验或保存原文。
+          </p>
+        ) : null}
+        {loading && !blocked ? (
           <p role="status" className="m-0 text-body text-muted-foreground">
             正在读取已保存的原文……
           </p>
@@ -95,12 +104,16 @@ export function RawEditorView({
           value={text}
           rows={18}
           spellCheck={false}
-          disabled={loading}
+          disabled={loading || blocked}
           inputClassName="font-mono text-body"
           onValueChange={onTextChange}
         />
         <div className="flex flex-wrap items-center gap-ui-sm">
-          <Button variant="primary" disabled={loading || running} onClick={onValidate}>
+          <Button
+            variant="primary"
+            disabled={loading || running || blocked}
+            onClick={onValidate}
+          >
             校验
           </Button>
           {running ? (
@@ -109,7 +122,11 @@ export function RawEditorView({
             </Button>
           ) : null}
           {canAllow ? (
-            <Button variant="secondary" disabled={running} onClick={onAllowExternalAndValidate}>
+            <Button
+              variant="secondary"
+              disabled={running || blocked}
+              onClick={onAllowExternalAndValidate}
+            >
               允许外部引用并校验
             </Button>
           ) : null}
@@ -197,13 +214,21 @@ function SaveResult({ state }: { state: SaveState }) {
 
 const EMPTY_LOAD: RawLoadState = { status: "loading" };
 
-export function RawEditor({ hidden = false }: { hidden?: boolean }) {
+interface RawEditorProps {
+  hidden?: boolean;
+  workdirReason?: string;
+  onWorkdirRequired: () => void;
+}
+
+export function RawEditor({ hidden = false, workdirReason, onWorkdirRequired }: RawEditorProps) {
   const [text, setText] = useState("");
   const [load, setLoad] = useState<RawLoadState>(EMPTY_LOAD);
   const [validation, setValidation] = useState<ValidationState>({ status: "idle" });
   const [save, setSave] = useState<SaveState>({ status: "idle" });
+  const workdirReady = workdirReason === undefined;
 
   useEffect(() => {
+    if (!workdirReady) return;
     let active = true;
     caddyLoadRaw().then(
       (document) => {
@@ -212,13 +237,19 @@ export function RawEditor({ hidden = false }: { hidden?: boolean }) {
         setLoad({ status: "ready", origin: document.origin });
       },
       (error: AppError) => {
-        if (active) setLoad({ status: "failed", error });
+        if (!active) return;
+        if (isWorkdirRequired(error)) {
+          setLoad(EMPTY_LOAD);
+          onWorkdirRequired();
+          return;
+        }
+        setLoad({ status: "failed", error });
       },
     );
     return () => {
       active = false;
     };
-  }, []);
+  }, [workdirReady, onWorkdirRequired]);
 
   function changeText(next: string) {
     setText(next);
@@ -252,6 +283,7 @@ export function RawEditor({ hidden = false }: { hidden?: boolean }) {
   return (
     <RawEditorView
       hidden={hidden}
+      blockReason={workdirReason}
       text={text}
       load={load}
       validation={validation}

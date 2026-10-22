@@ -73,14 +73,17 @@ export interface CaddyRunViewProps {
   onConfirmApply?: () => void;
   onCancelApply?: () => void;
   onOpenService?: (target: ServiceTarget) => void;
+  workdirReason?: string;
 }
 
 export function CaddyRunPanel({
   source,
   onOpenService,
+  workdirReason,
 }: {
   source: CaddyConfigSource;
   onOpenService?: (target: ServiceTarget) => void;
+  workdirReason?: string;
 }) {
   const [statusTracker] = useState(createRequestTracker);
   const [previewTracker] = useState(createRequestTracker);
@@ -241,6 +244,7 @@ export function CaddyRunPanel({
       onConfirmApply={apply}
       onCancelApply={() => setConfirmingApply(false)}
       onOpenService={onOpenService}
+      workdirReason={workdirReason}
     />
   );
 }
@@ -265,14 +269,18 @@ export function CaddyRunView({
   onConfirmApply,
   onCancelApply,
   onOpenService,
+  workdirReason,
 }: CaddyRunViewProps) {
   const state = status?.state;
   const applied = status?.applied;
-  const previewEnabled = state !== undefined && canPrepare(state) && !busy;
+  const previewEnabled = state !== undefined && canPrepare(state) && !busy && workdirReason === undefined;
   const stopEnabled = state !== undefined && canStop(state) && !busy;
   const applyBlocked = busy || applying || status?.applying === true;
   const applyEnabled =
-    state !== undefined && canApply(state, applied, applyBlocked) && !confirmingApply;
+    state !== undefined &&
+    canApply(state, applied, applyBlocked) &&
+    !confirmingApply &&
+    workdirReason === undefined;
   const confirmVisible =
     confirmingApply && state !== undefined && canApply(state, applied, applyBlocked);
   const presentation = state === undefined ? undefined : presentRunState(state);
@@ -314,11 +322,16 @@ export function CaddyRunView({
         <SummaryBlock
           key={summary.planId ?? "blocked"}
           summary={summary}
-          busy={busy}
+          busy={busy || workdirReason !== undefined}
           onStart={onStart}
           onCancel={onCancelSummary}
           onOpenService={onOpenService}
         />
+      ) : null}
+      {workdirReason !== undefined ? (
+        <p className="m-0 text-aux text-muted-foreground">
+          {workdirReason}后才能开启或应用配置。
+        </p>
       ) : null}
       <div className="flex flex-wrap gap-ui-sm">
         <Button variant="secondary" disabled={!previewEnabled} onClick={onPrepare}>
