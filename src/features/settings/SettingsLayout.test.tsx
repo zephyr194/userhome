@@ -82,4 +82,19 @@ describe("设置页布局（UIB-4f）", () => {
       expect(tab).toContain("slide-item");
     }
   });
+
+  it("分组列表是无编号、无标题栏的 title - description 平铺行", () => {
+    const markup = render("refresh");
+    const tabs = Array.from(markup.matchAll(/<button[^>]*data-group-id="[^"]*"[^>]*>[\s\S]*?<\/button>/g), (match) => match[0]);
+
+    expect(markup).not.toContain("settings-groups-heading");
+    expect(markup).not.toMatch(/>分组</);
+    expect(tabs).toHaveLength(7);
+    for (const tab of tabs) {
+      expect(tab).toContain("settings-pane__tab");
+      expect(tab).not.toContain("size-control-sm");
+      expect(tab).not.toContain("text-selection-foreground");
+      expect(tab.match(/<span class="block /g)).toHaveLength(2);
+    }
+  });
 });

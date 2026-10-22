@@ -49,18 +49,7 @@ export function SettingsPage({
       vertical
     >
       <PageShell layout="master-detail">
-        <section
-          className="settings-pane__groups flex min-h-0 min-w-0 flex-col overflow-hidden bg-surface-muted"
-          aria-labelledby="settings-groups-heading"
-        >
-          <header className="min-w-0 border-b border-border px-ui-12 py-ui-12">
-            <span
-              className="block break-words text-xs font-semibold tracking-widest text-muted-foreground uppercase"
-              id="settings-groups-heading"
-            >
-              分组
-            </span>
-          </header>
+        <section className="settings-pane__groups flex min-h-0 min-w-0 flex-col overflow-hidden bg-surface-muted">
           <SettingsSidebar selectedGroup={SETTINGS_GROUPS[selectedIndex].id} />
         </section>
 

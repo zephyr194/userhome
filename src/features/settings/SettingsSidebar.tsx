@@ -7,34 +7,22 @@ export function SettingsSidebar({ selectedGroup }: { selectedGroup: SettingsGrou
   return (
     <TabList
       ref={listRef}
-      className="slide-list settings-pane__tabs m-0 grid min-h-0 min-w-0 flex-1 list-none content-start gap-ui-4 overflow-x-hidden overflow-y-auto p-ui-8 [overscroll-behavior:contain] [scrollbar-gutter:stable]"
+      className="slide-list settings-pane__tabs m-0 grid min-h-0 min-w-0 flex-1 list-none content-start gap-0 overflow-x-hidden overflow-y-auto p-0 [overscroll-behavior:contain] [scrollbar-gutter:stable]"
       aria-label="设置分组"
     >
-      {SETTINGS_GROUPS.map((group, index) => (
+      {SETTINGS_GROUPS.map((group) => (
         <Tab
           key={group.id}
           aria-current={group.id === selectedGroup ? "true" : undefined}
-          className={({ selected }) =>
-            selected
-              ? "slide-item flex w-full min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-8 text-left text-selection-foreground"
-              : "slide-item flex w-full min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-8 text-left text-foreground"
-          }
+          className="settings-pane__tab slide-item flex w-full min-w-0 flex-col justify-center gap-ui-2 px-ui-12 py-ui-4 text-left text-foreground"
           data-group-id={group.id}
           id={`settings-group-${group.id}`}
         >
-          <span
-            className="grid size-control-sm shrink-0 place-items-center rounded-control bg-surface text-xs font-bold text-muted-foreground"
-            aria-hidden="true"
-          >
-            {index + 1}
+          <span className="block min-w-0 break-words text-body font-semibold">
+            {group.label}
           </span>
-          <span className="min-w-0">
-            <strong className="block break-words text-sm font-semibold">
-              {group.label}
-            </strong>
-            <span className="mt-ui-2 block break-words text-xs leading-relaxed text-muted-foreground">
-              {group.summary}
-            </span>
+          <span className="block min-w-0 break-words text-aux font-normal text-muted-foreground">
+            {group.summary}
           </span>
         </Tab>
       ))}

@@ -1976,6 +1976,10 @@ button {
   }
 }
 
+.settings-pane__tab {
+  min-height: 44px;
+}
+
 .settings-pane__detail-header {
   padding: var(--app-space-12);
   align-items: center;
