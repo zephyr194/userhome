@@ -12,7 +12,12 @@ import {
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
-import { BoardToggle, Button, StatusBadge } from "../components/ui";
+import {
+  ActionRow,
+  BoardToggle,
+  Button,
+  StatusBadge,
+} from "../components/ui";
 import { GrantStoreNotice } from "../features/grants/GrantStoreNotice";
 import { isGrantStoreNoticeVisible } from "../features/grants/grantStoreController";
 import { useGrantStoreNotice } from "../features/grants/useGrantStoreNotice";
@@ -565,11 +570,10 @@ export function AppShell({
                     {activeRoute.description}
                   </p>
                 </div>
-                <div className="refresh-controls">
+                <ActionRow>
                   <BoardToggle />
                   <Button
                     className="toolbar-refresh-button"
-                    size="sm"
                     disabled={
                       state.preferences.status === "loading" ||
                       state.refresh.status === "refreshing"
@@ -594,7 +598,7 @@ export function AppShell({
                     </svg>
                     {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
                   </Button>
-                </div>
+                </ActionRow>
               </div>
             }
             detailLabel={`${activeRoute.label}内容`}

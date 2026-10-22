@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  ActionRow,
   Button,
   LogViewer,
   Modal,
@@ -10,6 +11,14 @@ import {
 } from "./index";
 
 describe("shared ui primitives", () => {
+  it("ActionRow lays out wrapping, centered actions with the 8px token gap", () => {
+    const markup = renderToStaticMarkup(<ActionRow>保存</ActionRow>);
+    expect(markup).toContain("flex flex-wrap items-center gap-ui-8");
+    expect(markup).not.toContain("justify-end");
+    const end = renderToStaticMarkup(<ActionRow align="end">保存</ActionRow>);
+    expect(end).toContain("justify-end");
+  });
+
   it("Button uses semantic control sizes and body typography", () => {
     const md = renderToStaticMarkup(<Button>保存</Button>);
     expect(md).toContain("min-h-control-md");

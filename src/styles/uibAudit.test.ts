@@ -132,3 +132,19 @@ describe("UIB-5 全局审计", () => {
     expect(css).toMatch(/@media \(max-width: 760px\)\s*\{\s*:root\s*\{\s*--app-sidebar-width:\s*58px/);
   });
 });
+
+describe("UIF-4b 对齐审计", () => {
+  it("AppShell 工具栏的看板与刷新按钮使用同一个 ActionRow", () => {
+    const shell = read(join(srcRoot, "app/AppShell.tsx"));
+    const row = shell.match(/<ActionRow>([\s\S]*?)<\/ActionRow>/);
+    expect(row?.[1]).toContain("<BoardToggle />");
+    expect(row?.[1]).toContain("toolbar-refresh-button");
+    expect(row?.[1]).not.toContain('size="sm"');
+  });
+
+  it("Button 的 ghost 变体保留 border-transparent，与实心变体同外框高度", () => {
+    const button = read(join(srcRoot, "components/ui/Button.tsx"));
+    const ghost = button.match(/ghost:\s*\n?\s*"([^"]*)"/);
+    expect(ghost?.[1]).toContain("border-transparent");
+  });
+});
