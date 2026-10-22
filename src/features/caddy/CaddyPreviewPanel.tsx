@@ -34,7 +34,7 @@ function issueLocation(issue: CaddyIssue): string {
 
 export function CaddyPreviewPanel({ localValid, preview, exposures }: CaddyPreviewPanelProps) {
   return (
-    <Panel ticks aria-labelledby="caddy-preview-heading" className="grid min-w-0 gap-ui-md p-ui-lg">
+    <Panel ticks aria-labelledby="caddy-preview-heading" className="grid min-w-0 gap-ui-8 p-ui-8">
       <h2 id="caddy-preview-heading" className="text-sm font-semibold">
         预览与差异
       </h2>
@@ -68,11 +68,11 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
   const result = preview.preview;
   if (!result.valid) {
     return (
-      <div className="grid gap-ui-sm">
+      <div className="grid gap-ui-8">
         <p role="alert" className="m-0 text-body font-semibold text-danger">
           校验未通过，未生成 Caddyfile 文本。请根据表单中的提示修改。
         </p>
-        <ul className="m-0 grid gap-ui-xs pl-ui-lg text-aux">
+        <ul className="m-0 grid gap-ui-4 pl-ui-8 text-aux">
           {result.validation.issues.map((issue) => (
             <li key={`${issueLocation(issue)}:${issue.code}:${issue.message}`}>
               {issueLocation(issue)}：{issue.message}
@@ -91,11 +91,11 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
 
   const exposed = externalExposures(exposures);
   return (
-    <div className="grid min-w-0 gap-ui-md">
+    <div className="grid min-w-0 gap-ui-8">
       {exposed.length > 0 ? (
         <section
           aria-labelledby="caddy-exposure-heading"
-          className="grid gap-ui-xs rounded-panel bg-warning-soft p-ui-md text-warning"
+          className="grid gap-ui-4 rounded-panel bg-warning-soft p-ui-8 text-warning"
         >
           <h3 id="caddy-exposure-heading" className="m-0 text-sm font-semibold">
             对局域网或外部可见
@@ -103,7 +103,7 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
           <p className="m-0 text-aux">
             以下监听地址不是本机回环地址，同一网络中的其他设备或外部可能访问到这些代理。
           </p>
-          <ul className="m-0 grid gap-ui-xs pl-ui-lg text-aux">
+          <ul className="m-0 grid gap-ui-4 pl-ui-8 text-aux">
             {exposed.map((exposure) => (
               <li key={`${exposure.site}:${exposure.listen}`}>
                 站点 {exposure.site + 1}：监听 <span className="font-mono">{exposure.listen}</span>
@@ -114,7 +114,7 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
         </section>
       ) : null}
       {result.validation.issues.length > 0 ? (
-        <ul aria-label="校验提示" className="m-0 grid gap-ui-xs pl-ui-lg text-aux text-warning">
+        <ul aria-label="校验提示" className="m-0 grid gap-ui-4 pl-ui-8 text-aux text-warning">
           {result.validation.issues.map((issue) => (
             <li key={`${issueLocation(issue)}:${issue.code}`}>
               {issueLocation(issue)}：{issue.message}
@@ -133,7 +133,7 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
           return (
             <li
               key={index}
-              className={`flex min-w-0 gap-ui-sm px-ui-xs ${DIFF_CLASSES[line.change]}`}
+              className={`flex min-w-0 gap-ui-8 px-ui-4 ${DIFF_CLASSES[line.change]}`}
             >
               <span aria-hidden="true" className="inline-block w-4 shrink-0 select-none text-center">
                 {marker.symbol}
@@ -144,11 +144,11 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
           );
         })}
       </ol>
-      <div className="grid gap-ui-xs">
+      <div className="grid gap-ui-4">
         <h3 className="m-0 text-sm font-semibold">生成的 Caddyfile</h3>
         <pre
           aria-label="生成的 Caddyfile"
-          className="m-0 max-h-72 overflow-auto rounded-control bg-surface-muted p-ui-md font-mono text-aux"
+          className="m-0 max-h-72 overflow-auto rounded-control bg-surface-muted p-ui-8 font-mono text-aux"
         >
           {result.generatedText}
         </pre>

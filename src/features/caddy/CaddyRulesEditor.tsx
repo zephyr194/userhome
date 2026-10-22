@@ -63,8 +63,8 @@ export function CaddyRulesEditor({
   }
 
   return (
-    <section aria-labelledby="caddy-rules-heading" className="grid min-w-0 gap-ui-md">
-      <div className="flex flex-wrap items-center justify-between gap-ui-sm">
+    <section aria-labelledby="caddy-rules-heading" className="grid min-w-0 gap-ui-8">
+      <div className="flex flex-wrap items-center justify-between gap-ui-8">
         <h2 id="caddy-rules-heading" className="text-sm font-semibold">
           代理规则
         </h2>
@@ -92,10 +92,10 @@ export function CaddyRulesEditor({
         return (
           <fieldset
             key={site.key}
-            className="grid min-w-0 gap-ui-md rounded-panel bg-surface-muted p-ui-lg"
+            className="grid min-w-0 gap-ui-8 rounded-panel bg-surface-muted p-ui-8"
           >
-            <legend className="px-ui-xs text-sm font-semibold">站点 {siteIndex + 1}</legend>
-            <div className="flex flex-wrap items-center gap-ui-md">
+            <legend className="px-ui-4 text-sm font-semibold">站点 {siteIndex + 1}</legend>
+            <div className="flex flex-wrap items-center gap-ui-8">
               <SwitchField
                 label="启用此站点"
                 name={`site-${site.key}-enabled`}
@@ -114,7 +114,7 @@ export function CaddyRulesEditor({
                 删除站点
               </Button>
             </div>
-            <div className="grid gap-ui-md sm:grid-cols-2">
+            <div className="grid gap-ui-8 sm:grid-cols-2">
               <TextField
                 label="监听主机"
                 name={`site-${site.key}-host`}
@@ -145,18 +145,18 @@ export function CaddyRulesEditor({
               onPick={(slot) => onPickTlsFile(siteIndex, slot)}
               onAccessLogChange={(accessLog) => replaceSite(siteIndex, { ...site, accessLog })}
             />
-            <div className="grid gap-ui-sm">
+            <div className="grid gap-ui-8">
               <h3 className="m-0 text-sm font-semibold">上游（反向代理目标）</h3>
-              <ol className="m-0 grid list-none gap-ui-md p-0">
+              <ol className="m-0 grid list-none gap-ui-8 p-0">
                 {site.upstreams.map((upstream, upstreamIndex) => {
                   const upstreamHost = feedback(upstreamFieldKey(siteIndex, upstreamIndex, "host"));
                   const upstreamPort = feedback(upstreamFieldKey(siteIndex, upstreamIndex, "port"));
                   return (
                     <li
                       key={upstream.key}
-                      className="grid min-w-0 gap-ui-sm rounded-control bg-surface p-ui-md"
+                      className="grid min-w-0 gap-ui-8 rounded-control bg-surface p-ui-8"
                     >
-                      <div className="grid gap-ui-md sm:grid-cols-3">
+                      <div className="grid gap-ui-8 sm:grid-cols-3">
                         <SelectField
                           label="上游协议"
                           name={`upstream-${upstream.key}-scheme`}
@@ -272,7 +272,7 @@ function TlsSection({
   onAccessLogChange,
 }: TlsSectionProps) {
   return (
-    <div className="grid gap-ui-sm">
+    <div className="grid gap-ui-8">
       <SwitchField
         label="使用 HTTPS（已有证书与私钥）"
         name={`${name}-tls`}
@@ -280,7 +280,7 @@ function TlsSection({
         onCheckedChange={onTlsChange}
       />
       {tls !== null ? (
-        <div className="grid gap-ui-sm">
+        <div className="grid gap-ui-8">
           <FileRow
             label="证书文件"
             buttonLabel="选择证书文件"
@@ -326,7 +326,7 @@ function FileRow({
   onPick: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-ui-sm">
+    <div className="flex flex-wrap items-center gap-ui-8">
       <span className="text-sm font-medium">{label}</span>
       <span className="text-aux text-muted-foreground">
         {line.symbol} {line.text}

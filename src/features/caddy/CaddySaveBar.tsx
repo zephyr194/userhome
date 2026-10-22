@@ -19,11 +19,11 @@ const REASON_ID = "caddy-save-reason";
 export function CaddySaveBar({ gate, saveState, onSave }: CaddySaveBarProps) {
   const saving = saveState.status === "saving";
   return (
-    <Panel aria-labelledby="caddy-save-heading" className="grid gap-ui-sm p-ui-lg">
+    <Panel aria-labelledby="caddy-save-heading" className="grid gap-ui-8 p-ui-8">
       <h2 id="caddy-save-heading" className="text-sm font-semibold">
         保存
       </h2>
-      <div className="flex flex-wrap items-center gap-ui-md">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <Button
           variant="primary"
           disabled={!gate.enabled || saving}

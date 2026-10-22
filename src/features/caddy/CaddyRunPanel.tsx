@@ -288,12 +288,12 @@ export function CaddyRunView({
     state === "RUNNING" && applied !== undefined ? presentApplied(applied) : undefined;
 
   return (
-    <Panel ticks aria-labelledby="caddy-run-heading" className="grid min-w-0 gap-ui-md p-ui-lg">
-      <div className="flex flex-wrap items-center justify-between gap-ui-sm">
+    <Panel ticks aria-labelledby="caddy-run-heading" className="grid min-w-0 gap-ui-8 p-ui-8">
+      <div className="flex flex-wrap items-center justify-between gap-ui-8">
         <h2 id="caddy-run-heading" className="text-sm font-semibold">
           运行（自有实例）
         </h2>
-        <div className="flex flex-wrap gap-ui-xs">
+        <div className="flex flex-wrap gap-ui-4">
           {presentation !== undefined ? (
             <StatusBadge tone={presentation.tone}>
               {`${presentation.symbol} ${presentation.label}`}
@@ -333,7 +333,7 @@ export function CaddyRunView({
           {workdirReason}后才能开启或应用配置。
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-ui-sm">
+      <div className="flex flex-wrap gap-ui-8">
         <Button variant="secondary" disabled={!previewEnabled} onClick={onPrepare}>
           开启前预览
         </Button>
@@ -385,13 +385,13 @@ function ApplyConfirm({
   return (
     <section
       aria-label="应用确认"
-      className="grid gap-ui-sm rounded-panel border border-warning p-ui-md"
+      className="grid gap-ui-8 rounded-panel border border-warning p-ui-8"
     >
       <p className="m-0 text-body font-semibold">确认应用到运行中的实例？</p>
       <p className="m-0 text-body">
         将重载自有实例（仅通过本次运行的私有管理端点）。失败时旧配置可能仍在运行，且不会自动重试。
       </p>
-      <div className="flex flex-wrap gap-ui-sm">
+      <div className="flex flex-wrap gap-ui-8">
         <Button variant="primary" disabled={busy} onClick={onConfirm}>
           确认应用
         </Button>
@@ -412,21 +412,21 @@ function ApplyResultBlock({ report }: { report: CaddyApplyReport }) {
     <section
       aria-label="应用结果"
       role={failed ? "alert" : undefined}
-      className={`grid gap-ui-xs rounded-panel border p-ui-md ${failed ? "border-danger" : "border-control-border"}`}
+      className={`grid gap-ui-4 rounded-panel border p-ui-8 ${failed ? "border-danger" : "border-control-border"}`}
     >
       <p className={`m-0 text-body font-semibold ${failed ? "text-danger" : ""}`}>
         {`${failed ? "▲" : "●"} ${headline}`}
       </p>
       <p className="m-0 text-body">{report.message}</p>
       {report.review !== undefined ? (
-        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+        <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
           {reviewLines(report.review).map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
       ) : null}
       {report.diagnostics.length > 0 ? (
-        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+        <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
           {report.diagnostics.map((diagnostic, index) => (
             <li key={`${index}-${diagnostic.message}`}>{diagnostic.message}</li>
           ))}
@@ -439,10 +439,10 @@ function ApplyResultBlock({ report }: { report: CaddyApplyReport }) {
 
 function FailureBlock({ status }: { status: CaddyRunStatus }) {
   return (
-    <div role="alert" className="grid gap-ui-xs rounded-panel border border-danger p-ui-md">
+    <div role="alert" className="grid gap-ui-4 rounded-panel border border-danger p-ui-8">
       <p className="m-0 text-body font-semibold text-danger">{status.message}</p>
       {status.diagnostics.length > 0 ? (
-        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+        <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
           {status.diagnostics.map((diagnostic, index) => (
             <li key={`${index}-${diagnostic.message}`}>
               {diagnostic.line !== undefined
@@ -479,14 +479,14 @@ function SummaryBlock({
   const conflicts = summary.conflicts;
   const gate = startGate(summary, accepted);
   return (
-    <section aria-label="开启前摘要" className="grid gap-ui-sm rounded-panel border border-control-border p-ui-md">
+    <section aria-label="开启前摘要" className="grid gap-ui-8 rounded-panel border border-control-border p-ui-8">
       <h3 className="m-0 text-sm font-semibold">开启前摘要</h3>
       {summary.blocked !== undefined ? (
         <p role="alert" className="m-0 text-body text-danger">
           {`无法开启：${summary.blocked}`}
         </p>
       ) : null}
-      <dl className="m-0 grid gap-ui-xs text-body">
+      <dl className="m-0 grid gap-ui-4 text-body">
         <SummaryRow label="配置来源" value={SOURCE_LABELS[summary.source]} />
         <SummaryRow
           label="可执行文件"
@@ -505,13 +505,13 @@ function SummaryBlock({
       {conflicts !== undefined ? (
         <ConflictBlock conflicts={conflicts} onOpenService={onOpenService} />
       ) : null}
-      <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-aux text-muted-foreground">
+      <ul className="m-0 grid gap-ui-2 pl-ui-8 text-aux text-muted-foreground">
         {summary.notes.map((note) => (
           <li key={note}>{note}</li>
         ))}
       </ul>
       {summary.blocked === undefined ? (
-        <div className="grid gap-ui-sm">
+        <div className="grid gap-ui-8">
           {conflicts?.verdict === "UNCONFIRMED" ? (
             <CheckboxField
               label="我已确认外部 Caddy 与端口状态，仍要开启"
@@ -521,7 +521,7 @@ function SummaryBlock({
               onCheckedChange={setAccepted}
             />
           ) : null}
-          <div className="flex flex-wrap gap-ui-sm">
+          <div className="flex flex-wrap gap-ui-8">
             <Button
               variant="primary"
               disabled={busy || !gate.canStart}
@@ -549,7 +549,7 @@ function ConflictBlock({
   const verdict = presentVerdict(conflicts.verdict);
   const targets = externalServiceTargets(conflicts);
   return (
-    <section aria-label="冲突检查" className="grid gap-ui-xs rounded-panel border border-control-border p-ui-md">
+    <section aria-label="冲突检查" className="grid gap-ui-4 rounded-panel border border-control-border p-ui-8">
       <p className="m-0 text-body font-semibold">{`${verdict.symbol} ${verdict.label}`}</p>
       <p className="m-0 text-body">{conflicts.headline}</p>
       <h4 className="m-0 text-sm font-semibold">外部 Caddy 归属</h4>
@@ -557,7 +557,7 @@ function ConflictBlock({
         {`${SNAPSHOT_LABELS[conflicts.external.snapshot]}：${conflicts.external.explanation}`}
       </p>
       {conflicts.external.instances.length > 0 ? (
-        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+        <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
           {conflicts.external.instances.map((instance) => (
             <li key={`${instance.domain}/${instance.label}`}>
               {`${instance.label}（${DOMAIN_LABELS[instance.domain]}，${RUN_STATE_LABELS[instance.runState]}${
@@ -568,7 +568,7 @@ function ConflictBlock({
         </ul>
       ) : null}
       {targets.map((target) => (
-        <div key={`${target.domain}/${target.label}`} className="flex flex-wrap items-center gap-ui-sm">
+        <div key={`${target.domain}/${target.label}`} className="flex flex-wrap items-center gap-ui-8">
           <span className="text-aux text-muted-foreground">{`仅跳转查看，不会停止或重载：${target.label}`}</span>
           <Button variant="secondary" onClick={() => onOpenService?.(target)}>
             查看该服务
@@ -577,7 +577,7 @@ function ConflictBlock({
       ))}
       <h4 className="m-0 text-sm font-semibold">端口占用预检查</h4>
       {conflicts.ports.length > 0 ? (
-        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+        <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
           {conflicts.ports.map((port) => (
             <li key={`${port.host}:${port.port}`}>
               {`${port.host}:${port.port}：${PORT_STATE_LABELS[port.state]}。${port.explanation}`}
@@ -590,7 +590,7 @@ function ConflictBlock({
       {conflicts.upstreams.length > 0 ? (
         <>
           <h4 className="m-0 text-sm font-semibold">上游（仅提示，不阻止开启）</h4>
-          <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-body">
+          <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
             {conflicts.upstreams.map((upstream) => (
               <li key={`${upstream.host}:${upstream.port}`}>
                 {`${upstream.host}:${upstream.port}：${UPSTREAM_STATE_LABELS[upstream.state]}。${upstream.explanation}`}
@@ -600,7 +600,7 @@ function ConflictBlock({
         </>
       ) : null}
       {conflicts.notes.length > 0 ? (
-        <ul className="m-0 grid gap-ui-xxs pl-ui-lg text-aux text-muted-foreground">
+        <ul className="m-0 grid gap-ui-2 pl-ui-8 text-aux text-muted-foreground">
           {conflicts.notes.map((note) => (
             <li key={note}>{note}</li>
           ))}
@@ -616,7 +616,7 @@ function emptyAddressText(summary: CaddyStartSummary): string {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-ui-xxs sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-ui-sm">
+    <div className="grid gap-ui-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-ui-8">
       <dt className="m-0 text-muted-foreground">{label}</dt>
       <dd className="m-0 min-w-0 break-all">{value}</dd>
     </div>

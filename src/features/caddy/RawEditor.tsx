@@ -72,9 +72,9 @@ export function RawEditorView({
     <section
       hidden={hidden}
       aria-labelledby="raw-editor-heading"
-      className="grid min-w-0 gap-ui-lg"
+      className="grid min-w-0 gap-ui-8"
     >
-      <Panel className="grid gap-ui-sm p-ui-lg">
+      <Panel className="grid gap-ui-8 p-ui-8">
         <h2 id="raw-editor-heading" className="text-sm font-semibold">
           原文 Caddyfile
         </h2>
@@ -108,7 +108,7 @@ export function RawEditorView({
           inputClassName="font-mono text-body"
           onValueChange={onTextChange}
         />
-        <div className="flex flex-wrap items-center gap-ui-sm">
+        <div className="flex flex-wrap items-center gap-ui-8">
           <Button
             variant="primary"
             disabled={loading || running || blocked}
@@ -169,14 +169,14 @@ function ValidationResult({
 }) {
   if (validation.status === "running") {
     return (
-      <Panel role="status" aria-live="polite" className="grid gap-ui-sm p-ui-lg">
+      <Panel role="status" aria-live="polite" className="grid gap-ui-8 p-ui-8">
         <p className="m-0 text-body">正在校验……可随时取消。</p>
       </Panel>
     );
   }
   if (!summary) return null;
   return (
-    <Panel aria-labelledby="raw-validation-heading" className="grid gap-ui-sm p-ui-lg">
+    <Panel aria-labelledby="raw-validation-heading" className="grid gap-ui-8 p-ui-8">
       <h3 id="raw-validation-heading" className={`m-0 text-sm font-semibold ${TONE_CLASS[summary.tone]}`}>
         {summary.title}
       </h3>
@@ -186,7 +186,7 @@ function ValidationResult({
         </p>
       ) : null}
       {summary.details.length > 0 ? (
-        <ul className="m-0 grid gap-ui-xs pl-ui-lg text-body">
+        <ul className="m-0 grid gap-ui-4 pl-ui-8 text-body">
           {summary.details.map((detail) => (
             <li key={detail}>{detail}</li>
           ))}
