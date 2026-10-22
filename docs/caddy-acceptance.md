@@ -10,7 +10,7 @@
 
 | 占位符 | 含义 | 用户批准值 |
 |---|---|---|
-| `<APPROVED_TEMP_DIR>` | 临时目录（验收专用，验收后删除） | 未批准 |
+| `<CADDY_WORKDIR>` | Caddy 工作目录（默认建议 `~/.caddy`，由用户在界面中选择；验收专用，验收后是否删除由用户确认） | 未批准 |
 | `<APPROVED_LISTEN_PORT>` | 代理监听端口（仅 127.0.0.1） | 未批准 |
 | `<APPROVED_UPSTREAM_PORT>` | 本地上游夹具端口（仅 127.0.0.1） | 未批准 |
 | `<CADDY_BIN>` | 用户已授权的 Caddy 可执行文件 | 未批准 |
@@ -27,9 +27,9 @@
 首选 `python3 -m http.server`，绑定 127.0.0.1 的临时端口：
 
 ```sh
-mkdir -p "<APPROVED_TEMP_DIR>/upstream"
-echo "upstream-ok" > "<APPROVED_TEMP_DIR>/upstream/index.html"
-python3 -m http.server "<APPROVED_UPSTREAM_PORT>" --bind 127.0.0.1 --directory "<APPROVED_TEMP_DIR>/upstream"
+mkdir -p "<CADDY_WORKDIR>/upstream"
+echo "upstream-ok" > "<CADDY_WORKDIR>/upstream/index.html"
+python3 -m http.server "<APPROVED_UPSTREAM_PORT>" --bind 127.0.0.1 --directory "<CADDY_WORKDIR>/upstream"
 ```
 
 备选 `nc` 只能应答一次，每次请求前需重新启动。不同平台的 `nc` 参数差异较大，执行前需先确认其语义：
@@ -57,7 +57,7 @@ printf 'HTTP/1.1 200 OK\r\nContent-Length: 12\r\nConnection: close\r\n\r\nupstre
 | 11 | 退出应用，对话框选择“停止并退出” | 对话框列出 Caddy 自有实例及监听摘要；确认后应用退出 | 未执行 |
 | 12 | 退出后执行第 4 节的核对命令 | 无残留进程；监听端口已释放 | 未执行 |
 | 13 | 退出后检查私有运行目录与管理 socket 目录 | 均已删除，无残留 | 未执行 |
-| 14 | 清理 `<APPROVED_TEMP_DIR>`（经用户确认后删除） | 临时目录已删除 | 未执行 |
+| 14 | 清理上游夹具目录 `<CADDY_WORKDIR>/upstream`（经用户确认后删除；工作目录本身是否保留由用户决定） | 夹具目录已删除 | 未执行 |
 
 ## 4. 核对命令（只读）
 
@@ -84,7 +84,7 @@ pgrep -fl "caddy run"                                    # 退出后不应出现
 | Caddy 版本 | 未执行 |
 | 执行命令（起止时间） | 未执行 |
 | 使用端口（监听 / 上游） | 未执行（需用户批准） |
-| 临时目录 | 未执行（需用户批准） |
+| Caddy 工作目录 | 未执行（需用户批准） |
 | 日期 | 未执行 |
 | 执行人 | 未执行 |
 | 总体结果（通过 / 失败 / 部分） | 未执行 |
