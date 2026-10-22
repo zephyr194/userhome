@@ -4,8 +4,8 @@ import type {
   UserPreferences,
 } from "../../ipc/settings";
 import { BackupSettings } from "./BackupSettings";
-import { RadioCardGroup } from "../../components/ui";
-import { SettingsFeedback, SettingsForm, SettingsTipRow } from "./SettingsPrimitives";
+import { InfoTip, RadioCardGroup } from "../../components/ui";
+import { SettingsFeedback, SettingsForm } from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 export function ConfigurationSettings({
@@ -19,22 +19,18 @@ export function ConfigurationSettings({
 
   return (
     <SettingsForm busy={form.saving}>
-      <SettingsTipRow
-        description="仅在 catalog 授权相应能力时显示编辑器；此偏好不会授予新的配置写入权限。"
-        title="首选编辑器模式"
-      >
-        <RadioCardGroup
-          label="首选编辑器模式"
-          name="preferred-editor-mode"
-          value={form.values.preferredEditorMode}
-          disabled={form.saving}
-          options={[
-            { value: "STRUCTURED", label: "结构化", description: "优先使用受约束字段编辑器，必要时回退到 raw。" },
-            { value: "RAW", label: "Raw", description: "显式选择文本编辑器；仍保留预览、确认与写入策略。" },
-          ]}
-          onValueChange={(preferredEditorMode) => void form.update("首选编辑器模式", { preferredEditorMode: preferredEditorMode as PreferredEditorMode })}
-        />
-      </SettingsTipRow>
+      <RadioCardGroup
+        tip={<InfoTip description="仅当该配置的授权允许时显示编辑器；此偏好不会授予新的配置写入权限。" title="首选编辑器模式" />}
+        label="首选编辑器模式"
+        name="preferred-editor-mode"
+        value={form.values.preferredEditorMode}
+        disabled={form.saving}
+        options={[
+          { value: "STRUCTURED", label: "结构化", description: "优先使用受约束字段编辑器，必要时回退到 raw。" },
+          { value: "RAW", label: "Raw", description: "显式选择文本编辑器；仍保留预览、确认与写入策略。" },
+        ]}
+        onValueChange={(preferredEditorMode) => void form.update("首选编辑器模式", { preferredEditorMode: preferredEditorMode as PreferredEditorMode })}
+      />
 
       <BackupSettings
         onChange={onChange}

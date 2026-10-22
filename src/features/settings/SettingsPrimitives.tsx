@@ -55,25 +55,6 @@ function SettingsFieldTitle({
   );
 }
 
-export function SettingsTipRow({
-  children,
-  className,
-  description,
-  title,
-}: {
-  children: ReactNode;
-  className?: string;
-  description: ReactNode;
-  title: string;
-}) {
-  return (
-    <div className={classNames("flex min-w-0 items-start gap-ui-8", className)}>
-      <div className="min-w-0 flex-1">{children}</div>
-      <InfoTip className="mt-ui-2 shrink-0" description={description} title={title} />
-    </div>
-  );
-}
-
 export function SettingsField({
   children,
   description,

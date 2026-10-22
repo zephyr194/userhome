@@ -4,8 +4,8 @@ import type {
   UpdatePreferencesRequest,
   UserPreferences,
 } from "../../ipc/settings";
-import { CheckboxField } from "../../components/ui";
-import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsSection, SettingsTipRow, SettingsValueField } from "./SettingsPrimitives";
+import { CheckboxField, InfoTip } from "../../components/ui";
+import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsSection, SettingsValueField } from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 const ROOTS: readonly {
@@ -84,9 +84,15 @@ export function PrivacySettings({
       >
         <SettingsFieldList>
           {ROOTS.map((root) => (
-            <SettingsTipRow key={root.id} className="py-ui-12" description={root.description} title={root.label}>
-              <CheckboxField label={root.label} checked={form.values.optionalDiscoveryRoots.includes(root.id)} disabled={form.saving || refreshing} onCheckedChange={(checked) => void toggleRoot(root.id, checked)} />
-            </SettingsTipRow>
+            <CheckboxField
+              key={root.id}
+              className="py-ui-12"
+              tip={<InfoTip description={root.description} title={root.label} />}
+              label={root.label}
+              checked={form.values.optionalDiscoveryRoots.includes(root.id)}
+              disabled={form.saving || refreshing}
+              onCheckedChange={(checked) => void toggleRoot(root.id, checked)}
+            />
           ))}
         </SettingsFieldList>
       </SettingsSection>
