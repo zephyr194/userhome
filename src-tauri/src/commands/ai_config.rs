@@ -3,7 +3,7 @@
 //! are opaque grant ids, a fixed key path and a JSON value that is validated
 //! against the definition before anything is written.
 
-use std::sync::Mutex;
+use std::{path::PathBuf, sync::Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -12,7 +12,8 @@ use tauri::{AppHandle, Manager, State};
 use crate::{
     ai_config::{
         command::{
-            BuiltCommand, CommandRequest, OptionSummary, build_claude_command, option_summary,
+            BuiltCommand, CLAUDE_CODE_TOOL_ID, CommandRequest, OptionSummary, build_claude_command,
+            option_summary,
         },
         detect::{
             AiConfigReport, ProbeEnv, SystemVersionProbe, detect_all, detect_claude_version,
@@ -26,6 +27,7 @@ use crate::{
             CoverageStatus, Definitions, SettingDefinition, ToolDefinition, ValueType,
             VerifiedVersions,
         },
+        terminal::{SystemLauncher, TerminalPlan, open_command, terminal_directory},
         validate::load_all,
         write::{
             EditAction, EditGate, EditRefusal, EditRequest, apply_edit, edit_gate, is_settings_file,
@@ -92,15 +94,7 @@ pub fn ai_config_claude_read(
         canonical_home().ok_or_else(|| AppError::not_found("无法确定主目录，AI 配置不可用。"))?;
     let project = match project_grant_id {
         None => None,
-        Some(raw) => {
-            let record = coordinator.resolve(&GrantId::parse(&raw)?)?;
-            if record.kind != GrantKind::Directory
-                || record.purpose != GrantPurpose::ConfigDirectory
-            {
-                return Err(AppError::validation_failed("所选授权不是项目目录。"));
-            }
-            Some(record.target_path())
-        }
+        Some(raw) => Some(project_directory(&coordinator, &raw)?),
     };
     let locations = ClaudeLocations {
         home,
@@ -479,6 +473,14 @@ fn ensure_settings_grant(
     Ok(())
 }
 
+fn project_directory(coordinator: &GrantCoordinator, raw: &str) -> Result<PathBuf, AppError> {
+    let record = coordinator.resolve(&GrantId::parse(raw)?)?;
+    if record.kind != GrantKind::Directory || record.purpose != GrantPurpose::ConfigDirectory {
+        return Err(AppError::validation_failed("所选授权不是项目目录。"));
+    }
+    Ok(record.target_path())
+}
+
 struct CurrentSettings {
     text: String,
     sha256: String,
@@ -604,6 +606,54 @@ pub fn ai_config_claude_build_command(request: CommandRequest) -> Result<BuiltCo
     let tool = claude_tool(&definitions)
         .ok_or_else(|| AppError::not_found("未找到 Claude Code 定义。"))?;
     build_claude_command(tool, &request).map_err(|error| AppError::invalid_input(&error.message()))
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TerminalOpenInput {
+    pub tool_id: String,
+    pub request: CommandRequest,
+    #[serde(default)]
+    pub project_grant_id: Option<String>,
+}
+
+#[tauri::command]
+pub async fn ai_config_claude_open_in_terminal(
+    app: AppHandle,
+    input: TerminalOpenInput,
+) -> Result<(), AppError> {
+    if input.tool_id != CLAUDE_CODE_TOOL_ID {
+        return Err(AppError::invalid_input("该工具暂不支持在终端中打开命令。"));
+    }
+    let definitions = load_claude_definitions()?;
+    let tool = claude_tool(&definitions)
+        .ok_or_else(|| AppError::not_found("未找到 Claude Code 定义。"))?;
+    let built = build_claude_command(tool, &input.request)
+        .map_err(|error| AppError::invalid_input(&error.message()))?;
+    let home =
+        canonical_home().ok_or_else(|| AppError::not_found("无法确定主目录，AI 配置不可用。"))?;
+    let work_dir = match input.project_grant_id {
+        None => None,
+        Some(raw) => Some(project_directory(&app.state::<GrantCoordinator>(), &raw)?),
+    };
+    let directory = terminal_directory(
+        &app.path()
+            .app_data_dir()
+            .map_err(|_| AppError::internal())?,
+    );
+    tauri::async_runtime::spawn_blocking(move || {
+        open_command(
+            &directory,
+            &home,
+            &TerminalPlan {
+                command: &built.text,
+                work_dir: work_dir.as_deref(),
+            },
+            &SystemLauncher,
+        )
+    })
+    .await
+    .map_err(|_| AppError::internal())?
 }
 
 #[cfg(test)]

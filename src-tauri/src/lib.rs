@@ -55,6 +55,12 @@ pub fn run() {
         .manage(services::adopt::flow::AdoptCoordinator::default())
         .setup(|app| {
             let settings_directory = app.path().app_config_dir()?;
+            if let Ok(app_data) = app.path().app_data_dir() {
+                ai_config::terminal::sweep_expired(
+                    &ai_config::terminal::terminal_directory(&app_data),
+                    std::time::SystemTime::now(),
+                );
+            }
             app.manage(grants::GrantCoordinator::new(
                 grants::GrantStore::new(settings_directory.clone()),
                 commands::grants::canonical_home(),
@@ -131,6 +137,7 @@ pub fn run() {
             commands::ai_config::ai_config_claude_confirm_edit,
             commands::ai_config::ai_config_claude_flags,
             commands::ai_config::ai_config_claude_build_command,
+            commands::ai_config::ai_config_claude_open_in_terminal,
             commands::settings::get_discovery_exclusions,
             commands::settings::update_discovery_exclusions,
             commands::catalog::list_managed_apps,

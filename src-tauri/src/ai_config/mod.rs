@@ -2,6 +2,7 @@ pub mod command;
 pub mod detect;
 pub mod read;
 pub mod registry;
+pub mod terminal;
 pub mod validate;
 pub mod write;
 
