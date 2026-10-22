@@ -22,7 +22,8 @@ describe("application config route wiring", () => {
 
     expect(tools?.routes.map((route) => route.id)).toContain("appConfig");
     expect(source).toContain('route.id === "appConfig"');
-    expect(source).toContain("<AppConfigPage />");
+    expect(source).toContain("<AppConfigPage");
+    expect(source).toContain("refreshId={");
   });
 });
 

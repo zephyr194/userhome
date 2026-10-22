@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Button as HeadlessButton } from "@headlessui/react";
 import { useBoardView } from "../../app/BoardViewContext";
 import { Button, PageShell, Panel } from "../../components/ui";
+import { classNames } from "../../components/ui/classNames";
 import { PageRegion } from "../../components/ui/PageShell";
 import type { AppConfigListItem, AppConfigProbeStatus, AppConfigReadResult } from "../../ipc/appConfig";
 import {
@@ -8,6 +10,7 @@ import {
   describeEntryDetail,
   describeProbe,
   groupByCategory,
+  type EntryDetailView,
   isFixedLocation,
   type DetailState,
   type ListState,
@@ -40,21 +43,16 @@ export function AppConfigView({ list, detail, onReload, onSelect }: AppConfigVie
       scrollKey={isBoard ? "board" : "compact"}
     >
       <PageRegion
-        className="content-start gap-ui-12 overflow-y-auto overscroll-contain"
+        className="r4-fe4-scroll content-start gap-ui-12 overflow-y-auto overscroll-contain"
         span={isBoard ? 4 : undefined}
       >
         <ListStatusNotice list={list} onReload={onReload} />
         {items ? (
-          <EntryList
-            items={items}
-            selectedId={selectedId}
-            onSelect={onSelect}
-            onReload={onReload}
-          />
+          <EntryList items={items} selectedId={selectedId} onSelect={onSelect} />
         ) : null}
       </PageRegion>
       <PageRegion
-        className="content-start overflow-y-auto overscroll-contain"
+        className="r4-fe4-scroll content-start overflow-y-auto overscroll-contain"
         span={isBoard ? 8 : undefined}
       >
         {items ? <EntryDetail items={items} detail={detail} /> : null}
@@ -109,24 +107,17 @@ function EntryList({
   items,
   selectedId,
   onSelect,
-  onReload,
 }: {
   items: AppConfigListItem[];
   selectedId: string | undefined;
   onSelect: (id: string) => void;
-  onReload: () => void;
 }) {
   const listRef = useSlideIndicator(selectedId);
   return (
     <Panel aria-labelledby="app-config-list-title" className="grid content-start gap-ui-8 p-ui-8">
-      <div className="flex items-center justify-between gap-ui-8">
-        <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
-          条目
-        </h2>
-        <Button size="sm" onClick={onReload}>
-          刷新
-        </Button>
-      </div>
+      <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
+        条目
+      </h2>
       <div ref={listRef} className="slide-list grid gap-ui-4">
         {groupByCategory(items).map((group) => (
           <div key={group.category} className="grid gap-ui-4">
@@ -223,14 +214,7 @@ function EntryDetail({
 }
 
 function EntryHeader({ item }: { item: AppConfigListItem }) {
-  const { summary, probe } = item;
-  return (
-    <div className="flex flex-wrap items-center gap-x-ui-12 gap-y-ui-4">
-      <span className="break-all font-mono text-aux text-muted-foreground">{summary.displayPath}</span>
-      <ProbeStatus probe={probe} />
-      <span className="text-aux text-muted-foreground">{CAPABILITY_LABELS[summary.capability]}</span>
-    </div>
-  );
+  return <ProbeStatus probe={item.probe} />;
 }
 
 function EntryFacts({ item }: { item: AppConfigListItem }) {
@@ -240,7 +224,7 @@ function EntryFacts({ item }: { item: AppConfigListItem }) {
       <dt className="text-muted-foreground">位置</dt>
       <dd className="m-0 break-all">
         {summary.displayPath}
-        {isFixedLocation(summary) ? "（系统文件，只读）" : null}
+        {isFixedLocation(summary) ? "（系统文件）" : null}
       </dd>
       <dt className="text-muted-foreground">格式</dt>
       <dd className="m-0">{summary.format}</dd>
@@ -296,36 +280,7 @@ function ReadResultBody({
   const view = describeEntryDetail(item.summary, result);
   switch (view.kind) {
     case "content":
-      return (
-        <div className="grid gap-ui-8">
-          {view.redacted ? (
-            <p className="m-0 text-aux text-muted-foreground">
-              敏感值已遮盖（显示为 [REDACTED]）。
-            </p>
-          ) : null}
-          <pre
-            aria-label="解析后的内容"
-            tabIndex={0}
-            className="m-0 overflow-auto rounded-control bg-surface-muted p-ui-8 text-meta"
-          >
-            {view.text || "（文件没有可显示的内容）"}
-          </pre>
-          {view.withheldLines > 0 ? (
-            <p className="m-0 text-aux text-muted-foreground">
-              有 {view.withheldLines} 行（注释或无法识别的行）未显示。
-            </p>
-          ) : null}
-          {view.warnings.length > 0 ? (
-            <ul className="m-0 grid list-none gap-ui-4 p-0 text-aux">
-              {view.warnings.map((warning) => (
-                <li key={`${warning.line}-${warning.message}`}>
-                  第 {warning.line} 行：{warning.message}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      );
+      return <ContentBody view={view} />;
     case "metadata":
       return (
         <div className="grid gap-ui-8">
@@ -346,3 +301,56 @@ function ReadResultBody({
       return <p className="m-0 text-body">{view.message}</p>;
   }
 }
+
+function ContentBody({
+  view,
+}: {
+  view: Extract<EntryDetailView, { kind: "content" }>;
+}) {
+  const [wrapLines, setWrapLines] = useState(false);
+  return (
+    <div className="grid min-w-0 gap-ui-8">
+      <div className="flex flex-wrap items-center justify-between gap-ui-8">
+        {view.redacted ? (
+          <p className="m-0 text-aux text-muted-foreground">
+            敏感值已遮盖（显示为 [REDACTED]）。
+          </p>
+        ) : (
+          <span />
+        )}
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => setWrapLines((wrap) => !wrap)}
+        >
+          {wrapLines ? "不换行" : "换行"}
+        </Button>
+      </div>
+      <pre
+        aria-label="解析后的内容"
+        tabIndex={0}
+        className={classNames(
+          "m-0 min-w-0 rounded-control bg-surface-muted p-ui-8 font-mono text-meta",
+          wrapLines ? "whitespace-pre-wrap break-words" : "r4-fe4-scroll overflow-x-auto whitespace-pre",
+        )}
+      >
+        {view.text || "（文件没有可显示的内容）"}
+      </pre>
+      {view.withheldLines > 0 ? (
+        <p className="m-0 text-aux text-muted-foreground">
+          有 {view.withheldLines} 行（注释或无法识别的行）未显示。
+        </p>
+      ) : null}
+      {view.warnings.length > 0 ? (
+        <ul className="m-0 grid list-none gap-ui-4 p-0 text-aux">
+          {view.warnings.map((warning) => (
+            <li key={`${warning.line}-${warning.message}`}>
+              第 {warning.line} 行：{warning.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+

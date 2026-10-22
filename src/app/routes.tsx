@@ -111,7 +111,15 @@ export function RoutePanel({
   }
 
   if (route.id === "appConfig") {
-    return <AppConfigPage />;
+    return (
+      <AppConfigPage
+        refreshId={
+          discovery.status === "ready"
+            ? discovery.snapshot.refreshId
+            : undefined
+        }
+      />
+    );
   }
 
   if (route.id === "aiConfig") {

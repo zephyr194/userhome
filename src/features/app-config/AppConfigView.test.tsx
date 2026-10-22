@@ -1,3 +1,6 @@
+/// <reference types="node" />
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { AppConfigListItem, AppConfigReadResult } from "../../ipc/appConfig";
@@ -128,7 +131,7 @@ describe("AppConfigView states", () => {
 describe("AppConfigView selection and redaction", () => {
   it("lists entries as keyboard-operable buttons grouped by category", () => {
     const html = render({ status: "ready", items: [ZED, TMUX, SSH] });
-    expect(html.match(/<button/g)).toHaveLength(3 + 1);
+    expect(html.match(/<button/g)).toHaveLength(3);
     expect(html).toContain("<h3");
     expect(html).toContain("编辑器");
     expect(html).toContain("终端");
@@ -226,7 +229,8 @@ describe("AppConfigView selection and redaction", () => {
         view: { text: "Host *\n", redacted: false, withheldLines: 0, warnings: [] },
       }),
     );
-    expect(html).toContain("系统文件，只读");
+    expect(html).toContain("（系统文件）");
+    expect(html.slice(html.indexOf('role="region"')).split("只读")).toHaveLength(2);
   });
 
   it("explains a failed read of one entry without a shared alert for the list", () => {
@@ -276,9 +280,10 @@ describe("reducer-driven view", () => {
 });
 
 describe("AppConfigView flat entry rows (UIF-14)", () => {
-  it("puts the refresh action on the list title row", () => {
+  it("does not repeat the refresh action on the list title row", () => {
     const html = render({ status: "ready", items: [ZED, TMUX] });
-    expect(html).toMatch(/<h2 id="app-config-list-title"[^>]*>条目<\/h2><button[^>]*>刷新<\/button>/);
+    expect(html).toMatch(/<h2 id="app-config-list-title"[^>]*>条目<\/h2>/);
+    expect(html).not.toContain("刷新");
   });
 
   it("keeps the refresh action on the empty state, where there is no list", () => {
@@ -303,14 +308,38 @@ describe("AppConfigView flat entry rows (UIF-14)", () => {
     expect(html).toContain("仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。");
   });
 
-  it("shows the path and status in the detail header", () => {
+  it("shows the path once in the detail, in the location row, with the status in the header", () => {
     const html = render(
       { status: "ready", items: [ZED] },
-      { status: "loading", requestId: 1, id: "zed-settings" },
+      readyDetail("zed-settings", {
+        outcome: "content",
+        view: { text: "a = 1\n", redacted: false, withheldLines: 0, warnings: [] },
+      }),
     );
-    expect(html).toContain(
-      'break-all font-mono text-aux text-muted-foreground">~/.config/zed-settings.json</span>',
+    const detail = html.slice(html.indexOf('role="region"'));
+    expect(detail.split("~/.config/zed-settings.json")).toHaveLength(2);
+    expect(detail).toContain("已发现");
+  });
+});
+
+describe("AppConfigView r4-fe4 fixes", () => {
+  it("keeps long code lines scrollable by default and offers a line-wrap toggle", () => {
+    const html = render(
+      { status: "ready", items: [ZED] },
+      readyDetail("zed-settings", {
+        outcome: "content",
+        view: { text: "x".repeat(200) + "\n", redacted: false, withheldLines: 0, warnings: [] },
+      }),
     );
-    expect(html).toContain("已发现");
+    expect(html).toContain(">换行<");
+    expect(html).toContain("overflow-x-auto whitespace-pre");
+    expect(html).toContain("r4-fe4-scroll");
+  });
+
+  it("keeps the selected row at regular weight, changing only background and the edge bar", () => {
+    const css = readFileSync(fileURLToPath(new URL("../../styles/global.css", import.meta.url)), "utf8");
+    expect(css).toMatch(
+      /\.entry-row:is\(\[aria-current="true"\]\),\s*\.ai-tool-row:is\(\[aria-current="true"\]\)\s*\{\s*font-weight:\s*400;/,
+    );
   });
 });

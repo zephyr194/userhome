@@ -15,7 +15,7 @@ import { AppConfigView } from "./AppConfigView";
  * Responses are matched to the request that asked for them, so a slow earlier
  * read cannot replace a newer selection. Nothing is written to browser storage.
  */
-export function AppConfigPage() {
+export function AppConfigPage({ refreshId }: { refreshId?: string }) {
   const [state, dispatch] = useReducer(appConfigReducer, INITIAL_APP_CONFIG_STATE);
   const stateRef = useRef<AppConfigState>(state);
   const requestCounter = useRef(0);
@@ -35,7 +35,7 @@ export function AppConfigPage() {
 
   useEffect(() => {
     loadList();
-  }, [loadList]);
+  }, [loadList, refreshId]);
 
   const selectEntry = useCallback((id: string) => {
     if (!isKnownEntry(stateRef.current, id)) return;
