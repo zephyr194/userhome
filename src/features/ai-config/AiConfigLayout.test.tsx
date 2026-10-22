@@ -53,13 +53,15 @@ function renderView(): string {
   return renderToStaticMarkup(
     <AiConfigView
       state={READY}
-      onRetry={noop}
+      selectedToolId="claude-code"
+      onSelectTool={noop}
+      onRefresh={noop}
       claudePanel={<p>设置占位</p>}
     />,
   );
 }
 
-describe("AI 配置页布局（UIB-4d）", () => {
+describe("AI 工具页布局（UIB-4d）", () => {
   it("uses the master-detail layout in the compact view", () => {
     const markup = renderView();
     expect(markup).toContain("page-shell__layout--master-detail");
@@ -90,5 +92,13 @@ describe("AI 配置页布局（UIB-4d）", () => {
 
   it("falls back to the first tool when the selected id is no longer reported", () => {
     expect(selectedToolOf(TOOLS, "missing-tool")?.id).toBe("claude-code");
+  });
+});
+
+describe("AI 工具页没有顶部分区 tabs（r5-ai）", () => {
+  it("renders no section tabs, so the tool list is the only way to switch tools", () => {
+    const markup = renderView();
+    expect(markup).not.toContain("data-section-id");
+    expect(markup).not.toContain("AI 工具分区");
   });
 });

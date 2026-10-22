@@ -101,11 +101,11 @@ describe("ToolReferenceView", () => {
   it("shows the failure message and a retry control", () => {
     const markup = render({
       status: "failed",
-      error: { ...createInternalError(), message: "AI 配置定义校验失败。" },
+      error: { ...createInternalError(), message: "AI 工具定义校验失败。" },
     });
     expect(markup).toContain('role="alert"');
     expect(markup).toContain("无法读取官方设置参考");
-    expect(markup).toContain("AI 配置定义校验失败。");
+    expect(markup).toContain("AI 工具定义校验失败。");
     expect(markup).toContain("重试");
   });
 

@@ -38,7 +38,7 @@ const SERVICE_FIGURE_LABEL = "运行 / 停止";
 export const OVERVIEW_MODULE_BAYS = [
   { routeId: "caddy", title: "Caddy", figureLabel: "运行状态", action: "打开 Caddy" },
   { routeId: "environment", title: "环境变量", figureLabel: "变量数与未保存", action: "打开环境变量" },
-  { routeId: "aiConfig", title: "AI 配置", figureLabel: "已检测工具", action: "打开 AI 配置" },
+  { routeId: "aiConfig", title: "AI 工具", figureLabel: "已检测工具", action: "打开 AI 工具" },
   { routeId: "appConfig", title: "应用配置", figureLabel: "已发现条目", action: "打开应用配置" },
 ] as const;
 

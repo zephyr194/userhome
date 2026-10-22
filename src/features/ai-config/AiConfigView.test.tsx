@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { AiConfigReport, AiToolReport } from "../../ipc/aiConfig";
@@ -59,8 +60,16 @@ function ready(tools: AiToolReport[] = FOUR_TOOLS): AiConfigState {
   return { status: "ready", report: { tools } };
 }
 
-function render(state: AiConfigState): string {
-  return renderToStaticMarkup(<AiConfigView state={state} onRetry={noop} />);
+function render(state: AiConfigState, extra: Partial<ComponentProps<typeof AiConfigView>> = {}): string {
+  return renderToStaticMarkup(
+    <AiConfigView
+      state={state}
+      selectedToolId="claude-code"
+      onSelectTool={noop}
+      onRefresh={noop}
+      {...extra}
+    />,
+  );
 }
 
 describe("AiConfigView states", () => {
@@ -215,5 +224,40 @@ describe("aiConfigModel", () => {
 
     expect(new Set(labels.map((entry) => entry.label)).size).toBe(3);
     expect(new Set(labels.map((entry) => entry.symbol)).size).toBe(3);
+  });
+});
+
+describe("AiConfigView refresh (r5-ai)", () => {
+  it("keeps the shown tools and says a refresh is running", () => {
+    const html = render(ready(), { refreshing: true });
+
+    expect(html).toContain("正在刷新…");
+    expect(html).toContain("Codex CLI");
+    expect(html).not.toContain("正在检测 AI 工具");
+  });
+
+  it("disables the refresh action while a refresh runs", () => {
+    const html = render(ready(), { refreshing: true });
+
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>刷新<\/button>/);
+  });
+
+  it("keeps the last report and explains a failed refresh with a retry", () => {
+    const html = render(ready(), {
+      refreshError: { code: "INTERNAL", message: "检测命令没有返回结果。", retryable: true },
+    });
+
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("刷新失败，仍显示上次读取的结果");
+    expect(html).toContain("检测命令没有返回结果。");
+    expect(html).toContain("Claude Code");
+    expect(html).not.toContain("无法检测 AI 工具");
+  });
+
+  it("names the refresh action 刷新 in the header", () => {
+    const html = render(ready());
+
+    expect(html).toMatch(/<button[^>]*>刷新<\/button>/);
+    expect(html).not.toContain("重新检测");
   });
 });

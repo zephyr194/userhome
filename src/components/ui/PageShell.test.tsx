@@ -78,7 +78,7 @@ describe("PageShell 舱头", () => {
 
   it("状态点只做装饰，文字承载含义，并带上对应语气类", () => {
     const markup = renderToStaticMarkup(
-      <PageShell title="AI 配置" status={{ tone: "warning", text: "需要关注" }} layout="strip" />,
+      <PageShell title="AI 工具" status={{ tone: "warning", text: "需要关注" }} layout="strip" />,
     );
     expect(markup).toContain("page-shell__status-dot--warning");
     expect(markup).toContain('aria-hidden="true"');

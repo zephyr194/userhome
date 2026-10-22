@@ -64,24 +64,6 @@ export const NO_EXECUTABLE_TEXT = "未找到可执行文件";
 
 export const CLAUDE_CODE_TOOL_ID = "claude-code";
 
-/** Third-level navigation sections of the AI config page, one per tool, in display order. */
-const AI_TOOL_SECTIONS = [
-  { section: "claude", toolId: CLAUDE_CODE_TOOL_ID },
-  { section: "codex", toolId: "codex-cli" },
-  { section: "gemini", toolId: "gemini-cli" },
-  { section: "copilot", toolId: "copilot-cli" },
-] as const;
-
-export const AI_CONFIG_DEFAULT_SECTION = AI_TOOL_SECTIONS[0].section;
-
-export function toolIdForSection(section: string): string {
-  return AI_TOOL_SECTIONS.find((entry) => entry.section === section)?.toolId ?? CLAUDE_CODE_TOOL_ID;
-}
-
-export function sectionForTool(toolId: string): string {
-  return AI_TOOL_SECTIONS.find((entry) => entry.toolId === toolId)?.section ?? AI_CONFIG_DEFAULT_SECTION;
-}
-
 /** Falls back to the first tool when the selected id is no longer in the report. */
 export function selectedToolOf(
   tools: readonly AiToolReport[],

@@ -8,11 +8,10 @@ function routeOf(id: AppRouteId) {
 }
 
 describe("route sections", () => {
-  it("declares sections only on the environment, Caddy and AI config pages", () => {
+  it("declares sections only on the environment and Caddy pages", () => {
     expect(APP_ROUTES.filter((route) => route.sections).map((route) => route.id)).toEqual([
       "environment",
       "caddy",
-      "aiConfig",
     ]);
   });
 
@@ -24,13 +23,9 @@ describe("route sections", () => {
     ]);
   });
 
-  it("hardcodes one AI config section per tool", () => {
-    expect(routeOf("aiConfig").sections).toEqual([
-      { id: "claude", label: "Claude Code" },
-      { id: "codex", label: "Codex CLI" },
-      { id: "gemini", label: "Gemini CLI" },
-      { id: "copilot", label: "GitHub Copilot CLI" },
-    ]);
+  it("gives the AI tools page no sections, since the tool list selects the tool", () => {
+    expect(routeOf("aiConfig").sections).toBeUndefined();
+    expect(routeSectionsOf("aiConfig")).toEqual([]);
   });
 
   it("hardcodes the environment sections to match its existing tabs", () => {

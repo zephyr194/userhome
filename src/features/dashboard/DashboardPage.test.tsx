@@ -509,7 +509,7 @@ describe("DashboardPage overview wall", () => {
     expect(spans).toEqual([12, 12, 12, 12, 6, 6, 12]);
     expect(markup.match(/overview-bay-wall/g) ?? []).toHaveLength(1);
     expect(markup.match(/class="[^"]*\boverview-bay(?![\w-])[^"]*"/g) ?? []).toHaveLength(5);
-    const order = ["打开服务", "打开 Caddy", "打开环境变量", "打开 AI 配置", "打开应用配置"].map(
+    const order = ["打开服务", "打开 Caddy", "打开环境变量", "打开 AI 工具", "打开应用配置"].map(
       (text) => markup.indexOf(text),
     );
     expect(order.every((index) => index >= 0)).toBe(true);
@@ -517,7 +517,7 @@ describe("DashboardPage overview wall", () => {
   });
 
   it("每个模块舱位的主操作是可见文字按钮，未读取的舱位显示未读取", () => {
-    for (const bay of ["打开 Caddy", "打开环境变量", "打开 AI 配置", "打开应用配置"]) {
+    for (const bay of ["打开 Caddy", "打开环境变量", "打开 AI 工具", "打开应用配置"]) {
       expect(markup).toMatch(new RegExp(`<button[^>]*>${bay}</button>`));
     }
     expect(markup.match(/未读取/g) ?? []).toHaveLength(4);

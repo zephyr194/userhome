@@ -136,16 +136,10 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
   },
   aiConfig: {
     icon: "aiConfig",
-    label: "AI 配置",
+    label: "AI 工具",
     eyebrow: "AI 工具",
     description: "只读检测 Claude Code、Codex、Gemini 与 Copilot CLI 的安装状态、版本与配置位置。",
     group: "system-tools",
-    sections: [
-      { id: "claude", label: "Claude Code" },
-      { id: "codex", label: "Codex CLI" },
-      { id: "gemini", label: "Gemini CLI" },
-      { id: "copilot", label: "GitHub Copilot CLI" },
-    ],
   },
   tools: {
     icon: "tools",
@@ -194,5 +188,6 @@ export type NavigationIntent = (
   | { routeId: "dashboard" }
   | { routeId: "services"; serviceId?: string; serviceFocus?: ServiceFocus }
   | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId }
-  | { routeId: "caddy" | "environment" | "appConfig" | "aiConfig"; section?: string }
+  | { routeId: "caddy" | "environment" | "appConfig"; section?: string }
+  | { routeId: "aiConfig" }
 ) & { source?: NavigationSource };
