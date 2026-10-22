@@ -75,19 +75,19 @@ function decodeFailure() {
   return createInternalError();
 }
 
-function requireRecord(value: unknown): Record<string, unknown> {
+export function requireRecord(value: unknown): Record<string, unknown> {
   if (!isRecord(value)) throw decodeFailure();
   return value;
 }
 
-function requireExactKeys(record: Record<string, unknown>, keys: readonly string[]) {
+export function requireExactKeys(record: Record<string, unknown>, keys: readonly string[]) {
   const actual = Object.keys(record);
   if (actual.length !== keys.length || keys.some((key) => !(key in record))) {
     throw decodeFailure();
   }
 }
 
-function requireOneOf<T extends string>(values: readonly T[], value: unknown): T {
+export function requireOneOf<T extends string>(values: readonly T[], value: unknown): T {
   if (typeof value !== "string" || !(values as readonly string[]).includes(value)) {
     throw decodeFailure();
   }
@@ -103,7 +103,7 @@ function requireText(value: unknown, maxLength: number): string {
   return value;
 }
 
-function requireHttpsUrl(value: unknown): string {
+export function requireHttpsUrl(value: unknown): string {
   const url = requireText(value, 300);
   if (!url.startsWith("https://") || /\s/.test(url)) throw decodeFailure();
   return url;
