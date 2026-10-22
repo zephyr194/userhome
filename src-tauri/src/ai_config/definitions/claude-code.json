@@ -95,8 +95,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -113,8 +116,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -322,8 +328,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -365,8 +374,11 @@
           "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -473,8 +485,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -509,8 +524,11 @@
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -545,8 +563,11 @@
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -581,8 +602,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -637,8 +661,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -658,8 +685,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -712,8 +742,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -770,8 +803,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -844,8 +880,11 @@
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -862,8 +901,11 @@
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1156,8 +1198,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1194,8 +1239,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1230,8 +1278,11 @@
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1308,8 +1359,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1364,8 +1418,11 @@
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1444,8 +1501,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1465,8 +1525,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1488,8 +1551,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1506,8 +1572,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1545,8 +1614,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1658,8 +1730,11 @@
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1714,8 +1789,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1732,8 +1810,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -1786,8 +1867,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2020,8 +2104,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2038,8 +2125,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2112,8 +2202,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。不校验，原样传递（文档）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2186,8 +2279,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2240,8 +2336,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2350,8 +2449,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2389,8 +2491,11 @@
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2719,8 +2824,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2737,8 +2845,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2796,8 +2907,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2850,8 +2964,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -2942,8 +3059,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -3696,8 +3816,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -3714,8 +3837,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -3732,8 +3858,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -3884,8 +4013,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4107,8 +4239,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4145,8 +4280,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4199,8 +4337,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4258,8 +4399,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4276,8 +4420,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4369,8 +4516,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4387,8 +4537,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4423,8 +4576,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4445,8 +4601,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4499,8 +4658,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4517,8 +4679,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4535,8 +4700,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4558,8 +4726,11 @@
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",
@@ -4686,8 +4857,11 @@
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
-          "coverage": "displayOnly",
-          "versions": null,
+          "coverage": "editable",
+          "versions": {
+            "min": "2.1.287",
+            "max": "2.1.287"
+          },
           "source": {
             "url": "https://code.claude.com/docs/en/settings-reference",
             "retrievedOn": "2026-10-21",

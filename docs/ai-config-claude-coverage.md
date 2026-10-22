@@ -16,7 +16,7 @@
 - 排除（schema 有类型但保持 unknown）：2
 - 冲突（保留本地值）：1
 - 复杂结构（保持 unknown）：12
-- 本任务没有任何键变为可编辑：可编辑键数 = 0（coverage 全部为 displayOnly）
+- 合并不改变 coverage 与 versions；可编辑键由清单决定，见文末“可编辑键”一节
 
 ### 按类型的数量
 
@@ -416,4 +416,94 @@
   - executesCommand：匹配“statusLine”
 - `subagentStatusLine`：风险 executesCommand；secret 否
   - executesCommand：匹配“statusline”
+
+## 可编辑键（VC-1b）
+
+由 `sources/claude-editable-keys.json` 决定，脚本每次运行都会按清单重写本节。
+
+- 决定日期：2026-10-22（用户确认 G-V1 稳妥集）
+- 已验证版本：2.1.287（versions 的 min 与 max 相同，即单一精确版本）
+- 可编辑键数：58；清单外的键保持 displayOnly，versions 为 null
+- 版本依据：SchemaStore 快照（2026-10-22 抓取）为第三方托管，不声明适用的 Claude Code 版本。本机 claude --version 于 2026-10-22 实测为 2.1.287 (Claude Code)。因此已验证版本收窄为单一精确版本 2.1.287（min = max），其他版本一律由门禁拒绝。未做真实写入验证：未在 2.1.287 上对任何键执行写入并核对 Claude Code 的实际读取行为。
+- 未做真实写入验证：本批未在 2.1.287 上对任何键执行写入并核对结果。
+
+### 提升清单
+
+- `advisorModel`
+- `agent`
+- `alwaysThinkingEnabled`
+- `askUserQuestionTimeout`
+- `autoCompactEnabled`
+- `autoConnectIde`
+- `autoInstallIdeExtension`
+- `autoMemoryEnabled`
+- `autoScrollEnabled`
+- `autoUpdatesChannel`
+- `awaySummaryEnabled`
+- `axScreenReader`
+- `browserExternalPageTools`
+- `channelsEnabled`
+- `disableAgentView`
+- `disableArtifact`
+- `disableBrowserExternalNavigation`
+- `disableDeepLinkRegistration`
+- `disableMobileSimulatorTools`
+- `disableWorkflows`
+- `editorMode`
+- `effortLevel`
+- `emojiCompletionEnabled`
+- `enableArtifact`
+- `externalEditorContext`
+- `fastMode`
+- `fastModePerSessionOptIn`
+- `fileCheckpointingEnabled`
+- `includeCoAuthoredBy`
+- `includeGitInstructions`
+- `language`
+- `maxEffortLevel`
+- `model`
+- `outputStyle`
+- `permissionExplainerEnabled`
+- `preferredNotifChannel`
+- `prefersReducedMotion`
+- `promptCacheTtl`
+- `prUrlTemplate`
+- `respectGitignore`
+- `showClearContextOnPlanAccept`
+- `showThinkingSummaries`
+- `showTurnDuration`
+- `spinnerTipsEnabled`
+- `subagentPromptCacheTtl`
+- `switchModelsOnFlag`
+- `syntaxHighlightingDisabled`
+- `teammateMode`
+- `terminalProgressBarEnabled`
+- `tui`
+- `ultracode`
+- `verbose`
+- `viewMode`
+- `voiceEnabled`
+- `wheelScrollAccelerationEnabled`
+- `workflowKeywordTriggerEnabled`
+- `workflowSizeGuideline`
+- `wslInheritsWindowsSettings`
+
+### 排除清单（保持 displayOnly）
+
+- `allowManagedPermissionRulesOnly`：托管策略类，改错可能锁死自身，本批不开放
+- `autoMemoryDirectory`：路径类设置，可指向任意目录，本批不开放
+- `autoMode.classifyAllShell`：权限分类相关（对 shell 命令分类），本批不开放
+- `availableModelsMatch`：托管策略类，改错可能锁死模型选择，本批不开放
+- `claudeMd`：内容为指令文本，改动即改变模型行为，属内容类，本批不开放
+- `defaultShell`：会执行外部程序（启动 shell），属于 executesCommand 风险，本批不开放
+- `diffTool`：会执行外部程序（差异工具），属于 executesCommand 风险，本批不开放
+- `disableAutoMode`：权限分类相关，改错会放宽或收紧自动模式，本批不开放
+- `enforceAvailableModels`：托管策略类，改错可能锁死模型选择，本批不开放
+- `forceRemoteSettingsRefresh`：托管策略类，改错会影响远程设置刷新，本批不开放
+- `minimumVersion`：托管版本约束，改错可能锁死自身，本批不开放
+- `parentSettingsBehavior`：托管策略类，改变设置合并行为，本批不开放
+- `plansDirectory`：路径类设置，可指向任意目录，本批不开放
+- `requiredMaximumVersion`：托管版本约束，改错可能锁死自身，本批不开放
+- `requiredMinimumVersion`：托管版本约束，改错可能锁死自身，本批不开放
+- `useAutoModeDuringPlan`：权限分类相关，改错会改变计划期间的权限行为，本批不开放
 
