@@ -1,6 +1,13 @@
+// @vitest-environment jsdom
+import {
+  cleanup,
+  fireEvent,
+  render as renderInDom,
+  screen,
+} from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReactElement } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type {
   ClaudeEditCatalog,
   ClaudeEditItem,
@@ -13,6 +20,8 @@ import type { EditPhase } from "./claudeEditModel";
 
 const noop = () => undefined;
 const GRANT = "11111111-1111-4111-8111-111111111111";
+
+afterEach(cleanup);
 
 function item(overrides: Partial<ClaudeEditItem> = {}): ClaudeEditItem {
   return {
@@ -70,7 +79,7 @@ describe("SettingEditor controls", () => {
     );
 
     expect(markup).toContain("版本未确认，写入已禁用：尚无已验证的版本区间");
-    expect(markup).not.toContain("<select");
+    expect(markup).not.toContain('aria-haspopup="listbox"');
     expect(markup).not.toContain('role="checkbox"');
     expect(markup).toContain('disabled=""');
   });
@@ -111,8 +120,10 @@ describe("SettingEditor controls", () => {
       />,
     );
 
-    expect(enumMarkup).toContain("<select");
-    expect(enumMarkup).toContain("xhigh");
+    expect(enumMarkup).toContain('aria-haspopup="listbox"');
+    renderInDom(<SettingEditor item={item()} settingsGrantId={GRANT} onSaved={noop} />);
+    fireEvent.click(screen.getByRole("button", { name: "取值" }));
+    expect(screen.getByRole("option", { name: "xhigh" })).toBeTruthy();
     expect(boolMarkup).toContain('role="checkbox"');
     expect(stringMarkup).toContain("<input");
   });
@@ -246,7 +257,7 @@ describe("EditPanel", () => {
   };
 
   it("names the detected version and lists every key, marking display-only ones", () => {
-    const markup = render(
+    const panel = (
       <EditPanel
         catalog={catalog}
         settingsFile={null}
@@ -254,11 +265,16 @@ describe("EditPanel", () => {
         chooseError={null}
         onChooseSettingsFile={noop}
         onSaved={noop}
-      />,
+      />
     );
+    const markup = render(panel);
 
     expect(markup).toContain("本机版本：2.1.287。");
-    expect(markup).toContain("promptCacheTtl（仅展示）");
+    renderInDom(panel);
+    fireEvent.click(screen.getByRole("button", { name: "选择要编辑的键" }));
+    expect(
+      screen.getByRole("option", { name: "promptCacheTtl（仅展示）" }),
+    ).toBeTruthy();
     expect(markup).toContain("选择设置文件");
     expect(markup).toContain("未选择");
   });
@@ -391,7 +407,7 @@ describe("EditPanel settings form", () => {
     expect(markup).toContain("仅展示（1）");
     expect(markup).not.toContain('open=""');
     expect(markup).toContain("仅展示，版本未核实");
-    expect(markup.split("<select").length - 1).toBe(1);
+    expect(markup.split('aria-haspopup="listbox"').length - 1).toBe(1);
     expect(markup.split('role="checkbox"').length - 1).toBe(1);
   });
 

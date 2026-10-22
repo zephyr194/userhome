@@ -6,9 +6,12 @@ import {
   Input,
   Label,
   Legend,
+  Listbox,
+  ListboxButton,
+  ListboxOption,
+  ListboxOptions,
   Radio,
   RadioGroup,
-  Select,
   Switch,
   Textarea,
 } from "@headlessui/react";
@@ -16,7 +19,6 @@ import type {
   InputHTMLAttributes,
   ReactNode,
   Ref,
-  SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
 import { classNames } from "../classNames";
@@ -176,29 +178,41 @@ export interface SelectOption<T extends string = string> {
   value: T;
 }
 
-type SharedSelectProps<T extends string> = Omit<
-  SelectHTMLAttributes<HTMLSelectElement>,
-  "children" | "className" | "disabled" | "onChange" | "required"
-> &
-  FieldCopyProps & {
-    inputClassName?: string;
-    invalid?: boolean;
-    onValueChange?: (value: T) => void;
-    options: readonly SelectOption<T>[];
-  };
+type SharedSelectProps<T extends string> = FieldCopyProps & {
+  defaultValue?: T;
+  form?: string;
+  inputClassName?: string;
+  invalid?: boolean;
+  name?: string;
+  onValueChange?: (value: T) => void;
+  options: readonly SelectOption<T>[];
+  value?: T;
+};
+
+const SELECT_ICON_PROPS = {
+  fill: "none",
+  stroke: "currentColor",
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  strokeWidth: 1.5,
+  viewBox: "0 0 12 12",
+} as const;
 
 export function SelectField<T extends string>({
   className,
+  defaultValue,
   description,
   disabled,
   error,
+  form,
   inputClassName,
   invalid = Boolean(error),
   label,
+  name,
   onValueChange,
   options,
   required,
-  ...props
+  value,
 }: SharedSelectProps<T>) {
   return (
     <FieldFrame
@@ -209,26 +223,61 @@ export function SelectField<T extends string>({
       label={label}
       required={required}
     >
-      <Select
-        {...props}
-        className={classNames(CONTROL_BASE, "h-control-md", inputClassName)}
+      <Listbox
+        defaultValue={defaultValue}
         disabled={disabled}
+        form={form}
         invalid={invalid}
-        required={required}
-        onChange={(event) =>
-          onValueChange?.(event.currentTarget.value as T)
-        }
+        name={name}
+        onChange={(next) => onValueChange?.(next)}
+        value={value}
       >
-        {options.map((option) => (
-          <option
-            key={option.value}
-            disabled={option.disabled}
-            value={option.value}
-          >
-            {option.label}
-          </option>
-        ))}
-      </Select>
+        {({ value: current }) => (
+          <>
+            <ListboxButton
+              aria-invalid={invalid || undefined}
+              className={classNames(
+                CONTROL_BASE,
+                "flex h-control-md items-center justify-between gap-ui-8 text-left focus-visible:border-focus aria-[invalid=true]:border-danger",
+                inputClassName,
+              )}
+            >
+              <span className="min-w-0 truncate">
+                {options.find((option) => option.value === current)?.label}
+              </span>
+              <svg
+                {...SELECT_ICON_PROPS}
+                aria-hidden="true"
+                className="size-3 shrink-0 text-muted-foreground"
+              >
+                <path d="M3 4.5 6 7.5 9 4.5" />
+              </svg>
+            </ListboxButton>
+            <ListboxOptions
+              anchor="bottom start"
+              className="mt-ui-4 max-h-56 w-(--button-width) overflow-y-auto rounded-panel bg-surface-raised p-ui-4 text-body text-foreground shadow-[var(--app-shadow-raised)] ring-1 ring-line ring-inset"
+            >
+              {options.map((option) => (
+                <ListboxOption
+                  key={option.value}
+                  className="group flex h-control-md cursor-pointer items-center justify-between gap-ui-8 rounded-control px-ui-8 data-disabled:cursor-not-allowed data-disabled:opacity-50 data-focus:bg-surface-muted"
+                  disabled={option.disabled}
+                  value={option.value}
+                >
+                  <span className="min-w-0 truncate">{option.label}</span>
+                  <svg
+                    {...SELECT_ICON_PROPS}
+                    aria-hidden="true"
+                    className="hidden size-3 shrink-0 text-primary group-data-selected:block"
+                  >
+                    <path d="M2.5 6.25 5 8.5 9.5 3.5" />
+                  </svg>
+                </ListboxOption>
+              ))}
+            </ListboxOptions>
+          </>
+        )}
+      </Listbox>
     </FieldFrame>
   );
 }

@@ -102,7 +102,7 @@ describe("控件高度由令牌决定（UI-1c）", () => {
           options={[{ value: "safe", label: "安全" }]}
         />,
       ),
-      /^<select\b/,
+      /aria-haspopup="listbox"/,
     );
 
     expect(heightTier(input)).toBe("md");

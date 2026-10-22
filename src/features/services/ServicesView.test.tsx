@@ -1,8 +1,16 @@
+// @vitest-environment jsdom
 /// <reference types="node" />
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import {
+  cleanup,
+  fireEvent,
+  render as renderInDom,
+  screen,
+} from "@testing-library/react";
+import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { AppError } from "../../ipc/core";
 import type { ServiceSummary } from "../../ipc/services";
 import {
@@ -33,13 +41,15 @@ const ERROR: AppError = {
 
 const noop = () => {};
 
-function view(overrides: Partial<ServicesViewProps> = {}): string {
+afterEach(cleanup);
+
+function element(overrides: Partial<ServicesViewProps> = {}): ReactElement {
   const state: DiscoveryState = {
     status: "ready",
     discovery: sampleDiscovery(),
     refreshing: false,
   };
-  return renderToStaticMarkup(
+  return (
     <ServicesView
       state={state}
       evidence={{ status: "ready", summaries: [] }}
@@ -50,8 +60,12 @@ function view(overrides: Partial<ServicesViewProps> = {}): string {
       onSelect={noop}
       onRefresh={noop}
       {...overrides}
-    />,
+    />
   );
+}
+
+function view(overrides: Partial<ServicesViewProps> = {}): string {
+  return renderToStaticMarkup(element(overrides));
 }
 
 function ready(
@@ -202,7 +216,7 @@ describe("services filters", () => {
     for (const label of ["来源", "作用域", "状态"]) {
       expect(markup).toContain(`>${label}</label>`);
     }
-    expect(markup.match(/<select/g)).toHaveLength(4);
+    expect(markup.match(/aria-haspopup="listbox"/g)).toHaveLength(4);
     expect(markup).toContain(">全部来源<");
     expect(markup).toContain(">全部作用域<");
     expect(markup).toContain(">全部状态<");
@@ -279,7 +293,13 @@ describe("read-only guarantee", () => {
     const buttonLabels = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
       .filter((match) => !match[1].includes("services-inventory-row"))
       .map((match) => match[2].replace(/<[^>]+>/g, ""));
-    expect(buttonLabels).toEqual(["刷新"]);
+    expect(buttonLabels).toEqual([
+      "刷新",
+      "全部来源",
+      "全部归属",
+      "全部作用域",
+      "全部状态",
+    ]);
   });
 });
 
@@ -591,7 +611,13 @@ describe("ownership in the details", () => {
       const buttons = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
         .filter((match) => !match[1].includes("services-inventory-row"))
         .map((match) => match[2].replace(/<[^>]+>/g, ""));
-      expect(buttons, service.label).toEqual(["刷新"]);
+      expect(buttons, service.label).toEqual([
+        "刷新",
+        "全部来源",
+        "全部归属",
+        "全部作用域",
+        "全部状态",
+      ]);
     }
   });
 
@@ -609,6 +635,10 @@ describe("ownership in the details", () => {
       .map((match) => match[2].replace(/<[^>]+>/g, ""));
     expect(buttons).toEqual([
       "刷新",
+      "全部来源",
+      "全部归属",
+      "全部作用域",
+      "全部状态",
       "重启",
       "停止",
       "卸载",
@@ -624,6 +654,8 @@ describe("ownership in the list", () => {
     expect(markup).toContain(">归属</label>");
     expect(markup).toContain(">来源</label>");
     expect(markup).toContain(">全部归属<");
+    renderInDom(element());
+    fireEvent.click(screen.getByRole("button", { name: "归属" }));
     for (const label of [
       "当前用户代理",
       "全局代理",
@@ -633,7 +665,7 @@ describe("ownership in the list", () => {
       "UserHome 自建",
       "UserHome 已接管",
     ]) {
-      expect(markup).toContain(label);
+      expect(screen.getByRole("option", { name: label })).toBeTruthy();
     }
     expect(markup).toContain("来源按所在目录归类");
     expect(markup).toContain("归属由后端按所有者、位置与文件类型判定");
