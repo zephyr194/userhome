@@ -10,23 +10,34 @@ import type { CaddyTlsSiteStatus, CaddyUpstreamScheme } from "../../ipc/caddy";
 import {
   ACCESS_LOG_PRIVACY_NOTICE,
   MAX_DRAFT_SITES,
-  MAX_DRAFT_UPSTREAMS,
   TLS_FILES_NOTICE,
   feedbackForField,
   newSiteDraft,
-  newUpstreamDraft,
   siteFieldKey,
   siteTlsKey,
   tlsFileLine,
   upstreamFieldKey,
+  type FieldFeedback,
   type IdSource,
   type MappedIssues,
   type SiteDraft,
-  type TlsDraft,
   type TlsFileLine,
   type TlsSlot,
   type UpstreamDraft,
 } from "./caddyRulesModel";
+import {
+  DIRECTIVES,
+  addDirective,
+  addableDirectives,
+  canAddDirective,
+  changeRowDirective,
+  directiveRows,
+  isRequiredRow,
+  removeDirectiveRow,
+  rowDirectiveOptions,
+  type DirectiveId,
+  type DirectiveRow,
+} from "./caddyDirectiveCatalog";
 
 const SCHEME_OPTIONS: readonly SelectOption<CaddyUpstreamScheme>[] = [
   { value: "http", label: "http" },
@@ -86,8 +97,6 @@ export function CaddyRulesEditor({
         <p className="m-0 text-body text-muted-foreground">没有站点规则。新增站点后才能生成 Caddyfile。</p>
       ) : null}
       {sites.map((site, siteIndex) => {
-        const listenHost = feedback(siteFieldKey(siteIndex, "listen.host"));
-        const listenPort = feedback(siteFieldKey(siteIndex, "listen.port"));
         const upstreamList = feedback(siteFieldKey(siteIndex, "upstreams"));
         return (
           <fieldset
@@ -114,120 +123,27 @@ export function CaddyRulesEditor({
                 删除站点
               </Button>
             </div>
-            <div className="grid gap-ui-8 sm:grid-cols-2">
-              <TextField
-                label="监听主机"
-                name={`site-${site.key}-host`}
-                value={site.host}
-                error={listenHost.error}
-                description={listenHost.warning}
-                onValueChange={(host) => replaceSite(siteIndex, { ...site, host })}
-              />
-              <TextField
-                label="监听端口"
-                name={`site-${site.key}-port`}
-                inputMode="numeric"
-                value={site.port}
-                error={listenPort.error}
-                description={listenPort.warning}
-                onValueChange={(port) => replaceSite(siteIndex, { ...site, port })}
-              />
-            </div>
-            <TlsSection
-              name={`site-${site.key}`}
-              tls={site.tls}
-              accessLog={site.accessLog}
-              status={tlsStatuses.find((entry) => entry.site === siteIndex)}
-              error={feedback(siteTlsKey(siteIndex)).error}
-              onTlsChange={(enabled) =>
-                replaceSite(siteIndex, { ...site, tls: enabled ? {} : null })
-              }
-              onPick={(slot) => onPickTlsFile(siteIndex, slot)}
-              onAccessLogChange={(accessLog) => replaceSite(siteIndex, { ...site, accessLog })}
-            />
-            <div className="grid gap-ui-8">
-              <h3 className="m-0 text-sm font-semibold">上游（反向代理目标）</h3>
-              <ol className="m-0 grid list-none gap-ui-8 p-0">
-                {site.upstreams.map((upstream, upstreamIndex) => {
-                  const upstreamHost = feedback(upstreamFieldKey(siteIndex, upstreamIndex, "host"));
-                  const upstreamPort = feedback(upstreamFieldKey(siteIndex, upstreamIndex, "port"));
-                  return (
-                    <li
-                      key={upstream.key}
-                      className="grid min-w-0 gap-ui-8 rounded-control bg-surface p-ui-8"
-                    >
-                      <div className="grid gap-ui-8 sm:grid-cols-3">
-                        <SelectField
-                          label="上游协议"
-                          name={`upstream-${upstream.key}-scheme`}
-                          options={SCHEME_OPTIONS}
-                          value={upstream.scheme}
-                          onValueChange={(scheme) =>
-                            replaceUpstream(siteIndex, site, upstreamIndex, { ...upstream, scheme }, replaceSite)
-                          }
-                        />
-                        <TextField
-                          label="上游主机"
-                          name={`upstream-${upstream.key}-host`}
-                          value={upstream.host}
-                          error={upstreamHost.error}
-                          description={upstreamHost.warning}
-                          onValueChange={(host) =>
-                            replaceUpstream(siteIndex, site, upstreamIndex, { ...upstream, host }, replaceSite)
-                          }
-                        />
-                        <TextField
-                          label="上游端口"
-                          name={`upstream-${upstream.key}-port`}
-                          inputMode="numeric"
-                          value={upstream.port}
-                          error={upstreamPort.error}
-                          description={upstreamPort.warning}
-                          onValueChange={(port) =>
-                            replaceUpstream(siteIndex, site, upstreamIndex, { ...upstream, port }, replaceSite)
-                          }
-                        />
-                      </div>
-                      <div>
-                        <Button
-                          variant="ghost"
-                          aria-label={`删除上游 ${upstreamIndex + 1}（站点 ${siteIndex + 1}）`}
-                          disabled={site.upstreams.length <= 1}
-                          onClick={() =>
-                            replaceSite(siteIndex, {
-                              ...site,
-                              upstreams: site.upstreams.filter((_, position) => position !== upstreamIndex),
-                            })
-                          }
-                        >
-                          删除上游
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-              {upstreamList.error ? (
-                <p role="alert" className="m-0 text-aux text-danger">
-                  {upstreamList.error}
-                </p>
-              ) : null}
-              <div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={site.upstreams.length >= MAX_DRAFT_UPSTREAMS}
-                  onClick={() =>
-                    replaceSite(siteIndex, {
-                      ...site,
-                      upstreams: [...site.upstreams, newUpstreamDraft(ids)],
-                    })
-                  }
-                >
-                  添加上游
-                </Button>
-              </div>
-            </div>
+            <ol className="m-0 grid list-none gap-ui-8 p-0">
+              {directiveRows(site).map((row) => (
+                <DirectiveRowView
+                  key={row.rowKey}
+                  site={site}
+                  siteIndex={siteIndex}
+                  row={row}
+                  ids={ids}
+                  feedback={feedback}
+                  tlsStatus={tlsStatuses.find((entry) => entry.site === siteIndex)}
+                  onSite={(next) => replaceSite(siteIndex, next)}
+                  onPickTlsFile={(slot) => onPickTlsFile(siteIndex, slot)}
+                />
+              ))}
+            </ol>
+            {upstreamList.error ? (
+              <p role="alert" className="m-0 text-aux text-danger">
+                {upstreamList.error}
+              </p>
+            ) : null}
+            <AddDirectiveGroup site={site} ids={ids} onSite={(next) => replaceSite(siteIndex, next)} />
           </fieldset>
         );
       })}
@@ -235,81 +151,251 @@ export function CaddyRulesEditor({
   );
 }
 
-function replaceUpstream(
-  siteIndex: number,
-  site: SiteDraft,
-  upstreamIndex: number,
-  next: UpstreamDraft,
-  replaceSite: (index: number, site: SiteDraft) => void,
-) {
-  replaceSite(siteIndex, {
-    ...site,
-    upstreams: site.upstreams.map((upstream, position) =>
-      position === upstreamIndex ? next : upstream,
-    ),
-  });
+interface DirectiveRowViewProps {
+  site: SiteDraft;
+  siteIndex: number;
+  row: DirectiveRow;
+  ids: IdSource;
+  feedback: (key: string) => FieldFeedback;
+  tlsStatus: CaddyTlsSiteStatus | undefined;
+  onSite: (next: SiteDraft) => void;
+  onPickTlsFile: (slot: TlsSlot) => void;
 }
 
-interface TlsSectionProps {
-  name: string;
-  tls: TlsDraft | null;
-  accessLog: boolean;
-  status: CaddyTlsSiteStatus | undefined;
-  error: string | undefined;
-  onTlsChange: (enabled: boolean) => void;
-  onPick: (slot: TlsSlot) => void;
-  onAccessLogChange: (enabled: boolean) => void;
-}
+function DirectiveRowView({
+  site,
+  siteIndex,
+  row,
+  ids,
+  feedback,
+  tlsStatus,
+  onSite,
+  onPickTlsFile,
+}: DirectiveRowViewProps) {
+  const definition = DIRECTIVES[row.id];
+  const required = isRequiredRow(site, row);
+  const upstreamIndex = site.upstreams.findIndex((upstream) => upstream.key === row.upstreamKey);
+  const options: SelectOption<DirectiveId>[] = rowDirectiveOptions(site, row).map((id) => ({
+    value: id,
+    label: DIRECTIVES[id].label,
+  }));
+  const remove = () => onSite(removeDirectiveRow(site, row));
 
-function TlsSection({
-  name,
-  tls,
-  accessLog,
-  status,
-  error,
-  onTlsChange,
-  onPick,
-  onAccessLogChange,
-}: TlsSectionProps) {
   return (
-    <div className="grid gap-ui-8">
-      <SwitchField
-        label="使用 HTTPS（已有证书与私钥）"
-        name={`${name}-tls`}
-        checked={tls !== null}
-        onCheckedChange={onTlsChange}
-      />
-      {tls !== null ? (
+    <li className="flex min-w-0 flex-wrap items-start gap-ui-8 rounded-control bg-surface p-ui-8">
+      <div className="min-w-28">
+        <SelectField
+          label="指令"
+          name={`site-${site.key}-${row.rowKey}-directive`}
+          options={options}
+          value={row.id}
+          disabled={options.length <= 1}
+          onValueChange={(next) => onSite(changeRowDirective(site, row, next, ids))}
+        />
+      </div>
+      <div className="grid min-w-0 flex-1 gap-ui-8">
+        <DirectiveValue
+          site={site}
+          siteIndex={siteIndex}
+          row={row}
+          upstreamIndex={upstreamIndex}
+          feedback={feedback}
+          tlsStatus={tlsStatus}
+          onSite={onSite}
+          onPickTlsFile={onPickTlsFile}
+        />
+      </div>
+      <div className="flex flex-col items-end gap-ui-8">
+        {row.id === "upstream" ? (
+          <Button
+            variant="ghost"
+            aria-label={`删除上游 ${upstreamIndex + 1}（站点 ${siteIndex + 1}）`}
+            disabled={required}
+            onClick={remove}
+          >
+            删除上游
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            aria-label={`删除${definition.short}（站点 ${siteIndex + 1}）`}
+            disabled={required}
+            onClick={remove}
+          >
+            {`删除${definition.short}`}
+          </Button>
+        )}
+        {required ? (
+          <span className="text-aux text-muted-foreground">{definition.requiredReason}</span>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+interface DirectiveValueProps {
+  site: SiteDraft;
+  siteIndex: number;
+  row: DirectiveRow;
+  upstreamIndex: number;
+  feedback: (key: string) => FieldFeedback;
+  tlsStatus: CaddyTlsSiteStatus | undefined;
+  onSite: (next: SiteDraft) => void;
+  onPickTlsFile: (slot: TlsSlot) => void;
+}
+
+function DirectiveValue({
+  site,
+  siteIndex,
+  row,
+  upstreamIndex,
+  feedback,
+  tlsStatus,
+  onSite,
+  onPickTlsFile,
+}: DirectiveValueProps) {
+  switch (DIRECTIVES[row.id].control) {
+    case "host": {
+      const listenHost = feedback(siteFieldKey(siteIndex, "listen.host"));
+      return (
+        <TextField
+          label="监听主机"
+          name={`site-${site.key}-host`}
+          value={site.host}
+          error={listenHost.error}
+          description={listenHost.warning}
+          onValueChange={(host) => onSite({ ...site, host })}
+        />
+      );
+    }
+    case "port": {
+      const listenPort = feedback(siteFieldKey(siteIndex, "listen.port"));
+      return (
+        <TextField
+          label="监听端口"
+          name={`site-${site.key}-port`}
+          inputMode="numeric"
+          value={site.port}
+          error={listenPort.error}
+          description={listenPort.warning}
+          onValueChange={(port) => onSite({ ...site, port })}
+        />
+      );
+    }
+    case "upstream": {
+      const upstream = site.upstreams[upstreamIndex];
+      if (upstream === undefined) return null;
+      const upstreamHost = feedback(upstreamFieldKey(siteIndex, upstreamIndex, "host"));
+      const upstreamPort = feedback(upstreamFieldKey(siteIndex, upstreamIndex, "port"));
+      const replaceUpstream = (next: UpstreamDraft) =>
+        onSite({
+          ...site,
+          upstreams: site.upstreams.map((entry, position) => (position === upstreamIndex ? next : entry)),
+        });
+      return (
+        <div className="grid gap-ui-8 sm:grid-cols-3">
+          <SelectField
+            label="上游协议"
+            name={`upstream-${upstream.key}-scheme`}
+            options={SCHEME_OPTIONS}
+            value={upstream.scheme}
+            onValueChange={(scheme) => replaceUpstream({ ...upstream, scheme })}
+          />
+          <TextField
+            label="上游主机"
+            name={`upstream-${upstream.key}-host`}
+            value={upstream.host}
+            error={upstreamHost.error}
+            description={upstreamHost.warning}
+            onValueChange={(host) => replaceUpstream({ ...upstream, host })}
+          />
+          <TextField
+            label="上游端口"
+            name={`upstream-${upstream.key}-port`}
+            inputMode="numeric"
+            value={upstream.port}
+            error={upstreamPort.error}
+            description={upstreamPort.warning}
+            onValueChange={(port) => replaceUpstream({ ...upstream, port })}
+          />
+        </div>
+      );
+    }
+    case "file-pair": {
+      if (site.tls === null) return null;
+      const tlsError = feedback(siteTlsKey(siteIndex)).error;
+      return (
         <div className="grid gap-ui-8">
           <FileRow
             label="证书文件"
             buttonLabel="选择证书文件"
-            line={tlsFileLine("certificate", tls.certificateGrantId, status)}
-            onPick={() => onPick("certificate")}
+            line={tlsFileLine("certificate", site.tls.certificateGrantId, tlsStatus)}
+            onPick={() => onPickTlsFile("certificate")}
           />
           <FileRow
             label="私钥文件"
             buttonLabel="选择私钥文件"
-            line={tlsFileLine("privateKey", tls.privateKeyGrantId, status)}
-            onPick={() => onPick("privateKey")}
+            line={tlsFileLine("privateKey", site.tls.privateKeyGrantId, tlsStatus)}
+            onPick={() => onPickTlsFile("privateKey")}
           />
           <p className="m-0 text-aux text-muted-foreground">{TLS_FILES_NOTICE}</p>
-          {error ? (
+          {tlsError ? (
             <p role="alert" className="m-0 text-aux text-danger">
-              {error}
+              {tlsError}
             </p>
           ) : null}
         </div>
-      ) : null}
-      <SwitchField
-        label="记录访问日志"
-        name={`${name}-access-log`}
-        checked={accessLog}
-        onCheckedChange={onAccessLogChange}
-      />
-      <p role="note" className="m-0 text-aux text-muted-foreground">
-        {ACCESS_LOG_PRIVACY_NOTICE}
-      </p>
+      );
+    }
+    case "switch":
+      return (
+        <div className="grid gap-ui-8">
+          <SwitchField
+            label={DIRECTIVES[row.id].label}
+            name={`site-${site.key}-access-log`}
+            checked
+            onCheckedChange={(enabled) => {
+              if (!enabled) onSite(removeDirectiveRow(site, row));
+            }}
+          />
+          <p role="note" className="m-0 text-aux text-muted-foreground">
+            {ACCESS_LOG_PRIVACY_NOTICE}
+          </p>
+        </div>
+      );
+  }
+}
+
+function AddDirectiveGroup({
+  site,
+  ids,
+  onSite,
+}: {
+  site: SiteDraft;
+  ids: IdSource;
+  onSite: (next: SiteDraft) => void;
+}) {
+  return (
+    <div role="group" aria-label="添加指令" className="grid gap-ui-8">
+      <span className="text-sm font-medium">添加指令</span>
+      <div className="flex flex-wrap gap-ui-8">
+        {addableDirectives(site).map((id) => (
+          <Button
+            key={id}
+            size="sm"
+            variant="secondary"
+            disabled={!canAddDirective(site, id)}
+            onClick={() => onSite(addDirective(site, id, ids))}
+          >
+            {DIRECTIVES[id].label}
+          </Button>
+        ))}
+      </div>
+      {site.accessLog ? null : (
+        <p role="note" className="m-0 text-aux text-muted-foreground">
+          {ACCESS_LOG_PRIVACY_NOTICE}
+        </p>
+      )}
     </div>
   );
 }
