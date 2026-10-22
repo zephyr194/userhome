@@ -4,7 +4,7 @@
 保留当时通过、待验收和阻塞的区别；后续版本的验收结果应带日期记录在
 [release-readiness.md](release-readiness.md)，不能回写为本阶段已通过。
 
-Status: automated gate complete on 2026-10-10; foreground/manual matrix pending or blocked as recorded below.
+Status: automated gate complete on 2026-10-10; foreground/manual matrix pending or blocked as recorded below. 提权 helper 已于 2026-10-22 移除（G3-9）；下文关于 helper 的表述仅为当时的记录。
 
 本记录覆盖全局视觉系统、五个主路由布局、用户目录配置识别及跨路由验收矩阵。
 历史需求规格已清理；以下自动化证据和人工验收阻塞状态继续保留。

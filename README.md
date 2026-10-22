@@ -18,7 +18,7 @@ configuration, Homebrew software, services, and basic machine capabilities.
 | 技术契约 | [threat-model.md](docs/threat-model.md) | 只读入口、提权和分发的信任边界、失败行为及残余风险；权限或信任边界变化时更新，不代替安全验收。 |
 | 操作指南 | [backup-and-restore.md](docs/backup-and-restore.md) | 配置备份位置、权限、保留与恢复流程；随备份/恢复行为变化维护。 |
 | 操作指南 | [release.md](docs/release.md) | CI、标签构建、签名、公证、草稿发布和回滚流程；随工作流变化维护，不代表门禁已通过。 |
-| 操作指南 | [elevation-checklist.md](docs/elevation-checklist.md) | 已签名 helper 的注册及受保护夹具人工验证步骤；只在一次性环境执行，实测结果记入发布台账。 |
+| 操作指南 | [elevation-checklist.md](docs/elevation-checklist.md) | 已作废：提权 helper 已移除（G3-9），仅保留历史验证记录，不再执行。 |
 | 发布台账 | [release-readiness.md](docs/release-readiness.md) | 带日期的实测证据、发布决定、剩余阻塞与门禁；追加新证据，不把历史通过结果视为当前版本已通过。 |
 | 历史证据 | [home-baseline-coverage.md](docs/home-baseline-coverage.md) | 基线导出统计口径及 T53–T60 分类/覆盖率快照；不代表当前机器状态，也不授权扩大扫描或读写范围。 |
 | 历史证据 | [ui-correction-acceptance-v3.md](docs/ui-correction-acceptance-v3.md) | UI v3 自动化证据和未完成的人工矩阵；保留当时结论，不作为当前 UI 规格。 |
@@ -124,8 +124,8 @@ partial failure rather than success.
 The Services page parses bounded `brew services list --json` output into
 user/system/unknown scope. Caddy exposes start, stop, and restart with a
 separate preview for each action. User-level actions remain unprivileged;
-system-level actions require the signed, approved privileged helper. Unknown
-services remain read-only. Caddyfile validity is displayed independently from
+system-level services are no longer offered for management because the app no
+longer contains a privileged helper. Unknown services remain read-only. Caddyfile validity is displayed independently from
 runtime state, restart is blocked unless validation succeeds, and operation
 success requires the refreshed service state to match the requested outcome.
 
@@ -176,24 +176,12 @@ modify live user configuration.
 [`docs/backup-and-restore.md`](docs/backup-and-restore.md)。新增受管应用必须遵循
 [`docs/managed-app-schema.md`](docs/managed-app-schema.md) 的 schema、路径和审查约束。
 
-## Controlled elevation
+## 提权边界（已移除）
 
-The macOS 13+ elevation boundary uses `SMAppService` with a bundled
-LaunchDaemon. Requests contain only a protocol version, request/operation IDs,
-catalog resource and enum action IDs, SHA-256 hashes, confirmation/issuance
-times, and a bounded deadline. Paths, executable names, arguments, environments,
-and configuration content are not part of the request contract; payload bytes
-travel separately over authenticated XPC and are bound by `payloadHash`.
-
-The daemon verifies the calling main app from its XPC audit token, checks the
-app/helper Team ID and bundle identifiers, rejects replayed or stale requests,
-maps resources and actions to a compiled allowlist, and writes sanitized audit
-metadata. It never executes a Homebrew-managed binary as root. Unsigned builds,
-unregistered helpers, denied approval, invalid signatures, and unavailable
-bridges all report unavailable and fail closed. Automated tests use only the
-fake transport and temporary fixtures; see
-[`docs/elevation-checklist.md`](docs/elevation-checklist.md) for the signed
-manual verification gate.
+提权 helper、LaunchDaemon 与 Swift bridge 已于 G3-9 从应用中移除。应用不再请求
+root 权限，不包含 `SMAppService` 注册或 XPC 通信，Homebrew、配置与服务操作均以
+当前用户权限执行。历史设计与人工验证记录仅作证据保留，见
+[`docs/elevation-checklist.md`](docs/elevation-checklist.md)。
 
 ## 发布
 
@@ -203,8 +191,7 @@ artifact 上传。CI 不会创建 Release，也不会读取发布 secrets。只�
 的 tag 会进入 `release` environment，且所有 Apple 签名/公证 secrets 必须存在，
 否则工作流在导入证书或构建前失败。
 
-标签工作流构建 `arm64`/`x86_64` universal helper 与 bridge，先签名嵌套二进制，
-再由 Tauri 构建、签名并公证 universal app/DMG，校验签名、架构和 stapled ticket
+标签工作流由 Tauri 构建、签名并公证 `arm64`/`x86_64` universal app/DMG，校验 app 签名与 stapled ticket，
 后创建 **draft** GitHub Release。它不会自动发布正式 Release。完整步骤、secrets
 与人工门禁见 [`docs/release.md`](docs/release.md)，当前证据和剩余阻塞见
 [`docs/release-readiness.md`](docs/release-readiness.md)。

@@ -43,8 +43,8 @@ the successful local checks.
 | Initiative 4-5: safe edit, validation, backup, atomic write, restore | Config adapter/write/restore Rust tests and frontend preview tests provide automated evidence; live files are never used. |
 | Initiative 6: previewed package/service mutations and progress | Brew/service command tests cover distinct actions, intent-bound previews, conflicts, refresh proof, and operation history. |
 | Initiative 7: no arbitrary command/path capability | Typed command enums, catalog-only path resolution, bounded process execution, and security review are the evidence. |
-| Initiative 8: signed allowlisted helper | Protocol/fake-transport/unsigned fail-closed checks pass; signed registration and protected mutation remain externally blocked. |
-| Initiative 9: tagged signed universal release | Tag-only draft workflow, fail-closed secret gate, universal app/helper/bridge architecture checks, and local unsigned universal build provide implementation evidence; GitHub-hosted signed/notarized execution remains blocked. |
+| Initiative 8: signed allowlisted helper | 已移除（G3-9，2026-10-22）：应用不再包含提权 helper；此前的协议与失败关闭检查仅作历史证据，签名注册与受保护变更门禁不再适用。 |
+| Initiative 9: tagged signed universal release | Tag-only draft workflow, fail-closed secret gate, and universal app architecture checks plus local unsigned universal build provide implementation evidence (helper/bridge checks removed in G3-9); GitHub-hosted signed/notarized execution remains blocked. |
 | Initiative 10: no telemetry and bounded local persistence | No telemetry/network capability is configured; only protected backups and sanitized bounded operation metadata are stored. |
 
 平台基础、应用目录、系统发现、配置管理、Homebrew 管理、服务管理和桌面体验的
@@ -345,7 +345,7 @@ fixed at `0700`/`0600`.
 - Complete fixed-window drag/minimize/close/reopen, supported display-scaling,
   VoiceOver, keyboard-only, contrast, reduced-motion, app/Dock/Finder icon,
   light/dark tray interaction, native menu commands, Settings lifecycle and
-  persistence scenarios, configuration coverage, signed-helper, Intel macOS,
+  persistence scenarios, configuration coverage, Intel macOS,
   and Apple Silicon macOS manual checks.
 - Run the dependency audit against a registry that implements the npm audit API.
 
@@ -365,8 +365,8 @@ fixed at `0700`/`0600`.
 
 ### Rollback plan
 
-- **Trigger conditions:** signature, notarization, Gatekeeper, helper
-  registration, architecture, or smoke verification fails.
+- **Trigger conditions:** signature, notarization, Gatekeeper,
+  architecture, or smoke verification fails.
 - **Procedure:** keep the release as draft or delete its assets, do not publish
   or move the tag, fix the defect, create a new tag, and rerun every gate.
 - **Recovery objective:** no published artifact is exposed while a draft fails
@@ -395,7 +395,7 @@ fixed at `0700`/`0600`.
   Actions artifact and no Release is created.
 - [ ] A protected tag run with all Apple secrets proves nested signing,
   notarization, stapling, and draft Release creation.
-- [ ] The signed-helper checklist passes on a disposable protected fixture.
+- [ ] ~~The signed-helper checklist passes on a disposable protected fixture.~~ 已移除（G3-9，2026-10-22）：提权 helper 已删除，该门禁不再适用。
 - [x] Approved source artwork and generated bundle assets are present at
   `src-tauri/icons/userhome-icon.svg`, `src-tauri/icons/tray-template.svg`, and
   the configured Tauri icon paths; appearance remains subject to the manual gate
@@ -406,7 +406,8 @@ and elevation tests use mocks, fake transports, or temporary fixture roots. The
 desktop smoke creates and removes an isolated temporary
 `HOME`/`XDG_CONFIG_HOME`, starts the native window hidden, disables optional
 unknown-root discovery, does not open configuration documents or invoke
-mutation commands, and verifies the unsigned helper fails closed. No T69
+mutation commands, and verified the unsigned helper fail-closed behavior before the
+helper was removed in G3-9. No T69
 or T97 automated command read or mutated real user configuration.
 
 ### UI correction v3 automated completion and manual blocker (2026-10-10)
