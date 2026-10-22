@@ -67,7 +67,7 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     icon: "dashboard",
     label: "概览",
     eyebrow: "本机概览",
-    description: "掌握系统、配置、软件与服务的实时状态。",
+    description: "本机开发环境一览：服务、AI 工具、环境变量与应用配置。",
   },
   // Retired from the primary navigation; page and code are kept.
   applications: {
@@ -93,7 +93,7 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     icon: "environment",
     label: "环境变量",
     eyebrow: "环境文件",
-    description: "在指定目录中只读查看 dotenv 文件，秘密值默认遮盖。",
+    description: "按域查看项目 dotenv、用户 zsh 启动文件与登录会话的环境变量，秘密值默认遮盖。",
     sections: [
       { id: "dotenv", label: "dotenv 文件" },
       { id: "zsh", label: "zsh 启动文件" },
