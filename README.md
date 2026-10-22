@@ -32,7 +32,7 @@ UserHome 是一款本地优先的 macOS 桌面与托盘应用（Tauri 2 + React/
 | 技术契约 | [application-profiles.md](docs/application-profiles.md) | 新只读应用定义、资源发现/读取 IPC 与排除规则；随只读入口变化维护，不授予旧 Catalog 的写入权限。 |
 | 技术契约 | [managed-app-schema.md](docs/managed-app-schema.md) | 旧受管 Catalog 的扩展、Schema/预设、读写授权与兼容约束；随 Catalog 或编辑链路变化维护，与新只读定义分开。 |
 | 技术契约 | [threat-model.md](docs/threat-model.md) | 只读入口、提权和分发的信任边界、失败行为及残余风险；权限或信任边界变化时更新，不代替安全验收。 |
-| 操作指南 | [backup-and-restore.md](docs/backup-and-restore.md) | 配置备份位置、权限、保留与恢复流程；随备份/恢复行为变化维护。 |
+| 操作指南 | [backup-and-restore.md](docs/backup-and-restore.md) | 配置备份位置、权限、保留与清理，以及无应用内恢复时的手动取回步骤；随备份/清理行为变化维护。 |
 | 操作指南 | [release.md](docs/release.md) | CI、标签构建、签名、公证、草稿发布和回滚流程；随工作流变化维护，不代表门禁已通过。 |
 | 操作指南 | [elevation-checklist.md](docs/elevation-checklist.md) | 已作废：提权 helper 已移除（G3-9），仅保留历史验证记录，不再执行。 |
 | 发布台账 | [release-readiness.md](docs/release-readiness.md) | 带日期的实测证据、发布决定、剩余阻塞与门禁；追加新证据，不把历史通过结果视为当前版本已通过。 |
@@ -138,7 +138,7 @@ SIGKILL），不调用 `caddy stop`。Caddy 工作目录由用户在界面中选
 授权按用途隔离：Shell 启动文件、LaunchAgent 新建文件、TLS 材料与 Caddy 工作目录各自只能
 由对应入口使用。写入类操作先生成带期限的预览，确认后执行。
 
-受管配置的备份位于 `~/Library/Application Support/UserHome/backups`，权限、保留与恢复规则见
+受管配置的备份位于 `~/Library/Application Support/UserHome/backups`，权限、保留与清理规则，以及手动取回说明见
 [`docs/backup-and-restore.md`](docs/backup-and-restore.md)。授权根与信任边界见
 [`docs/threat-model.md`](docs/threat-model.md)。
 
