@@ -98,7 +98,7 @@ pub const TOOL_PROFILES: &[ToolProfile] = &[
         reference_urls: &[
             "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference",
         ],
-        verification_note: "独立配置页面未找到，完整字段与格式待核验",
+        verification_note: "官方设置表与配置路径已收录；适用版本、flags 与环境变量待核实",
         config: ConfigSource::NotRegistered,
     },
 ];
