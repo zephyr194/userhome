@@ -40,13 +40,13 @@ export function OperationHistory({
 }) {
   return (
     <Panel
-      className="min-h-0 p-ui-3xl"
+      className="min-h-0 p-ui-16"
       aria-labelledby="operation-history-heading"
     >
       <p className="text-xs font-semibold uppercase tracking-widest text-primary">
         操作记录
       </p>
-      <div className="mt-ui-xs flex items-center justify-between gap-ui-2xl">
+      <div className="mt-ui-4 flex items-center justify-between gap-ui-12">
         <h3 id="operation-history-heading" className="text-lg font-semibold">
           {title}
         </h3>
@@ -56,7 +56,7 @@ export function OperationHistory({
         <AsyncState kind="empty">{emptyMessage}</AsyncState>
       ) : (
         <div
-          className="mt-ui-3xl max-h-64 overflow-y-auto overscroll-contain rounded-control"
+          className="mt-ui-16 max-h-64 overflow-y-auto overscroll-contain rounded-control"
           aria-label="配置操作历史，可滚动"
           tabIndex={0}
         >
@@ -64,7 +64,7 @@ export function OperationHistory({
             {operations.map((operation) => (
               <li
                 key={operation.operationId}
-                className="flex items-start justify-between gap-ui-2xl bg-surface px-ui-2xl py-ui-xl"
+                className="flex items-start justify-between gap-ui-12 bg-surface px-ui-12 py-ui-12"
               >
                 <span className="min-w-0 text-sm leading-relaxed">
                   {operation.summary}

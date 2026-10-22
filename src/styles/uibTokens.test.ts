@@ -20,19 +20,10 @@ describe("4px 栅格间距令牌（UIB-0）", () => {
     }
   });
 
-  it("旧令牌别名指向最近的新档位（迁移期保留，UIB-5 删除）", () => {
-    const aliases: Record<string, number> = {
-      xxs: 2,
-      xs: 4,
-      sm: 8,
-      md: 8,
-      lg: 8,
-      xl: 12,
-      "2xl": 12,
-      "3xl": 16,
-    };
-    for (const [name, step] of Object.entries(aliases)) {
-      expect(tokenValue(`app-space-${name}`)).toBe(`var(--app-space-${step})`);
+  it("旧令牌别名已删除（UIB-5）", () => {
+    for (const name of ["xxs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl"]) {
+      expect(css).not.toContain(`--app-space-${name}:`);
+      expect(css).not.toContain(`--spacing-ui-${name}:`);
     }
   });
 

@@ -183,7 +183,7 @@ describe("标题栏与工具栏", () => {
     );
     expect(tokenValue("app-toolbar-height")).toBe("44px");
     expect(lastDeclared(".desktop-workspace__toolbar", "padding")).toBe(
-      "0 var(--app-space-3xl)",
+      "0 var(--app-space-16)",
     );
     expect(lastDeclared(".desktop-workspace__toolbar p", "line-height")).toBe(
       "var(--app-line-height-meta)",

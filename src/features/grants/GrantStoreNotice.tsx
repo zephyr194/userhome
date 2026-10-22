@@ -58,7 +58,7 @@ function NoticeRow({
 }) {
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
+      className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
       role={role}
       aria-busy={busy || undefined}
     >
@@ -98,7 +98,7 @@ function ResetDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-ui-3xl"
+      className="space-y-ui-16"
       onCancel={onCancel}
       titleId="grant-store-reset-heading"
     >
@@ -125,16 +125,16 @@ function ResetDialog({
       ) : null}
       {failure ? (
         <div
-          className={`rounded-control border border-danger-border bg-danger-soft px-ui-2xl py-ui-xl text-sm text-danger ${WRAP}`}
+          className={`rounded-control border border-danger-border bg-danger-soft px-ui-12 py-ui-12 text-sm text-danger ${WRAP}`}
           role="alert"
         >
           <p className="m-0 font-medium">重置未完成：{failure.headline}</p>
           {failure.detail ? (
-            <p className="m-0 mt-ui-xs">{failure.detail}</p>
+            <p className="m-0 mt-ui-4">{failure.detail}</p>
           ) : null}
         </div>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-ui-sm">
+      <div className="flex flex-wrap justify-end gap-ui-8">
         <Button data-dialog-cancel disabled={busy} onClick={onCancel}>
           取消
         </Button>

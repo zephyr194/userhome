@@ -31,7 +31,7 @@ interface FieldCopyProps {
 }
 
 const CONTROL_BASE =
-  "w-full min-w-0 rounded-control border border-control-border bg-surface px-ui-lg text-body text-foreground disabled:cursor-not-allowed disabled:opacity-50";
+  "w-full min-w-0 rounded-control border border-control-border bg-surface px-ui-8 text-body text-foreground disabled:cursor-not-allowed disabled:opacity-50";
 
 function RequiredMark({ required }: { required?: boolean }) {
   return required ? (
@@ -52,7 +52,7 @@ export function FieldFrame({
 }: FieldCopyProps & { children: ReactNode }) {
   return (
     <Field
-      className={classNames("grid min-w-0 gap-ui-xs", className)}
+      className={classNames("grid min-w-0 gap-ui-4", className)}
       disabled={disabled}
     >
       <Label className="break-words text-body font-semibold text-foreground">
@@ -158,7 +158,7 @@ export function TextAreaField({
         {...props}
         className={classNames(
           CONTROL_BASE,
-          "min-h-24 resize-y py-ui-lg",
+          "min-h-24 resize-y py-ui-8",
           inputClassName,
         )}
         disabled={disabled}
@@ -265,7 +265,7 @@ export function CheckboxField({
     >
       <Checkbox
         checked={checked}
-        className="group flex h-control-sm w-fit min-w-control-sm items-center gap-ui-sm rounded-control bg-surface-muted px-ui-sm text-body disabled:cursor-not-allowed disabled:opacity-50"
+        className="group flex h-control-sm w-fit min-w-control-sm items-center gap-ui-8 rounded-control bg-surface-muted px-ui-8 text-body disabled:cursor-not-allowed disabled:opacity-50"
         defaultChecked={defaultChecked}
         disabled={disabled}
         form={form}
@@ -356,14 +356,14 @@ export function RadioCardGroup<T extends string>({
 }: RadioCardGroupProps<T>) {
   return (
     <Fieldset
-      className={classNames("grid min-w-0 gap-ui-lg", className)}
+      className={classNames("grid min-w-0 gap-ui-8", className)}
       disabled={disabled}
     >
       <Legend className="text-group font-semibold text-foreground">
         {label}
       </Legend>
       <RadioGroup
-        className="grid min-w-0 gap-ui-sm sm:grid-cols-2"
+        className="grid min-w-0 gap-ui-8 sm:grid-cols-2"
         defaultValue={defaultValue}
         disabled={disabled}
         form={form}
@@ -379,7 +379,7 @@ export function RadioCardGroup<T extends string>({
         {options.map((option) => (
           <Radio
             key={option.value}
-            className="group grid min-w-0 cursor-pointer gap-ui-xs rounded-control border border-control-border bg-surface px-ui-lg py-ui-md data-checked:border-selection-border data-checked:bg-selection disabled:cursor-not-allowed disabled:opacity-50"
+            className="group grid min-w-0 cursor-pointer gap-ui-4 rounded-control border border-control-border bg-surface px-ui-8 py-ui-8 data-checked:border-selection-border data-checked:bg-selection disabled:cursor-not-allowed disabled:opacity-50"
             disabled={option.disabled}
             value={option.value}
           >

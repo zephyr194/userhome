@@ -112,9 +112,9 @@ export function LogViewer({
   return (
     <section
       aria-label={label}
-      className={classNames("grid min-w-0 gap-ui-md", className)}
+      className={classNames("grid min-w-0 gap-ui-8", className)}
     >
-      <div className="flex min-w-0 flex-wrap items-end gap-ui-md">
+      <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
         <TextField
           autoComplete="off"
           className="min-w-48 flex-1"
@@ -139,7 +139,7 @@ export function LogViewer({
 
       {view.droppedCount > 0 ? (
         <p
-          className="break-words rounded-control bg-warning-soft px-ui-lg py-ui-sm text-aux text-warning"
+          className="break-words rounded-control bg-warning-soft px-ui-8 py-ui-8 text-aux text-warning"
           data-log-truncated
         >
           已丢弃较早的 {view.droppedCount} 行，仅保留最近 {view.lines.length}{" "}
@@ -147,7 +147,7 @@ export function LogViewer({
         </p>
       ) : null}
 
-      <div className="flex min-w-0 flex-wrap items-center gap-x-ui-xl gap-y-ui-xs text-aux text-muted-foreground">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-ui-12 gap-y-ui-4 text-aux text-muted-foreground">
         <span>
           {filtering
             ? `匹配 ${visibleLines.length} / ${view.lines.length} 行`
@@ -172,7 +172,7 @@ export function LogViewer({
         ref={scrollerRef}
         aria-label={`${label}内容`}
         aria-live="off"
-        className="max-h-96 min-h-32 overflow-auto rounded-control bg-surface-muted px-ui-lg py-ui-md font-mono text-aux leading-snug text-foreground focus-visible:shadow-focus"
+        className="max-h-96 min-h-32 overflow-auto rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux leading-snug text-foreground focus-visible:shadow-focus"
         onScroll={handleScroll}
         role="log"
         tabIndex={0}

@@ -110,16 +110,16 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
 
         {summary.applications.length === 0 ? (
           <div
-            className="flex min-w-0 items-start gap-ui-lg border-t border-border pt-ui-lg"
+            className="flex min-w-0 items-start gap-ui-8 border-t border-border pt-ui-8"
             role="status"
           >
             <PresenceIcon present={false} />
             <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-md">
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8">
                 <strong className="min-w-0 text-xs">应用检测结果</strong>
                 <StatusBadge className="shrink-0">无数据</StatusBadge>
               </div>
-              <p className="mt-ui-xs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
+              <p className="mt-ui-4 min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
                 本次发现未返回应用检测条目。
               </p>
             </div>
@@ -152,7 +152,7 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
                     </StatusBadge>
                   </div>
                   {application.evidence.length === 0 ? (
-                    <p className="mt-ui-xs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
+                    <p className="mt-ui-4 min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
                       未返回检测证据。
                     </p>
                   ) : (

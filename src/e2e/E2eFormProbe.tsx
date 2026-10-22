@@ -13,7 +13,7 @@ export function E2eFormProbe() {
 
   return (
     <form
-      className="fixed right-2 bottom-2 z-[100] grid w-64 gap-ui-sm rounded-panel bg-surface-raised p-ui-lg shadow-[var(--app-shadow-raised)]"
+      className="fixed right-2 bottom-2 z-[100] grid w-64 gap-ui-8 rounded-panel bg-surface-raised p-ui-8 shadow-[var(--app-shadow-raised)]"
       data-testid="e2e-form-probe"
       onReset={() => setResult("reset")}
       onSubmit={(event) => {
@@ -33,7 +33,7 @@ export function E2eFormProbe() {
         name="enabled"
       />
       <SecretReplacementField label="E2E token" name="token" />
-      <div className="flex gap-ui-sm">
+      <div className="flex gap-ui-8">
         <Button size="sm" type="submit">
           Probe submit
         </Button>

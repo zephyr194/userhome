@@ -68,7 +68,7 @@ function ShellNotice({
 }) {
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
+      className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
       role={role}
       aria-busy={busy || undefined}
     >
@@ -131,11 +131,11 @@ export function QuitConfirmationDialog({
       {prompt.items?.length ? (
         <ul
           aria-label="仍在运行的项目"
-          className="m-0 flex list-none flex-col gap-ui-xs p-0 text-sm text-foreground"
+          className="m-0 flex list-none flex-col gap-ui-4 p-0 text-sm text-foreground"
         >
           {prompt.items.map((item) => (
             <li
-              className="flex min-w-0 gap-ui-xs break-words [overflow-wrap:anywhere]"
+              className="flex min-w-0 gap-ui-4 break-words [overflow-wrap:anywhere]"
               key={item}
             >
               <span aria-hidden="true" className="shrink-0 text-muted-foreground">
@@ -444,7 +444,7 @@ export function AppShell({
   const refreshNotice =
     state.refresh.status === "error" ? (
       <div
-        className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
+        className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
         role="alert"
       >
         <StatusBadge className="shrink-0" tone="danger">
@@ -463,7 +463,7 @@ export function AppShell({
       </div>
     ) : state.refresh.status === "ready" ? (
       <div
-        className="flex min-w-0 flex-wrap items-center gap-ui-md px-ui-3xl py-ui-md text-xs"
+        className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
         role="status"
       >
         <StatusBadge className="shrink-0" tone="success">
@@ -531,12 +531,12 @@ export function AppShell({
               ) : undefined
             }
             toolbar={
-              <div className="flex w-full min-w-0 items-center justify-between gap-ui-xl">
+              <div className="flex w-full min-w-0 items-center justify-between gap-ui-12">
                 <div className="min-w-0 flex-1">
                   <h1 className="desktop-workspace__page-title">
                     {activeRoute.label}
                   </h1>
-                  <p className="m-0 mt-ui-xxs min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
+                  <p className="m-0 mt-ui-2 min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
                     {activeRoute.description}
                   </p>
                 </div>

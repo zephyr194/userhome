@@ -20,7 +20,7 @@ export function AsyncState({
   return (
     <div
       className={classNames(
-        "mt-ui-3xl rounded-control px-ui-xl py-ui-lg text-body leading-relaxed state-transition",
+        "mt-ui-16 rounded-control px-ui-12 py-ui-8 text-body leading-relaxed state-transition",
         STATE_CLASSES[kind],
       )}
       role={kind === "error" ? "alert" : "status"}
@@ -28,7 +28,7 @@ export function AsyncState({
       aria-live={kind === "error" ? "assertive" : "polite"}
     >
       {kind === "partial" || kind === "error" ? (
-        <strong className="mr-ui-sm">
+        <strong className="mr-ui-8">
           {kind === "error" ? "错误：" : "注意："}
         </strong>
       ) : null}

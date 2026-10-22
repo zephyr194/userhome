@@ -38,7 +38,7 @@ export function Modal({
 
   if (typeof document === "undefined") {
     return (
-      <div className="fixed inset-0 z-50 grid place-items-center bg-backdrop p-ui-xl sm:p-ui-3xl">
+      <div className="fixed inset-0 z-50 grid place-items-center bg-backdrop p-ui-12 sm:p-ui-16">
         <section
           aria-busy={busy || undefined}
           aria-labelledby={titleId}
@@ -50,7 +50,7 @@ export function Modal({
           role="dialog"
         >
           {title !== undefined ? (
-            <div className="border-b border-line px-ui-3xl py-ui-2xl">
+            <div className="border-b border-line px-ui-16 py-ui-12">
               <div className="min-w-0 break-words text-group font-semibold">
                 {title}
               </div>
@@ -58,14 +58,14 @@ export function Modal({
           ) : null}
           <div
             className={classNames(
-              "min-w-0 break-words px-ui-3xl py-ui-2xl text-body",
+              "min-w-0 break-words px-ui-16 py-ui-12 text-body",
               bodyClassName,
             )}
           >
             {children}
           </div>
           {footer ? (
-            <div className="flex flex-wrap justify-end gap-ui-md px-ui-3xl py-ui-2xl">
+            <div className="flex flex-wrap justify-end gap-ui-8 px-ui-16 py-ui-12">
               {footer}
             </div>
           ) : null}
@@ -87,7 +87,7 @@ export function Modal({
         className="fixed inset-0 bg-backdrop state-transition data-closed:opacity-0"
         transition
       />
-      <div className="fixed inset-0 overflow-hidden p-ui-xl sm:p-ui-3xl">
+      <div className="fixed inset-0 overflow-hidden p-ui-12 sm:p-ui-16">
         <div className="flex h-full items-center justify-center">
           <DialogPanel
             ref={setPanelRef}
@@ -106,7 +106,7 @@ export function Modal({
             transition
           >
             {title !== undefined ? (
-              <div className="border-b border-line px-ui-3xl py-ui-2xl">
+              <div className="border-b border-line px-ui-16 py-ui-12">
                 <DialogTitle
                   as="div"
                   className="min-w-0 break-words text-group font-semibold"
@@ -117,14 +117,14 @@ export function Modal({
             ) : null}
             <div
               className={classNames(
-                "min-w-0 break-words px-ui-3xl py-ui-2xl text-body",
+                "min-w-0 break-words px-ui-16 py-ui-12 text-body",
                 bodyClassName,
               )}
             >
               {children}
             </div>
             {footer ? (
-              <div className="flex flex-wrap justify-end gap-ui-md px-ui-3xl py-ui-2xl">
+              <div className="flex flex-wrap justify-end gap-ui-8 px-ui-16 py-ui-12">
                 {footer}
               </div>
             ) : null}

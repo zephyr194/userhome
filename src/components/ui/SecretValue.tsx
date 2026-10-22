@@ -75,7 +75,7 @@ function SecretValueView({
   return (
     <span
       className={classNames(
-        "inline-flex min-w-0 max-w-full flex-wrap items-center gap-ui-md",
+        "inline-flex min-w-0 max-w-full flex-wrap items-center gap-ui-8",
         className,
       )}
       data-secret-state={revealed ? "revealed" : "masked"}
@@ -83,7 +83,7 @@ function SecretValueView({
       onKeyDown={hideOnEscape}
     >
       <code
-        className="min-w-0 break-all rounded-control bg-surface-muted px-ui-md py-ui-xxs font-mono text-aux text-foreground"
+        className="min-w-0 break-all rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux text-foreground"
         id={valueId}
       >
         {revealed ? (

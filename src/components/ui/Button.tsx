@@ -17,8 +17,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "min-h-control-sm px-ui-lg text-aux",
-  md: "min-h-control-md px-ui-2xl text-body",
+  sm: "min-h-control-sm px-ui-8 text-aux",
+  md: "min-h-control-md px-ui-12 text-body",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -39,7 +39,7 @@ export function Button({
     <HeadlessButton
       ref={ref}
       className={classNames(
-        "inline-flex items-center justify-center gap-ui-md rounded-control border font-medium transition-colors",
+        "inline-flex items-center justify-center gap-ui-8 rounded-control border font-medium transition-colors",
         "focus-visible:shadow-focus",
         "disabled:cursor-not-allowed disabled:opacity-50",
         VARIANT_CLASSES[variant],
