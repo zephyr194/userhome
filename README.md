@@ -31,7 +31,7 @@ configuration, Homebrew software, services, and basic machine capabilities.
 
 - macOS 13 or newer
 - Node.js 24.21.0
-- pnpm 10.33.1
+- pnpm 12.11.2
 - Rust 1.95.0 with `rustfmt`, `clippy`, and Apple Silicon/Intel macOS targets
 
 ## Commands
