@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useBoardView } from "../../app/BoardViewContext";
 import { AsyncState } from "../../components/AsyncState";
 import {
@@ -61,8 +62,37 @@ function editorOpen(props: EnvironmentViewProps): boolean {
   return props.editor !== undefined && props.editor.state.phase !== "closed";
 }
 
-const HEADER_CLASSES =
-  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8";
+/** 环境页所有分区头共用：同一高度下限、同一底色、同一标题字号。 */
+function SectionHeader({
+  action,
+  description,
+  headingId,
+  level = "h3",
+  title,
+}: {
+  action?: ReactNode;
+  description?: ReactNode;
+  headingId: string;
+  level?: "h2" | "h3";
+  title: string;
+}) {
+  const Heading = level;
+  return (
+    <header className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
+      <div className="flex min-h-control-md min-w-0 flex-col justify-center">
+        <Heading className="text-sm font-semibold" id={headingId}>
+          {title}
+        </Heading>
+        {description ? (
+          <p className="mt-ui-4 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
+            {description}
+          </p>
+        ) : null}
+      </div>
+      {action}
+    </header>
+  );
+}
 
 export function EnvironmentView(props: EnvironmentViewProps) {
   const { isBoard } = useBoardView();
@@ -73,25 +103,23 @@ export function EnvironmentView(props: EnvironmentViewProps) {
           aria-labelledby="environment-heading"
           className="flex min-w-0 flex-col"
         >
-          <header className={HEADER_CLASSES}>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold" id="environment-heading">
-                环境文件
-              </h2>
-              <p className="mt-ui-4 text-xs text-muted-foreground">
-                指定目录中的 dotenv 文件，只读查看
-              </p>
-            </div>
-            {props.onNewFile ? (
-              <Button
-                disabled={props.choosingNewFile === true || editorOpen(props)}
-                onClick={props.onNewFile}
-                size="sm"
-              >
-                {props.choosingNewFile ? "等待选择…" : "新建环境文件…"}
-              </Button>
-            ) : null}
-          </header>
+          <SectionHeader
+            action={
+              props.onNewFile ? (
+                <Button
+                  disabled={props.choosingNewFile === true || editorOpen(props)}
+                  onClick={props.onNewFile}
+                  size="sm"
+                >
+                  {props.choosingNewFile ? "等待选择…" : "新建环境文件…"}
+                </Button>
+              ) : undefined
+            }
+            description="指定目录中的 dotenv 文件，只读查看"
+            headingId="environment-heading"
+            level="h2"
+            title="环境文件"
+          />
           <GrantsSection {...props} />
           <SettingsSection {...props} />
           <ScanResults {...props} />
@@ -119,55 +147,60 @@ function GrantsSection({
   const { grants } = state;
   const grantListRef = useSlideIndicator(state.selectedGrantId);
   return (
-    <div className="border-b border-border px-ui-12 py-ui-8">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
-        <h3 className="text-sm font-semibold">目录授权</h3>
-        <Button disabled={addingGrant} onClick={onAddGrant} size="sm" variant="primary">
-          {addingGrant ? "等待选择…" : "添加目录授权…"}
-        </Button>
-      </div>
-      <p className="mt-ui-4 text-xs leading-relaxed text-muted-foreground">
-        只能授权用户主目录之下的目录。UserHome 只读取匹配的文件，从不执行或 source 它们。
-      </p>
-      {grantNotice ? (
-        <p
-          className={classNames(
-            "mt-ui-8 text-xs leading-relaxed",
-            grantNotice.tone === "error" ? "text-danger" : "text-muted-foreground",
-          )}
-          role={grantNotice.tone === "error" ? "alert" : "status"}
-        >
-          {grantNotice.text}
-        </p>
-      ) : null}
-      {grants.status === "loading" ? (
-        <AsyncState kind="loading">正在读取目录授权…</AsyncState>
-      ) : grants.status === "error" ? (
-        <AsyncState kind="error">
-          <span className="break-words [overflow-wrap:anywhere]">
-            {grants.error.message}
-          </span>{" "}
-          <Button onClick={onReloadGrants} size="sm">
-            重试
+    <div className="border-b border-border">
+      <SectionHeader
+        action={
+          <Button disabled={addingGrant} onClick={onAddGrant} size="sm" variant="primary">
+            {addingGrant ? "等待选择…" : "添加目录授权…"}
           </Button>
-        </AsyncState>
-      ) : grants.grants.length === 0 ? (
-        <AsyncState kind="empty">
-          还没有授权目录。点击“添加目录授权…”选择一个项目目录。
-        </AsyncState>
-      ) : (
-        <ul ref={grantListRef} aria-label="已授权目录" className="slide-list mt-ui-8 grid gap-ui-8">
-          {grants.grants.map((grant) => (
-            <GrantRow
-              grant={grant}
-              key={grant.id}
-              onRevoke={() => onRevokeGrant(grant.id)}
-              onSelect={() => onSelectGrant(grant.id)}
-              selected={grant.id === state.selectedGrantId}
-            />
-          ))}
-        </ul>
-      )}
+        }
+        headingId="environment-grants-heading"
+        title="目录授权"
+      />
+      <div className="px-ui-12 py-ui-8">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          只能授权用户主目录之下的目录。UserHome 只读取匹配的文件，从不执行或 source 它们。
+        </p>
+        {grantNotice ? (
+          <p
+            className={classNames(
+              "mt-ui-8 text-xs leading-relaxed",
+              grantNotice.tone === "error" ? "text-danger" : "text-muted-foreground",
+            )}
+            role={grantNotice.tone === "error" ? "alert" : "status"}
+          >
+            {grantNotice.text}
+          </p>
+        ) : null}
+        {grants.status === "loading" ? (
+          <AsyncState kind="loading">正在读取目录授权…</AsyncState>
+        ) : grants.status === "error" ? (
+          <AsyncState kind="error">
+            <span className="break-words [overflow-wrap:anywhere]">
+              {grants.error.message}
+            </span>{" "}
+            <Button onClick={onReloadGrants} size="sm">
+              重试
+            </Button>
+          </AsyncState>
+        ) : grants.grants.length === 0 ? (
+          <AsyncState kind="empty">
+            还没有授权目录。点击“添加目录授权…”选择一个项目目录。
+          </AsyncState>
+        ) : (
+          <ul ref={grantListRef} aria-label="已授权目录" className="slide-list mt-ui-8 grid gap-ui-8">
+            {grants.grants.map((grant) => (
+              <GrantRow
+                grant={grant}
+                key={grant.id}
+                onRevoke={() => onRevokeGrant(grant.id)}
+                onSelect={() => onSelectGrant(grant.id)}
+                selected={grant.id === state.selectedGrantId}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -216,38 +249,57 @@ function SettingsSection(props: EnvironmentViewProps) {
   const scanned = state.scan.status === "ready" ? state.scan.settings : undefined;
   const changed = scanned !== undefined && check.ok && !sameSettings(scanned, check.settings);
   const noGrant = state.selectedGrantId === undefined;
+  const scanLoading = state.scan.status === "loading";
+  const scanDisabled = noGrant || !check.ok || scanLoading || locked;
+  const scanBlockedReason = scanLoading
+    ? undefined
+    : noGrant
+      ? "先添加并选择一个目录授权。"
+      : !check.ok
+        ? "先修正文件 pattern，再扫描。"
+        : locked
+          ? "关闭正在编辑的文件后再扫描。"
+          : undefined;
   return (
-    <div className="grid gap-ui-8 border-b border-border px-ui-12 py-ui-8">
-      <h3 className="text-sm font-semibold">扫描设置</h3>
-      <TextAreaField
-        description="每行一个相对目录的简单 glob：只支持 * 和 ?，不是 shell 或正则；不接受绝对路径和 ..。"
-        error={check.ok ? undefined : check.message}
-        label="文件 pattern"
-        maxLength={2048}
-        onValueChange={onPatternsChange}
-        rows={3}
-        spellCheck={false}
-        value={state.patternsText}
-      />
-      <SwitchField
-        checked={state.recursive}
-        description="默认只扫描所选目录这一层。开启后最多深入 5 层、检查 2000 个目录项、列出 200 个文件，单个文件读取上限 1 MiB；超过上限只显示部分结果，不会自动放宽。"
-        label="递归扫描子目录"
-        onCheckedChange={onRecursiveChange}
-      />
-      <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
-        <Button
-          disabled={noGrant || !check.ok || state.scan.status === "loading" || locked}
-          onClick={onScan}
-          variant="primary"
-        >
-          {state.scan.status === "loading" ? "扫描中…" : "扫描"}
-        </Button>
-        {changed ? (
-          <span className="text-xs text-warning" role="status">
-            设置已更改，重新扫描后生效。
-          </span>
-        ) : null}
+    <div className="border-b border-border">
+      <SectionHeader headingId="environment-settings-heading" title="扫描设置" />
+      <div className="grid gap-ui-8 px-ui-12 py-ui-8">
+        <TextAreaField
+          description="每行一个相对目录的简单 glob：只支持 * 和 ?，不是 shell 或正则；不接受绝对路径和 ..。"
+          error={check.ok ? undefined : check.message}
+          label="文件 pattern"
+          maxLength={2048}
+          onValueChange={onPatternsChange}
+          rows={3}
+          spellCheck={false}
+          value={state.patternsText}
+        />
+        <SwitchField
+          checked={state.recursive}
+          description="默认只扫描所选目录这一层。开启后最多深入 5 层、检查 2000 个目录项、列出 200 个文件，单个文件读取上限 1 MiB；超过上限只显示部分结果，不会自动放宽。"
+          label="递归扫描子目录"
+          onCheckedChange={onRecursiveChange}
+        />
+        <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
+          <Button
+            aria-describedby={scanBlockedReason ? "environment-scan-reason" : undefined}
+            disabled={scanDisabled}
+            onClick={onScan}
+            variant="primary"
+          >
+            {scanLoading ? "扫描中…" : "扫描"}
+          </Button>
+          {scanBlockedReason ? (
+            <span className="text-xs text-muted-foreground" id="environment-scan-reason">
+              {scanBlockedReason}
+            </span>
+          ) : null}
+          {changed ? (
+            <span className="text-xs text-warning" role="status">
+              设置已更改，重新扫描后生效。
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -259,38 +311,40 @@ function ScanResults(props: EnvironmentViewProps) {
   const { onSelectFile, onScan, state } = props;
   const { scan } = state;
   return (
-    <div className="px-ui-12 py-ui-8">
-      <h3 className="text-sm font-semibold">扫描结果</h3>
-      {scan.status === "idle" ? (
-        <AsyncState kind="empty">
-          {state.selectedGrantId === undefined
-            ? "先添加并选择一个目录授权。"
-            : "点击“扫描”列出匹配的环境文件。"}
-        </AsyncState>
-      ) : scan.status === "loading" ? (
-        <AsyncState kind="loading">正在扫描…</AsyncState>
-      ) : scan.status === "error" ? (
-        <AsyncState kind="error">
-          <span className="break-words [overflow-wrap:anywhere]">
-            {scan.error.message}
-          </span>
-          {scan.error.retryable ? (
-            <>
-              {" "}
-              <Button onClick={onScan} size="sm">
-                重试
-              </Button>
-            </>
-          ) : null}
-        </AsyncState>
-      ) : (
-        <ScanReady
-          locked={editorOpen(props)}
-          onSelectFile={onSelectFile}
-          outcome={scan.outcome}
-          selectedPath={state.selectedPath}
-        />
-      )}
+    <div>
+      <SectionHeader headingId="environment-results-heading" title="扫描结果" />
+      <div className="px-ui-12 py-ui-8">
+        {scan.status === "idle" ? (
+          <AsyncState kind="empty">
+            {state.selectedGrantId === undefined
+              ? "先添加并选择一个目录授权。"
+              : "点击“扫描”列出匹配的环境文件。"}
+          </AsyncState>
+        ) : scan.status === "loading" ? (
+          <AsyncState kind="loading">正在扫描…</AsyncState>
+        ) : scan.status === "error" ? (
+          <AsyncState kind="error">
+            <span className="break-words [overflow-wrap:anywhere]">
+              {scan.error.message}
+            </span>
+            {scan.error.retryable ? (
+              <>
+                {" "}
+                <Button onClick={onScan} size="sm">
+                  重试
+                </Button>
+              </>
+            ) : null}
+          </AsyncState>
+        ) : (
+          <ScanReady
+            locked={editorOpen(props)}
+            onSelectFile={onSelectFile}
+            outcome={scan.outcome}
+            selectedPath={state.selectedPath}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -396,25 +450,25 @@ function FilePane(props: EnvironmentViewProps) {
       aria-labelledby="environment-file-heading"
       className="flex min-w-0 flex-col"
     >
-      <header className={HEADER_CLASSES}>
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold" id="environment-file-heading">
-            {editing ? "编辑环境文件" : "文件内容（只读）"}
-          </h2>
-          <p className="mt-ui-4 break-all text-xs text-muted-foreground">
-            {editing
-              ? editor.state.target?.kind === "new"
-                ? editor.state.target.displayPath
-                : (editor.state.target?.path ?? "未选择文件")
-              : (state.selectedPath ?? "未选择文件")}
-          </p>
-        </div>
-        {!editing && props.onEditFile && loaded ? (
-          <Button onClick={props.onEditFile} size="sm" variant="primary">
-            编辑…
-          </Button>
-        ) : null}
-      </header>
+      <SectionHeader
+        action={
+          !editing && props.onEditFile && loaded ? (
+            <Button onClick={props.onEditFile} size="sm" variant="primary">
+              编辑…
+            </Button>
+          ) : undefined
+        }
+        description={
+          editing
+            ? editor.state.target?.kind === "new"
+              ? editor.state.target.displayPath
+              : (editor.state.target?.path ?? "未选择文件")
+            : (state.selectedPath ?? "未选择文件")
+        }
+        headingId="environment-file-heading"
+        level="h2"
+        title={editing ? "编辑环境文件" : "文件内容（只读）"}
+      />
       <div className="px-ui-12 py-ui-8">
         {editing ? (
           <DotenvEditor {...editor} />

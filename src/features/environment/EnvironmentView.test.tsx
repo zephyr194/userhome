@@ -428,3 +428,21 @@ describe("environment feature sources", () => {
     }
   });
 });
+
+describe("分区头与扫描原因（r4-fe5）", () => {
+  it("uses one header band for the page and every section", () => {
+    const markup = render(stateOf());
+    expect(markup.match(/<header class="[^"]*bg-surface-muted/g)).toHaveLength(5);
+  });
+
+  it("names the reason scanning is blocked and links it to the button", () => {
+    const markup = render(stateOf({ selectedGrantId: undefined }));
+    expect(markup).toContain('aria-describedby="environment-scan-reason"');
+    expect(markup).toMatch(/id="environment-scan-reason"[^>]*>先添加并选择一个目录授权。</);
+  });
+
+  it("gives no blocked reason when scanning is available", () => {
+    const markup = render(stateOf());
+    expect(markup).not.toContain("environment-scan-reason");
+  });
+});
