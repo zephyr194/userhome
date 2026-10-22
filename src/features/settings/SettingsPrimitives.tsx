@@ -1,9 +1,4 @@
-import type {
-  FieldsetHTMLAttributes,
-  HTMLAttributes,
-  LabelHTMLAttributes,
-  ReactNode,
-} from "react";
+import { useId, type HTMLAttributes, type LabelHTMLAttributes, type ReactNode } from "react";
 import { Button, Modal, Panel, StatusBadge } from "../../components/ui";
 import type { StatusBadgeProps } from "../../components/ui/StatusBadge";
 import { classNames } from "../../components/ui/classNames";
@@ -108,24 +103,28 @@ export function SettingsChoiceGroup({
   legend,
   className,
   ...props
-}: FieldsetHTMLAttributes<HTMLFieldSetElement> & {
+}: HTMLAttributes<HTMLElement> & {
   description: ReactNode;
   legend: ReactNode;
 }) {
+  const headingId = useId();
   return (
-    <fieldset
+    <section
+      aria-labelledby={headingId}
       className={classNames(
-        "grid min-w-0 gap-ui-8 border-0 p-0",
+        "grid min-w-0 gap-ui-8",
         className,
       )}
       {...props}
     >
-      <legend className="text-group font-semibold">{legend}</legend>
+      <h3 id={headingId} className="text-group font-semibold">
+        {legend}
+      </h3>
       <p className="m-0 break-words text-aux leading-relaxed text-muted-foreground">
         {description}
       </p>
       {children}
-    </fieldset>
+    </section>
   );
 }
 

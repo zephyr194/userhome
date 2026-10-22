@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type {
   OptionalDiscoveryRoot,
   UpdatePreferencesRequest,
@@ -46,6 +46,7 @@ export function PrivacySettings({
 }) {
   const form = usePreferenceForm(preferences, onChange);
   const [refreshing, setRefreshing] = useState(false);
+  const rootsHeadingId = useId();
 
   async function toggleRoot(
     root: OptionalDiscoveryRoot,
@@ -76,13 +77,13 @@ export function PrivacySettings({
 
   return (
     <SettingsForm busy={form.saving || refreshing}>
-      <fieldset className="grid min-w-0 gap-ui-8" disabled={form.saving || refreshing}>
-        <legend className="text-group font-semibold">元数据发现根</legend>
+      <section aria-labelledby={rootsHeadingId} className="grid min-w-0 gap-ui-8">
+        <h3 id={rootsHeadingId} className="text-group font-semibold">元数据发现根</h3>
         <p className="m-0 text-aux text-muted-foreground">只读取一层目录项名称、类型和修改时间；不会读取候选配置内容，也不接受自定义路径。</p>
         {ROOTS.map((root) => (
           <CheckboxField key={root.id} label={root.label} description={root.description} checked={form.values.optionalDiscoveryRoots.includes(root.id)} disabled={form.saving || refreshing} onCheckedChange={(checked) => void toggleRoot(root.id, checked)} />
         ))}
-      </fieldset>
+      </section>
 
       <SettingsFieldList>
         <SettingsValueField

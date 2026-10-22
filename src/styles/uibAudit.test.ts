@@ -147,4 +147,21 @@ describe("UIF-4b 对齐审计", () => {
     const ghost = button.match(/ghost:\s*\n?\s*"([^"]*)"/);
     expect(ghost?.[1]).toContain("border-transparent");
   });
+
+  it("src/features 不再用 fieldset 充当面板标题，改用 section 与标题行", () => {
+    const offenders = productionSources
+      .filter((file) => rel(file).startsWith("features/") && read(file).includes("<fieldset"))
+      .map(rel);
+    expect(offenders).toEqual([]);
+  });
+
+  it("Caddy 站点标题行与工具集按钮行使用 ActionRow，工具集按钮与下拉底边对齐", () => {
+    const caddy = read(join(srcRoot, "features/caddy/CaddyRulesEditor.tsx"));
+    expect(caddy).toContain('<ActionRow align="end">');
+    for (const tool of ["JsonTool", "XmlTool"]) {
+      const source = read(join(srcRoot, `features/tools/${tool}.tsx`));
+      expect(source).toContain('<ActionRow alignItems="end">');
+      expect(source).not.toContain("flex flex-wrap items-end gap-ui-8");
+    }
+  });
 });

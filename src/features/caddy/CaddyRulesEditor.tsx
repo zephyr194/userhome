@@ -1,4 +1,5 @@
 import {
+  ActionRow,
   Button,
   SelectField,
   StatusBadge,
@@ -99,29 +100,34 @@ export function CaddyRulesEditor({
       {sites.map((site, siteIndex) => {
         const upstreamList = feedback(siteFieldKey(siteIndex, "upstreams"));
         return (
-          <fieldset
+          <section
             key={site.key}
-            className="grid min-w-0 gap-ui-8 rounded-panel bg-surface-muted p-ui-8"
+            aria-labelledby={`caddy-site-${site.key}-heading`}
+            className="grid min-w-0 gap-ui-12 rounded-panel bg-surface-muted p-ui-12"
           >
-            <legend className="px-ui-4 text-sm font-semibold">站点 {siteIndex + 1}</legend>
-            <div className="flex flex-wrap items-center gap-ui-8">
-              <SwitchField
-                label="启用此站点"
-                name={`site-${site.key}-enabled`}
-                checked={site.enabled}
-                onCheckedChange={(enabled) => replaceSite(siteIndex, { ...site, enabled })}
-              />
-              {exposedSites.has(siteIndex) ? (
-                <StatusBadge tone="warning">对外可见</StatusBadge>
-              ) : null}
-              <Button
-                size="sm"
-                variant="danger"
-                aria-label={`删除站点 ${siteIndex + 1}`}
-                onClick={() => onChange(sites.filter((_, position) => position !== siteIndex))}
-              >
-                删除站点
-              </Button>
+            <div className="flex flex-wrap items-center justify-between gap-ui-8">
+              <h3 id={`caddy-site-${site.key}-heading`} className="text-sm font-semibold">
+                站点 {siteIndex + 1}
+              </h3>
+              <ActionRow align="end">
+                <SwitchField
+                  label="启用此站点"
+                  name={`site-${site.key}-enabled`}
+                  checked={site.enabled}
+                  onCheckedChange={(enabled) => replaceSite(siteIndex, { ...site, enabled })}
+                />
+                {exposedSites.has(siteIndex) ? (
+                  <StatusBadge tone="warning">对外可见</StatusBadge>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="danger"
+                  aria-label={`删除站点 ${siteIndex + 1}`}
+                  onClick={() => onChange(sites.filter((_, position) => position !== siteIndex))}
+                >
+                  删除站点
+                </Button>
+              </ActionRow>
             </div>
             <ol className="m-0 grid list-none gap-ui-8 p-0">
               {directiveRows(site).map((row) => (
@@ -144,7 +150,7 @@ export function CaddyRulesEditor({
               </p>
             ) : null}
             <AddDirectiveGroup site={site} ids={ids} onSite={(next) => replaceSite(siteIndex, next)} />
-          </fieldset>
+          </section>
         );
       })}
     </section>

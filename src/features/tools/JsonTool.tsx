@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActionRow,
   Button,
   Panel,
   SelectField,
@@ -98,7 +99,7 @@ export function JsonTool() {
         inputClassName="font-mono text-xs"
       />
 
-      <div className="flex flex-wrap items-end gap-ui-8">
+      <ActionRow alignItems="end">
         <SelectField
           label="输出格式"
           value={mode}
@@ -115,7 +116,7 @@ export function JsonTool() {
         <Button variant="ghost" onClick={() => changeInput("")}>
           清空
         </Button>
-      </div>
+      </ActionRow>
 
       <section aria-labelledby="json-result-heading" className="grid gap-ui-8">
         <div className="flex flex-wrap items-center justify-between gap-ui-8">

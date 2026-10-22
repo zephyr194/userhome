@@ -19,6 +19,12 @@ describe("shared ui primitives", () => {
     expect(end).toContain("justify-end");
   });
 
+  it("ActionRow can bottom-align its actions beside a labelled select", () => {
+    const markup = renderToStaticMarkup(<ActionRow alignItems="end">格式化</ActionRow>);
+    expect(markup).toContain("flex flex-wrap items-end gap-ui-8");
+    expect(markup).not.toContain("items-center");
+  });
+
   it("Button uses semantic control sizes and body typography", () => {
     const md = renderToStaticMarkup(<Button>保存</Button>);
     expect(md).toContain("min-h-control-md");
