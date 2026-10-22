@@ -80,7 +80,7 @@ describe("导航当前页", () => {
     expect(css).toMatch(
       /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection\)/,
     );
-    expect(lastDeclared(".navigation-rail a::before", "width")).toBe("2px");
+    expect(rulesFor(".navigation-rail a::before")).toEqual([]);
   });
 });
 

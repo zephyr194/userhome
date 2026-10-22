@@ -1367,7 +1367,9 @@ body {
   padding: var(--app-space-8) var(--app-space-8);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .navigation-rail__brand {
@@ -1426,10 +1428,8 @@ body {
 }
 
 .navigation-rail ul {
-  flex: 1 1 auto;
   align-content: start;
   gap: var(--app-space-4);
-  overflow-y: auto;
 }
 
 .navigation-rail a {
@@ -1443,16 +1443,6 @@ body {
   transition-property: color, background-color, border-color;
   transition-duration: var(--app-motion-state);
   transition-timing-function: linear;
-}
-
-.navigation-rail a::before {
-  content: "";
-  position: absolute;
-  left: -1px;
-  width: 2px;
-  height: 16px;
-  border-radius: 0;
-  background: transparent;
 }
 
 .navigation-rail a:hover {
@@ -1474,7 +1464,7 @@ body {
 
 .navigation-rail__status {
   min-width: 0;
-  margin-top: var(--app-space-8);
+  margin-top: auto;
   padding: var(--app-space-8) var(--app-space-8) var(--app-space-4);
   display: flex;
   align-items: center;
