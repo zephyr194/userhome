@@ -65,12 +65,12 @@ export function ClaudeSettingsView({
 }: ClaudeSettingsViewProps) {
   const busy = state.status === "loading" || selection.status === "selecting";
   return (
-    <section className="grid min-w-0 gap-ui-md" aria-label="Claude Code 设置">
-      <header className="grid gap-ui-xs">
+    <section className="grid min-w-0 gap-ui-8" aria-label="Claude Code 设置">
+      <header className="grid gap-ui-4">
         <h2 className="m-0 text-body font-semibold">Claude Code 设置</h2>
         <p className="m-0 text-aux text-muted-foreground">
           仅展示官方设置文件的内容与覆盖关系，不运行 hooks、MCP 或项目命令，不修改信任设置。
-          编辑入口存在，但在版本区间核实前整体禁用；编辑项由后端 editable/reason 逐项决定。
+          编辑项由后端 editable/reason 逐项决定。
         </p>
         {snapshot ? (
           <p className="m-0 text-aux text-muted-foreground">
@@ -84,7 +84,7 @@ export function ClaudeSettingsView({
         )}
       </header>
 
-      <div className="flex flex-wrap items-center gap-ui-sm">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <span className="text-aux text-muted-foreground">
           项目：{projectGrant ? projectGrant.displayPath : "未选择（只读取用户级与托管层）"}
         </span>
@@ -110,7 +110,7 @@ export function ClaudeSettingsView({
       ) : null}
 
       {state.status === "failed" ? (
-        <div className="grid justify-items-start gap-ui-xs" role="alert">
+        <div className="grid justify-items-start gap-ui-4" role="alert">
           <p className="m-0 text-aux text-danger">{state.error.message}</p>
           <Button size="sm" variant="secondary" disabled={busy} onClick={onRetry}>
             重新读取
@@ -131,16 +131,16 @@ export function ClaudeSettingsView({
 
 function ReadResult({ view }: { readonly view: ClaudeReadView }) {
   return (
-    <div className="grid min-w-0 gap-ui-md">
+    <div className="grid min-w-0 gap-ui-8">
       {isPartialView(view) ? (
         <p className="m-0 text-aux text-danger" role="status">
           部分来源不可读或存在解析问题，结果可能不完整。
         </p>
       ) : null}
 
-      <section aria-label="来源层级" className="grid gap-ui-xs">
+      <section aria-label="来源层级" className="grid gap-ui-4">
         <h3 className="m-0 text-aux font-semibold">来源层级（按覆盖顺序，自上而下优先）</h3>
-        <ol className="m-0 grid gap-ui-xs pl-ui-lg text-aux">
+        <ol className="m-0 grid gap-ui-4 pl-ui-8 text-aux">
           {view.layers.map((layer) => (
             <li key={layer.id}>
               {layer.precedence !== null ? `${layer.precedence}. ` : ""}
@@ -152,7 +152,7 @@ function ReadResult({ view }: { readonly view: ClaudeReadView }) {
       </section>
 
       {view.warnings.length > 0 ? (
-        <ul aria-label="解析警告" className="m-0 grid gap-ui-xs pl-ui-lg text-aux text-danger">
+        <ul aria-label="解析警告" className="m-0 grid gap-ui-4 pl-ui-8 text-aux text-danger">
           {view.warnings.map((warning, index) => (
             <li key={`${warning.layerId}-${warning.key}-${index}`}>
               {layerTitle(warning.layerId)} · {warning.key}：{warning.message}
@@ -164,10 +164,10 @@ function ReadResult({ view }: { readonly view: ClaudeReadView }) {
       {view.entries.length === 0 ? (
         <p className="m-0 text-aux text-muted-foreground">未发现已设置的键。</p>
       ) : (
-        <ul aria-label="设置键" className="m-0 grid list-none gap-ui-sm p-0">
+        <ul aria-label="设置键" className="m-0 grid list-none gap-ui-8 p-0">
           {view.entries.map((entry) => (
-            <li key={entry.key} className="grid gap-ui-xs border-t border-border pt-ui-sm">
-              <div className="flex flex-wrap items-baseline gap-ui-sm">
+            <li key={entry.key} className="grid gap-ui-4 border-t border-border pt-ui-8">
+              <div className="flex flex-wrap items-baseline gap-ui-8">
                 <code className="text-aux font-semibold">{entry.key}</code>
                 {entryBadges(entry).map((badge) => (
                   <span key={badge} className="text-aux text-muted-foreground">

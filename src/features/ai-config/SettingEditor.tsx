@@ -100,7 +100,7 @@ export function SettingEditor({
   return (
     <section
       aria-label={`编辑 ${item.keyPath}`}
-      className="grid min-w-0 gap-ui-sm"
+      className="grid min-w-0 gap-ui-8"
     >
       {blocked ? (
         <p className="m-0 text-aux text-danger" role="status">
@@ -138,7 +138,7 @@ export function SettingEditor({
         />
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-ui-sm">
+      <div className="flex flex-wrap items-center gap-ui-8">
         {(["set", "restoreDefault", "setNull"] as const).map((action) => (
           <Button
             key={action}
@@ -232,7 +232,7 @@ function PreviewBlock({
   readonly onCancel: () => void;
 }) {
   return (
-    <div aria-label="修改预览" className="grid min-w-0 gap-ui-xs">
+    <div aria-label="修改预览" className="grid min-w-0 gap-ui-4">
       <p className="m-0 text-aux text-foreground">{preview.summary}</p>
       {preview.effects.map((effect) => (
         <p key={effect} className="m-0 text-aux text-muted-foreground">
@@ -250,7 +250,7 @@ function PreviewBlock({
       {preview.diff.truncated ? (
         <p className="m-0 text-aux text-muted-foreground">差异过长，已截断。</p>
       ) : null}
-      <pre className="m-0 max-h-48 overflow-auto rounded-control bg-surface-muted px-ui-lg py-ui-md font-mono text-aux">
+      <pre className="m-0 max-h-48 overflow-auto rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux">
         {preview.diff.lines.map((line, index) => (
           <span key={index} className="block">
             {diffSymbol(line)} {line.text}
@@ -258,7 +258,7 @@ function PreviewBlock({
         ))}
       </pre>
       <p className="m-0 text-aux text-muted-foreground">{preview.reloadNote}</p>
-      <div className="flex flex-wrap items-center gap-ui-sm">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <Button
           variant="primary"
           disabled={busy}
@@ -287,7 +287,7 @@ function ErrorLine({
   readonly onCancel: () => void;
 }) {
   return (
-    <div className="grid justify-items-start gap-ui-xs">
+    <div className="grid justify-items-start gap-ui-4">
       <p className="m-0 text-aux text-danger" role="alert">
         {error.message}
       </p>
@@ -346,14 +346,14 @@ export function EditPanel({
   return (
     <section
       aria-label="编辑设置"
-      className="grid min-w-0 gap-ui-sm border-t border-border pt-ui-md"
+      className="grid min-w-0 gap-ui-8 border-t border-border pt-ui-8"
     >
       <h3 className="m-0 text-aux font-semibold">编辑（用户设置文件）</h3>
       <p className="m-0 text-aux text-muted-foreground">
         编辑项由后端逐项决定是否可写。保存只修改该键，其余内容（包括未知键与键序）原样保留；保存前会显示预览，需你确认后才写入。
         {versionNoteText(catalog?.detectedVersion ?? null, catalog?.items ?? [])}
       </p>
-      <div className="flex flex-wrap items-center gap-ui-sm">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <span className="text-aux text-muted-foreground">
           文件：{settingsFile ? settingsFile.displayPath : "未选择"}
         </span>
@@ -399,7 +399,7 @@ export function EditPanel({
             checked={editableOnly}
             onCheckedChange={setEditableOnly}
           />
-          <div className="grid min-w-0 gap-ui-md">
+          <div className="grid min-w-0 gap-ui-8">
             {groups.editable.length === 0 ? (
               <p className="m-0 text-aux text-muted-foreground">
                 没有匹配的可编辑设置。
@@ -407,7 +407,7 @@ export function EditPanel({
             ) : (
               <ul
                 aria-label="可编辑设置"
-                className="m-0 grid list-none gap-ui-sm p-0"
+                className="m-0 grid list-none gap-ui-8 p-0"
               >
                 {groups.editable.map((candidate) => (
                   <SettingRow
@@ -425,14 +425,14 @@ export function EditPanel({
               <details
                 open={displayOpen}
                 onToggle={(event) => setDisplayOpen(event.currentTarget.open)}
-                className="grid min-w-0 gap-ui-sm"
+                className="grid min-w-0 gap-ui-8"
               >
                 <summary className="text-aux font-semibold">
                   {`仅展示（${groups.displayOnly.length}）`}
                 </summary>
                 <ul
                   aria-label="仅展示设置"
-                  className="m-0 mt-ui-sm grid list-none gap-ui-sm p-0"
+                  className="m-0 mt-ui-8 grid list-none gap-ui-8 p-0"
                 >
                   {groups.displayOnly.map((candidate) => (
                     <SettingRow
@@ -472,9 +472,9 @@ function SettingRow({
     <li
       id={settingRowId(item.keyPath)}
       tabIndex={-1}
-      className="grid min-w-0 gap-ui-sm border-t border-border pt-ui-sm"
+      className="grid min-w-0 gap-ui-8 border-t border-border pt-ui-8"
     >
-      <div className="flex flex-wrap items-center gap-ui-sm">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <code className="min-w-0 break-all font-mono text-aux font-semibold">
           {item.keyPath}
         </code>

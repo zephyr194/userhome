@@ -76,7 +76,7 @@ describe("ClaudeSettingsView", () => {
   it("states that editing is gated until versions are verified and reports the definition provenance", () => {
     const markup = render({ status: "ready", view: readView });
 
-    expect(markup).toContain("编辑入口存在，但在版本区间核实前整体禁用");
+    expect(markup).toContain("不修改信任设置。");
     expect(markup).toContain("编辑项由后端 editable/reason 逐项决定");
     expect(markup).toContain("抓取日期 2026-10-21");
     expect(markup).toContain("适用版本未知");

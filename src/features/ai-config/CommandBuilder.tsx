@@ -79,7 +79,7 @@ export function CommandBuilderView({
   onRetry,
 }: CommandBuilderViewProps) {
   return (
-    <section aria-label="Claude Code 命令生成" className="grid min-w-0 gap-ui-md">
+    <section aria-label="Claude Code 命令生成" className="grid min-w-0 gap-ui-8">
       <h2 className="m-0 text-body font-semibold">Claude Code 命令生成</h2>
       {options.status === "loading" ? (
         <p role="status" className="m-0 text-aux">
@@ -87,7 +87,7 @@ export function CommandBuilderView({
         </p>
       ) : null}
       {options.status === "failed" ? (
-        <div role="alert" className="grid gap-ui-sm">
+        <div role="alert" className="grid gap-ui-8">
           <p className="m-0 text-aux">{options.error.message}</p>
           <div>
             <Button variant="ghost" onClick={onRetry}>
@@ -110,7 +110,7 @@ export function CommandBuilderView({
           {options.summary.items.length === 0 ? (
             <p className="m-0 text-aux">没有可显示的 flags 或环境变量。</p>
           ) : (
-            <ul className="m-0 grid list-none gap-ui-md p-0">
+            <ul className="m-0 grid list-none gap-ui-8 p-0">
               {options.summary.items.map((item) => (
                 <OptionRow
                   key={`${item.kind}:${item.id}`}
@@ -132,7 +132,7 @@ export function CommandBuilderView({
 }
 
 const COVERAGE_BOX_CLASS =
-  "grid min-w-0 gap-ui-xs rounded-control bg-surface-muted px-ui-lg py-ui-md";
+  "grid min-w-0 gap-ui-4 rounded-control bg-surface-muted px-ui-8 py-ui-8";
 
 /**
  * States how much of the official flag and environment list is shown. Missing
@@ -187,7 +187,7 @@ function OptionRow({ item, state, onToggle, onValueChange, onAcknowledge }: Opti
   ].filter((fact): fact is string => fact !== null);
 
   return (
-    <li className="grid min-w-0 gap-ui-xs border-t border-border pt-ui-md">
+    <li className="grid min-w-0 gap-ui-4 border-t border-border pt-ui-8">
       {item.generatable ? (
         <CheckboxField
           label={item.id}
@@ -275,14 +275,14 @@ function PreviewPanel({
   }
   const { built } = preview;
   return (
-    <div className="grid min-w-0 gap-ui-sm">
+    <div className="grid min-w-0 gap-ui-8">
       <pre
         aria-label="生成的命令"
-        className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-control bg-surface-muted px-ui-lg py-ui-md font-mono text-aux"
+        className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux"
       >
         {built.text}
       </pre>
-      <div className="flex flex-wrap items-center gap-ui-sm">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <Button variant="ghost" onClick={() => onCopy(built.text)}>
           复制命令
         </Button>
@@ -294,7 +294,7 @@ function PreviewPanel({
         </p>
       ) : null}
       {built.notices.length > 0 ? (
-        <ul className="m-0 grid list-none gap-ui-xs p-0 text-aux">
+        <ul className="m-0 grid list-none gap-ui-4 p-0 text-aux">
           {built.notices.map((notice) => (
             <li key={notice.id}>
               {notice.id}：{NOTICE_LABELS[notice.status]}。{notice.message}
@@ -325,8 +325,8 @@ export function TerminalOpenControl({
 
   const busy = terminal.status === "opening";
   return (
-    <div className="grid min-w-0 gap-ui-sm">
-      <div className="flex flex-wrap items-center gap-ui-sm">
+    <div className="grid min-w-0 gap-ui-8">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <Button disabled={blockReason !== null || busy} onClick={onRequest}>
           在终端打开
         </Button>
@@ -382,14 +382,14 @@ function TerminalConfirmDialog({
       open
       title="在终端中打开命令"
     >
-      <div className="grid min-w-0 gap-ui-md">
+      <div className="grid min-w-0 gap-ui-8">
         <p className="m-0 text-aux">
           将在 Terminal 中打开这条命令，需要你在终端里按回车才会运行；UserHome 不会运行或读取输出。
         </p>
         <p className="m-0 text-aux">工作目录：用户主目录（未选择项目目录）。</p>
         <pre
           aria-label="将在终端中运行的命令"
-          className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-control bg-surface-muted px-ui-lg py-ui-md font-mono text-aux"
+          className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux"
         >
           {built.text}
         </pre>
