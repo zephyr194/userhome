@@ -88,8 +88,7 @@ fn parse_services(source: &str) -> Result<Vec<ServiceSummary>, ServiceInventoryE
                 "error" => ServiceState::Error,
                 _ => ServiceState::Unknown,
             };
-            let manageable =
-                service_id == "caddy" && matches!(scope, ServiceScope::User | ServiceScope::System);
+            let manageable = service_id == "caddy" && matches!(scope, ServiceScope::User);
             Ok(ServiceSummary {
                 display_name: match service_id.as_str() {
                     "caddy" => "Caddy".to_owned(),
@@ -203,12 +202,12 @@ mod tests {
     }
 
     #[test]
-    fn system_caddy_is_manageable_only_through_the_elevated_path() {
+    fn system_caddy_is_not_manageable() {
         let services = parse_services(
             r#"[{"name":"caddy","status":"started","user":"root","file":"/Library/LaunchDaemons/homebrew.mxcl.caddy.plist","pid":123,"exit_code":0}]"#,
         )
         .expect("fixture");
         assert_eq!(services[0].scope, ServiceScope::System);
-        assert!(services[0].manageable);
+        assert!(!services[0].manageable);
     }
 }
