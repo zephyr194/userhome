@@ -112,6 +112,7 @@
   --app-backdrop: rgb(20 27 36 / 0.45);
   --app-scrollbar-thumb: #B3BDC9;
   --app-scrollbar-thumb-hover: #8E9AA8;
+  --app-scrollbar-thumb-strong: #7F8B99;
   --app-brand-bg: #1D242D;
   --app-brand-fg: #E6EBF1;
   --app-brand-rail: #4F5B69;
@@ -2287,3 +2288,67 @@ button[class*="border-border"],
   }
 }
 /* /r4-fe2-services ------------------------------------------------------ */
+
+/* r4-fe4 ----------------------------------------------------------------- */
+/* 选中只改底色与左条，行内文字保持常规字重（覆盖 .slide-item 的 600） */
+.entry-row:is([aria-current="true"]),
+.ai-tool-row:is([aria-current="true"]) {
+  font-weight: 400;
+}
+
+.ai-tool-row {
+  min-height: var(--app-row-height-two-line);
+  align-content: center;
+}
+
+.ai-tool-skeleton {
+  pointer-events: none;
+}
+
+.ai-tool-skeleton__bar {
+  display: block;
+  height: 10px;
+  background: var(--app-line-subtle);
+}
+
+.ai-tool-skeleton__bar--name {
+  width: 40%;
+}
+
+.ai-tool-skeleton__bar--status {
+  width: 25%;
+}
+
+/* 滚动条收进面板内边：细轨道，滑块与面板边框对齐，不向外突出 */
+.r4-fe4-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb-strong) transparent;
+  scrollbar-gutter: stable;
+}
+
+.r4-fe4-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.r4-fe4-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.r4-fe4-scroll::-webkit-scrollbar-thumb {
+  background: var(--app-scrollbar-thumb-strong);
+  border: 2px solid transparent;
+  border-radius: 0;
+  background-clip: padding-box;
+}
+
+.r4-fe4-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@media (forced-colors: active) {
+  .ai-tool-skeleton__bar {
+    background: GrayText;
+  }
+}
+/* /r4-fe4 */
