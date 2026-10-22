@@ -12,26 +12,10 @@ import { XmlTool } from "./XmlTool";
  * `TOOL_PANELS` key; the `Record` makes a missing panel a type error.
  */
 const TOOL_ENTRIES = [
-  {
-    id: "json",
-    label: "JSON",
-    summary: "严格校验与格式化，保留数字与重复键原文。",
-  },
-  {
-    id: "xml",
-    label: "XML",
-    summary: "良构校验与缩进；不解析 DTD、外部实体与 XInclude。",
-  },
-  {
-    id: "codec",
-    label: "编解码",
-    summary: "Base64、URL、HTML 实体、Unicode 转义与 UTF-8 Hex 的单次双向转换。",
-  },
-  {
-    id: "qr",
-    label: "二维码",
-    summary: "生成黑白二维码并导出 PNG；文本不访问链接，输入不保存。",
-  },
+  { id: "json", label: "JSON" },
+  { id: "xml", label: "XML" },
+  { id: "codec", label: "编解码" },
+  { id: "qr", label: "二维码" },
 ] as const;
 
 type ToolId = (typeof TOOL_ENTRIES)[number]["id"];
@@ -49,7 +33,6 @@ export function ToolsPage() {
     0,
     TOOL_ENTRIES.findIndex((tool) => tool.id === activeTool),
   );
-  const active = TOOL_ENTRIES[activeIndex];
   const tabsRef = useSlideIndicator(activeIndex, "x");
 
   return (
@@ -79,7 +62,6 @@ export function ToolsPage() {
             </Tab>
           ))}
         </TabList>
-        <p className="m-0 text-xs text-muted-foreground">{active.summary}</p>
         <TabPanels as="div">
           {TOOL_ENTRIES.map((tool) => {
             const ToolPanel = TOOL_PANELS[tool.id];

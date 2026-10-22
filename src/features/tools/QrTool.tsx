@@ -251,7 +251,7 @@ export function QrTool() {
   return (
     <Panel
       aria-labelledby="qr-tool-heading"
-      className="grid gap-ui-12 border border-border p-ui-12"
+      className="grid gap-ui-12 p-ui-12"
     >
       <div className="grid gap-ui-4">
         <h2 id="qr-tool-heading" className="text-body font-semibold">
@@ -264,6 +264,7 @@ export function QrTool() {
 
       <TextAreaField
         label="文本或 URL"
+        expandTitle="二维码 · 文本或 URL"
         description={`UTF-8，上限 ${QR_MAX_BYTES[shownLevel]} 字节（当前纠错等级）。`}
         value={text}
         onValueChange={(next) => change({ text: next })}

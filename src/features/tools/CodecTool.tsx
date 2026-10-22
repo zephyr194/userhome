@@ -93,7 +93,7 @@ export function CodecTool() {
   return (
     <Panel
       aria-labelledby="codec-tool-heading"
-      className="grid gap-ui-12 border border-border p-ui-12"
+      className="grid gap-ui-12 p-ui-12"
     >
       <div className="grid gap-ui-4">
         <h2 id="codec-tool-heading" className="text-body font-semibold">
@@ -127,6 +127,7 @@ export function CodecTool() {
 
       <TextAreaField
         label="输入"
+        expandTitle="编解码 · 输入"
         description="上限 1 MiB（UTF-8 字节）。超过上限时不会发送。"
         value={input}
         onValueChange={changeInput}

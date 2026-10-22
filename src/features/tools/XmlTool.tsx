@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActionRow,
   Button,
@@ -22,6 +22,7 @@ import {
   successView,
   type XmlView,
 } from "./xmlToolState";
+import { useRevealResult } from "./useRevealResult";
 
 const MODE_OPTIONS: readonly SelectOption<XmlFormatMode>[] = [
   { value: "INDENT2", label: "缩进 2 空格" },
@@ -34,6 +35,13 @@ export function XmlTool() {
   const [view, setView] = useState<XmlView>({ status: "idle" });
   const [copyNotice, setCopyNotice] = useState<string | undefined>();
   const [tracker] = useState(createRequestTracker);
+  const resultSectionRef = useRef<HTMLElement>(null);
+  const resultTitleRef = useRef<HTMLHeadingElement>(null);
+  useRevealResult(
+    view.status === "success" || view.status === "error" ? view : undefined,
+    resultSectionRef,
+    resultTitleRef,
+  );
 
   useEffect(() => () => tracker.invalidate(), [tracker]);
 
@@ -75,7 +83,7 @@ export function XmlTool() {
   return (
     <Panel
       aria-labelledby="xml-tool-heading"
-      className="grid gap-ui-12 border border-border p-ui-12"
+      className="grid gap-ui-12 p-ui-12"
     >
       <div className="grid gap-ui-4">
         <h2 id="xml-tool-heading" className="text-body font-semibold">
@@ -92,6 +100,7 @@ export function XmlTool() {
 
       <TextAreaField
         label="输入"
+        expandTitle="XML · 输入"
         description="上限 1 MiB（UTF-8 字节）。超过上限时不会发送。"
         value={input}
         onValueChange={changeInput}
@@ -121,9 +130,18 @@ export function XmlTool() {
         </Button>
       </ActionRow>
 
-      <section aria-labelledby="xml-result-heading" className="grid gap-ui-8">
+      <section
+        aria-labelledby="xml-result-heading"
+        className="grid gap-ui-8"
+        ref={resultSectionRef}
+      >
         <div className="flex flex-wrap items-center justify-between gap-ui-8">
-          <h3 id="xml-result-heading" className="text-body font-semibold">
+          <h3
+            className="text-body font-semibold"
+            id="xml-result-heading"
+            ref={resultTitleRef}
+            tabIndex={-1}
+          >
             结果
           </h3>
           {view.status === "success" ? (
