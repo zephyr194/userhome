@@ -1381,6 +1381,100 @@ body {
   border-bottom-width: 1px;
 }
 
+/* selection language */
+.bracket {
+  --bracket-corners: none;
+  --bracket-sizes: auto;
+  --bracket-positions: 0 0;
+  position: relative;
+  background-image: var(--bracket-corners);
+  background-size: var(--bracket-sizes);
+  background-position: var(--bracket-positions);
+  background-repeat: no-repeat;
+  transition-property: background-color, border-color;
+  transition-duration: var(--app-motion-state);
+  transition-timing-function: linear;
+}
+
+.bracket:hover:not([aria-selected="true"]):not([aria-current="true"]):not([aria-current="page"]) {
+  --bracket-corners:
+    linear-gradient(var(--app-control-border), var(--app-control-border)),
+    linear-gradient(var(--app-control-border), var(--app-control-border)),
+    linear-gradient(var(--app-control-border), var(--app-control-border)),
+    linear-gradient(var(--app-control-border), var(--app-control-border));
+  --bracket-sizes:
+    var(--app-bracket-length-hover) var(--app-bracket-width-hover),
+    var(--app-bracket-width-hover) var(--app-bracket-length-hover),
+    var(--app-bracket-length-hover) var(--app-bracket-width-hover),
+    var(--app-bracket-width-hover) var(--app-bracket-length-hover);
+  --bracket-positions:
+    left var(--app-bracket-offset) top var(--app-bracket-offset),
+    left var(--app-bracket-offset) top var(--app-bracket-offset),
+    right var(--app-bracket-offset) bottom var(--app-bracket-offset),
+    right var(--app-bracket-offset) bottom var(--app-bracket-offset);
+}
+
+.bracket[aria-selected="true"],
+.bracket[aria-current="true"],
+.bracket[aria-current="page"],
+.bracket[data-selected="true"] {
+  --bracket-corners:
+    linear-gradient(var(--app-selection-border), var(--app-selection-border)),
+    linear-gradient(var(--app-selection-border), var(--app-selection-border)),
+    linear-gradient(var(--app-selection-border), var(--app-selection-border)),
+    linear-gradient(var(--app-selection-border), var(--app-selection-border)),
+    linear-gradient(var(--app-selection-border), var(--app-selection-border)),
+    linear-gradient(var(--app-selection-border), var(--app-selection-border)),
+    linear-gradient(var(--app-selection-border), var(--app-selection-border)),
+    linear-gradient(var(--app-selection-border), var(--app-selection-border));
+  --bracket-sizes:
+    var(--app-bracket-length) var(--app-bracket-width),
+    var(--app-bracket-width) var(--app-bracket-length),
+    var(--app-bracket-length) var(--app-bracket-width),
+    var(--app-bracket-width) var(--app-bracket-length),
+    var(--app-bracket-length) var(--app-bracket-width),
+    var(--app-bracket-width) var(--app-bracket-length),
+    var(--app-bracket-length) var(--app-bracket-width),
+    var(--app-bracket-width) var(--app-bracket-length);
+  --bracket-positions:
+    left var(--app-bracket-offset) top var(--app-bracket-offset),
+    left var(--app-bracket-offset) top var(--app-bracket-offset),
+    right var(--app-bracket-offset) top var(--app-bracket-offset),
+    right var(--app-bracket-offset) top var(--app-bracket-offset),
+    left var(--app-bracket-offset) bottom var(--app-bracket-offset),
+    left var(--app-bracket-offset) bottom var(--app-bracket-offset),
+    right var(--app-bracket-offset) bottom var(--app-bracket-offset),
+    right var(--app-bracket-offset) bottom var(--app-bracket-offset);
+  background-color: var(--app-selection);
+  border: var(--app-selection-dash) dashed var(--app-selection-border);
+}
+
+.bracket:focus-visible {
+  box-shadow:
+    0 0 0 var(--app-bracket-offset) var(--app-focus-gap),
+    0 0 0 calc(var(--app-bracket-offset) * 2) var(--app-focus-ring);
+}
+
+@media (forced-colors: active) {
+  .bracket {
+    background-image: none;
+  }
+
+  .bracket[aria-selected="true"],
+  .bracket[aria-current="true"],
+  .bracket[aria-current="page"],
+  .bracket[data-selected="true"] {
+    border: var(--app-selection-dash) dashed Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bracket {
+    transition: none;
+  }
+}
+/* /selection language */
+
 ::selection {
   color: var(--app-selection-foreground);
   background: color-mix(in srgb, var(--app-primary) 28%, var(--app-canvas));
