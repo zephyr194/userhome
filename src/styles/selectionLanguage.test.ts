@@ -88,6 +88,40 @@ describe("选中语言：滑动指示器", () => {
     expect(section).not.toContain("outline");
   });
 
+  it("指示器与列表项全部直角：竖向与横向共用直角，选中语言区块不再引用控件圆角令牌", () => {
+    expect(lastDeclaredIn(section, INDICATOR, "border-radius")).toBe("0");
+    expect(lastDeclaredIn(section, ".slide-list .slide-item", "border-radius")).toBe("0");
+    expect(section).not.toContain("var(--app-radius-control)");
+  });
+
+  it("横向标签页指示器无底色，只保留贯穿标签栏底部的 2px 橙线，高度由测量变量加发丝线 1px", () => {
+    const axisIndicator = '.slide-list[data-slide-axis="x"][data-slide-ready]::before';
+    expect(lastDeclaredIn(section, axisIndicator, "background")).toBe("transparent");
+    expect(lastDeclaredIn(section, axisIndicator, "height")).toBe("calc(var(--slide-h) + 1px)");
+    expect(lastDeclaredIn(section, axisIndicator, "box-shadow")).toBe(
+      "inset 0 -2px 0 var(--app-selection-border)",
+    );
+    expect(lastDeclaredIn(section, '.slide-list[data-slide-axis="x"]', "border-bottom")).toBe(
+      "1px solid var(--app-line-subtle)",
+    );
+  });
+
+  it("横向标签页未测量时只由选中标签画下划线，不画底色", () => {
+    const progressiveX = `.slide-list[data-slide-axis="x"]:not([data-slide-ready]) ${SELECTED_ITEM}`;
+    expect(lastDeclaredIn(section, progressiveX, "background")).toBe("transparent");
+    expect(lastDeclaredIn(section, progressiveX, "box-shadow")).toBe(
+      "inset 0 -2px 0 var(--app-selection-border)",
+    );
+  });
+
+  it("横向标签页文字：未选中用次要前景色，悬停只改文字色为前景色且无底色", () => {
+    const idleX = `.slide-list[data-slide-axis="x"] .slide-item:not(:is(${SELECTED_STATE}))`;
+    const hoverX = `.slide-list[data-slide-axis="x"] ${HOVER_ITEM}`;
+    expect(lastDeclaredIn(section, idleX, "color")).toBe("var(--app-muted-foreground)");
+    expect(lastDeclaredIn(section, hoverX, "background")).toBe("transparent");
+    expect(lastDeclaredIn(section, hoverX, "color")).toBe("var(--app-foreground)");
+  });
+
   it("指示器过渡 120ms、标准曲线，只过渡 transform/width/height", () => {
     expect(lastDeclaredIn(section, INDICATOR, "transition-property")).toBe("transform, width, height");
     expect(lastDeclaredIn(section, INDICATOR, "transition-duration")).toBe("120ms");
