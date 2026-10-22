@@ -49,3 +49,14 @@
 - 可执行文件名：`gemini`，npm 包 `@google/gemini-cli`（https://github.com/google-gemini/gemini-cli 的 README）。
 - 凭据存放：官方认证页只写 `"Your credentials will be cached locally for future sessions."`，未给出路径、钥匙串或覆盖变量（https://geminicli.com/docs/get-started/authentication/）。凭据位置**未核实**。
 - 产品迁移提示：geminicli.com 配置页与 GitHub README 均写明 `"Unpaid tier and Google One users: Gemini CLI was replaced by Antigravity CLI on June 18th, 2026."`。详见覆盖报告。
+
+# GitHub Copilot CLI 官方文档来源
+
+- 文件：`copilot-cli-docs.md`（官方文档摘录与设置表，不是 schema 快照）
+- 原始 URL：https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-config-dir-reference（设置表主来源）；cli-command-reference 与 github/copilot-cli README 为辅助来源，详见该文件的页面清单
+- 抓取日期：2026-10-22
+- 托管方：GitHub 官方文档（docs.github.com）与官方仓库 `github/copilot-cli`
+- 适用版本：官方页面未声明适用的 Copilot CLI 版本，故 `documentedVersion` 为 `unknown`。
+- 官方未找到 JSON Schema：本次核实的页面没有 schema 下载或 `$schema` 引用。SchemaStore 的 Copilot 条目属于 AWS Copilot，不使用。
+
+本目录不含 Copilot 的 schema 快照；`../copilot-cli.json` 的设置项直接取自 `copilot-cli-docs.md` 的官方设置表，不参与运行时加载。
