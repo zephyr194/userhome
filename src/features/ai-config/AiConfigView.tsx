@@ -4,6 +4,7 @@ import { Button, PageShell, Panel, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import type { BoardSpan } from "../../components/ui/PageShell";
 import type { AiToolReport } from "../../ipc/aiConfig";
+import { ToolReference } from "./ToolReference";
 import {
   CLAUDE_CODE_TOOL_ID,
   CONFIG_LABELS,
@@ -84,9 +85,7 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
         >
           {selected ? <ToolCard tool={selected} /> : null}
           {selected && !showClaudePanel ? (
-            <p className="m-0 text-aux text-muted-foreground">
-              {selected.displayName} 暂无设置读取与命令生成界面，仅展示上方的检测结果。
-            </p>
+            <ToolReference key={selected.id} toolId={selected.id} />
           ) : null}
           <div hidden={!showClaudePanel}>
             <div className="grid min-w-0 gap-ui-12">{claudePanel}</div>
