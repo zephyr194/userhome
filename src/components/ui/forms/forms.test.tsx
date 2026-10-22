@@ -10,6 +10,7 @@ import {
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Button } from "../Button";
+import { InfoTip } from "../InfoTip";
 import {
   CheckboxField,
   RadioCardGroup,
@@ -476,5 +477,60 @@ describe("TextAreaField expandable editor", () => {
     fireEvent.keyDown(within(dialog).getByRole("textbox"), { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(onValueChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("tip slot beside field titles", () => {
+  afterEach(() => cleanup());
+
+  const TIP = (title: string) => <InfoTip description="关闭后仍可从托盘打开。" title={title} />;
+
+  it("puts the tip beside the switch title and keeps it out of the accessible name", () => {
+    render(<SwitchField label="启动时打开主窗口" tip={TIP("启动时打开主窗口")} />);
+
+    const label = screen.getByText("启动时打开主窗口", { selector: "label" });
+    expect(label.querySelector("button")).toBeNull();
+    expect(screen.getByRole("switch", { name: "启动时打开主窗口" })).toBeTruthy();
+  });
+
+  it("puts the tip beside the checkbox title and select title", () => {
+    render(
+      <>
+        <CheckboxField label="用户级设置" tip={TIP("用户级设置")} />
+        <SelectField
+          label="关闭主窗口时"
+          tip={TIP("关闭主窗口时")}
+          options={[{ value: "a", label: "隐藏到托盘" }]}
+          value="a"
+        />
+      </>,
+    );
+
+    expect(screen.getByRole("checkbox", { name: "用户级设置" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "说明：用户级设置" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "关闭主窗口时" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "说明：关闭主窗口时" })).toBeTruthy();
+  });
+
+  it("names the radio group by its title alone and keeps option descriptions visible", () => {
+    render(
+      <RadioCardGroup
+        label="外观模式"
+        tip={TIP("外观模式")}
+        value="a"
+        options={[{ value: "a", label: "系统", description: "跟随系统设置。" }]}
+        onValueChange={() => undefined}
+      />,
+    );
+
+    expect(screen.getByRole("group", { name: "外观模式" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "说明：外观模式" })).toBeTruthy();
+    expect(screen.getByText("跟随系统设置。")).toBeTruthy();
+  });
+
+  it("renders no tip when the slot is empty", () => {
+    render(<SwitchField label="启动时打开主窗口" />);
+
+    expect(screen.queryByRole("button", { name: /说明：/ })).toBeNull();
   });
 });

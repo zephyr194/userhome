@@ -47,6 +47,17 @@ function RequiredMark({ required }: { required?: boolean }) {
   ) : null;
 }
 
+/** 提示按钮紧贴标题；提示不放进 Label 内，避免无障碍名称带上“说明：…”。 */
+function withTip(control: ReactNode, tip: ReactNode) {
+  if (!tip) return control;
+  return (
+    <span className="flex min-w-0 items-center gap-ui-4">
+      {control}
+      {tip}
+    </span>
+  );
+}
+
 export function FieldFrame({
   children,
   className,
@@ -55,18 +66,22 @@ export function FieldFrame({
   error,
   label,
   required,
-}: FieldCopyProps & { children: ReactNode }) {
+  tip,
+}: FieldCopyProps & { children: ReactNode; tip?: ReactNode }) {
   return (
     <Field
       className={classNames("grid min-w-0 gap-ui-4", className)}
       disabled={disabled}
     >
-      {label ? (
-        <Label className="break-words text-body font-semibold text-foreground">
-          {label}
-          <RequiredMark required={required} />
-        </Label>
-      ) : null}
+      {label
+        ? withTip(
+            <Label className="break-words text-body font-semibold text-foreground">
+              {label}
+              <RequiredMark required={required} />
+            </Label>,
+            tip,
+          )
+        : null}
       {description ? (
         <Description className="break-words text-aux text-muted-foreground">
           {description}
@@ -256,6 +271,7 @@ export interface SelectOption<T extends string = string> {
 
 type SharedSelectProps<T extends string> = FieldCopyProps & {
   defaultValue?: T;
+  tip?: ReactNode;
   form?: string;
   inputClassName?: string;
   invalid?: boolean;
@@ -288,6 +304,7 @@ export function SelectField<T extends string>({
   onValueChange,
   options,
   required,
+  tip,
   value,
 }: SharedSelectProps<T>) {
   return (
@@ -298,6 +315,7 @@ export function SelectField<T extends string>({
       error={error}
       label={label}
       required={required}
+      tip={tip}
     >
       <Listbox
         defaultValue={defaultValue}
@@ -364,6 +382,7 @@ interface ToggleCopyProps extends FieldCopyProps {
   form?: string;
   name?: string;
   onCheckedChange?: (checked: boolean) => void;
+  tip?: ReactNode;
   value?: string;
 }
 
@@ -374,7 +393,8 @@ function ToggleFrame({
   disabled,
   error,
   label,
-}: FieldCopyProps & { control: ReactNode }) {
+  tip,
+}: FieldCopyProps & { control: ReactNode; tip?: ReactNode }) {
   return (
     <Field
       className={classNames(
@@ -384,9 +404,12 @@ function ToggleFrame({
       disabled={disabled}
     >
       {control}
-      <Label className="min-w-0 cursor-pointer break-words text-body text-foreground data-disabled:cursor-not-allowed">
-        {label}
-      </Label>
+      {withTip(
+        <Label className="min-w-0 cursor-pointer break-words text-body text-foreground data-disabled:cursor-not-allowed">
+          {label}
+        </Label>,
+        tip,
+      )}
       {description ? (
         <Description className="col-start-2 break-words text-aux text-muted-foreground">
           {description}
@@ -415,6 +438,7 @@ export function CheckboxField({
   name,
   form,
   onCheckedChange,
+  tip,
   value = "on",
 }: ToggleCopyProps) {
   return (
@@ -452,6 +476,7 @@ export function CheckboxField({
       disabled={disabled}
       error={error}
       label={label}
+      tip={tip}
     />
   );
 }
@@ -467,6 +492,7 @@ export function SwitchField({
   label,
   name,
   onCheckedChange,
+  tip,
   value = "on",
 }: ToggleCopyProps) {
   return (
@@ -492,6 +518,7 @@ export function SwitchField({
       disabled={disabled}
       error={error}
       label={label}
+      tip={tip}
     />
   );
 }
@@ -511,6 +538,7 @@ interface RadioCardGroupProps<T extends string> extends FieldCopyProps {
   name?: string;
   onValueChange?: (value: T) => void;
   options: readonly RadioCardOption<T>[];
+  tip?: ReactNode;
   value?: T;
 }
 
@@ -531,6 +559,7 @@ export function RadioCardGroup<T extends string>({
   name,
   onValueChange,
   options,
+  tip,
   value,
 }: RadioCardGroupProps<T>) {
   return (
@@ -538,9 +567,14 @@ export function RadioCardGroup<T extends string>({
       className={classNames("grid min-w-0 gap-ui-8", className)}
       disabled={disabled}
     >
-      <Legend className="text-group font-semibold text-foreground">
-        {label}
-      </Legend>
+      {tip ? (
+        <div className="flex min-w-0 items-center gap-ui-4">
+          <Legend className="text-group font-semibold text-foreground">{label}</Legend>
+          {tip}
+        </div>
+      ) : (
+        <Legend className="text-group font-semibold text-foreground">{label}</Legend>
+      )}
       <RadioGroup
         className={classNames("grid min-w-0 gap-ui-8", RADIO_CARD_GRID[columns])}
         defaultValue={defaultValue}
