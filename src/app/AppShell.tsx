@@ -12,7 +12,7 @@ import {
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
-import { Button, StatusBadge } from "../components/ui";
+import { BoardToggle, Button, StatusBadge } from "../components/ui";
 import { GrantStoreNotice } from "../features/grants/GrantStoreNotice";
 import { isGrantStoreNoticeVisible } from "../features/grants/grantStoreController";
 import { useGrantStoreNotice } from "../features/grants/useGrantStoreNotice";
@@ -541,6 +541,7 @@ export function AppShell({
                   </p>
                 </div>
                 <div className="refresh-controls">
+                  <BoardToggle />
                   <Button
                     className="toolbar-refresh-button"
                     size="sm"
