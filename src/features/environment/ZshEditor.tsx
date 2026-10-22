@@ -70,9 +70,9 @@ export interface ZshEditorProps {
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
 const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
-const CARD_CLASSES = "grid gap-ui-sm rounded-control bg-surface-muted px-ui-xl py-ui-md";
+const CARD_CLASSES = "grid gap-ui-8 rounded-control bg-surface-muted px-ui-12 py-ui-8";
 const HEADER_CLASSES =
-  "flex min-w-0 flex-wrap items-start justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md";
+  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8";
 
 /**
  * Editor for the UserHome managed block of one zsh startup file: variables as
@@ -99,7 +99,7 @@ export function ZshEditor({ actions, check, state }: ZshEditorProps) {
           <h2 className="text-sm font-semibold" id="zsh-editor-heading">
             编辑 <code className="font-mono">{name}</code> 的 UserHome 专用块
           </h2>
-          <p className="mt-ui-xs text-xs text-muted-foreground">
+          <p className="mt-ui-4 text-xs text-muted-foreground">
             只改动专用块里的变量与 PATH；块外的内容保持原样，不会被改写。
           </p>
         </div>
@@ -107,7 +107,7 @@ export function ZshEditor({ actions, check, state }: ZshEditorProps) {
           返回只读视图
         </Button>
       </header>
-      <div className="grid gap-ui-xl px-ui-xl py-ui-md">
+      <div className="grid gap-ui-12 px-ui-12 py-ui-8">
         <Body actions={actions} busy={busy} check={check} state={state} />
       </div>
     </section>
@@ -163,7 +163,7 @@ function Body({
             <>
               <VariablesSection actions={actions} check={check} disabled={locked} state={state} />
               <PathSection actions={actions} check={check} disabled={locked} state={state} />
-              <div className="flex min-w-0 flex-wrap items-center gap-ui-md">
+              <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
                 <Button
                   disabled={locked || !check.ready}
                   onClick={() => void actions.requestPreview()}
@@ -215,7 +215,7 @@ function Notice({ notice }: { notice: EditorNotice }) {
   return (
     <div
       className={classNames(
-        "rounded-control border px-ui-lg py-ui-md text-sm",
+        "rounded-control border px-ui-8 py-ui-8 text-sm",
         WRAP,
         notice.tone === "error" && "border-danger-border bg-danger-soft text-danger",
         notice.tone === "warning" && "border-transparent bg-warning-soft text-warning",
@@ -224,7 +224,7 @@ function Notice({ notice }: { notice: EditorNotice }) {
       role={notice.tone === "error" ? "alert" : "status"}
     >
       <p className="m-0 font-medium">{notice.text}</p>
-      {notice.detail ? <p className="m-0 mt-ui-xs text-xs">{notice.detail}</p> : null}
+      {notice.detail ? <p className="m-0 mt-ui-4 text-xs">{notice.detail}</p> : null}
     </div>
   );
 }
@@ -241,13 +241,13 @@ function TargetPanel({ loaded }: { loaded: ZshEditState }) {
       <p className="text-sm">
         完整路径：<code className={classNames("font-mono", WRAP)}>{loaded.fullPath}</code>
         {loaded.exists ? null : (
-          <StatusBadge className="ml-ui-sm" tone="warning">
+          <StatusBadge className="ml-ui-8" tone="warning">
             文件不存在，保存时创建
           </StatusBadge>
         )}
       </p>
       <p className={NOTE_CLASSES}>
-        <StatusBadge className="mr-ui-sm">{impact.label}</StatusBadge>
+        <StatusBadge className="mr-ui-8">{impact.label}</StatusBadge>
         {impact.detail}
       </p>
       <p className={NOTE_CLASSES}>{impact.order}</p>
@@ -276,7 +276,7 @@ function AuthorizationPanel({
         <p className={NOTE_CLASSES}>{NOT_ENABLED_TEXT}</p>
         <p className={NOTE_CLASSES}>
           授权只针对这个具体文件
-          <code className={classNames("mx-ui-xs font-mono", WRAP)}>{loaded.fullPath}</code>
+          <code className={classNames("mx-ui-4 font-mono", WRAP)}>{loaded.fullPath}</code>
           ，不是整个主目录，也可以随时撤销（启用后可在这里的按钮或授权列表里操作）。
         </p>
         <div>
@@ -288,7 +288,7 @@ function AuthorizationPanel({
     );
   }
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-ui-md text-xs text-muted-foreground">
+    <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
       <StatusBadge tone="success">已启用编辑</StatusBadge>
       <span>这个文件的授权可以撤销；撤销后不能再保存。</span>
       <Button disabled={busy} onClick={() => void actions.disable()} size="sm" variant="ghost">
@@ -304,10 +304,10 @@ function ConflictNotes({ loaded, name }: { loaded: ZshEditState; name: string })
   const conflicts = outsideConflicts(loaded, name);
   if (conflicts.length === 0) return null;
   return (
-    <div className="grid gap-ui-xs">
+    <div className="grid gap-ui-4">
       {conflicts.map((conflict) => (
         <p className="text-xs leading-relaxed text-warning" key={conflict.line} role="note">
-          <StatusBadge className="mr-ui-sm" tone="warning">
+          <StatusBadge className="mr-ui-8" tone="warning">
             块外同名
           </StatusBadge>
           {conflict.text}
@@ -332,8 +332,8 @@ function VariablesSection({
   if (loaded === undefined) return null;
   const variables = managedVariables(loaded);
   return (
-    <section aria-labelledby="zsh-editor-variables-heading" className="grid gap-ui-md">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md">
+    <section aria-labelledby="zsh-editor-variables-heading" className="grid gap-ui-8">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
         <h3 className="text-sm font-semibold" id="zsh-editor-variables-heading">
           变量（export NAME='字面量'）
         </h3>
@@ -348,7 +348,7 @@ function VariablesSection({
         </p>
       ) : null}
       {variables.length > 0 ? (
-        <ul aria-label="专用块里的变量" className="grid gap-ui-md">
+        <ul aria-label="专用块里的变量" className="grid gap-ui-8">
           {variables.map((variable) => {
             const editability = variableEditability(variable);
             const draft = state.drafts.variables[variable.name];
@@ -359,7 +359,7 @@ function VariablesSection({
                 className={classNames(CARD_CLASSES, "min-w-0", removing && "opacity-80")}
                 key={variable.name}
               >
-                <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+                <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
                   <code className={classNames("font-mono text-aux font-semibold", WRAP)}>
                     {variable.name}
                   </code>
@@ -368,7 +368,7 @@ function VariablesSection({
                   <span className="text-meta text-muted-foreground">第 {variable.line} 行</span>
                 </div>
                 {editability.ok ? (
-                  <div className="flex min-w-0 flex-wrap items-end gap-ui-md">
+                  <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
                     {variable.secret ? (
                       <SecretReplacementField
                         className="min-w-0 flex-1"
@@ -404,7 +404,7 @@ function VariablesSection({
                   </div>
                 ) : (
                   <p className="text-xs leading-relaxed text-warning" role="note">
-                    <StatusBadge className="mr-ui-sm" tone="warning">
+                    <StatusBadge className="mr-ui-8" tone="warning">
                       不可修改
                     </StatusBadge>
                     {editability.reason}
@@ -417,7 +417,7 @@ function VariablesSection({
         </ul>
       ) : null}
       {state.drafts.additions.length > 0 ? (
-        <ul aria-label="新增的变量" className="grid gap-ui-md">
+        <ul aria-label="新增的变量" className="grid gap-ui-8">
           {state.drafts.additions.map((row, index) => {
             const problem = check.problems.additions[row.id];
             const valueProps = {
@@ -429,7 +429,7 @@ function VariablesSection({
             };
             return (
               <li className={classNames(CARD_CLASSES, "min-w-0")} key={row.id}>
-                <div className="flex min-w-0 flex-wrap items-end gap-ui-md">
+                <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
                   <TextField
                     autoCapitalize="off"
                     autoComplete="off"
@@ -481,8 +481,8 @@ function PathSection({
 }) {
   const items = state.drafts.path;
   return (
-    <section aria-labelledby="zsh-editor-path-heading" className="grid gap-ui-md">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md">
+    <section aria-labelledby="zsh-editor-path-heading" className="grid gap-ui-8">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
         <h3 className="text-sm font-semibold" id="zsh-editor-path-heading">
           PATH（专用块里的项）
         </h3>
@@ -499,14 +499,14 @@ function PathSection({
           专用块里还没有 PATH 项。新增的项会放在原有 PATH 之前。
         </p>
       ) : (
-        <ol aria-label="专用块的 PATH 项（优先级由高到低）" className="grid gap-ui-md">
+        <ol aria-label="专用块的 PATH 项（优先级由高到低）" className="grid gap-ui-8">
           {items.map((item, index) => {
             const problem = check.problems.path[item.id];
             const mark = check.pathMarks[item.id];
             const position = index + 1;
             return (
               <li className={classNames(CARD_CLASSES, "min-w-0")} key={item.id}>
-                <div className="flex min-w-0 flex-wrap items-end gap-ui-md">
+                <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
                   <TextField
                     autoCapitalize="off"
                     autoComplete="off"
@@ -518,7 +518,7 @@ function PathSection({
                     spellCheck={false}
                     value={item.text}
                   />
-                  <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+                  <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
                     <Button
                       aria-label={`上移 PATH 第 ${position} 项`}
                       disabled={disabled || index === 0}
@@ -547,7 +547,7 @@ function PathSection({
                   </div>
                 </div>
                 {mark?.duplicate || mark?.outsideLine !== undefined ? (
-                  <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+                  <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
                     {mark.duplicate ? <StatusBadge tone="warning">重复项</StatusBadge> : null}
                     {mark.outsideLine !== undefined ? (
                       <StatusBadge tone="warning">块外第 {mark.outsideLine} 行已有</StatusBadge>
@@ -583,13 +583,13 @@ function OutsidePanel({ loaded }: { loaded: ZshEditState }) {
       {nothing ? (
         <p className="text-xs text-muted-foreground">专用块之外没有 PATH 设置。</p>
       ) : (
-        <ul aria-label="块外的 PATH 设置" className="grid gap-ui-sm">
+        <ul aria-label="块外的 PATH 设置" className="grid gap-ui-8">
           {outside.path.map((path) => (
             <li
-              className="grid min-w-0 gap-ui-xs rounded-control bg-surface px-ui-md py-ui-sm"
+              className="grid min-w-0 gap-ui-4 rounded-control bg-surface px-ui-8 py-ui-8"
               key={`${path.line}:path`}
             >
-              <div className="flex min-w-0 flex-wrap items-center gap-ui-sm text-xs text-muted-foreground">
+              <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
                 <span>第 {path.line} 行</span>
                 <StatusBadge>{path.beforeBlock ? "在专用块之前" : "在专用块之后"}</StatusBadge>
                 {path.operation === "APPEND" ? <StatusBadge>追加</StatusBadge> : null}
@@ -605,12 +605,12 @@ function OutsidePanel({ loaded }: { loaded: ZshEditState }) {
                   </StatusBadge>
                 ) : null}
               </div>
-              <ol aria-label={`第 ${path.line} 行的 PATH 项`} className="flex min-w-0 flex-wrap gap-ui-xs">
+              <ol aria-label={`第 ${path.line} 行的 PATH 项`} className="flex min-w-0 flex-wrap gap-ui-4">
                 {path.segments.map((segment, index) => (
                   <li key={`${index}:${segment.text}`}>
                     <code
                       className={classNames(
-                        "rounded-control bg-surface-muted px-ui-md py-ui-xxs font-mono text-aux",
+                        "rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux",
                         WRAP,
                       )}
                     >
@@ -623,10 +623,10 @@ function OutsidePanel({ loaded }: { loaded: ZshEditState }) {
           ))}
           {outside.dynamicPathLines.map((line) => (
             <li
-              className="grid min-w-0 gap-ui-xs rounded-control bg-surface px-ui-md py-ui-sm"
+              className="grid min-w-0 gap-ui-4 rounded-control bg-surface px-ui-8 py-ui-8"
               key={`${line.line}:dynamic`}
             >
-              <div className="flex min-w-0 flex-wrap items-center gap-ui-sm text-xs text-muted-foreground">
+              <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
                 <span>第 {line.line} 行</span>
                 <StatusBadge>{line.beforeBlock ? "在专用块之前" : "在专用块之后"}</StatusBadge>
                 <StatusBadge tone="warning">动态／未解析</StatusBadge>
@@ -664,7 +664,7 @@ function ChangeValue({ change }: { change: ZshVariableChange }) {
   if (change.secret) {
     return (
       <span className="text-xs text-muted-foreground">
-        <code className="rounded-control bg-surface px-ui-md py-ui-xxs font-mono text-aux">
+        <code className="rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux">
           <span aria-hidden="true">{SECRET_MASK}</span>
           <span className="sr-only">值已遮盖</span>
         </code>{" "}
@@ -676,12 +676,12 @@ function ChangeValue({ change }: { change: ZshVariableChange }) {
     return <span className="text-xs text-muted-foreground">（值过长，未显示）</span>;
   }
   const shown = (text: string) => (
-    <code className={classNames("rounded-control bg-surface px-ui-md py-ui-xxs font-mono text-aux", WRAP)}>
+    <code className={classNames("rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux", WRAP)}>
       {text === "" ? "（空值）" : text}
     </code>
   );
   return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-ui-sm">
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-ui-8">
       {change.before !== undefined ? shown(change.before) : null}
       {change.before !== undefined && change.after !== undefined ? (
         <span aria-label="改为">→</span>
@@ -695,10 +695,10 @@ function PathList({ items, label }: { items: readonly string[]; label: string })
   return items.length === 0 ? (
     <span className="text-xs text-muted-foreground">（没有 PATH 项）</span>
   ) : (
-    <ol aria-label={label} className="flex min-w-0 flex-wrap gap-ui-xs">
+    <ol aria-label={label} className="flex min-w-0 flex-wrap gap-ui-4">
       {items.map((item, index) => (
         <li key={`${index}:${item}`}>
-          <code className={classNames("rounded-control bg-surface px-ui-md py-ui-xxs font-mono text-aux", WRAP)}>
+          <code className={classNames("rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux", WRAP)}>
             {item}
           </code>
         </li>
@@ -721,11 +721,11 @@ function PreviewDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-ui-3xl"
+      className="space-y-ui-16"
       onCancel={actions.cancelPreview}
       titleId="zsh-preview-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-ui-2xl">
+      <div className="flex flex-wrap items-start justify-between gap-ui-12">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
             待确认写入
@@ -743,7 +743,7 @@ function PreviewDialog({
         目标：<code className={classNames("font-mono", WRAP)}>{preview.fullPath}</code>
       </p>
       <p className={NOTE_CLASSES}>
-        <StatusBadge className="mr-ui-sm">{impact.label}</StatusBadge>
+        <StatusBadge className="mr-ui-8">{impact.label}</StatusBadge>
         {impact.detail}
         {impact.order}
       </p>
@@ -753,10 +753,10 @@ function PreviewDialog({
           <h4 className="text-sm font-semibold" id="zsh-warnings-heading">
             需要留意（{preview.warnings.length}）
           </h4>
-          <ul aria-label="预览提示" className="mt-ui-sm grid gap-ui-xs">
+          <ul aria-label="预览提示" className="mt-ui-8 grid gap-ui-4">
             {preview.warnings.map((warning, index) => (
               <li
-                className="rounded-control bg-warning-soft px-ui-md py-ui-sm text-xs leading-relaxed text-warning"
+                className="rounded-control bg-warning-soft px-ui-8 py-ui-8 text-xs leading-relaxed text-warning"
                 key={`${index}:${warning.kind}`}
                 role="note"
               >
@@ -771,10 +771,10 @@ function PreviewDialog({
         <h4 className="text-sm font-semibold" id="zsh-changes-heading">
           改动（{preview.variableChanges.length + (preview.pathChange ? 1 : 0)} 项）
         </h4>
-        <ul aria-label="本次改动" className="mt-ui-sm grid gap-ui-sm">
+        <ul aria-label="本次改动" className="mt-ui-8 grid gap-ui-8">
           {preview.variableChanges.map((change) => (
             <li
-              className="flex min-w-0 flex-wrap items-center gap-ui-sm rounded-control bg-surface-muted px-ui-md py-ui-sm"
+              className="flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control bg-surface-muted px-ui-8 py-ui-8"
               key={change.name}
             >
               <StatusBadge tone={change.change === "REMOVE" ? "danger" : "neutral"}>
@@ -788,8 +788,8 @@ function PreviewDialog({
             </li>
           ))}
           {preview.pathChange ? (
-            <li className="grid min-w-0 gap-ui-xs rounded-control bg-surface-muted px-ui-md py-ui-sm">
-              <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+            <li className="grid min-w-0 gap-ui-4 rounded-control bg-surface-muted px-ui-8 py-ui-8">
+              <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
                 <StatusBadge>PATH</StatusBadge>
                 <span className="text-xs text-muted-foreground">
                   专用块里的 PATH 项（其后仍是原有 PATH）
@@ -812,7 +812,7 @@ function PreviewDialog({
         <pre
           aria-label="专用块的行变化"
           className={classNames(
-            "mt-ui-sm max-h-48 overflow-auto rounded-control bg-surface-muted px-ui-md py-ui-sm font-mono text-aux",
+            "mt-ui-8 max-h-48 overflow-auto rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux",
             WRAP,
           )}
           // The block can be long, so keyboard users must be able to scroll it.
@@ -828,7 +828,7 @@ function PreviewDialog({
             </div>
           ))}
         </pre>
-        <p className="mt-ui-sm text-xs text-muted-foreground">
+        <p className="mt-ui-8 text-xs text-muted-foreground">
           只显示专用块的行，秘密值已遮盖。完整文本差异不显示（块外可能有秘密）；块外的每个字节保持不变，写入后会读回校验。
         </p>
       </section>
@@ -851,7 +851,7 @@ function PreviewDialog({
           正在写入并校验…
         </p>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-ui-sm">
+      <div className="flex flex-wrap justify-end gap-ui-8">
         <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview}>
           返回修改
         </Button>
@@ -877,7 +877,7 @@ function ResultPanel({
     <section
       aria-labelledby="zsh-result-heading"
       className={classNames(
-        "grid gap-ui-sm rounded-control border px-ui-lg py-ui-md text-sm",
+        "grid gap-ui-8 rounded-control border px-ui-8 py-ui-8 text-sm",
         WRAP,
         text.tone === "success" && "border-transparent bg-success-soft text-success",
         text.tone === "danger" && "border-danger-border bg-danger-soft text-danger",
@@ -895,7 +895,7 @@ function ResultPanel({
         <p className="m-0 text-xs">备份编号：{result.backupId}</p>
       ) : null}
       {result.errorMessage ? <p className="m-0 text-xs">原因：{result.errorMessage}</p> : null}
-      <div className="flex flex-wrap gap-ui-md">
+      <div className="flex flex-wrap gap-ui-8">
         <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
           完成
         </Button>

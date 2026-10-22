@@ -119,8 +119,8 @@ export function LazySecretValueBody({
     );
   }
   return (
-    <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-ui-md">
-      <code className="rounded-control bg-surface-muted px-ui-md py-ui-xxs font-mono text-aux text-foreground">
+    <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-ui-8">
+      <code className="rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux text-foreground">
         <span aria-hidden="true">{SECRET_MASK}</span>
         <span className="sr-only">已隐藏，值尚未载入</span>
       </code>

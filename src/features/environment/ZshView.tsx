@@ -48,7 +48,7 @@ export interface ZshViewProps {
 }
 
 const HEADER_CLASSES =
-  "flex min-w-0 flex-wrap items-start justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md";
+  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8";
 const CARD_CLASSES = "overflow-hidden rounded-control bg-surface-muted";
 const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
 
@@ -77,7 +77,7 @@ export function ZshView(props: ZshViewProps) {
           <h2 className="text-sm font-semibold" id="zsh-heading">
             zsh 启动文件
           </h2>
-          <p className="mt-ui-xs text-xs text-muted-foreground">
+          <p className="mt-ui-4 text-xs text-muted-foreground">
             当前用户的 .zshenv、.zprofile、.zshrc、.zlogin，只读查看
           </p>
         </div>
@@ -89,7 +89,7 @@ export function ZshView(props: ZshViewProps) {
           {load.status === "loading" ? "读取中…" : "重新读取"}
         </Button>
       </header>
-      <div className="grid gap-ui-xl px-ui-xl py-ui-md">
+      <div className="grid gap-ui-12 px-ui-12 py-ui-8">
         <StaticReadingNote overview={overview} />
         {props.notice ? (
           <p
@@ -110,7 +110,7 @@ export function ZshView(props: ZshViewProps) {
 
 function StaticReadingNote({ overview }: { overview?: ZshOverview }) {
   return (
-    <div className="grid gap-ui-xs">
+    <div className="grid gap-ui-4">
       <p className={NOTE_CLASSES}>
         静态读取：不启动 shell、不 source、不执行任何文件，也不读取 /etc
         下的系统级文件和进程环境。RCS 等选项与动态配置可能改变实际读取的内容，所以这里的展示不等于实际生效的环境。
@@ -160,7 +160,7 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
       ) : null}
       <ReadingOrder overview={overview} />
       <ZdotdirPanel {...props} overview={overview} />
-      <div className="grid gap-ui-lg">
+      <div className="grid gap-ui-8">
         {overview.files.map((file) => (
           <FileCard
             file={file}
@@ -182,14 +182,14 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
 function ReadingOrder({ overview }: { overview: ZshOverview }) {
   const byFile = new Map(overview.files.map((file) => [file.file, file]));
   return (
-    <section aria-labelledby="zsh-order-heading" className={classNames(CARD_CLASSES, "px-ui-xl py-ui-md")}>
+    <section aria-labelledby="zsh-order-heading" className={classNames(CARD_CLASSES, "px-ui-12 py-ui-8")}>
       <h3 className="text-sm font-semibold" id="zsh-order-heading">
         读取顺序
       </h3>
-      <p className={classNames("mt-ui-xs", NOTE_CLASSES)}>
+      <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
         zsh 启动时按下面的顺序读取；后读取的文件可以覆盖先读取的设置，但这里不推断最终结果。
       </p>
-      <ol aria-label="zsh 启动文件读取顺序" className="mt-ui-md grid gap-ui-xs">
+      <ol aria-label="zsh 启动文件读取顺序" className="mt-ui-8 grid gap-ui-4">
         {overview.order.map((step) => (
           <OrderRow
             file={step.file ? byFile.get(step.file) : undefined}
@@ -209,7 +209,7 @@ function OrderRow({ file, step }: { file?: ZshFile; step: ZshOrderStep }) {
   return (
     <li
       className={classNames(
-        "flex min-w-0 flex-wrap items-center gap-ui-sm rounded-control px-ui-md py-ui-xs",
+        "flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control px-ui-8 py-ui-4",
         step.scope === "SYSTEM" ? "text-muted-foreground" : "bg-surface",
       )}
     >
@@ -247,21 +247,21 @@ function ZdotdirPanel({
   return (
     <section
       aria-labelledby="zsh-zdotdir-heading"
-      className={classNames(CARD_CLASSES, "border-l-4 px-ui-xl py-ui-md", toneClasses(summary.tone))}
+      className={classNames(CARD_CLASSES, "border-l-4 px-ui-12 py-ui-8", toneClasses(summary.tone))}
     >
       <h3 className="text-sm font-semibold" id="zsh-zdotdir-heading">
         {summary.title}
       </h3>
-      <p className={classNames("mt-ui-xs break-words [overflow-wrap:anywhere]", NOTE_CLASSES)}>
+      <p className={classNames("mt-ui-4 break-words [overflow-wrap:anywhere]", NOTE_CLASSES)}>
         {summary.detail}
       </p>
       {summary.problem ? (
-        <p className="mt-ui-sm text-xs leading-relaxed text-danger" role="alert">
+        <p className="mt-ui-8 text-xs leading-relaxed text-danger" role="alert">
           {summary.problem}
         </p>
       ) : null}
       {summary.needsChoice || summary.selected ? (
-        <div className="mt-ui-md flex min-w-0 flex-wrap items-center gap-ui-md">
+        <div className="mt-ui-8 flex min-w-0 flex-wrap items-center gap-ui-8">
           <Button
             disabled={choosing}
             onClick={onChooseDirectory}
@@ -277,7 +277,7 @@ function ZdotdirPanel({
           ) : null}
         </div>
       ) : null}
-      <p className={classNames("mt-ui-md", NOTE_CLASSES)}>
+      <p className={classNames("mt-ui-8", NOTE_CLASSES)}>
         .zshenv 始终从主目录读取。UserHome 不读取自身进程的 ZDOTDIR；/etc/zshenv
         或启动终端的会话也可能设置它，静态读取看不到这些来源。
       </p>
@@ -304,17 +304,17 @@ function FileCard({
     <section aria-labelledby={headingId} className={CARD_CLASSES}>
       <header className={HEADER_CLASSES}>
         <div className="min-w-0">
-          <h3 className="flex flex-wrap items-center gap-ui-sm text-sm font-semibold" id={headingId}>
+          <h3 className="flex flex-wrap items-center gap-ui-8 text-sm font-semibold" id={headingId}>
             <code className="font-mono">{file.name}</code>
             <span className="text-meta font-normal text-muted-foreground">
               第 {file.position} 步
             </span>
           </h3>
-          <p className="mt-ui-xs break-all text-xs text-muted-foreground">
+          <p className="mt-ui-4 break-all text-xs text-muted-foreground">
             {file.displayPath ?? "位置未确定"}
           </p>
         </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+        <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
           <StatusBadge title={applies.detail}>{applies.label}</StatusBadge>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
           {onEditFile && canEdit(outcome) ? (
@@ -329,10 +329,10 @@ function FileCard({
           ) : null}
         </div>
       </header>
-      <div className="px-ui-xl py-ui-md">
+      <div className="px-ui-12 py-ui-8">
         <p className={NOTE_CLASSES}>{applies.detail}</p>
         {onEditFile && canEdit(outcome) && file.file !== "ZSHRC" ? (
-          <p className={classNames("mt-ui-xs", NOTE_CLASSES)}>
+          <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
             默认只在 .zshrc 里编辑；这个文件需要你逐次选择，编辑前会显示它的影响范围。
           </p>
         ) : null}
@@ -379,7 +379,7 @@ function ReadyFile({
 }) {
   return (
     <>
-      <div className="mt-ui-md flex min-w-0 flex-wrap items-center gap-ui-sm text-xs text-muted-foreground">
+      <div className="mt-ui-8 flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
         <span>{formatBytes(outcome.sizeBytes)}</span>
         <span>{outcome.lineCount} 行</span>
         <span>{outcome.entryCount} 项</span>
@@ -401,7 +401,7 @@ function ReadyFile({
       ) : (
         <ol
           aria-label={`${file.name} 的内容`}
-          className="mt-ui-md grid max-h-96 gap-ui-xs overflow-y-auto"
+          className="mt-ui-8 grid max-h-96 gap-ui-4 overflow-y-auto"
           // The list scrolls, so keyboard users must be able to focus it.
           tabIndex={0}
         >
@@ -427,7 +427,7 @@ function LineNumber({ line }: { line: number }) {
   );
 }
 
-const ROW_BASE = "flex min-w-0 items-start gap-ui-md rounded-control px-ui-md py-ui-xs";
+const ROW_BASE = "flex min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-4";
 
 function RowView({
   file,
@@ -459,7 +459,7 @@ function RowView({
         <div className={classNames(ROW_BASE, "bg-warning-soft")}>
           <LineNumber line={row.line} />
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+            <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
               <StatusBadge tone="warning" title={reason.hint}>
                 动态／未解析
               </StatusBadge>
@@ -467,7 +467,7 @@ function RowView({
               <EndLine line={row.line} endLine={row.endLine} />
             </div>
             <span className="sr-only">{reason.hint}</span>
-            <div className="mt-ui-xs">
+            <div className="mt-ui-4">
               <RowText row={row} />
             </div>
           </div>
@@ -479,11 +479,11 @@ function RowView({
         <div className={classNames(ROW_BASE, "bg-warning-soft")}>
           <LineNumber line={row.line} />
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+            <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
               <StatusBadge tone="warning">未识别行，保持原样</StatusBadge>
               <EndLine line={row.line} endLine={row.endLine} />
             </div>
-            <div className="mt-ui-xs">
+            <div className="mt-ui-4">
               <RowText row={row} />
             </div>
           </div>
@@ -536,7 +536,7 @@ function EntryRowView({
     <div className={classNames(ROW_BASE, "bg-surface")}>
       <LineNumber line={row.line} />
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+        <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
           <code className="break-all font-mono text-aux font-semibold">{row.name}</code>
           {row.exported ? <StatusBadge>export</StatusBadge> : null}
           {row.operation === "APPEND" ? <StatusBadge>追加</StatusBadge> : null}
@@ -551,7 +551,7 @@ function EntryRowView({
           <EndLine line={row.line} endLine={row.endLine} />
         </div>
         <span className="sr-only">{state.hint}</span>
-        <div className="mt-ui-xs min-w-0">
+        <div className="mt-ui-4 min-w-0">
           <EntryValue file={file} onLoadValue={onLoadValue} row={row} />
         </div>
         {row.pathSegments && !row.secret ? (
@@ -584,7 +584,7 @@ function EntryValue({
     );
   }
   return (
-    <code className="break-all rounded-control bg-surface-muted px-ui-md py-ui-xxs font-mono text-aux">
+    <code className="break-all rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux">
       {row.value}
     </code>
   );
@@ -592,14 +592,14 @@ function EntryValue({
 
 function PathSegments({ segments }: { segments: readonly ZshPathSegment[] }) {
   if (segments.length === 0) {
-    return <p className={classNames("mt-ui-xs", NOTE_CLASSES)}>（没有 PATH 项）</p>;
+    return <p className={classNames("mt-ui-4", NOTE_CLASSES)}>（没有 PATH 项）</p>;
   }
   return (
-    <ol aria-label="PATH 项（按书写顺序）" className="mt-ui-sm grid gap-ui-xxs">
+    <ol aria-label="PATH 项（按书写顺序）" className="mt-ui-8 grid gap-ui-2">
       {segments.map((segment, index) => {
         const state = valueStateText(segment.state);
         return (
-          <li className="flex min-w-0 flex-wrap items-center gap-ui-sm" key={`${index}:${segment.text}`}>
+          <li className="flex min-w-0 flex-wrap items-center gap-ui-8" key={`${index}:${segment.text}`}>
             <span className="w-6 shrink-0 text-right text-meta text-muted-foreground">
               {index + 1}
             </span>
@@ -629,19 +629,19 @@ function SameNames({
   onLoadValue: ZshViewProps["onLoadValue"];
 }) {
   return (
-    <section aria-labelledby="zsh-same-heading" className={classNames(CARD_CLASSES, "px-ui-xl py-ui-md")}>
+    <section aria-labelledby="zsh-same-heading" className={classNames(CARD_CLASSES, "px-ui-12 py-ui-8")}>
       <h3 className="text-sm font-semibold" id="zsh-same-heading">
         同名项对照
       </h3>
-      <p className={classNames("mt-ui-xs", NOTE_CLASSES)}>
+      <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
         同一个名称出现在多处时并排列出，不合并；是否覆盖、哪一个最终生效取决于 shell
         的读取顺序和文件里的动态写法，这里不判断。
       </p>
-      <ul aria-label="同名项" className="mt-ui-md grid gap-ui-lg">
+      <ul aria-label="同名项" className="mt-ui-8 grid gap-ui-8">
         {groups.map((group) => (
           <li key={group.name}>
             <h4 className="font-mono text-aux font-semibold">{group.name}</h4>
-            <ul aria-label={`${group.name} 的各处设置`} className="mt-ui-xs grid gap-ui-xs">
+            <ul aria-label={`${group.name} 的各处设置`} className="mt-ui-4 grid gap-ui-4">
               {group.items.map((item) => (
                 <SameNameRow item={item} key={`${item.file}:${item.line}`} onLoadValue={onLoadValue} />
               ))}
@@ -662,7 +662,7 @@ function SameNameRow({
 }) {
   const state = valueStateText(item.row.state);
   return (
-    <li className="flex min-w-0 flex-wrap items-center gap-ui-sm rounded-control bg-surface px-ui-md py-ui-xs">
+    <li className="flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control bg-surface px-ui-8 py-ui-4">
       <code className="font-mono text-aux">{item.fileName}</code>
       <span className="text-meta text-muted-foreground">第 {item.line} 行</span>
       <StatusBadge

@@ -1,5 +1,6 @@
-import { Button, Panel, StatusBadge } from "../../components/ui";
-import { classNames } from "../../components/ui/classNames";
+import { useBoardView } from "../../app/BoardViewContext";
+import { Button, PageShell, Panel, StatusBadge } from "../../components/ui";
+import { PageRegion } from "../../components/ui/PageShell";
 import type { AppConfigListItem, AppConfigReadResult } from "../../ipc/appConfig";
 import {
   CAPABILITY_LABELS,
@@ -19,29 +20,41 @@ export interface AppConfigViewProps {
 }
 
 export function AppConfigView({ list, detail, onReload, onSelect }: AppConfigViewProps) {
+  const { isBoard } = useBoardView();
   const items = list.status === "ready" || list.status === "partial" ? list.items : undefined;
   const selectedId = detail.status === "idle" ? undefined : detail.id;
 
   return (
-    <div className="grid min-w-0 gap-ui-xl">
-      <div className="flex flex-wrap items-center justify-between gap-ui-sm">
-        <p className="m-0 text-aux text-muted-foreground">
-          仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。
-        </p>
-        {list.status === "loading" ? null : (
-          <Button size="sm" onClick={onReload}>
-            刷新
-          </Button>
-        )}
-      </div>
-      <ListStatusNotice list={list} onReload={onReload} />
-      {items ? (
-        <div className="grid min-w-0 gap-ui-xl md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-          <EntryList items={items} selectedId={selectedId} onSelect={onSelect} />
-          <EntryDetail items={items} detail={detail} />
+    <PageShell
+      layout={isBoard ? "board" : "master-detail"}
+      scrollKey={isBoard ? "board" : "compact"}
+    >
+      <PageRegion
+        className="content-start gap-ui-12 overflow-y-auto overscroll-contain"
+        span={isBoard ? 4 : undefined}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-ui-8">
+          <p className="m-0 text-aux text-muted-foreground">
+            仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。
+          </p>
+          {list.status === "loading" ? null : (
+            <Button size="sm" onClick={onReload}>
+              刷新
+            </Button>
+          )}
         </div>
-      ) : null}
-    </div>
+        <ListStatusNotice list={list} onReload={onReload} />
+        {items ? (
+          <EntryList items={items} selectedId={selectedId} onSelect={onSelect} />
+        ) : null}
+      </PageRegion>
+      <PageRegion
+        className="content-start overflow-y-auto overscroll-contain"
+        span={isBoard ? 8 : undefined}
+      >
+        {items ? <EntryDetail items={items} detail={detail} /> : null}
+      </PageRegion>
+    </PageShell>
   );
 }
 
@@ -67,7 +80,7 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
       );
     case "error":
       return (
-        <Panel role="alert" className="grid gap-ui-sm p-ui-lg">
+        <Panel role="alert" className="grid gap-ui-8 p-ui-8">
           <p className="m-0 text-body font-semibold text-danger">无法读取应用配置列表</p>
           <p className="m-0 text-body">{list.error.message}</p>
           <div>
@@ -92,14 +105,14 @@ function EntryList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <Panel aria-labelledby="app-config-list-title" className="grid content-start gap-ui-lg p-ui-lg">
+    <Panel aria-labelledby="app-config-list-title" className="grid content-start gap-ui-8 p-ui-8">
       <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
         条目
       </h2>
       {groupByCategory(items).map((group) => (
-        <div key={group.category} className="grid gap-ui-sm">
+        <div key={group.category} className="grid gap-ui-8">
           <h3 className="m-0 text-meta font-semibold text-muted-foreground">{group.label}</h3>
-          <ul className="m-0 grid list-none gap-ui-sm p-0">
+          <ul className="m-0 grid list-none gap-ui-8 p-0">
             {group.items.map((item) => (
               <EntryRow
                 key={item.summary.id}
@@ -130,17 +143,14 @@ function EntryRow({
     <li>
       <Button
         aria-current={selected ? "true" : undefined}
-        className={classNames(
-          "grid h-auto w-full min-w-0 justify-start text-left",
-          selected && "border-primary bg-selection text-selection-foreground",
-        )}
+        className="bracket grid h-auto w-full min-w-0 justify-start text-left"
         onClick={() => onSelect(summary.id)}
         size="sm"
       >
-        <span className="grid gap-ui-xs py-ui-sm">
+        <span className="grid gap-ui-4 py-ui-8">
           <span className="font-medium">{summary.name}</span>
           <span className="break-all text-aux text-muted-foreground">{summary.displayPath}</span>
-          <span className="flex flex-wrap gap-ui-xs">
+          <span className="flex flex-wrap gap-ui-4">
             <StatusBadge tone={badge.tone}>
               <span aria-hidden="true">{badge.symbol} </span>
               {badge.label}
@@ -168,7 +178,7 @@ function EntryDetail({
       ticks
       role="region"
       aria-labelledby={headingId}
-      className="grid content-start gap-ui-lg p-ui-lg"
+      className="grid content-start gap-ui-8 p-ui-8"
     >
       <h2 id={headingId} className="m-0 text-group font-semibold">
         {selected ? selected.summary.name : "详情"}
@@ -182,7 +192,7 @@ function EntryDetail({
 function EntryFacts({ item }: { item: AppConfigListItem }) {
   const { summary } = item;
   return (
-    <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-ui-lg gap-y-ui-xs text-body">
+    <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-ui-8 gap-y-ui-4 text-body">
       <dt className="text-muted-foreground">位置</dt>
       <dd className="m-0 break-all">
         {summary.displayPath}
@@ -219,7 +229,7 @@ function EntryBody({
   }
   if (detail.status === "failed") {
     return (
-      <Panel role="alert" className="grid gap-ui-sm p-ui-md">
+      <Panel role="alert" className="grid gap-ui-8 p-ui-8">
         <p className="m-0 text-body font-semibold text-danger">无法读取该条目</p>
         <p className="m-0 text-body">{detail.error.message}</p>
       </Panel>
@@ -243,7 +253,7 @@ function ReadResultBody({
   switch (view.kind) {
     case "content":
       return (
-        <div className="grid gap-ui-sm">
+        <div className="grid gap-ui-8">
           {view.redacted ? (
             <p className="m-0 text-aux text-muted-foreground">
               敏感值已遮盖（显示为 [REDACTED]）。
@@ -252,7 +262,7 @@ function ReadResultBody({
           <pre
             aria-label="解析后的内容"
             tabIndex={0}
-            className="m-0 overflow-auto rounded-control bg-surface-muted p-ui-md text-meta"
+            className="m-0 overflow-auto rounded-control bg-surface-muted p-ui-8 text-meta"
           >
             {view.text || "（文件没有可显示的内容）"}
           </pre>
@@ -262,7 +272,7 @@ function ReadResultBody({
             </p>
           ) : null}
           {view.warnings.length > 0 ? (
-            <ul className="m-0 grid list-none gap-ui-xs p-0 text-aux">
+            <ul className="m-0 grid list-none gap-ui-4 p-0 text-aux">
               {view.warnings.map((warning) => (
                 <li key={`${warning.line}-${warning.message}`}>
                   第 {warning.line} 行：{warning.message}
@@ -274,9 +284,9 @@ function ReadResultBody({
       );
     case "metadata":
       return (
-        <div className="grid gap-ui-sm">
+        <div className="grid gap-ui-8">
           <p className="m-0 text-body">{view.note}</p>
-          <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-ui-lg gap-y-ui-xs text-body">
+          <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-ui-8 gap-y-ui-4 text-body">
             {view.rows.map(([label, value]) => (
               <div key={label} className="contents">
                 <dt className="text-muted-foreground">{label}</dt>

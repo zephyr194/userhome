@@ -1,5 +1,8 @@
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useBoardView } from "../../app/BoardViewContext";
+import { PageShell } from "../../components/ui";
+import { PageRegion } from "../../components/ui/PageShell";
 import { classNames } from "../../components/ui/classNames";
 import { decodeAppError } from "../../ipc/core";
 import {
@@ -28,10 +31,8 @@ type GrantNotice = EnvironmentViewProps["grantNotice"];
 
 const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
   classNames(
-    "-mb-px border-b-2 px-ui-xl py-ui-md text-sm font-medium",
-    selected
-      ? "border-primary text-foreground"
-      : "border-transparent text-muted-foreground hover:text-foreground",
+    "bracket inline-flex h-control-md items-center px-ui-12 text-sm font-medium",
+    selected ? "text-foreground" : "text-muted-foreground hover:text-foreground",
   );
 
 /**
@@ -42,36 +43,38 @@ const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
  * choice survives switching back and forth.
  */
 export function EnvironmentPage() {
+  const { isBoard } = useBoardView();
   const [zshOpened, setZshOpened] = useState(false);
   return (
     <TabGroup
       as="div"
-      className="grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+      className="h-full min-h-0 min-w-0"
       onChange={(index) => {
         if (index === 1) setZshOpened(true);
       }}
     >
-      <TabList
-        aria-label="环境配置分区"
-        className="flex min-w-0 flex-wrap items-end gap-ui-sm border-b border-border bg-surface px-ui-xl"
+      <PageShell
+        layout={isBoard ? "board" : "strip"}
+        scrollKey={isBoard ? "board" : "compact"}
       >
-        <Tab className={TAB_CLASSES}>dotenv 文件</Tab>
-        <Tab className={TAB_CLASSES}>zsh 启动文件</Tab>
-      </TabList>
-      <TabPanels className="min-h-0 min-w-0 overflow-hidden">
-        <TabPanel
-          className="h-full min-h-0 min-w-0 overflow-hidden"
-          unmount={false}
+        <TabList
+          aria-label="环境配置分区"
+          className="col-span-full flex min-w-0 flex-wrap items-end gap-ui-8 border-b border-border"
         >
-          <DotenvPage />
-        </TabPanel>
-        <TabPanel
-          className="h-full min-h-0 min-w-0 overflow-hidden"
-          unmount={false}
-        >
-          {zshOpened ? <ZshPage /> : null}
-        </TabPanel>
-      </TabPanels>
+          <Tab className={TAB_CLASSES}>dotenv 文件</Tab>
+          <Tab className={TAB_CLASSES}>zsh 启动文件</Tab>
+        </TabList>
+        <TabPanels as="div" className="contents">
+          <TabPanel as="div" className="contents" unmount={false}>
+            <DotenvPage />
+          </TabPanel>
+          <TabPanel as="div" className="contents" unmount={false}>
+            <PageRegion span={isBoard ? 12 : undefined}>
+              {zshOpened ? <ZshPage /> : null}
+            </PageRegion>
+          </TabPanel>
+        </TabPanels>
+      </PageShell>
     </TabGroup>
   );
 }

@@ -1,3 +1,4 @@
+import { useBoardView } from "../../app/BoardViewContext";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
@@ -6,6 +7,7 @@ import {
   TextAreaField,
 } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
+import { PageRegion } from "../../components/ui/PageShell";
 import type {
   EnvFileOutcome,
   EnvFileView,
@@ -59,25 +61,23 @@ function editorOpen(props: EnvironmentViewProps): boolean {
 }
 
 const HEADER_CLASSES =
-  "flex min-w-0 flex-wrap items-start justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md";
+  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8";
 
 export function EnvironmentView(props: EnvironmentViewProps) {
+  const { isBoard } = useBoardView();
   return (
-    <section
-      aria-labelledby="environment-heading"
-      className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)] overflow-hidden"
-    >
-      <div className="grid min-h-0 overflow-hidden grid-rows-[minmax(0,1fr)_minmax(0,1fr)] sm:grid-cols-[360px_minmax(0,1fr)] sm:grid-rows-1">
+    <>
+      <PageRegion span={isBoard ? 4 : undefined}>
         <section
           aria-labelledby="environment-heading"
-          className="flex min-h-0 min-w-0 flex-col overflow-y-auto overscroll-contain border-b border-border sm:border-r sm:border-b-0"
+          className="flex min-w-0 flex-col"
         >
           <header className={HEADER_CLASSES}>
             <div className="min-w-0">
               <h2 className="text-sm font-semibold" id="environment-heading">
                 环境文件
               </h2>
-              <p className="mt-ui-xs text-xs text-muted-foreground">
+              <p className="mt-ui-4 text-xs text-muted-foreground">
                 指定目录中的 dotenv 文件，只读查看
               </p>
             </div>
@@ -95,11 +95,14 @@ export function EnvironmentView(props: EnvironmentViewProps) {
           <SettingsSection {...props} />
           <ScanResults {...props} />
         </section>
+      </PageRegion>
+      <PageRegion span={isBoard ? 8 : undefined}>
         <FilePane {...props} />
-      </div>
-    </section>
+      </PageRegion>
+    </>
   );
 }
+
 
 // ---- directory authorizations ---------------------------------------------
 
@@ -114,20 +117,20 @@ function GrantsSection({
 }: EnvironmentViewProps) {
   const { grants } = state;
   return (
-    <div className="border-b border-border px-ui-xl py-ui-md">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md">
+    <div className="border-b border-border px-ui-12 py-ui-8">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
         <h3 className="text-sm font-semibold">目录授权</h3>
         <Button disabled={addingGrant} onClick={onAddGrant} size="sm" variant="primary">
           {addingGrant ? "等待选择…" : "添加目录授权…"}
         </Button>
       </div>
-      <p className="mt-ui-xs text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-ui-4 text-xs leading-relaxed text-muted-foreground">
         只能授权用户主目录之下的目录。UserHome 只读取匹配的文件，从不执行或 source 它们。
       </p>
       {grantNotice ? (
         <p
           className={classNames(
-            "mt-ui-md text-xs leading-relaxed",
+            "mt-ui-8 text-xs leading-relaxed",
             grantNotice.tone === "error" ? "text-danger" : "text-muted-foreground",
           )}
           role={grantNotice.tone === "error" ? "alert" : "status"}
@@ -151,7 +154,7 @@ function GrantsSection({
           还没有授权目录。点击“添加目录授权…”选择一个项目目录。
         </AsyncState>
       ) : (
-        <ul aria-label="已授权目录" className="mt-ui-md grid gap-ui-sm">
+        <ul aria-label="已授权目录" className="mt-ui-8 grid gap-ui-8">
           {grants.grants.map((grant) => (
             <GrantRow
               grant={grant}
@@ -179,13 +182,11 @@ function GrantRow({
   selected: boolean;
 }) {
   return (
-    <li className="flex min-w-0 items-center gap-ui-sm">
+    <li className="flex min-w-0 items-center gap-ui-8">
       <Button
         aria-pressed={selected}
-        className={classNames(
-          "min-w-0 flex-1 justify-start break-all text-left",
-          selected && "border-primary",
-        )}
+        className="bracket min-w-0 flex-1 justify-start break-all text-left"
+        data-selected={selected ? "true" : undefined}
         onClick={onSelect}
         size="sm"
         title={grant.displayPath}
@@ -214,7 +215,7 @@ function SettingsSection(props: EnvironmentViewProps) {
   const changed = scanned !== undefined && check.ok && !sameSettings(scanned, check.settings);
   const noGrant = state.selectedGrantId === undefined;
   return (
-    <div className="grid gap-ui-md border-b border-border px-ui-xl py-ui-md">
+    <div className="grid gap-ui-8 border-b border-border px-ui-12 py-ui-8">
       <h3 className="text-sm font-semibold">扫描设置</h3>
       <TextAreaField
         description="每行一个相对目录的简单 glob：只支持 * 和 ?，不是 shell 或正则；不接受绝对路径和 ..。"
@@ -232,7 +233,7 @@ function SettingsSection(props: EnvironmentViewProps) {
         label="递归扫描子目录"
         onCheckedChange={onRecursiveChange}
       />
-      <div className="flex min-w-0 flex-wrap items-center gap-ui-md">
+      <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
         <Button
           disabled={noGrant || !check.ok || state.scan.status === "loading" || locked}
           onClick={onScan}
@@ -256,7 +257,7 @@ function ScanResults(props: EnvironmentViewProps) {
   const { onSelectFile, onScan, state } = props;
   const { scan } = state;
   return (
-    <div className="px-ui-xl py-ui-md">
+    <div className="px-ui-12 py-ui-8">
       <h3 className="text-sm font-semibold">扫描结果</h3>
       {scan.status === "idle" ? (
         <AsyncState kind="empty">
@@ -305,14 +306,14 @@ function ScanReady({
 }) {
   return (
     <>
-      <p className="mt-ui-xs break-all text-xs text-muted-foreground">
+      <p className="mt-ui-4 break-all text-xs text-muted-foreground">
         根目录 {outcome.root} · {outcome.recursive ? "递归" : "仅本层"} · 共{" "}
         {outcome.files.length} 个文件
       </p>
       {outcome.partialReasons.length > 0 ? (
         <AsyncState kind="partial">
           这是部分结果，不是完整列表。
-          <ul className="mt-ui-xs list-disc pl-ui-3xl">
+          <ul className="mt-ui-4 list-disc pl-ui-16">
             {outcome.partialReasons.map((reason) => (
               <li key={reason}>{partialReasonText(reason, outcome.limits)}</li>
             ))}
@@ -322,25 +323,22 @@ function ScanReady({
       {outcome.files.length === 0 ? (
         <AsyncState kind="empty">没有匹配的环境文件。</AsyncState>
       ) : (
-        <ul aria-label="匹配的环境文件" className="mt-ui-md grid gap-ui-xs">
+        <ul aria-label="匹配的环境文件" className="mt-ui-8 grid gap-ui-4">
           {outcome.files.map((file) => (
             <li key={file.relativePath}>
               <Button
                 aria-current={file.relativePath === selectedPath ? "true" : undefined}
-                className={classNames(
-                  "w-full min-w-0 text-left",
-                  file.relativePath === selectedPath && "border-primary",
-                )}
+                className="bracket w-full min-w-0 text-left"
                 disabled={locked}
                 onClick={() => onSelectFile(file.relativePath)}
                 size="sm"
                 title={file.relativePath}
               >
-                <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-ui-sm py-ui-xxs">
+                <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-ui-8 py-ui-2">
                   <span className="min-w-0 break-all font-mono text-aux">
                     {file.relativePath}
                   </span>
-                  <span className="flex shrink-0 flex-wrap items-center gap-ui-xs">
+                  <span className="flex shrink-0 flex-wrap items-center gap-ui-4">
                     {file.kind === "TEMPLATE" ? (
                       <StatusBadge tone="warning">模板</StatusBadge>
                     ) : null}
@@ -358,16 +356,16 @@ function ScanReady({
           ))}
         </ul>
       )}
-      <details className="mt-ui-md text-xs text-muted-foreground">
+      <details className="mt-ui-8 text-xs text-muted-foreground">
         <summary className="cursor-pointer">
           排除规则与已跳过项（{outcome.skippedTotal}）
         </summary>
-        <p className="mt-ui-xs leading-relaxed">
+        <p className="mt-ui-4 leading-relaxed">
           递归时默认不进入：{outcome.exclusions.join("、")}；不跟随目录符号链接；
           越界的符号链接一律拒绝。本次排除了 {outcome.excludedDirectories} 个目录。
         </p>
         {outcome.skipped.length > 0 ? (
-          <ul className="mt-ui-xs list-disc pl-ui-3xl">
+          <ul className="mt-ui-4 list-disc pl-ui-16">
             {outcome.skipped.map((entry, index) => (
               <li className="break-all" key={`${entry.relativePath ?? ""}:${index}`}>
                 {entry.relativePath ?? "（名称无法显示）"}：{skipReasonText(entry.reason)}
@@ -376,7 +374,7 @@ function ScanReady({
           </ul>
         ) : null}
         {outcome.skippedTotal > outcome.skipped.length ? (
-          <p className="mt-ui-xs">还有 {outcome.skippedTotal - outcome.skipped.length} 项未列出。</p>
+          <p className="mt-ui-4">还有 {outcome.skippedTotal - outcome.skipped.length} 项未列出。</p>
         ) : null}
       </details>
     </>
@@ -393,14 +391,14 @@ function FilePane(props: EnvironmentViewProps) {
   return (
     <section
       aria-labelledby="environment-file-heading"
-      className="flex min-h-0 min-w-0 flex-col overflow-y-auto overscroll-contain"
+      className="flex min-w-0 flex-col"
     >
       <header className={HEADER_CLASSES}>
         <div className="min-w-0">
           <h2 className="text-sm font-semibold" id="environment-file-heading">
             {editing ? "编辑环境文件" : "文件内容（只读）"}
           </h2>
-          <p className="mt-ui-xs break-all text-xs text-muted-foreground">
+          <p className="mt-ui-4 break-all text-xs text-muted-foreground">
             {editing
               ? editor.state.target?.kind === "new"
                 ? editor.state.target.displayPath
@@ -414,7 +412,7 @@ function FilePane(props: EnvironmentViewProps) {
           </Button>
         ) : null}
       </header>
-      <div className="px-ui-xl py-ui-md">
+      <div className="px-ui-12 py-ui-8">
         {editing ? (
           <DotenvEditor {...editor} />
         ) : (
@@ -466,7 +464,7 @@ function LoadedFile({
     return (
       <AsyncState kind="error">
         <strong>{failureText(outcome.reason)}</strong>
-        <span className="ml-ui-sm break-words [overflow-wrap:anywhere]">
+        <span className="ml-ui-8 break-words [overflow-wrap:anywhere]">
           {outcome.message}
         </span>
       </AsyncState>
@@ -486,7 +484,7 @@ function FileRows({
 }) {
   return (
     <>
-      <div className="flex min-w-0 flex-wrap items-center gap-ui-sm text-xs text-muted-foreground">
+      <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
         <StatusBadge tone={file.kind === "TEMPLATE" ? "warning" : "neutral"}>
           {file.kind === "TEMPLATE" ? "模板文件" : "环境文件"}
         </StatusBadge>
@@ -499,11 +497,11 @@ function FileRows({
         ) : null}
       </div>
       {file.kind === "TEMPLATE" ? (
-        <p className="mt-ui-md text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-ui-8 text-xs leading-relaxed text-muted-foreground">
           模板文件只描述变量，不会与真实环境文件合并成运行时值。
         </p>
       ) : null}
-      <p className="mt-ui-md text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-ui-8 text-xs leading-relaxed text-muted-foreground">
         只读视图：按原文显示，不展开变量、不执行命令。同名键在不同文件之间没有通用优先级，这里不判断哪一个生效。
       </p>
       {file.rowsTruncated ? (
@@ -514,7 +512,7 @@ function FileRows({
       {file.rows.length === 0 ? (
         <AsyncState kind="empty">文件是空的。</AsyncState>
       ) : (
-        <ol aria-label={`${path} 的内容`} className="mt-ui-md grid gap-ui-xs">
+        <ol aria-label={`${path} 的内容`} className="mt-ui-8 grid gap-ui-4">
           {file.rows.map((row) => (
             <li key={`${row.line}:${row.kind}`}>
               <RowView onLoadValue={onLoadValue} path={path} row={row} />
@@ -546,7 +544,7 @@ function RowView({
   path: string;
   row: EnvRow;
 }) {
-  const base = "flex min-w-0 items-start gap-ui-md rounded-control px-ui-md py-ui-xs";
+  const base = "flex min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-4";
   if (row.kind === "BLANK") {
     return (
       <div className={classNames(base, "text-muted-foreground")}>
@@ -566,7 +564,7 @@ function RowView({
         <LineNumber line={row.line} />
         <div className="min-w-0 flex-1">
           {row.kind === "UNKNOWN" ? (
-            <StatusBadge className="mr-ui-sm" tone="warning">
+            <StatusBadge className="mr-ui-8" tone="warning">
               未识别行，保持原样
             </StatusBadge>
           ) : null}
@@ -592,7 +590,7 @@ function RowView({
     <div className={classNames(base, "bg-surface-muted")}>
       <LineNumber line={row.line} />
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+        <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
           <code className="break-all font-mono text-aux font-semibold">{row.key}</code>
           {row.exported ? <StatusBadge>export</StatusBadge> : null}
           {row.secret ? <StatusBadge tone="danger">秘密</StatusBadge> : null}
@@ -602,11 +600,11 @@ function RowView({
             </span>
           ) : null}
         </div>
-        <div className="mt-ui-xs min-w-0">
+        <div className="mt-ui-4 min-w-0">
           <EntryValue onLoadValue={onLoadValue} path={path} row={row} />
         </div>
         {row.flags.length > 0 ? (
-          <ul className="mt-ui-xs flex flex-wrap gap-ui-sm" aria-label="需要注意">
+          <ul className="mt-ui-4 flex flex-wrap gap-ui-8" aria-label="需要注意">
             {row.flags.map((flag) => (
               <li key={flag}>
                 <StatusBadge title={flagText(flag).hint} tone="warning">
@@ -644,7 +642,7 @@ function EntryValue({
     );
   }
   return (
-    <code className="break-all rounded-control bg-surface px-ui-md py-ui-xxs font-mono text-aux">
+    <code className="break-all rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux">
       {row.value}
     </code>
   );

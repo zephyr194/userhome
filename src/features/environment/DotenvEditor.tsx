@@ -64,8 +64,8 @@ export function DotenvEditor({ actions, check, state }: DotenvEditorProps) {
       : [];
 
   return (
-    <div className="grid gap-ui-lg">
-      <div className="grid gap-ui-xs text-xs leading-relaxed text-muted-foreground">
+    <div className="grid gap-ui-8">
+      <div className="grid gap-ui-4 text-xs leading-relaxed text-muted-foreground">
         {target.kind === "new" ? (
           <p>
             新文件：<code className={classNames("font-mono", WRAP)}>{target.displayPath}</code>
@@ -105,7 +105,7 @@ export function DotenvEditor({ actions, check, state }: DotenvEditorProps) {
             />
           ) : null}
           <AdditionList actions={actions} check={check} disabled={locked} state={state} />
-          <div className="flex min-w-0 flex-wrap items-center gap-ui-md">
+          <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
             <Button
               disabled={locked || !check.ready}
               onClick={() => void actions.requestPreview()}
@@ -149,7 +149,7 @@ function Notice({ notice }: { notice: EditorNotice }) {
   return (
     <div
       className={classNames(
-        "rounded-control border px-ui-lg py-ui-md text-sm",
+        "rounded-control border px-ui-8 py-ui-8 text-sm",
         WRAP,
         notice.tone === "error" && "border-danger-border bg-danger-soft text-danger",
         notice.tone === "warning" && "border-transparent bg-warning-soft text-warning",
@@ -158,7 +158,7 @@ function Notice({ notice }: { notice: EditorNotice }) {
       role={notice.tone === "error" ? "alert" : "status"}
     >
       <p className="m-0 font-medium">{notice.text}</p>
-      {notice.detail ? <p className="m-0 mt-ui-xs text-xs">{notice.detail}</p> : null}
+      {notice.detail ? <p className="m-0 mt-ui-4 text-xs">{notice.detail}</p> : null}
     </div>
   );
 }
@@ -184,7 +184,7 @@ function EntryList({
     return <p className="text-xs text-muted-foreground">文件里还没有键值项。</p>;
   }
   return (
-    <ul aria-label="已有的键" className="grid gap-ui-md">
+    <ul aria-label="已有的键" className="grid gap-ui-8">
       {rows.map((row) => {
         const editability = entryEditability(row);
         const draft = state.entryEdits[row.key];
@@ -193,12 +193,12 @@ function EntryList({
         return (
           <li
             className={classNames(
-              "grid min-w-0 gap-ui-sm rounded-control bg-surface-muted px-ui-md py-ui-md",
+              "grid min-w-0 gap-ui-8 rounded-control bg-surface-muted px-ui-8 py-ui-8",
               removing && "opacity-80",
             )}
             key={`${row.line}:${row.key}`}
           >
-            <div className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+            <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
               <code className={classNames("font-mono text-aux font-semibold", WRAP)}>
                 {row.key}
               </code>
@@ -208,7 +208,7 @@ function EntryList({
               <span className="text-meta text-muted-foreground">第 {row.line} 行</span>
             </div>
             {editability.ok ? (
-              <div className="flex min-w-0 flex-wrap items-end gap-ui-md">
+              <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
                 {row.secret ? (
                   <SecretReplacementField
                     className="min-w-0 flex-1"
@@ -244,7 +244,7 @@ function EntryList({
               </div>
             ) : (
               <p className="text-xs leading-relaxed text-warning" role="note">
-                <StatusBadge className="mr-ui-sm" tone="warning">
+                <StatusBadge className="mr-ui-8" tone="warning">
                   不可修改
                 </StatusBadge>
                 {editability.reason}
@@ -271,8 +271,8 @@ function AdditionList({
   state: EditorState;
 }) {
   return (
-    <section aria-labelledby="dotenv-additions-heading" className="grid gap-ui-md">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md">
+    <section aria-labelledby="dotenv-additions-heading" className="grid gap-ui-8">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
         <h3 className="text-sm font-semibold" id="dotenv-additions-heading">
           新增键
         </h3>
@@ -287,7 +287,7 @@ function AdditionList({
             : "没有新增的键。新键会追加到文件末尾。"}
         </p>
       ) : (
-        <ul aria-label="新增的键" className="grid gap-ui-md">
+        <ul aria-label="新增的键" className="grid gap-ui-8">
           {state.additions.map((row, index) => {
             const problem = check.problems.additions[row.id];
             const secret = looksLikeSecretName(row.key);
@@ -300,10 +300,10 @@ function AdditionList({
             };
             return (
               <li
-                className="grid min-w-0 gap-ui-sm rounded-control bg-surface-muted px-ui-md py-ui-md"
+                className="grid min-w-0 gap-ui-8 rounded-control bg-surface-muted px-ui-8 py-ui-8"
                 key={row.id}
               >
-                <div className="flex min-w-0 flex-wrap items-end gap-ui-md">
+                <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
                   <TextField
                     autoCapitalize="off"
                     autoComplete="off"
@@ -324,7 +324,7 @@ function AdditionList({
                     <TextField {...valueProps} autoComplete="off" spellCheck={false} />
                   )}
                 </div>
-                <div className="flex min-w-0 flex-wrap items-center gap-ui-md">
+                <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
                   <CheckboxField
                     checked={row.exported}
                     disabled={disabled}
@@ -362,7 +362,7 @@ function ChangeValue({ change }: { change: EnvChange }) {
   if (change.secret) {
     return (
       <span className="text-xs text-muted-foreground">
-        <code className="rounded-control bg-surface px-ui-md py-ui-xxs font-mono text-aux">
+        <code className="rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux">
           <span aria-hidden="true">{SECRET_MASK}</span>
           <span className="sr-only">值已遮盖</span>
         </code>{" "}
@@ -374,12 +374,12 @@ function ChangeValue({ change }: { change: EnvChange }) {
     return <span className="text-xs text-muted-foreground">（值过长，未显示）</span>;
   }
   const shown = (text: string) => (
-    <code className={classNames("rounded-control bg-surface px-ui-md py-ui-xxs font-mono text-aux", WRAP)}>
+    <code className={classNames("rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux", WRAP)}>
       {text === "" ? "（空值）" : text}
     </code>
   );
   return (
-    <span className="inline-flex min-w-0 flex-wrap items-center gap-ui-sm">
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-ui-8">
       {change.before !== undefined ? shown(change.before) : null}
       {change.before !== undefined && change.after !== undefined ? (
         <span aria-label="改为">→</span>
@@ -402,11 +402,11 @@ function PreviewDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-ui-3xl"
+      className="space-y-ui-16"
       onCancel={actions.cancelPreview}
       titleId="dotenv-preview-heading"
     >
-      <div className="flex flex-wrap items-start justify-between gap-ui-2xl">
+      <div className="flex flex-wrap items-start justify-between gap-ui-12">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
             待确认写入
@@ -423,7 +423,7 @@ function PreviewDialog({
       <p className="text-sm">
         目标：<code className={classNames("font-mono", WRAP)}>{preview.target}</code>
         {preview.fileKind === "TEMPLATE" ? (
-          <StatusBadge className="ml-ui-sm" tone="warning">
+          <StatusBadge className="ml-ui-8" tone="warning">
             模板文件
           </StatusBadge>
         ) : null}
@@ -443,10 +443,10 @@ function PreviewDialog({
         <h4 className="text-sm font-semibold" id="dotenv-changes-heading">
           改动（{preview.changes.length} 项）
         </h4>
-        <ul aria-label="本次改动" className="mt-ui-sm grid gap-ui-sm">
+        <ul aria-label="本次改动" className="mt-ui-8 grid gap-ui-8">
           {preview.changes.map((change) => (
             <li
-              className="flex min-w-0 flex-wrap items-center gap-ui-sm rounded-control bg-surface-muted px-ui-md py-ui-sm"
+              className="flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control bg-surface-muted px-ui-8 py-ui-8"
               key={change.key}
             >
               <StatusBadge tone={change.change === "REMOVE" ? "danger" : "neutral"}>
@@ -460,7 +460,7 @@ function PreviewDialog({
             </li>
           ))}
         </ul>
-        <p className="mt-ui-sm text-xs text-muted-foreground">
+        <p className="mt-ui-8 text-xs text-muted-foreground">
           其余内容（注释、空行、未识别行和未改动的键）保持原样；完整文本差异不显示，以免暴露秘密值。
         </p>
       </section>
@@ -482,7 +482,7 @@ function PreviewDialog({
           正在写入并校验…
         </p>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-ui-sm">
+      <div className="flex flex-wrap justify-end gap-ui-8">
         <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview}>
           返回修改
         </Button>
@@ -508,7 +508,7 @@ function ResultPanel({
     <section
       aria-labelledby="dotenv-result-heading"
       className={classNames(
-        "grid gap-ui-sm rounded-control border px-ui-lg py-ui-md text-sm",
+        "grid gap-ui-8 rounded-control border px-ui-8 py-ui-8 text-sm",
         WRAP,
         text.tone === "success" && "border-transparent bg-success-soft text-success",
         text.tone === "danger" && "border-danger-border bg-danger-soft text-danger",
@@ -525,7 +525,7 @@ function ResultPanel({
         <p className="m-0 text-xs">备份编号：{result.backupId}</p>
       ) : null}
       {result.errorMessage ? <p className="m-0 text-xs">原因：{result.errorMessage}</p> : null}
-      <div className="flex flex-wrap gap-ui-md">
+      <div className="flex flex-wrap gap-ui-8">
         <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
           完成
         </Button>

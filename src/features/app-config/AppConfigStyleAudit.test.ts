@@ -31,6 +31,8 @@ const PANEL_OPEN = /<Panel\b[^>]*>/g;
 // 与 `>=` 同形的比较运算不能被当作标签结束，否则会截断 Button 的属性
 const BUTTON_OPEN = /<Button\b(?:=>|>=|[^>])*>/g;
 const MAX_TICKED_PANELS = 2;
+const LEGACY_SPACING =
+  /^-?(?:p[xytblre]?|m[xytblre]?|gap(?:-[xy])?|space-[xy])-ui-(?:xxs|xs|sm|md|lg|xl|2xl|3xl)$/;
 
 const DEFINED_COLORS = new Set(Array.from(globalCss.matchAll(/--color-([a-z0-9-]+):/g), (m) => m[1]));
 const TEXT_SIZES = new Set(Array.from(globalCss.matchAll(/--text-([a-z0-9-]+):/g), (m) => m[1]));
@@ -187,5 +189,17 @@ describe("应用配置页样式审计（UI-3d）", () => {
       ),
     );
     expect(ticked.length).toBeLessThanOrEqual(MAX_TICKED_PANELS);
+  });
+
+  it("间距类不再使用旧令牌名（xxs…3xl），只用新档位 2/4/8/12/16/24", () => {
+    const violations: string[] = [];
+    for (const file of files) {
+      for (const group of classGroups(readFileSync(file, "utf8"))) {
+        for (const token of group) {
+          if (LEGACY_SPACING.test(token)) violations.push(`${rel(file)}: ${token}`);
+        }
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });

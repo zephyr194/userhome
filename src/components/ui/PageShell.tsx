@@ -77,3 +77,26 @@ export function PageShell({
 export function BoardCell({ span, children }: { span: BoardSpan; children?: ReactNode }) {
   return <div className={`page-shell__cell page-shell__cell--span-${span}`}>{children}</div>;
 }
+
+/** Same element in both views, so switching views never remounts its children. */
+export function PageRegion({
+  span,
+  className,
+  children,
+}: {
+  span?: BoardSpan;
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className={classNames(
+        "grid min-h-0 min-w-0",
+        span !== undefined && `page-shell__cell page-shell__cell--span-${span}`,
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
