@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SRC = join(process.cwd(), "src");
-const FEATURES = join(SRC, "features");
 const FORMS = join(SRC, "components", "ui", "forms");
 const FORM_TAGS = ["input", "select", "textarea", "option"] as const;
 const BUTTON_TAGS = ["button"] as const;
@@ -51,7 +50,7 @@ function countDirectNativeControls<Tag extends string>(
 describe("business-level native control migration", () => {
   it("never increases the approved direct-control baseline", () => {
     const forms = countDirectNativeControls(SRC, FORM_TAGS);
-    const buttons = countDirectNativeControls(FEATURES, BUTTON_TAGS);
+    const buttons = countDirectNativeControls(SRC, BUTTON_TAGS);
     const current = {
       files: forms.files + buttons.files,
       ...forms.counts,

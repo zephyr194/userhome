@@ -14,7 +14,7 @@ export default tseslint.config(
         "error",
         {
           selector:
-            "JSXOpeningElement[name.name=/^(input|select|textarea|option)$/]",
+            "JSXOpeningElement[name.name=/^(input|select|textarea|option|button)$/]",
           message: "请使用 src/components/ui/forms 的组件，不要直接使用原生表单元素",
         },
       ],

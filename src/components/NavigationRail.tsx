@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from "react";
+import { Button as HeadlessButton } from "@headlessui/react";
 import type { ConnectionState } from "../app/shellState";
 import {
   groupNavigationRoutes,
@@ -6,6 +7,7 @@ import {
   type AppRouteIcon,
   type AppRouteId,
 } from "../app/routeDefinitions";
+import { BrandMark } from "./ui/BrandMark";
 import { useSlideIndicator } from "./ui/useSlideIndicator";
 
 interface NavigationRailProps {
@@ -56,7 +58,7 @@ export function NavigationRail({
   return (
     <nav aria-label="主导航" className="navigation-rail slide-list" ref={railRef}>
       <div className="navigation-rail__brand">
-        <span className="navigation-rail__mark" aria-hidden="true"><i /><i /><i /></span>
+        <BrandMark className="navigation-rail__brand-mark" />
         <span>
           <strong>UserHome</strong>
           <small>CONTROL LAB</small>
@@ -90,14 +92,14 @@ export function NavigationRail({
                     <ul aria-label={`${route.label}分区`} className="navigation-rail__sections">
                       {route.sections.map((section) => (
                         <li key={section.id}>
-                          <button
+                          <HeadlessButton
                             type="button"
                             className="slide-item navigation-rail__section"
                             aria-current={section.id === activeSectionId ? "true" : undefined}
                             onClick={() => onSectionSelect?.(section.id)}
                           >
                             {section.label}
-                          </button>
+                          </HeadlessButton>
                         </li>
                       ))}
                     </ul>

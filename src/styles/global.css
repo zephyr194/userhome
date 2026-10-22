@@ -112,6 +112,12 @@
   --app-backdrop: rgb(20 27 36 / 0.45);
   --app-scrollbar-thumb: #B3BDC9;
   --app-scrollbar-thumb-hover: #8E9AA8;
+  --app-brand-bg: #1D242D;
+  --app-brand-fg: #E6EBF1;
+  --app-brand-rail: #4F5B69;
+  --app-brand-knob: #AEB9C6;
+  --app-brand-accent: #F0A060;
+  --app-brand-accent-deep: #B65C24;
   --app-sidebar-current-foreground: var(--app-selection-foreground);
   --app-sidebar-current-border: var(--app-selection-border);
   --app-success-soft: #E2EEE7;
@@ -1137,6 +1143,12 @@ a {
   --app-backdrop: rgb(4 8 12 / 0.62);
   --app-scrollbar-thumb: #3D4650;
   --app-scrollbar-thumb-hover: #7F8B99;
+  --app-brand-bg: #262C34;
+  --app-brand-fg: #E6EBF1;
+  --app-brand-rail: #4F5B69;
+  --app-brand-knob: #AEB9C6;
+  --app-brand-accent: #F0A060;
+  --app-brand-accent-deep: #B65C24;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1183,6 +1195,12 @@ a {
     --app-backdrop: rgb(4 8 12 / 0.62);
     --app-scrollbar-thumb: #3D4650;
     --app-scrollbar-thumb-hover: #7F8B99;
+    --app-brand-bg: #262C34;
+    --app-brand-fg: #E6EBF1;
+    --app-brand-rail: #4F5B69;
+    --app-brand-knob: #AEB9C6;
+    --app-brand-accent: #F0A060;
+    --app-brand-accent-deep: #B65C24;
   }
 }
 
@@ -1366,29 +1384,35 @@ body {
   letter-spacing: var(--app-letter-spacing-label);
 }
 
-.navigation-rail__mark {
-  position: relative;
+.navigation-rail__brand-mark {
   width: 31px;
   height: 31px;
   flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-control);
-  background: var(--app-primary-soft);
 }
 
-.navigation-rail__mark i {
-  position: absolute;
-  width: 12px;
-  height: 1px;
-  background: var(--app-primary);
-  transform-origin: center;
+.brand-mark__frame {
+  fill: var(--app-brand-bg);
 }
 
-.navigation-rail__mark i:first-child { transform: translateY(-4px); }
-.navigation-rail__mark i:nth-child(2) { width: 17px; transform: rotate(-45deg); }
-.navigation-rail__mark i:last-child { transform: translateY(4px); }
+.brand-mark__glyph {
+  fill: var(--app-brand-fg);
+}
+
+.brand-mark__rail {
+  fill: var(--app-brand-rail);
+}
+
+.brand-mark__knob {
+  fill: var(--app-brand-knob);
+}
+
+.brand-mark__knob-accent {
+  fill: var(--app-brand-accent);
+}
+
+.brand-mark__cap {
+  fill: var(--app-brand-accent-deep);
+}
 
 .navigation-rail__section-label {
   margin: var(--app-space-12) var(--app-space-8) var(--app-space-8);
