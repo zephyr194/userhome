@@ -1045,3 +1045,18 @@ export function buildClaudeCommand(request: ClaudeCommandRequest): Promise<Claud
     request,
   });
 }
+
+/** 成功时后端不返回任何内容，任何其他载荷都视为协议错误。 */
+export function decodeClaudeTerminalOpened(value: unknown): void {
+  if (value !== null) throw decodeFailure();
+}
+
+/**
+ * Asks the backend to open the command in Terminal. Only the structured choices are
+ * sent; the backend rebuilds the command itself and never runs it.
+ */
+export function openClaudeCommandInTerminal(request: ClaudeCommandRequest): Promise<void> {
+  return invokeCommand("ai_config_claude_open_in_terminal", decodeClaudeTerminalOpened, {
+    input: { toolId: "claude-code", request, projectGrantId: null },
+  });
+}
