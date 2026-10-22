@@ -199,3 +199,61 @@ fn diff_label_is_the_last_segment_of_a_dotted_key() {
         json!([{"kind": "ADDED", "text": "\"inner\": true"}])
     );
 }
+
+#[test]
+fn catalog_item_carries_the_official_description_default_and_source_as_read_only_text() {
+    let tool = tool();
+    let item = catalog_item(find(&tool, "editableKey"), Some("1.2.0"));
+    let wire = serde_json::to_value(&item).expect("item serializes");
+
+    assert_eq!(item.description, "fixture");
+    assert!(!item.description_truncated);
+    assert_eq!(item.default_note, "fixture");
+    assert_eq!(item.source_url, SOURCE_URL);
+    assert_eq!(item.source_retrieved_on, "2026-10-21");
+    let mut keys: Vec<&str> = wire
+        .as_object()
+        .expect("item is an object")
+        .keys()
+        .map(String::as_str)
+        .collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        [
+            "allowedValues",
+            "defaultNote",
+            "description",
+            "descriptionTruncated",
+            "editable",
+            "keyPath",
+            "reason",
+            "sourceRetrievedOn",
+            "sourceUrl",
+            "valueType",
+        ]
+    );
+}
+
+#[test]
+fn description_longer_than_the_catalog_limit_is_cut_at_a_character_boundary_and_flagged() {
+    let tool = tool();
+    let mut setting = find(&tool, "editableKey").clone();
+    setting.description = "界".repeat(250);
+    let item = catalog_item(&setting, Some("1.2.0"));
+
+    assert_eq!(item.description.chars().count(), 200);
+    assert!(item.description.chars().all(|character| character == '界'));
+    assert!(item.description_truncated);
+}
+
+#[test]
+fn description_at_exactly_the_catalog_limit_is_kept_whole_and_not_flagged() {
+    let tool = tool();
+    let mut setting = find(&tool, "editableKey").clone();
+    setting.description = "a".repeat(200);
+    let item = catalog_item(&setting, Some("1.2.0"));
+
+    assert_eq!(item.description, "a".repeat(200));
+    assert!(!item.description_truncated);
+}

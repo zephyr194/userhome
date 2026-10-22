@@ -46,6 +46,7 @@ use crate::{
 };
 
 const MAX_PENDING_CLAUDE_EDITS: usize = 32;
+const MAX_CATALOG_TEXT_CHARS: usize = 200;
 const RELOAD_NOTE: &str = "已写入设置文件。多数设置需新会话或重载后才生效，具体以官方说明为准；本操作不会改变正在运行的 Claude Code 会话。";
 
 #[tauri::command]
@@ -114,6 +115,11 @@ pub struct ClaudeEditItem {
     pub allowed_values: Vec<String>,
     pub editable: bool,
     pub reason: Option<&'static str>,
+    pub description: String,
+    pub description_truncated: bool,
+    pub default_note: String,
+    pub source_url: String,
+    pub source_retrieved_on: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -142,12 +148,26 @@ pub async fn ai_config_claude_edit_catalog() -> Result<ClaudeEditCatalog, AppErr
 
 fn catalog_item(setting: &SettingDefinition, detected: Option<&str>) -> ClaudeEditItem {
     let (editable, reason) = edit_status(setting, detected);
+    let (description, description_truncated) = bounded_text(&setting.description);
+    let (default_note, _) = bounded_text(&setting.default_note);
     ClaudeEditItem {
         key_path: setting.key_path.clone(),
         value_type: value_type_label(setting.value_type),
         allowed_values: setting.allowed_values.clone(),
         editable,
         reason,
+        description,
+        description_truncated,
+        default_note,
+        source_url: setting.source.url.clone(),
+        source_retrieved_on: setting.source.retrieved_on.clone(),
+    }
+}
+
+fn bounded_text(text: &str) -> (String, bool) {
+    match text.char_indices().nth(MAX_CATALOG_TEXT_CHARS) {
+        Some((index, _)) => (text[..index].to_owned(), true),
+        None => (text.to_owned(), false),
     }
 }
 
