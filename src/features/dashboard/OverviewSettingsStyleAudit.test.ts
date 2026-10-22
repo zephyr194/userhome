@@ -136,3 +136,32 @@ describe("概览与设置相关页面样式审计（UI-3a）", () => {
     }
   });
 });
+
+describe("概览舱位墙样式审计（UIB-4a）", () => {
+  const OVERVIEW_FILES = ["DashboardPage.tsx", "ModuleBay.tsx", "overviewBays.ts"].map((name) =>
+    join(srcRoot, "features", "dashboard", name),
+  );
+  const LEGACY_SPACING =
+    /^-?(?:p[xytblre]?|m[xytblre]?|gap(?:-[xy])?|space-[xy])-ui-(?:xxs|xs|sm|md|lg|xl|2xl|3xl)$/;
+  const HAND_WRITTEN_GRID = /^grid(?:-cols-.+|-rows-.+)?$/;
+
+  it("概览舱位墙不使用旧间距令牌名，只用新的 ui-* 令牌", () => {
+    const violations = OVERVIEW_FILES.flatMap((file) =>
+      classGroups(readFileSync(file, "utf8"))
+        .flat()
+        .filter((token) => LEGACY_SPACING.test(token))
+        .map((token) => `${rel(file)}: ${token}`),
+    );
+    expect(violations).toEqual([]);
+  });
+
+  it("概览不手写顶层 grid，布局只交给 PageShell 的 board", () => {
+    const violations = OVERVIEW_FILES.flatMap((file) =>
+      classGroups(readFileSync(file, "utf8"))
+        .flat()
+        .filter((token) => HAND_WRITTEN_GRID.test(token))
+        .map((token) => `${rel(file)}: ${token}`),
+    );
+    expect(violations).toEqual([]);
+  });
+});

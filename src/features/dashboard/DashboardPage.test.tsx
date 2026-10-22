@@ -496,6 +496,45 @@ describe("localCoveragePlan", () => {
   });
 });
 
+describe("DashboardPage overview wall", () => {
+  const markup = renderToStaticMarkup(
+    <DashboardPage state={{ status: "ready", snapshot: readySnapshot(readyModule(FOUR_CLASS_COVERAGE)) }} />,
+  );
+
+  it("按固定顺序排列：状态行、服务 8 栏、Caddy/环境变量/AI 配置/应用配置各 4 栏，然后是系统区", () => {
+    const spans = [...markup.matchAll(/page-shell__cell--span-(\d+)/g)].map((match) =>
+      Number(match[1]),
+    );
+    expect(spans).toEqual([12, 8, 4, 4, 4, 4, 12, 12, 6, 6, 12]);
+    const order = ["打开服务", "打开 Caddy", "打开环境变量", "打开 AI 配置", "打开应用配置"].map(
+      (text) => markup.indexOf(text),
+    );
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it("每个模块舱位的主操作是可见文字按钮，未加载的舱位显示未加载", () => {
+    for (const bay of ["打开 Caddy", "打开环境变量", "打开 AI 配置", "打开应用配置"]) {
+      expect(markup).toMatch(new RegExp(`<button[^>]*>${bay}</button>`));
+    }
+    expect(markup.match(/未加载/g) ?? []).toHaveLength(4);
+  });
+
+  it("服务舱位在读取中时显示读取中，不显示数字", () => {
+    expect(markup).toMatch(/<h2[^>]*>服务<\/h2>/);
+    expect(markup).toContain("读取中");
+  });
+
+  it("概览状态行给出当前状态与重新扫描，不再有第二个 h1 与看板切换", () => {
+    expect(markup).toContain("当前状态稳定");
+    expect(markup).toMatch(/<button[^>]*>重新扫描<\/button>/);
+    expect(markup).not.toContain("<h1");
+    expect(markup).not.toContain("page-shell__header");
+    expect(markup).not.toContain("▣");
+    expect(markup).not.toContain("看板");
+  });
+});
+
 // The legacy decoder regression stays covered from T112.
 describe("DashboardPage discovery decoding", () => {
   it("accepts absent evidence paths serialized as null", () => {
