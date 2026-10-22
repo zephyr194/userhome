@@ -83,13 +83,6 @@ export type DiagnosticProviderState =
   | "PARTIAL"
   | "UNAVAILABLE"
   | "ERROR";
-export type DiagnosticHelperState =
-  | "ENABLED"
-  | "REQUIRES_APPROVAL"
-  | "NOT_REGISTERED"
-  | "NOT_FOUND"
-  | "UNSUPPORTED"
-  | "UNSIGNED";
 export type DiagnosticPreferenceState = "VALIDATED" | "SAFE_DEFAULT";
 
 export interface DiagnosticsReport {
@@ -108,12 +101,6 @@ export interface DiagnosticsReport {
     readonly applicationCount: number;
     readonly managedDocumentCount: number;
     readonly serviceCount: number;
-  };
-  readonly helper: {
-    readonly supported: boolean;
-    readonly signed: boolean;
-    readonly available: boolean;
-    readonly state: DiagnosticHelperState;
   };
   readonly refresh: {
     readonly state: DiagnosticRefreshState;
@@ -190,14 +177,6 @@ const DIAGNOSTIC_PROVIDER_STATES: readonly string[] = [
   "PARTIAL",
   "UNAVAILABLE",
   "ERROR",
-];
-const DIAGNOSTIC_HELPER_STATES: readonly string[] = [
-  "ENABLED",
-  "REQUIRES_APPROVAL",
-  "NOT_REGISTERED",
-  "NOT_FOUND",
-  "UNSUPPORTED",
-  "UNSIGNED",
 ];
 const DIAGNOSTIC_PREFERENCE_STATES: readonly string[] = [
   "VALIDATED",
@@ -402,15 +381,37 @@ function decodeDiagnosticProvider<T extends DiagnosticsReport["providers"][numbe
   };
 }
 
+const DIAGNOSTICS_REPORT_KEYS = [
+  "schemaVersion",
+  "generatedAtEpochMs",
+  "application",
+  "system",
+  "catalog",
+  "refresh",
+  "providers",
+  "preferences",
+  "reportText",
+] as const;
+
+function hasExactKeys(
+  record: Record<string, unknown>,
+  keys: readonly string[],
+): boolean {
+  return (
+    Object.keys(record).length === keys.length &&
+    keys.every((key) => key in record)
+  );
+}
+
 function decodeDiagnosticsReport(value: unknown): DiagnosticsReport {
   if (
     !isRecord(value) ||
+    !hasExactKeys(value, DIAGNOSTICS_REPORT_KEYS) ||
     value.schemaVersion !== 1 ||
     !isRecord(value.application) ||
     value.application.name !== "UserHome" ||
     !isRecord(value.system) ||
     !isRecord(value.catalog) ||
-    !isRecord(value.helper) ||
     !isRecord(value.refresh) ||
     !Array.isArray(value.providers) ||
     value.providers.length !== DIAGNOSTIC_PROVIDER_IDS.length ||
@@ -468,15 +469,6 @@ function decodeDiagnosticsReport(value: unknown): DiagnosticsReport {
         1_000_000,
       ),
       serviceCount: decodeSafeInteger(value.catalog.serviceCount, 100_000),
-    },
-    helper: {
-      supported: decodeBoolean(value.helper.supported),
-      signed: decodeBoolean(value.helper.signed),
-      available: decodeBoolean(value.helper.available),
-      state: decodeKnownValue<DiagnosticHelperState>(
-        value.helper.state,
-        DIAGNOSTIC_HELPER_STATES,
-      ),
     },
     refresh: {
       state: decodeKnownValue<DiagnosticRefreshState>(

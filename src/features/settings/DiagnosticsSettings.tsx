@@ -152,22 +152,6 @@ export function DiagnosticsSettings() {
             schema {report.catalog.schemaVersion}
           </StatusBadge>
         </SettingsValueField>
-        <SettingsValueField
-          label="权限辅助程序"
-          description={
-            report.helper.supported
-              ? report.helper.signed
-                ? "受支持且签名状态有效"
-                : "受支持，但签名状态不可用"
-              : "当前平台不支持"
-          }
-        >
-          <StatusBadge
-            tone={report.helper.available ? "success" : "warning"}
-          >
-            {report.helper.available ? "可用" : "不可用"}
-          </StatusBadge>
-        </SettingsValueField>
       </SettingsFieldList>
 
       <Panel
