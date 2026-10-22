@@ -63,8 +63,8 @@ export interface MergeReport {
   defaults: { keyPath: string; default: unknown }[];
   conflicts: { keyPath: string; local: TypeSide; schema: TypeSide }[];
   unresolvedComplex: string[];
+  excluded: { keyPath: string; schemaType: string; reason: string }[];
   schemaOnly: string[];
-  localOnly: string[];
 }
 
 export declare function sha256Hex(text: string): string;

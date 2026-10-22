@@ -106,7 +106,7 @@
         {
           "id": "agent",
           "keyPath": "agent",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Start every session as a named subagent with its prompt, tools, and model",
           "defaultNote": "文档未给出默认值",
@@ -124,12 +124,14 @@
         {
           "id": "agentPushNotifEnabled",
           "keyPath": "agentPushNotifEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Let Claude send a push notification to your phone when it decides to",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -142,7 +144,7 @@
         {
           "id": "allowAllClaudeAiMcps",
           "keyPath": "allowAllClaudeAiMcps",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Load the claude.ai connectors alongside a deployed managed-mcp.json",
           "defaultNote": "文档未给出默认值",
@@ -198,12 +200,14 @@
         {
           "id": "allowedHttpHookUrls",
           "keyPath": "allowedHttpHookUrls",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Limit which URLs HTTP hooks can target",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "executesCommand"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -252,12 +256,15 @@
         {
           "id": "allowManagedHooksOnly",
           "keyPath": "allowManagedHooksOnly",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Run only the hooks your organization deploys",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "executesCommand",
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -270,12 +277,14 @@
         {
           "id": "allowManagedMcpServersOnly",
           "keyPath": "allowManagedMcpServersOnly",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Make the managed MCP allowlist the only one that applies",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -324,7 +333,7 @@
         {
           "id": "apiKeyHelper",
           "keyPath": "apiKeyHelper",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Generate the API credential with your own command",
           "defaultNote": "文档未给出默认值",
@@ -332,7 +341,7 @@
           "risks": [
             "executesCommand"
           ],
-          "secret": false,
+          "secret": true,
           "coverage": "displayOnly",
           "versions": null,
           "source": {
@@ -344,10 +353,15 @@
         {
           "id": "askUserQuestionTimeout",
           "keyPath": "askUserQuestionTimeout",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "60s",
+            "5m",
+            "10m",
+            "never"
+          ],
           "description": "Let an unanswered question auto-continue after idle time",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"never\"",
           "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -380,7 +394,7 @@
         {
           "id": "attribution",
           "keyPath": "attribution",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Customize the attribution Claude Code adds to commits and pull requests",
           "defaultNote": "文档未给出默认值",
@@ -452,10 +466,10 @@
         {
           "id": "autoCompactEnabled",
           "keyPath": "autoCompactEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn automatic compaction off or on",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -488,10 +502,10 @@
         {
           "id": "autoConnectIde",
           "keyPath": "autoConnectIde",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Connect to a running VS Code or JetBrains IDE automatically from an external terminal",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -524,10 +538,10 @@
         {
           "id": "autoInstallIdeExtension",
           "keyPath": "autoInstallIdeExtension",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off automatic install of the IDE extension from a VS Code terminal",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -542,7 +556,7 @@
         {
           "id": "autoMemoryDirectory",
           "keyPath": "autoMemoryDirectory",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Store auto memory in a directory you choose",
           "defaultNote": "文档未给出默认值",
@@ -560,10 +574,10 @@
         {
           "id": "autoMemoryEnabled",
           "keyPath": "autoMemoryEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn auto memory off or on",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -616,10 +630,10 @@
         {
           "id": "autoScrollEnabled",
           "keyPath": "autoScrollEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Follow new output to the bottom in fullscreen rendering",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -634,10 +648,13 @@
         {
           "id": "autoUpdatesChannel",
           "keyPath": "autoUpdatesChannel",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "stable",
+            "latest"
+          ],
           "description": "Follow the stable release channel instead of latest",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"latest\"",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -652,7 +669,7 @@
         {
           "id": "availableModels",
           "keyPath": "availableModels",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Restrict which models people can pick",
           "defaultNote": "文档标注：未设置（unset）",
@@ -688,10 +705,10 @@
         {
           "id": "awaySummaryEnabled",
           "keyPath": "awaySummaryEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off the session recap shown when you come back to the terminal",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -706,7 +723,7 @@
         {
           "id": "awsAuthRefresh",
           "keyPath": "awsAuthRefresh",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Refresh expired Bedrock credentials in .aws with your own command",
           "defaultNote": "文档未给出默认值",
@@ -726,7 +743,7 @@
         {
           "id": "awsCredentialExport",
           "keyPath": "awsCredentialExport",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Supply Bedrock credentials as JSON from your own command",
           "defaultNote": "文档未给出默认值",
@@ -734,7 +751,7 @@
           "risks": [
             "executesCommand"
           ],
-          "secret": false,
+          "secret": true,
           "coverage": "displayOnly",
           "versions": null,
           "source": {
@@ -746,7 +763,7 @@
         {
           "id": "axScreenReader",
           "keyPath": "axScreenReader",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Render screen-reader friendly output",
           "defaultNote": "文档未给出默认值",
@@ -818,8 +835,10 @@
         {
           "id": "browserExternalPageTools",
           "keyPath": "browserExternalPageTools",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "disabled"
+          ],
           "description": "Keep Claude's tools off external pages in the desktop Browser pane",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
@@ -836,7 +855,7 @@
         {
           "id": "channelsEnabled",
           "keyPath": "channelsEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Allow channels for your organization",
           "defaultNote": "文档未给出默认值",
@@ -872,7 +891,7 @@
         {
           "id": "claudeMd",
           "keyPath": "claudeMd",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Inject organization-wide CLAUDE.md instructions from managed settings",
           "defaultNote": "文档未给出默认值",
@@ -890,7 +909,7 @@
         {
           "id": "claudeMdExcludes",
           "keyPath": "claudeMdExcludes",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Skip specific CLAUDE.md files when memory loads",
           "defaultNote": "文档未给出默认值",
@@ -908,10 +927,10 @@
         {
           "id": "cleanupPeriodDays",
           "keyPath": "cleanupPeriodDays",
-          "valueType": "unknown",
+          "valueType": "number",
           "allowedValues": [],
           "description": "Choose how many days Claude Code keeps transcripts before deleting them",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：30",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -926,7 +945,7 @@
         {
           "id": "companyAnnouncements",
           "keyPath": "companyAnnouncements",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Show your organization's announcements at startup",
           "defaultNote": "文档未给出默认值",
@@ -998,8 +1017,11 @@
         {
           "id": "defaultShell",
           "keyPath": "defaultShell",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "bash",
+            "powershell"
+          ],
           "description": "Choose whether Bash or PowerShell runs shell commands typed with the ! prefix",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
@@ -1106,10 +1128,13 @@
         {
           "id": "diffTool",
           "keyPath": "diffTool",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "auto",
+            "terminal"
+          ],
           "description": "Choose whether proposed file changes open in the VS Code or JetBrains diff viewer or stay in the terminal",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"auto\"",
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1124,7 +1149,7 @@
         {
           "id": "disableAgentView",
           "keyPath": "disableAgentView",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off background agents and agent view",
           "defaultNote": "文档未给出默认值",
@@ -1142,12 +1167,14 @@
         {
           "id": "disableAllHooks",
           "keyPath": "disableAllHooks",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off hooks, a custom status line, and a custom @ file suggestion command at once",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "executesCommand"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1160,7 +1187,7 @@
         {
           "id": "disableArtifact",
           "keyPath": "disableArtifact",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Deprecated; use enableArtifact to turn the Artifact tool off",
           "defaultNote": "文档未给出默认值；文档标注：已弃用",
@@ -1196,7 +1223,7 @@
         {
           "id": "disableBrowserExternalNavigation",
           "keyPath": "disableBrowserExternalNavigation",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Limit the desktop Browser pane to localhost for people and Claude",
           "defaultNote": "文档未给出默认值",
@@ -1214,12 +1241,14 @@
         {
           "id": "disableBundledSkills",
           "keyPath": "disableBundledSkills",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off the skills and workflows included with Claude Code",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1232,12 +1261,14 @@
         {
           "id": "disableClaudeAiConnectors",
           "keyPath": "disableClaudeAiConnectors",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off claude.ai connectors so Claude Code does not fetch them",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1268,8 +1299,10 @@
         {
           "id": "disableDeepLinkRegistration",
           "keyPath": "disableDeepLinkRegistration",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "disable"
+          ],
           "description": "Stop Claude Code from registering the claude-cli:// handler",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
@@ -1304,12 +1337,14 @@
         {
           "id": "disabledMcpjsonServers",
           "keyPath": "disabledMcpjsonServers",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Reject specific servers from a project's .mcp.json",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1322,7 +1357,7 @@
         {
           "id": "disableMobileSimulatorTools",
           "keyPath": "disableMobileSimulatorTools",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Block Claude's tools in the desktop iOS Simulator pane",
           "defaultNote": "文档未给出默认值",
@@ -1340,12 +1375,14 @@
         {
           "id": "disableRemoteControl",
           "keyPath": "disableRemoteControl",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off Remote Control everywhere it can start",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1358,12 +1395,15 @@
         {
           "id": "disableSideloadFlags",
           "keyPath": "disableSideloadFlags",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Reject the CLI flags that sideload plugins, subagents, and MCP servers",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "relaxesPermissions",
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1376,12 +1416,15 @@
         {
           "id": "disableSkillShellExecution",
           "keyPath": "disableSkillShellExecution",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Stop skills and custom commands from running inline shell",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "executesCommand",
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1394,10 +1437,10 @@
         {
           "id": "disableWorkflows",
           "keyPath": "disableWorkflows",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn dynamic workflows off for everyone; use enableWorkflows for yourself",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1412,10 +1455,13 @@
         {
           "id": "editorMode",
           "keyPath": "editorMode",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "normal",
+            "vim"
+          ],
           "description": "Use vim key bindings in the input prompt",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"normal\"",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1453,10 +1499,10 @@
         {
           "id": "emojiCompletionEnabled",
           "keyPath": "emojiCompletionEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off :shortcode: emoji suggestions and replacement in the prompt input",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1471,13 +1517,14 @@
         {
           "id": "enableAllProjectMcpServers",
           "keyPath": "enableAllProjectMcpServers",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Approve every server in project .mcp.json files without a prompt",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [
-            "relaxesPermissions"
+            "relaxesPermissions",
+            "externalServer"
           ],
           "secret": false,
           "coverage": "displayOnly",
@@ -1491,7 +1538,7 @@
         {
           "id": "enableArtifact",
           "keyPath": "enableArtifact",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn the Artifact tool off with a false in any file; no file can turn it back on",
           "defaultNote": "文档未给出默认值",
@@ -1509,13 +1556,14 @@
         {
           "id": "enabledMcpjsonServers",
           "keyPath": "enabledMcpjsonServers",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Approve specific servers from a project's .mcp.json",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [
-            "relaxesPermissions"
+            "relaxesPermissions",
+            "externalServer"
           ],
           "secret": false,
           "coverage": "displayOnly",
@@ -1529,12 +1577,14 @@
         {
           "id": "enabledPlugins",
           "keyPath": "enabledPlugins",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Turn individual plugins on or off per scope",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1583,10 +1633,10 @@
         {
           "id": "env",
           "keyPath": "env",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Set environment variables for every session and its subprocesses",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：{}",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": true,
@@ -1601,10 +1651,10 @@
         {
           "id": "externalEditorContext",
           "keyPath": "externalEditorContext",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Show Claude's last response as comments when you press Ctrl+G to edit",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1619,12 +1669,14 @@
         {
           "id": "extraKnownMarketplaces",
           "keyPath": "extraKnownMarketplaces",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Register marketplaces for a repository or an organization",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1658,7 +1710,7 @@
           "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn fast mode on for sessions where it is available",
-          "defaultNote": "文档标注默认值：unset (off)",
+          "defaultNote": "文档标注默认值：unset (off)；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1676,7 +1728,7 @@
           "valueType": "boolean",
           "allowedValues": [],
           "description": "Require people to turn fast mode on each session",
-          "defaultNote": "文档标注默认值：false",
+          "defaultNote": "文档标注默认值：false；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1709,7 +1761,7 @@
         {
           "id": "feedbackSurveyRate",
           "keyPath": "feedbackSurveyRate",
-          "valueType": "unknown",
+          "valueType": "number",
           "allowedValues": [],
           "description": "Change how often the session quality survey appears",
           "defaultNote": "文档未给出默认值",
@@ -1727,10 +1779,10 @@
         {
           "id": "fileCheckpointingEnabled",
           "keyPath": "fileCheckpointingEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off or on the file snapshots that /rewind restores",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1745,7 +1797,7 @@
         {
           "id": "fileSuggestion",
           "keyPath": "fileSuggestion",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Supply @ file autocomplete from your own command",
           "defaultNote": "文档未给出默认值",
@@ -1783,12 +1835,14 @@
         {
           "id": "forceLoginGatewayUrl",
           "keyPath": "forceLoginGatewayUrl",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Set the gateway URL the login screen connects to",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1801,12 +1855,18 @@
         {
           "id": "forceLoginMethod",
           "keyPath": "forceLoginMethod",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "claudeai",
+            "console",
+            "gateway"
+          ],
           "description": "Restrict login to claude.ai, Claude Console, or a cloud gateway",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1837,7 +1897,7 @@
         {
           "id": "forceRemoteSettingsRefresh",
           "keyPath": "forceRemoteSettingsRefresh",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Block startup until server-managed settings are freshly fetched",
           "defaultNote": "文档未给出默认值",
@@ -1875,7 +1935,7 @@
         {
           "id": "gcpAuthRefresh",
           "keyPath": "gcpAuthRefresh",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Refresh Google Cloud credentials with your own command",
           "defaultNote": "文档未给出默认值",
@@ -1915,12 +1975,14 @@
         {
           "id": "httpHookAllowedEnvVars",
           "keyPath": "httpHookAllowedEnvVars",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Limit which env vars HTTP hooks can put in headers",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "executesCommand"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -1951,10 +2013,10 @@
         {
           "id": "includeCoAuthoredBy",
           "keyPath": "includeCoAuthoredBy",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Deprecated; use attribution to hide or change commit and PR attribution",
-          "defaultNote": "文档未给出默认值；文档标注：已弃用",
+          "defaultNote": "文档未给出默认值；文档标注：已弃用；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1969,10 +2031,10 @@
         {
           "id": "includeGitInstructions",
           "keyPath": "includeGitInstructions",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Remove the built-in commit and PR instructions from Claude's context",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -1987,12 +2049,14 @@
         {
           "id": "inputNeededNotifEnabled",
           "keyPath": "inputNeededNotifEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Get a push notification when Claude is waiting on you",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -2151,7 +2215,7 @@
         {
           "id": "minimumVersion",
           "keyPath": "minimumVersion",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Keep auto-updates from installing anything below a version",
           "defaultNote": "文档未给出默认值",
@@ -2259,7 +2323,7 @@
         {
           "id": "otelHeadersHelper",
           "keyPath": "otelHeadersHelper",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Generate rotating OpenTelemetry headers with your own command",
           "defaultNote": "文档未给出默认值",
@@ -2297,10 +2361,13 @@
         {
           "id": "parentSettingsBehavior",
           "keyPath": "parentSettingsBehavior",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "first-wins",
+            "merge"
+          ],
           "description": "Apply or drop restrictions an SDK or IDE host passes when you deploy managed settings",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"first-wins\"",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -2315,10 +2382,10 @@
         {
           "id": "permissionExplainerEnabled",
           "keyPath": "permissionExplainerEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Removed in v2.1.257, together with the Ctrl+E command explanation",
-          "defaultNote": "文档未给出默认值；文档标注：已移除",
+          "defaultNote": "文档未给出默认值；文档标注：已移除；schema 默认值：true",
           "mergeRule": "适用：全局配置 ~/.claude.json（不在设置文件中）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -2481,10 +2548,10 @@
         {
           "id": "plansDirectory",
           "keyPath": "plansDirectory",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Choose where plan mode writes plan files",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"~/.claude/plans\"",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -2499,12 +2566,14 @@
         {
           "id": "pluginConfigs",
           "keyPath": "pluginConfigs",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Store the answers you gave a plugin's configuration dialog",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：用户层或托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -2517,12 +2586,14 @@
         {
           "id": "pluginSuggestionMarketplaces",
           "keyPath": "pluginSuggestionMarketplaces",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Choose which marketplaces can surface plugin install suggestions in /plugin",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -2535,12 +2606,14 @@
         {
           "id": "pluginTrustMessage",
           "keyPath": "pluginTrustMessage",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Add your own text to the plugin trust warning",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -2553,7 +2626,7 @@
         {
           "id": "policyHelper",
           "keyPath": "policyHelper",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Run an executable that computes managed settings at startup",
           "defaultNote": "文档未给出默认值",
@@ -2631,10 +2704,18 @@
         {
           "id": "preferredNotifChannel",
           "keyPath": "preferredNotifChannel",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "auto",
+            "terminal_bell",
+            "iterm2",
+            "iterm2_with_bell",
+            "kitty",
+            "ghostty",
+            "notifications_disabled"
+          ],
           "description": "Choose a terminal bell or desktop notification for task completion",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"auto\"",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -2649,10 +2730,10 @@
         {
           "id": "prefersReducedMotion",
           "keyPath": "prefersReducedMotion",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Reduce or turn off spinner, shimmer, and flash animations",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -2685,7 +2766,7 @@
         {
           "id": "processWrapper",
           "keyPath": "processWrapper",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Run Claude Code's background processes through a corporate launcher on macOS and Linux",
           "defaultNote": "文档未给出默认值",
@@ -2762,7 +2843,7 @@
         {
           "id": "prUrlTemplate",
           "keyPath": "prUrlTemplate",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Point PR links at an internal code-review tool instead of github.com",
           "defaultNote": "文档未给出默认值",
@@ -2798,12 +2879,14 @@
         {
           "id": "remoteControlAtStartup",
           "keyPath": "remoteControlAtStartup",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Connect Remote Control automatically when a session starts",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -2816,7 +2899,7 @@
         {
           "id": "requiredMaximumVersion",
           "keyPath": "requiredMaximumVersion",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Refuse to start on a version newer than your organization allows",
           "defaultNote": "文档未给出默认值",
@@ -2834,7 +2917,7 @@
         {
           "id": "requiredMinimumVersion",
           "keyPath": "requiredMinimumVersion",
-          "valueType": "unknown",
+          "valueType": "string",
           "allowedValues": [],
           "description": "Refuse to start on a version older than your organization requires",
           "defaultNote": "文档未给出默认值",
@@ -2852,10 +2935,10 @@
         {
           "id": "respectGitignore",
           "keyPath": "respectGitignore",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Keep gitignored files out of the @ file picker",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -2870,12 +2953,14 @@
         {
           "id": "respondToBashCommands",
           "keyPath": "respondToBashCommands",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Stop Claude from responding after a ! shell command runs",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "executesCommand"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -3604,10 +3689,10 @@
         {
           "id": "showClearContextOnPlanAccept",
           "keyPath": "showClearContextOnPlanAccept",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Show a clear context option on the plan accept screen",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -3625,7 +3710,7 @@
           "valueType": "boolean",
           "allowedValues": [],
           "description": "See summaries of Claude's thinking instead of a collapsed stub",
-          "defaultNote": "文档标注默认值：false",
+          "defaultNote": "文档标注默认值：false；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -3640,10 +3725,10 @@
         {
           "id": "showTurnDuration",
           "keyPath": "showTurnDuration",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Hide the Cooked for duration after each response",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -3658,10 +3743,10 @@
         {
           "id": "skillListingBudgetFraction",
           "keyPath": "skillListingBudgetFraction",
-          "valueType": "unknown",
+          "valueType": "number",
           "allowedValues": [],
           "description": "Reserve more or less context for the skill listing",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：0.01",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -3676,10 +3761,10 @@
         {
           "id": "skillListingMaxDescChars",
           "keyPath": "skillListingMaxDescChars",
-          "valueType": "unknown",
+          "valueType": "number",
           "allowedValues": [],
           "description": "Cap each skill's description length in the skill listing",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：1536",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -3694,12 +3779,14 @@
         {
           "id": "skillOverrides",
           "keyPath": "skillOverrides",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Hide or collapse a skill without editing its SKILL.md",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -3730,7 +3817,7 @@
         {
           "id": "skipDangerousModePermissionPrompt",
           "keyPath": "skipDangerousModePermissionPrompt",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Skip the confirmation dialog before bypassPermissions mode",
           "defaultNote": "文档未给出默认值",
@@ -3750,7 +3837,7 @@
         {
           "id": "skipWebFetchPreflight",
           "keyPath": "skipWebFetchPreflight",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Skip the WebFetch hostname check when Anthropic is unreachable",
           "defaultNote": "文档未给出默认值",
@@ -3790,10 +3877,10 @@
         {
           "id": "spinnerTipsEnabled",
           "keyPath": "spinnerTipsEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Hide tips in the spinner while Claude works",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -3808,7 +3895,7 @@
         {
           "id": "spinnerTipsOverride",
           "keyPath": "spinnerTipsOverride",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Add your own tips to the spinner rotation, or replace the built-in tips",
           "defaultNote": "文档未给出默认值",
@@ -3826,7 +3913,7 @@
         {
           "id": "spinnerVerbs",
           "keyPath": "spinnerVerbs",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Add or replace the verbs shown while a turn runs",
           "defaultNote": "文档未给出默认值",
@@ -3862,12 +3949,14 @@
         {
           "id": "sshHostAllowlist",
           "keyPath": "sshHostAllowlist",
-          "valueType": "unknown",
+          "valueType": "stringArray",
           "allowedValues": [],
           "description": "Limit which hosts Desktop SSH sessions can reach",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：仅托管层。文档未给出合并规则，按层级覆盖（未核实）",
-          "risks": [],
+          "risks": [
+            "externalServer"
+          ],
           "secret": false,
           "coverage": "displayOnly",
           "versions": null,
@@ -3880,7 +3969,7 @@
         {
           "id": "statusLine",
           "keyPath": "statusLine",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Run your own command to render a status line below the prompt",
           "defaultNote": "文档未给出默认值",
@@ -4029,7 +4118,7 @@
         {
           "id": "subagentStatusLine",
           "keyPath": "subagentStatusLine",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Rewrite rows in the subagent task display with your own command",
           "defaultNote": "文档未给出默认值",
@@ -4103,7 +4192,7 @@
         {
           "id": "syntaxHighlightingDisabled",
           "keyPath": "syntaxHighlightingDisabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off syntax highlighting in diffs and code blocks",
           "defaultNote": "文档未给出默认值",
@@ -4157,10 +4246,15 @@
         {
           "id": "teammateMode",
           "keyPath": "teammateMode",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "auto",
+            "in-process",
+            "tmux",
+            "iterm2"
+          ],
           "description": "Choose how agent team teammates display",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"in-process\"",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -4175,10 +4269,10 @@
         {
           "id": "terminalProgressBarEnabled",
           "keyPath": "terminalProgressBarEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Hide the terminal progress bar in terminals that support it",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -4214,7 +4308,7 @@
           "valueType": "unknown",
           "allowedValues": [],
           "description": "Pick the interface color theme, built-in or custom",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"dark\"",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -4265,8 +4359,11 @@
         {
           "id": "tui",
           "keyPath": "tui",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "fullscreen",
+            "default"
+          ],
           "description": "Choose the fullscreen or classic terminal renderer",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
@@ -4319,10 +4416,10 @@
         {
           "id": "verbose",
           "keyPath": "verbose",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Show full tool output instead of truncated summaries; viewMode takes precedence when both are set",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：false",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -4337,8 +4434,12 @@
         {
           "id": "viewMode",
           "keyPath": "viewMode",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "default",
+            "verbose",
+            "focus"
+          ],
           "description": "Start every session in default, verbose, or focus view",
           "defaultNote": "文档未给出默认值",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
@@ -4355,7 +4456,7 @@
         {
           "id": "vimInsertModeRemaps",
           "keyPath": "vimInsertModeRemaps",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Map a two-key INSERT-mode sequence such as jj to Escape",
           "defaultNote": "文档未给出默认值",
@@ -4373,7 +4474,7 @@
         {
           "id": "voice",
           "keyPath": "voice",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Turn on voice dictation and pick hold or tap mode",
           "defaultNote": "文档未给出默认值",
@@ -4391,7 +4492,7 @@
         {
           "id": "voiceEnabled",
           "keyPath": "voiceEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn on voice dictation with the older single-key form",
           "defaultNote": "文档未给出默认值",
@@ -4409,7 +4510,7 @@
         {
           "id": "wheelScrollAccelerationEnabled",
           "keyPath": "wheelScrollAccelerationEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Turn off mouse-wheel acceleration in fullscreen rendering",
           "defaultNote": "文档未给出默认值",
@@ -4427,10 +4528,10 @@
         {
           "id": "workflowKeywordTriggerEnabled",
           "keyPath": "workflowKeywordTriggerEnabled",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Let the word ultracode in a prompt start a workflow; set false to type it without starting one",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：true",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -4445,10 +4546,15 @@
         {
           "id": "workflowSizeGuideline",
           "keyPath": "workflowSizeGuideline",
-          "valueType": "unknown",
-          "allowedValues": [],
+          "valueType": "enum",
+          "allowedValues": [
+            "unrestricted",
+            "small",
+            "medium",
+            "large"
+          ],
           "description": "Set the agent count Claude aims for in dynamic workflows",
-          "defaultNote": "文档未给出默认值",
+          "defaultNote": "文档未给出默认值；schema 默认值：\"unrestricted\"",
           "mergeRule": "适用：全部层级（用户/项目共享/项目本地/托管）。文档未给出合并规则，按层级覆盖（未核实）",
           "risks": [],
           "secret": false,
@@ -4463,7 +4569,7 @@
         {
           "id": "worktree",
           "keyPath": "worktree",
-          "valueType": "unknown",
+          "valueType": "object",
           "allowedValues": [],
           "description": "Configure how Claude Code creates git worktrees",
           "defaultNote": "文档未给出默认值",
@@ -4573,7 +4679,7 @@
         {
           "id": "wslInheritsWindowsSettings",
           "keyPath": "wslInheritsWindowsSettings",
-          "valueType": "unknown",
+          "valueType": "boolean",
           "allowedValues": [],
           "description": "Have WSL read managed settings from the Windows policy chain",
           "defaultNote": "文档未给出默认值",

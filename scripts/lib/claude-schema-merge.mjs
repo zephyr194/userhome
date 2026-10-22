@@ -28,6 +28,13 @@ const RISK_RULES = [
 
 const SECRET_PATTERN = /apiKey|token|secret|password|credential/i;
 
+const KEEP_UNKNOWN_REASON =
+  "协调者决定（VC-1a）：保持 unknown。既有 Rust 断言钉住该类型（claude_snapshot_tests.rs），待人工复核后再提升";
+const KEEP_UNKNOWN = {
+  hooks: KEEP_UNKNOWN_REASON,
+  fallbackModel: KEEP_UNKNOWN_REASON,
+};
+
 const MANUAL_RISKS = {
   awsCredentialExport: {
     risk: "executesCommand",
@@ -197,8 +204,8 @@ export function mergeSchemaIntoDefinitions(definitions, snapshot) {
     defaults: [],
     conflicts: [],
     unresolvedComplex: [],
+    excluded: [],
     schemaOnly: [],
-    localOnly: [],
   };
 
   for (const setting of tool.settings) {
@@ -208,12 +215,17 @@ export function mergeSchemaIntoDefinitions(definitions, snapshot) {
     topLevelSettings.add(setting.keyPath);
     const property = properties[setting.keyPath];
     if (!property) {
-      report.localOnly.push(setting.keyPath);
       continue;
     }
     const mapped = mapSchemaType(property);
     if (setting.valueType === "unknown") {
-      if (mapped) {
+      if (KEEP_UNKNOWN[setting.keyPath]) {
+        report.excluded.push({
+          keyPath: setting.keyPath,
+          schemaType: mapped ? mapped.valueType : "complex",
+          reason: KEEP_UNKNOWN[setting.keyPath],
+        });
+      } else if (mapped) {
         setting.valueType = mapped.valueType;
         setting.allowedValues = mapped.allowedValues;
         const { risks, secret, reasons } = classifyRisks(setting, property);
@@ -293,6 +305,7 @@ export function renderCoverageReport({ report, snapshotInfo, localOnlyNested }) 
   push();
   push(`- 设置项总数：${report.totalSettings}（keyPath 与 id 未变）`);
   push(`- 补全类型的键：${report.completed.length}`);
+  push(`- 排除（schema 有类型但保持 unknown）：${report.excluded.length}`);
   push(`- 冲突（保留本地值）：${report.conflicts.length}`);
   push(`- 复杂结构（保持 unknown）：${report.unresolvedComplex.length}`);
   push(`- 本任务没有任何键变为可编辑：可编辑键数 = 0（coverage 全部为 displayOnly）`);
@@ -338,6 +351,12 @@ export function renderCoverageReport({ report, snapshotInfo, localOnlyNested }) 
     push(
       `- \`${item.keyPath}\`：本地 ${describeType(item.local)}；schema ${describeType(item.schema)}`,
     );
+  }
+  push();
+  push("## 排除（schema 有类型，但按协调者决定保持 unknown）");
+  push();
+  for (const item of report.excluded) {
+    push(`- \`${item.keyPath}\`：schema 类型 ${item.schemaType}；${item.reason}`);
   }
   push();
   push("## 未补全（schema 为复杂结构，保持 unknown）");

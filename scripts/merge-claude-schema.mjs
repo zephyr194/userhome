@@ -63,6 +63,11 @@ function main(argv) {
     return;
   }
 
+  if (mergedText === definitionText) {
+    console.log("claude-code.json 已与快照合并，未改动，覆盖报告保持不变");
+    return;
+  }
+
   const tool = definitions.tools.find((candidate) => candidate.id === CLAUDE_CODE_TOOL_ID);
   const properties = snapshot.properties ?? {};
   const localOnlyNested = tool.settings
