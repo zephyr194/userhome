@@ -1616,6 +1616,15 @@ body {
   box-shadow: none;
 }
 
+/* background 简写会重置角标层，悬停与当前态需要恢复 */
+.navigation-rail a:hover,
+.navigation-rail a[aria-current="page"] {
+  background-image: var(--bracket-corners);
+  background-size: var(--bracket-sizes);
+  background-position: var(--bracket-positions);
+  background-repeat: no-repeat;
+}
+
 .navigation-rail a[aria-current="page"]::before {
   background: var(--app-primary);
 }

@@ -67,6 +67,7 @@ export function NavigationRail({
                 <li key={route.id}>
                   <a
                     href={`#${route.id}`}
+                    className="bracket"
                     aria-label={`${route.label}：${route.description}`}
                     aria-current={activeRouteId === route.id ? "page" : undefined}
                     aria-controls="main-content"
