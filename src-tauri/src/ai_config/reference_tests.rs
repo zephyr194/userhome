@@ -69,6 +69,23 @@ fn long_descriptions_are_truncated_and_flagged() {
 }
 
 #[test]
+fn control_characters_are_flattened_to_spaces() {
+    let definitions = load_all().expect("builtin definitions validate");
+    let mut codex = tool(&definitions, "codex-cli").clone();
+    codex.settings[0].description = "line one\nline two\tthree".to_owned();
+
+    let reference = tool_reference(&codex);
+
+    assert_eq!(reference.settings[0].description, "line one line two three");
+    assert!(
+        reference
+            .settings
+            .iter()
+            .all(|setting| !setting.description.chars().any(char::is_control))
+    );
+}
+
+#[test]
 fn oversized_default_notes_are_bounded_for_every_tool() {
     let definitions = load_all().expect("builtin definitions validate");
     for id in ["codex-cli", "gemini-cli", "copilot-cli"] {

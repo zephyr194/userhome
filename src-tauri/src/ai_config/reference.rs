@@ -157,9 +157,21 @@ fn is_metadata_only(resource_id: &str) -> bool {
 }
 
 fn bounded_text(text: &str) -> (String, bool) {
-    match text.char_indices().nth(MAX_REFERENCE_TEXT_CHARS) {
-        Some((index, _)) => (text[..index].to_owned(), true),
-        None => (text.to_owned(), false),
+    // Control characters (such as the line breaks in some official descriptions)
+    // become spaces so every shown text stays on one line and decodes strictly.
+    let flat: String = text
+        .chars()
+        .map(|character| {
+            if character.is_control() {
+                ' '
+            } else {
+                character
+            }
+        })
+        .collect();
+    match flat.char_indices().nth(MAX_REFERENCE_TEXT_CHARS) {
+        Some((index, _)) => (flat[..index].to_owned(), true),
+        None => (flat, false),
     }
 }
 
