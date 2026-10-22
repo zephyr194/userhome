@@ -11,6 +11,8 @@ mod claude_snapshot_tests;
 #[cfg(test)]
 mod codex_snapshot_tests;
 #[cfg(test)]
+mod copilot_snapshot_tests;
+#[cfg(test)]
 mod gemini_snapshot_tests;
 #[cfg(test)]
 mod read_tests;
