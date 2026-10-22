@@ -72,7 +72,6 @@ fn operations_changed_parameters_return_conflict_without_consuming_preview() {
             intent("default"),
             "Update Copilot profile",
             vec!["Write the managed profile".to_owned()],
-            false,
         )
         .expect("preview should be created");
 
@@ -97,12 +96,7 @@ fn operations_preview_expires_at_the_five_minute_boundary() {
     let mut store = store(clock.clone());
     let operation_intent = intent("default");
     let preview = store
-        .preview(
-            operation_intent.clone(),
-            "Update Copilot profile",
-            vec![],
-            false,
-        )
+        .preview(operation_intent.clone(), "Update Copilot profile", vec![])
         .expect("preview should be created");
 
     clock.advance(5 * 60 * 1_000);
@@ -126,7 +120,7 @@ fn operations_second_mutation_conflicts_until_cancellation_is_acknowledged() {
     let mut store = store(clock);
     let first_intent = intent("first");
     let first = store
-        .preview(first_intent.clone(), "First", vec![], false)
+        .preview(first_intent.clone(), "First", vec![])
         .expect("first preview should be created");
     store
         .authorize_mutation(&first.operation_id, &first_intent)
@@ -134,7 +128,7 @@ fn operations_second_mutation_conflicts_until_cancellation_is_acknowledged() {
 
     let second_intent = intent("second");
     let second = store
-        .preview(second_intent.clone(), "Second", vec![], false)
+        .preview(second_intent.clone(), "Second", vec![])
         .expect("second preview should be created");
 
     let conflict = store
@@ -174,7 +168,7 @@ fn operations_progress_and_final_events_are_bounded_and_redacted() {
     let mut store = store(clock);
     let operation_intent = intent("default");
     let preview = store
-        .preview(operation_intent.clone(), "Update", vec![], false)
+        .preview(operation_intent.clone(), "Update", vec![])
         .expect("preview should be created");
     store
         .authorize_mutation(&preview.operation_id, &operation_intent)
@@ -225,7 +219,6 @@ fn operations_preview_serializes_the_public_contract() {
             intent("default"),
             "Update Copilot profile",
             vec!["Write the managed profile".to_owned()],
-            false,
         )
         .expect("preview should be created");
 
@@ -235,7 +228,6 @@ fn operations_preview_serializes_the_public_contract() {
             "operationId": "op-fixed",
             "summary": "Update Copilot profile",
             "effects": ["Write the managed profile"],
-            "requiresElevation": false,
             "expiresAt": "2023-11-14T22:18:20Z",
         })
     );

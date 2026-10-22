@@ -71,7 +71,6 @@ pub struct PendingConfigMutation {
     pub content: Vec<u8>,
     pub desired_mode: Option<u32>,
     pub source_id: Option<String>,
-    pub elevation_resource_id: Option<String>,
 }
 
 impl PendingConfigMutation {
@@ -124,8 +123,11 @@ pub fn prepare_write(
     validate_bytes(definition, environment, content.as_bytes())?;
     let proposed_hash = hash_bytes(content.as_bytes());
     let diff = build_diff(current_text, &content, definition.sensitivity());
-    let elevation_resource_id =
-        elevation_resource_id(definition, environment, &resolved.target_path);
+    if is_protected_target(definition, environment, &resolved.target_path) {
+        return Err(AppError::permission_denied(
+            "Configuration document cannot be accessed.",
+        ));
+    }
     let mutation = PendingConfigMutation {
         app_id: input.app_id,
         config_id: input.config_id,
@@ -135,7 +137,6 @@ pub fn prepare_write(
         content: content.into_bytes(),
         desired_mode: None,
         source_id: None,
-        elevation_resource_id,
     };
     Ok((
         mutation,
@@ -218,9 +219,9 @@ pub fn prepare_schema_structured_write(
                     "Configuration document does not exist.",
                 ));
             }
-            if definition.elevation_resource_id().is_some() {
+            if definition.is_protected_target() {
                 return Err(AppError::not_supported(
-                    "Creating an elevated configuration file is not supported.",
+                    "Creating a protected configuration file is not supported.",
                 ));
             }
             (
@@ -250,9 +251,11 @@ pub fn prepare_schema_structured_write(
         &content,
         definition.sensitivity(),
     );
-    let elevation_resource_id = (!creating)
-        .then(|| elevation_resource_id(definition, environment, &target_path))
-        .flatten();
+    if !creating && is_protected_target(definition, environment, &target_path) {
+        return Err(AppError::permission_denied(
+            "Configuration document cannot be accessed.",
+        ));
+    }
     let mut mutation = PendingConfigMutation {
         app_id,
         config_id,
@@ -262,7 +265,6 @@ pub fn prepare_schema_structured_write(
         content: content.into_bytes(),
         desired_mode: (definition.adapter_id() == "ssh-config").then_some(0o600),
         source_id: None,
-        elevation_resource_id,
     };
     if let Some(variant_id) = variant_id {
         mutation.bind_variant(variant_id);
@@ -381,13 +383,6 @@ pub fn validate_pending_write(
         }
     }
 
-    if mutation.elevation_resource_id.is_some()
-        && mutation.elevation_resource_id.as_deref() != definition.elevation_resource_id()
-    {
-        return Err(AppError::conflict(
-            "Configuration elevation policy changed after preview.",
-        ));
-    }
     Ok(())
 }
 
@@ -475,19 +470,25 @@ where
     )
 }
 
-pub(super) fn elevation_resource_id(
+pub(super) fn is_protected_target(
     definition: &crate::catalog::ConfigDocumentDefinition,
     environment: &ConfigEnvironment,
     target: &Path,
-) -> Option<String> {
-    let resource_id = definition.elevation_resource_id()?;
-    let target_metadata = fs::metadata(target).ok()?;
-    let home_metadata = fs::metadata(environment.home()).ok()?;
+) -> bool {
+    if !definition.is_protected_target() {
+        return false;
+    }
+    let Ok(target_metadata) = fs::metadata(target) else {
+        return false;
+    };
+    let Ok(home_metadata) = fs::metadata(environment.home()) else {
+        return false;
+    };
     use std::os::unix::fs::MetadataExt;
     let mode = target_metadata.permissions().mode();
     let owned_and_writable = target_metadata.uid() == home_metadata.uid() && mode & 0o200 != 0;
     let world_writable = mode & 0o002 != 0;
-    (!owned_and_writable && !world_writable).then(|| resource_id.to_owned())
+    !owned_and_writable && !world_writable
 }
 
 #[cfg(test)]

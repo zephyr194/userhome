@@ -140,7 +140,6 @@ impl OperationStore {
         intent: OperationIntent,
         summary: &str,
         effects: Vec<String>,
-        requires_elevation: bool,
     ) -> Result<OperationPreview, AppError> {
         let operation_id = self.id_source.next_id();
         if self.records.contains_key(&operation_id) {
@@ -165,14 +164,12 @@ impl OperationStore {
                     sanitize_payload(&effect, MAX_PROGRESS_MESSAGE_BYTES, &self.sensitive)
                 })
                 .collect(),
-            requires_elevation,
             expires_at,
         };
         let details = OperationDetails {
             operation_id: preview.operation_id.clone(),
             summary: preview.summary.clone(),
             effects: preview.effects.clone(),
-            requires_elevation: preview.requires_elevation,
             expires_at: preview.expires_at.clone(),
             status: OperationStatus::Previewed,
             events: Vec::new(),

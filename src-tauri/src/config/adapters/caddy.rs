@@ -127,6 +127,7 @@ mod tests {
             read::hash_bytes,
             write::{ConfigWriteInput, execute_write, prepare_write},
         },
+        error::AppErrorCode,
         settings::BackupRetention,
     };
 
@@ -242,12 +243,12 @@ mod tests {
     }
 
     #[test]
-    fn protected_caddyfile_is_marked_for_the_allowlisted_helper() {
+    fn protected_caddyfile_is_refused_without_elevation() {
         let fixture = Fixture::new();
         fs::set_permissions(&fixture.target, fs::Permissions::from_mode(0o444))
             .expect("protected mode");
         let current = fs::read(&fixture.target).expect("current");
-        let (mutation, _) = prepare_write(
+        let error = prepare_write(
             &load_builtin_catalog().expect("catalog"),
             &fixture.environment,
             ConfigWriteInput {
@@ -257,11 +258,8 @@ mod tests {
                 content: "example.test {\n\trespond \"after\"\n}\n".to_owned(),
             },
         )
-        .expect("prepare");
-        assert_eq!(
-            mutation.elevation_resource_id.as_deref(),
-            Some(crate::security::elevation_protocol::CADDY_CONFIG_RESOURCE_ID)
-        );
+        .expect_err("protected target must be refused");
+        assert_eq!(error.code(), AppErrorCode::PermissionDenied);
         assert_eq!(fs::read(&fixture.target).expect("unchanged"), current);
     }
 }

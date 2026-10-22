@@ -53,8 +53,6 @@ pub fn run() {
         .manage(services::lifecycle::LaunchdActionCoordinator::default())
         .manage(services::logs::LogSessions::default())
         .manage(services::adopt::flow::AdoptCoordinator::default())
-        .manage(security::elevation::ElevationCoordinator::default())
-        .manage(security::elevation_macos::MacOsElevationTransport)
         .setup(|app| {
             let settings_directory = app.path().app_config_dir()?;
             app.manage(grants::GrantCoordinator::new(
@@ -185,10 +183,6 @@ pub fn run() {
             commands::qr::prepare_qr_export,
             commands::qr::confirm_qr_export,
             commands::qr::discard_qr_export,
-            commands::elevation::get_helper_status,
-            commands::elevation::register_helper,
-            commands::elevation::unregister_helper,
-            commands::elevation::e2e_fake_elevation_roundtrip,
             commands::operations::list_operations,
             commands::operations::get_operation,
             commands::operations::cancel_operation,

@@ -710,10 +710,9 @@ fn catalog_recognizes_read_only_format_families_without_write_authority() {
 }
 
 #[test]
-fn catalog_rejects_unapproved_elevation_resources() {
+fn catalog_rejects_protected_target_outside_caddy_caddyfile() {
     let arbitrary_resource = mutate_catalog(|document| {
-        document["apps"][0]["configDocuments"][0]["elevationResourceId"] =
-            json!("arbitrary:root-file");
+        document["apps"][0]["configDocuments"][0]["protectedTarget"] = json!(true);
     });
     assert_eq!(
         parse_catalog(&arbitrary_resource),

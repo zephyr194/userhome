@@ -14,8 +14,6 @@ pub enum AppErrorCode {
     ProcessFailed,
     PartialFailure,
     Timeout,
-    ElevationRequired,
-    ElevationUnavailable,
     Internal,
 }
 
@@ -169,15 +167,6 @@ impl AppError {
             message: message.to_owned(),
             details: None,
             retryable: true,
-        }
-    }
-
-    pub(crate) fn elevation_unavailable(message: &str) -> Self {
-        Self {
-            code: AppErrorCode::ElevationUnavailable,
-            message: message.to_owned(),
-            details: None,
-            retryable: false,
         }
     }
 

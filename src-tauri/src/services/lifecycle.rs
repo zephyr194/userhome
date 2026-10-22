@@ -794,7 +794,6 @@ impl LaunchdActionCoordinator {
             intent(request, host.uid),
             &format!("{}任务 {}", action_title(request.action), request.label),
             effects,
-            false,
         )?;
         self.pending()?.insert(
             operation.operation_id.clone(),

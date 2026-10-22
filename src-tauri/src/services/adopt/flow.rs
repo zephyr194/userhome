@@ -182,7 +182,6 @@ impl AdoptCoordinator {
                 "拟变更字段：无（接管不改 plist）。".to_owned(),
                 EXTERNAL_MANAGER_NOTE.to_owned(),
             ],
-            false,
         )?;
         lock(&self.adoptions)?.insert(
             operation.operation_id.clone(),

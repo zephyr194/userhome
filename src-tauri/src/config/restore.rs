@@ -59,8 +59,11 @@ pub fn prepare_restore(
         .map_err(|_| AppError::validation_failed("Backup must be valid UTF-8."))?;
     let proposed_hash = hash_bytes(&content);
     let diff = build_diff(before, after, definition.sensitivity());
-    let elevation_resource_id =
-        super::write::elevation_resource_id(definition, environment, &resolved.target_path);
+    if super::write::is_protected_target(definition, environment, &resolved.target_path) {
+        return Err(AppError::permission_denied(
+            "Configuration document cannot be accessed.",
+        ));
+    }
     Ok((
         PendingConfigMutation {
             app_id: input.app_id,
@@ -71,7 +74,6 @@ pub fn prepare_restore(
             content,
             desired_mode: Some(backup.metadata.mode),
             source_id: Some(backup.metadata.backup_id),
-            elevation_resource_id,
         },
         PreparedWritePreview {
             current_hash,

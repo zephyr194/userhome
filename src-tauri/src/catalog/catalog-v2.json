@@ -172,7 +172,6 @@
           "adapterId": "caddyfile",
           "configId": "caddyfile",
           "editorKey": "caddyfile",
-          "elevationResourceId": "caddy:system-caddyfile",
           "format": "CADDYFILE",
           "formatFamily": "COMMAND",
           "maxSizeBytes": 1048576,
@@ -186,6 +185,7 @@
               "variantId": "primary"
             }
           ],
+          "protectedTarget": true,
           "purpose": "Caddy server configuration",
           "sensitivity": "STANDARD",
           "validatorId": "caddy",

@@ -499,7 +499,8 @@ pub struct ConfigDocumentDefinition {
     validator_id: String,
     max_size_bytes: usize,
     write_policy: String,
-    elevation_resource_id: Option<String>,
+    #[serde(default)]
+    protected_target: bool,
 }
 
 impl ConfigDocumentDefinition {
@@ -570,8 +571,8 @@ impl ConfigDocumentDefinition {
         self.write_policy == "READ_ONLY"
     }
 
-    pub fn elevation_resource_id(&self) -> Option<&str> {
-        self.elevation_resource_id.as_deref()
+    pub fn is_protected_target(&self) -> bool {
+        self.protected_target
     }
 }
 
@@ -760,14 +761,11 @@ fn validate_catalog(catalog: &Catalog) -> Result<(), CatalogValidationError> {
             let generic_read_only = document.adapter_id == "read-only-text";
             if generic_read_only != (document.validator_id == "text")
                 || (generic_read_only && !document.is_read_only())
-                || (document.is_read_only() && document.elevation_resource_id.is_some())
+                || (document.is_read_only() && document.protected_target)
             {
                 return Err(CatalogValidationError::UnsupportedValue);
             }
-            if let Some(resource_id) = &document.elevation_resource_id
-                && (app.id != "caddy"
-                    || document.config_id != "caddyfile"
-                    || resource_id != crate::security::elevation_protocol::CADDY_CONFIG_RESOURCE_ID)
+            if document.protected_target && (app.id != "caddy" || document.config_id != "caddyfile")
             {
                 return Err(CatalogValidationError::UnsupportedValue);
             }

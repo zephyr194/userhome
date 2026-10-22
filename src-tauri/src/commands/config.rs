@@ -31,16 +31,11 @@ use crate::{
             ConfigWriteInput, MISSING_CONFIG_HASH, PendingConfigMutation,
             SchemaStructuredWriteRequest, StructuredConfigWriteInput, execute_pending_write,
             prepare_schema_structured_write, prepare_structured_write, prepare_write,
-            validate_pending_write,
         },
     },
     error::AppError,
     operations::{
         OperationCoordinator, OperationDetails, OperationIntent, OperationKind, OperationPreview,
-    },
-    security::{
-        elevated_actions::execute_protected_config_write,
-        elevation::{ElevationCoordinator, confirmation_timestamp},
     },
     settings::SettingsCoordinator,
 };
@@ -603,7 +598,6 @@ pub fn preview_config_write(
             format!("Changed lines: {}", prepared.diff.changed_line_count()),
             "Create a protected backup before atomic replacement.".to_owned(),
         ],
-        mutation.elevation_resource_id.is_some(),
     )?;
     config.remember(operation.operation_id.clone(), mutation)?;
     Ok(ConfigWritePreview {
@@ -635,7 +629,6 @@ pub fn preview_structured_config_write(
             "Apply only allowlisted structured fields.".to_owned(),
             "Create a protected backup before atomic replacement.".to_owned(),
         ],
-        mutation.elevation_resource_id.is_some(),
     )?;
     config.remember(operation.operation_id.clone(), mutation)?;
     Ok(ConfigWritePreview {
@@ -831,7 +824,6 @@ pub fn preview_schema_config_write(
             schema.schema_id()
         ),
         effects,
-        mutation.elevation_resource_id.is_some(),
     )?;
     config.remember(operation.operation_id.clone(), mutation)?;
     Ok(ConfigWritePreview {
@@ -846,7 +838,6 @@ pub fn preview_schema_config_write(
 pub fn execute_config_write(
     config: State<'_, ConfigCoordinator>,
     operations: State<'_, OperationCoordinator>,
-    elevation: State<'_, ElevationCoordinator>,
     settings: State<'_, SettingsCoordinator>,
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
@@ -860,23 +851,9 @@ pub fn execute_config_write(
         }
         return Err(error);
     }
-    let result = if mutation.elevation_resource_id.is_some() {
-        operations.record_progress(&operation_id, "Submitting the allowlisted helper request.")?;
-        validate_pending_write(&catalog, config.environment()?, &mutation).and_then(|()| {
-            execute_protected_config_write(
-                &elevation,
-                &operation_id,
-                &mutation.expected_hash,
-                &mutation.content,
-                confirmation_timestamp(),
-            )
-            .map(|response| response.audit.audit_id)
-        })
-    } else {
-        operations.record_progress(&operation_id, "Creating protected backup.")?;
-        let retention = settings.get()?.preferences().backup_retention();
-        execute_pending_write(&catalog, config.environment()?, &mutation, retention)
-    };
+    operations.record_progress(&operation_id, "Creating protected backup.")?;
+    let retention = settings.get()?.preferences().backup_retention();
+    let result = execute_pending_write(&catalog, config.environment()?, &mutation, retention);
     config.forget(&operation_id);
     match result {
         Ok(audit_id) => {
@@ -1455,7 +1432,6 @@ pub fn preview_restore_backup(
             "Create a protected backup of the current file.".to_owned(),
             "Restore the selected owned backup atomically.".to_owned(),
         ],
-        mutation.elevation_resource_id.is_some(),
     )?;
     config.remember(operation.operation_id.clone(), mutation)?;
     Ok(ConfigWritePreview {
@@ -1470,7 +1446,6 @@ pub fn preview_restore_backup(
 pub fn execute_restore_backup(
     config: State<'_, ConfigCoordinator>,
     operations: State<'_, OperationCoordinator>,
-    elevation: State<'_, ElevationCoordinator>,
     settings: State<'_, SettingsCoordinator>,
     operation_id: String,
 ) -> Result<OperationDetails, AppError> {
@@ -1484,30 +1459,10 @@ pub fn execute_restore_backup(
         }
         return Err(error);
     }
-    let result = if mutation.elevation_resource_id.is_some() {
-        operations.record_progress(&operation_id, "Submitting the allowlisted helper request.")?;
-        if mutation.source_id.is_none() {
-            Err(AppError::conflict(
-                "Restore preview does not reference a backup.",
-            ))
-        } else {
-            validate_pending_write(&catalog, config.environment()?, &mutation).and_then(|()| {
-                execute_protected_config_write(
-                    &elevation,
-                    &operation_id,
-                    &mutation.expected_hash,
-                    &mutation.content,
-                    confirmation_timestamp(),
-                )
-                .map(|response| response.audit.audit_id)
-            })
-        }
-    } else {
-        operations.record_progress(&operation_id, "Creating protected backup.")?;
-        let retention = settings.get()?.preferences().backup_retention();
-        execute_restore(&catalog, config.environment()?, &mutation, retention)
-            .map(|()| "local-restore".to_owned())
-    };
+    operations.record_progress(&operation_id, "Creating protected backup.")?;
+    let retention = settings.get()?.preferences().backup_retention();
+    let result = execute_restore(&catalog, config.environment()?, &mutation, retention)
+        .map(|()| "local-restore".to_owned());
     config.forget(&operation_id);
     match result {
         Ok(audit_id) => {

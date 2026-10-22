@@ -5,7 +5,6 @@ pub mod caddy;
 pub mod catalog;
 pub mod config;
 pub mod discovery;
-pub mod elevation;
 pub mod environment;
 pub mod grants;
 pub mod lifecycle;

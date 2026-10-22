@@ -886,7 +886,6 @@ fn prepare_step(
             backup_effect.to_owned(),
             "Verify the written file; restore the backup if verification fails.".to_owned(),
         ],
-        false,
     )?;
     let preview = ResourceWritePreview {
         operation,

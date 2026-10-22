@@ -190,7 +190,6 @@ fn create_clear_backups_preview(
             format!("Release {} bytes of backup files.", summary.size_bytes),
             "Managed configuration files and preferences are not modified.".to_owned(),
         ],
-        false,
     )
 }
 

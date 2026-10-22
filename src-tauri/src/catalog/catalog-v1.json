@@ -206,7 +206,7 @@
           "validatorId": "caddy",
           "maxSizeBytes": 1048576,
           "writePolicy": "STRUCTURED_AND_RAW",
-          "elevationResourceId": "caddy:system-caddyfile"
+          "protectedTarget": true
         }
       ],
       "services": [

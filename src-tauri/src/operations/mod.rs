@@ -48,7 +48,6 @@ pub enum OperationKind {
     /// A lifecycle action on one launchd job (load, start, stop, restart,
     /// enable/disable, unload).
     LaunchdLifecycle,
-    ElevationRegistration,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,7 +89,6 @@ pub struct OperationPreview {
     pub operation_id: String,
     pub summary: String,
     pub effects: Vec<String>,
-    pub requires_elevation: bool,
     pub expires_at: String,
 }
 
@@ -125,7 +123,6 @@ pub struct OperationDetails {
     pub operation_id: String,
     pub summary: String,
     pub effects: Vec<String>,
-    pub requires_elevation: bool,
     pub expires_at: String,
     pub status: OperationStatus,
     pub events: Vec<OperationEvent>,
@@ -240,10 +237,9 @@ impl OperationCoordinator {
         intent: OperationIntent,
         summary: &str,
         effects: Vec<String>,
-        requires_elevation: bool,
     ) -> Result<OperationPreview, AppError> {
         let mut store = self.store.lock().map_err(|_| AppError::internal())?;
-        store.preview(intent, summary, effects, requires_elevation)
+        store.preview(intent, summary, effects)
     }
 
     pub(crate) fn authorize_mutation(
@@ -437,8 +433,7 @@ pub(crate) fn redact_error(error: AppError, known: &[String]) -> AppError {
         AppErrorCode::ProcessFailed => AppError::process_failed(message, retryable),
         AppErrorCode::PartialFailure => AppError::partial_failure(message, retryable),
         AppErrorCode::Timeout => AppError::timeout(message),
-        AppErrorCode::ElevationUnavailable => AppError::elevation_unavailable(message),
-        AppErrorCode::ElevationRequired | AppErrorCode::Internal => AppError::internal(),
+        AppErrorCode::Internal => AppError::internal(),
     }
 }
 
@@ -588,7 +583,7 @@ mod tests {
 
     fn running(coordinator: &OperationCoordinator) -> String {
         let preview = coordinator
-            .preview(intent(), "Stop fixture", vec![], false)
+            .preview(intent(), "Stop fixture", vec![])
             .expect("preview");
         coordinator
             .authorize_mutation(&preview.operation_id, &intent())
@@ -788,7 +783,7 @@ mod tests {
         let ids: Vec<String> = (0..5)
             .map(|index| {
                 store
-                    .preview(intent(), &format!("Operation {index}"), vec![], false)
+                    .preview(intent(), &format!("Operation {index}"), vec![])
                     .expect("preview")
                     .operation_id
             })
@@ -813,7 +808,7 @@ mod tests {
         let mut store = OperationStore::default();
         for index in 0..205 {
             store
-                .preview(intent(), &format!("Operation {index}"), vec![], false)
+                .preview(intent(), &format!("Operation {index}"), vec![])
                 .expect("preview");
         }
         let summaries = store.list();
@@ -826,7 +821,7 @@ mod tests {
     fn operations_history_never_drops_the_running_operation() {
         let mut store = OperationStore::default().with_limits(2, 8);
         let running = store
-            .preview(intent(), "Running", vec![], false)
+            .preview(intent(), "Running", vec![])
             .expect("preview")
             .operation_id;
         store
@@ -834,7 +829,7 @@ mod tests {
             .expect("start");
         for index in 0..4 {
             store
-                .preview(intent(), &format!("Later {index}"), vec![], false)
+                .preview(intent(), &format!("Later {index}"), vec![])
                 .expect("preview");
         }
         assert_eq!(
@@ -849,7 +844,7 @@ mod tests {
     fn operations_events_are_bounded_and_report_dropped_events() {
         let mut store = OperationStore::default().with_limits(10, 4);
         let id = store
-            .preview(intent(), "Busy", vec![], false)
+            .preview(intent(), "Busy", vec![])
             .expect("preview")
             .operation_id;
         store.authorize_mutation(&id, &intent()).expect("start");
@@ -887,14 +882,13 @@ mod tests {
                 intent(),
                 &format!("Earlier {SECRET}"),
                 vec![format!("uses {SECRET}")],
-                false,
             )
             .expect("preview")
             .operation_id;
         store.register_sensitive_values([SECRET.to_owned(), "ab".to_owned()]);
 
         let short = store
-            .preview(intent(), "table abc", vec![], false)
+            .preview(intent(), "table abc", vec![])
             .expect("preview")
             .operation_id;
         assert_eq!(store.get(&short).expect("short").summary, "table abc");
@@ -904,7 +898,6 @@ mod tests {
                 intent(),
                 &format!("Run with {SECRET}"),
                 vec![format!("env {SECRET}")],
-                false,
             )
             .expect("preview")
             .operation_id;
