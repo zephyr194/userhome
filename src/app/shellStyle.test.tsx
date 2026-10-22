@@ -219,3 +219,21 @@ describe("全局约束", () => {
     expect(body).not.toMatch(/gradient|drop-shadow|text-shadow/);
   });
 });
+
+describe("外壳焦点与刷新提示（r4-fe5）", () => {
+  it("全局焦点重置也覆盖程序聚焦的 tabindex=-1 容器（主内容区、结果标题）", () => {
+    expect(css).not.toContain('[tabindex]:not([tabindex="-1"])');
+    expect(css).toMatch(/:where\([^{]*\[tabindex\][^{]*\):focus\s*\{\s*outline:\s*none;/);
+  });
+
+  it("刷新提示 3 秒内淡出，reduced-motion 下不做动画", () => {
+    const block = css.slice(
+      css.indexOf("/* r4-fe5-shell */"),
+      css.indexOf("/* /r4-fe5-shell */"),
+    );
+    expect([...block.matchAll(/animation:\s*([^;]+);/g)].map((match) => match[1].trim())).toEqual([
+      "r4-fe5-refreshed-out 3s linear both",
+      "none",
+    ]);
+  });
+});

@@ -52,6 +52,8 @@ import {
 import { SectionContext, type SectionContextValue } from "./SectionContext";
 import type { ShellState } from "./shellState";
 
+const REFRESHED_NOTICE_MS = 3000;
+
 interface AppShellProps {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onPreferencesChange?: (patch: UpdatePreferencesRequest) => Promise<void>;
@@ -232,6 +234,9 @@ export function AppShell({
   const grantStore = useGrantStoreNotice();
   const grantStoreVisible = isGrantStoreNoticeVisible(grantStore.state);
   const [quitPrompt, setQuitPrompt] = useState<QuitPrompt>();
+  const refreshCompletedAt =
+    state.refresh.status === "ready" ? state.refresh.completedAt : undefined;
+  const [dismissedRefreshAt, setDismissedRefreshAt] = useState<string>();
   const quitReturnFocus = useRef<HTMLElement | null>(null);
   const pendingNavigationSource = useRef<NavigationSource>("primary-nav");
   const restoreSelection =
@@ -294,6 +299,15 @@ export function AppShell({
   useEffect(() => {
     saveSelectionMemory(restoreSelection, selection);
   }, [restoreSelection, selection]);
+
+  useEffect(() => {
+    if (refreshCompletedAt === undefined) return;
+    const timer = window.setTimeout(
+      () => setDismissedRefreshAt(refreshCompletedAt),
+      REFRESHED_NOTICE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [refreshCompletedAt]);
 
   const updateSelection = useCallback((patch: Partial<SelectionMemory>) => {
     setSelection((current) => ({ ...current, ...patch }));
@@ -489,9 +503,9 @@ export function AppShell({
           重试
         </Button>
       </div>
-    ) : state.refresh.status === "ready" ? (
+    ) : refreshCompletedAt !== undefined && refreshCompletedAt !== dismissedRefreshAt ? (
       <div
-        className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
+        className="r4-fe5-refreshed flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
         role="status"
       >
         <StatusBadge className="shrink-0" tone="success">
