@@ -77,10 +77,10 @@ describe("ClaudeSettingsView", () => {
     const markup = render({ status: "ready", view: readView });
 
     expect(markup).toContain("不修改信任设置。");
-    expect(markup).toContain("编辑项由后端 editable/reason 逐项决定");
+    expect(markup).toContain("哪些设置可以修改由应用逐项判断");
     expect(markup).toContain("抓取日期 2026-10-21");
     expect(markup).toContain("适用版本未知");
-    expect(markup).toContain("可编辑 0 项");
+    expect(markup).toContain("其中 0 项可以修改");
   });
 
   it("lists layers in precedence order with their states", () => {

@@ -69,15 +69,15 @@ export function ClaudeSettingsView({
       <header className="grid gap-ui-4">
         <h2 className="m-0 text-body font-semibold">Claude Code 设置</h2>
         <p className="m-0 text-aux text-muted-foreground">
-          仅展示官方设置文件的内容与覆盖关系，不运行 hooks、MCP 或项目命令，不修改信任设置。
-          编辑项由后端 editable/reason 逐项决定。
+          仅展示官方设置文件的内容与覆盖关系，不运行钩子、MCP 服务或项目命令，不修改信任设置。
+          哪些设置可以修改由应用逐项判断，不能修改的会说明原因。
         </p>
         {snapshot ? (
           <p className="m-0 text-aux text-muted-foreground">
             来源：{snapshot.sourceUrl}（抓取日期 {snapshot.retrievedOn}，适用版本
             {snapshot.documentedVersion === "unknown" ? "未知" : snapshot.documentedVersion}）；
-            已登记 {snapshot.settingCount} 个设置键、{snapshot.resourceCount} 个来源，
-            可编辑 {snapshot.editable} 项。
+            已收录 {snapshot.settingCount} 个设置、{snapshot.resourceCount} 个来源，
+            其中 {snapshot.editable} 项可以修改。
           </p>
         ) : (
           <p className="m-0 text-aux text-muted-foreground">定义摘要不可用。</p>

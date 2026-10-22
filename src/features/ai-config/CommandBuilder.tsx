@@ -46,7 +46,7 @@ export type CommandPreview =
   | { readonly status: "ready"; readonly built: ClaudeBuiltCommand }
   | { readonly status: "failed"; readonly error: AppError };
 
-const EMPTY_HINT = "勾选 flag 或环境变量后，这里会生成可复制的命令。";
+const EMPTY_HINT = "勾选命令行参数或环境变量后，这里会生成可复制的命令。";
 const MAX_VALUE_LENGTH = 8192;
 
 interface CommandBuilderViewProps {
@@ -83,7 +83,7 @@ export function CommandBuilderView({
       <h2 className="m-0 text-body font-semibold">Claude Code 命令生成</h2>
       {options.status === "loading" ? (
         <p role="status" className="m-0 text-aux">
-          正在读取 flags 与环境变量…
+          正在读取命令行参数与环境变量…
         </p>
       ) : null}
       {options.status === "failed" ? (
@@ -108,7 +108,7 @@ export function CommandBuilderView({
             onValueChange={onVersionChange}
           />
           {options.summary.items.length === 0 ? (
-            <p className="m-0 text-aux">没有可显示的 flags 或环境变量。</p>
+            <p className="m-0 text-aux">没有可显示的命令行参数或环境变量。</p>
           ) : (
             <ul className="m-0 grid list-none gap-ui-8 p-0">
               {options.summary.items.map((item) => (
@@ -149,7 +149,7 @@ function CoverageNotice({ summary }: { readonly summary: ClaudeOptionSummary }) 
       </div>
     );
   }
-  const counts = `已收录 ${flags.listedCount} 项 flags / ${env.listedCount} 项环境变量`;
+  const counts = `已收录 ${flags.listedCount} 项命令行参数 / ${env.listedCount} 项环境变量`;
   const complete = flags.snapshotComplete && env.snapshotComplete;
   return (
     <div role="note" className={COVERAGE_BOX_CLASS}>
@@ -161,7 +161,7 @@ function CoverageNotice({ summary }: { readonly summary: ClaudeOptionSummary }) 
       {flags.coverageNote !== null ? <p className="m-0 text-aux">{flags.coverageNote}</p> : null}
       {env.coverageNote !== null ? <p className="m-0 text-aux">{env.coverageNote}</p> : null}
       <p className="m-0 text-aux">
-        官方来源：flags 页面 {flags.sourceUrl}（检索于 {flags.retrievedOn}）；环境变量页面{" "}
+        官方来源：命令行参数页面 {flags.sourceUrl}（检索于 {flags.retrievedOn}）；环境变量页面{" "}
         {env.sourceUrl}（检索于 {env.retrievedOn}）。
       </p>
     </div>

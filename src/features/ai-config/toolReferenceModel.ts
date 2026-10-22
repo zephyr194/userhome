@@ -120,5 +120,5 @@ export function formatVersionNote(reference: ToolReference): string {
 }
 
 export function listingStatusText(complete: boolean): string {
-  return complete ? "快照完整" : "快照不完整";
+  return complete ? "收录完整" : "收录不完整";
 }

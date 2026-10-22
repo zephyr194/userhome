@@ -38,7 +38,7 @@ export function editBlockedReason(
   item: ClaudeEditItem,
   settingsGrantId: string | null,
 ): string | null {
-  if (!item.editable) return item.reason ?? "该键仅展示，未开放编辑。";
+  if (!item.editable) return item.reason ?? "该设置仅供查看，暂不能修改。";
   if (settingsGrantId === null) return "请先选择要修改的用户设置文件。";
   return null;
 }
@@ -74,7 +74,7 @@ export function buildEditRequest(
             reason: `取值无效：应为非空文本，最长 ${MAX_TEXT_VALUE_LENGTH} 字符。`,
           };
     default:
-      return { ok: false, reason: "该键当前不可编辑。" };
+      return { ok: false, reason: "该设置当前不能修改。" };
   }
 }
 

@@ -99,7 +99,7 @@ function render(
 
 describe("CommandBuilderView", () => {
   it("shows loading and failure states with a retry", () => {
-    expect(render({ options: { status: "loading" } })).toContain("正在读取 flags 与环境变量");
+    expect(render({ options: { status: "loading" } })).toContain("正在读取命令行参数与环境变量");
     const failed = render({
       options: {
         status: "failed",
@@ -199,7 +199,7 @@ describe("CommandBuilderView listing coverage notice", () => {
     const markup = render({ options: withCoverage(FLAGS_LISTING, ENV_LISTING) });
     const notice = noticeOf(markup);
 
-    expect(notice).toContain("⚠ 部分收录：已收录 2 项 flags / 2 项环境变量；官方页面更多，未收录项不可选。");
+    expect(notice).toContain("⚠ 部分收录：已收录 2 项命令行参数 / 2 项环境变量；官方页面更多，未收录项不可选。");
     expect(notice).toContain("官方 CLI 参考页的 flags 更多");
     expect(notice).toContain("官方环境变量页面共 230 项以上");
     expect(notice).toContain("https://code.claude.com/docs/en/cli-reference");
@@ -233,7 +233,7 @@ describe("CommandBuilderView listing coverage notice", () => {
       }),
     );
 
-    expect(notice).toContain("✔ 已完整收录：已收录 2 项 flags / 2 项环境变量。");
+    expect(notice).toContain("✔ 已完整收录：已收录 2 项命令行参数 / 2 项环境变量。");
     expect(notice).not.toContain("部分收录");
   });
 

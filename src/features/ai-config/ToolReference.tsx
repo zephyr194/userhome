@@ -176,8 +176,8 @@ function CoverageSummary({
       <h3 id="ai-reference-coverage" className="m-0 text-body font-semibold">
         命令行参数与环境变量覆盖
       </h3>
-      <ListingLine label="命令行参数（flags）" listing={flags} />
-      <ListingLine label="环境变量（env）" listing={env} />
+      <ListingLine label="命令行参数" listing={flags} />
+      <ListingLine label="环境变量" listing={env} />
     </section>
   );
 }

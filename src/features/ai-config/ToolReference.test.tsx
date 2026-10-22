@@ -197,7 +197,7 @@ describe("ToolReferenceView", () => {
 
   it("explains the coverage of flags and environment variables", () => {
     const markup = render(ready(reference()));
-    expect(markup).toContain("命令行参数（flags）：快照不完整。命令行参数未逐项核实。");
-    expect(markup).toContain("环境变量（env）：快照不完整");
+    expect(markup).toContain("命令行参数：收录不完整。命令行参数未逐项核实。");
+    expect(markup).toContain("环境变量：收录不完整");
   });
 });
