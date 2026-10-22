@@ -1490,36 +1490,6 @@ body {
   color: var(--app-primary);
 }
 
-.navigation-rail .navigation-rail__sections {
-  overflow: visible;
-  display: grid;
-  gap: var(--app-space-2);
-  margin: 0;
-  padding: 0 0 0 var(--app-space-24);
-  list-style: none;
-}
-
-.navigation-rail__section {
-  width: 100%;
-  height: var(--app-control-height-md);
-  padding: 0 var(--app-space-8);
-  display: flex;
-  align-items: center;
-  color: var(--app-sidebar-foreground);
-  font-size: var(--app-font-size-aux);
-  line-height: var(--app-control-height-md);
-  font-weight: 600;
-  text-align: left;
-  border-radius: var(--app-radius-control);
-  transition-property: color, background-color, border-color;
-  transition-duration: var(--app-motion-state);
-  transition-timing-function: linear;
-}
-
-.navigation-rail__section:hover {
-  color: var(--app-foreground);
-}
-
 .navigation-rail__status {
   min-width: 0;
   margin-top: var(--app-space-8);

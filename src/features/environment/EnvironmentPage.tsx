@@ -33,8 +33,8 @@ type GrantNotice = EnvironmentViewProps["grantNotice"];
 
 const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
   classNames(
-    "slide-item inline-flex h-control-md items-center px-ui-12 text-sm font-medium",
-    selected ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+    "slide-item inline-flex h-control-md items-center px-ui-8 text-aux",
+    selected ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
   );
 
 /**
@@ -65,7 +65,7 @@ export function EnvironmentPage() {
         <TabList
           ref={tabsRef}
           aria-label="环境配置分区"
-          className="slide-list col-span-full flex min-w-0 flex-wrap items-end gap-ui-8 border-b border-border"
+          className="slide-list col-span-full flex min-w-0 flex-wrap items-end gap-ui-4 border-b border-line"
           data-slide-axis="x"
         >
           <Tab className={TAB_CLASSES}>dotenv 文件</Tab>

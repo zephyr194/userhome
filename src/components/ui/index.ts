@@ -28,4 +28,5 @@ export {
 } from "./forms";
 export { LogViewer, type LogViewerProps } from "./LogViewer";
 export { SecretValue, type SecretValueProps } from "./SecretValue";
+export { SectionTabs, type SectionTab, type SectionTabsProps } from "./SectionTabs";
 export { useSlideIndicator, type SlideAxis } from "./useSlideIndicator";

@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { useBoardView } from "../../app/BoardViewContext";
+import { routeSectionsOf } from "../../app/routeDefinitions";
 import { useToolSection } from "../../app/SectionContext";
-import { Button, PageShell, Panel, StatusBadge } from "../../components/ui";
+import { Button, PageShell, Panel, SectionTabs, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import type { BoardSpan } from "../../components/ui/PageShell";
 import type { AiToolReport } from "../../ipc/aiConfig";
@@ -30,6 +31,8 @@ export interface AiConfigViewProps {
   /** Claude Code settings and command panels, supplied by the page; hidden while another tool is selected. */
   claudePanel?: ReactNode;
 }
+
+const AI_SECTIONS = routeSectionsOf("aiConfig");
 
 export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps) {
   const { isBoard } = useBoardView();
@@ -92,6 +95,14 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
           aria-label="所选工具"
           className="grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
+          {isBoard ? null : (
+            <SectionTabs
+              label="AI 工具分区"
+              sections={AI_SECTIONS}
+              selected={section}
+              onSelect={setSection}
+            />
+          )}
           {selected ? <ToolCard tool={selected} /> : null}
           {selected && !showClaudePanel ? (
             <ToolReference key={selected.id} toolId={selected.id} />

@@ -531,10 +531,8 @@ export function AppShell({
             sidebar={
               <NavigationRail
                 activeRouteId={activeRouteId}
-                activeSectionId={activeSectionId}
                 connection={state.connection}
                 onNavigate={navigate}
-                onSectionSelect={(section) => selectSection(activeRouteId, section)}
                 routes={APP_ROUTES}
               />
             }

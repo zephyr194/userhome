@@ -1,7 +1,8 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { BoardCell, PageShell, Panel } from "../../components/ui";
+import { BoardCell, PageShell, Panel, SectionTabs } from "../../components/ui";
 import { useBoardView } from "../../app/BoardViewContext";
 import { useToolSection } from "../../app/SectionContext";
+import { routeSectionsOf } from "../../app/routeDefinitions";
 import {
   caddyDetect,
   caddyLoadRules,
@@ -49,6 +50,7 @@ import {
 const PREVIEW_DEBOUNCE_MS = 250;
 const NO_ISSUES: CaddyIssue[] = [];
 const NO_EXPOSURES: CaddyExposure[] = [];
+const CADDY_SECTIONS = routeSectionsOf("caddy");
 
 type EditorSource = "rules" | "raw";
 
@@ -85,7 +87,7 @@ export function CaddyPage() {
   const sitesRef = useRef<SiteDraft[]>(sites);
   const [preview, setPreview] = useState<PreviewState>({ status: "pending" });
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" });
-  const [section] = useToolSection("rules");
+  const [section, setSection] = useToolSection("rules");
   const [editorSource, setEditorSource] = useState<EditorSource>("rules");
   if ((section === "rules" || section === "raw") && section !== editorSource) {
     setEditorSource(section);
@@ -239,6 +241,14 @@ export function CaddyPage() {
 
   return (
     <PageShell layout={isBoard ? "board" : "strip"} scrollKey={isBoard ? "board" : "compact"}>
+      {isBoard ? null : (
+        <SectionTabs
+          label="Caddy 分区"
+          sections={CADDY_SECTIONS}
+          selected={section}
+          onSelect={setSection}
+        />
+      )}
       <BoardCell span={4}>
         <div className="grid min-w-0 gap-ui-12">
           <CaddyWorkdirPanel

@@ -44,9 +44,9 @@ const READY: AiConfigState = {
   },
 };
 
-function render(section?: string): string {
+function render(section?: string, board: BoardViewContextValue = COMPACT): string {
   return renderToStaticMarkup(
-    <BoardViewContext.Provider value={COMPACT}>
+    <BoardViewContext.Provider value={board}>
       <SectionContext.Provider value={section === undefined ? undefined : { section, select: noop }}>
         <AiConfigView state={READY} onRetry={noop} claudePanel={<p>设置占位</p>} />
       </SectionContext.Provider>
@@ -54,7 +54,20 @@ function render(section?: string): string {
   );
 }
 
+const BOARD: BoardViewContextValue = { ...COMPACT, view: "board", isBoard: true };
+
 describe("AI config sections", () => {
+  it("renders the four tool sections as tabs with the selected one current", () => {
+    const markup = render("codex");
+    expect(markup.match(/data-section-id="/g)).toHaveLength(4);
+    const current = markup.match(/<[a-z]+[^>]*data-section-id="codex"[^>]*>/)?.[0] ?? "";
+    expect(current).toContain('aria-current="true"');
+  });
+
+  it("shows no section tabs in the board view", () => {
+    expect(render("codex", BOARD)).not.toContain("data-section-id");
+  });
+
   it("selects the Claude Code panels for the claude section", () => {
     const markup = render("claude");
     expect(isTextVisible(markup, "设置占位")).toBe(true);

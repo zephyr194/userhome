@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APP_ROUTES, activeSectionOf, groupNavigationRoutes, type AppRouteId } from "./routeDefinitions";
+import { APP_ROUTES, activeSectionOf, groupNavigationRoutes, routeSectionsOf, type AppRouteId } from "./routeDefinitions";
 
 function routeOf(id: AppRouteId) {
   const route = APP_ROUTES.find((entry) => entry.id === id);
@@ -51,5 +51,10 @@ describe("route sections", () => {
     expect(activeSectionOf(caddy, undefined)?.id).toBe("rules");
     expect(activeSectionOf(caddy, "retired")?.id).toBe("rules");
     expect(activeSectionOf(routeOf("dashboard"), "rules")).toBeUndefined();
+  });
+
+  it("returns the declared sections per route and none for a route without them", () => {
+    expect(routeSectionsOf("caddy")).toEqual(routeOf("caddy").sections);
+    expect(routeSectionsOf("dashboard")).toEqual([]);
   });
 });

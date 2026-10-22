@@ -72,4 +72,15 @@ describe("Caddy page sections", () => {
       }
     }
   });
+
+  it("shows the three sections as tabs above the content with the selected one current", () => {
+    const markup = render("run");
+    expect(markup.match(/data-section-id="/g)).toHaveLength(3);
+    const current = markup.match(/<[a-z]+[^>]*data-section-id="run"[^>]*>/)?.[0] ?? "";
+    expect(current).toContain('aria-current="true"');
+  });
+
+  it("shows no section tabs in the board view", () => {
+    expect(render("rules", true)).not.toContain("data-section-id");
+  });
 });

@@ -55,7 +55,7 @@ export interface AppRoute {
   group?: NavGroupId;
   /** Module pages that offer a full-board view next to the compact one. */
   hasBoard?: boolean;
-  /** Third-level entries shown under the selected tool in the navigation rail. */
+  /** Section tabs shown above the content of the tool page. */
   sections?: readonly AppRouteSection[];
 }
 
@@ -65,6 +65,11 @@ export function activeSectionOf(
   storedId: string | undefined,
 ): AppRouteSection | undefined {
   return route.sections?.find((section) => section.id === storedId) ?? route.sections?.[0];
+}
+
+/** The sections a route declares, in display order; empty when it declares none. */
+export function routeSectionsOf(routeId: AppRouteId): readonly AppRouteSection[] {
+  return ROUTE_REGISTRY[routeId].sections ?? [];
 }
 
 /**

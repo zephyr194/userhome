@@ -83,6 +83,14 @@ function withoutClasses(markup: string): string {
   return markup.replace(/ class="[^"]*"/g, "");
 }
 
+/** The section tab strip exists only in the compact view, so it is cut out before comparing the trees. */
+function withoutSectionTabs(markup: string): string {
+  return markup.replace(
+    /<button[^>]*aria-hidden="true"[^>]*><\/button><div class="col-span-full min-w-0">[\s\S]*?<\/div><\/div>/,
+    "",
+  );
+}
+
 describe("AI 配置页布局（UIB-4d）", () => {
   it("uses the master-detail layout in the compact view", () => {
     const markup = renderView(COMPACT);
@@ -106,7 +114,9 @@ describe("AI 配置页布局（UIB-4d）", () => {
   });
 
   it("renders the same element tree in both views so switching never remounts", () => {
-    expect(withoutClasses(renderView(BOARD))).toBe(withoutClasses(renderView(COMPACT)));
+    expect(withoutClasses(renderView(BOARD))).toBe(
+      withoutClasses(withoutSectionTabs(renderView(COMPACT))),
+    );
   });
 
   it("leaves the page heading to the app shell", () => {
@@ -117,8 +127,9 @@ describe("AI 配置页布局（UIB-4d）", () => {
 
   it("marks only the default Claude Code row as the current selection with the slide selection language", () => {
     const markup = renderView(COMPACT);
-    expect(markup.match(/class="[^"]*\bslide-item\b[^"]*"/g)).toHaveLength(4);
-    expect(markup.match(/aria-current="true"/g)).toHaveLength(1);
+    const toolList = markup.match(/<ul aria-label="AI 工具列表"[\s\S]*?<\/ul>/)?.[0] ?? "";
+    expect(toolList.match(/class="[^"]*\bslide-item\b[^"]*"/g)).toHaveLength(4);
+    expect(toolList.match(/aria-current="true"/g)).toHaveLength(1);
     expect(markup).toMatch(/aria-current="true"[^>]*>(?:(?!<\/button>).)*Claude Code/);
   });
 
