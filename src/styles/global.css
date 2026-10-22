@@ -2508,3 +2508,52 @@ button[class*="border-border"],
   }
 }
 /* /r4-fe4 */
+
+/* r4-fe3-caddy ------------------------------------------------------------ */
+.caddy-status__cell {
+  min-width: 0;
+}
+
+.caddy-status__cell + .caddy-status__cell {
+  padding-top: var(--app-space-8);
+  border-top: 1px solid var(--app-line-subtle);
+}
+
+.caddy-status__line {
+  min-height: calc(var(--app-font-size-aux) * var(--app-line-height-aux));
+}
+
+@container (min-width: 640px) {
+  .caddy-status {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--app-space-16);
+  }
+
+  .caddy-status__cell + .caddy-status__cell {
+    padding-top: 0;
+    padding-left: var(--app-space-16);
+    border-top: 0;
+    border-left: 1px solid var(--app-line-subtle);
+  }
+}
+
+.caddy-danger-outline {
+  border-color: var(--app-danger-border);
+  color: var(--app-danger-text);
+}
+
+.caddy-danger-outline:not(:disabled):hover,
+.caddy-danger-outline:not(:disabled):active {
+  background-color: var(--app-danger-soft);
+}
+
+.caddy-directive__remove {
+  margin-top: calc(var(--app-font-size-body) * var(--app-line-height-body) + var(--app-space-4));
+}
+
+@container (max-width: 1099.98px) {
+  .page-shell__layout--board:has(.caddy-status) > .page-shell__cell {
+    grid-column: 1 / -1;
+  }
+}
+/* /r4-fe3-caddy */

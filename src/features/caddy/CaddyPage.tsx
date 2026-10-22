@@ -95,7 +95,6 @@ export function CaddyPage() {
   const showRules = isBoard || section === "rules";
   const showRaw = isBoard || section === "raw";
   const showRun = isBoard || section === "run";
-  const showEditor = showRules || showRaw;
   const workdir = useCaddyWorkdir();
   const workdirReason = workdir.blockReason;
   const workdirReady = workdirReason === undefined;
@@ -249,8 +248,8 @@ export function CaddyPage() {
           onSelect={setSection}
         />
       )}
-      <BoardCell span={4}>
-        <div className="grid min-w-0 gap-ui-12">
+      <BoardCell span={12}>
+        <Panel className="caddy-status grid min-w-0 p-ui-8">
           <CaddyWorkdirPanel
             load={workdir.load}
             action={workdir.action}
@@ -264,61 +263,55 @@ export function CaddyPage() {
             onDismissLegacy={workdir.dismissLegacy}
           />
           <CaddyDetectPanel state={detect} onRetry={retryDetect} />
-        </div>
+        </Panel>
       </BoardCell>
-      <BoardCell span={8} hidden={!showEditor}>
+      <BoardCell span={8} hidden={!showRules}>
         <div className="grid min-w-0 gap-ui-12">
-          <div hidden={!showRules} className="grid min-w-0 gap-ui-12">
-            {workdirReason !== undefined && workdir.load.status !== "loading" ? (
-              <p role="status" className="m-0 text-body text-muted-foreground">
-                {workdirReason}后才能读取或保存规则。
+          {workdirReason !== undefined && workdir.load.status !== "loading" ? (
+            <p role="status" className="m-0 text-body text-muted-foreground">
+              {workdirReason}后才能读取或保存规则。
+            </p>
+          ) : null}
+          {load.status === "loading" && (workdirReady || workdir.load.status === "loading") ? (
+            <p role="status" className="m-0 text-body text-muted-foreground">
+              正在读取已保存的规则……
+            </p>
+          ) : null}
+          {workdirReady && load.status === "failed" ? (
+            <Panel role="alert" className="grid gap-ui-8 p-ui-8">
+              <p className="m-0 text-body font-semibold text-danger">无法读取已保存的规则</p>
+              <p className="m-0 text-body">{load.error.message}</p>
+              <p className="m-0 text-aux text-muted-foreground">
+                规则未能读取，因此保存已停用，以免覆盖现有文件。
               </p>
-            ) : null}
-            {load.status === "loading" && (workdirReady || workdir.load.status === "loading") ? (
-              <p role="status" className="m-0 text-body text-muted-foreground">
-                正在读取已保存的规则……
-              </p>
-            ) : null}
-            {workdirReady && load.status === "failed" ? (
-              <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-                <p className="m-0 text-body font-semibold text-danger">无法读取已保存的规则</p>
-                <p className="m-0 text-body">{load.error.message}</p>
-                <p className="m-0 text-aux text-muted-foreground">
-                  规则未能读取，因此保存已停用，以免覆盖现有文件。
+            </Panel>
+          ) : null}
+          {workdirReady && load.status === "ready" ? (
+            <>
+              {load.source === "DEFAULT" ? (
+                <p role="status" className="m-0 text-body text-muted-foreground">
+                  尚未保存任何规则，下方是默认示例。保存后才会写入私有目录。
                 </p>
-              </Panel>
-            ) : null}
-            {workdirReady && load.status === "ready" ? (
-              <>
-                {load.source === "DEFAULT" ? (
-                  <p role="status" className="m-0 text-body text-muted-foreground">
-                    尚未保存任何规则，下方是默认示例。保存后才会写入私有目录。
-                  </p>
-                ) : null}
-                {tlsError ? (
-                  <p role="alert" className="m-0 text-aux text-danger">
-                    {tlsError}
-                  </p>
-                ) : null}
-                <CaddyRulesEditor
-                  sites={sites}
-                  localErrors={localResult.ok ? {} : localResult.errors}
-                  mapped={mapped}
-                  exposedSites={exposedSites}
-                  tlsStatuses={tlsStatuses}
-                  ids={ids}
-                  onChange={changeSites}
-                  onPickTlsFile={(siteIndex, slot) => void pickTlsFile(siteIndex, slot)}
-                />
-                <CaddySaveBar gate={gate} saveState={saveState} onSave={save} />
-              </>
-            ) : null}
-          </div>
-          <RawEditor
-            hidden={!showRaw}
-            workdirReason={workdirReason}
-            onWorkdirRequired={refreshWorkdir}
-          />
+              ) : null}
+              {tlsError ? (
+                <p role="alert" className="m-0 text-aux text-danger">
+                  {tlsError}
+                </p>
+              ) : null}
+              <CaddyRulesEditor
+                sites={sites}
+                localErrors={localResult.ok ? {} : localResult.errors}
+                mapped={mapped}
+                exposedSites={exposedSites}
+                tlsStatuses={tlsStatuses}
+                ids={ids}
+                onChange={changeSites}
+                onPickTlsFile={(siteIndex, slot) => void pickTlsFile(siteIndex, slot)}
+              />
+              <CaddySaveBar gate={gate} saveState={saveState} onSave={save} />
+              <CaddyPreviewPanel localValid={localResult.ok} preview={preview} exposures={exposures} />
+            </>
+          ) : null}
         </div>
       </BoardCell>
       <BoardCell span={4} hidden={!showRun}>
@@ -328,10 +321,12 @@ export function CaddyPage() {
           workdirReason={workdirReason}
         />
       </BoardCell>
-      <BoardCell span={8} hidden={!showRules}>
-        {workdirReady && load.status === "ready" ? (
-          <CaddyPreviewPanel localValid={localResult.ok} preview={preview} exposures={exposures} />
-        ) : null}
+      <BoardCell span={12} hidden={!showRaw}>
+        <RawEditor
+          hidden={!showRaw}
+          workdirReason={workdirReason}
+          onWorkdirRequired={refreshWorkdir}
+        />
       </BoardCell>
     </PageShell>
   );

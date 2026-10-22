@@ -106,9 +106,14 @@ export function CaddyRulesEditor({
             className="grid min-w-0 gap-ui-12 rounded-panel bg-surface-muted p-ui-12"
           >
             <div className="flex flex-wrap items-center justify-between gap-ui-8">
-              <h3 id={`caddy-site-${site.key}-heading`} className="text-sm font-semibold">
-                站点 {siteIndex + 1}
-              </h3>
+              <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
+                <h3 id={`caddy-site-${site.key}-heading`} className="text-sm font-semibold">
+                  站点 {siteIndex + 1}
+                </h3>
+                {exposedSites.has(siteIndex) ? (
+                  <StatusBadge tone="warning">对外可见</StatusBadge>
+                ) : null}
+              </div>
               <ActionRow align="end">
                 <SwitchField
                   label="启用此站点"
@@ -116,26 +121,16 @@ export function CaddyRulesEditor({
                   checked={site.enabled}
                   onCheckedChange={(enabled) => replaceSite(siteIndex, { ...site, enabled })}
                 />
-                {exposedSites.has(siteIndex) ? (
-                  <StatusBadge tone="warning">对外可见</StatusBadge>
-                ) : null}
-                <Button
-                  size="sm"
-                  variant="danger"
-                  aria-label={`删除站点 ${siteIndex + 1}`}
-                  onClick={() => onChange(sites.filter((_, position) => position !== siteIndex))}
-                >
-                  删除站点
-                </Button>
               </ActionRow>
             </div>
             <ol className="m-0 grid list-none gap-ui-8 p-0">
-              {directiveRows(site).map((row) => (
+              {directiveRows(site).map((row, rowIndex) => (
                 <DirectiveRowView
                   key={row.rowKey}
                   site={site}
                   siteIndex={siteIndex}
                   row={row}
+                  showLabel={rowIndex === 0}
                   ids={ids}
                   feedback={feedback}
                   tlsStatus={tlsStatuses.find((entry) => entry.site === siteIndex)}
@@ -150,6 +145,17 @@ export function CaddyRulesEditor({
               </p>
             ) : null}
             <AddDirectiveGroup site={site} ids={ids} onSite={(next) => replaceSite(siteIndex, next)} />
+            <div className="flex justify-end border-t border-border pt-ui-8">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="caddy-danger-outline"
+                aria-label={`删除站点 ${siteIndex + 1}`}
+                onClick={() => onChange(sites.filter((_, position) => position !== siteIndex))}
+              >
+                删除站点
+              </Button>
+            </div>
           </section>
         );
       })}
@@ -161,6 +167,7 @@ interface DirectiveRowViewProps {
   site: SiteDraft;
   siteIndex: number;
   row: DirectiveRow;
+  showLabel: boolean;
   ids: IdSource;
   feedback: (key: string) => FieldFeedback;
   tlsStatus: CaddyTlsSiteStatus | undefined;
@@ -172,6 +179,7 @@ function DirectiveRowView({
   site,
   siteIndex,
   row,
+  showLabel,
   ids,
   feedback,
   tlsStatus,
@@ -191,7 +199,7 @@ function DirectiveRowView({
     <li className="flex min-w-0 flex-wrap items-start gap-ui-8 rounded-control bg-surface p-ui-8">
       <div className="min-w-28">
         <SelectField
-          label="指令"
+          label={showLabel ? "指令" : <span className="text-transparent">指令</span>}
           name={`site-${site.key}-${row.rowKey}-directive`}
           options={options}
           value={row.id}
@@ -211,31 +219,56 @@ function DirectiveRowView({
           onPickTlsFile={onPickTlsFile}
         />
       </div>
-      <div className="flex flex-col items-end gap-ui-8">
+      <div className="caddy-directive__remove flex shrink-0 items-start">
         {row.id === "upstream" ? (
           <Button
             variant="ghost"
             aria-label={`删除上游 ${upstreamIndex + 1}（站点 ${siteIndex + 1}）`}
             disabled={required}
+            title={required ? definition.requiredReason : undefined}
             onClick={remove}
           >
             删除上游
+          </Button>
+        ) : required ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`删除${definition.short}（站点 ${siteIndex + 1}）`}
+            disabled
+            title={definition.requiredReason}
+          >
+            <TrashIcon />
           </Button>
         ) : (
           <Button
             variant="ghost"
             aria-label={`删除${definition.short}（站点 ${siteIndex + 1}）`}
-            disabled={required}
             onClick={remove}
           >
             {`删除${definition.short}`}
           </Button>
         )}
-        {required ? (
-          <span className="text-aux text-muted-foreground">{definition.requiredReason}</span>
-        ) : null}
       </div>
     </li>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height={12}
+      width={12}
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.5}
+      viewBox="0 0 12 12"
+    >
+      <path d="M2 3h8M4.5 3V2h3v1M3 3l.5 7h5l.5-7" />
+    </svg>
   );
 }
 
