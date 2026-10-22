@@ -61,3 +61,18 @@ export const CONFIG_LABELS: Record<
 
 export const UNCONFIRMED_VERSION_TEXT = "版本未确认";
 export const NO_EXECUTABLE_TEXT = "未找到可执行文件";
+
+export const CLAUDE_CODE_TOOL_ID = "claude-code";
+
+/** Falls back to the first tool when the selected id is no longer in the report. */
+export function selectedToolOf(
+  tools: readonly AiToolReport[],
+  selectedId: string,
+): AiToolReport | undefined {
+  return tools.find((tool) => tool.id === selectedId) ?? tools[0];
+}
+
+/** Without a report there is no tool to select, so the Claude Code panels stay as before. */
+export function showsClaudePanel(selected: AiToolReport | undefined): boolean {
+  return selected === undefined || selected.id === CLAUDE_CODE_TOOL_ID;
+}

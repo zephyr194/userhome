@@ -39,10 +39,15 @@ export function AiConfigPage() {
   }, [request]);
 
   return (
-    <div className="grid min-w-0 gap-ui-xl">
-      <AiConfigView state={state} onRetry={retry} />
-      <ToolSettings />
-      <CommandBuilder />
-    </div>
+    <AiConfigView
+      state={state}
+      onRetry={retry}
+      claudePanel={
+        <>
+          <ToolSettings />
+          <CommandBuilder />
+        </>
+      }
+    />
   );
 }

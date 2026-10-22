@@ -2301,4 +2301,15 @@ button[class*="border-border"],
 }
 /* /PageShell */
 
+.ai-tool-row {
+  display: grid;
+  justify-content: stretch;
+  align-items: start;
+  gap: var(--app-space-4);
+  width: 100%;
+  padding: var(--app-space-8);
+  color: var(--app-foreground);
+  text-align: left;
+}
+
 /* End route visual system ------------------------------------------------ */
