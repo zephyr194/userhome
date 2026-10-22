@@ -167,8 +167,32 @@ export function decodeAiConfigReport(value: unknown): AiConfigReport {
   };
 }
 
+let lastReport: AiConfigReport | undefined;
+let pendingDetection: Promise<AiConfigReport> | undefined;
+
+/**
+ * Runs a detection. Overlapping callers share the read already in flight, and a
+ * failed read leaves the last good report in place. The result lives in memory
+ * only, so a restart reads the tools again.
+ */
 export function detectAiConfig(): Promise<AiConfigReport> {
-  return invokeCommand("ai_config_detect", decodeAiConfigReport);
+  if (pendingDetection === undefined) {
+    const request = invokeCommand("ai_config_detect", decodeAiConfigReport)
+      .then((report) => {
+        lastReport = report;
+        return report;
+      })
+      .finally(() => {
+        if (pendingDetection === request) pendingDetection = undefined;
+      });
+    pendingDetection = request;
+  }
+  return pendingDetection;
+}
+
+/** The report from the last successful detection in this session, without running a new one. */
+export function lastAiConfigReport(): AiConfigReport | undefined {
+  return lastReport;
 }
 
 // Claude Code settings read. Mirrors ai_config/read.rs; the view carries masked

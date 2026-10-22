@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import { decodeAiConfigReport, detectAiConfig } from "./aiConfig";
 
@@ -124,5 +124,67 @@ describe("detectAiConfig", () => {
     mockIPC(() => ({ tools: [] }));
 
     await expect(detectAiConfig()).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+});
+
+describe("detectAiConfig cache", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
+  it("has no report to show before the first successful detection", async () => {
+    const aiConfig = await import("./aiConfig");
+
+    expect(aiConfig.lastAiConfigReport()).toBeUndefined();
+  });
+
+  it("shares one read between overlapping callers", async () => {
+    const aiConfig = await import("./aiConfig");
+    let calls = 0;
+    mockIPC(() => {
+      calls += 1;
+      return reportWire({ 0: FOUND_CLAUDE });
+    });
+
+    const [first, second] = await Promise.all([aiConfig.detectAiConfig(), aiConfig.detectAiConfig()]);
+
+    expect(calls).toBe(1);
+    expect(second).toBe(first);
+  });
+
+  it("remembers the last successful report in memory", async () => {
+    const aiConfig = await import("./aiConfig");
+    mockIPC(() => reportWire({ 0: FOUND_CLAUDE }));
+
+    const report = await aiConfig.detectAiConfig();
+
+    expect(aiConfig.lastAiConfigReport()).toEqual(report);
+  });
+
+  it("keeps the last good report when a later detection fails", async () => {
+    const aiConfig = await import("./aiConfig");
+    mockIPC(() => reportWire({ 0: FOUND_CLAUDE }));
+    const good = await aiConfig.detectAiConfig();
+    mockIPC(() => {
+      throw new Error("backend unavailable");
+    });
+
+    await expect(aiConfig.detectAiConfig()).rejects.toMatchObject({ code: "INTERNAL" });
+
+    expect(aiConfig.lastAiConfigReport()).toEqual(good);
+  });
+
+  it("runs a new read once the earlier one has settled", async () => {
+    const aiConfig = await import("./aiConfig");
+    let calls = 0;
+    mockIPC(() => {
+      calls += 1;
+      return reportWire();
+    });
+
+    await aiConfig.detectAiConfig();
+    await aiConfig.detectAiConfig();
+
+    expect(calls).toBe(2);
   });
 });
