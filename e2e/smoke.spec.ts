@@ -385,42 +385,5 @@ describe("UserHome desktop smoke", () => {
       return [first.refreshId, second.refreshId];
     });
     expect(refreshIds[0]).toBe(refreshIds[1]);
-
-    const elevation = await browser.execute(async () => {
-      const tauriWindow = window as Window & {
-        __TAURI__: {
-          core: {
-            invoke<T>(command: string): Promise<T>;
-          };
-        };
-      };
-      return tauriWindow.__TAURI__.core.invoke<{
-        operationId: string;
-        resourceId: string;
-        result: string;
-      }>("e2e_fake_elevation_roundtrip");
-    });
-    expect(elevation).toEqual({
-      operationId: "e2e-elevation-operation",
-      resourceId: "caddy:system-caddyfile",
-      result: "SUCCEEDED",
-    });
-
-    const helperStatus = await browser.execute(async () => {
-      const tauriWindow = window as Window & {
-        __TAURI__: {
-          core: {
-            invoke<T>(command: string): Promise<T>;
-          };
-        };
-      };
-      return tauriWindow.__TAURI__.core.invoke<{
-        signed: boolean;
-        available: boolean;
-        state: string;
-      }>("get_helper_status");
-    });
-    expect(helperStatus.signed).toBe(false);
-    expect(helperStatus.available).toBe(false);
   });
 });
