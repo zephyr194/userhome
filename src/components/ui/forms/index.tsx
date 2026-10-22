@@ -61,10 +61,12 @@ export function FieldFrame({
       className={classNames("grid min-w-0 gap-ui-4", className)}
       disabled={disabled}
     >
-      <Label className="break-words text-body font-semibold text-foreground">
-        {label}
-        <RequiredMark required={required} />
-      </Label>
+      {label ? (
+        <Label className="break-words text-body font-semibold text-foreground">
+          {label}
+          <RequiredMark required={required} />
+        </Label>
+      ) : null}
       {description ? (
         <Description className="break-words text-aux text-muted-foreground">
           {description}
@@ -136,6 +138,8 @@ type AreaProps = Omit<
   FieldCopyProps & {
     emphasis?: boolean;
     expandable?: boolean;
+    /** 独立框的标题与无障碍名称，缺省时用字段标签；弹层内不再重复字段标签。 */
+    expandTitle?: string;
     inputClassName?: string;
     invalid?: boolean;
     onValueChange?: (value: string) => void;
@@ -148,6 +152,7 @@ export function TextAreaField({
   emphasis = false,
   error,
   expandable = false,
+  expandTitle,
   inputClassName,
   invalid = Boolean(error),
   label,
@@ -158,7 +163,9 @@ export function TextAreaField({
 }: AreaProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
-  const expandLabel = `在独立框中打开${typeof label === "string" ? label : "文本"}`;
+  const fieldName = typeof label === "string" ? label : "文本";
+  const expandLabel = `在独立框中打开${fieldName}`;
+  const dialogTitle = expandTitle ?? fieldName;
 
   return (
     <FieldFrame
@@ -220,14 +227,15 @@ export function TextAreaField({
             }
             onClose={() => setEditing(false)}
             open
-            title={label}
+            title={dialogTitle}
           >
             <TextAreaField
+              aria-label={fieldName}
               data-modal-initial-focus=""
               description={description}
               error={error}
               inputClassName="font-mono text-xs"
-              label={label}
+              label={undefined}
               onValueChange={setDraft}
               rows={16}
               spellCheck={false}
@@ -496,6 +504,8 @@ export interface RadioCardOption<T extends string = string> {
 }
 
 interface RadioCardGroupProps<T extends string> extends FieldCopyProps {
+  /** 桌面宽度下的列数；窄窗口一律退为一列。 */
+  columns?: 2 | 3;
   defaultValue?: T;
   form?: string;
   name?: string;
@@ -504,8 +514,14 @@ interface RadioCardGroupProps<T extends string> extends FieldCopyProps {
   value?: T;
 }
 
+const RADIO_CARD_GRID: Record<2 | 3, string> = {
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-3",
+};
+
 export function RadioCardGroup<T extends string>({
   className,
+  columns = 2,
   defaultValue,
   description,
   disabled,
@@ -526,7 +542,7 @@ export function RadioCardGroup<T extends string>({
         {label}
       </Legend>
       <RadioGroup
-        className="grid min-w-0 gap-ui-8 sm:grid-cols-2"
+        className={classNames("grid min-w-0 gap-ui-8", RADIO_CARD_GRID[columns])}
         defaultValue={defaultValue}
         disabled={disabled}
         form={form}
@@ -535,7 +551,7 @@ export function RadioCardGroup<T extends string>({
         value={value}
       >
         {description ? (
-          <Description className="text-aux text-muted-foreground sm:col-span-2">
+          <Description className="text-aux text-muted-foreground sm:col-span-full">
             {description}
           </Description>
         ) : null}

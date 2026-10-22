@@ -80,6 +80,7 @@ export function AppearanceSettings({
   return (
     <SettingsForm busy={saving}>
       <RadioCardGroup
+        columns={3}
         label="外观模式"
         description="选择系统、浅色或深色语义颜色；保存后立即应用。"
         name="appearance"
