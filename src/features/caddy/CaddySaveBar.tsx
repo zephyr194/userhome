@@ -1,4 +1,4 @@
-import { Button, Panel } from "../../components/ui";
+import { ActionRow, Button, Panel } from "../../components/ui";
 import type { AppError } from "../../ipc/core";
 import type { SaveGate } from "./caddyRulesModel";
 
@@ -23,7 +23,7 @@ export function CaddySaveBar({ gate, saveState, onSave }: CaddySaveBarProps) {
       <h2 id="caddy-save-heading" className="text-sm font-semibold">
         保存
       </h2>
-      <div className="flex flex-wrap items-center gap-ui-8">
+      <ActionRow>
         <Button
           variant="primary"
           disabled={!gate.enabled || saving}
@@ -37,7 +37,7 @@ export function CaddySaveBar({ gate, saveState, onSave }: CaddySaveBarProps) {
             {gate.reason}
           </p>
         ) : null}
-      </div>
+      </ActionRow>
       <p className="m-0 text-aux text-muted-foreground">
         保存不会启动或重载 Caddy。保存只写入 UserHome 的私有目录，不改动 Homebrew 的全局配置。
       </p>

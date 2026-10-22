@@ -1,4 +1,4 @@
-import { Button, Panel, StatusBadge } from "../../components/ui";
+import { ActionRow, Button, Panel, StatusBadge } from "../../components/ui";
 import type { WorkdirAction, WorkdirLoad } from "./caddyWorkdirModel";
 
 interface CaddyWorkdirPanelProps {
@@ -83,7 +83,7 @@ function UnauthorizedBody(props: WorkdirBodyProps & { defaultPath: string }) {
       <p className="m-0 text-body">
         Caddy 的规则、Caddyfile、检查副本、运行目录和日志都保存在工作目录中。请先选择一个工作目录，之后才能保存或开启 Caddy。
       </p>
-      <div className="flex flex-wrap gap-ui-8">
+      <ActionRow>
         <Button
           variant="primary"
           disabled={props.busy}
@@ -95,7 +95,7 @@ function UnauthorizedBody(props: WorkdirBodyProps & { defaultPath: string }) {
         <Button variant="secondary" disabled={props.busy} onClick={props.onSelect}>
           选择其他目录…
         </Button>
-      </div>
+      </ActionRow>
       <p id="caddy-workdir-default-note" className="m-0 text-aux text-muted-foreground">
         点击“使用 {props.defaultPath}”才会创建该目录，权限为 0700（仅你的账户可访问），并将它设为工作目录。
       </p>
@@ -114,14 +114,14 @@ function AuthorizedBody(props: WorkdirBodyProps & { displayPath: string }) {
         <p className="m-0 text-body">
           撤销后 Caddy 功能将回到“需要先选择工作目录”。规则文件保留在原目录，不会被删除。
         </p>
-        <div className="flex flex-wrap gap-ui-8">
+        <ActionRow>
           <Button variant="danger" disabled={props.busy} onClick={props.onRevoke}>
             确认撤销
           </Button>
           <Button variant="secondary" disabled={props.busy} onClick={props.onCancelRevoke}>
             取消
           </Button>
-        </div>
+        </ActionRow>
       </div>
     );
   }
@@ -134,14 +134,14 @@ function AuthorizedBody(props: WorkdirBodyProps & { displayPath: string }) {
         <dt className="text-aux text-muted-foreground">当前目录</dt>
         <dd className="m-0 break-all font-mono text-aux">{props.displayPath}</dd>
       </dl>
-      <div className="flex flex-wrap gap-ui-8">
+      <ActionRow>
         <Button variant="secondary" disabled={props.busy} onClick={props.onSelect}>
           更改目录
         </Button>
         <Button variant="secondary" disabled={props.busy} onClick={props.onConfirmRevoke}>
           撤销
         </Button>
-      </div>
+      </ActionRow>
     </div>
   );
 }
