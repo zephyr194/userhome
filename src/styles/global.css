@@ -1387,6 +1387,7 @@ body {
   --bracket-sizes: auto;
   --bracket-positions: 0 0;
   position: relative;
+  border: var(--app-selection-dash) solid transparent;
   background-image: var(--bracket-corners);
   background-size: var(--bracket-sizes);
   background-position: var(--bracket-positions);
@@ -1452,7 +1453,8 @@ body {
 .bracket:focus-visible {
   box-shadow:
     0 0 0 var(--app-bracket-offset) var(--app-focus-gap),
-    0 0 0 calc(var(--app-bracket-offset) * 2) var(--app-focus-ring);
+    0 0 0 calc(var(--app-bracket-offset) * 2) var(--app-focus-ring),
+    inset 0 0 0 1px var(--app-line-subtle);
 }
 
 @media (forced-colors: active) {

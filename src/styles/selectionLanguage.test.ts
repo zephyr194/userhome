@@ -89,6 +89,15 @@ describe("选中语言：令牌化的角标与选中态", () => {
     expect(section).not.toContain("outline");
   });
 
+  it("基础态预留与选中态同宽的透明边框，选中时只改边框样式与颜色，避免布局偏移", () => {
+    const base = section.split("@media")[0];
+    expect(lastDeclaredIn(base, ".bracket", "border")).toBe(
+      "var(--app-selection-dash) solid transparent",
+    );
+    expect(declaredIn(base, SELECTED, "border-width")).toEqual([]);
+    expect(lastDeclaredIn(base, SELECTED, "border")).toMatch(/^var\(--app-selection-dash\) dashed /);
+  });
+
   it("选中态不声明阴影，阴影只属于独立的焦点环", () => {
     expect(declaredIn(section, SELECTED, "box-shadow")).toEqual([]);
   });
@@ -111,6 +120,12 @@ describe("选中语言：令牌化的角标与选中态", () => {
     expect(focus).not.toContain("dashed");
     expect(rulesFor(section, SELECTED).join("\n")).not.toContain("focus");
     expect(rulesFor(section, HOVER).join("\n")).not.toContain("focus");
+  });
+
+  it("焦点环叠加时保留 Panel 的发丝线作为第三层，不被覆盖", () => {
+    const shadow = lastDeclaredIn(section, FOCUS, "box-shadow");
+    expect(layerCount(shadow)).toBe(3);
+    expect(shadow).toMatch(/,\s*inset 0 0 0 1px var\(--app-line-subtle\)$/);
   });
 
   it("只用令牌与发丝线，不使用 clip-path、负 z-index、!important", () => {
