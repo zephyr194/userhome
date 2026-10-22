@@ -262,3 +262,120 @@ describe("SelectField Listbox interaction", () => {
     expect(hidden?.value).toBe("advanced");
   });
 });
+
+describe("checkbox, switch and radio layout", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("puts the switch control before its label, with help text under the label", () => {
+    const markup = renderToStaticMarkup(
+      <SwitchField label="启动时刷新" description="登录后自动刷新。" name="refresh" />,
+    );
+
+    const control = markup.indexOf('role="switch"');
+    const label = markup.indexOf("启动时刷新");
+    const help = markup.indexOf("登录后自动刷新。");
+    expect(control).toBeGreaterThan(-1);
+    expect(control).toBeLessThan(label);
+    expect(label).toBeLessThan(help);
+    expect(markup).toContain("col-start-2");
+  });
+
+  it("keeps a visible switch track and knob in the off and on states", () => {
+    const off = renderToStaticMarkup(<SwitchField label="开关" name="s" />);
+    const on = renderToStaticMarkup(<SwitchField label="开关" name="s" defaultChecked />);
+
+    expect(off).toContain("switch-track");
+    expect(off).toContain("switch-thumb");
+    expect(off).toContain('aria-checked="false"');
+    expect(on).toContain('aria-checked="true"');
+  });
+
+  it("draws the checkbox check mark as an inline svg and places the label after the box", () => {
+    const markup = renderToStaticMarkup(
+      <CheckboxField label="自动清理" name="prune" defaultChecked />,
+    );
+
+    expect(markup).toMatch(/<svg\b[^>]*aria-hidden="true"/);
+    expect(markup).not.toContain("✓");
+    expect(markup.indexOf('role="checkbox"')).toBeLessThan(markup.indexOf("自动清理"));
+  });
+
+  it("marks an invalid checkbox with a danger border and an alert", () => {
+    const markup = renderToStaticMarkup(
+      <CheckboxField label="同意条款" name="terms" error="请先同意条款。" />,
+    );
+
+    expect(markup).toContain("border-danger");
+    expect(markup).toContain('role="alert"');
+  });
+});
+
+describe("checkbox, switch and radio interaction", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("toggles a switch from its label and reports the new state", () => {
+    const onCheckedChange = vi.fn();
+    render(
+      <SwitchField label="启动时刷新" name="refresh" onCheckedChange={onCheckedChange} />,
+    );
+    const toggle = screen.getByRole("switch", { name: "启动时刷新" });
+
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(screen.getByText("启动时刷新"));
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    expect(onCheckedChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("toggles a checkbox from its label", () => {
+    render(<CheckboxField label="自动清理" name="prune" />);
+    const box = screen.getByRole("checkbox", { name: "自动清理" });
+
+    fireEvent.click(screen.getByText("自动清理"));
+    expect(box.getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("does not toggle a disabled switch or checkbox", () => {
+    render(
+      <>
+        <SwitchField label="开关" name="s" disabled />
+        <CheckboxField label="复选" name="c" disabled />
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("switch", { name: "开关" }));
+    fireEvent.click(screen.getByText("复选"));
+    expect(screen.getByRole("switch", { name: "开关" }).getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByRole("checkbox", { name: "复选" }).getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("selects a radio card and renders a dot indicator on every card", () => {
+    const onValueChange = vi.fn();
+    render(
+      <RadioCardGroup
+        label="外观"
+        name="appearance"
+        defaultValue="SYSTEM"
+        onValueChange={onValueChange}
+        options={[
+          { value: "SYSTEM", label: "系统" },
+          { value: "DARK", label: "深色" },
+        ]}
+      />,
+    );
+    const system = screen.getByRole("radio", { name: "系统" });
+    const dark = screen.getByRole("radio", { name: "深色" });
+
+    expect(system.hasAttribute("data-checked")).toBe(true);
+    expect(dark.hasAttribute("data-checked")).toBe(false);
+    expect(system.querySelector('span[aria-hidden="true"]')).not.toBeNull();
+    expect(dark.querySelector('span[aria-hidden="true"]')).not.toBeNull();
+
+    fireEvent.click(dark);
+    expect(onValueChange).toHaveBeenLastCalledWith("DARK");
+    expect(dark.hasAttribute("data-checked")).toBe(true);
+  });
+});

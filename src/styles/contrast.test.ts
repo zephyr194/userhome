@@ -147,6 +147,7 @@ const checks: Array<[foreground: string, background: string, minimum: number]> =
     background,
     UI,
   ]),
+  ["--app-control-border", "--app-surface-muted", UI],
   ...["--app-surface", "--app-canvas", "--app-surface-muted", "--app-sidebar"].map(
     (background): [string, string, number] => ["--app-focus-ring", background, UI],
   ),

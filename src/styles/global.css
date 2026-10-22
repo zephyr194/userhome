@@ -168,6 +168,13 @@
   --app-line-height-page-title: 1.25;
   --app-letter-spacing-label: 0.04em;
   --app-motion-state: 120ms;
+  --app-motion-switch: 140ms;
+  --app-switch-width: 32px;
+  --app-switch-height: 18px;
+  --app-switch-thumb: 12px;
+  --app-switch-inset: 2px;
+  --app-switch-border: 1px;
+  --app-switch-travel: calc(var(--app-switch-width) - 2 * var(--app-switch-border) - 2 * var(--app-switch-inset) - var(--app-switch-thumb));
 }
 
 * {
@@ -1989,6 +1996,48 @@ button {
 button[class*="border-border"],
 [role="radio"] {
   border-color: var(--app-control-border);
+}
+
+/* Switch track keeps a visible off state; the knob rides on transform. */
+.switch-track {
+  position: relative;
+  display: block;
+  width: var(--app-switch-width);
+  height: var(--app-switch-height);
+  border: var(--app-switch-border) solid var(--app-control-border);
+  border-radius: var(--app-radius-control);
+  background: var(--app-control-border);
+}
+
+.switch-thumb {
+  position: absolute;
+  top: var(--app-switch-inset);
+  left: var(--app-switch-inset);
+  width: var(--app-switch-thumb);
+  height: var(--app-switch-thumb);
+  border: var(--app-switch-border) solid var(--app-control-border);
+  border-radius: 50%;
+  background: var(--app-surface-raised);
+  transition: transform var(--app-motion-switch) linear;
+}
+
+[role="switch"][data-checked] .switch-track {
+  border-color: var(--app-primary);
+  background: var(--app-primary);
+}
+
+[role="switch"][data-checked] .switch-thumb {
+  transform: translateX(var(--app-switch-travel));
+}
+
+[role="switch"][data-focus] .switch-track {
+  border-color: var(--app-focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-thumb {
+    transition: none;
+  }
 }
 
 @media (max-width: 900px) {

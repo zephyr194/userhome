@@ -189,7 +189,7 @@ type SharedSelectProps<T extends string> = FieldCopyProps & {
   value?: T;
 };
 
-const SELECT_ICON_PROPS = {
+const ICON_PROPS = {
   fill: "none",
   stroke: "currentColor",
   strokeLinecap: "round",
@@ -246,7 +246,7 @@ export function SelectField<T extends string>({
                 {options.find((option) => option.value === current)?.label}
               </span>
               <svg
-                {...SELECT_ICON_PROPS}
+                {...ICON_PROPS}
                 aria-hidden="true"
                 className="size-3 shrink-0 text-muted-foreground"
               >
@@ -266,7 +266,7 @@ export function SelectField<T extends string>({
                 >
                   <span className="min-w-0 truncate">{option.label}</span>
                   <svg
-                    {...SELECT_ICON_PROPS}
+                    {...ICON_PROPS}
                     aria-hidden="true"
                     className="hidden size-3 shrink-0 text-primary group-data-selected:block"
                   >
@@ -291,6 +291,43 @@ interface ToggleCopyProps extends FieldCopyProps {
   value?: string;
 }
 
+function ToggleFrame({
+  className,
+  control,
+  description,
+  disabled,
+  error,
+  label,
+}: FieldCopyProps & { control: ReactNode }) {
+  return (
+    <Field
+      className={classNames(
+        "grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-ui-8 gap-y-ui-4",
+        className,
+      )}
+      disabled={disabled}
+    >
+      {control}
+      <Label className="min-w-0 cursor-pointer break-words text-body text-foreground data-disabled:cursor-not-allowed">
+        {label}
+      </Label>
+      {description ? (
+        <Description className="col-start-2 break-words text-aux text-muted-foreground">
+          {description}
+        </Description>
+      ) : null}
+      {error ? (
+        <Description
+          className="col-start-2 break-words text-aux text-danger"
+          role="alert"
+        >
+          {error}
+        </Description>
+      ) : null}
+    </Field>
+  );
+}
+
 export function CheckboxField({
   checked,
   className,
@@ -305,33 +342,41 @@ export function CheckboxField({
   value = "on",
 }: ToggleCopyProps) {
   return (
-    <FieldFrame
+    <ToggleFrame
       className={className}
+      control={
+        <Checkbox
+          checked={checked}
+          className="group flex h-control-sm w-fit cursor-pointer items-center data-disabled:cursor-not-allowed data-disabled:opacity-50"
+          defaultChecked={defaultChecked}
+          disabled={disabled}
+          form={form}
+          name={name}
+          onChange={onCheckedChange}
+          value={value}
+        >
+          <span
+            className={classNames(
+              "grid size-4 place-items-center rounded-control border bg-surface text-primary-foreground group-data-checked:border-primary group-data-checked:bg-primary group-data-focus:border-focus",
+              error ? "border-danger" : "border-control-border",
+            )}
+            aria-hidden="true"
+          >
+            <svg
+              {...ICON_PROPS}
+              aria-hidden="true"
+              className="size-3 opacity-0 group-data-checked:opacity-100"
+            >
+              <path d="M2.5 6.25 5 8.5 9.5 3.5" />
+            </svg>
+          </span>
+        </Checkbox>
+      }
       description={description}
       disabled={disabled}
       error={error}
       label={label}
-    >
-      <Checkbox
-        checked={checked}
-        className="group flex h-control-sm w-fit min-w-control-sm items-center gap-ui-8 rounded-control bg-surface-muted px-ui-8 text-body disabled:cursor-not-allowed disabled:opacity-50"
-        defaultChecked={defaultChecked}
-        disabled={disabled}
-        form={form}
-        name={name}
-        onChange={onCheckedChange}
-        value={value}
-      >
-        <span
-          className="grid size-4 place-items-center rounded-sm border border-control-border bg-surface group-data-checked:bg-primary"
-          aria-hidden="true"
-        >
-          <span className="hidden text-primary-foreground group-data-checked:block">
-            ✓
-          </span>
-        </span>
-      </Checkbox>
-    </FieldFrame>
+    />
   );
 }
 
@@ -349,28 +394,29 @@ export function SwitchField({
   value = "on",
 }: ToggleCopyProps) {
   return (
-    <FieldFrame
+    <ToggleFrame
       className={className}
+      control={
+        <Switch
+          checked={checked}
+          className="flex h-control-sm w-fit cursor-pointer items-center data-disabled:cursor-not-allowed data-disabled:opacity-50"
+          defaultChecked={defaultChecked}
+          disabled={disabled}
+          form={form}
+          name={name}
+          onChange={onCheckedChange}
+          value={value}
+        >
+          <span className="switch-track" aria-hidden="true">
+            <span className="switch-thumb" />
+          </span>
+        </Switch>
+      }
       description={description}
       disabled={disabled}
       error={error}
       label={label}
-    >
-      <Switch
-        checked={checked}
-        className="group relative flex h-control-sm w-9 items-center disabled:cursor-not-allowed disabled:opacity-50"
-        defaultChecked={defaultChecked}
-        disabled={disabled}
-        form={form}
-        name={name}
-        onChange={onCheckedChange}
-        value={value}
-      >
-        <span className="relative block h-4 w-9 rounded-full bg-surface-muted group-data-checked:bg-primary">
-          <span className="absolute top-0.5 left-0.5 size-3 rounded-full bg-surface-raised transition-transform group-data-checked:translate-x-5" />
-        </span>
-      </Switch>
-    </FieldFrame>
+    />
   );
 }
 
@@ -428,16 +474,24 @@ export function RadioCardGroup<T extends string>({
         {options.map((option) => (
           <Radio
             key={option.value}
-            className="group grid min-w-0 cursor-pointer gap-ui-4 rounded-control border border-control-border bg-surface px-ui-8 py-ui-8 data-checked:border-selection-border data-checked:bg-selection disabled:cursor-not-allowed disabled:opacity-50"
+            className="group grid min-w-0 cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-start gap-x-ui-8 rounded-control border border-control-border bg-surface px-ui-8 py-ui-8 not-data-checked:data-focus:bg-surface-muted data-checked:border-selection-border data-checked:bg-selection disabled:cursor-not-allowed disabled:opacity-50"
             disabled={option.disabled}
             value={option.value}
           >
-            <span className="text-body font-semibold">{option.label}</span>
-            {option.description ? (
-              <span className="text-aux text-muted-foreground">
-                {option.description}
-              </span>
-            ) : null}
+            <span
+              className="grid size-4 shrink-0 place-items-center rounded-full border border-control-border bg-surface group-data-checked:border-primary"
+              aria-hidden="true"
+            >
+              <span className="size-2 rounded-full bg-transparent group-data-checked:bg-primary" />
+            </span>
+            <span className="grid min-w-0 gap-ui-4">
+              <span className="text-body font-semibold">{option.label}</span>
+              {option.description ? (
+                <span className="text-aux text-muted-foreground">
+                  {option.description}
+                </span>
+              ) : null}
+            </span>
           </Radio>
         ))}
         {error ? (
