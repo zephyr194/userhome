@@ -28,12 +28,12 @@ export function CaddyDetectPanel({ state, onRetry }: CaddyDetectPanelProps) {
       <p className="caddy-status__line m-0 min-w-0 text-aux text-muted-foreground">
         <DetectLine state={state} />
       </p>
+      <p className="m-0 text-aux text-muted-foreground">
+        版本检测不是安全保证：它只说明该文件能运行 caddy version，不代表文件可信或与你的配置兼容。
+      </p>
       <details className="text-aux">
         <summary className="cursor-pointer text-muted-foreground">检测详情</summary>
         <div className="mt-ui-4 grid gap-ui-8">
-          <p className="m-0 text-aux text-muted-foreground">
-            版本检测不是安全保证：它只说明该文件能运行 caddy version，不代表文件可信或与你的配置兼容。
-          </p>
           {state.status === "ready" ? <CandidateList report={state.report} /> : null}
         </div>
       </details>

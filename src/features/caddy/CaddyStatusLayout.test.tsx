@@ -77,10 +77,10 @@ describe("Caddy 检测区占位（FE-3）", () => {
     expect(ready).toContain("已找到");
   });
 
-  it("keeps the candidate list and safety note in a collapsed disclosure", () => {
+  it("keeps the candidate list collapsed but the safety note always visible", () => {
     const html = detect({ status: "ready", report: AVAILABLE });
     expect(html).toMatch(/<details(?![^>]*\sopen)[^>]*>\s*<summary[^>]*>检测详情<\/summary>/);
-    expect(html.indexOf("版本检测不是安全保证")).toBeGreaterThan(html.indexOf("<details"));
+    expect(html.indexOf("版本检测不是安全保证")).toBeLessThan(html.indexOf("<details"));
     expect(html).toContain("检测过的位置");
   });
 });
