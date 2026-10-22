@@ -189,15 +189,36 @@ function ReadingOrder({ overview }: { overview: ZshOverview }) {
       <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
         zsh 启动时按下面的顺序读取；后读取的文件可以覆盖先读取的设置，但这里不推断最终结果。
       </p>
-      <ol aria-label="zsh 启动文件读取顺序" className="mt-ui-8 grid gap-ui-4">
-        {overview.order.map((step) => (
-          <OrderRow
-            file={step.file ? byFile.get(step.file) : undefined}
-            key={step.position}
-            step={step}
-          />
-        ))}
-      </ol>
+      <div className="mt-ui-8 min-w-0 overflow-x-auto">
+        <table
+          aria-label="zsh 启动文件读取顺序"
+          className="w-full min-w-[32rem] table-fixed border-collapse text-xs"
+        >
+          <colgroup>
+            <col className="w-16" />
+            <col />
+            <col className="w-28" />
+            <col className="w-40" />
+          </colgroup>
+          <thead>
+            <tr className="border-b border-border text-left text-meta text-muted-foreground">
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">步骤</th>
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">路径</th>
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">范围</th>
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">状态</th>
+            </tr>
+          </thead>
+          <tbody>
+            {overview.order.map((step) => (
+              <OrderRow
+                file={step.file ? byFile.get(step.file) : undefined}
+                key={step.position}
+                step={step}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
@@ -207,18 +228,28 @@ function OrderRow({ file, step }: { file?: ZshFile; step: ZshOrderStep }) {
   const note = stepStatus(step);
   const status = file ? fileStatus(file) : undefined;
   return (
-    <li
+    <tr
       className={classNames(
-        "flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control px-ui-8 py-ui-4",
-        step.scope === "SYSTEM" ? "text-muted-foreground" : "bg-surface",
+        "min-h-control-md border-t border-border align-middle",
+        step.scope === "SYSTEM" && "text-muted-foreground",
       )}
     >
-      <span className="w-14 shrink-0 text-meta text-muted-foreground">第 {step.position} 步</span>
-      <code className="break-all font-mono text-aux">{step.pathLabel}</code>
-      <StatusBadge title={applies.detail}>{applies.label}</StatusBadge>
-      {note ? <span className="text-meta">{note}</span> : null}
-      {status ? <StatusBadge tone={status.tone}>{status.label}</StatusBadge> : null}
-    </li>
+      <td className="whitespace-nowrap px-ui-8 py-ui-4 text-meta text-muted-foreground">
+        第 {step.position} 步
+      </td>
+      <td className="min-w-0 px-ui-8 py-ui-4">
+        <code className="break-all font-mono text-aux">{step.pathLabel}</code>
+      </td>
+      <td className="px-ui-8 py-ui-4">
+        <StatusBadge title={applies.detail}>{applies.label}</StatusBadge>
+      </td>
+      <td className="px-ui-8 py-ui-4">
+        <span className="flex flex-wrap items-center gap-ui-4">
+          {note ? <span className="text-meta">{note}</span> : null}
+          {status ? <StatusBadge tone={status.tone}>{status.label}</StatusBadge> : null}
+        </span>
+      </td>
+    </tr>
   );
 }
 

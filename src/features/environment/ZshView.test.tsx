@@ -241,6 +241,14 @@ describe("zsh view order and applicability", () => {
     expect(markup).toContain("每次启动 zsh 都会读取");
   });
 
+  it("aligns the reading order as a table with four fixed columns", () => {
+    expect(markup).toContain('<table aria-label="zsh 启动文件读取顺序"');
+    expect(markup.match(/<col[\s/>]/g)).toHaveLength(4);
+    for (const label of ["步骤", "路径", "范围", "状态"]) {
+      expect(markup).toContain(`>${label}</th>`);
+    }
+  });
+
   it("says the reading is static and not an evaluation", () => {
     expect(markup).toContain("不启动 shell、不 source、不执行任何文件");
     expect(markup).toContain("不等于实际生效的环境");
