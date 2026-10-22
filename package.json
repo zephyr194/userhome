@@ -11,7 +11,6 @@
   "scripts": {
     "dev": "vite",
     "build": "pnpm typecheck && vite build",
-    "build:helper:universal": "USERHOME_HELPER_ARCHS='arm64 x86_64' bash src-tauri/scripts/build-helper.sh",
     "build:e2e": "VITE_E2E=true tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.e2e.conf.json",
     "build:unsigned": "tauri build --no-bundle",
     "corpus:build": "node scripts/catalog/build-corpus.mjs",

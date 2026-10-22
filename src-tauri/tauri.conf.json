@@ -19,15 +19,8 @@
   "bundle": {
     "active": true,
     "targets": ["app", "dmg"],
-    "resources": {
-      "helper/dist/UserHomeHelper": "UserHomeHelper",
-      "helper/dist/libUserHomeHelperBridge.dylib": "libUserHomeHelperBridge.dylib"
-    },
     "macOS": {
-      "minimumSystemVersion": "13.0",
-      "files": {
-        "Library/LaunchDaemons/com.zephyr194.userhome.helper.plist": "helper/LaunchDaemons/com.zephyr194.userhome.helper.plist"
-      }
+      "minimumSystemVersion": "13.0"
     },
     "icon": [
       "icons/32x32.png",
