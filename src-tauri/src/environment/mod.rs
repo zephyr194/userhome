@@ -14,6 +14,7 @@ use crate::{
 };
 
 pub mod dotenv;
+pub mod launchctl;
 pub mod provider;
 pub mod save;
 pub mod scan;

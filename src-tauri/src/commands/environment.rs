@@ -2,6 +2,7 @@ use std::fmt;
 
 use serde::Deserialize;
 use tauri::{AppHandle, Manager};
+use time::OffsetDateTime;
 
 use crate::{
     commands::grants::canonical_home,
@@ -9,6 +10,7 @@ use crate::{
     environment::{
         self, FileOutcome, FileRequest, RevealRequest, RevealedValue,
         dotenv::{KeyEdit, is_valid_key},
+        launchctl::{self, LaunchctlEnvironment},
         save::{
             CreatePreviewRequest, EditPreviewRequest, EnvironmentEditCoordinator,
             EnvironmentEditPreview,
@@ -160,6 +162,24 @@ pub async fn reveal_environment_value(
     })
     .await
     .map_err(|_| AppError::internal())?
+}
+
+/// Lists the macOS login session environment (`gui/<uid>`) read-only. Secret
+/// values are withheld; `reveal_launchctl_value` returns one on request.
+#[tauri::command]
+pub async fn read_launchctl_environment() -> Result<LaunchctlEnvironment, AppError> {
+    tauri::async_runtime::spawn_blocking(|| launchctl::read_environment(OffsetDateTime::now_utc()))
+        .await
+        .map_err(|_| AppError::internal())?
+}
+
+/// Returns one login session value on explicit request. The value is never
+/// logged and is not part of any list or error.
+#[tauri::command]
+pub async fn reveal_launchctl_value(key: String) -> Result<String, AppError> {
+    tauri::async_runtime::spawn_blocking(move || launchctl::reveal_value(&key))
+        .await
+        .map_err(|_| AppError::internal())?
 }
 
 // ---- zsh startup files (read-only) ------------------------------------------

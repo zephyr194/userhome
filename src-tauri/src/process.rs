@@ -76,7 +76,7 @@ pub fn run_bounded(
     )
 }
 
-type ReadResult = Result<Vec<u8>, ProcessError>;
+type ReadResult = Result<(Vec<u8>, bool), ProcessError>;
 
 /// Runs a command in its own process group without a shell. The leader stays
 /// unreaped until the pipes are drained and the group has been cleaned up, so
@@ -88,6 +88,31 @@ pub fn run_bounded_with(
     max_output_bytes: usize,
     options: &RunOptions<'_>,
 ) -> Result<ProcessOutput, ProcessError> {
+    run_collected(executable, args, timeout, max_output_bytes, options, false)
+        .map(|(output, _)| output)
+}
+
+/// Like [`run_bounded_with`], but output past `max_output_bytes` is cut instead
+/// of failing. The flag reports whether stdout was cut. Text is decoded lossily
+/// so a cut inside a UTF-8 sequence cannot fail the call.
+pub fn run_bounded_truncated_with(
+    executable: &Path,
+    args: &[&str],
+    timeout: Duration,
+    max_output_bytes: usize,
+    options: &RunOptions<'_>,
+) -> Result<(ProcessOutput, bool), ProcessError> {
+    run_collected(executable, args, timeout, max_output_bytes, options, true)
+}
+
+fn run_collected(
+    executable: &Path,
+    args: &[&str],
+    timeout: Duration,
+    max_output_bytes: usize,
+    options: &RunOptions<'_>,
+    keep_prefix: bool,
+) -> Result<(ProcessOutput, bool), ProcessError> {
     let env = match &options.env {
         EnvPolicy::InheritLegacy => None,
         EnvPolicy::Explicit(spec) => {
@@ -111,10 +136,10 @@ pub fn run_bounded_with(
     let (sender, receiver) = mpsc::channel::<(bool, ReadResult)>();
     let stdout_sender = sender.clone();
     thread::spawn(move || {
-        let _ = stdout_sender.send((true, read_bounded(stdout, max_output_bytes)));
+        let _ = stdout_sender.send((true, read_bounded(stdout, max_output_bytes, keep_prefix)));
     });
     thread::spawn(move || {
-        let _ = sender.send((false, read_bounded(stderr, max_output_bytes)));
+        let _ = sender.send((false, read_bounded(stderr, max_output_bytes, keep_prefix)));
     });
 
     let deadline = Instant::now() + timeout;
@@ -156,10 +181,10 @@ pub fn run_bounded_with(
     let _ = signal_group(pid, GroupSignal::Kill);
     let status = child.wait().map_err(|_| ProcessError::Io)?;
 
-    let stdout = stdout_result.ok_or(ProcessError::Io)??;
-    let stderr = stderr_result.ok_or(ProcessError::Io)??;
-    let stdout = String::from_utf8(stdout).map_err(|_| ProcessError::Io)?;
-    let stderr = String::from_utf8(stderr).map_err(|_| ProcessError::Io)?;
+    let (stdout, stdout_cut) = stdout_result.ok_or(ProcessError::Io)??;
+    let (stderr, _) = stderr_result.ok_or(ProcessError::Io)??;
+    let stdout = decode_output(stdout, keep_prefix)?;
+    let stderr = decode_output(stderr, keep_prefix)?;
 
     if !status.success() {
         return Err(ProcessError::Failed {
@@ -169,10 +194,22 @@ pub fn run_bounded_with(
         });
     }
 
-    Ok(ProcessOutput { stdout, stderr })
+    Ok((ProcessOutput { stdout, stderr }, stdout_cut))
 }
 
-fn read_bounded(mut reader: impl Read, limit: usize) -> Result<Vec<u8>, ProcessError> {
+fn decode_output(bytes: Vec<u8>, lossy: bool) -> Result<String, ProcessError> {
+    if lossy {
+        Ok(String::from_utf8_lossy(&bytes).into_owned())
+    } else {
+        String::from_utf8(bytes).map_err(|_| ProcessError::Io)
+    }
+}
+
+fn read_bounded(
+    mut reader: impl Read,
+    limit: usize,
+    keep_prefix: bool,
+) -> Result<(Vec<u8>, bool), ProcessError> {
     let mut output = Vec::with_capacity(limit.min(8 * 1024));
     let mut exceeded = false;
     let mut buffer = [0_u8; 8 * 1024];
@@ -183,17 +220,21 @@ fn read_bounded(mut reader: impl Read, limit: usize) -> Result<Vec<u8>, ProcessE
             break;
         }
 
-        if output.len().saturating_add(read) <= limit {
+        let room = limit - output.len();
+        if read <= room {
             output.extend_from_slice(&buffer[..read]);
         } else {
             exceeded = true;
+            if keep_prefix {
+                output.extend_from_slice(&buffer[..room]);
+            }
         }
     }
 
-    if exceeded {
+    if exceeded && !keep_prefix {
         Err(ProcessError::OutputTooLarge)
     } else {
-        Ok(output)
+        Ok((output, exceeded))
     }
 }
 

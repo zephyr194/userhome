@@ -201,6 +201,8 @@ pub fn run() {
             commands::environment::execute_environment_edit,
             commands::environment::read_zsh_startup_files,
             commands::environment::reveal_zsh_value,
+            commands::environment::read_launchctl_environment,
+            commands::environment::reveal_launchctl_value,
             commands::environment::read_zsh_edit_state,
             commands::environment::enable_zsh_edit,
             commands::environment::preview_zsh_edit,
