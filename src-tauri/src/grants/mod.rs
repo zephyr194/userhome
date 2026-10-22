@@ -55,12 +55,16 @@ pub enum GrantPurpose {
     /// the TLS resolution of the Caddy module can use it; every general resolve,
     /// read, write and validation path refuses it (see `GrantAccess`).
     TlsMaterialFile,
+    /// The directory the user chose to hold Caddy's rules, Caddyfile, check
+    /// copies and runs. Only the Caddy work directory entries can create or
+    /// resolve it; every general path refuses it (see `GrantAccess`).
+    CaddyWorkDir,
 }
 
 impl GrantPurpose {
     pub fn kind(self) -> GrantKind {
         match self {
-            Self::ConfigDirectory => GrantKind::Directory,
+            Self::ConfigDirectory | Self::CaddyWorkDir => GrantKind::Directory,
             Self::ConfigFile
             | Self::Executable
             | Self::ShellStartupFile
@@ -83,7 +87,8 @@ impl GrantPurpose {
 /// ordinary purposes; the dedicated shell startup editor only sees
 /// `ShellStartupFile` grants; the dedicated LaunchAgent create entry only sees
 /// `LaunchAgentFile` grants; the TLS resolution only sees `TlsMaterialFile`
-/// grants. Each kind of caller sees exactly one set, and the choice is never a
+/// grants; the Caddy work directory entries only see `CaddyWorkDir` grants.
+/// Each kind of caller sees exactly one set, and the choice is never a
 /// field the frontend can set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GrantAccess {
@@ -91,6 +96,7 @@ enum GrantAccess {
     ShellStartup,
     LaunchAgent,
     TlsMaterial,
+    CaddyWorkDir,
 }
 
 impl GrantAccess {
@@ -99,6 +105,7 @@ impl GrantAccess {
             GrantPurpose::ShellStartupFile => Self::ShellStartup,
             GrantPurpose::LaunchAgentFile => Self::LaunchAgent,
             GrantPurpose::TlsMaterialFile => Self::TlsMaterial,
+            GrantPurpose::CaddyWorkDir => Self::CaddyWorkDir,
             GrantPurpose::ConfigDirectory | GrantPurpose::ConfigFile | GrantPurpose::Executable => {
                 Self::General
             }
@@ -331,9 +338,12 @@ impl GrantCoordinator {
     /// native picker. Re-granting the same canonical path and purpose returns
     /// the existing grant.
     pub fn create(&self, purpose: GrantPurpose, path: &Path) -> Result<GrantRecord, GrantError> {
-        // A LaunchAgent grant only ever stands for a file that does not exist
-        // yet (`create_new_file_with`).
-        if purpose == GrantPurpose::LaunchAgentFile {
+        // LaunchAgent and Caddy work directory grants are made only by their
+        // dedicated entries (`create_new_file_with`, `create_caddy_workdir`).
+        if matches!(
+            purpose,
+            GrantPurpose::LaunchAgentFile | GrantPurpose::CaddyWorkDir
+        ) {
             return Err(GrantError::ReservedPurpose);
         }
         let canonical = path::validate_target(path, purpose, self.home.as_deref())?;
@@ -356,6 +366,70 @@ impl GrantCoordinator {
         grants.push(record.clone());
         self.store.save(&grants)?;
         Ok(record)
+    }
+
+    /// Dedicated entry for the Caddy work directory. The caller has already
+    /// checked the choice (see `caddy::workdir`); this only re-checks the
+    /// grant rules. At most one work directory stays live: granting the same
+    /// directory again returns the existing grant, and a different one replaces
+    /// the previous grant.
+    pub fn create_caddy_workdir(&self, path: &Path) -> Result<GrantRecord, GrantError> {
+        let canonical =
+            path::validate_target(path, GrantPurpose::CaddyWorkDir, self.home.as_deref())?;
+        let _guard = self.lock()?;
+        let mut grants = self.store.load()?;
+        if let Some(existing) = grants
+            .iter()
+            .find(|grant| grant.purpose == GrantPurpose::CaddyWorkDir)
+            && existing.path == canonical
+        {
+            return Ok(existing.clone());
+        }
+        grants.retain(|grant| grant.purpose != GrantPurpose::CaddyWorkDir);
+        let record = GrantRecord {
+            id: GrantId::generate(),
+            purpose: GrantPurpose::CaddyWorkDir,
+            kind: GrantKind::Directory,
+            path: canonical,
+            created_at_epoch_ms: now_epoch_ms(),
+            file_name: None,
+        };
+        grants.push(record.clone());
+        self.store.save(&grants)?;
+        Ok(record)
+    }
+
+    /// The live Caddy work directory grant as stored, without re-validating it
+    /// against the file system. Used to show the current choice and to revoke it.
+    pub fn active_caddy_workdir(&self) -> Result<Option<GrantRecord>, GrantError> {
+        let _guard = self.lock()?;
+        Ok(self
+            .store
+            .load()?
+            .into_iter()
+            .find(|grant| grant.purpose == GrantPurpose::CaddyWorkDir))
+    }
+
+    /// Revokes the Caddy work directory grant. The directory and its files are
+    /// left untouched; only the authorization goes away.
+    pub fn revoke_caddy_workdir(&self) -> Result<(), GrantError> {
+        let _guard = self.lock()?;
+        let mut grants = self.store.load()?;
+        let before = grants.len();
+        grants.retain(|grant| grant.purpose != GrantPurpose::CaddyWorkDir);
+        if grants.len() == before {
+            return Err(GrantError::UnknownGrant);
+        }
+        self.store.save(&grants)
+    }
+
+    /// Resolves the live Caddy work directory grant. Without one this is
+    /// `UnknownGrant`; the stored root is re-validated like any other root.
+    pub fn resolve_caddy_workdir(&self) -> Result<GrantRecord, GrantError> {
+        let record = self
+            .active_caddy_workdir()?
+            .ok_or(GrantError::UnknownGrant)?;
+        self.resolve_with(&record.id, GrantAccess::CaddyWorkDir)
     }
 
     pub fn list(&self) -> Result<Vec<GrantRecord>, GrantError> {
@@ -437,6 +511,8 @@ fn now_epoch_ms() -> u64 {
         .unwrap_or(0)
 }
 
+#[cfg(test)]
+mod caddy_workdir_tests;
 #[cfg(test)]
 mod launch_agent_tests;
 #[cfg(test)]

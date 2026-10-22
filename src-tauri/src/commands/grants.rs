@@ -292,6 +292,9 @@ fn validate_selection(mode: PickMode, purpose: GrantPurpose) -> Result<(), AppEr
         // LaunchAgent create grants are made only by the dedicated creator,
         // for a fixed file name in `~/Library/LaunchAgents`.
         _ if purpose == GrantPurpose::LaunchAgentFile => false,
+        // The Caddy work directory is chosen only by its own command, which
+        // then checks the directory before granting it.
+        _ if purpose == GrantPurpose::CaddyWorkDir => false,
         // TLS material is picked as one existing file and used only by the TLS
         // resolution; a save location or a directory can never be one.
         _ if purpose == GrantPurpose::TlsMaterialFile => mode == PickMode::File,
@@ -840,6 +843,29 @@ mod tests {
         )
         .expect("cancel");
         assert_eq!(outcome, SelectGrantOutcome::Cancelled);
+        assert!(coordinator.list().expect("list").is_empty());
+    }
+
+    #[test]
+    fn the_frontend_cannot_select_a_caddy_workdir_authorization() {
+        for mode in [PickMode::Directory, PickMode::File, PickMode::SaveLocation] {
+            let error =
+                validate_selection(mode, GrantPurpose::CaddyWorkDir).expect_err("not selectable");
+            assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        }
+        let sandbox = Sandbox::new();
+        let coordinator = sandbox.coordinator();
+        let directory = sandbox.root.join("caddy");
+        fs::create_dir_all(&directory).expect("seed");
+        let error = run_select(
+            &coordinator,
+            FakePicker(Ok(Some(directory))),
+            PickMode::Directory,
+            GrantPurpose::CaddyWorkDir,
+            None,
+        )
+        .expect_err("not selectable");
+        assert_eq!(error.code(), AppErrorCode::InvalidInput);
         assert!(coordinator.list().expect("list").is_empty());
     }
 
