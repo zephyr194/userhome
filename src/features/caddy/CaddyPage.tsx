@@ -1,6 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { BoardCell, PageShell, Panel, SectionTabs } from "../../components/ui";
-import { useBoardView } from "../../app/BoardViewContext";
+import { PageShell, Panel, SectionTabs } from "../../components/ui";
 import { useToolSection } from "../../app/SectionContext";
 import { routeSectionsOf } from "../../app/routeDefinitions";
 import {
@@ -76,7 +75,6 @@ function createPreviewRuntime(): PreviewRuntime {
 
 export function CaddyPage() {
   const onNavigate = useContext(RouteNavigationContext);
-  const { isBoard } = useBoardView();
   const [ids] = useState<IdSource>(createIdSource);
   const [runtime] = useState(createPreviewRuntime);
   const [detect, setDetect] = useState<DetectState>({ status: "loading" });
@@ -92,9 +90,9 @@ export function CaddyPage() {
   if ((section === "rules" || section === "raw") && section !== editorSource) {
     setEditorSource(section);
   }
-  const showRules = isBoard || section === "rules";
-  const showRaw = isBoard || section === "raw";
-  const showRun = isBoard || section === "run";
+  const showRules = section === "rules";
+  const showRaw = section === "raw";
+  const showRun = section === "run";
   const workdir = useCaddyWorkdir();
   const workdirReason = workdir.blockReason;
   const workdirReady = workdirReason === undefined;
@@ -239,16 +237,14 @@ export function CaddyPage() {
   }
 
   return (
-    <PageShell layout={isBoard ? "board" : "strip"} scrollKey={isBoard ? "board" : "compact"}>
-      {isBoard ? null : (
-        <SectionTabs
-          label="Caddy 分区"
-          sections={CADDY_SECTIONS}
-          selected={section}
-          onSelect={setSection}
-        />
-      )}
-      <BoardCell span={12}>
+    <PageShell layout="strip" scrollKey="compact">
+      <SectionTabs
+        label="Caddy 分区"
+        sections={CADDY_SECTIONS}
+        selected={section}
+        onSelect={setSection}
+      />
+      <div className="page-shell__cell">
         <Panel className="caddy-status grid min-w-0 p-ui-8">
           <CaddyWorkdirPanel
             load={workdir.load}
@@ -264,8 +260,8 @@ export function CaddyPage() {
           />
           <CaddyDetectPanel state={detect} onRetry={retryDetect} />
         </Panel>
-      </BoardCell>
-      <BoardCell span={8} hidden={!showRules}>
+      </div>
+      <div className="page-shell__cell" hidden={!showRules}>
         <div className="grid min-w-0 gap-ui-12">
           {workdirReason !== undefined && workdir.load.status !== "loading" ? (
             <p role="status" className="m-0 text-body text-muted-foreground">
@@ -313,21 +309,21 @@ export function CaddyPage() {
             </>
           ) : null}
         </div>
-      </BoardCell>
-      <BoardCell span={4} hidden={!showRun}>
+      </div>
+      <div className="page-shell__cell" hidden={!showRun}>
         <CaddyRunPanel
           source={editorSource === "raw" ? "RAW" : "RULES"}
           onOpenService={(target: ServiceTarget) => onNavigate?.(serviceFocusIntent(target))}
           workdirReason={workdirReason}
         />
-      </BoardCell>
-      <BoardCell span={12} hidden={!showRaw}>
+      </div>
+      <div className="page-shell__cell" hidden={!showRaw}>
         <RawEditor
           hidden={!showRaw}
           workdirReason={workdirReason}
           onWorkdirRequired={refreshWorkdir}
         />
-      </BoardCell>
+      </div>
     </PageShell>
   );
 }

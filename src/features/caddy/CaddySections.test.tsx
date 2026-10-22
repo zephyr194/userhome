@@ -1,27 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { BoardViewContext, type BoardViewContextValue } from "../../app/BoardViewContext";
 import { SectionContext } from "../../app/SectionContext";
 import { isTextVisible } from "../../test/markupVisibility";
 import { CaddyPage } from "./CaddyPage";
 
 const noop = () => undefined;
 
-function render(section: string, isBoard = false): string {
-  const board: BoardViewContextValue = {
-    available: true,
-    view: isBoard ? "board" : "compact",
-    isBoard,
-    enter: noop,
-    exit: noop,
-    toggle: noop,
-  };
+function render(section: string): string {
   return renderToStaticMarkup(
-    <BoardViewContext.Provider value={board}>
-      <SectionContext.Provider value={{ section, select: noop }}>
-        <CaddyPage />
-      </SectionContext.Provider>
-    </BoardViewContext.Provider>,
+    <SectionContext.Provider value={{ section, select: noop }}>
+      <CaddyPage />
+    </SectionContext.Provider>,
   );
 }
 
@@ -64,23 +53,10 @@ describe("Caddy page sections", () => {
     expect(markup).toContain(RAW);
   });
 
-  it("shows every block in the board view whatever the section", () => {
-    for (const section of ["rules", "run", "raw"]) {
-      const markup = render(section, true);
-      for (const block of [RULES, RUN, RAW]) {
-        expect(isTextVisible(markup, block), `${section}: ${block}`).toBe(true);
-      }
-    }
-  });
-
   it("shows the three sections as tabs above the content with the selected one current", () => {
     const markup = render("run");
     expect(markup.match(/data-section-id="/g)).toHaveLength(3);
     const current = markup.match(/<[a-z]+[^>]*data-section-id="run"[^>]*>/)?.[0] ?? "";
     expect(current).toContain('aria-current="true"');
-  });
-
-  it("shows no section tabs in the board view", () => {
-    expect(render("rules", true)).not.toContain("data-section-id");
   });
 });

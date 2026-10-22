@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button as HeadlessButton } from "@headlessui/react";
-import { useBoardView } from "../../app/BoardViewContext";
 import { Button, PageShell, Panel } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import { PageRegion } from "../../components/ui/PageShell";
@@ -33,28 +32,18 @@ export interface AppConfigViewProps {
 }
 
 export function AppConfigView({ list, detail, onReload, onSelect }: AppConfigViewProps) {
-  const { isBoard } = useBoardView();
   const items = list.status === "ready" || list.status === "partial" ? list.items : undefined;
   const selectedId = detail.status === "idle" ? undefined : detail.id;
 
   return (
-    <PageShell
-      layout={isBoard ? "board" : "master-detail"}
-      scrollKey={isBoard ? "board" : "compact"}
-    >
-      <PageRegion
-        className="r4-fe4-scroll content-start gap-ui-12 overflow-y-auto overscroll-contain"
-        span={isBoard ? 4 : undefined}
-      >
+    <PageShell layout="master-detail" scrollKey="compact">
+      <PageRegion className="r4-fe4-scroll content-start gap-ui-12 overflow-y-auto overscroll-contain">
         <ListStatusNotice list={list} onReload={onReload} />
         {items ? (
           <EntryList items={items} selectedId={selectedId} onSelect={onSelect} />
         ) : null}
       </PageRegion>
-      <PageRegion
-        className="r4-fe4-scroll content-start overflow-y-auto overscroll-contain"
-        span={isBoard ? 8 : undefined}
-      >
+      <PageRegion className="r4-fe4-scroll content-start overflow-y-auto overscroll-contain">
         {items ? <EntryDetail items={items} detail={detail} /> : null}
       </PageRegion>
     </PageShell>

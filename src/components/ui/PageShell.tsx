@@ -15,7 +15,6 @@ export interface PageShellProps {
   title?: ReactNode;
   status?: PageShellStatus;
   actions?: ReactNode;
-  boardToggle?: ReactNode;
   layout: PageShellLayout;
   /** Each scrollKey keeps its own body offset; switching keys restores the one it left. */
   scrollKey?: string;
@@ -26,7 +25,6 @@ export function PageShell({
   title,
   status,
   actions,
-  boardToggle,
   layout,
   scrollKey,
   children,
@@ -39,8 +37,7 @@ export function PageShell({
     bodyRef.current.scrollTop = scrollMemory.switchTo(scrollKey);
   }, [scrollKey, scrollMemory]);
 
-  const hasHeader =
-    title !== undefined || status !== undefined || actions !== undefined || boardToggle !== undefined;
+  const hasHeader = title !== undefined || status !== undefined || actions !== undefined;
 
   return (
     <section className="page-shell">
@@ -60,7 +57,6 @@ export function PageShell({
             </span>
           ) : null}
           {actions ? <div className="page-shell__actions">{actions}</div> : null}
-          {boardToggle ? <div className="page-shell__board-toggle">{boardToggle}</div> : null}
         </header>
       ) : null}
       <div
@@ -90,24 +86,16 @@ export function BoardCell({
   );
 }
 
-/** Same element in both views, so switching views never remounts its children. */
+/** Wraps a region as a grid so its children keep the same layout in every page. */
 export function PageRegion({
-  span,
   className,
   children,
 }: {
-  span?: BoardSpan;
   className?: string;
   children?: ReactNode;
 }) {
   return (
-    <div
-      className={classNames(
-        "grid min-h-0 min-w-0",
-        span !== undefined && `page-shell__cell page-shell__cell--span-${span}`,
-        className,
-      )}
-    >
+    <div className={classNames("grid min-h-0 min-w-0", className)}>
       {children}
     </div>
   );

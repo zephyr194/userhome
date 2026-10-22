@@ -1,6 +1,5 @@
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { useBoardView } from "../../app/BoardViewContext";
 import { useToolSection } from "../../app/SectionContext";
 import { PageShell } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
@@ -45,7 +44,6 @@ const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
  * choice survives switching back and forth.
  */
 export function EnvironmentPage() {
-  const { isBoard } = useBoardView();
   const [section, setSection] = useToolSection("dotenv");
   const zshSelected = section === "zsh";
   const [zshOpened, setZshOpened] = useState(zshSelected);
@@ -58,10 +56,7 @@ export function EnvironmentPage() {
       selectedIndex={zshSelected ? 1 : 0}
       onChange={(index) => setSection(index === 1 ? "zsh" : "dotenv")}
     >
-      <PageShell
-        layout={isBoard ? "board" : "strip"}
-        scrollKey={isBoard ? "board" : "compact"}
-      >
+      <PageShell layout="strip" scrollKey="compact">
         <TabList
           ref={tabsRef}
           aria-label="环境配置分区"
@@ -76,7 +71,7 @@ export function EnvironmentPage() {
             <DotenvPage />
           </TabPanel>
           <TabPanel as="div" className="contents" unmount={false}>
-            <PageRegion span={isBoard ? 12 : undefined}>
+            <PageRegion>
               {zshOpened ? <ZshPage /> : null}
             </PageRegion>
           </TabPanel>

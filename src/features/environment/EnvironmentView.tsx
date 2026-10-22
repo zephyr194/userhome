@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { useBoardView } from "../../app/BoardViewContext";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
@@ -95,10 +94,9 @@ function SectionHeader({
 }
 
 export function EnvironmentView(props: EnvironmentViewProps) {
-  const { isBoard } = useBoardView();
   return (
     <>
-      <PageRegion span={isBoard ? 4 : undefined}>
+      <PageRegion>
         <section
           aria-labelledby="environment-heading"
           className="flex min-w-0 flex-col"
@@ -125,7 +123,7 @@ export function EnvironmentView(props: EnvironmentViewProps) {
           <ScanResults {...props} />
         </section>
       </PageRegion>
-      <PageRegion span={isBoard ? 8 : undefined}>
+      <PageRegion>
         <FilePane {...props} />
       </PageRegion>
     </>

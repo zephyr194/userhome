@@ -2134,8 +2134,7 @@ button[class*="border-border"],
   overflow-wrap: anywhere;
 }
 
-.page-shell__actions,
-.page-shell__board-toggle {
+.page-shell__actions {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -2549,12 +2548,6 @@ button[class*="border-border"],
 
 .caddy-directive__remove {
   margin-top: calc(var(--app-font-size-body) * var(--app-line-height-body) + var(--app-space-4));
-}
-
-@container (max-width: 1099.98px) {
-  .page-shell__layout--board:has(.caddy-status) > .page-shell__cell {
-    grid-column: 1 / -1;
-  }
 }
 /* /r4-fe3-caddy */
 

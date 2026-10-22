@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
-import { useBoardView } from "../../app/BoardViewContext";
 import { routeSectionsOf } from "../../app/routeDefinitions";
 import { useToolSection } from "../../app/SectionContext";
 import { Button, PageShell, Panel, SectionTabs, StatusBadge } from "../../components/ui";
-import { classNames } from "../../components/ui/classNames";
-import type { BoardSpan } from "../../components/ui/PageShell";
+import { PageRegion } from "../../components/ui/PageShell";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import { ToolReference } from "./ToolReference";
 import {
@@ -35,7 +33,6 @@ export interface AiConfigViewProps {
 const AI_SECTIONS = routeSectionsOf("aiConfig");
 
 export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps) {
-  const { isBoard } = useBoardView();
   const [section, setSection] = useToolSection(AI_CONFIG_DEFAULT_SECTION);
   const summary = summarizeState(state);
   const tools = state.status === "ready" ? state.report.tools : [];
@@ -44,11 +41,8 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
   const toolListRef = useSlideIndicator(selected?.id);
 
   return (
-    <PageShell
-      layout={isBoard ? "board" : "master-detail"}
-      scrollKey={isBoard ? "board" : "compact"}
-    >
-      <Region span={isBoard ? 4 : undefined}>
+    <PageShell layout="master-detail" scrollKey="compact">
+      <PageRegion>
         <Panel
           aria-labelledby="ai-tools-heading"
           className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
@@ -89,21 +83,19 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
             </ul>
           ) : null}
         </Panel>
-      </Region>
+      </PageRegion>
 
-      <Region span={isBoard ? 8 : undefined}>
+      <PageRegion>
         <section
           aria-label="所选工具"
           className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
-          {isBoard ? null : (
-            <SectionTabs
-              label="AI 工具分区"
-              sections={AI_SECTIONS}
-              selected={section}
-              onSelect={setSection}
-            />
-          )}
+          <SectionTabs
+            label="AI 工具分区"
+            sections={AI_SECTIONS}
+            selected={section}
+            onSelect={setSection}
+          />
           {selected ? <ToolCard tool={selected} /> : null}
           {selected && !showClaudePanel ? (
             <ToolReference key={selected.id} toolId={selected.id} />
@@ -112,22 +104,8 @@ export function AiConfigView({ state, onRetry, claudePanel }: AiConfigViewProps)
             <div className="grid min-w-0 gap-ui-12">{claudePanel}</div>
           </div>
         </section>
-      </Region>
+      </PageRegion>
     </PageShell>
-  );
-}
-
-/** Same element in both views, so switching views never remounts the panes. */
-function Region({ span, children }: { span?: BoardSpan; children: ReactNode }) {
-  return (
-    <div
-      className={classNames(
-        "grid min-h-0 min-w-0",
-        span !== undefined && `page-shell__cell page-shell__cell--span-${span}`,
-      )}
-    >
-      {children}
-    </div>
   );
 }
 

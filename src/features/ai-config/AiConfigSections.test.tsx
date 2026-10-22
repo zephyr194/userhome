@@ -1,6 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { BoardViewContext, type BoardViewContextValue } from "../../app/BoardViewContext";
 import { SectionContext } from "../../app/SectionContext";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import { isTextVisible } from "../../test/markupVisibility";
@@ -8,15 +7,6 @@ import { AiConfigView } from "./AiConfigView";
 import { sectionForTool, toolIdForSection, type AiConfigState } from "./aiConfigModel";
 
 const noop = () => undefined;
-
-const COMPACT: BoardViewContextValue = {
-  available: true,
-  view: "compact",
-  isBoard: false,
-  enter: noop,
-  exit: noop,
-  toggle: noop,
-};
 
 function tool(id: AiToolReport["id"], displayName: string): AiToolReport {
   return {
@@ -44,17 +34,13 @@ const READY: AiConfigState = {
   },
 };
 
-function render(section?: string, board: BoardViewContextValue = COMPACT): string {
+function render(section?: string): string {
   return renderToStaticMarkup(
-    <BoardViewContext.Provider value={board}>
-      <SectionContext.Provider value={section === undefined ? undefined : { section, select: noop }}>
-        <AiConfigView state={READY} onRetry={noop} claudePanel={<p>设置占位</p>} />
-      </SectionContext.Provider>
-    </BoardViewContext.Provider>,
+    <SectionContext.Provider value={section === undefined ? undefined : { section, select: noop }}>
+      <AiConfigView state={READY} onRetry={noop} claudePanel={<p>设置占位</p>} />
+    </SectionContext.Provider>,
   );
 }
-
-const BOARD: BoardViewContextValue = { ...COMPACT, view: "board", isBoard: true };
 
 describe("AI config sections", () => {
   it("renders the four tool sections as tabs with the selected one current", () => {
@@ -62,10 +48,6 @@ describe("AI config sections", () => {
     expect(markup.match(/data-section-id="/g)).toHaveLength(4);
     const current = markup.match(/<[a-z]+[^>]*data-section-id="codex"[^>]*>/)?.[0] ?? "";
     expect(current).toContain('aria-current="true"');
-  });
-
-  it("shows no section tabs in the board view", () => {
-    expect(render("codex", BOARD)).not.toContain("data-section-id");
   });
 
   it("selects the Claude Code panels for the claude section", () => {

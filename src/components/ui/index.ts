@@ -1,5 +1,4 @@
 export { ActionRow } from "./ActionRow";
-export { BoardToggle } from "./BoardToggle";
 export { BrandMark } from "./BrandMark";
 export { Button, type ButtonProps } from "./Button";
 export { Modal } from "./Modal";

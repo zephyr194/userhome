@@ -50,13 +50,12 @@ function containerBody(block: string, condition: string): string {
 }
 
 describe("PageShell 舱头", () => {
-  it("从左到右依次为标题、状态、操作区与看板切换插槽", () => {
+  it("从左到右依次为标题、状态与操作区", () => {
     const markup = renderToStaticMarkup(
       <PageShell
         title="Caddy"
         status={{ tone: "success", text: "运行中" }}
         actions={<button type="button">刷新</button>}
-        boardToggle={<button type="button">▣ 看板</button>}
         layout="board"
       >
         <BoardCell span={12}>内容</BoardCell>
@@ -66,8 +65,7 @@ describe("PageShell 舱头", () => {
     expect(markup).toContain("Caddy");
     expect(markup).toContain("运行中");
     expect(markup).toContain("刷新");
-    expect(markup).toContain("▣ 看板");
-    const order = ["Caddy", "运行中", "刷新", "▣ 看板"].map((text) => markup.indexOf(text));
+    const order = ["Caddy", "运行中", "刷新"].map((text) => markup.indexOf(text));
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
@@ -76,7 +74,6 @@ describe("PageShell 舱头", () => {
     expect(markup).toContain("服务");
     expect(markup).not.toContain("page-shell__status");
     expect(markup).not.toContain("page-shell__actions");
-    expect(markup).not.toContain("page-shell__board-toggle");
   });
 
   it("状态点只做装饰，文字承载含义，并带上对应语气类", () => {

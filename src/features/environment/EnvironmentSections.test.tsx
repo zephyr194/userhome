@@ -1,27 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { BoardViewContext, type BoardViewContextValue } from "../../app/BoardViewContext";
 import { SectionContext } from "../../app/SectionContext";
 import { EnvironmentPage } from "./EnvironmentPage";
 
 const noop = () => undefined;
 
-const COMPACT: BoardViewContextValue = {
-  available: true,
-  view: "compact",
-  isBoard: false,
-  enter: noop,
-  exit: noop,
-  toggle: noop,
-};
-
 function render(section?: string): string {
   return renderToStaticMarkup(
-    <BoardViewContext.Provider value={COMPACT}>
-      <SectionContext.Provider value={section === undefined ? undefined : { section, select: noop }}>
-        <EnvironmentPage />
-      </SectionContext.Provider>
-    </BoardViewContext.Provider>,
+    <SectionContext.Provider value={section === undefined ? undefined : { section, select: noop }}>
+      <EnvironmentPage />
+    </SectionContext.Provider>,
   );
 }
 

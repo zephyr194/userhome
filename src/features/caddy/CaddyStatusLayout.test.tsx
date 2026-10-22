@@ -1,6 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { BoardViewContext, type BoardViewContextValue } from "../../app/BoardViewContext";
 import type { CaddyDetectReport, CaddyRules } from "../../ipc/caddy";
 import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
 import { CaddyPage } from "./CaddyPage";
@@ -51,20 +50,8 @@ function detect(state: DetectState): string {
   return renderToStaticMarkup(<CaddyDetectPanel state={state} onRetry={NOOP} />);
 }
 
-function page(isBoard: boolean): string {
-  const board: BoardViewContextValue = {
-    available: true,
-    view: isBoard ? "board" : "compact",
-    isBoard,
-    enter: NOOP,
-    exit: NOOP,
-    toggle: NOOP,
-  };
-  return renderToStaticMarkup(
-    <BoardViewContext.Provider value={board}>
-      <CaddyPage />
-    </BoardViewContext.Provider>,
-  );
+function page(): string {
+  return renderToStaticMarkup(<CaddyPage />);
 }
 
 describe("Caddy 检测区占位（FE-3）", () => {
@@ -124,18 +111,13 @@ describe("规则行（FE-3）", () => {
   });
 });
 
-describe("Caddy 页状态条与看板（FE-3）", () => {
+describe("Caddy 页状态条（FE-3）", () => {
   it("places workdir and detect in one status panel above the editor", () => {
-    const html = page(false);
+    const html = page();
     const panel = html.search(/class="[^"]*\bcaddy-status\b/);
     expect(panel).toBeGreaterThan(-1);
     expect(html.indexOf("工作目录")).toBeGreaterThan(panel);
     expect(html.indexOf("Caddy 检测")).toBeGreaterThan(panel);
     expect(html.indexOf("正在读取已保存的规则")).toBeGreaterThan(html.indexOf("Caddy 检测"));
-  });
-
-  it("board view gives the status strip and the raw editor full width rows", () => {
-    const html = page(true);
-    expect(html.match(/page-shell__cell--span-12/g)?.length).toBeGreaterThanOrEqual(2);
   });
 });

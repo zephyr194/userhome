@@ -53,8 +53,6 @@ export interface AppRoute {
    * entry.
    */
   group?: NavGroupId;
-  /** Module pages that offer a full-board view next to the compact one. */
-  hasBoard?: boolean;
   /** Section tabs shown above the content of the tool page. */
   sections?: readonly AppRouteSection[];
 }
@@ -105,7 +103,6 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrow: "后台服务",
     description: "发现并查看本机常驻任务（launchd），管理自建任务。",
     group: "support",
-    hasBoard: true,
   },
   environment: {
     icon: "environment",
@@ -113,7 +110,6 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrow: "环境文件",
     description: "在指定目录中只读查看 dotenv 文件，秘密值默认遮盖。",
     group: "system-tools",
-    hasBoard: true,
     sections: [
       { id: "dotenv", label: "dotenv 文件" },
       { id: "zsh", label: "zsh 启动文件" },
@@ -125,7 +121,6 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrow: "本地代理",
     description: "检测 Caddy 并编辑本机反向代理规则；保存不会启动或重载 Caddy。",
     group: "system-tools",
-    hasBoard: true,
     sections: [
       { id: "rules", label: "站点规则" },
       { id: "run", label: "运行" },
@@ -138,7 +133,6 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrow: "只读配置",
     description: "按登记的默认位置只读查看应用配置，秘密值默认遮盖。",
     group: "system-tools",
-    hasBoard: true,
   },
   aiConfig: {
     icon: "aiConfig",
@@ -146,7 +140,6 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrow: "AI 工具",
     description: "只读检测 Claude Code、Codex、Gemini 与 Copilot CLI 的安装状态、版本与配置位置。",
     group: "system-tools",
-    hasBoard: true,
     sections: [
       { id: "claude", label: "Claude Code" },
       { id: "codex", label: "Codex CLI" },
@@ -173,10 +166,6 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
 export const APP_ROUTES: readonly AppRoute[] = (
   Object.keys(ROUTE_REGISTRY) as AppRouteId[]
 ).map((id) => ({ id, ...ROUTE_REGISTRY[id] }));
-
-export function routeSupportsBoard(routeId: AppRouteId): boolean {
-  return ROUTE_REGISTRY[routeId].hasBoard === true;
-}
 
 export interface NavGroupRoutes {
   group: NavGroup;

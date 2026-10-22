@@ -1,28 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import {
-  BoardViewContext,
-  type BoardViewContextValue,
-} from "../../app/BoardViewContext";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import { AiConfigView } from "./AiConfigView";
 import { selectedToolOf, showsClaudePanel, type AiConfigState } from "./aiConfigModel";
 
 const noop = () => undefined;
-
-const COMPACT: BoardViewContextValue = {
-  available: true,
-  view: "compact",
-  isBoard: false,
-  enter: noop,
-  exit: noop,
-  toggle: noop,
-};
-const BOARD: BoardViewContextValue = {
-  ...COMPACT,
-  view: "board",
-  isBoard: true,
-};
 
 function tool(overrides: Partial<AiToolReport>): AiToolReport {
   return {
@@ -67,33 +49,19 @@ const TOOLS: AiToolReport[] = [
 
 const READY: AiConfigState = { status: "ready", report: { tools: TOOLS } };
 
-function renderView(context: BoardViewContextValue): string {
+function renderView(): string {
   return renderToStaticMarkup(
-    <BoardViewContext.Provider value={context}>
-      <AiConfigView
-        state={READY}
-        onRetry={noop}
-        claudePanel={<p>设置占位</p>}
-      />
-    </BoardViewContext.Provider>,
-  );
-}
-
-function withoutClasses(markup: string): string {
-  return markup.replace(/ class="[^"]*"/g, "");
-}
-
-/** The section tab strip exists only in the compact view, so it is cut out before comparing the trees. */
-function withoutSectionTabs(markup: string): string {
-  return markup.replace(
-    /<button[^>]*aria-hidden="true"[^>]*><\/button><div class="col-span-full min-w-0">[\s\S]*?<\/div><\/div>/,
-    "",
+    <AiConfigView
+      state={READY}
+      onRetry={noop}
+      claudePanel={<p>设置占位</p>}
+    />,
   );
 }
 
 describe("AI 配置页布局（UIB-4d）", () => {
   it("uses the master-detail layout in the compact view", () => {
-    const markup = renderView(COMPACT);
+    const markup = renderView();
     expect(markup).toContain("page-shell__layout--master-detail");
     expect(markup).not.toContain("page-shell__layout--board");
     expect(markup).not.toContain("page-shell__cell--span-");
@@ -102,31 +70,12 @@ describe("AI 配置页布局（UIB-4d）", () => {
     expect(markup).toContain("设置占位");
   });
 
-  it("uses the board layout with a 4 tool list and an 8 detail column, keeping every block visible", () => {
-    const markup = renderView(BOARD);
-    expect(markup).toContain("page-shell__layout--board");
-    expect(markup).not.toContain("page-shell__layout--master-detail");
-    expect(markup).toContain("page-shell__cell--span-4");
-    expect(markup).toContain("page-shell__cell--span-8");
-    expect(markup).toContain("AI 工具列表");
-    expect(markup).toContain('aria-label="所选工具"');
-    expect(markup).toContain("设置占位");
-  });
-
-  it("renders the same element tree in both views so switching never remounts", () => {
-    expect(withoutClasses(renderView(BOARD))).toBe(
-      withoutClasses(withoutSectionTabs(renderView(COMPACT))),
-    );
-  });
-
   it("leaves the page heading to the app shell", () => {
-    for (const markup of [renderView(COMPACT), renderView(BOARD)]) {
-      expect(markup).not.toContain("<h1");
-    }
+    expect(renderView()).not.toContain("<h1");
   });
 
   it("marks only the default Claude Code row as the current selection with the slide selection language", () => {
-    const markup = renderView(COMPACT);
+    const markup = renderView();
     const toolList = markup.match(/<ul aria-label="AI 工具列表"[\s\S]*?<\/ul>/)?.[0] ?? "";
     expect(toolList.match(/class="[^"]*\bslide-item\b[^"]*"/g)).toHaveLength(4);
     expect(toolList.match(/aria-current="true"/g)).toHaveLength(1);

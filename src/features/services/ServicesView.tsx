@@ -1,5 +1,4 @@
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
-import { useBoardView } from "../../app/BoardViewContext";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
@@ -10,7 +9,7 @@ import {
   TextField,
 } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
-import type { BoardSpan } from "../../components/ui/PageShell";
+import { PageRegion } from "../../components/ui/PageShell";
 import {
   LAUNCHD_DOMAINS,
   LAUNCHD_OWNERSHIPS,
@@ -95,17 +94,13 @@ const STATUS_OPTIONS = [
 
 export function ServicesView(props: ServicesViewProps) {
   const { state } = props;
-  const { isBoard } = useBoardView();
   const services =
     state.status === "ready" ? state.discovery.services : undefined;
   const visible = services ? filterServices(services, props.filter) : [];
 
   return (
-    <PageShell
-      layout={isBoard ? "board" : "master-detail"}
-      scrollKey={isBoard ? "board" : "compact"}
-    >
-      <Region span={isBoard ? 4 : undefined}>
+    <PageShell layout="master-detail" scrollKey="compact">
+      <PageRegion>
         <section
           className="grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
           aria-labelledby="services-heading"
@@ -147,37 +142,17 @@ export function ServicesView(props: ServicesViewProps) {
             />
           </div>
         </section>
-      </Region>
+      </PageRegion>
 
-      <Region span={isBoard ? 8 : undefined}>
+      <PageRegion>
         <section
           className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-ui-12 overscroll-contain"
           aria-label="任务详情"
         >
           <DetailsPane {...props} visible={visible} />
         </section>
-      </Region>
+      </PageRegion>
     </PageShell>
-  );
-}
-
-/** Same element in both views, so switching views never remounts the panes. */
-function Region({
-  span,
-  children,
-}: {
-  span?: BoardSpan;
-  children: ReactNode;
-}) {
-  return (
-    <div
-      className={classNames(
-        "grid min-h-0 min-w-0",
-        span !== undefined && `page-shell__cell page-shell__cell--span-${span}`,
-      )}
-    >
-      {children}
-    </div>
   );
 }
 

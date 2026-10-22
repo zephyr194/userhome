@@ -134,10 +134,9 @@ describe("UIB-5 全局审计", () => {
 });
 
 describe("UIF-4b 对齐审计", () => {
-  it("AppShell 工具栏的看板与刷新按钮使用同一个 ActionRow", () => {
+  it("AppShell 工具栏的刷新按钮位于 ActionRow 中", () => {
     const shell = read(join(srcRoot, "app/AppShell.tsx"));
     const row = shell.match(/<ActionRow>([\s\S]*?)<\/ActionRow>/);
-    expect(row?.[1]).toContain("<BoardToggle />");
     expect(row?.[1]).toContain("toolbar-refresh-button");
     expect(row?.[1]).not.toContain('size="sm"');
   });
