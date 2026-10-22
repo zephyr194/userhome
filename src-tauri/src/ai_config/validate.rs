@@ -2,9 +2,9 @@ use std::cmp::Ordering;
 use std::collections::{BTreeSet, HashSet};
 
 use super::registry::{
-    BUILTIN_DEFINITIONS_JSON, CLAUDE_CODE_DEFINITIONS_JSON, CoverageStatus,
-    DEFINITION_SCHEMA_VERSION, Definitions, EnvDefinition, FlagDefinition, IssueKind,
-    ListingCoverage, RegistryError, ResourceDefinition, SettingDefinition, SourceRef,
+    BUILTIN_DEFINITIONS_JSON, CLAUDE_CODE_DEFINITIONS_JSON, CODEX_CLI_DEFINITIONS_JSON,
+    CoverageStatus, DEFINITION_SCHEMA_VERSION, Definitions, EnvDefinition, FlagDefinition,
+    IssueKind, ListingCoverage, RegistryError, ResourceDefinition, SettingDefinition, SourceRef,
     ToolDefinition, ValidationIssue, ValueType, VerifiedVersions, parse_definitions,
 };
 
@@ -18,9 +18,9 @@ pub fn load_builtin() -> Result<Definitions, RegistryError> {
 
 pub fn load_all() -> Result<Definitions, RegistryError> {
     let mut merged = parse_definitions(BUILTIN_DEFINITIONS_JSON)?;
-    merged
-        .tools
-        .extend(parse_definitions(CLAUDE_CODE_DEFINITIONS_JSON)?.tools);
+    for json in [CLAUDE_CODE_DEFINITIONS_JSON, CODEX_CLI_DEFINITIONS_JSON] {
+        merged.tools.extend(parse_definitions(json)?.tools);
+    }
     validate(&merged)?;
     Ok(merged)
 }

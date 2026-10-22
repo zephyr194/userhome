@@ -1,0 +1,2083 @@
+{
+  "schemaVersion": 1,
+  "tools": [
+    {
+      "id": "codex-cli",
+      "displayName": "OpenAI Codex CLI",
+      "executableNames": [
+        "codex"
+      ],
+      "source": {
+        "url": "https://developers.openai.com/codex/config-schema.json",
+        "retrievedOn": "2026-10-22",
+        "documentedVersion": "unknown"
+      },
+      "resources": [
+        {
+          "id": "codex-user-config",
+          "layer": "userLevel",
+          "format": "toml",
+          "location": "{home}/.codex/config.toml",
+          "description": "用户级配置文件 config.toml。schema 的描述以 config.toml 作为配置文件；其默认位置 {home}/.codex/config.toml 与 CODEX_HOME 重定位语义未经官方文档核实，位置为待核验的默认值。本快照不读取该文件。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "codex-project-config",
+          "layer": "projectShared",
+          "format": "toml",
+          "location": "{project}/.codex/config.toml",
+          "description": "待核验：项目级配置文件路径与“仅在项目被信任时加载”的规则未经官方文档核实（官方文档页重定向到允许来源之外）。本快照不读取该文件。",
+          "coverage": "unsupported",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-basic",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "codex-managed-config",
+          "layer": "managed",
+          "format": "toml",
+          "location": "{managed}/config.toml",
+          "description": "待核验：系统/托管层配置的路径、格式与覆盖顺序未经官方文档核实，位置为占位。本快照不读取该文件。",
+          "coverage": "unsupported",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-basic",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "codex-auth-credentials",
+          "layer": "userLevel",
+          "format": "text",
+          "location": "{home}/.codex/auth.json",
+          "description": "仅元数据（位置待核验）：schema 的 cli_auth_credentials_store 描述称 CLI 凭据存放于 CODEX_HOME/auth.json。本快照只标注文件是否存在，不读取内容；格式未核实，按 text 处理。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "codex-mcp-oauth-credentials",
+          "layer": "userLevel",
+          "format": "text",
+          "location": "{home}/.codex/.credentials.json",
+          "description": "仅元数据（位置待核验）：schema 的 mcp_oauth_credentials_store 描述称 MCP 凭据存放于 CODEX_HOME/.credentials.json。本快照只标注文件是否存在，不读取内容；格式未核实，按 text 处理。",
+          "coverage": "versionUnknown",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        }
+      ],
+      "settings": [
+        {
+          "id": "agents",
+          "keyPath": "agents",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Agent-related settings (thread limits, etc.).",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allow_login_shell",
+          "keyPath": "allow_login_shell",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Whether the model may request a login shell for shell-based tools. Default to `true`\n\nIf `true`, the model may request a login shell (`login = true`), and omitting `login` defaults to using a login shell. If `false`, the model can never use a login shell: `login = true` requests are rejected, and omitting `login` defaults to a non-login shell.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "allow_symlinked_codex_home",
+          "keyPath": "allow_symlinked_codex_home",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Allow macOS sandbox writable roots at or beneath CODEX_HOME to traverse symlinks. Read only from the host's user config at startup; defaults to false. This grants no write access by itself, but trusts symlink targets even if they change between commands or lie outside CODEX_HOME. This setting has no effect on Linux or Windows.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "executesCommand",
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "analytics",
+          "keyPath": "analytics",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "When `enabled` is `false`, disables OpenAI analytics across Codex product surfaces on this machine. Custom OTLP metrics exporters are controlled by `otel.metrics_exporter`. When unset, the default depends on the client.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "approval_policy",
+          "keyPath": "approval_policy",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Default approval policy for executing commands.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "executesCommand",
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "approvals_reviewer",
+          "keyPath": "approvals_reviewer",
+          "valueType": "enum",
+          "allowedValues": [
+            "user",
+            "auto_review",
+            "guardian_subagent"
+          ],
+          "description": "Configures who approval requests are routed to for review once they have been escalated. This does not disable separate safety checks such as ARC.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "apps",
+          "keyPath": "apps",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Settings for app-specific controls.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "apps_mcp_product_sku",
+          "keyPath": "apps_mcp_product_sku",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Optional product SKU forwarded on host-owned Codex Apps MCP requests.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "audio",
+          "keyPath": "audio",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Machine-local realtime audio device preferences used by realtime voice.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "auto_review",
+          "keyPath": "auto_review",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Optional policy instructions for the guardian auto-reviewer.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "background_terminal_max_timeout",
+          "keyPath": "background_terminal_max_timeout",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Maximum poll window for background terminal output (`write_stdin`), in milliseconds. Default: `300000` (5 minutes).",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "browser_use",
+          "keyPath": "browser_use",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "chatgpt_base_url",
+          "keyPath": "chatgpt_base_url",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Base URL for requests to ChatGPT (as opposed to the OpenAI API).",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "check_for_update_on_startup",
+          "keyPath": "check_for_update_on_startup",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "When `true`, checks for Codex updates on startup and surfaces update prompts. Set to `false` only if your Codex updates are centrally managed. Defaults to `true`.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "cli_auth_credentials_store",
+          "keyPath": "cli_auth_credentials_store",
+          "valueType": "enum",
+          "allowedValues": [
+            "file",
+            "keyring",
+            "auto",
+            "ephemeral"
+          ],
+          "description": "Preferred backend for storing CLI auth credentials. file (default): Use a file in the Codex home directory. keyring: Use an OS-specific keyring service. auto: Use the keyring if available, otherwise use a file.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "cloud",
+          "keyPath": "cloud",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Cloud-owned feature settings.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "compact_prompt",
+          "keyPath": "compact_prompt",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Compact prompt used for history compaction.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "computer_use",
+          "keyPath": "computer_use",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "daybreak",
+          "keyPath": "daybreak",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Default Daybreak preference for new threads and non-interactive turns.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "default_permissions",
+          "keyPath": "default_permissions",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Default permissions profile to apply. Names starting with `:` refer to built-in profiles; other names are resolved from the `[permissions]` table.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "desktop",
+          "keyPath": "desktop",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Opaque desktop settings stored alongside the rest of config.toml.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "developer_instructions",
+          "keyPath": "developer_instructions",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Developer instructions inserted as a `developer` role message.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "disable_paste_burst",
+          "keyPath": "disable_paste_burst",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Legacy fallback for `tui.disable_paste_burst`. Prefer the setting under `[tui]`.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_compact_prompt_file",
+          "keyPath": "experimental_compact_prompt_file",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_realtime_start_instructions",
+          "keyPath": "experimental_realtime_start_instructions",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Replaces the built-in realtime start instructions inserted into developer messages when realtime becomes active.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_realtime_webrtc_call_base_url",
+          "keyPath": "experimental_realtime_webrtc_call_base_url",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Overrides only the WebRTC realtime call creation base URL. This is separate from `experimental_realtime_ws_base_url` because WebRTC call creation is HTTP, while sideband control is websocket.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_realtime_ws_backend_prompt",
+          "keyPath": "experimental_realtime_ws_backend_prompt",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Overrides only the realtime conversation websocket transport instructions (the `Op::RealtimeConversation` `/ws` session.update instructions) without changing normal prompts.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_realtime_ws_base_url",
+          "keyPath": "experimental_realtime_ws_base_url",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Overrides only the realtime conversation websocket transport base URL (the `Op::RealtimeConversation` `/v1/realtime` connection) without changing normal provider HTTP requests.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_realtime_ws_model",
+          "keyPath": "experimental_realtime_ws_model",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Selects the realtime websocket model/snapshot used for the `Op::RealtimeConversation` connection.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_realtime_ws_startup_context",
+          "keyPath": "experimental_realtime_ws_startup_context",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Replaces the synthesized realtime startup context appended to websocket session instructions. An empty string disables startup context injection entirely.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_thread_store",
+          "keyPath": "experimental_thread_store",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Selects the thread store implementation.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "experimental_use_unified_exec_tool",
+          "keyPath": "experimental_use_unified_exec_tool",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "features",
+          "keyPath": "features",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Centralized feature flags (new). Prefer this over individual toggles.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "feedback",
+          "keyPath": "feedback",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "When `false`, disables feedback collection across Codex product surfaces. Defaults to `true`.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "file_opener",
+          "keyPath": "file_opener",
+          "valueType": "enum",
+          "allowedValues": [
+            "vscode",
+            "vscode-insiders",
+            "windsurf",
+            "cursor",
+            "none"
+          ],
+          "description": "Optional URI-based file opener. If set, citations to files in the model output will be hyperlinked using the specified URI scheme.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "forced_chatgpt_workspace_id",
+          "keyPath": "forced_chatgpt_workspace_id",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "When set, restricts ChatGPT login to one or more workspace identifiers.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "forced_login_method",
+          "keyPath": "forced_login_method",
+          "valueType": "enum",
+          "allowedValues": [
+            "chatgpt",
+            "api"
+          ],
+          "description": "When set, restricts the login mechanism users may use.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "ghost_snapshot",
+          "keyPath": "ghost_snapshot",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Compatibility-only settings retained so legacy `ghost_snapshot` config still loads.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "goals",
+          "keyPath": "goals",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Goal-related settings.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "hide_agent_reasoning",
+          "keyPath": "hide_agent_reasoning",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "When set to `true`, `AgentReasoning` events will be hidden from the UI/output. Defaults to `false`.",
+          "defaultNote": "schema 默认值：false",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "history",
+          "keyPath": "history",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Settings that govern if and what will be written to `~/.codex/history.jsonl`.",
+          "defaultNote": "schema 默认值：{\"max_bytes\":null,\"persistence\":\"save-all\"}",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "hooks",
+          "keyPath": "hooks",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Lifecycle hooks configured inline in TOML plus user-level overrides.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "include_apps_instructions",
+          "keyPath": "include_apps_instructions",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Whether to inject the `<apps_instructions>` developer block.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "include_collaboration_mode_instructions",
+          "keyPath": "include_collaboration_mode_instructions",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Whether to inject the `<collaboration_mode>` developer block.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "include_environment_context",
+          "keyPath": "include_environment_context",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Whether to inject the `<environment_context>` user block.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "include_environment_context_time",
+          "keyPath": "include_environment_context_time",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Whether environment context includes the current date and timezone.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "include_permissions_instructions",
+          "keyPath": "include_permissions_instructions",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Whether to inject the `<permissions instructions>` developer block.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "instructions",
+          "keyPath": "instructions",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "System instructions.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "log_dir",
+          "keyPath": "log_dir",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Directory where Codex writes log files. Setting this value explicitly also enables the TUI text log in this directory. Defaults to `$CODEX_HOME/log`.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "marketplaces",
+          "keyPath": "marketplaces",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "User-level marketplace entries keyed by marketplace name.",
+          "defaultNote": "schema 默认值：{}",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mcp_enterprise_managed_auth",
+          "keyPath": "mcp_enterprise_managed_auth",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Trusted enterprise IdP shared by EMA-enabled MCP servers and plugins.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mcp_oauth_callback_port",
+          "keyPath": "mcp_oauth_callback_port",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Optional fixed port for the local HTTP callback server used during MCP OAuth login. When unset, Codex will bind to an ephemeral port chosen by the OS.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mcp_oauth_callback_url",
+          "keyPath": "mcp_oauth_callback_url",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Optional redirect URI to use during MCP OAuth login. When set, this URI is used in the OAuth authorization request instead of the local listener address. The local callback listener still binds to 127.0.0.1 (using `mcp_oauth_callback_port` when provided).",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mcp_oauth_credentials_store",
+          "keyPath": "mcp_oauth_credentials_store",
+          "valueType": "enum",
+          "allowedValues": [
+            "auto",
+            "file",
+            "keyring"
+          ],
+          "description": "Preferred backend for storing MCP OAuth credentials. keyring: Use an OS-specific keyring service. https://github.com/openai/codex/blob/main/codex-rs/rmcp-client/src/oauth.rs#L2 file: Use a file in the Codex home directory. auto (default): Use the OS-specific keyring service if available, otherwise use a file.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": true,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mcp_optional_startup_grace_ms",
+          "keyPath": "mcp_optional_startup_grace_ms",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Milliseconds to wait for optional MCP servers while building the initial tool catalog.\n\nDefaults to 1000. Set to 0 to disable the shared grace and wait for each server's configured `startup_timeout_sec` instead.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "mcp_servers",
+          "keyPath": "mcp_servers",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Definition for MCP servers that Codex can reach out to for tool calls.",
+          "defaultNote": "schema 默认值：{}",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "memories",
+          "keyPath": "memories",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Memories subsystem settings.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model",
+          "keyPath": "model",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Optional override of model selection.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_auto_compact_token_limit",
+          "keyPath": "model_auto_compact_token_limit",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Token usage threshold triggering auto-compaction of conversation history.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_auto_compact_token_limit_scope",
+          "keyPath": "model_auto_compact_token_limit_scope",
+          "valueType": "enum",
+          "allowedValues": [
+            "total",
+            "body_after_prefix"
+          ],
+          "description": "Controls whether the auto-compaction limit applies to the full context or only to tokens after the carried prefix in the current compaction window.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_catalog_json",
+          "keyPath": "model_catalog_json",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Optional path to a JSON model catalog (applied on startup only). Per-thread `config` overrides are accepted but do not reapply this (no-ops).",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_context_window",
+          "keyPath": "model_context_window",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Size of the context window for the model, in tokens.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_instructions_file",
+          "keyPath": "model_instructions_file",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Optional path to a file containing model instructions that will override the built-in instructions for the selected model. Users are STRONGLY DISCOURAGED from using this field, as deviating from the instructions sanctioned by Codex will likely degrade model performance.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_post_turn_compact_threshold_percent",
+          "keyPath": "model_post_turn_compact_threshold_percent",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Percentage of the usable context window that triggers compaction after a final response. Existing auto-compaction limits still apply. Omitted or zero disables turn-end compaction; valid values are 0–100.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_provider",
+          "keyPath": "model_provider",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Provider to use from the model_providers map.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_providers",
+          "keyPath": "model_providers",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "User-defined provider entries that extend the built-in list. Built-in IDs cannot be overridden.",
+          "defaultNote": "schema 默认值：{}",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_reasoning_effort",
+          "keyPath": "model_reasoning_effort",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_reasoning_summary",
+          "keyPath": "model_reasoning_summary",
+          "valueType": "enum",
+          "allowedValues": [
+            "auto",
+            "concise",
+            "detailed",
+            "none"
+          ],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "model_verbosity",
+          "keyPath": "model_verbosity",
+          "valueType": "enum",
+          "allowedValues": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "description": "Optional verbosity control for GPT-5 models (Responses API `text.verbosity`).",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "notice",
+          "keyPath": "notice",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Collection of in-product notices (different from notifications) See [`crate::types::Notice`] for more details",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "notify",
+          "keyPath": "notify",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Optional external command to spawn for end-user notifications.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "openai_base_url",
+          "keyPath": "openai_base_url",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Base URL override for the built-in `openai` model provider.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "orchestrator",
+          "keyPath": "orchestrator",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Orchestrator-owned feature settings.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "oss_provider",
+          "keyPath": "oss_provider",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Preferred OSS provider for local models, e.g. \"lmstudio\" or \"ollama\".",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "otel",
+          "keyPath": "otel",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "OTEL configuration.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "permissions",
+          "keyPath": "permissions",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Named permissions profiles.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "personality",
+          "keyPath": "personality",
+          "valueType": "enum",
+          "allowedValues": [
+            "none",
+            "friendly",
+            "pragmatic"
+          ],
+          "description": "Deprecated: `friendly` and `pragmatic` no longer select a style.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "plan_mode_reasoning_effort",
+          "keyPath": "plan_mode_reasoning_effort",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "plugins",
+          "keyPath": "plugins",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Default and per-plugin settings keyed by exact `<plugin>@<marketplace>` IDs.",
+          "defaultNote": "schema 默认值：{}",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "profile",
+          "keyPath": "profile",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Profile to use from the `profiles` map.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "profiles",
+          "keyPath": "profiles",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Named profiles to facilitate switching between different configurations.",
+          "defaultNote": "schema 默认值：{}",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "project_doc_fallback_filenames",
+          "keyPath": "project_doc_fallback_filenames",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Ordered list of fallback filenames to look for when AGENTS.md is missing.",
+          "defaultNote": "schema 默认值：[]",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "project_doc_max_bytes",
+          "keyPath": "project_doc_max_bytes",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Maximum total bytes of project instruction content across all selected environments.",
+          "defaultNote": "schema 默认值：32768",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "project_root_markers",
+          "keyPath": "project_root_markers",
+          "valueType": "stringArray",
+          "allowedValues": [],
+          "description": "Markers used to detect the project root when searching parent directories for `.codex` folders. Defaults to [\".git\"] when unset.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "projects",
+          "keyPath": "projects",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "realtime",
+          "keyPath": "realtime",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Experimental / do not use. Realtime websocket session selection. `version` controls v1/v2 and `type` controls conversational/transcription.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "executesCommand",
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "responses_api_metadata",
+          "keyPath": "responses_api_metadata",
+          "valueType": "object",
+          "allowedValues": [],
+          "description": "Bounded, product-owned metadata attached to every Responses API request.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "review_model",
+          "keyPath": "review_model",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Review model override used by the `/review` feature.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox_mode",
+          "keyPath": "sandbox_mode",
+          "valueType": "enum",
+          "allowedValues": [
+            "read-only",
+            "workspace-write",
+            "danger-full-access"
+          ],
+          "description": "Sandbox mode to use.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sandbox_workspace_write",
+          "keyPath": "sandbox_workspace_write",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Sandbox configuration to apply if `sandbox` is `WorkspaceWrite`.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "relaxesPermissions"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "service_tier",
+          "keyPath": "service_tier",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Optional explicit service tier request id for new turns (for example `default`, `priority`, or `flex`; legacy `fast` also works).",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "shell_environment_policy",
+          "keyPath": "shell_environment_policy",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "schema 未提供描述（未核实）",
+          "defaultNote": "schema 默认值：{\"exclude\":null,\"experimental_use_profile\":null,\"filters\":null,\"ignore_default_excludes\":null,\"include_only\":null,\"inherit\":null,\"set\":null}",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "executesCommand"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "show_raw_agent_reasoning",
+          "keyPath": "show_raw_agent_reasoning",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "When set to `true`, `AgentReasoningRawContentEvent` events will be shown in the UI/output. Defaults to `false`.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "skills",
+          "keyPath": "skills",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "User-level skill config entries keyed by SKILL.md path.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "sqlite_home",
+          "keyPath": "sqlite_home",
+          "valueType": "string",
+          "allowedValues": [],
+          "description": "Directory where Codex stores the SQLite state DB. Defaults to `$CODEX_SQLITE_HOME` when set. Otherwise uses `$CODEX_HOME`.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "suppress_unstable_features_warning",
+          "keyPath": "suppress_unstable_features_warning",
+          "valueType": "boolean",
+          "allowedValues": [],
+          "description": "Suppress warnings about unstable (under development) features.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "thread_unload_delay_secs",
+          "keyPath": "thread_unload_delay_secs",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Seconds a thread must have no subscribers and no activity before app-server unloads it. Defaults to 1800 (30 minutes); zero unloads immediately. Changes require a server restart.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [
+            "externalServer"
+          ],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tool_output_token_limit",
+          "keyPath": "tool_output_token_limit",
+          "valueType": "number",
+          "allowedValues": [],
+          "description": "Token budget applied when storing tool/function outputs in the context manager.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tool_suggest",
+          "keyPath": "tool_suggest",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Additional discoverable tools that can be suggested for installation.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tools",
+          "keyPath": "tools",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Nested tools section for feature toggles",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "tui",
+          "keyPath": "tui",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Collection of settings that are specific to the TUI.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "web_search",
+          "keyPath": "web_search",
+          "valueType": "enum",
+          "allowedValues": [
+            "disabled",
+            "cached",
+            "indexed",
+            "live"
+          ],
+          "description": "Controls the web search tool mode: disabled, cached, indexed, or live.",
+          "defaultNote": "schema 未声明默认值",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        },
+        {
+          "id": "windows",
+          "keyPath": "windows",
+          "valueType": "unknown",
+          "allowedValues": [],
+          "description": "Windows-specific configuration.",
+          "defaultNote": "schema 默认值：null",
+          "mergeRule": "文档未给出合并规则（未核实）",
+          "risks": [],
+          "secret": false,
+          "coverage": "displayOnly",
+          "versions": null,
+          "source": {
+            "url": "https://developers.openai.com/codex/config-schema.json",
+            "retrievedOn": "2026-10-22",
+            "documentedVersion": "unknown"
+          }
+        }
+      ],
+      "flags": [],
+      "env": [],
+      "flagsCoverage": {
+        "snapshotComplete": false,
+        "coverageNote": "flags 快照待 AI-8 补充：本任务未收录任何命令行参数，未收录项不可用于命令生成。",
+        "source": {
+          "url": "https://developers.openai.com/codex/config-schema.json",
+          "retrievedOn": "2026-10-22",
+          "documentedVersion": "unknown"
+        }
+      },
+      "envCoverage": {
+        "snapshotComplete": false,
+        "coverageNote": "env 快照待 AI-8 补充：本任务未收录任何环境变量，未收录项不可用于命令生成。",
+        "source": {
+          "url": "https://developers.openai.com/codex/config-schema.json",
+          "retrievedOn": "2026-10-22",
+          "documentedVersion": "unknown"
+        }
+      }
+    }
+  ]
+}
