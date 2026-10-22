@@ -7,6 +7,20 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   { ignores: ["dist", "src-tauri/target"] },
   {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/components/ui/forms/**", "**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "JSXOpeningElement[name.name=/^(input|select|textarea|option)$/]",
+          message: "请使用 src/components/ui/forms 的组件，不要直接使用原生表单元素",
+        },
+      ],
+    },
+  },
+  {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {

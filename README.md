@@ -80,6 +80,10 @@ pnpm tauri build --target universal-apple-darwin
 `pnpm check:rust` 的测试步骤无法得出有效结果。此类环境应在 CI 或其他机器上运行 Rust 测试；
 本机仍可运行 `cargo fmt --check` 与 `clippy` 编译检查。
 
+## 前端约定
+
+表单元素的唯一入口是 `src/components/ui/forms`，业务代码不得直接使用原生 `input`、`select`、`textarea`、`option`；ESLint 与 `nativeControlAudit` 测试会拦截这类用法。
+
 ## 桌面韧性与可访问性
 
 主窗口以居中的 1120 × 720 逻辑像素启动，最小尺寸同为 1120 × 720；
