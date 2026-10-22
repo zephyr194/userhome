@@ -76,6 +76,24 @@ export declare function mergeSchemaIntoDefinitions(
   snapshot: SchemaSnapshot,
 ): { definitions: Definitions; report: MergeReport };
 export declare function editableCount(definitions: Definitions): number;
+
+export interface EditablePolicy {
+  verifiedVersion: string;
+  decidedOn: string;
+  basis: string;
+  keys: string[];
+  excluded: { keyPath: string; reason: string }[];
+}
+
+export declare const EDITABLE_SECTION_TITLE: string;
+export declare function applyEditablePolicy(
+  definitions: Definitions,
+  policy: EditablePolicy,
+): Definitions;
+export declare function replaceEditableSection(
+  reportText: string,
+  policy: EditablePolicy,
+): string;
 export declare function renderCoverageReport(input: {
   report: MergeReport;
   snapshotInfo: { url: string; retrievedOn: string; sha256: string };

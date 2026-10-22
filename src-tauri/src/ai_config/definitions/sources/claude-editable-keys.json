@@ -1,0 +1,131 @@
+{
+  "verifiedVersion": "2.1.287",
+  "decidedOn": "2026-10-22",
+  "basis": "SchemaStore 快照（2026-10-22 抓取）为第三方托管，不声明适用的 Claude Code 版本。本机 claude --version 于 2026-10-22 实测为 2.1.287 (Claude Code)。因此已验证版本收窄为单一精确版本 2.1.287（min = max），其他版本一律由门禁拒绝。未做真实写入验证：未在 2.1.287 上对任何键执行写入并核对 Claude Code 的实际读取行为。",
+  "keys": [
+    "advisorModel",
+    "agent",
+    "alwaysThinkingEnabled",
+    "askUserQuestionTimeout",
+    "autoCompactEnabled",
+    "autoConnectIde",
+    "autoInstallIdeExtension",
+    "autoMemoryEnabled",
+    "autoScrollEnabled",
+    "autoUpdatesChannel",
+    "awaySummaryEnabled",
+    "axScreenReader",
+    "browserExternalPageTools",
+    "channelsEnabled",
+    "disableAgentView",
+    "disableArtifact",
+    "disableBrowserExternalNavigation",
+    "disableDeepLinkRegistration",
+    "disableMobileSimulatorTools",
+    "disableWorkflows",
+    "editorMode",
+    "effortLevel",
+    "emojiCompletionEnabled",
+    "enableArtifact",
+    "externalEditorContext",
+    "fastMode",
+    "fastModePerSessionOptIn",
+    "fileCheckpointingEnabled",
+    "includeCoAuthoredBy",
+    "includeGitInstructions",
+    "language",
+    "maxEffortLevel",
+    "model",
+    "outputStyle",
+    "permissionExplainerEnabled",
+    "preferredNotifChannel",
+    "prefersReducedMotion",
+    "promptCacheTtl",
+    "prUrlTemplate",
+    "respectGitignore",
+    "showClearContextOnPlanAccept",
+    "showThinkingSummaries",
+    "showTurnDuration",
+    "spinnerTipsEnabled",
+    "subagentPromptCacheTtl",
+    "switchModelsOnFlag",
+    "syntaxHighlightingDisabled",
+    "teammateMode",
+    "terminalProgressBarEnabled",
+    "tui",
+    "ultracode",
+    "verbose",
+    "viewMode",
+    "voiceEnabled",
+    "wheelScrollAccelerationEnabled",
+    "workflowKeywordTriggerEnabled",
+    "workflowSizeGuideline",
+    "wslInheritsWindowsSettings"
+  ],
+  "excluded": [
+    {
+      "keyPath": "allowManagedPermissionRulesOnly",
+      "reason": "托管策略类，改错可能锁死自身，本批不开放"
+    },
+    {
+      "keyPath": "autoMemoryDirectory",
+      "reason": "路径类设置，可指向任意目录，本批不开放"
+    },
+    {
+      "keyPath": "autoMode.classifyAllShell",
+      "reason": "权限分类相关（对 shell 命令分类），本批不开放"
+    },
+    {
+      "keyPath": "availableModelsMatch",
+      "reason": "托管策略类，改错可能锁死模型选择，本批不开放"
+    },
+    {
+      "keyPath": "claudeMd",
+      "reason": "内容为指令文本，改动即改变模型行为，属内容类，本批不开放"
+    },
+    {
+      "keyPath": "defaultShell",
+      "reason": "会执行外部程序（启动 shell），属于 executesCommand 风险，本批不开放"
+    },
+    {
+      "keyPath": "diffTool",
+      "reason": "会执行外部程序（差异工具），属于 executesCommand 风险，本批不开放"
+    },
+    {
+      "keyPath": "disableAutoMode",
+      "reason": "权限分类相关，改错会放宽或收紧自动模式，本批不开放"
+    },
+    {
+      "keyPath": "enforceAvailableModels",
+      "reason": "托管策略类，改错可能锁死模型选择，本批不开放"
+    },
+    {
+      "keyPath": "forceRemoteSettingsRefresh",
+      "reason": "托管策略类，改错会影响远程设置刷新，本批不开放"
+    },
+    {
+      "keyPath": "minimumVersion",
+      "reason": "托管版本约束，改错可能锁死自身，本批不开放"
+    },
+    {
+      "keyPath": "parentSettingsBehavior",
+      "reason": "托管策略类，改变设置合并行为，本批不开放"
+    },
+    {
+      "keyPath": "plansDirectory",
+      "reason": "路径类设置，可指向任意目录，本批不开放"
+    },
+    {
+      "keyPath": "requiredMaximumVersion",
+      "reason": "托管版本约束，改错可能锁死自身，本批不开放"
+    },
+    {
+      "keyPath": "requiredMinimumVersion",
+      "reason": "托管版本约束，改错可能锁死自身，本批不开放"
+    },
+    {
+      "keyPath": "useAutoModeDuringPlan",
+      "reason": "权限分类相关，改错会改变计划期间的权限行为，本批不开放"
+    }
+  ]
+}

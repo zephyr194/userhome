@@ -287,6 +287,98 @@ export function editableCount(definitions) {
   return tool.settings.filter((setting) => setting.coverage === "editable").length;
 }
 
+export const EDITABLE_SECTION_TITLE = "## 可编辑键（VC-1b）";
+const EDITABLE_VALUE_TYPES = new Set(["boolean", "enum", "string"]);
+
+function validateEditablePolicy(policy, definitions) {
+  const tool = definitions.tools.find((candidate) => candidate.id === CLAUDE_CODE_TOOL_ID);
+  const byKey = new Map(tool.settings.map((setting) => [setting.keyPath, setting]));
+  if (!/^\d+\.\d+\.\d+$/.test(policy.verifiedVersion)) {
+    throw new Error(`verifiedVersion 不合法：${policy.verifiedVersion}`);
+  }
+  const keys = new Set();
+  for (const keyPath of policy.keys) {
+    if (keys.has(keyPath)) {
+      throw new Error(`清单重复键：${keyPath}`);
+    }
+    keys.add(keyPath);
+    const setting = byKey.get(keyPath);
+    if (!setting) {
+      throw new Error(`清单键不存在于定义：${keyPath}`);
+    }
+    if (!EDITABLE_VALUE_TYPES.has(setting.valueType)) {
+      throw new Error(`清单键类型不允许可编辑：${keyPath}（${setting.valueType}）`);
+    }
+    if (setting.risks.length > 0) {
+      throw new Error(`清单键带风险标注，不允许可编辑：${keyPath}`);
+    }
+    if (setting.secret) {
+      throw new Error(`清单键为秘密键，不允许可编辑：${keyPath}`);
+    }
+  }
+  for (const item of policy.excluded) {
+    if (!byKey.has(item.keyPath)) {
+      throw new Error(`排除键不存在于定义：${item.keyPath}`);
+    }
+    if (keys.has(item.keyPath)) {
+      throw new Error(`键同时出现在清单与排除清单：${item.keyPath}`);
+    }
+    if (!item.reason) {
+      throw new Error(`排除键缺少理由：${item.keyPath}`);
+    }
+  }
+}
+
+export function applyEditablePolicy(definitions, policy) {
+  validateEditablePolicy(policy, definitions);
+  const tool = definitions.tools.find((candidate) => candidate.id === CLAUDE_CODE_TOOL_ID);
+  const editable = new Set(policy.keys);
+  for (const setting of tool.settings) {
+    if (editable.has(setting.keyPath)) {
+      setting.coverage = "editable";
+      setting.versions = { min: policy.verifiedVersion, max: policy.verifiedVersion };
+    } else {
+      setting.coverage = "displayOnly";
+      setting.versions = null;
+    }
+  }
+  return definitions;
+}
+
+function renderEditableSection(policy) {
+  const lines = [];
+  const push = (line = "") => lines.push(line);
+  push(EDITABLE_SECTION_TITLE);
+  push();
+  push("由 `sources/claude-editable-keys.json` 决定，脚本每次运行都会按清单重写本节。");
+  push();
+  push(`- 决定日期：${policy.decidedOn}（用户确认 G-V1 稳妥集）`);
+  push(`- 已验证版本：${policy.verifiedVersion}（versions 的 min 与 max 相同，即单一精确版本）`);
+  push(`- 可编辑键数：${policy.keys.length}；清单外的键保持 displayOnly，versions 为 null`);
+  push(`- 版本依据：${policy.basis}`);
+  push(`- 未做真实写入验证：本批未在 ${policy.verifiedVersion} 上对任何键执行写入并核对结果。`);
+  push();
+  push("### 提升清单");
+  push();
+  for (const keyPath of policy.keys) {
+    push(`- \`${keyPath}\``);
+  }
+  push();
+  push("### 排除清单（保持 displayOnly）");
+  push();
+  for (const item of policy.excluded) {
+    push(`- \`${item.keyPath}\`：${item.reason}`);
+  }
+  push();
+  return `${lines.join("\n")}\n`;
+}
+
+export function replaceEditableSection(reportText, policy) {
+  const index = reportText.indexOf(EDITABLE_SECTION_TITLE);
+  const base = index === -1 ? reportText : reportText.slice(0, index);
+  return `${base}${renderEditableSection(policy)}`;
+}
+
 export function renderCoverageReport({ report, snapshotInfo, localOnlyNested }) {
   const lines = [];
   const push = (line = "") => lines.push(line);
@@ -308,7 +400,7 @@ export function renderCoverageReport({ report, snapshotInfo, localOnlyNested }) 
   push(`- 排除（schema 有类型但保持 unknown）：${report.excluded.length}`);
   push(`- 冲突（保留本地值）：${report.conflicts.length}`);
   push(`- 复杂结构（保持 unknown）：${report.unresolvedComplex.length}`);
-  push(`- 本任务没有任何键变为可编辑：可编辑键数 = 0（coverage 全部为 displayOnly）`);
+  push("- 合并不改变 coverage 与 versions；可编辑键由清单决定，见文末“可编辑键”一节");
   push();
   push("### 按类型的数量");
   push();
