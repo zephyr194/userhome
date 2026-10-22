@@ -48,7 +48,7 @@ const TITLE_ID = "edit-service-heading";
 
 function Section({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="grid gap-ui-sm rounded-control bg-surface-muted px-ui-2xl py-ui-2xl">
+    <section className="grid gap-ui-8 rounded-control bg-surface-muted px-ui-12 py-ui-12">
       <h4 className="text-sm font-semibold">{title}</h4>
       {children}
     </section>
@@ -85,7 +85,7 @@ function FormBody({
   original: EditOriginal;
 }) {
   return (
-    <div className="grid gap-ui-3xl">
+    <div className="grid gap-ui-16">
       <p className="text-xs leading-relaxed text-muted-foreground">
         只修改下列字段，其余内容保持原样。保存只改写这个任务的配置文件，编辑后需重新加载任务才生效；本页不会加载或重启任务。
       </p>
@@ -102,7 +102,7 @@ function FormBody({
           value={form.executable}
         />
         {form.arguments.map((row, index) => (
-          <div className="grid gap-ui-md" key={row.id}>
+          <div className="grid gap-ui-8" key={row.id}>
             <TextField
               autoComplete="off"
               disabled={disabled}
@@ -112,7 +112,7 @@ function FormBody({
               spellCheck={false}
               value={row.value}
             />
-            <div className="flex flex-wrap gap-ui-sm">
+            <div className="flex flex-wrap gap-ui-8">
               <Button
                 disabled={disabled || index === 0}
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
@@ -180,11 +180,11 @@ function FormBody({
           已有的变量只显示名称，它们的值无法在这里看到。输入同名变量会覆盖其值。
         </p>
         {original.environmentKeys.length === 0 ? null : (
-          <ul className="grid gap-ui-sm">
+          <ul className="grid gap-ui-8">
             {original.environmentKeys.map((name) => {
               const removed = form.removedEnvironment.includes(name);
               return (
-                <li className="flex flex-wrap items-center gap-ui-sm" key={name}>
+                <li className="flex flex-wrap items-center gap-ui-8" key={name}>
                   <Mono>{name}</Mono>
                   <Button
                     disabled={disabled}
@@ -203,8 +203,8 @@ function FormBody({
           </ul>
         )}
         {form.environment.map((row, index) => (
-          <div className="grid gap-ui-md" key={row.id}>
-            <div className="grid gap-ui-sm sm:grid-cols-2">
+          <div className="grid gap-ui-8" key={row.id}>
+            <div className="grid gap-ui-8 sm:grid-cols-2">
               <TextField
                 autoComplete="off"
                 disabled={disabled}
@@ -249,7 +249,7 @@ function FormBody({
         </div>
       </Section>
 
-      <div className="grid gap-ui-2xl sm:grid-cols-2">
+      <div className="grid gap-ui-12 sm:grid-cols-2">
         <TextField
           autoComplete="off"
           description="留空表示不修改；清空已有的值会移除该项。"
@@ -298,7 +298,7 @@ function FormBody({
 
 function PreviewBody({ preview }: { preview: EditPreview }) {
   return (
-    <div className="grid gap-ui-3xl">
+    <div className="grid gap-ui-16">
       <Section title="将保存的文件">
         <p className="text-sm">
           <Mono>{preview.filePath}</Mono>
@@ -306,7 +306,7 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
       </Section>
 
       <Section title="变更字段">
-        <ul className="flex flex-wrap gap-ui-sm text-sm">
+        <ul className="flex flex-wrap gap-ui-8 text-sm">
           {preview.changes.map((change) => (
             <li key={change}>{changeLabel(change)}</li>
           ))}
@@ -318,7 +318,7 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
           <p className="text-xs text-muted-foreground">
             程序与参数逐项如下，不经 shell；敏感参数已隐藏。
           </p>
-          <ol className="grid gap-ui-xs text-sm">
+          <ol className="grid gap-ui-4 text-sm">
             <li>
               <Mono>{preview.executable}</Mono>
             </li>
@@ -338,7 +338,7 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
             <p className="text-sm">
               设置：
               {preview.environmentSet.map((name) => (
-                <span className="mr-ui-sm" key={name}>
+                <span className="mr-ui-8" key={name}>
                   <Mono>{name}</Mono>
                 </span>
               ))}
@@ -348,7 +348,7 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
             <p className="text-sm">
               移除：
               {preview.environmentRemoved.map((name) => (
-                <span className="mr-ui-sm" key={name}>
+                <span className="mr-ui-8" key={name}>
                   <Mono>{name}</Mono>
                 </span>
               ))}
@@ -361,7 +361,7 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
         <p className="text-sm text-muted-foreground">{preview.backup}</p>
       </Section>
 
-      <p className="rounded-control bg-surface-muted px-ui-2xl py-ui-sm text-sm font-medium">
+      <p className="rounded-control bg-surface-muted px-ui-12 py-ui-8 text-sm font-medium">
         {preview.reloadNote}
       </p>
       <p className="break-words text-xs text-muted-foreground">
@@ -385,7 +385,7 @@ function ResultBody({
     const outcome = describeEditOutcome(dialog.execution);
     const grant = grantNotice(dialog.execution);
     return (
-      <div className="grid gap-ui-sm" role="status" aria-live="polite">
+      <div className="grid gap-ui-8" role="status" aria-live="polite">
         <p className="text-sm font-semibold text-success">{outcome.title}</p>
         <p className="text-sm text-muted-foreground">{outcome.detail}</p>
         {grant ? <p className="text-xs text-warning">{grant}</p> : null}
@@ -395,7 +395,7 @@ function ResultBody({
   if (dialog.execution) {
     const outcome = describeEditOutcome(dialog.execution);
     return (
-      <div className="grid gap-ui-sm" role="alert">
+      <div className="grid gap-ui-8" role="alert">
         <p className="text-sm font-semibold text-danger">{outcome.title}</p>
         <p className="text-sm text-muted-foreground">{outcome.detail}</p>
       </div>
@@ -405,7 +405,7 @@ function ResultBody({
     ? describeEditFailure(dialog.error)
     : { title: "编辑未完成", detail: "请重新预览后再保存。" };
   return (
-    <div className="grid gap-ui-sm" role="alert">
+    <div className="grid gap-ui-8" role="alert">
       <p className="text-sm font-semibold text-danger">{notice.title}</p>
       <p className="break-words text-sm text-muted-foreground">
         {scrubSecrets(notice.detail, form)}
@@ -524,7 +524,7 @@ export function EditServiceDialogView({
 
   return (
     <Modal
-      bodyClassName="grid gap-ui-3xl"
+      bodyClassName="grid gap-ui-16"
       busy={busy}
       className="max-w-[720px]"
       footer={footer}

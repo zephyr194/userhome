@@ -27,7 +27,7 @@ const WRAP = "break-words [overflow-wrap:anywhere]";
 
 function TextList({ items, label }: { items: readonly string[]; label: string }) {
   return (
-    <ul className="mt-ui-xs grid gap-ui-xs" aria-label={label}>
+    <ul className="mt-ui-4 grid gap-ui-4" aria-label={label}>
       {items.map((item) => (
         <li className={WRAP} key={item}>
           {item}
@@ -50,23 +50,23 @@ function PreviewCard({
 }) {
   return (
     <div
-      className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs"
+      className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs"
       aria-label={`${actionLabel(preview.action)}预览`}
     >
       <p className="text-sm font-semibold">
         预览：{actionLabel(preview.action)}「{preview.label}」
       </p>
-      <p className="mt-ui-md font-semibold">真实含义</p>
+      <p className="mt-ui-8 font-semibold">真实含义</p>
       <TextList items={preview.meaning} label="真实含义" />
-      <p className="mt-ui-md font-semibold">持久化影响</p>
+      <p className="mt-ui-8 font-semibold">持久化影响</p>
       <TextList items={preview.persistence} label="持久化影响" />
-      <p className="mt-ui-md font-semibold">当前状态</p>
+      <p className="mt-ui-8 font-semibold">当前状态</p>
       <TextList items={observedLines(preview.current)} label="当前状态" />
-      <p className="mt-ui-md font-semibold">将执行的命令</p>
+      <p className="mt-ui-8 font-semibold">将执行的命令</p>
       {preview.commands.length === 0 ? (
-        <p className="mt-ui-xs">无需执行命令。</p>
+        <p className="mt-ui-4">无需执行命令。</p>
       ) : (
-        <ul className="mt-ui-xs grid gap-ui-xs" aria-label="将执行的命令">
+        <ul className="mt-ui-4 grid gap-ui-4" aria-label="将执行的命令">
           {preview.commands.map((command) => (
             <li className={`font-mono ${WRAP}`} key={command}>
               {command}
@@ -74,10 +74,10 @@ function PreviewCard({
           ))}
         </ul>
       )}
-      <p className="mt-ui-md text-muted-foreground">
+      <p className="mt-ui-8 text-muted-foreground">
         确认后会再次核对任务归属与当前状态，执行后读取 launchd 的真实状态来核对结果。
       </p>
-      <div className="mt-ui-lg flex flex-wrap gap-ui-md">
+      <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         <Button
           size="sm"
           variant="primary"
@@ -106,17 +106,17 @@ function ResultCard({
   const result = presentOutcome(execution.outcome);
   return (
     <div
-      className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs"
+      className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs"
       role="status"
       aria-label={`${actionLabel(execution.action)}结果`}
     >
-      <p className="flex flex-wrap items-center gap-ui-sm text-sm font-semibold">
+      <p className="flex flex-wrap items-center gap-ui-8 text-sm font-semibold">
         {actionLabel(execution.action)}：
         <StatusBadge tone={result.tone}>{result.label}</StatusBadge>
       </p>
-      <p className={`mt-ui-md leading-relaxed ${WRAP}`}>{execution.message}</p>
+      <p className={`mt-ui-8 leading-relaxed ${WRAP}`}>{execution.message}</p>
       {execution.steps.length > 0 ? (
-        <ul className="mt-ui-md grid gap-ui-xs" aria-label="已执行的步骤">
+        <ul className="mt-ui-8 grid gap-ui-4" aria-label="已执行的步骤">
           {execution.steps.map((step) => (
             <li className={WRAP} key={step.command}>
               <span className="font-mono">{step.command}</span>
@@ -128,14 +128,14 @@ function ResultCard({
           ))}
         </ul>
       ) : null}
-      <p className="mt-ui-md font-semibold">回读到的状态</p>
+      <p className="mt-ui-8 font-semibold">回读到的状态</p>
       <TextList items={observedLines(execution.observed)} label="回读到的状态" />
       {execution.cancelRequested ? (
-        <p className="mt-ui-md text-muted-foreground">
+        <p className="mt-ui-8 text-muted-foreground">
           执行期间收到过取消请求；已开始的命令无法中途撤回。
         </p>
       ) : null}
-      <div className="mt-ui-lg flex flex-wrap gap-ui-md">
+      <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {result.needsRefresh ? (
           <Button size="sm" variant="primary" onClick={onRefresh}>
             刷新
@@ -224,22 +224,22 @@ export function LaunchdActionPanel({
 
   return (
     <section
-      className="border-b border-border px-ui-3xl py-ui-xl"
+      className="border-b border-border px-ui-16 py-ui-12"
       aria-label="任务动作"
     >
       <h4 className="text-sm font-semibold">任务动作</h4>
-      <p className="mt-ui-xs text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-ui-4 text-xs leading-relaxed text-muted-foreground">
         仅限加载、启动、停止、重启、禁用自启、启用自启与卸载；每个动作先预览再确认，不会删除配置文件。
       </p>
       {reason ? (
-        <p className="mt-ui-md text-xs text-warning" role="status">
+        <p className="mt-ui-8 text-xs text-warning" role="status">
           {reason}
         </p>
       ) : (
-        <ul className="mt-ui-md grid gap-ui-sm" aria-label="可用动作">
+        <ul className="mt-ui-8 grid gap-ui-8" aria-label="可用动作">
           {actions.map((action) => (
             <li
-              className="flex min-w-0 flex-wrap items-center gap-ui-md"
+              className="flex min-w-0 flex-wrap items-center gap-ui-8"
               key={action}
             >
               <Button
@@ -256,7 +256,7 @@ export function LaunchdActionPanel({
           ))}
         </ul>
       )}
-      <div className="mt-ui-lg grid min-w-0 gap-ui-md">
+      <div className="mt-ui-8 grid min-w-0 gap-ui-8">
         <PanelState
           dismissPreview={dismissPreview}
           confirm={confirm}
@@ -312,7 +312,7 @@ function PanelState({
     case "error":
       return (
         <div
-          className="min-w-0 rounded-control border border-danger-border bg-danger-soft px-ui-xl py-ui-lg text-xs text-danger"
+          className="min-w-0 rounded-control border border-danger-border bg-danger-soft px-ui-12 py-ui-8 text-xs text-danger"
           role="alert"
         >
           <p className={`font-semibold ${WRAP}`}>
@@ -321,11 +321,11 @@ function PanelState({
               : `${actionLabel(state.action)}的结果未知：${state.error.message}`}
           </p>
           {state.during === "execute" ? (
-            <p className="mt-ui-xs">
+            <p className="mt-ui-4">
               请求没有返回可信的结果，不能确认任务是否已变化；请刷新后核对真实状态。
             </p>
           ) : null}
-          <div className="mt-ui-md flex flex-wrap gap-ui-md">
+          <div className="mt-ui-8 flex flex-wrap gap-ui-8">
             {state.during === "execute" ? (
               <Button size="sm" variant="primary" onClick={onChanged}>
                 刷新

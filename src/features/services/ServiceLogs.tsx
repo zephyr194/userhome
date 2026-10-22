@@ -308,14 +308,14 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
   const hasContent = lines.length > 0;
 
   return (
-    <div className="grid min-w-0 gap-ui-md">
+    <div className="grid min-w-0 gap-ui-8">
       <p className="text-xs leading-relaxed text-muted-foreground">
         日志路径来自该任务的 plist 声明。读取前需要你在原生选择器中选中该文件；
         暂停、停止、重新选择或离开页面都会撤销读取授权。
       </p>
       <div
         aria-label="输出流"
-        className="flex min-w-0 flex-wrap gap-ui-sm"
+        className="flex min-w-0 flex-wrap gap-ui-8"
         role="group"
       >
         {LOG_STREAMS.map((option) => {
@@ -354,7 +354,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       ) : null}
 
       {status === "tracking" && grant !== null ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-ui-sm text-xs text-muted-foreground">
+        <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
           <span className="break-all">已授权读取：{grant.displayPath}</span>
           <Button onClick={() => stopTracking(null)} size="sm" variant="ghost">
             停止追踪
@@ -374,7 +374,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       ) : null}
 
       {status === "paused" ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-ui-sm text-xs text-muted-foreground">
+        <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
           <Button onClick={() => stopTracking(null)} size="sm" variant="ghost">
             停止追踪
           </Button>
@@ -388,7 +388,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       ) : null}
 
       {tail.notices.length > 0 ? (
-        <ul aria-label="读取提示" className="m-0 grid list-none gap-ui-xs p-0 text-xs text-warning">
+        <ul aria-label="读取提示" className="m-0 grid list-none gap-ui-4 p-0 text-xs text-warning">
           {tail.notices.map((notice) => (
             <li key={notice}>{notice}</li>
           ))}
@@ -396,11 +396,11 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       ) : null}
 
       {exportState.stage === "confirm" ? (
-        <section aria-label="导出日志" className="grid gap-ui-sm rounded-control border border-warning-border bg-warning-soft px-ui-lg py-ui-md text-xs text-warning">
+        <section aria-label="导出日志" className="grid gap-ui-8 rounded-control border border-warning-border bg-warning-soft px-ui-8 py-ui-8 text-xs text-warning">
           <p>
             导出会把当前读取的日志尾部写入你选择的文件。日志可能包含令牌、密码等敏感信息，请确认保存位置与用途。
           </p>
-          <div className="flex flex-wrap gap-ui-sm">
+          <div className="flex flex-wrap gap-ui-8">
             <Button onClick={() => void chooseSaveLocation()} size="sm" variant="primary">
               选择保存位置…
             </Button>
@@ -416,7 +416,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       ) : null}
 
       {exportState.stage === "preview" ? (
-        <section aria-label="导出预览" className="grid gap-ui-sm rounded-control border border-warning-border bg-warning-soft px-ui-lg py-ui-md text-xs text-warning">
+        <section aria-label="导出预览" className="grid gap-ui-8 rounded-control border border-warning-border bg-warning-soft px-ui-8 py-ui-8 text-xs text-warning">
           <p>
             将写入 {exportState.preview.save.displayPath}
             {exportState.preview.replaces
@@ -424,7 +424,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
               : "（新文件）"}
             。日志可能包含敏感信息。
           </p>
-          <div className="flex flex-wrap gap-ui-sm">
+          <div className="flex flex-wrap gap-ui-8">
             <Button
               onClick={() => void confirmExport(exportState.preview)}
               size="sm"

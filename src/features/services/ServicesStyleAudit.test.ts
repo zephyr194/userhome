@@ -24,6 +24,8 @@ const FUNCTIONAL_COLOR = /\b(?:rgba?|hsla?|oklch)\(/;
 const STRING_LITERAL = /"([^"\n]*)"|'([^'\n]*)'|`([^`]*)`/g;
 const PANEL_OPEN = /<Panel\b[^>]*>/g;
 const MAX_TICKED_PANELS = 2;
+const LEGACY_SPACING =
+  /^-?(?:p[xytblre]?|m[xytblre]?|gap(?:-[xy])?|space-[xy])-ui-(?:xxs|xs|sm|md|lg|xl|2xl|3xl)$/;
 
 function productionTsx(dir: string, files: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -132,5 +134,17 @@ describe("服务页样式审计（UI-3b）", () => {
       ),
     );
     expect(ticked.length).toBeLessThanOrEqual(MAX_TICKED_PANELS);
+  });
+
+  it("间距类不再使用旧令牌名（xxs…3xl），只用新档位 2/4/8/12/16/24", () => {
+    const violations: string[] = [];
+    for (const file of files) {
+      for (const group of classGroups(readFileSync(file, "utf8"))) {
+        for (const token of group) {
+          if (LEGACY_SPACING.test(token)) violations.push(`${rel(file)}: ${token}`);
+        }
+      }
+    }
+    expect(violations).toEqual([]);
   });
 });

@@ -18,7 +18,7 @@ type OpenDialog = "adopt" | "edit" | "release" | undefined;
 
 function ReasonList({ reasons }: { reasons: readonly string[] }) {
   return (
-    <ul className="mt-ui-xs grid gap-ui-xs text-sm text-muted-foreground">
+    <ul className="mt-ui-4 grid gap-ui-4 text-sm text-muted-foreground">
       {reasons.map((reason) => (
         <li className="break-words [overflow-wrap:anywhere]" key={reason}>
           {reason}
@@ -53,7 +53,7 @@ function ReleaseAdoptionDialog({
 
   return (
     <Modal
-      bodyClassName="grid gap-ui-3xl"
+      bodyClassName="grid gap-ui-16"
       busy={busy}
       className="max-w-[560px]"
       footer={
@@ -112,12 +112,12 @@ export function ServiceManagement({
 
   return (
     <Panel aria-labelledby="service-management-heading" className="min-w-0">
-      <header className="border-b border-border px-ui-3xl py-ui-xl">
+      <header className="border-b border-border px-ui-16 py-ui-12">
         <h3 className="text-sm font-semibold" id="service-management-heading">
           接管与编辑
         </h3>
       </header>
-      <div className="grid gap-ui-md px-ui-3xl py-ui-xl">
+      <div className="grid gap-ui-8 px-ui-16 py-ui-12">
         {view.kind === "adopt" ? (
           <>
             <p className="text-sm">
@@ -151,7 +151,7 @@ export function ServiceManagement({
                 <ReasonList reasons={view.editBlockers} />
               </>
             )}
-            <div className="flex flex-wrap gap-ui-md">
+            <div className="flex flex-wrap gap-ui-8">
               {view.editBlockers.length === 0 ? (
                 <Button onClick={() => setOpen("edit")} variant="primary">
                   编辑

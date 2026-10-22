@@ -1,13 +1,16 @@
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useBoardView } from "../../app/BoardViewContext";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
   Panel,
+  PageShell,
   SelectField,
   StatusBadge,
   TextField,
 } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
+import type { BoardSpan } from "../../components/ui/PageShell";
 import {
   LAUNCHD_DOMAINS,
   LAUNCHD_OWNERSHIPS,
@@ -94,30 +97,31 @@ const STATUS_OPTIONS = [
 
 export function ServicesView(props: ServicesViewProps) {
   const { state } = props;
+  const { isBoard } = useBoardView();
   const services =
     state.status === "ready" ? state.discovery.services : undefined;
   const visible = services ? filterServices(services, props.filter) : [];
 
   return (
-    <section
-      className="grid h-full min-h-0 min-w-0 grid-rows-[minmax(0,1fr)] overflow-hidden"
-      aria-labelledby="services-heading"
+    <PageShell
+      layout={isBoard ? "board" : "master-detail"}
+      scrollKey={isBoard ? "board" : "compact"}
     >
-      <div className="grid min-h-0 overflow-hidden grid-rows-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:grid-cols-[360px_minmax(0,1fr)] sm:grid-rows-1">
+      <Region span={isBoard ? 4 : undefined}>
         <section
           className="grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
           aria-labelledby="services-heading"
         >
-          <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-lg border-b border-border bg-surface-muted px-ui-xl py-ui-md">
+          <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold" id="services-heading">
                 服务清单
               </h2>
-              <p className="mt-ui-xs text-xs text-muted-foreground">
+              <p className="mt-ui-4 text-xs text-muted-foreground">
                 launchd 常驻任务，只读查看
               </p>
             </div>
-            <div className="flex min-w-0 flex-wrap items-start gap-ui-md">
+            <div className="flex min-w-0 flex-wrap items-start gap-ui-8">
               {props.headerActions}
               <Button
                 size="sm"
@@ -145,15 +149,37 @@ export function ServicesView(props: ServicesViewProps) {
             />
           </div>
         </section>
+      </Region>
 
+      <Region span={isBoard ? 8 : undefined}>
         <section
-          className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-ui-xl overscroll-contain"
+          className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-ui-12 overscroll-contain"
           aria-label="任务详情"
         >
           <DetailsPane {...props} visible={visible} />
         </section>
-      </div>
-    </section>
+      </Region>
+    </PageShell>
+  );
+}
+
+/** Same element in both views, so switching views never remounts the panes. */
+function Region({
+  span,
+  children,
+}: {
+  span?: BoardSpan;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={classNames(
+        "grid min-h-0 min-w-0",
+        span !== undefined && `page-shell__cell page-shell__cell--span-${span}`,
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -171,7 +197,7 @@ function FilterBar({
   total: number | undefined;
 }) {
   return (
-    <div className="grid min-w-0 gap-ui-md border-b border-border bg-surface-muted px-ui-xl py-ui-md">
+    <div className="grid min-w-0 gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
       <TextField
         label="搜索任务"
         type="search"
@@ -180,7 +206,7 @@ function FilterBar({
         value={filter.query}
         onValueChange={(query) => onFilterChange({ ...filter, query })}
       />
-      <div className="flex min-w-0 flex-wrap gap-ui-md">
+      <div className="flex min-w-0 flex-wrap gap-ui-8">
         <SelectField
           className="min-w-28 flex-1"
           label="来源"
@@ -215,7 +241,7 @@ function FilterBar({
       <p className="text-xs leading-relaxed text-muted-foreground">
         来源按所在目录归类，只是位置信息；归属由后端按所有者、位置与文件类型判定，两者不同。
       </p>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-md">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
         <span className="text-xs text-muted-foreground" role="status">
           {shown === undefined || total === undefined
             ? "正在读取本机状态"
@@ -250,18 +276,18 @@ function ListBody({
 }) {
   if (state.status === "loading") {
     return (
-      <div className="p-ui-xl">
+      <div className="p-ui-12">
         <AsyncState kind="loading">正在读取常驻任务…</AsyncState>
       </div>
     );
   }
   if (state.status === "error") {
     return (
-      <div className="p-ui-xl">
+      <div className="p-ui-12">
         <AsyncState kind="error">
           <span className={WRAP}>{state.error.message}</span>
         </AsyncState>
-        <div className="mt-ui-lg">
+        <div className="mt-ui-8">
           <Button size="sm" disabled={refreshDisabled} onClick={onRefresh}>
             重试
           </Button>
@@ -275,7 +301,7 @@ function ListBody({
   return (
     <>
       {state.refreshError ? (
-        <div className="px-ui-xl">
+        <div className="px-ui-12">
           <AsyncState kind="error">
             <span className={WRAP}>
               刷新失败：{state.refreshError.message}以下为上次读取的结果。
@@ -284,14 +310,14 @@ function ListBody({
         </div>
       ) : null}
       {!discovery.complete ? (
-        <div className="px-ui-xl">
+        <div className="px-ui-12">
           <AsyncState kind="partial">
             {problems.length > 0 ? (
               <>
                 <span className="block">
                   部分来源未能读取，结果可能不完整，下列来源的信息缺失：
                 </span>
-                <ul className="mt-ui-xs grid gap-ui-xs text-xs">
+                <ul className="mt-ui-4 grid gap-ui-4 text-xs">
                   {problems.map((problem) => (
                     <li className={WRAP} key={problem.source}>
                       <span className="font-mono">
@@ -312,7 +338,7 @@ function ListBody({
         </div>
       ) : null}
       {services && services.length === 0 ? (
-        <div className="px-ui-xl">
+        <div className="px-ui-12">
           <AsyncState kind="empty">
             {discovery.complete
               ? "没有发现常驻任务。"
@@ -320,7 +346,7 @@ function ListBody({
           </AsyncState>
         </div>
       ) : visible.length === 0 ? (
-        <div className="px-ui-xl">
+        <div className="px-ui-12">
           <AsyncState kind="empty">没有符合筛选条件的任务。</AsyncState>
         </div>
       ) : (
@@ -366,7 +392,7 @@ function ServiceList({
         const execution = executionOf(service);
         const brief = correlationBrief(service);
         return (
-          <li key={service.id}>
+          <li className="border-b border-border" key={service.id}>
             <Button
               variant="ghost"
               ref={(button) => {
@@ -374,7 +400,7 @@ function ServiceList({
                 else rowRefs.current.delete(service.id);
               }}
               className={classNames(
-                "services-inventory-row",
+                "bracket services-inventory-row",
                 isSelected && "services-inventory-row--selected",
               )}
               aria-label={`${service.label}，${scopeLabel(service.scope)}，${status.label}`}
@@ -383,7 +409,7 @@ function ServiceList({
               onClick={() => onSelect(service.id)}
               onKeyDown={(event) => onKeyDown(event, index)}
             >
-              <span className="grid min-w-0 gap-ui-xs">
+              <span className="grid min-w-0 gap-ui-4">
                 <strong className={`block text-sm font-semibold ${WRAP}`}>
                   {service.label}
                 </strong>
@@ -419,7 +445,7 @@ function ServiceList({
                 ) : null}
               </span>
               <StatusBadge
-                className="shrink-0 self-start px-ui-sm text-meta"
+                className="shrink-0 self-start px-ui-8 text-meta"
                 tone={status.tone}
               >
                 {status.label}
@@ -472,7 +498,7 @@ function DetailsPane({
     isFilterActive(filter) &&
     !visible.some((service) => service.id === resolved.service.id);
   return (
-    <div className="grid min-w-0 gap-ui-xl">
+    <div className="grid min-w-0 gap-ui-12">
       {hidden ? (
         <AsyncState kind="partial">
           所选任务被当前筛选条件隐藏，清单中不显示它；清除筛选后可在清单中看到。
@@ -487,12 +513,12 @@ function DetailsPane({
       {renderManagement ? renderManagement(resolved.service) : null}
       {renderLogs ? (
         <Panel aria-labelledby="service-logs-heading" className="min-w-0">
-          <header className="border-b border-border px-ui-3xl py-ui-xl">
+          <header className="border-b border-border px-ui-16 py-ui-12">
             <h3 className="text-sm font-semibold" id="service-logs-heading">
               任务日志
             </h3>
           </header>
-          <div className="px-ui-3xl py-ui-xl">
+          <div className="px-ui-16 py-ui-12">
             {renderLogs(resolved.service)}
           </div>
         </Panel>

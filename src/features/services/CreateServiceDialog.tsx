@@ -45,7 +45,7 @@ function Section({
   title: string;
 }) {
   return (
-    <section className="grid gap-ui-sm rounded-control bg-surface-muted px-ui-2xl py-ui-2xl">
+    <section className="grid gap-ui-8 rounded-control bg-surface-muted px-ui-12 py-ui-12">
       <h4 className="text-sm font-semibold">{title}</h4>
       {children}
     </section>
@@ -84,7 +84,7 @@ function FormBody({
   const label = fullLabel(form.labelSuffix);
 
   return (
-    <div className="grid gap-ui-3xl">
+    <div className="grid gap-ui-16">
       <p className="text-xs leading-relaxed text-muted-foreground">
         仅创建配置文件，不会加载或启动任务。文件固定为 ~/Library/LaunchAgents/
         &lt;label&gt;.plist，label 固定在 {CREATE_SERVICE_NAMESPACE} 之下；程序直接运行，不经 shell。
@@ -126,7 +126,7 @@ function FormBody({
           每一项是独立的一个参数，不会拼接成命令行，也不会被 shell 再次解析（最多 {CREATE_SERVICE_LIMITS.arguments} 项）。
         </p>
         {form.arguments.map((row, index) => (
-          <div className="grid gap-ui-md" key={row.id}>
+          <div className="grid gap-ui-8" key={row.id}>
             <TextField
               autoComplete="off"
               disabled={disabled}
@@ -138,7 +138,7 @@ function FormBody({
               spellCheck={false}
               value={row.value}
             />
-            <div className="flex flex-wrap gap-ui-sm">
+            <div className="flex flex-wrap gap-ui-8">
               <Button
                 disabled={disabled || index === 0}
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
@@ -191,8 +191,8 @@ function FormBody({
       <Section title="环境变量">
         <p className="text-xs text-muted-foreground">{ENVIRONMENT_NOTE}</p>
         {form.environment.map((row, index) => (
-          <div className="grid gap-ui-md" key={row.id}>
-            <div className="grid gap-ui-sm sm:grid-cols-2">
+          <div className="grid gap-ui-8" key={row.id}>
+            <div className="grid gap-ui-8 sm:grid-cols-2">
               <TextField
                 autoComplete="off"
                 disabled={disabled}
@@ -243,7 +243,7 @@ function FormBody({
         </div>
       </Section>
 
-      <div className="grid gap-ui-2xl sm:grid-cols-2">
+      <div className="grid gap-ui-12 sm:grid-cols-2">
         <TextField
           autoComplete="off"
           description="可选；绝对路径，所在目录必须已存在。"
@@ -294,7 +294,7 @@ function FormBody({
 
 function PreviewBody({ preview }: { preview: CreateServicePreview }) {
   return (
-    <div className="grid gap-ui-3xl">
+    <div className="grid gap-ui-16">
       <Section title="将创建的文件">
         <p className="text-sm">
           <Mono>{preview.filePath}</Mono>
@@ -311,7 +311,7 @@ function PreviewBody({ preview }: { preview: CreateServicePreview }) {
             ? "敏感参数已隐藏，但会按原值写入配置文件。"
             : "没有识别到敏感参数。"}
         </p>
-        <ol className="grid gap-ui-xs text-sm">
+        <ol className="grid gap-ui-4 text-sm">
           <li>
             <Mono>{preview.executable}</Mono>
           </li>
@@ -337,7 +337,7 @@ function PreviewBody({ preview }: { preview: CreateServicePreview }) {
             <p className="text-xs text-muted-foreground">
               只显示变量名，值不会显示，仅写入这个任务自己的配置文件。
             </p>
-            <ul className="flex flex-wrap gap-ui-sm">
+            <ul className="flex flex-wrap gap-ui-8">
               {preview.environmentKeys.map((key) => (
                 <li key={key}>
                   <Mono>{key}</Mono>
@@ -358,9 +358,9 @@ function PreviewBody({ preview }: { preview: CreateServicePreview }) {
       </Section>
 
       <Section title="持久化影响">
-        <ul className="grid gap-ui-md text-sm text-muted-foreground">
+        <ul className="grid gap-ui-8 text-sm text-muted-foreground">
           {preview.persistenceNotes.map((note) => (
-            <li className="flex gap-ui-sm" key={note}>
+            <li className="flex gap-ui-8" key={note}>
               <span className="text-primary" aria-hidden="true">
                 •
               </span>
@@ -370,7 +370,7 @@ function PreviewBody({ preview }: { preview: CreateServicePreview }) {
         </ul>
       </Section>
 
-      <p className="rounded-control bg-surface-muted px-ui-2xl py-ui-sm text-sm font-medium">
+      <p className="rounded-control bg-surface-muted px-ui-12 py-ui-8 text-sm font-medium">
         {preview.effectNote}
       </p>
       <p className="break-words text-xs text-muted-foreground">
@@ -393,7 +393,7 @@ function ResultBody({
   if (dialog.phase === "done") {
     const outcome = describeCreateOutcome(dialog.execution);
     return (
-      <div className="grid gap-ui-sm" role="status" aria-live="polite">
+      <div className="grid gap-ui-8" role="status" aria-live="polite">
         <p className="text-sm font-semibold text-success">{outcome.title}</p>
         <p className="text-sm text-muted-foreground">{outcome.detail}</p>
         <p className="text-xs text-muted-foreground">
@@ -405,14 +405,14 @@ function ResultBody({
   if (dialog.execution) {
     const outcome = describeCreateOutcome(dialog.execution);
     return (
-      <div className="grid gap-ui-sm" role="alert">
+      <div className="grid gap-ui-8" role="alert">
         <p className="text-sm font-semibold text-danger">{outcome.title}</p>
         <p className="text-sm text-muted-foreground">{outcome.detail}</p>
       </div>
     );
   }
   return (
-    <div className="grid gap-ui-sm" role="alert">
+    <div className="grid gap-ui-8" role="alert">
       <p className="text-sm font-semibold text-danger">创建被拒绝，没有写入任何文件。</p>
       <p className="break-words text-sm text-muted-foreground">
         {scrubSecrets(dialog.error?.message ?? "操作被拒绝。", form)}
@@ -536,7 +536,7 @@ export function CreateServiceDialogView({
 
   return (
     <Modal
-      bodyClassName="grid gap-ui-3xl"
+      bodyClassName="grid gap-ui-16"
       busy={busy}
       className="max-w-[720px]"
       footer={footer}

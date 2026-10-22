@@ -201,7 +201,7 @@ export function ServicesPage({
           <ServiceManagement key={service.id} onChanged={load} service={service} />
         )}
         headerActions={
-          <div className="grid min-w-0 justify-items-end gap-ui-xs">
+          <div className="grid min-w-0 justify-items-end gap-ui-4">
             <Button
               size="sm"
               variant="primary"

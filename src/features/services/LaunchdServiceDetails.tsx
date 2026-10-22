@@ -38,9 +38,9 @@ const LABEL_SOURCE_TEXTS: Record<LaunchdService["labelSource"], string> = {
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <div className="min-w-0 bg-surface-muted px-ui-xl py-ui-lg">
+    <div className="min-w-0 bg-surface-muted px-ui-12 py-ui-8">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className={`mt-ui-xs text-sm font-medium ${WRAP}`}>{children}</dd>
+      <dd className={`mt-ui-4 text-sm font-medium ${WRAP}`}>{children}</dd>
     </div>
   );
 }
@@ -53,9 +53,9 @@ function Section({
   title: string;
 }) {
   return (
-    <section className="border-b border-border px-ui-3xl py-ui-xl last:border-b-0">
+    <section className="border-b border-border px-ui-16 py-ui-12 last:border-b-0">
       <h4 className="text-sm font-semibold">{title}</h4>
-      <div className="mt-ui-md grid min-w-0 gap-ui-md">{children}</div>
+      <div className="mt-ui-8 grid min-w-0 gap-ui-8">{children}</div>
     </section>
   );
 }
@@ -73,11 +73,11 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
   const plist = file.details;
   const [first, ...rest] = plist?.programArguments ?? [];
   return (
-    <div className="min-w-0 rounded-control bg-surface-muted px-ui-md py-ui-md">
+    <div className="min-w-0 rounded-control bg-surface-muted px-ui-8 py-ui-8">
       <p className={`text-sm font-medium ${WRAP}`}>
         <Mono>{file.path}</Mono>
       </p>
-      <dl className="mt-ui-md grid min-w-0 gap-ui-sm text-xs">
+      <dl className="mt-ui-8 grid min-w-0 gap-ui-8 text-xs">
         <Row label="所在目录">{sourceLabel(file.directory)}</Row>
         <Row label="按目录归类">
           {scopeLabel(file.scope)}
@@ -112,7 +112,7 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
               {plist.programArguments.length === 0 ? (
                 "未设置"
               ) : (
-                <ol className="grid min-w-0 gap-ui-xs">
+                <ol className="grid min-w-0 gap-ui-4">
                   {(plist.program === undefined ? rest : plist.programArguments).map(
                     (argument, index) => (
                       <li key={`${index}-${argument}`}>
@@ -122,7 +122,7 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
                   )}
                 </ol>
               )}
-              <span className="mt-ui-xs block text-xs font-normal text-muted-foreground">
+              <span className="mt-ui-4 block text-xs font-normal text-muted-foreground">
                 含密钥特征的参数值已由后端遮盖，此处不会还原。
                 {plist.argumentsTruncated ? "参数过多，已截断显示。" : ""}
               </span>
@@ -131,7 +131,7 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
               {plist.environmentKeys.length === 0 ? (
                 "无"
               ) : (
-                <span className="flex min-w-0 flex-wrap gap-ui-sm">
+                <span className="flex min-w-0 flex-wrap gap-ui-8">
                   {plist.environmentKeys.map((key) => (
                     <StatusBadge key={key}>
                       <Mono>{key}</Mono>
@@ -139,7 +139,7 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
                   ))}
                 </span>
               )}
-              <span className="mt-ui-xs block text-xs font-normal text-muted-foreground">
+              <span className="mt-ui-4 block text-xs font-normal text-muted-foreground">
                 仅显示变量名，值不会读取或显示。
               </span>
             </Row>
@@ -149,7 +149,7 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
                 <>
                   {keepAliveText(plist.keepAlive.mode)}
                   {plist.keepAlive.conditions.length > 0 ? (
-                    <span className="mt-ui-xs block font-mono text-xs font-normal">
+                    <span className="mt-ui-4 block font-mono text-xs font-normal">
                       条件：{plist.keepAlive.conditions.join("、")}
                     </span>
                   ) : null}
@@ -187,16 +187,16 @@ function SourcesSection({
   sources: readonly LaunchdSourceReport[];
 }) {
   return (
-    <ul className="grid min-w-0 gap-ui-sm" aria-label="发现来源">
+    <ul className="grid min-w-0 gap-ui-8" aria-label="发现来源">
       {sources.map((report) => {
         const failed =
           report.status !== "COMPLETE" || report.failedFiles > 0;
         return (
           <li
-            className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-md text-xs"
+            className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs"
             key={report.source}
           >
-            <span className="flex min-w-0 flex-wrap items-center gap-ui-sm">
+            <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
               <Mono>{sourceLabel(report.source)}</Mono>
               <StatusBadge tone={failed ? "warning" : "success"}>
                 {sourceStatusLabel(report.status)}
@@ -206,12 +206,12 @@ function SourcesSection({
               </span>
             </span>
             {report.reason ? (
-              <span className={`mt-ui-xs block text-muted-foreground ${WRAP}`}>
+              <span className={`mt-ui-4 block text-muted-foreground ${WRAP}`}>
                 {sourceReasonText(report.reason)}
               </span>
             ) : null}
             {report.failedFiles > 0 ? (
-              <span className="mt-ui-xs block text-warning">
+              <span className="mt-ui-4 block text-warning">
                 {report.failedFiles} 个文件未能读取。
               </span>
             ) : null}
@@ -244,22 +244,22 @@ export function LaunchdServiceDetails({
 
   return (
     <Panel className="min-w-0" aria-labelledby="service-details-heading" ticks>
-      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl border-b border-border px-ui-3xl py-ui-xl">
+      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12 border-b border-border px-ui-16 py-ui-12">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
             任务详情
           </p>
           <h3
-            className={`mt-ui-xs text-lg font-semibold ${WRAP}`}
+            className={`mt-ui-4 text-lg font-semibold ${WRAP}`}
             id="service-details-heading"
           >
             {service.label}
           </h3>
-          <p className="mt-ui-xs break-all font-mono text-xs text-muted-foreground">
+          <p className="mt-ui-4 break-all font-mono text-xs text-muted-foreground">
             {service.id}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap justify-end gap-ui-sm">
+        <div className="flex shrink-0 flex-wrap justify-end gap-ui-8">
           <StatusBadge>{scopeLabel(service.scope)}</StatusBadge>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
           <StatusBadge>{ownership.label}</StatusBadge>
@@ -297,9 +297,9 @@ export function LaunchdServiceDetails({
           {ownership.description}
         </p>
         {ownership.reasons.length > 0 ? (
-          <div className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs">
+          <div className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs">
             <p className="font-semibold">只读原因</p>
-            <ul className="mt-ui-xs grid gap-ui-xs" aria-label="只读原因">
+            <ul className="mt-ui-4 grid gap-ui-4" aria-label="只读原因">
               {ownership.reasons.map((reason) => (
                 <li className={WRAP} key={reason}>
                   {reason}
@@ -308,9 +308,9 @@ export function LaunchdServiceDetails({
             </ul>
           </div>
         ) : null}
-        <div className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs">
+        <div className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs">
           <p className="font-semibold">判定依据</p>
-          <ul className="mt-ui-xs grid gap-ui-xs" aria-label="判定依据">
+          <ul className="mt-ui-4 grid gap-ui-4" aria-label="判定依据">
             {ownership.evidence.map((item) => (
               <li className={WRAP} key={item}>
                 {item}
@@ -342,7 +342,7 @@ export function LaunchdServiceDetails({
         </p>
         {service.issues.length > 0 ? (
           <ul
-            className="grid gap-ui-xs rounded-control border border-warning-border bg-warning-soft px-ui-xl py-ui-lg text-xs text-warning"
+            className="grid gap-ui-4 rounded-control border border-warning-border bg-warning-soft px-ui-12 py-ui-8 text-xs text-warning"
             aria-label="发现的问题"
           >
             {service.issues.map((issue) => (
@@ -351,24 +351,24 @@ export function LaunchdServiceDetails({
           </ul>
         ) : null}
         {isHomebrewLabel(service.label) ? (
-          <div className="min-w-0 rounded-control bg-surface-muted px-ui-xl py-ui-lg text-xs">
+          <div className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs">
             <p className="font-semibold">Homebrew 来源证据</p>
             {evidence.status === "loading" ? (
-              <p className="mt-ui-xs text-muted-foreground">
+              <p className="mt-ui-4 text-muted-foreground">
                 正在读取 Homebrew 服务信息…
               </p>
             ) : evidence.status === "unavailable" ? (
-              <p className="mt-ui-xs text-warning" role="status">
+              <p className="mt-ui-4 text-warning" role="status">
                 Homebrew 证据不可用：无法读取 brew services，不影响上方的 launchd 结果。
               </p>
             ) : brew ? (
-              <p className={`mt-ui-xs text-muted-foreground ${WRAP}`}>
+              <p className={`mt-ui-4 text-muted-foreground ${WRAP}`}>
                 brew services 也列出了「{brew.displayName}」（状态 {brew.status}
                 {brew.user ? `，用户 ${brew.user}` : ""}
                 ）。仅作证据，不作为发现来源，也不据此判定归属。
               </p>
             ) : (
-              <p className="mt-ui-xs text-muted-foreground">
+              <p className="mt-ui-4 text-muted-foreground">
                 brew services 中没有对应项（仅作证据，不影响 launchd 结果）。
               </p>
             )}
@@ -394,7 +394,7 @@ export function LaunchdServiceDetails({
       <Section title="发现来源">
         {problems.length > 0 ? (
           <p
-            className="rounded-control border border-warning-border bg-warning-soft px-ui-xl py-ui-lg text-xs leading-relaxed text-warning"
+            className="rounded-control border border-warning-border bg-warning-soft px-ui-12 py-ui-8 text-xs leading-relaxed text-warning"
             role="status"
           >
             部分来源未能完整读取，加载与运行状态可能不完整。
