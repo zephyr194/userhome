@@ -92,9 +92,9 @@ export function CodecTool() {
   return (
     <Panel
       aria-labelledby="codec-tool-heading"
-      className="grid gap-ui-xl border border-border p-ui-2xl"
+      className="grid gap-ui-12 border border-border p-ui-12"
     >
-      <div className="grid gap-ui-xs">
+      <div className="grid gap-ui-4">
         <h2 id="codec-tool-heading" className="text-body font-semibold">
           文本编解码
         </h2>
@@ -103,7 +103,7 @@ export function CodecTool() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-end gap-ui-md">
+      <div className="flex flex-wrap items-end gap-ui-8">
         <SelectField
           label="算法"
           value={algorithm}
@@ -134,7 +134,7 @@ export function CodecTool() {
         inputClassName="font-mono text-xs"
       />
 
-      <div className="flex flex-wrap items-center gap-ui-md">
+      <div className="flex flex-wrap items-center gap-ui-8">
         <Button
           variant="primary"
           onClick={submit}
@@ -147,8 +147,8 @@ export function CodecTool() {
         </Button>
       </div>
 
-      <section aria-labelledby="codec-result-heading" className="grid gap-ui-md">
-        <div className="flex flex-wrap items-center justify-between gap-ui-md">
+      <section aria-labelledby="codec-result-heading" className="grid gap-ui-8">
+        <div className="flex flex-wrap items-center justify-between gap-ui-8">
           <h3 id="codec-result-heading" className="text-body font-semibold">
             结果
           </h3>
@@ -172,7 +172,7 @@ export function CodecTool() {
         {view.status === "error" ? (
           <div
             role="alert"
-            className="grid gap-ui-xs rounded-control bg-danger-soft p-ui-lg text-xs text-danger"
+            className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
               无法转换
@@ -187,11 +187,11 @@ export function CodecTool() {
               {conversionLabel(view.algorithm, view.direction)}
             </p>
             {view.output.notices.length > 0 ? (
-              <div className="grid gap-ui-xs rounded-control bg-warning-soft p-ui-lg text-xs text-warning">
+              <div className="grid gap-ui-4 rounded-control bg-warning-soft p-ui-8 text-xs text-warning">
                 <StatusBadge className="justify-self-start" tone="warning">
                   提示
                 </StatusBadge>
-                <ul className="m-0 grid gap-ui-xxs pl-ui-xl">
+                <ul className="m-0 grid gap-ui-2 pl-ui-12">
                   {view.output.notices.map((notice) => (
                     <li key={notice}>{notice}</li>
                   ))}

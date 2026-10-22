@@ -81,13 +81,13 @@ function BackupClearDialog({
       titleId="backup-clear-heading"
     >
       <Panel
-        className="bg-surface-muted p-ui-2xl"
+        className="bg-surface-muted p-ui-12"
         aria-labelledby="backup-clear-effects-heading"
       >
         <h4 className="text-xs font-semibold" id="backup-clear-effects-heading">
           本次操作影响
         </h4>
-        <ul className="mt-ui-md mb-0 list-disc space-y-ui-xs pl-ui-3xl text-muted-foreground">
+        <ul className="mt-ui-8 mb-0 list-disc space-y-ui-4 pl-ui-16 text-muted-foreground">
           {preview.effects.map((effect) => (
             <li key={effect}>{effect}</li>
           ))}
@@ -196,7 +196,7 @@ export function BackupSettings({
 
   return (
     <section
-      className="grid min-w-0 gap-ui-xl border-t border-border pt-ui-2xl"
+      className="grid min-w-0 gap-ui-12 border-t border-border pt-ui-12"
       aria-busy={busy || previewing || pendingRetention !== undefined}
       aria-labelledby="backup-heading"
     >
@@ -217,24 +217,24 @@ export function BackupSettings({
       />
 
       <Panel
-        className="bg-surface-muted p-ui-2xl"
+        className="bg-surface-muted p-ui-12"
         aria-labelledby="backup-storage-heading"
       >
-        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12">
           <div className="min-w-0">
             <h4 className="text-sm font-semibold" id="backup-storage-heading">
               本机备份存储
             </h4>
             {storage.status === "loading" ? (
-              <p className="mt-ui-xs mb-0 text-xs text-muted-foreground" role="status">
+              <p className="mt-ui-4 mb-0 text-xs text-muted-foreground" role="status">
                 正在统计 UserHome 备份…
               </p>
             ) : storage.status === "error" ? (
-              <p className="mt-ui-xs mb-0 text-xs text-danger" role="alert">
+              <p className="mt-ui-4 mb-0 text-xs text-danger" role="alert">
                 {storage.error.message}
               </p>
             ) : (
-              <p className="mt-ui-xs mb-0 break-all text-xs leading-relaxed text-muted-foreground">
+              <p className="mt-ui-4 mb-0 break-all text-xs leading-relaxed text-muted-foreground">
                 {summary?.displayLocation}
               </p>
             )}
@@ -245,7 +245,7 @@ export function BackupSettings({
             </StatusBadge>
           ) : null}
         </div>
-        <SettingsActions className="mt-ui-xl">
+        <SettingsActions className="mt-ui-12">
           <Button
             size="sm"
             variant="danger"

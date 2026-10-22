@@ -46,7 +46,7 @@ function ResetConfirmation({
       titleId="preferences-reset-heading"
     >
       <Panel
-        className="bg-surface-muted p-ui-2xl"
+        className="bg-surface-muted p-ui-12"
         aria-labelledby="preferences-reset-effects-heading"
       >
         <h4
@@ -55,7 +55,7 @@ function ResetConfirmation({
         >
           本次操作影响
         </h4>
-        <ul className="mt-ui-md mb-0 list-disc space-y-ui-xs pl-ui-3xl text-muted-foreground">
+        <ul className="mt-ui-8 mb-0 list-disc space-y-ui-4 pl-ui-16 text-muted-foreground">
           <li>外观、生命周期、刷新、编辑器和发现根偏好恢复默认。</li>
           <li>所有 UserHome 配置备份保持不变。</li>
           <li>所有受管应用配置文件和服务保持不变。</li>

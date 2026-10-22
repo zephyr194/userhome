@@ -1,6 +1,6 @@
 import { TabGroup, TabPanel, TabPanels } from "@headlessui/react";
 import { AsyncState } from "../../components/AsyncState";
-import { StatusBadge } from "../../components/ui";
+import { PageShell, StatusBadge } from "../../components/ui";
 import type { PreferencesState } from "../../app/shellState";
 import type {
   Appearance,
@@ -40,19 +40,20 @@ export function SettingsPage({
 
   return (
     <TabGroup
+      as="div"
+      className="settings-pane h-full min-h-0 min-w-0"
+      role="region"
+      aria-label="设置"
       selectedIndex={selectedIndex}
       onChange={(index) => onSelectedGroupChange(SETTINGS_GROUPS[index].id)}
       vertical
     >
-      <section
-        className="settings-pane grid h-full min-h-0 min-w-0 grid-rows-[minmax(8rem,11rem)_minmax(0,1fr)] overflow-hidden md:grid-cols-[14.5rem_minmax(0,1fr)] md:grid-rows-1"
-        aria-label="设置"
-      >
+      <PageShell layout="master-detail">
         <section
-          className="settings-pane__groups grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-b border-border bg-surface-muted md:border-r md:border-b-0"
+          className="settings-pane__groups flex min-h-0 min-w-0 flex-col overflow-hidden bg-surface-muted"
           aria-labelledby="settings-groups-heading"
         >
-          <header className="settings-pane__groups-header min-w-0 border-b border-border px-ui-2xl py-ui-xl">
+          <header className="min-w-0 border-b border-border px-ui-12 py-ui-12">
             <span
               className="block break-words text-xs font-semibold tracking-widest text-muted-foreground uppercase"
               id="settings-groups-heading"
@@ -60,7 +61,7 @@ export function SettingsPage({
               分组
             </span>
           </header>
-          <SettingsSidebar />
+          <SettingsSidebar selectedGroup={SETTINGS_GROUPS[selectedIndex].id} />
         </section>
 
         <TabPanels className="min-h-0 min-w-0 overflow-hidden">
@@ -69,13 +70,13 @@ export function SettingsPage({
             return (
               <TabPanel
                 key={group.id}
-                className="settings-pane__detail grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-surface"
+                className="settings-pane__detail flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface"
                 id={`settings-panel-${group.id}`}
                 aria-labelledby={headingId}
               >
                 {index === selectedIndex ? (
                   <>
-                    <header className="settings-pane__detail-header flex min-w-0 flex-wrap items-start justify-between gap-ui-xl border-b border-border px-ui-3xl py-ui-2xl">
+                    <header className="settings-pane__detail-header flex min-w-0 flex-none flex-wrap items-start justify-between gap-ui-12 border-b border-border">
                       <div className="min-w-0">
                         <h2
                           className="m-0 break-words text-xl font-semibold"
@@ -83,7 +84,7 @@ export function SettingsPage({
                         >
                           {group.label}
                         </h2>
-                        <p className="mt-ui-xs mb-0 break-words text-xs leading-relaxed text-muted-foreground">
+                        <p className="mt-ui-4 mb-0 break-words text-xs leading-relaxed text-muted-foreground">
                           {group.summary}
                         </p>
                       </div>
@@ -103,10 +104,10 @@ export function SettingsPage({
                       </StatusBadge>
                     </header>
 
-                    <div className="settings-pane__detail-content min-h-0 min-w-0 overflow-x-hidden overflow-y-auto px-ui-3xl py-ui-2xl [overscroll-behavior:contain] [scrollbar-gutter:stable]">
+                    <div className="settings-pane__detail-content min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [overscroll-behavior:contain] [scrollbar-gutter:stable]">
                       {preferences.status === "safe-default" ? (
                         <p
-                          className="m-0 mb-ui-xl rounded-control bg-warning-soft px-ui-xl py-ui-lg text-xs leading-relaxed text-warning"
+                          className="m-0 mb-ui-12 rounded-control bg-warning-soft px-ui-12 py-ui-8 text-xs leading-relaxed text-warning"
                           role="status"
                         >
                           正在使用安全默认值：{preferences.diagnostic.message}
@@ -157,7 +158,7 @@ export function SettingsPage({
             );
           })}
         </TabPanels>
-      </section>
+      </PageShell>
     </TabGroup>
   );
 }

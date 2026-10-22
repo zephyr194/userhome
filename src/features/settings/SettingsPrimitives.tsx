@@ -20,7 +20,7 @@ export function SettingsForm({
   return (
     <div
       aria-busy={busy || undefined}
-      className={classNames("grid min-w-0 gap-ui-xl", className)}
+      className={classNames("grid min-w-0 gap-ui-12", className)}
     >
       {children}
     </div>
@@ -46,7 +46,7 @@ export function SettingsFieldList({
 }
 
 const FIELD_CLASSES =
-  "flex min-w-0 flex-col gap-ui-lg px-ui-2xl py-ui-xl sm:flex-row sm:items-center sm:justify-between sm:gap-ui-3xl";
+  "flex min-w-0 flex-col gap-ui-8 px-ui-12 py-ui-12 sm:flex-row sm:items-center sm:justify-between sm:gap-ui-16";
 
 export function SettingsField({
   children,
@@ -64,7 +64,7 @@ export function SettingsField({
         <strong className="block break-words text-body font-semibold">
           {label}
         </strong>
-        <small className="mt-ui-xs block break-words text-aux leading-relaxed text-muted-foreground">
+        <small className="mt-ui-4 block break-words text-aux leading-relaxed text-muted-foreground">
           {description}
         </small>
       </span>
@@ -91,7 +91,7 @@ export function SettingsValueField({
         <strong className="block break-words text-body font-semibold">
           {label}
         </strong>
-        <small className="mt-ui-xs block break-words text-aux leading-relaxed text-muted-foreground">
+        <small className="mt-ui-4 block break-words text-aux leading-relaxed text-muted-foreground">
           {description}
         </small>
       </span>
@@ -115,7 +115,7 @@ export function SettingsChoiceGroup({
   return (
     <fieldset
       className={classNames(
-        "grid min-w-0 gap-ui-lg border-0 p-0",
+        "grid min-w-0 gap-ui-8 border-0 p-0",
         className,
       )}
       {...props}
@@ -142,7 +142,7 @@ export function SettingsChoice({
   return (
     <label
       className={classNames(
-        "flex min-w-0 items-start gap-ui-lg rounded-control bg-surface px-ui-2xl py-ui-xl",
+        "flex min-w-0 items-start gap-ui-8 rounded-control bg-surface px-ui-12 py-ui-12",
         "has-[input:checked]:border-selection-border has-[input:checked]:bg-selection",
         className,
       )}
@@ -153,7 +153,7 @@ export function SettingsChoice({
         <strong className="block break-words text-body font-semibold">
           {label}
         </strong>
-        <small className="mt-ui-xs block break-words text-aux leading-relaxed text-muted-foreground">
+        <small className="mt-ui-4 block break-words text-aux leading-relaxed text-muted-foreground">
           {description}
         </small>
       </span>
@@ -176,7 +176,7 @@ export function SettingsSection({
   return (
     <section
       aria-labelledby={headingId}
-      className={classNames("grid min-w-0 gap-ui-lg", className)}
+      className={classNames("grid min-w-0 gap-ui-8", className)}
       {...props}
     >
       <div className="min-w-0">
@@ -187,7 +187,7 @@ export function SettingsSection({
           {title}
         </h3>
         {description ? (
-          <p className="mt-ui-xs mb-0 break-words text-aux leading-relaxed text-muted-foreground">
+          <p className="mt-ui-4 mb-0 break-words text-aux leading-relaxed text-muted-foreground">
             {description}
           </p>
         ) : null}
@@ -211,7 +211,7 @@ export function SettingsFeedback({
   return (
     <p
       className={classNames(
-        "m-0 rounded-control border px-ui-xl py-ui-lg text-aux leading-relaxed",
+        "m-0 rounded-control border px-ui-12 py-ui-8 text-aux leading-relaxed",
         error
           ? "border-danger-border bg-danger-soft text-danger"
           : statusTone === "success"
@@ -235,7 +235,7 @@ export function SettingsActions({
   return (
     <div
       className={classNames(
-        "flex flex-wrap justify-end gap-ui-md border-t border-border pt-ui-xl",
+        "flex flex-wrap justify-end gap-ui-8 border-t border-border pt-ui-12",
         className,
       )}
     >
@@ -254,9 +254,9 @@ export function SettingsDangerZone({
   title: ReactNode;
 }) {
   return (
-    <section className="rounded-panel border border-danger-border bg-danger-soft p-ui-2xl">
+    <section className="rounded-panel border border-danger-border bg-danger-soft p-ui-12">
       <h3 className="m-0 text-group font-semibold text-danger">{title}</h3>
-      <p className="mt-ui-xs mb-0 break-words text-aux leading-relaxed text-muted-foreground">
+      <p className="mt-ui-4 mb-0 break-words text-aux leading-relaxed text-muted-foreground">
         {description}
       </p>
       <SettingsActions className="border-danger-border">
@@ -312,7 +312,7 @@ export function SettingsConfirmationDialog({
       onClose={onCancel}
       open
       title={
-        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12">
           <div className="min-w-0">
             <p className="m-0 break-words text-meta font-semibold uppercase tracking-widest text-danger">
               {eyebrow}
@@ -330,7 +330,7 @@ export function SettingsConfirmationDialog({
         </div>
       }
     >
-      <div className="grid min-w-0 gap-ui-3xl">
+      <div className="grid min-w-0 gap-ui-16">
         {children}
 
         <SettingsFeedback error={error} />

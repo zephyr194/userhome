@@ -155,10 +155,10 @@ export function DiagnosticsSettings() {
       </SettingsFieldList>
 
       <Panel
-        className="bg-surface-muted p-ui-2xl"
+        className="bg-surface-muted p-ui-12"
         aria-labelledby="diagnostics-provider-heading"
       >
-        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-xl">
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12">
           <SettingsSection
             title="提供程序健康"
             description="仅显示固定提供程序和枚举状态，不包含错误详情或候选路径。"
@@ -172,7 +172,7 @@ export function DiagnosticsSettings() {
             重新生成
           </Button>
         </div>
-        <div className="mt-ui-xl flex flex-wrap gap-ui-md">
+        <div className="mt-ui-12 flex flex-wrap gap-ui-8">
           {report.providers.map((provider) => (
             <StatusBadge
               key={provider.id}
@@ -190,7 +190,7 @@ export function DiagnosticsSettings() {
         description="不包含配置内容、密钥、用户名、绝对主目录、环境变量或授权材料。"
         headingId="diagnostics-report-heading"
       >
-        <div className="flex min-w-0 flex-wrap justify-end gap-ui-md">
+        <div className="flex min-w-0 flex-wrap justify-end gap-ui-8">
           <Button
             size="sm"
             disabled={busyAction !== undefined}
@@ -207,7 +207,7 @@ export function DiagnosticsSettings() {
           </Button>
         </div>
         <pre
-          className="m-0 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-panel bg-surface-muted p-ui-xl font-mono text-xs leading-relaxed text-foreground [scrollbar-gutter:stable]"
+          className="m-0 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-panel bg-surface-muted p-ui-12 font-mono text-xs leading-relaxed text-foreground [scrollbar-gutter:stable]"
           tabIndex={0}
         >
           {report.reportText}

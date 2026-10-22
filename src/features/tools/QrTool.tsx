@@ -250,9 +250,9 @@ export function QrTool() {
   return (
     <Panel
       aria-labelledby="qr-tool-heading"
-      className="grid gap-ui-xl border border-border p-ui-2xl"
+      className="grid gap-ui-12 border border-border p-ui-12"
     >
-      <div className="grid gap-ui-xs">
+      <div className="grid gap-ui-4">
         <h2 id="qr-tool-heading" className="text-body font-semibold">
           二维码生成
         </h2>
@@ -272,7 +272,7 @@ export function QrTool() {
         error={problem}
       />
 
-      <div className="flex flex-wrap items-end gap-ui-md">
+      <div className="flex flex-wrap items-end gap-ui-8">
         <SelectField
           label="纠错等级"
           value={level}
@@ -289,16 +289,16 @@ export function QrTool() {
         />
       </div>
 
-      <section aria-labelledby="qr-icon-heading" className="grid gap-ui-md">
+      <section aria-labelledby="qr-icon-heading" className="grid gap-ui-8">
         <h3 id="qr-icon-heading" className="text-body font-semibold">
           中心图标（可选）
         </h3>
         <p className="m-0 text-xs text-muted-foreground">{ICON_RULES_TEXT}</p>
 
         {icon ? (
-          <div className="flex flex-wrap items-center gap-ui-md">
+          <div className="flex flex-wrap items-center gap-ui-8">
             {/* Fixed white substrate, like the preview: the thumbnail is the backend's PNG. */}
-            <div className="grid w-fit rounded-control bg-qr-substrate p-ui-sm">
+            <div className="grid w-fit rounded-control bg-qr-substrate p-ui-8">
               <img
                 alt="图标缩略图"
                 src={`data:image/png;base64,${icon.thumbnailPngBase64}`}
@@ -316,7 +316,7 @@ export function QrTool() {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-wrap items-center gap-ui-md">
+          <div className="flex flex-wrap items-center gap-ui-8">
             <Button onClick={chooseIcon} disabled={inputLocked}>
               选择图标…
             </Button>
@@ -332,7 +332,7 @@ export function QrTool() {
         {iconError ? (
           <div
             role="alert"
-            className="grid gap-ui-xs rounded-control bg-danger-soft p-ui-lg text-xs text-danger"
+            className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
               图标不可用
@@ -342,7 +342,7 @@ export function QrTool() {
         ) : null}
       </section>
 
-      <section aria-labelledby="qr-preview-heading" className="grid gap-ui-md">
+      <section aria-labelledby="qr-preview-heading" className="grid gap-ui-8">
         <h3 id="qr-preview-heading" className="text-body font-semibold">
           预览
         </h3>
@@ -362,7 +362,7 @@ export function QrTool() {
         {preview.status === "error" ? (
           <div
             role="alert"
-            className="grid gap-ui-xs rounded-control bg-danger-soft p-ui-lg text-xs text-danger"
+            className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
               无法生成
@@ -374,7 +374,7 @@ export function QrTool() {
         {preview.status === "ready" ? (
           <>
             {/* Fixed white substrate: contrast must not follow the theme. */}
-            <div className="grid w-fit gap-ui-xs rounded-control bg-qr-substrate p-ui-lg">
+            <div className="grid w-fit gap-ui-4 rounded-control bg-qr-substrate p-ui-8">
               <img
                 alt="二维码预览"
                 src={`data:image/png;base64,${preview.preview.pngBase64}`}
@@ -392,13 +392,13 @@ export function QrTool() {
         ) : null}
       </section>
 
-      <section aria-labelledby="qr-export-heading" className="grid gap-ui-md">
+      <section aria-labelledby="qr-export-heading" className="grid gap-ui-8">
         <h3 id="qr-export-heading" className="text-body font-semibold">
           导出 PNG
         </h3>
 
         {exportView.status !== "awaiting" && !busy ? (
-          <div className="flex flex-wrap items-center gap-ui-md">
+          <div className="flex flex-wrap items-center gap-ui-8">
             <Button
               variant="primary"
               onClick={startExport}
@@ -422,16 +422,16 @@ export function QrTool() {
         ) : null}
 
         {exportView.status === "awaiting" ? (
-          <div className="grid gap-ui-md rounded-control bg-surface-muted p-ui-lg">
+          <div className="grid gap-ui-8 rounded-control bg-surface-muted p-ui-8">
             <p className="m-0 break-all text-body font-semibold">
               {describePrepared(exportView.prepared).title}
             </p>
-            <ul className="m-0 grid gap-ui-xxs pl-ui-xl text-xs text-muted-foreground">
+            <ul className="m-0 grid gap-ui-2 pl-ui-12 text-xs text-muted-foreground">
               {describePrepared(exportView.prepared).notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}
             </ul>
-            <div className="flex flex-wrap items-center gap-ui-md">
+            <div className="flex flex-wrap items-center gap-ui-8">
               <Button variant="primary" onClick={confirmExport}>
                 确认写入
               </Button>
@@ -451,7 +451,7 @@ export function QrTool() {
         {exportView.status === "written" ? (
           <div
             role="status"
-            className="grid gap-ui-xs rounded-control bg-surface-muted p-ui-lg text-xs"
+            className="grid gap-ui-4 rounded-control bg-surface-muted p-ui-8 text-xs"
           >
             <StatusBadge className="justify-self-start" tone="success">
               已导出
@@ -467,7 +467,7 @@ export function QrTool() {
         {exportView.status === "failed" ? (
           <div
             role="alert"
-            className="grid gap-ui-xs rounded-control bg-danger-soft p-ui-lg text-xs text-danger"
+            className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
               导出失败

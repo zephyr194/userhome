@@ -74,9 +74,9 @@ export function XmlTool() {
   return (
     <Panel
       aria-labelledby="xml-tool-heading"
-      className="grid gap-ui-xl border border-border p-ui-2xl"
+      className="grid gap-ui-12 border border-border p-ui-12"
     >
-      <div className="grid gap-ui-xs">
+      <div className="grid gap-ui-4">
         <h2 id="xml-tool-heading" className="text-body font-semibold">
           XML 格式化
         </h2>
@@ -99,7 +99,7 @@ export function XmlTool() {
         inputClassName="font-mono text-xs"
       />
 
-      <div className="flex flex-wrap items-end gap-ui-md">
+      <div className="flex flex-wrap items-end gap-ui-8">
         <SelectField
           label="输出格式"
           value={mode}
@@ -118,8 +118,8 @@ export function XmlTool() {
         </Button>
       </div>
 
-      <section aria-labelledby="xml-result-heading" className="grid gap-ui-md">
-        <div className="flex flex-wrap items-center justify-between gap-ui-md">
+      <section aria-labelledby="xml-result-heading" className="grid gap-ui-8">
+        <div className="flex flex-wrap items-center justify-between gap-ui-8">
           <h3 id="xml-result-heading" className="text-body font-semibold">
             结果
           </h3>
@@ -143,7 +143,7 @@ export function XmlTool() {
         {view.status === "error" ? (
           <div
             role="alert"
-            className="grid gap-ui-xs rounded-control bg-danger-soft p-ui-lg text-xs text-danger"
+            className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
               无法格式化
@@ -161,7 +161,7 @@ export function XmlTool() {
           <pre
             tabIndex={0}
             aria-label="格式化结果"
-            className="m-0 max-h-80 overflow-auto whitespace-pre rounded-control bg-surface-muted p-ui-lg font-mono text-xs"
+            className="m-0 max-h-80 overflow-auto whitespace-pre rounded-control bg-surface-muted p-ui-8 font-mono text-xs"
           >
             {view.output.text}
           </pre>

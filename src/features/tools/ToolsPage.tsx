@@ -1,5 +1,6 @@
+import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useState, type ComponentType } from "react";
-import { Button } from "../../components/ui";
+import { PageShell } from "../../components/ui";
 import { CodecTool } from "./CodecTool";
 import { JsonTool } from "./JsonTool";
 import { QrTool } from "./QrTool";
@@ -43,33 +44,46 @@ const TOOL_PANELS: Record<ToolId, ComponentType> = {
 
 export function ToolsPage() {
   const [activeTool, setActiveTool] = useState<ToolId>("json");
-  const active =
-    TOOL_ENTRIES.find((tool) => tool.id === activeTool) ?? TOOL_ENTRIES[0];
-  const ActivePanel = TOOL_PANELS[active.id];
+  const activeIndex = Math.max(
+    0,
+    TOOL_ENTRIES.findIndex((tool) => tool.id === activeTool),
+  );
+  const active = TOOL_ENTRIES[activeIndex];
 
   return (
-    <div className="grid gap-ui-xl">
-      <div role="tablist" aria-label="工具" className="flex flex-wrap gap-ui-sm">
-        {TOOL_ENTRIES.map((tool) => {
-          const selected = tool.id === active.id;
-          return (
-            <Button
+    <TabGroup
+      as="div"
+      className="h-full min-h-0 min-w-0"
+      selectedIndex={activeIndex}
+      onChange={(index) => setActiveTool(TOOL_ENTRIES[index].id)}
+    >
+      <PageShell layout="strip">
+        <TabList aria-label="工具" className="flex flex-wrap items-end gap-ui-8">
+          {TOOL_ENTRIES.map((tool) => (
+            <Tab
               key={tool.id}
-              role="tab"
-              aria-selected={selected}
-              size="sm"
-              variant={selected ? "primary" : "secondary"}
-              onClick={() => setActiveTool(tool.id)}
+              className={({ selected }) =>
+                selected
+                  ? "bracket inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-foreground"
+                  : "bracket inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-muted-foreground hover:text-foreground"
+              }
             >
               {tool.label}
-            </Button>
-          );
-        })}
-      </div>
-      <p className="m-0 text-xs text-muted-foreground">{active.summary}</p>
-      <div role="tabpanel" key={active.id}>
-        <ActivePanel />
-      </div>
-    </div>
+            </Tab>
+          ))}
+        </TabList>
+        <p className="m-0 text-xs text-muted-foreground">{active.summary}</p>
+        <TabPanels as="div">
+          {TOOL_ENTRIES.map((tool) => {
+            const ToolPanel = TOOL_PANELS[tool.id];
+            return (
+              <TabPanel key={tool.id}>
+                <ToolPanel />
+              </TabPanel>
+            );
+          })}
+        </TabPanels>
+      </PageShell>
+    </TabGroup>
   );
 }
