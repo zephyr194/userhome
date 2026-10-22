@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { classNames } from "./classNames";
+import { createScrollMemory } from "./pageScrollMemory";
 
 export type PageShellLayout = "strip" | "board" | "master-detail";
 export type PageShellStatusTone = "neutral" | "success" | "warning" | "danger";
@@ -16,6 +17,8 @@ export interface PageShellProps {
   actions?: ReactNode;
   boardToggle?: ReactNode;
   layout: PageShellLayout;
+  /** Each scrollKey keeps its own body offset; switching keys restores the one it left. */
+  scrollKey?: string;
   children?: ReactNode;
 }
 
@@ -25,8 +28,17 @@ export function PageShell({
   actions,
   boardToggle,
   layout,
+  scrollKey,
   children,
 }: PageShellProps) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [scrollMemory] = useState(() => createScrollMemory(scrollKey ?? ""));
+
+  useLayoutEffect(() => {
+    if (scrollKey === undefined || !bodyRef.current) return;
+    bodyRef.current.scrollTop = scrollMemory.switchTo(scrollKey);
+  }, [scrollKey, scrollMemory]);
+
   return (
     <section className="page-shell">
       <header className="page-shell__header">
@@ -46,7 +58,11 @@ export function PageShell({
         {actions ? <div className="page-shell__actions">{actions}</div> : null}
         {boardToggle ? <div className="page-shell__board-toggle">{boardToggle}</div> : null}
       </header>
-      <div className="page-shell__body">
+      <div
+        className="page-shell__body"
+        onScroll={(event) => scrollMemory.record(event.currentTarget.scrollTop)}
+        ref={bodyRef}
+      >
         <div className={`page-shell__layout page-shell__layout--${layout}`}>{children}</div>
       </div>
     </section>
