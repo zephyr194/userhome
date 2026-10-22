@@ -20,4 +20,10 @@ describe("QrTool", () => {
     expect(html).not.toContain("图标缩略图");
     expect(html).not.toContain("移除图标");
   });
+
+  it("offers the text input in an independent editor on an emphasised area", () => {
+    const html = renderToStaticMarkup(<QrTool />);
+    expect(html).toContain('aria-label="在独立框中打开文本或 URL"');
+    expect(html).toContain("field-emphasis");
+  });
 });

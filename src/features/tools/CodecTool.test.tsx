@@ -18,4 +18,11 @@ describe("CodecTool", () => {
     expect(html).not.toContain("<a ");
     expect(html).not.toContain("<script");
   });
+
+  it("offers the input in an independent editor, but not for the output", () => {
+    const html = renderToStaticMarkup(<CodecTool />);
+    expect(html).toContain('aria-label="在独立框中打开输入"');
+    expect(html).toContain("field-emphasis");
+    expect(html.match(/在独立框中打开/g)).toHaveLength(1);
+  });
 });

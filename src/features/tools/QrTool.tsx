@@ -266,6 +266,8 @@ export function QrTool() {
         description={`UTF-8，上限 ${QR_MAX_BYTES[shownLevel]} 字节（当前纠错等级）。`}
         value={text}
         onValueChange={(next) => change({ text: next })}
+        expandable
+        emphasis
         rows={4}
         spellCheck={false}
         disabled={inputLocked}

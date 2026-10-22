@@ -39,4 +39,10 @@ describe("XmlTool", () => {
     expect(html).not.toContain("<a ");
     expect(html).not.toContain("<script");
   });
+
+  it("offers the input in an independent editor on an emphasised area", () => {
+    const html = renderToStaticMarkup(<XmlTool />);
+    expect(html).toContain('aria-label="在独立框中打开输入"');
+    expect(html).toContain("field-emphasis");
+  });
 });

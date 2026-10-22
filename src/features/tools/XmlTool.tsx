@@ -94,6 +94,8 @@ export function XmlTool() {
         description="上限 1 MiB（UTF-8 字节）。超过上限时不会发送。"
         value={input}
         onValueChange={changeInput}
+        expandable
+        emphasis
         rows={10}
         spellCheck={false}
         inputClassName="font-mono text-xs"
