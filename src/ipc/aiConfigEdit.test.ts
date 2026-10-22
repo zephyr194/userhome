@@ -16,6 +16,15 @@ afterEach(() => {
 
 const OPERATION_ID = "op-1";
 
+const CATALOG_TEXT = {
+  verifiedVersion: null,
+  description: "Model to use for the session.",
+  descriptionTruncated: false,
+  defaultNote: "未设置时由 CLI 决定",
+  sourceUrl: "https://code.claude.com/docs/en/settings-reference",
+  sourceRetrievedOn: "2026-10-21",
+};
+
 function itemWire(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
@@ -25,6 +34,7 @@ function itemWire(
     allowedValues: [],
     editable: false,
     reason: "仅展示，版本未核实",
+    ...CATALOG_TEXT,
     ...overrides,
   };
 }
@@ -99,6 +109,12 @@ describe("decodeClaudeEditCatalog", () => {
       allowedValues: [],
       editable: false,
       reason: "仅展示，版本未核实",
+      verifiedVersion: null,
+      description: "Model to use for the session.",
+      descriptionTruncated: false,
+      defaultNote: "未设置时由 CLI 决定",
+      sourceUrl: "https://code.claude.com/docs/en/settings-reference",
+      sourceRetrievedOn: "2026-10-21",
     });
   });
 
@@ -352,5 +368,76 @@ describe("Claude edit commands", () => {
       code: "CONFLICT",
       message: "预览已过期，请重新预览。",
     });
+  });
+});
+
+describe("decodeClaudeEditCatalog official text and source", () => {
+  it("decodes the official description, default note, truncation flag and source", () => {
+    const catalog = decodeClaudeEditCatalog(
+      catalogWire({
+        items: [
+          itemWire({
+            ...CATALOG_TEXT,
+            descriptionTruncated: true,
+            verifiedVersion: "2.1.287",
+          }),
+        ],
+      }),
+    );
+
+    expect(catalog.items[0]).toMatchObject({
+      description: "Model to use for the session.",
+      descriptionTruncated: true,
+      verifiedVersion: "2.1.287",
+      defaultNote: "未设置时由 CLI 决定",
+      sourceUrl: "https://code.claude.com/docs/en/settings-reference",
+      sourceRetrievedOn: "2026-10-21",
+    });
+  });
+
+  it("rejects an item that omits any of the new fields", () => {
+    for (const key of Object.keys(CATALOG_TEXT)) {
+      const wire = itemWire({ ...CATALOG_TEXT });
+      delete wire[key];
+      expect(() =>
+        decodeClaudeEditCatalog(catalogWire({ items: [wire] })),
+      ).toThrow();
+    }
+  });
+
+  it("counts description length in code points and rejects anything over 200", () => {
+    const atLimit = "😀".repeat(200);
+    const decoded = decodeClaudeEditCatalog(
+      catalogWire({ items: [itemWire({ ...CATALOG_TEXT, description: atLimit })] }),
+    );
+    expect(decoded.items[0].description).toBe(atLimit);
+
+    expect(() =>
+      decodeClaudeEditCatalog(
+        catalogWire({
+          items: [itemWire({ ...CATALOG_TEXT, description: "😀".repeat(201) })],
+        }),
+      ),
+    ).toThrow();
+  });
+
+  it("rejects empty or control-character text, a non-https source and a malformed retrieval date", () => {
+    const rejected: Record<string, unknown>[] = [
+      { description: "   " },
+      { description: "line\nbreak" },
+      { defaultNote: "" },
+      { sourceUrl: "http://code.claude.com/docs" },
+      { sourceRetrievedOn: "2026-10-21T00:00:00Z" },
+      { descriptionTruncated: "false" },
+      { verifiedVersion: 2 },
+      { verifiedVersion: "" },
+    ];
+    for (const overrides of rejected) {
+      expect(() =>
+        decodeClaudeEditCatalog(
+          catalogWire({ items: [itemWire({ ...CATALOG_TEXT, ...overrides })] }),
+        ),
+      ).toThrow();
+    }
   });
 });

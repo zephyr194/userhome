@@ -474,6 +474,12 @@ export interface ClaudeEditItem {
   readonly allowedValues: readonly string[];
   readonly editable: boolean;
   readonly reason: string | null;
+  readonly verifiedVersion: string | null;
+  readonly description: string;
+  readonly descriptionTruncated: boolean;
+  readonly defaultNote: string;
+  readonly sourceUrl: string;
+  readonly sourceRetrievedOn: string;
 }
 
 export interface ClaudeEditCatalog {
@@ -534,6 +540,12 @@ const CLAUDE_EDIT_ITEM_KEYS = [
   "allowedValues",
   "editable",
   "reason",
+  "verifiedVersion",
+  "description",
+  "descriptionTruncated",
+  "defaultNote",
+  "sourceUrl",
+  "sourceRetrievedOn",
 ] as const;
 const CLAUDE_EDIT_CATALOG_KEYS = ["detectedVersion", "items"] as const;
 const CLAUDE_EDIT_PREVIEW_KEYS = [
@@ -582,6 +594,28 @@ function requireBooleanValue(value: unknown): boolean {
   return value;
 }
 
+const MAX_CATALOG_TEXT_CODE_POINTS = 200;
+const RETRIEVED_ON_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function requireCatalogText(value: unknown): string {
+  if (typeof value !== "string") throw decodeFailure();
+  if (
+    value.trim().length === 0 ||
+    Array.from(value).length > MAX_CATALOG_TEXT_CODE_POINTS ||
+    hasControlCharacters(value)
+  ) {
+    throw decodeFailure();
+  }
+  return value;
+}
+
+function requireRetrievedOn(value: unknown): string {
+  if (typeof value !== "string" || !RETRIEVED_ON_PATTERN.test(value)) {
+    throw decodeFailure();
+  }
+  return value;
+}
+
 function requireEditText(value: unknown, maxLength: number): string {
   if (
     typeof value !== "string" ||
@@ -621,6 +655,12 @@ function decodeClaudeEditItem(value: unknown): ClaudeEditItem {
     allowedValues: record.allowedValues.map((item) => requireText(item, 128)),
     editable,
     reason,
+    verifiedVersion: nullableText(record.verifiedVersion, MAX_VERSION_LENGTH),
+    description: requireCatalogText(record.description),
+    descriptionTruncated: requireBooleanValue(record.descriptionTruncated),
+    defaultNote: requireCatalogText(record.defaultNote),
+    sourceUrl: requireHttpsUrl(record.sourceUrl),
+    sourceRetrievedOn: requireRetrievedOn(record.sourceRetrievedOn),
   };
 }
 
