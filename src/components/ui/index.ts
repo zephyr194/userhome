@@ -1,6 +1,15 @@
 export { Button, type ButtonProps } from "./Button";
 export { Modal } from "./Modal";
 export { Panel } from "./Panel";
+export {
+  BoardCell,
+  PageShell,
+  type BoardSpan,
+  type PageShellLayout,
+  type PageShellProps,
+  type PageShellStatus,
+  type PageShellStatusTone,
+} from "./PageShell";
 export { StatusBadge, type StatusBadgeProps } from "./StatusBadge";
 export {
   CheckboxField,
