@@ -274,3 +274,43 @@ describe("reducer-driven view", () => {
     expect(html).toContain("文件无法读取");
   });
 });
+
+describe("AppConfigView flat entry rows (UIF-14)", () => {
+  it("puts the refresh action on the list title row", () => {
+    const html = render({ status: "ready", items: [ZED, TMUX] });
+    expect(html).toMatch(/<h2 id="app-config-list-title"[^>]*>条目<\/h2><button[^>]*>刷新<\/button>/);
+  });
+
+  it("keeps the refresh action on the empty state, where there is no list", () => {
+    const html = render({ status: "empty" });
+    expect(html).toMatch(/没有登记的应用配置条目。<\/p><button[^>]*>刷新<\/button>/);
+  });
+
+  it("renders each entry as a borderless row with the full path in a title attribute", () => {
+    const html = render({ status: "ready", items: [ZED] });
+    const rows = html.match(/<button[^>]*slide-item[^>]*>/g) ?? [];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatch(/\bentry-row\b/);
+    expect(rows[0]).not.toMatch(/\bborder/);
+    expect(html).toContain('title="~/.config/zed-settings.json"');
+  });
+
+  it("keeps the read-only label out of every list row", () => {
+    const html = render({ status: "ready", items: [ZED, TMUX] });
+    const rows = html.match(/<button[^>]*slide-item[^>]*>.*?<\/button>/g) ?? [];
+    expect(rows).toHaveLength(2);
+    for (const row of rows) expect(row).not.toContain("只读");
+    expect(html).toContain("仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。");
+  });
+
+  it("shows the path and status in the detail header", () => {
+    const html = render(
+      { status: "ready", items: [ZED] },
+      { status: "loading", requestId: 1, id: "zed-settings" },
+    );
+    expect(html).toContain(
+      'break-all font-mono text-aux text-muted-foreground">~/.config/zed-settings.json</span>',
+    );
+    expect(html).toContain("已发现");
+  });
+});

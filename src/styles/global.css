@@ -1338,6 +1338,10 @@ body {
 }
 /* /selection language */
 
+.entry-row {
+  min-height: var(--app-row-height-two-line);
+}
+
 ::selection {
   color: var(--app-selection-foreground);
   background: color-mix(in srgb, var(--app-primary) 28%, var(--app-canvas));

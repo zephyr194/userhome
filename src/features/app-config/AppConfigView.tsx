@@ -1,7 +1,8 @@
+import { Button as HeadlessButton } from "@headlessui/react";
 import { useBoardView } from "../../app/BoardViewContext";
-import { Button, PageShell, Panel, StatusBadge } from "../../components/ui";
+import { Button, PageShell, Panel } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
-import type { AppConfigListItem, AppConfigReadResult } from "../../ipc/appConfig";
+import type { AppConfigListItem, AppConfigProbeStatus, AppConfigReadResult } from "../../ipc/appConfig";
 import {
   CAPABILITY_LABELS,
   describeEntryDetail,
@@ -10,8 +11,16 @@ import {
   isFixedLocation,
   type DetailState,
   type ListState,
+  type ProbeTone,
 } from "./appConfigModel";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
+
+const PROBE_TEXT_CLASS: Record<ProbeTone, string> = {
+  neutral: "text-muted-foreground",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-danger",
+};
 
 export interface AppConfigViewProps {
   list: ListState;
@@ -34,19 +43,14 @@ export function AppConfigView({ list, detail, onReload, onSelect }: AppConfigVie
         className="content-start gap-ui-12 overflow-y-auto overscroll-contain"
         span={isBoard ? 4 : undefined}
       >
-        <div className="flex flex-wrap items-center justify-between gap-ui-8">
-          <p className="m-0 text-aux text-muted-foreground">
-            仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。
-          </p>
-          {list.status === "loading" ? null : (
-            <Button size="sm" onClick={onReload}>
-              刷新
-            </Button>
-          )}
-        </div>
         <ListStatusNotice list={list} onReload={onReload} />
         {items ? (
-          <EntryList items={items} selectedId={selectedId} onSelect={onSelect} />
+          <EntryList
+            items={items}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            onReload={onReload}
+          />
         ) : null}
       </PageRegion>
       <PageRegion
@@ -69,9 +73,14 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
       );
     case "empty":
       return (
-        <p role="status" className="m-0 text-body text-muted-foreground">
-          没有登记的应用配置条目。
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-ui-8">
+          <p role="status" className="m-0 text-body text-muted-foreground">
+            没有登记的应用配置条目。
+          </p>
+          <Button size="sm" onClick={onReload}>
+            刷新
+          </Button>
+        </div>
       );
     case "partial":
       return (
@@ -100,22 +109,31 @@ function EntryList({
   items,
   selectedId,
   onSelect,
+  onReload,
 }: {
   items: AppConfigListItem[];
   selectedId: string | undefined;
   onSelect: (id: string) => void;
+  onReload: () => void;
 }) {
   const listRef = useSlideIndicator(selectedId);
   return (
     <Panel aria-labelledby="app-config-list-title" className="grid content-start gap-ui-8 p-ui-8">
-      <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
-        条目
-      </h2>
-      <div ref={listRef} className="slide-list grid gap-ui-8">
+      <div className="flex items-center justify-between gap-ui-8">
+        <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
+          条目
+        </h2>
+        <Button size="sm" onClick={onReload}>
+          刷新
+        </Button>
+      </div>
+      <div ref={listRef} className="slide-list grid gap-ui-4">
         {groupByCategory(items).map((group) => (
-          <div key={group.category} className="grid gap-ui-8">
-            <h3 className="m-0 text-meta font-semibold text-muted-foreground">{group.label}</h3>
-            <ul className="m-0 grid list-none gap-ui-8 p-0">
+          <div key={group.category} className="grid gap-ui-4">
+            <h3 className="m-0 flex h-control-md items-center text-aux font-normal text-muted-foreground">
+              {group.label}
+            </h3>
+            <ul className="m-0 grid list-none gap-ui-4 p-0">
               {group.items.map((item) => (
                 <EntryRow
                   key={item.summary.id}
@@ -128,6 +146,9 @@ function EntryList({
           </div>
         ))}
       </div>
+      <p className="m-0 text-aux text-muted-foreground">
+        仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。
+      </p>
     </Panel>
   );
 }
@@ -142,30 +163,38 @@ function EntryRow({
   onSelect: (id: string) => void;
 }) {
   const { summary, probe } = item;
-  const badge = describeProbe(probe);
   return (
     <li>
-      <Button
+      <HeadlessButton
         aria-current={selected ? "true" : undefined}
-        className="slide-item grid h-auto w-full min-w-0 justify-start text-left"
+        className="slide-item entry-row grid w-full min-w-0 content-center gap-ui-2 px-ui-12 py-ui-4 text-left"
         onClick={() => onSelect(summary.id)}
-        size="sm"
       >
-        <span className="grid gap-ui-4 py-ui-8">
-          <span className="font-medium">{summary.name}</span>
-          <span className="break-all text-aux text-muted-foreground">{summary.displayPath}</span>
-          <span className="flex flex-wrap gap-ui-4">
-            <StatusBadge tone={badge.tone}>
-              <span aria-hidden="true">{badge.symbol} </span>
-              {badge.label}
-            </StatusBadge>
-            <StatusBadge>{CAPABILITY_LABELS[summary.capability]}</StatusBadge>
-          </span>
+        <span className="flex min-w-0 items-baseline justify-between gap-ui-8">
+          <span className="min-w-0 truncate text-body font-semibold">{summary.name}</span>
+          <ProbeStatus probe={probe} />
         </span>
-      </Button>
+        <span
+          className="min-w-0 truncate font-mono text-aux text-muted-foreground"
+          title={summary.displayPath}
+        >
+          {summary.displayPath}
+        </span>
+      </HeadlessButton>
     </li>
   );
 }
+
+function ProbeStatus({ probe }: { probe: AppConfigProbeStatus }) {
+  const badge = describeProbe(probe);
+  return (
+    <span className={`shrink-0 text-meta ${PROBE_TEXT_CLASS[badge.tone]}`}>
+      <span aria-hidden="true">{badge.symbol} </span>
+      {badge.label}
+    </span>
+  );
+}
+
 
 function EntryDetail({
   items,
@@ -186,9 +215,21 @@ function EntryDetail({
       <h2 id={headingId} className="m-0 text-group font-semibold">
         {selected ? selected.summary.name : "详情"}
       </h2>
+      {selected ? <EntryHeader item={selected} /> : null}
       {selected ? <EntryFacts item={selected} /> : null}
       <EntryBody items={items} detail={detail} />
     </Panel>
+  );
+}
+
+function EntryHeader({ item }: { item: AppConfigListItem }) {
+  const { summary, probe } = item;
+  return (
+    <div className="flex flex-wrap items-center gap-x-ui-12 gap-y-ui-4">
+      <span className="break-all font-mono text-aux text-muted-foreground">{summary.displayPath}</span>
+      <ProbeStatus probe={probe} />
+      <span className="text-aux text-muted-foreground">{CAPABILITY_LABELS[summary.capability]}</span>
+    </div>
   );
 }
 
