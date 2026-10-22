@@ -172,8 +172,6 @@
   --app-focus-ring-offset: 3px;
   --app-focus-ring-inset-width: 2px;
   --app-focus-ring-inset-offset: -2px;
-  --app-corner-tick-length: 6px;
-  --app-corner-tick-inset: 4px;
   --app-letter-spacing-label: 0.04em;
   --app-motion-state: 120ms;
 }
@@ -1250,37 +1248,6 @@ body {
   transition-timing-function: linear;
 }
 
-.corner-ticks {
-  position: relative;
-  isolation: isolate;
-}
-
-.corner-ticks::before,
-.corner-ticks::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  box-sizing: border-box;
-  width: var(--app-corner-tick-length);
-  height: var(--app-corner-tick-length);
-  border: 0 solid var(--app-control-border);
-  pointer-events: none;
-}
-
-.corner-ticks::before {
-  top: var(--app-corner-tick-inset);
-  left: var(--app-corner-tick-inset);
-  border-top-width: 1px;
-  border-left-width: 1px;
-}
-
-.corner-ticks::after {
-  right: var(--app-corner-tick-inset);
-  bottom: var(--app-corner-tick-inset);
-  border-right-width: 1px;
-  border-bottom-width: 1px;
-}
-
 /* selection language */
 .bracket {
   --bracket-corners: none;
@@ -1498,7 +1465,7 @@ body {
   left: -1px;
   width: 2px;
   height: 16px;
-  border-radius: 2px;
+  border-radius: 0;
   background: transparent;
 }
 

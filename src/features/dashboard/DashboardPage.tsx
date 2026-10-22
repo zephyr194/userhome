@@ -510,7 +510,6 @@ function UserDirectoryCoveragePanel({
 
   return (
     <Panel
-      ticks
       className="overview-panel"
       aria-labelledby="user-directory-coverage-heading"
     >

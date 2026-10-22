@@ -34,7 +34,7 @@ function issueLocation(issue: CaddyIssue): string {
 
 export function CaddyPreviewPanel({ localValid, preview, exposures }: CaddyPreviewPanelProps) {
   return (
-    <Panel ticks aria-labelledby="caddy-preview-heading" className="grid min-w-0 gap-ui-8 p-ui-8">
+    <Panel aria-labelledby="caddy-preview-heading" className="grid min-w-0 gap-ui-8 p-ui-8">
       <h2 id="caddy-preview-heading" className="text-sm font-semibold">
         预览与差异
       </h2>

@@ -175,7 +175,6 @@ function EntryDetail({
 
   return (
     <Panel
-      ticks
       role="region"
       aria-labelledby={headingId}
       className="grid content-start gap-ui-8 p-ui-8"

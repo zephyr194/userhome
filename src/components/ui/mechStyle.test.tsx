@@ -48,30 +48,6 @@ describe("Panel 锐角与角标", () => {
     expect(markup).not.toMatch(/\bborder-(border|success|warning|danger)\b/);
   });
 
-  it("启用 ticks 后带 corner-ticks 工具类，且仍保留内容与属性", () => {
-    const markup = renderToStaticMarkup(
-      <Panel aria-label="概览" ticks>
-        内容
-      </Panel>,
-    );
-    expect(markup).toContain("corner-ticks");
-    expect(markup).toContain('aria-label="概览"');
-    expect(markup).toContain("内容");
-  });
-
-  it("角标只用伪元素、不拦截指针，并定位在面板内侧", () => {
-    expect(rulesFor(".corner-ticks")[0]).toMatch(/position:\s*relative/);
-    expect(rulesFor(".corner-ticks")[0]).toMatch(/isolation:\s*isolate/);
-    for (const selector of [".corner-ticks::before", ".corner-ticks::after"]) {
-      const body = rulesFor(selector).join("\n");
-      expect(body, selector).toMatch(/content:\s*""/);
-      expect(body, selector).toMatch(/position:\s*absolute/);
-      expect(body, selector).toMatch(/pointer-events:\s*none/);
-      expect(body, selector).toMatch(/z-index:\s*-1/);
-    }
-    expect(tokenValue("app-corner-tick-length")).toBe("6px");
-    expect(tokenValue("app-corner-tick-inset")).toBe("4px");
-  });
 });
 
 describe("全仓不使用 clip-path", () => {
