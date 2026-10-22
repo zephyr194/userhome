@@ -1,10 +1,7 @@
-import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useToolSection } from "../../app/SectionContext";
-import { PageShell } from "../../components/ui";
+import { PageShell, VerticalMenu, type VerticalMenuItem } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
-import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
-import { classNames } from "../../components/ui/classNames";
 import { decodeAppError } from "../../ipc/core";
 import {
   readEnvironmentFile,
@@ -26,58 +23,54 @@ import {
   environmentReducer,
 } from "./environmentModel";
 import { useDotenvEditor } from "./useDotenvEditor";
+import { LaunchctlPage } from "./LaunchctlPage";
 import { ZshPage } from "./ZshPage";
 
 type GrantNotice = EnvironmentViewProps["grantNotice"];
 
-const TAB_CLASSES = ({ selected }: { selected: boolean }) =>
-  classNames(
-    "slide-item inline-flex h-control-md items-center px-ui-8 text-aux",
-    selected ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
-  );
+const DOMAINS: readonly VerticalMenuItem[] = [
+  { id: "dotenv", label: "项目 dotenv", description: "授权目录中的 .env 文件" },
+  { id: "zsh", label: "用户 zsh", description: "启动文件与读取顺序" },
+  { id: "launchctl", label: "登录会话", description: "GUI 应用看到的变量" },
+];
 
 /**
- * The environment page has two sections in one place, without a new
- * navigation entry: dotenv files in authorized directories, and the current
- * user's zsh startup files. The zsh section only reads the files once it is
- * opened for the first time, and then stays mounted so the user's directory
- * choice survives switching back and forth.
+ * The environment page holds three domains in one place, without a new
+ * navigation entry: dotenv files in authorized directories, the current user's
+ * zsh startup files, and the macOS login session. The zsh and login session
+ * domains only read their data the first time they are opened, and then stay
+ * mounted so their state survives switching back and forth.
  */
 export function EnvironmentPage() {
   const [section, setSection] = useToolSection("dotenv");
-  const zshSelected = section === "zsh";
-  const [zshOpened, setZshOpened] = useState(zshSelected);
-  const tabsRef = useSlideIndicator(zshSelected, "x");
-  if (zshSelected && !zshOpened) setZshOpened(true);
+  const [zshOpened, setZshOpened] = useState(section === "zsh");
+  const [launchctlOpened, setLaunchctlOpened] = useState(section === "launchctl");
+  if (section === "zsh" && !zshOpened) setZshOpened(true);
+  if (section === "launchctl" && !launchctlOpened) setLaunchctlOpened(true);
   return (
-    <TabGroup
-      as="div"
-      className="h-full min-h-0 min-w-0"
-      selectedIndex={zshSelected ? 1 : 0}
-      onChange={(index) => setSection(index === 1 ? "zsh" : "dotenv")}
-    >
-      <PageShell layout="strip" scrollKey="compact">
-        <TabList
-          ref={tabsRef}
-          aria-label="环境配置分区"
-          className="slide-list col-span-full flex min-w-0 flex-wrap items-end gap-ui-4 border-b border-line"
-          data-slide-axis="x"
-        >
-          <Tab className={TAB_CLASSES}>dotenv 文件</Tab>
-          <Tab className={TAB_CLASSES}>zsh 启动文件</Tab>
-        </TabList>
-        <TabPanels as="div" className="contents">
-          <TabPanel as="div" className="contents" unmount={false}>
+    <div className="environment-page h-full min-h-0 min-w-0">
+      <PageShell layout="master-detail" scrollKey={section}>
+        <div className="environment-page__menu min-w-0">
+          <VerticalMenu
+            items={DOMAINS}
+            label="环境变量域"
+            onSelect={setSection}
+            selected={section}
+          />
+        </div>
+        <div className="min-w-0">
+          <div className="min-w-0" hidden={section !== "dotenv"}>
             <DotenvPage />
-          </TabPanel>
-          <TabPanel as="div" className="contents" unmount={false}>
-            <PageRegion>
-              {zshOpened ? <ZshPage /> : null}
-            </PageRegion>
-          </TabPanel>
-        </TabPanels>
+          </div>
+          <div className="min-w-0" hidden={section !== "zsh"}>
+            <PageRegion>{zshOpened ? <ZshPage /> : null}</PageRegion>
+          </div>
+          <div className="min-w-0" hidden={section !== "launchctl"}>
+            <PageRegion>{launchctlOpened ? <LaunchctlPage /> : null}</PageRegion>
+          </div>
+        </div>
       </PageShell>
-    </TabGroup>
+    </div>
   );
 }
 

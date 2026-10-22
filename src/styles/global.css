@@ -2426,3 +2426,14 @@ button[class*="border-border"],
   }
 }
 /* /r5b-ov */
+/* r5b-n2 ------------------------------------------------------------ */
+@container (min-width: 760px) {
+  .environment-page .page-shell__layout--master-detail {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .environment-page__menu {
+    border-right: 1px solid var(--app-line-subtle);
+  }
+}
+/* /r5b-n2 */

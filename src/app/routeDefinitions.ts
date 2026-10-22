@@ -97,6 +97,7 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     sections: [
       { id: "dotenv", label: "dotenv 文件" },
       { id: "zsh", label: "zsh 启动文件" },
+      { id: "launchctl", label: "登录会话" },
     ],
   },
   caddy: {

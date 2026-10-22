@@ -28,10 +28,11 @@ describe("route sections", () => {
     expect(routeSectionsOf("aiConfig")).toEqual([]);
   });
 
-  it("hardcodes the environment sections to match its existing tabs", () => {
+  it("hardcodes the environment sections to match its domain menu", () => {
     expect(routeOf("environment").sections).toEqual([
       { id: "dotenv", label: "dotenv 文件" },
       { id: "zsh", label: "zsh 启动文件" },
+      { id: "launchctl", label: "登录会话" },
     ]);
   });
 

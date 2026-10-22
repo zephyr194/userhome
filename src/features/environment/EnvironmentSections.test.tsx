@@ -13,16 +13,24 @@ function render(section?: string): string {
   );
 }
 
+function selectedDomain(markup: string): string | undefined {
+  const tags = markup.match(/<button[^>]*role="tab"[^>]*>/g) ?? [];
+  const selected = tags.find((tag) => tag.includes('aria-selected="true"'));
+  return selected?.match(/data-section-id="([^"]+)"/)?.[1];
+}
+
 describe("environment page sections", () => {
-  it("selects the zsh tab for the zsh section", () => {
-    const markup = render("zsh");
-    expect(markup).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>zsh 启动文件/);
-    expect(markup).not.toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>dotenv 文件/);
+  it("selects the zsh domain for the zsh section", () => {
+    expect(selectedDomain(render("zsh"))).toBe("zsh");
   });
 
-  it("selects the dotenv tab without a section or for the dotenv section", () => {
+  it("selects the dotenv domain without a section or for the dotenv section", () => {
     for (const markup of [render(), render("dotenv")]) {
-      expect(markup).toMatch(/role="tab"[^>]*aria-selected="true"[^>]*>dotenv 文件/);
+      expect(selectedDomain(markup)).toBe("dotenv");
     }
+  });
+
+  it("selects the login session domain for the launchctl section", () => {
+    expect(selectedDomain(render("launchctl"))).toBe("launchctl");
   });
 });
