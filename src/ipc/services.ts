@@ -650,8 +650,22 @@ export function decodeLaunchdDiscovery(value: unknown): LaunchdDiscovery {
   return { services, sources, complete, truncated };
 }
 
+// The backend admits one discovery at a time. Overlapping callers (a StrictMode
+// double mount, a remount while a read is still running) share the read that is
+// already in flight instead of starting a second one that would be refused.
+let pendingDiscovery: Promise<LaunchdDiscovery> | undefined;
+
 export function listLaunchdServices(): Promise<LaunchdDiscovery> {
-  return invokeCommand("list_launchd_services", decodeLaunchdDiscovery);
+  if (pendingDiscovery === undefined) {
+    const request = invokeCommand(
+      "list_launchd_services",
+      decodeLaunchdDiscovery,
+    ).finally(() => {
+      if (pendingDiscovery === request) pendingDiscovery = undefined;
+    });
+    pendingDiscovery = request;
+  }
+  return pendingDiscovery;
 }
 
 // Creating a UserHome-owned launchd job. The request is a typed form; the file

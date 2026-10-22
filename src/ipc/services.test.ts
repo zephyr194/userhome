@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   decodeLaunchdConfigFile,
   decodeLaunchdDiscovery,
   decodeLaunchdService,
   decodeLaunchdSourceReport,
+  listLaunchdServices,
 } from "./services";
 
 function configFile(overrides: Record<string, unknown> = {}) {
@@ -395,3 +397,57 @@ describe("launchd ownership decoding", () => {
 function discoveryWith(services: unknown[]) {
   return discovery({ services });
 }
+
+describe("listLaunchdServices", () => {
+  afterEach(() => {
+    clearMocks();
+  });
+
+  it("shares one in-flight read between overlapping callers", async () => {
+    let calls = 0;
+    mockIPC((command) => {
+      if (command === "list_launchd_services") calls += 1;
+      return discovery();
+    });
+
+    const [first, second] = await Promise.all([
+      listLaunchdServices(),
+      listLaunchdServices(),
+    ]);
+
+    expect(calls).toBe(1);
+    expect(second).toBe(first);
+  });
+
+  it("starts a new read once the previous one has settled", async () => {
+    let calls = 0;
+    mockIPC((command) => {
+      if (command === "list_launchd_services") calls += 1;
+      return discovery();
+    });
+
+    await listLaunchdServices();
+    await listLaunchdServices();
+
+    expect(calls).toBe(2);
+  });
+
+  it("hands a shared failure to every overlapping caller", async () => {
+    let calls = 0;
+    mockIPC(() => {
+      calls += 1;
+      throw { code: "CONFLICT", message: "busy", retryable: false };
+    });
+
+    const results = await Promise.allSettled([
+      listLaunchdServices(),
+      listLaunchdServices(),
+    ]);
+
+    expect(calls).toBe(1);
+    expect(results.map((result) => result.status)).toEqual([
+      "rejected",
+      "rejected",
+    ]);
+  });
+});
