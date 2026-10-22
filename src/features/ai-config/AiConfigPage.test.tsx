@@ -51,10 +51,10 @@ function mockDetection(handler: (call: number) => unknown): () => number {
   return () => calls;
 }
 
-function page() {
+function page(refreshId?: string) {
   return (
     <StrictMode>
-      <AiConfigPage />
+      <AiConfigPage refreshId={refreshId} />
     </StrictMode>
   );
 }
@@ -106,10 +106,10 @@ describe("AiConfigPage detection cache (r5-ai)", () => {
             release = () => resolve(reportWire());
           }),
     );
-    rtl.render(page());
+    const view = rtl.render(page());
     await waitForList();
 
-    rtl.fireEvent.click(rtl.screen.getByRole("button", { name: "刷新" }));
+    view.rerender(page("refresh-1"));
 
     expect(calls()).toBe(2);
     expect(rtl.screen.getByText("正在刷新…")).toBeTruthy();
@@ -124,10 +124,10 @@ describe("AiConfigPage detection cache (r5-ai)", () => {
       if (call === 1) return reportWire();
       throw { code: "INTERNAL", message: "检测命令暂时无法运行。", retryable: true };
     });
-    rtl.render(page());
+    const view = rtl.render(page());
     await waitForList();
 
-    rtl.fireEvent.click(rtl.screen.getByRole("button", { name: "刷新" }));
+    view.rerender(page("refresh-1"));
 
     await rtl.screen.findByText("刷新失败，仍显示上次读取的结果");
     expect(rtl.screen.getByText("检测命令暂时无法运行。")).toBeTruthy();

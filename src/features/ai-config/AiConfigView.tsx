@@ -46,7 +46,6 @@ export function AiConfigView({
   const selected = selectedToolOf(tools, selectedToolId);
   const showClaudePanel = showsClaudePanel(selected);
   const toolListRef = useSlideIndicator(selected?.id);
-  const busy = state.status === "loading" || refreshing;
 
   return (
     <PageShell layout="master-detail" scrollKey="compact">
@@ -55,14 +54,9 @@ export function AiConfigView({
           aria-labelledby="ai-tools-heading"
           className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
-          <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8">
-            <h2 id="ai-tools-heading" className="m-0 text-group font-semibold">
-              工具列表
-            </h2>
-            <Button size="sm" variant="secondary" disabled={busy} onClick={onRefresh}>
-              刷新
-            </Button>
-          </div>
+          <h2 id="ai-tools-heading" className="m-0 text-group font-semibold">
+            工具列表
+          </h2>
           <p className="m-0 text-aux text-muted-foreground">
             只读检测四个 AI 命令行工具。版本检测只运行固定的 --version，不读取凭据、不发起模型请求。配置文件存在不等于已安装，两者分开显示。
           </p>
@@ -150,11 +144,7 @@ function StateNotice({
       <Panel role="alert" className="grid gap-ui-8 p-ui-8">
         <p className="m-0 text-body font-semibold text-danger">刷新失败，仍显示上次读取的结果</p>
         <p className="m-0 text-body">{refreshError.message}</p>
-        <div>
-          <Button size="sm" onClick={onRetry}>
-            重试
-          </Button>
-        </div>
+        <p className="m-0 text-aux text-muted-foreground">可在页头点击“刷新”重试。</p>
       </Panel>
     );
   }

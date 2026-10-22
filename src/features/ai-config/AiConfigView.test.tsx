@@ -236,13 +236,13 @@ describe("AiConfigView refresh (r5-ai)", () => {
     expect(html).not.toContain("正在检测 AI 工具");
   });
 
-  it("disables the refresh action while a refresh runs", () => {
+  it("has no second refresh button in the tool list", () => {
     const html = render(ready(), { refreshing: true });
 
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>刷新<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*>刷新<\/button>/);
   });
 
-  it("keeps the last report and explains a failed refresh with a retry", () => {
+  it("keeps the last report and points to the header refresh after a failed refresh", () => {
     const html = render(ready(), {
       refreshError: { code: "INTERNAL", message: "检测命令没有返回结果。", retryable: true },
     });
@@ -250,14 +250,8 @@ describe("AiConfigView refresh (r5-ai)", () => {
     expect(html).toContain('role="alert"');
     expect(html).toContain("刷新失败，仍显示上次读取的结果");
     expect(html).toContain("检测命令没有返回结果。");
+    expect(html).toContain("可在页头点击“刷新”重试。");
     expect(html).toContain("Claude Code");
     expect(html).not.toContain("无法检测 AI 工具");
-  });
-
-  it("names the refresh action 刷新 in the header", () => {
-    const html = render(ready());
-
-    expect(html).toMatch(/<button[^>]*>刷新<\/button>/);
-    expect(html).not.toContain("重新检测");
   });
 });
