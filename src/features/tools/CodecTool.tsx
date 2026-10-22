@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActionRow,
   Button,
   Panel,
   SelectField,
@@ -103,7 +104,7 @@ export function CodecTool() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-end gap-ui-8">
+      <ActionRow alignItems="end">
         <SelectField
           label="算法"
           value={algorithm}
@@ -116,7 +117,7 @@ export function CodecTool() {
           onValueChange={changeDirection}
           options={DIRECTION_OPTIONS}
         />
-      </div>
+      </ActionRow>
 
       {algorithmNote(algorithm) ? (
         <p className="m-0 text-xs text-muted-foreground">
@@ -136,7 +137,7 @@ export function CodecTool() {
         inputClassName="font-mono text-xs"
       />
 
-      <div className="flex flex-wrap items-center gap-ui-8">
+      <ActionRow>
         <Button
           variant="primary"
           onClick={submit}
@@ -147,7 +148,7 @@ export function CodecTool() {
         <Button variant="ghost" onClick={() => changeInput("")}>
           清空输入
         </Button>
-      </div>
+      </ActionRow>
 
       <section aria-labelledby="codec-result-heading" className="grid gap-ui-8">
         <div className="flex flex-wrap items-center justify-between gap-ui-8">

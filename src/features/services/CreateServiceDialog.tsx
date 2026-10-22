@@ -9,7 +9,7 @@ import {
   type CreateServiceExecution,
   type CreateServicePreview,
 } from "../../ipc/services";
-import { Button, Modal, SwitchField, TextField } from "../../components/ui";
+import { ActionRow, Button, Modal, SwitchField, TextField } from "../../components/ui";
 import {
   ENVIRONMENT_NOTE,
   INITIAL_CREATE_DIALOG,
@@ -138,7 +138,7 @@ function FormBody({
               spellCheck={false}
               value={row.value}
             />
-            <div className="flex flex-wrap gap-ui-8">
+            <ActionRow>
               <Button
                 disabled={disabled || index === 0}
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
@@ -161,7 +161,7 @@ function FormBody({
               >
                 删除参数
               </Button>
-            </div>
+            </ActionRow>
           </div>
         ))}
         <div>

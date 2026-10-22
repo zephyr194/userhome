@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import {
+  ActionRow,
   Button,
   Panel,
   SelectField,
@@ -274,7 +275,7 @@ export function QrTool() {
         error={problem}
       />
 
-      <div className="flex flex-wrap items-end gap-ui-8">
+      <ActionRow alignItems="end">
         <SelectField
           label="纠错等级"
           value={level}
@@ -289,7 +290,7 @@ export function QrTool() {
           options={SIZE_OPTIONS}
           disabled={inputLocked}
         />
-      </div>
+      </ActionRow>
 
       <section aria-labelledby="qr-icon-heading" className="grid gap-ui-8">
         <h3 id="qr-icon-heading" className="text-body font-semibold">
@@ -298,7 +299,7 @@ export function QrTool() {
         <p className="m-0 text-xs text-muted-foreground">{ICON_RULES_TEXT}</p>
 
         {icon ? (
-          <div className="flex flex-wrap items-center gap-ui-8">
+          <ActionRow>
             {/* Fixed white substrate, like the preview: the thumbnail is the backend's PNG. */}
             <div className="grid w-fit rounded-control bg-qr-substrate p-ui-8">
               <img
@@ -316,7 +317,7 @@ export function QrTool() {
             <Button variant="ghost" onClick={removeIcon} disabled={inputLocked}>
               移除图标
             </Button>
-          </div>
+          </ActionRow>
         ) : (
           <div className="flex flex-wrap items-center gap-ui-8">
             <Button onClick={chooseIcon} disabled={inputLocked}>
@@ -433,14 +434,14 @@ export function QrTool() {
                 <li key={note}>{note}</li>
               ))}
             </ul>
-            <div className="flex flex-wrap items-center gap-ui-8">
+            <ActionRow>
               <Button variant="primary" onClick={confirmExport}>
                 确认写入
               </Button>
               <Button variant="ghost" onClick={discardExport}>
                 取消
               </Button>
-            </div>
+            </ActionRow>
           </div>
         ) : null}
 

@@ -1,5 +1,6 @@
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
+  ActionRow,
   Button,
   CheckboxField,
   SecretReplacementField,
@@ -105,7 +106,7 @@ export function DotenvEditor({ actions, check, state }: DotenvEditorProps) {
             />
           ) : null}
           <AdditionList actions={actions} check={check} disabled={locked} state={state} />
-          <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
+          <ActionRow className="min-w-0">
             <Button
               disabled={locked || !check.ready}
               onClick={() => void actions.requestPreview()}
@@ -123,7 +124,7 @@ export function DotenvEditor({ actions, check, state }: DotenvEditorProps) {
                   : "请先修正标红的字段。"}
               </span>
             ) : null}
-          </div>
+          </ActionRow>
         </>
       )}
 
@@ -482,14 +483,14 @@ function PreviewDialog({
           正在写入并校验…
         </p>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-ui-8">
+      <ActionRow align="end">
         <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview}>
           返回修改
         </Button>
         <Button disabled={busy} onClick={() => void actions.confirm()} variant="primary">
           {created ? "确认创建" : "确认写入"}
         </Button>
-      </div>
+      </ActionRow>
     </ConfirmDialog>
   );
 }
@@ -525,14 +526,14 @@ function ResultPanel({
         <p className="m-0 text-xs">备份编号：{result.backupId}</p>
       ) : null}
       {result.errorMessage ? <p className="m-0 text-xs">原因：{result.errorMessage}</p> : null}
-      <div className="flex flex-wrap gap-ui-8">
+      <ActionRow>
         <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
           完成
         </Button>
         {result.status === "FAILED" && canResumeEditing(result) ? (
           <Button onClick={actions.resumeEditing}>返回继续编辑</Button>
         ) : null}
-      </div>
+      </ActionRow>
     </section>
   );
 }

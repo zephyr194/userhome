@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Button, Modal, SwitchField, TextField } from "../../components/ui";
+import { ActionRow, Button, Modal, SwitchField, TextField } from "../../components/ui";
 import { decodeAppError } from "../../ipc/core";
 import {
   discardEditLaunchdService,
@@ -112,7 +112,7 @@ function FormBody({
               spellCheck={false}
               value={row.value}
             />
-            <div className="flex flex-wrap gap-ui-8">
+            <ActionRow>
               <Button
                 disabled={disabled || index === 0}
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
@@ -135,7 +135,7 @@ function FormBody({
               >
                 删除参数
               </Button>
-            </div>
+            </ActionRow>
           </div>
         ))}
         <div>

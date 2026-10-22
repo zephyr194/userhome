@@ -1,6 +1,7 @@
 import { AsyncState } from "../../components/AsyncState";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
+  ActionRow,
   Button,
   SecretReplacementField,
   StatusBadge,
@@ -163,7 +164,7 @@ function Body({
             <>
               <VariablesSection actions={actions} check={check} disabled={locked} state={state} />
               <PathSection actions={actions} check={check} disabled={locked} state={state} />
-              <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
+              <ActionRow className="min-w-0">
                 <Button
                   disabled={locked || !check.ready}
                   onClick={() => void actions.requestPreview()}
@@ -186,7 +187,7 @@ function Body({
                       : "请先修正标红的字段。"}
                   </span>
                 ) : null}
-              </div>
+              </ActionRow>
             </>
           ) : null}
           <OutsidePanel loaded={loaded} />
@@ -518,7 +519,7 @@ function PathSection({
                     spellCheck={false}
                     value={item.text}
                   />
-                  <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
+                  <ActionRow className="min-w-0">
                     <Button
                       aria-label={`上移 PATH 第 ${position} 项`}
                       disabled={disabled || index === 0}
@@ -544,7 +545,7 @@ function PathSection({
                     >
                       删除
                     </Button>
-                  </div>
+                  </ActionRow>
                 </div>
                 {mark?.duplicate || mark?.outsideLine !== undefined ? (
                   <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
@@ -851,14 +852,14 @@ function PreviewDialog({
           正在写入并校验…
         </p>
       ) : null}
-      <div className="flex flex-wrap justify-end gap-ui-8">
+      <ActionRow align="end">
         <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview}>
           返回修改
         </Button>
         <Button disabled={busy} onClick={() => void actions.confirm()} variant="primary">
           {created ? "确认创建" : "确认写入"}
         </Button>
-      </div>
+      </ActionRow>
     </ConfirmDialog>
   );
 }
@@ -895,14 +896,14 @@ function ResultPanel({
         <p className="m-0 text-xs">备份编号：{result.backupId}</p>
       ) : null}
       {result.errorMessage ? <p className="m-0 text-xs">原因：{result.errorMessage}</p> : null}
-      <div className="flex flex-wrap gap-ui-8">
+      <ActionRow>
         <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
           完成
         </Button>
         {result.status === "FAILED" && canResumeEditing(result) ? (
           <Button onClick={actions.resumeEditing}>返回继续编辑</Button>
         ) : null}
-      </div>
+      </ActionRow>
     </section>
   );
 }
