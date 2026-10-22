@@ -522,3 +522,36 @@ Caddy 的真实运行验收尚未执行，需用户批准后按 [`caddy-acceptan
 - 静态发现，未改：`global.css` 中第二条 `.navigation-rail`（约 1388 行）设置 `overflow: hidden`，覆盖了约 313 行的 `overflow-y: auto`。窗口高度不足时导航项可能无法滚动到底部。修正会改变外观与行为，需先确认。
 - 残留：`global.css` 中仍有 23 行 `applications-*` 相关选择器（FIN-2 遗留，含约 994 行的媒体查询），本次未删除。`navigation-rail__status--*` 与 `status-glyph--*` 为动态拼接，保留。
 - 不新增依赖，不改后端、IPC、权限、CI 与锁文件。
+
+## pnpm 12.11.2 升级：构建脚本决定与自动化验证（FIN-4，2026-10-22）
+
+范围：统一 pnpm 为 12.11.2（`package.json` 的 `packageManager` 与 `engines.pnpm`，CI、发布工作流与 README，见 `09706e2`），并让 `pnpm install --frozen-lockfile` 在 12.11.2 下通过（`593b7a7`）。历史记录中的 pnpm 10.33.1 构建证据保持原样，不改写。
+
+### 构建脚本决定
+
+pnpm 12 对未决定的依赖构建脚本会让 install 以 `ERR_PNPM_IGNORED_BUILDS` 失败。决定记录在 `pnpm-workspace.yaml` 的 `allowBuilds`：
+
+| 包 | 决定 | 理由 |
+|---|---|---|
+| `esbuild` | 允许 | 打包与转译依赖（tsx、vite）的平台二进制。安装脚本只校验平台可选依赖已安装；仅在可选依赖缺失（如 `--no-optional`）时才回退到从 npm 下载，锁文件解析的平台包正常安装，本次未触发下载。 |
+| `edgedriver` | 拒绝 | 来自 `@wdio/utils` 依赖树，仅用于 Edge 驱动下载；tauri-service 中对 msedgedriver 的下载与查找仅在 Windows（`win32`）路径生效。e2e 在 macOS 上运行，且使用 `driverProvider: "embedded"`。 |
+| `geckodriver` | 拒绝 | 同样来自 `@wdio/utils` 依赖树；tauri-service 中未引用。 |
+
+依赖树核对：`pnpm why edgedriver`、`pnpm why geckodriver` 显示两者仅经 `@wdio/*` 与 `webdriverio` 引入，本项目未直接依赖。拒绝后两个包仍随依赖安装，只是不执行安装脚本；若将来需要 Edge 或 Firefox 会话，须重新评估。
+
+### 已执行（自动化，本机）
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm install --frozen-lockfile`（清空 `node_modules` 后） | 通过；`pnpm ignored-builds` 仅列出被显式拒绝的 edgedriver、geckodriver |
+| `git diff -- pnpm-lock.yaml` | 无变化（锁文件未改） |
+| `pnpm lint` | 0 error；1 warning（`DashboardPage.tsx:309`，既有，react-refresh） |
+| `pnpm typecheck` | 通过 |
+| `pnpm test` | 124 个文件 / 1868 项通过 |
+| `pnpm build` | 通过（既有 chunk-size 提示） |
+
+### 未验证
+
+- **CI 未验证**：`.github/workflows/ci.yml` 与 `release.yml` 使用 `pnpm/action-setup@v4` 的 12.11.2，本机未运行 GitHub Actions。
+- **E2E 未验证**：`pnpm test:e2e` 会启动应用，本次未执行；它是否在 macOS 上因拒绝两个驱动而受影响，只经静态核对（见上表），未经运行证明。
+- Rust 检查（`pnpm check:rust`）未运行：本机拦截 Rust 测试二进制，本次仅为依赖与文档改动。
