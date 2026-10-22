@@ -158,6 +158,16 @@ export function groupByCategory(items: readonly AppConfigListItem[]): AppConfigG
   });
 }
 
+/** The first displayed row, when the current selection is missing or no longer listed. */
+export function defaultEntryId(state: AppConfigState): string | undefined {
+  const items = listedItems(state.list);
+  const { detail } = state;
+  if (detail.status !== "idle" && items.some((item) => item.summary.id === detail.id)) {
+    return undefined;
+  }
+  return groupByCategory(items)[0]?.items[0]?.summary.id;
+}
+
 export const CAPABILITY_LABELS: Record<AppConfigCapability, string> = {
   discoverOnly: "仅探测存在",
   readOnly: "只读",

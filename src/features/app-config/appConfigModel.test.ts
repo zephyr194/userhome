@@ -4,6 +4,7 @@ import type { AppError } from "../../ipc/core";
 import {
   INITIAL_APP_CONFIG_STATE,
   appConfigReducer,
+  defaultEntryId,
   describeEntryDetail,
   describeProbe,
   formatBytes,
@@ -134,6 +135,51 @@ describe("appConfigReducer entry selection", () => {
       items: [item("zed-settings")],
     });
     expect(reloaded.detail.status).toBe("idle");
+  });
+});
+
+describe("defaultEntryId", () => {
+  const ZED = item("zed-settings", { category: "editor" });
+  const NPMRC = item("npmrc", { category: "editor" });
+  const TMUX = item("tmux-conf", { category: "terminal" });
+
+  function withDetail(state: AppConfigState, id: string): AppConfigState {
+    return appConfigReducer(state, { type: "entrySelected", requestId: 1, id });
+  }
+
+  it("selects the first row the list shows, which follows category order", () => {
+    expect(defaultEntryId(loaded([TMUX, ZED]))).toBe("zed-settings");
+  });
+
+  it("keeps registry order inside the first category", () => {
+    expect(defaultEntryId(loaded([ZED, NPMRC]))).toBe("zed-settings");
+  });
+
+  it("selects the first row when nothing is selected yet", () => {
+    expect(defaultEntryId(loaded([NPMRC]))).toBe("npmrc");
+  });
+
+  it("keeps a selection that the listing still contains, while it loads", () => {
+    expect(defaultEntryId(withDetail(loaded([ZED, NPMRC]), "npmrc"))).toBeUndefined();
+  });
+
+  it("falls back to the first row when the selected entry is no longer listed", () => {
+    const selected = withDetail(loaded([ZED, NPMRC]), "npmrc");
+    const reloaded = appConfigReducer(selected, { type: "listLoaded", items: [ZED] });
+    expect(defaultEntryId(reloaded)).toBe("zed-settings");
+  });
+
+  it("selects nothing when the listing is empty", () => {
+    expect(defaultEntryId(loaded([]))).toBeUndefined();
+  });
+
+  it("selects nothing while the listing is loading or has failed", () => {
+    expect(defaultEntryId(INITIAL_APP_CONFIG_STATE)).toBeUndefined();
+    const failed = appConfigReducer(INITIAL_APP_CONFIG_STATE, {
+      type: "listFailed",
+      error: INTERNAL,
+    });
+    expect(defaultEntryId(failed)).toBeUndefined();
   });
 });
 

@@ -4,6 +4,7 @@ import { decodeAppError } from "../../ipc/core";
 import {
   INITIAL_APP_CONFIG_STATE,
   appConfigReducer,
+  defaultEntryId,
   isKnownEntry,
   type AppConfigState,
 } from "./appConfigModel";
@@ -52,6 +53,11 @@ export function AppConfigPage({ refreshId }: { refreshId?: string }) {
         }),
     );
   }, []);
+
+  useEffect(() => {
+    const id = defaultEntryId(state);
+    if (id !== undefined) selectEntry(id);
+  }, [state, selectEntry]);
 
   return (
     <AppConfigView
