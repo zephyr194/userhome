@@ -123,7 +123,15 @@ export function RoutePanel({
   }
 
   if (route.id === "aiConfig") {
-    return <AiConfigPage />;
+    return (
+      <AiConfigPage
+        refreshId={
+          discovery.status === "ready"
+            ? discovery.snapshot.refreshId
+            : undefined
+        }
+      />
+    );
   }
 
   if (route.id === "tools") {

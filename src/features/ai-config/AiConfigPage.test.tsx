@@ -146,4 +146,17 @@ describe("AiConfigPage detection cache (r5-ai)", () => {
     const list = rtl.screen.getByRole("list", { name: "AI 工具列表" });
     expect(list.querySelector('[aria-current="true"]')?.textContent).toContain("Codex CLI");
   });
+
+  it("detects again when the app-wide refresh id changes, but not for the id seen on mount", async () => {
+    const calls = mockDetection(() => reportWire());
+    const view = rtl.render(<AiConfigPage refreshId="r1" />);
+    await waitForList();
+    expect(calls()).toBe(1);
+
+    view.rerender(<AiConfigPage refreshId="r1" />);
+    expect(calls()).toBe(1);
+
+    view.rerender(<AiConfigPage refreshId="r2" />);
+    await rtl.waitFor(() => expect(calls()).toBe(2));
+  });
 });

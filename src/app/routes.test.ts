@@ -36,6 +36,6 @@ describe("AI config route wiring", () => {
 
     expect(tools?.routes.map((route) => route.id)).toContain("aiConfig");
     expect(source).toContain('route.id === "aiConfig"');
-    expect(source).toContain("<AiConfigPage />");
+    expect(source).toContain("<AiConfigPage");
   });
 });

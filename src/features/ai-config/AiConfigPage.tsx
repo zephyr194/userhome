@@ -25,10 +25,10 @@ function initialPageState(): PageState {
 
 /**
  * Shows the last detection at once on every visit. Detection runs again only
- * from the refresh action, never on a plain remount. Only the newest request
+ * from the refresh action or a newer app-wide refresh, never on a plain remount. Only the newest request
  * may update the view.
  */
-export function AiConfigPage() {
+export function AiConfigPage({ refreshId }: { refreshId?: string }) {
   const [page, setPage] = useState<PageState>(initialPageState);
   const [selectedToolId, setSelectedToolId] = useState(rememberedToolId);
   const requestCounter = useRef(0);
@@ -65,6 +65,14 @@ export function AiConfigPage() {
   useEffect(() => {
     if (lastAiConfigReport() === undefined) detect();
   }, [detect]);
+
+  // A newer app-wide refresh re-detects; the first value seen on mount does not.
+  const seenRefreshId = useRef(refreshId);
+  useEffect(() => {
+    if (seenRefreshId.current === refreshId) return;
+    seenRefreshId.current = refreshId;
+    refresh();
+  }, [refreshId, refresh]);
 
   const selectTool = useCallback((toolId: string) => {
     rememberedToolId = toolId;
