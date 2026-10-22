@@ -1716,10 +1716,8 @@ button {
 .dashboard-workspace {
   height: 100%;
   min-height: 0;
-  padding: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: var(--app-space-lg);
+  display: flex;
+  flex-direction: column;
   background: transparent;
   border: 0;
   border-radius: 0;
@@ -1839,15 +1837,6 @@ button {
   color: var(--app-warning);
   border-right-color: transparent;
   animation: control-lab-spin 1s linear infinite;
-}
-
-.dashboard-grid {
-  min-width: 0;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: var(--app-space-lg);
-  overflow: hidden;
 }
 
 .overview-panel {
@@ -2134,11 +2123,6 @@ button[class*="border-border"],
 
   .pulse-card:nth-child(-n + 2) {
     border-bottom: 1px solid var(--app-border);
-  }
-
-  .dashboard-grid {
-    grid-template-columns: minmax(0, 1fr);
-    overflow-y: auto;
   }
 
   .overview-panel--attention {

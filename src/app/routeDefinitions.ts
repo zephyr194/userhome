@@ -170,4 +170,5 @@ export type NavigationIntent = (
   | { routeId: "dashboard" }
   | { routeId: "services"; serviceId?: string; serviceFocus?: ServiceFocus }
   | { routeId: "settings"; group?: import("../features/settings/settingsGroups").SettingsGroupId }
+  | { routeId: "caddy" | "environment" | "appConfig" | "aiConfig" }
 ) & { source?: NavigationSource };

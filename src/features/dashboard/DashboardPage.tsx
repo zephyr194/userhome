@@ -10,7 +10,13 @@ import {
   selectCandidateCoverage,
   type CandidateCoverageView,
 } from "../../app/discoverySelectors";
-import { Button, Panel, StatusBadge } from "../../components/ui";
+import {
+  BoardCell,
+  Button,
+  PageShell,
+  Panel,
+  StatusBadge,
+} from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import type { ManagedAppCoverageClass } from "../../ipc/catalog";
 import type {
@@ -21,6 +27,13 @@ import type {
 import type { OptionalDiscoveryRoot } from "../../ipc/settings";
 import { listServices, type ServiceSummary } from "../../ipc/services";
 import { OperationStatus } from "../operations/OperationStatus";
+import { ModuleBay } from "./ModuleBay";
+import {
+  BAY_NO_VALUE,
+  BAY_UNLOADED,
+  OVERVIEW_MODULE_BAYS,
+  serviceBay,
+} from "./overviewBays";
 
 type Tone = "neutral" | "success" | "warning" | "danger";
 
@@ -188,6 +201,14 @@ interface AttentionItem {
   tone: "warning" | "danger";
 }
 
+function overviewStatus(items: readonly AttentionItem[]): { tone: Tone; text: string } {
+  if (items.length === 0) return { tone: "success", text: "当前状态稳定" };
+  return {
+    tone: items.some((item) => item.tone === "danger") ? "danger" : "warning",
+    text: `${items.length} 项需要留意`,
+  };
+}
+
 function attentionItems(
   connection: ConnectionState,
   discovery: DiscoveryState,
@@ -268,13 +289,11 @@ function useServiceOverview(refreshId?: string): ServiceOverview {
 }
 
 function OverviewPanel({
-  action,
   children,
   className = "",
   description,
   title,
 }: {
-  action?: ReactNode;
   children: ReactNode;
   className?: string;
   description: string;
@@ -283,7 +302,7 @@ function OverviewPanel({
   return (
     <section className={`overview-panel ${className}`}>
       <header className="overview-panel__header">
-        <div><h3>{title}</h3><p>{description}</p></div>{action}
+        <div><h3>{title}</h3><p>{description}</p></div>
       </header>
       <div className="overview-panel__content">{children}</div>
     </section>
@@ -397,7 +416,7 @@ function UserDirectoryCoveragePanel({
           : { label: "完整", tone: "success" as const };
     body = (
       <>
-        <div className="mb-ui-sm flex min-w-0 flex-wrap items-center gap-ui-sm">
+        <div className="mb-ui-8 flex min-w-0 flex-wrap items-center gap-ui-8">
           <StatusBadge tone={statusBadge.tone}>{statusBadge.label}</StatusBadge>
           {coverage.restricted ? <StatusBadge tone="warning">受限</StatusBadge> : null}
           <span className="min-w-0 break-words text-xs text-muted-foreground">
@@ -536,81 +555,127 @@ export function DashboardPage({
   const services = useServiceOverview(refreshId);
   const systemSummary = state.status === "ready" && state.snapshot.system.status === "READY" ? state.snapshot.system.data : undefined;
   const brew = state.status === "ready" ? state.snapshot.brew : undefined;
+  const serviceModel = serviceBay(services);
+  const overview = overviewStatus(attention);
 
   return (
     <section className="dashboard-workspace" aria-label="概览">
-      <UserDirectoryCoveragePanel
-        optionalDiscoveryRoots={optionalDiscoveryRoots}
-        state={state}
-      />
+      <PageShell layout="board">
+        <BoardCell span={12}>
+          <Panel
+            aria-label="概览状态"
+            className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8 p-ui-16"
+          >
+            <span className="flex min-w-0 items-center gap-ui-8 text-aux text-muted-foreground">
+              <StatusGlyph tone={overview.tone} />
+              <span className="min-w-0 break-words">{overview.text}</span>
+            </span>
+            <Button size="sm" variant="ghost" onClick={onRefresh}>重新扫描</Button>
+          </Panel>
+        </BoardCell>
+        <BoardCell span={8}>
+          <ModuleBay
+            actionLabel="打开服务"
+            figure={serviceModel.figure}
+            id="overview-bay-services"
+            onOpen={() => onNavigate({ routeId: "services" })}
+            status={serviceModel.status}
+            title="服务"
+          />
+        </BoardCell>
+        {OVERVIEW_MODULE_BAYS.map((bay) => (
+          <BoardCell key={bay.routeId} span={4}>
+            <ModuleBay
+              actionLabel={bay.action}
+              figure={{ label: bay.figureLabel, value: BAY_NO_VALUE }}
+              id={`overview-bay-${bay.routeId}`}
+              onOpen={() => onNavigate({ routeId: bay.routeId })}
+              status={BAY_UNLOADED}
+              title={bay.title}
+            />
+          </BoardCell>
+        ))}
 
-      <section className="system-pulse" aria-labelledby="dashboard-system-heading">
-        <div className="system-pulse__label"><span>01</span><h2 id="dashboard-system-heading">系统脉冲</h2></div>
-        <div className="system-pulse__grid">
-          <PulseCard label="本地服务" {...connectionState} />
-          <PulseCard label="本机发现" {...discoveryState} />
-          <PulseCard label="最近刷新" {...refreshState} />
-          <PulseCard label="最近操作" {...operationState} />
-        </div>
-      </section>
+        <BoardCell span={12}>
+          <UserDirectoryCoveragePanel
+            optionalDiscoveryRoots={optionalDiscoveryRoots}
+            state={state}
+          />
+        </BoardCell>
 
-      <div className="dashboard-grid">
-        <OverviewPanel
-          className="overview-panel--attention"
-          title="关注事项"
-          description="按影响程度排序的本机状态"
-          action={<Button size="sm" variant="ghost" onClick={onRefresh}>重新扫描</Button>}
-        >
-          {attention.length === 0 ? (
-            <div className="attention-clear" role="status"><StatusGlyph tone="success" /><div><strong>当前状态稳定</strong><p>没有需要立即处理的异常。</p></div></div>
-          ) : (
-            <ul className="attention-list">
-              {attention.slice(0, 3).map((item) => (
-                <li key={item.key}>
-                  <StatusGlyph tone={item.tone} />
-                  <div><strong>{item.label}</strong><p>{item.detail}</p></div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {attention.length > 3 ? <p className="attention-more">另有 {attention.length - 3} 项状态需要留意</p> : null}
-          {systemSummary ? (
-            <dl className="machine-summary" aria-label="本机摘要">
-              <Metric label="macOS" value={systemSummary.osVersion ?? "—"} />
-              <Metric label="架构" value={systemSummary.architecture ?? "—"} />
-              <Metric
-                label="已识别应用"
-                value={systemSummary.applications.filter((item) => item.status !== "ABSENT").length}
-              />
-              <Metric
-                label="扫描"
-                value={systemSummary.completeness === "COMPLETE" ? "完整" : "部分"}
-              />
-            </dl>
-          ) : null}
-        </OverviewPanel>
-
-        <OverviewPanel title="软件与服务" description="Homebrew 资产与后台进程">
-          <div className="software-service-grid">
-            <div>
-              <div className="overview-resource-heading"><span>软件</span></div>
-              {brew?.status === "READY" && brew.data.available ? (
-                <dl className="resource-inline-metrics"><Metric label="Formula" value={brew.data.formulaCount} /><Metric label="Cask" value={brew.data.caskCount} /></dl>
-              ) : <p>{brew?.status === "ERROR" ? brew.error.message : brew?.status === "READY" ? "未检测到 Homebrew" : "正在后台读取软件清单…"}</p>}
+        <BoardCell span={12}>
+          <section className="system-pulse" aria-labelledby="dashboard-system-heading">
+            <div className="system-pulse__label"><span>01</span><h2 id="dashboard-system-heading">系统脉冲</h2></div>
+            <div className="system-pulse__grid">
+              <PulseCard label="本地服务" {...connectionState} />
+              <PulseCard label="本机发现" {...discoveryState} />
+              <PulseCard label="最近刷新" {...refreshState} />
+              <PulseCard label="最近操作" {...operationState} />
             </div>
-            <div>
-              <div className="overview-resource-heading"><span>服务</span><Button size="sm" variant="ghost" onClick={() => onNavigate({ routeId: "services" })}>查看</Button></div>
-              {services.status === "ready" ? (
-                <dl className="resource-inline-metrics"><Metric label="运行" value={services.services.filter((item) => item.state === "STARTED").length} /><Metric label="异常" value={services.services.filter((item) => item.state === "ERROR").length} /></dl>
-              ) : <p>{services.status === "error" ? services.error.message : "正在读取服务状态…"}</p>}
-            </div>
-          </div>
-        </OverviewPanel>
-      </div>
+          </section>
+        </BoardCell>
 
-      <OverviewPanel className="overview-panel--activity" title="最近活动" description="本机操作记录与当前进度">
-        <OperationStatus state={recentOperation} />
-      </OverviewPanel>
+        <BoardCell span={6}>
+          <OverviewPanel
+            className="overview-panel--attention"
+            title="关注事项"
+            description="按影响程度排序的本机状态"
+          >
+            {attention.length === 0 ? (
+              <div className="attention-clear" role="status"><StatusGlyph tone="success" /><div><strong>当前状态稳定</strong><p>没有需要立即处理的异常。</p></div></div>
+            ) : (
+              <ul className="attention-list">
+                {attention.slice(0, 3).map((item) => (
+                  <li key={item.key}>
+                    <StatusGlyph tone={item.tone} />
+                    <div><strong>{item.label}</strong><p>{item.detail}</p></div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {attention.length > 3 ? <p className="attention-more">另有 {attention.length - 3} 项状态需要留意</p> : null}
+            {systemSummary ? (
+              <dl className="machine-summary" aria-label="本机摘要">
+                <Metric label="macOS" value={systemSummary.osVersion ?? "—"} />
+                <Metric label="架构" value={systemSummary.architecture ?? "—"} />
+                <Metric
+                  label="已识别应用"
+                  value={systemSummary.applications.filter((item) => item.status !== "ABSENT").length}
+                />
+                <Metric
+                  label="扫描"
+                  value={systemSummary.completeness === "COMPLETE" ? "完整" : "部分"}
+                />
+              </dl>
+            ) : null}
+          </OverviewPanel>
+        </BoardCell>
+
+        <BoardCell span={6}>
+          <OverviewPanel title="软件与服务" description="Homebrew 资产与后台进程">
+            <div className="software-service-grid">
+              <div>
+                <div className="overview-resource-heading"><span>软件</span></div>
+                {brew?.status === "READY" && brew.data.available ? (
+                  <dl className="resource-inline-metrics"><Metric label="Formula" value={brew.data.formulaCount} /><Metric label="Cask" value={brew.data.caskCount} /></dl>
+                ) : <p>{brew?.status === "ERROR" ? brew.error.message : brew?.status === "READY" ? "未检测到 Homebrew" : "正在后台读取软件清单…"}</p>}
+              </div>
+              <div>
+                <div className="overview-resource-heading"><span>服务</span><Button size="sm" variant="ghost" onClick={() => onNavigate({ routeId: "services" })}>查看</Button></div>
+                {services.status === "ready" ? (
+                  <dl className="resource-inline-metrics"><Metric label="运行" value={services.services.filter((item) => item.state === "STARTED").length} /><Metric label="异常" value={services.services.filter((item) => item.state === "ERROR").length} /></dl>
+                ) : <p>{services.status === "error" ? services.error.message : "正在读取服务状态…"}</p>}
+              </div>
+            </div>
+          </OverviewPanel>
+        </BoardCell>
+
+        <BoardCell span={12}>
+          <OverviewPanel className="overview-panel--activity" title="最近活动" description="本机操作记录与当前进度">
+            <OperationStatus state={recentOperation} />
+          </OverviewPanel>
+        </BoardCell>
+      </PageShell>
     </section>
   );
 }
