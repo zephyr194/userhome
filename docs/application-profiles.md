@@ -1,5 +1,7 @@
 # 只读应用定义
 
+> **已移除（2026-10-22）：**文中提到的旧受管 Catalog 命令（`list_managed_apps`、`query_managed_apps`、`get_managed_app`）及旧通用配置读写入口已从应用中移除，本文只作历史说明。
+
 **用途：**新只读配置入口的技术契约，供应用定义、后端和 IPC 接入维护者使用。
 随定义、读取或排除行为变化更新；旧受管 Catalog 的 Schema、预设和写入规则见
 [managed-app-schema.md](managed-app-schema.md)，两套授权不能混用。
