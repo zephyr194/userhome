@@ -556,3 +556,70 @@ pnpm 12 对未决定的依赖构建脚本会让 install 以 `ERR_PNPM_IGNORED_BU
 - **CI 未验证**：`.github/workflows/ci.yml` 与 `release.yml` 使用 `pnpm/action-setup@v4` 的 12.11.2，本机未运行 GitHub Actions。
 - **E2E 未验证**：`pnpm test:e2e` 会启动应用，本次未执行；它是否在 macOS 上因拒绝两个驱动而受影响，只经静态核对（见上表），未经运行证明。
 - Rust 检查（`pnpm check:rust`）未运行：本机拦截 Rust 测试二进制，本次仅为依赖与文档改动。
+
+## 界面调整 ui-bay（2026-10-22）：UIB-5 审计、删除迁移别名与台账
+
+### 已完成
+
+- UIB-0 至 UIB-4f：已合入 main。概览、服务、Caddy、AI 配置、环境变量与应用配置、设置与工具集均迁移到 `PageShell`；AppShell 工具栏是唯一舱头，`BoardToggle` 位于工具栏。
+- UIB-5（本节所述提交）：
+  - `6b7dcc3` 间距令牌改用 4px 档位并删除旧别名（像素等价替换，17 个文件，121 行）。
+  - `addbe37` 删除 Panel 角标（`ticks`）、`.corner-ticks` 与 `--app-corner-tick-*`；导航色条圆角改为 0。
+  - `bfcd1a0` 增加 `src/styles/uibAudit.test.ts` 全局审计（8 项）。
+  - 本台账提交。
+
+### 自动化检查（UIB-5 完成时）
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm lint` | 0 error；1 warning（`DashboardPage.tsx:328`，react-refresh，既有） |
+| `pnpm typecheck` | 通过 |
+| `pnpm test` | 149 个文件 / 2101 项通过（含 `uibAudit.test.ts` 8 项） |
+| `pnpm build` | 通过（既有 chunk-size 提示） |
+| 旧间距令牌与 Tailwind 旧档位残留扫描（`rg --pcre2`） | 0 处 |
+| `corner-ticks` / `--app-corner-tick-` / Panel `ticks` 残留 | 0 处（仅保留默认状态下的一条否定断言 `not.toContain("corner-ticks")`） |
+| `!important` | global.css 4 处（reduced motion），TS/TSX 0 处 |
+| 任意值间距类、clip-path、负 z-index | 0 处 |
+
+### 断言变更（逐条）
+
+只改期望值或删除 ticks 专属用例，其他断言未动：
+
+1. `src/styles/radiusAudit.test.ts`「间距与字号令牌取值与 SPEC-ui-refresh 一致」：8 条断言的键与期望值改为新档位的像素值（`app-space-xxs`→`app-space-2` 期望 `var(--app-space-2)`→`2px`；`xs`→`4` 期望 `4px`；`sm/md/lg`→`8` 期望 `8px`；`xl/2xl`→`12` 期望 `12px`；`3xl`→`16` 期望 `16px`）。条数未变，同值断言未去重。
+2. `src/styles/uibTokens.test.ts`「旧令牌别名指向最近的新档位（迁移期保留，UIB-5 删除）」：改为「旧令牌别名已删除（UIB-5）」，断言旧名的 `--app-space-<旧名>:` 与 `--spacing-ui-<旧名>:` 不再出现。旧期望值无法保留，因为令牌已删除。
+3. `src/app/shellStyle.test.tsx` 工具栏 padding 期望：`0 var(--app-space-3xl)` → `0 var(--app-space-16)`。
+4. `src/components/ui/mechStyle.test.tsx` 删除两条 ticks 专属用例：「启用 ticks 后带 corner-ticks 工具类，且仍保留内容与属性」「角标只用伪元素、不拦截指针，并定位在面板内侧」。功能由选中语言取代。保留「默认不带角标，保留容器圆角与发丝线」。
+5. 页面 `*StyleAudit.test.ts` 中的“启用角标（ticks）的 Panel 不超过 2 个”未改，现因 ticks 清零而恒通过。
+
+### 待人工（未做真机验收）
+
+- 真机浅色与深色模式。
+- VoiceOver 朗读。
+- 窗口缩放与窄宽度（<960px 看板降级、<760px 主从堆叠，无横向页面滚动）。
+- 4px 圆角下“机甲感”是否足够。
+- 选中角标在高分屏下的清晰度。
+- forced-colors 模式。
+- 概览舱位墙与各模块看板的视觉。
+- 切换紧凑与看板视图时页面状态保留（无 DOM 测试环境，仅有结构性论证）。
+- 原先带角标的 5 个面板视觉变化：服务详情、Caddy 运行、Caddy 预览、概览用户目录覆盖、应用配置视图。角标已删除，经协调者确认。
+- 导航当前态色条圆角由 2px 改为 0 的视觉确认。
+
+### 未验证
+
+- 本次无 Rust 改动。Rust 测试仍被本机拦截，未运行（未验证）。
+- “视觉不变”仅经静态像素等价映射核对（旧档位→新档位数值一致），未运行应用。
+
+### 已知偏差
+
+- 任务前提与实际不符：任务描述称页面已不使用 `ticks`，实际有 5 处。经协调者确认选择 A，去掉这 5 处并删除 ticks 相关代码。
+- 导航当前态色条 `border-radius: 2px` 不在“令牌 / 0 / 50%”白名单内，经协调者确认改为 0。
+- `uibTokens.test.ts` 的别名用例改为“已删除”断言（期望值无法保留）。
+- 环境变量冲突与差异预览仍内联；标签面板用 `display: contents`。
+- Caddy 紧凑视图区块顺序改为“工作目录→规则→运行→预览”。
+- button 行用 `aria-current` 而非 `aria-selected`。
+- 概览关键数字多数为“未加载”。
+- 未在本任务范围内处理：`--app-radius-panel` 与 `--radius-panel` 仍作为别名存在，需另行清理。
+
+### 发布结论
+
+维持 **NO-GO**：Rust 测试未验证，真机验收未做。
