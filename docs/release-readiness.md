@@ -623,3 +623,90 @@ pnpm 12 对未决定的依赖构建脚本会让 install 以 `ERR_PNPM_IGNORED_BU
 ### 发布结论
 
 维持 **NO-GO**：Rust 测试未验证，真机验收未做。
+
+## 最终状态汇总（2026-10-22）
+
+本节只描述 2026-10-22 的当前状态，不改写上方历史记录，也不把历史通过结果当作当前验收。
+范围：本次检查在 `fin-5b` worktree 进行，基线 `b95e217`；本轮只修正文档（备份恢复说明与本节），源码与测试未改。
+
+### 已执行（本机，自动化）
+
+| 命令 | 结果 |
+|---|---|
+| `pnpm lint` | 0 error；1 个既有 warning（`src/features/dashboard/DashboardPage.tsx:328`，react-refresh） |
+| `pnpm typecheck` | 通过 |
+| `pnpm test` | Vitest：152 个文件、2139 个用例全部通过 |
+| `pnpm build` | 通过（含 typecheck 与 `vite build`；既有 chunk-size 提示） |
+| `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` | 通过 |
+| `CARGO_NET_OFFLINE=true USERHOME_HELPER_PREBUILT=1 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings` | 通过（只编译，未运行测试二进制） |
+| `pnpm install --frozen-lockfile`（pnpm 12.11.2） | 通过。FIN-4 在清空 `node_modules` 后通过（见上方记录）；本 worktree 原无 `node_modules`，同一命令亦通过 |
+
+### 未执行 / 未验证
+
+Rust 测试：
+
+- 约 1000 个新增 Rust 测试自 SVC-5 起从未运行。本机受管 Mac 的安全软件在测试二进制启动时将其拦截并移入废纸篓，IT 暂不能加白。
+- 需在 CI 的 macOS runner 或未受管机器上运行 `pnpm check:rust`（其中包含 `cargo test`）。建议优先顺序：
+  1. `services::lifecycle`（`src-tauri/src/services/lifecycle.rs`）
+  2. `services::adopt`（`src-tauri/src/services/adopt/`）
+  3. `grants::launch_agent_tests`
+  4. `services::logs`
+  5. `services::snapshot`
+  6. `services::launchd::output`（`src-tauri/src/services/launchd/output.rs`）
+  7. `grants::read`
+  8. Caddy 会话、TLS、工作目录（`grants::caddy_workdir_tests` 等）
+  9. AI 配置写入与参考（`ai_config::write_tests`、`ai_config::reference_tests`）
+  10. 应用配置探测
+  11. `ai_config::terminal`（`src-tauri/src/ai_config/terminal.rs`）
+
+其他：
+
+- E2E（`pnpm test:e2e`，由 `build:e2e` 与 `wdio.conf.ts` 组成）：未在本机运行。
+- 托管 CI（`.github/workflows/ci.yml`，含 pnpm 12.11.2 的 install 与 e2e 任务）：未运行。
+- 真实打包、签名、公证（`.github/workflows/release.yml`，见 `docs/release.md`）：未执行。
+- Caddy 真实验收（`docs/caddy-acceptance.md`，默认 `~/.caddy`）：未执行。
+- 真实 launchd 验收中的应用代码路径：未执行。
+- Claude 编辑在真实 `~/.claude/settings.json` 上的写入：未验证。版本门禁依据仅为 Claude Code 2.1.287 与 schema 快照（见 `docs/ai-config-claude-coverage.md`）。
+- “在终端打开”在真机 Terminal 中的行为：未验证。
+- 二维码在深色主题下的扫描（QR-3）：未验证。
+
+### 待人工（未做真机验收）
+
+- 真机界面：浅色（优先）与深色模式。
+- 4px 圆角下的机甲感；选中角标在高分屏下的清晰度。
+- forced-colors 模式。
+- 窗口缩放与窄宽度（无横向页面滚动）。
+- VoiceOver 朗读。
+- 概览舱位墙与各模块看板的视觉。
+- 切换 view 时页面状态保留。
+- 原先带角标的 5 个面板的视觉变化：服务详情、Caddy 运行、Caddy 预览、概览用户目录覆盖、应用配置视图。
+
+### 已知偏差与遗留
+
+- Codex 官方文档的路径、优先级与信任规则因重定向未能核实，相关结论不作为依据。
+- Gemini 官方说明称，未付费用户与 Google One 用户的 Gemini CLI 已于 2026-06-18 被 Antigravity CLI 替代；本机是否受影响未知。
+- Codex、Gemini、Copilot 仅提供官方设置参考（只展示）；读取用户配置、编辑、flags/env/命令生成本版本暂缓。
+- Claude 可编辑集合为 58 个稳妥键（见 `docs/ai-config-claude-coverage.md`）；托管策略、执行外部程序与路径类键保持只读展示。
+- 概览多数舱位的关键数字为“未加载”。
+- 环境变量冲突预览仍内联。
+- Caddy 紧凑视图区块顺序已调整为“工作目录→规则→运行→预览”。
+- 旧通用配置写入入口与 helper 整链已移除（FIN-2b）。`docs/release.md` 的升级说明目前只覆盖旧 helper 残留，尚未说明通用配置写入入口已移除，需补充。
+- 备份没有应用内恢复入口（`preview_restore_backup`、`execute_restore_backup`、`list_config_backups` 已移除）。手动取回步骤见 `docs/backup-and-restore.md`。
+- `DashboardPage.tsx` 的既有 warning 行号在 FIN-4 记录中为 309，本次为 328；规则相同，行号漂移。
+
+### 发布决定：NO-GO
+
+原因：Rust 测试从未运行；签名与公证门禁未关闭；真机验收未做。
+
+解除 NO-GO 的最小清单（完成一项勾选一项）：
+
+- [ ] 在 CI macOS runner 或未受管机器上运行 `pnpm check:rust`，全部通过（含 `cargo test`），保存日志。
+- [ ] 按上方优先顺序完成 Rust 测试，逐模块记录结果。
+- [ ] 托管 CI（`.github/workflows/ci.yml`）全部任务通过，含 `pnpm test:e2e`。
+- [ ] 签名、公证与草稿发布门禁关闭，附证据（`.github/workflows/release.yml`、`docs/release.md`）。
+- [ ] Caddy 真实验收通过（`docs/caddy-acceptance.md`）。
+- [ ] Claude 编辑在真实 `~/.claude/settings.json` 上的写入验证通过。
+- [ ] “在终端打开”与二维码深色扫描（QR-3）完成真机验证。
+- [ ] 上方“待人工”全部项完成真机验收并记录。
+- [ ] `docs/release.md` 补充通用配置写入入口的升级说明。
+- [ ] 解决安全软件对 Rust 测试二进制的拦截（IT 加白，或确定可运行的测试环境）。
