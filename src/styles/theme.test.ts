@@ -77,7 +77,8 @@ describe("global theme tokens", () => {
     const outlineDeclarations = css.match(/(?:^|[;{])\s*outline\s*:/gm) ?? [];
     expect(outlineDeclarations).toHaveLength(1);
     expect(css).toMatch(/outline:\s*none/);
-    expect(css).toMatch(/:focus-visible[\s\S]*box-shadow/);
+    expect(css).toMatch(/:focus-visible\s*\{\s*box-shadow:\s*none/);
+    expect(css).toMatch(/:is\(input, select, textarea\):focus-visible\s*\{\s*border-color/);
   });
 
   it("meets text and control contrast across every approved surface", () => {

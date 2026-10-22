@@ -113,19 +113,10 @@ describe("选中语言：令牌化的角标与选中态", () => {
     expect(layerCount(sizes)).toBe(4);
   });
 
-  it("焦点环是独立的实线 2px 环，偏移 2px，且不与选中规则合并", () => {
-    const focus = lastDeclaredIn(section, FOCUS, "box-shadow");
-    expect(focus).toContain("var(--app-focus-gap)");
-    expect(focus).toContain("var(--app-focus-ring)");
-    expect(focus).not.toContain("dashed");
+  it("焦点不画外框（用户 2026-10-22 决定）：bracket 没有 focus-visible 规则，选中与悬停规则也不含 focus", () => {
+    expect(section).not.toContain(FOCUS);
     expect(rulesFor(section, SELECTED).join("\n")).not.toContain("focus");
     expect(rulesFor(section, HOVER).join("\n")).not.toContain("focus");
-  });
-
-  it("焦点环叠加时保留 Panel 的发丝线作为第三层，不被覆盖", () => {
-    const shadow = lastDeclaredIn(section, FOCUS, "box-shadow");
-    expect(layerCount(shadow)).toBe(3);
-    expect(shadow).toMatch(/,\s*inset 0 0 0 1px var\(--app-line-subtle\)$/);
   });
 
   it("只用令牌与发丝线，不使用 clip-path、负 z-index、!important", () => {

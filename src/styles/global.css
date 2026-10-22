@@ -36,7 +36,6 @@
   --color-success-text: var(--app-success-text);
   --color-warning-text: var(--app-warning-text);
   --color-danger-text: var(--app-danger-text);
-  --shadow-focus: 0 0 0 2px var(--app-focus-gap), 0 0 0 4px var(--app-focus-ring);
   --font-sans:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
@@ -168,10 +167,6 @@
   --app-line-height-group: 1.4;
   --app-font-size-page-title: 18px;
   --app-line-height-page-title: 1.25;
-  --app-focus-ring-width: 3px;
-  --app-focus-ring-offset: 3px;
-  --app-focus-ring-inset-width: 2px;
-  --app-focus-ring-inset-offset: -2px;
   --app-letter-spacing-label: 0.04em;
   --app-motion-state: 120ms;
 }
@@ -238,9 +233,11 @@ a {
 }
 
 :focus-visible {
-  box-shadow:
-    0 0 0 2px var(--app-focus-gap),
-    0 0 0 4px var(--app-focus-ring);
+  box-shadow: none;
+}
+
+:is(input, select, textarea):focus-visible {
+  border-color: var(--app-focus-ring);
 }
 
 .skip-link {
@@ -375,10 +372,6 @@ a {
 .navigation-rail a:focus:not(:focus-visible) {
 }
 
-.navigation-rail a:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
-}
-
 .navigation-rail a[aria-current="page"] {
   color: var(--app-selection-foreground);
   background: var(--app-selection);
@@ -478,13 +471,6 @@ a {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-}
-
-.desktop-workspace__list:focus-visible,
-.desktop-workspace__detail:focus-visible,
-.desktop-workspace__inspector:focus-visible,
-.desktop-workspace__operation-progress:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .desktop-workspace__list {
@@ -634,10 +620,6 @@ a {
   cursor: pointer;
   font-size: var(--app-font-size-aux);
   font-weight: 600;
-}
-
-.dashboard-applications summary:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .dashboard-application-rows,
@@ -946,12 +928,6 @@ a {
 .brew-inventory-row--selected:hover {
   border-left-color: var(--app-selection-border);
   background: var(--app-selection);
-}
-
-.brew-inventory-row:focus-visible {
-  position: relative;
-  z-index: 2;
-  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .services-inventory-row {
@@ -1317,13 +1293,6 @@ body {
   border: var(--app-selection-dash) dashed var(--app-selection-border);
 }
 
-.bracket:focus-visible {
-  box-shadow:
-    0 0 0 var(--app-bracket-offset) var(--app-focus-gap),
-    0 0 0 calc(var(--app-bracket-offset) * 2) var(--app-focus-ring),
-    inset 0 0 0 1px var(--app-line-subtle);
-}
-
 @media (forced-colors: active) {
   .bracket {
     background-image: none;
@@ -1472,10 +1441,6 @@ body {
 .navigation-rail a:hover {
   color: var(--app-foreground);
   background: var(--app-sidebar-hover);
-}
-
-.navigation-rail a:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--app-focus-ring);
 }
 
 .navigation-rail a[aria-current="page"] {

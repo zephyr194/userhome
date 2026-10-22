@@ -14,7 +14,7 @@ describe("shared ui primitives", () => {
     const md = renderToStaticMarkup(<Button>保存</Button>);
     expect(md).toContain("min-h-control-md");
     expect(md).toContain("text-body");
-    expect(md).toContain("focus-visible:shadow-focus");
+    expect(md).not.toContain("shadow-focus");
     expect(md).toContain("disabled:opacity-50");
     expect(md).not.toContain("truncate");
     expect(md).not.toContain("line-clamp");
@@ -78,7 +78,7 @@ describe("LogViewer initial render", () => {
     expect(markup).toContain('aria-label="Caddy 日志"');
     expect(markup).toContain('role="log"');
     expect(markup).toContain('tabindex="0"');
-    expect(markup).toContain("focus-visible:shadow-focus");
+    expect(markup).not.toContain("shadow-focus");
     expect(markup).toContain("第一行");
     expect(markup).toContain("第二行");
     expect(markup).toContain("暂停");
@@ -129,7 +129,7 @@ describe("SecretValue initial render", () => {
     expect(markup).not.toContain("sk-live");
     expect(markup).toContain('aria-label="显示 OPENAI_API_KEY 的值"');
     expect(markup).toContain('aria-label="复制 OPENAI_API_KEY 的值"');
-    expect(markup).toContain("focus-visible:shadow-focus");
+    expect(markup).not.toContain("shadow-focus");
     expect(markup).toContain('role="status"');
   });
 

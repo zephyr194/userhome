@@ -95,10 +95,8 @@ describe("导航项尺寸与交互", () => {
     );
   });
 
-  it("焦点环使用 inset，避免被侧栏 overflow 裁掉", () => {
-    const focus = lastDeclared(".navigation-rail a:focus-visible", "box-shadow");
-    expect(focus).toMatch(/^inset\s/);
-    expect(focus).toContain("var(--app-focus-ring)");
+  it("侧栏链接不画焦点环（用户 2026-10-22 决定去掉所有焦点外框）", () => {
+    expect(css).not.toMatch(/\.navigation-rail a:focus-visible\s*\{/);
   });
 
   it("侧栏宽度为 188px，并与内容区之间保留 1px 分隔线", () => {
