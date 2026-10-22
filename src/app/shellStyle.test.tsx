@@ -180,13 +180,13 @@ describe("标题栏与工具栏", () => {
     expect(rulesFor(".titlebar").join("\n")).not.toMatch(/box-shadow/);
   });
 
-  it("工具栏最小高度为 44px 令牌，且不使用纵向内边距撑高", () => {
+  it("工具栏最小高度为 60px 令牌，顶部 12px 留白、底部不留白（标题贴顶、说明紧贴标题）", () => {
     expect(lastDeclared(".desktop-workspace__toolbar", "min-height")).toBe(
-      "var(--app-toolbar-height)",
+      "var(--app-toolbar-height-roomy)",
     );
     expect(tokenValue("app-toolbar-height")).toBe("44px");
     expect(lastDeclared(".desktop-workspace__toolbar", "padding")).toBe(
-      "0 var(--app-space-16)",
+      "var(--app-space-12) var(--app-space-16) 0",
     );
     expect(lastDeclared(".desktop-workspace__toolbar p", "line-height")).toBe(
       "var(--app-line-height-meta)",

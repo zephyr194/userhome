@@ -133,6 +133,7 @@
   --app-titlebar-height: 44px;
   --app-sidebar-width: 188px;
   --app-toolbar-height: 44px;
+  --app-toolbar-height-roomy: 60px;
   --app-list-min-width: 240px;
   --app-detail-min-width: 320px;
   --app-inspector-width: 232px;
@@ -388,8 +389,8 @@ a {
 
 .desktop-workspace__toolbar {
   min-width: 0;
-  min-height: var(--app-toolbar-height);
-  padding: 0 var(--app-space-16);
+  min-height: var(--app-toolbar-height-roomy);
+  padding: var(--app-space-12) var(--app-space-16) 0;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
