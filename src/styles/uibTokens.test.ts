@@ -42,3 +42,17 @@ describe("4px 栅格间距令牌（UIB-0）", () => {
     }
   });
 });
+
+describe("圆角令牌（UIB-0）", () => {
+  it("控件 3px、容器 4px，面板指向容器令牌", () => {
+    expect(tokenValue("app-radius-control")).toBe("3px");
+    expect(tokenValue("app-radius-container")).toBe("4px");
+    expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
+  });
+
+  it("Tailwind 圆角映射按控件与容器令牌取值", () => {
+    expect(tokenValue("radius-sm")).toBe("var(--app-radius-control)");
+    expect(tokenValue("radius-md")).toBe("var(--app-radius-control)");
+    expect(tokenValue("radius-lg")).toBe("var(--app-radius-container)");
+  });
+});

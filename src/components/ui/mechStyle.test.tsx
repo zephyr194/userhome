@@ -39,7 +39,7 @@ function toMs(value: string): number {
 }
 
 describe("Panel 锐角与角标", () => {
-  it("默认不带角标，保留 0 圆角与发丝线", () => {
+  it("默认不带角标，保留容器圆角与发丝线", () => {
     const markup = renderToStaticMarkup(<Panel>内容</Panel>);
     expect(markup).not.toContain("corner-ticks");
     expect(markup).toContain("rounded-panel");
@@ -117,7 +117,7 @@ describe("Modal 对话框", () => {
     expect(markup).toContain("确认删除");
   });
 
-  it("0 圆角、1px 发丝线、标题栏底部分隔线，阴影使用 raised 令牌", () => {
+  it("4px 容器圆角、1px 发丝线、标题栏底部分隔线，阴影使用 raised 令牌", () => {
     const markup = renderToStaticMarkup(
       <Modal open onClose={() => undefined} title="确认">
         内容
@@ -128,7 +128,7 @@ describe("Modal 对话框", () => {
     expect(markup).toContain("border-b border-line");
     expect(markup).toContain("var(--app-shadow-raised)");
     expect(markup).not.toMatch(/rounded-(lg|xl|2xl|3xl)\b/);
-    expect(tokenValue("app-radius-panel")).toMatch(/^0(px)?$/);
+    expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
   });
 
   it("过渡与背景淡入淡出走 state-transition，不再使用 duration-150", () => {

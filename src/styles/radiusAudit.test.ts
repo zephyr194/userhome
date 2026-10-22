@@ -18,6 +18,7 @@ const ALLOWED_CSS_RADII = new Set([
   "2px",
   "50%",
   "var(--app-radius-control)",
+  "var(--app-radius-container)",
   "var(--app-radius-panel)",
 ]);
 const CIRCULAR_ALLOWLIST: Record<string, number> = {
@@ -75,11 +76,11 @@ describe("圆角审计（UI-01）", () => {
   });
 
   it("圆角与尺寸令牌取值与 SPEC-ui-refresh 一致", () => {
-    expect(tokenValue("radius-sm")).toBe("1px");
-    expect(tokenValue("radius-md")).toBe("2px");
-    expect(tokenValue("radius-lg")).toBe("2px");
-    expect(tokenValue("app-radius-control")).toBe("2px");
-    expect(tokenValue("app-radius-panel")).toBe("0px");
+    expect(tokenValue("radius-sm")).toBe("var(--app-radius-control)");
+    expect(tokenValue("radius-md")).toBe("var(--app-radius-control)");
+    expect(tokenValue("radius-lg")).toBe("var(--app-radius-container)");
+    expect(tokenValue("app-radius-control")).toBe("3px");
+    expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
     expect(tokenValue("app-control-height-sm")).toBe("24px");
     expect(tokenValue("app-control-height-md")).toBe("28px");
     expect(tokenValue("app-status-badge-height")).toBe("18px");

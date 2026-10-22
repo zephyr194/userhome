@@ -41,9 +41,9 @@
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial,
     sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --radius-sm: 1px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
+  --radius-sm: var(--app-radius-control);
+  --radius-md: var(--app-radius-control);
+  --radius-lg: var(--app-radius-container);
   --radius-control: var(--app-radius-control);
   --radius-panel: var(--app-radius-panel);
   --spacing-ui-2: var(--app-space-2);
@@ -159,8 +159,9 @@
   --app-space-xl: var(--app-space-12);
   --app-space-2xl: var(--app-space-12);
   --app-space-3xl: var(--app-space-16);
-  --app-radius-control: 2px;
-  --app-radius-panel: 0px;
+  --app-radius-control: 3px;
+  --app-radius-container: 4px;
+  --app-radius-panel: var(--app-radius-container);
   --app-control-height-sm: 24px;
   --app-control-height-md: 28px;
   --app-status-badge-height: 18px;

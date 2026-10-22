@@ -79,6 +79,7 @@ const APPROVED_RADIUS_VALUES = new Set([
   "2px",
   "50%",
   "var(--app-radius-control)",
+  "var(--app-radius-container)",
   "var(--app-radius-panel)",
 ]);
 const FORBIDDEN_RADIUS_CLASS = /(?<![\w-])rounded-(?:lg|xl|2xl|3xl)(?![\w-])|rounded-\[/;
