@@ -10,6 +10,7 @@ import {
 import { CreateServiceDialog } from "./CreateServiceDialog";
 import { findCreatedService, findServiceByFocus } from "./launchdActionModel";
 import {
+  DISCOVERY_CONFLICT_RETRY_DELAY_MS,
   DISCOVERY_REFRESH_MIN_INTERVAL_MS,
   EMPTY_FILTER,
   INITIAL_DISCOVERY_STATE,
@@ -61,6 +62,9 @@ export function ServicesPage({
   const coolingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+  const conflictRetryRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const selectionChangeRef = useRef(onSelectedServiceChange);
   const followLabelRef = useRef<string | undefined>(undefined);
   // A focus handed over by another page applies to the first load only.
@@ -75,10 +79,11 @@ export function ServicesPage({
     selectionChangeRef.current?.(id);
   }, []);
 
-  const load = useCallback(() => {
+  const readDiscovery = useCallback(function read(attempt: number) {
     const requestId = requestRef.current + 1;
     requestRef.current = requestId;
     inFlightRef.current = true;
+    clearTimeout(conflictRetryRef.current);
     lastStartedRef.current = Date.now();
     dispatch({ type: "refreshStarted" });
     void listLaunchdServices()
@@ -103,8 +108,17 @@ export function ServicesPage({
       })
       .catch((error: unknown) => {
         if (requestRef.current !== requestId) return;
+        const appError = decodeAppError(error);
+        if (appError.code === "CONFLICT" && attempt === 0) {
+          // Still reading: the list keeps its loading state until the retry settles.
+          conflictRetryRef.current = setTimeout(
+            () => read(1),
+            DISCOVERY_CONFLICT_RETRY_DELAY_MS,
+          );
+          return;
+        }
         inFlightRef.current = false;
-        dispatch({ type: "failed", error: decodeAppError(error) });
+        dispatch({ type: "failed", error: appError });
       });
     // Homebrew is evidence only; its failure must not touch the launchd list.
     void listServices()
@@ -120,6 +134,8 @@ export function ServicesPage({
       });
   }, [select]);
 
+  const load = useCallback(() => readDiscovery(0), [readDiscovery]);
+
   useEffect(() => {
     load();
   }, [load, refreshId]);
@@ -128,6 +144,7 @@ export function ServicesPage({
     () => () => {
       requestRef.current += 1;
       clearTimeout(coolingTimerRef.current);
+      clearTimeout(conflictRetryRef.current);
     },
     [],
   );

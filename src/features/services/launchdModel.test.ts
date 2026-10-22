@@ -26,6 +26,7 @@ import {
   canStartRefresh,
   correlationBrief,
   correlationText,
+  discoveryErrorText,
   discoveryReducer,
   domainLabel,
   evidenceFor,
@@ -374,6 +375,23 @@ describe("discovery state machine", () => {
     expect(discoveryReducer(failed, { type: "refreshStarted" })).toEqual({
       status: "loading",
     });
+  });
+});
+
+describe("discovery error copy", () => {
+  it("explains a busy read in Chinese instead of showing the backend English", () => {
+    const text = discoveryErrorText({
+      code: "CONFLICT",
+      message: "launchd discovery is already running. Retry when it finishes.",
+      retryable: false,
+    });
+    expect(text).toContain("正在被另一处读取");
+    expect(text).toContain("重试");
+    expect(text).not.toContain("already running");
+  });
+
+  it("keeps the message of any other error", () => {
+    expect(discoveryErrorText(ERROR)).toBe(ERROR.message);
   });
 });
 

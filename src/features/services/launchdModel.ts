@@ -605,6 +605,15 @@ export function discoveryReducer(
   }
 }
 
+/** A busy read is a short wait, not a failure of the job list; the page retries once. */
+export function discoveryErrorText(error: AppError): string {
+  if (error.code === "CONFLICT") {
+    return "本机服务清单正在被另一处读取，尚未完成。请稍候，或点击“重试”再读一次。";
+  }
+  return error.message;
+}
+
+export const DISCOVERY_CONFLICT_RETRY_DELAY_MS = 800;
 export const DISCOVERY_REFRESH_MIN_INTERVAL_MS = 2_000;
 
 export function canStartRefresh({
