@@ -23,6 +23,7 @@ use crate::{
             ClaudeLocations, ClaudeReadView, ClaudeSnapshotSummary, MAX_SETTINGS_BYTES,
             claude_tool, managed_directory, read_claude_view, snapshot_summary, value_type_label,
         },
+        reference::{ToolReference, is_reference_tool_id, tool_reference},
         registry::{
             CoverageStatus, Definitions, SettingDefinition, ToolDefinition, ValueType,
             VerifiedVersions,
@@ -80,6 +81,23 @@ pub fn ai_config_claude_snapshot() -> Result<ClaudeSnapshotSummary, AppError> {
     let tool = claude_tool(&definitions)
         .ok_or_else(|| AppError::not_found("未找到 Claude Code 定义。"))?;
     Ok(snapshot_summary(tool))
+}
+
+#[tauri::command]
+pub fn ai_config_tool_reference(tool_id: String) -> Result<ToolReference, AppError> {
+    if !is_reference_tool_id(&tool_id) {
+        return Err(AppError::invalid_input(
+            "未知的 AI 工具，无法展示官方设置参考。",
+        ));
+    }
+    let definitions =
+        load_all().map_err(|_| AppError::validation_failed("AI 配置定义校验失败。"))?;
+    let tool = definitions
+        .tools
+        .iter()
+        .find(|tool| tool.id == tool_id)
+        .ok_or_else(|| AppError::not_found("未找到该工具的官方设置参考。"))?;
+    Ok(tool_reference(tool))
 }
 
 #[tauri::command]

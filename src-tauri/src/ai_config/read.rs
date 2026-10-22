@@ -208,7 +208,7 @@ fn layer_label(layer: ResourceLayer) -> &'static str {
     }
 }
 
-fn coverage_label(coverage: CoverageStatus) -> &'static str {
+pub fn coverage_label(coverage: CoverageStatus) -> &'static str {
     match coverage {
         CoverageStatus::Editable => "editable",
         CoverageStatus::DisplayOnly => "displayOnly",

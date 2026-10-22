@@ -137,6 +137,7 @@ pub fn run() {
             commands::ai_config::ai_config_claude_confirm_edit,
             commands::ai_config::ai_config_claude_flags,
             commands::ai_config::ai_config_claude_build_command,
+            commands::ai_config::ai_config_tool_reference,
             commands::ai_config::ai_config_claude_open_in_terminal,
             commands::settings::get_discovery_exclusions,
             commands::settings::update_discovery_exclusions,
