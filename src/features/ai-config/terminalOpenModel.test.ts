@@ -1,8 +1,25 @@
 import { describe, expect, it } from "vitest";
 import type { AppError } from "../../ipc/core";
-import { TERMINAL_IDLE, reduceTerminalOpen, type TerminalOpenState } from "./terminalOpenModel";
+import {
+  TERMINAL_IDLE,
+  reduceTerminalOpen,
+  terminalBlockReason,
+  type TerminalOpenState,
+} from "./terminalOpenModel";
 
 const ERROR: AppError = { code: "PROCESS_FAILED", message: "无法在 Terminal 中打开命令。", retryable: true } as AppError;
+
+describe("terminalBlockReason", () => {
+  it("blocks a command that still contains placeholders, without any value", () => {
+    expect(
+      terminalBlockReason({ status: "ready", built: { placeholders: ["ANTHROPIC_API_KEY"] } }),
+    ).toBe("命令含占位符，请先复制命令并在终端中替换后运行");
+  });
+
+  it("allows a ready command with no placeholders", () => {
+    expect(terminalBlockReason({ status: "ready", built: { placeholders: [] } })).toBeNull();
+  });
+});
 
 describe("reduceTerminalOpen", () => {
   it("moves from request to confirmation to opened, in that order", () => {

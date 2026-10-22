@@ -78,10 +78,11 @@ describe("TerminalOpenControl", () => {
     expect(markup).not.toContain("占位符需要你在终端环境中已设置");
   });
 
-  it("warns that placeholders must already be set in the terminal environment", () => {
-    const markup = control({ status: "ready", built: SECRET_BUILT }, { status: "confirming" });
-    expect(markup).toContain("占位符需要你在终端环境中已设置");
-    expect(markup).toContain("在此填入，勿提交");
+  it("disables opening a command with placeholders and says to replace them first", () => {
+    const markup = control({ status: "ready", built: SECRET_BUILT });
+    expect(markup).toMatch(OPEN_BUTTON_DISABLED);
+    expect(markup).toContain("无法在终端打开：命令含占位符，请先复制命令并在终端中替换后运行");
+    expect(markup).not.toContain("占位符需要你在终端环境中已设置");
   });
 
   it("locks the confirm button while the open is in flight", () => {

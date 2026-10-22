@@ -393,11 +393,6 @@ function TerminalConfirmDialog({
         >
           {built.text}
         </pre>
-        {built.placeholders.length > 0 ? (
-          <p role="note" className="m-0 text-aux">
-            命令含占位符，占位符需要你在终端环境中已设置。
-          </p>
-        ) : null}
       </div>
     </Modal>
   );

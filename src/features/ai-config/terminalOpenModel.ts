@@ -19,14 +19,16 @@ export const TERMINAL_IDLE: TerminalOpenState = { status: "idle" };
 export type TerminalCommandSource =
   | { readonly status: "idle"; readonly message: string }
   | { readonly status: "loading" }
-  | { readonly status: "ready" }
+  | { readonly status: "ready"; readonly built: { readonly placeholders: readonly string[] } }
   | { readonly status: "failed"; readonly error: AppError };
 
 /** Why the command cannot be opened in Terminal right now, or null when it can. */
 export function terminalBlockReason(source: TerminalCommandSource): string | null {
   switch (source.status) {
     case "ready":
-      return null;
+      return source.built.placeholders.length > 0
+        ? "命令含占位符，请先复制命令并在终端中替换后运行"
+        : null;
     case "idle":
       return source.message;
     case "loading":

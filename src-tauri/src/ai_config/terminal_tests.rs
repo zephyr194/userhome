@@ -162,11 +162,24 @@ fn script_matches_the_fixed_template_with_a_work_directory() {
 }
 
 #[test]
-fn script_without_a_work_directory_never_changes_directory() {
+fn script_without_a_work_directory_changes_to_the_home_directory() {
     let script = script_text("claude", None);
-    assert!(!script.contains("cd --"));
-    assert!(script.starts_with("#!/bin/zsh\nprintf '%s\\n' '将运行的命令：'\n"));
+    assert!(script.starts_with(
+        "#!/bin/zsh\ncd -- \"$HOME\" || { rm -- \"$0\"; exit 1; }\nprintf '%s\\n' '将运行的命令：'\n"
+    ));
     assert!(script.ends_with("rm -- \"$0\"\nclaude\n"));
+}
+
+#[test]
+fn script_never_depends_on_the_terminal_default_directory() {
+    for directory in [None, Some("/tmp/work")] {
+        let script = script_text("claude", directory);
+        assert!(script.contains("cd -- "), "{directory:?}");
+        assert!(
+            script.contains(" || { rm -- \"$0\"; exit 1; }\n"),
+            "{directory:?}"
+        );
+    }
 }
 
 #[test]
@@ -254,6 +267,7 @@ fn opening_writes_one_owner_only_script_and_launches_open_with_fixed_arguments()
     let plan = TerminalPlan {
         command: "claude --print",
         work_dir: Some(work.as_path()),
+        placeholders: &[],
     };
     open_command(&root.terminal(), &root.0, &plan, &launcher).expect("opened");
 
@@ -308,6 +322,7 @@ fn a_failed_launch_removes_the_script_and_reports_a_process_failure() {
     let plan = TerminalPlan {
         command: "claude",
         work_dir: None,
+        placeholders: &[],
     };
     let error = open_command(&root.terminal(), &root.0, &plan, &launcher).expect_err("failed");
     assert_eq!(error.code(), AppErrorCode::ProcessFailed);
@@ -327,6 +342,7 @@ fn a_symlinked_terminal_directory_is_refused_and_nothing_is_launched() {
     let plan = TerminalPlan {
         command: "claude",
         work_dir: None,
+        placeholders: &[],
     };
     let error = open_command(&root.terminal(), &root.0, &plan, &launcher).expect_err("refused");
     assert_eq!(error.code(), AppErrorCode::PermissionDenied);
@@ -346,6 +362,7 @@ fn a_terminal_directory_with_group_or_other_access_is_refused() {
     let plan = TerminalPlan {
         command: "claude",
         work_dir: None,
+        placeholders: &[],
     };
     let error = open_command(&root.terminal(), &root.0, &plan, &launcher).expect_err("refused");
     assert_eq!(error.code(), AppErrorCode::PermissionDenied);
@@ -360,10 +377,38 @@ fn a_work_directory_with_control_characters_is_refused_before_anything_is_writte
     let plan = TerminalPlan {
         command: "claude",
         work_dir: Some(work.as_path()),
+        placeholders: &[],
     };
     let error = open_command(&root.terminal(), &root.0, &plan, &launcher).expect_err("refused");
     assert_eq!(error.code(), AppErrorCode::InvalidInput);
     assert_eq!(fs::read_dir(root.terminal()).expect("dir").count(), 0);
+    assert!(launcher.calls.borrow().is_empty());
+}
+
+#[test]
+fn a_command_with_placeholders_is_refused_before_anything_is_written() {
+    let root = Root::new();
+    let launcher = FakeLauncher::default();
+    let request = CommandRequest {
+        flags: Vec::new(),
+        env: vec![ItemChoice {
+            id: "ANTHROPIC_API_KEY".to_owned(),
+            value: None,
+        }],
+        acknowledged_risks: Vec::new(),
+        detected_version: None,
+    };
+    let built = build(&request).expect("placeholder command");
+    let plan = TerminalPlan {
+        command: &built.text,
+        work_dir: None,
+        placeholders: &built.placeholders,
+    };
+    let error = open_command(&root.terminal(), &root.0, &plan, &launcher).expect_err("refused");
+    assert_eq!(error.code(), AppErrorCode::InvalidInput);
+    assert!(!error.message().contains(SECRET_PLACEHOLDER));
+    assert!(!error.message().contains("ANTHROPIC_API_KEY"));
+    assert!(!root.terminal().exists());
     assert!(launcher.calls.borrow().is_empty());
 }
 

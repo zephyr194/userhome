@@ -648,6 +648,7 @@ pub async fn ai_config_claude_open_in_terminal(
             &TerminalPlan {
                 command: &built.text,
                 work_dir: work_dir.as_deref(),
+                placeholders: &built.placeholders,
             },
             &SystemLauncher,
         )

@@ -50,19 +50,15 @@ pub fn open_arguments(script: &str) -> [&str; 3] {
 pub struct TerminalPlan<'a> {
     pub command: &'a str,
     pub work_dir: Option<&'a Path>,
+    pub placeholders: &'a [String],
 }
 
 /// The script body. Only quoted literals and the fixed template text reach the
 /// shell; the command is also printed once so the user sees exactly what runs.
 pub fn script_text(command: &str, work_dir: Option<&str>) -> String {
-    let change_directory = work_dir.map_or_else(String::new, |directory| {
-        format!(
-            "cd -- {} || {{ rm -- \"$0\"; exit 1; }}\n",
-            quote(directory)
-        )
-    });
+    let directory = work_dir.map_or_else(|| "\"$HOME\"".to_owned(), quote);
     format!(
-        "#!/bin/zsh\n{change_directory}printf '%s\\n' '将运行的命令：'\nprintf '%s\\n' {}\nread -r \"?按回车运行，Ctrl-C 取消：\"\nrm -- \"$0\"\n{command}\n",
+        "#!/bin/zsh\ncd -- {directory} || {{ rm -- \"$0\"; exit 1; }}\nprintf '%s\\n' '将运行的命令：'\nprintf '%s\\n' {}\nread -r \"?按回车运行，Ctrl-C 取消：\"\nrm -- \"$0\"\n{command}\n",
         quote(command),
     )
 }
@@ -73,6 +69,11 @@ pub fn open_command(
     plan: &TerminalPlan<'_>,
     launcher: &dyn Launcher,
 ) -> Result<(), AppError> {
+    if !plan.placeholders.is_empty() {
+        return Err(AppError::invalid_input(
+            "命令含占位符，请先复制命令并在终端中替换后运行",
+        ));
+    }
     let owner = fs::metadata(home)
         .map_err(|_| AppError::permission_denied("无法确认主目录，已停止。"))?
         .uid();
