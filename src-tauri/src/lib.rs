@@ -239,6 +239,10 @@ pub fn run() {
             commands::caddy::caddy_apply,
             commands::caddy::caddy_status,
             commands::caddy::caddy_logs,
+            commands::caddy::caddy_workdir_status,
+            commands::caddy::caddy_workdir_select,
+            commands::caddy::caddy_workdir_use_default,
+            commands::caddy::caddy_workdir_revoke,
             commands::lifecycle::confirm_quit,
             commands::lifecycle::cancel_quit
         ])

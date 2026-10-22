@@ -45,16 +45,42 @@ pub struct LoadedRules {
     pub source: RulesSource,
 }
 
+// Shared by every store: the work directory store is built per command, so a
+// lock owned by one instance would not serialize anything.
+static WRITE_LOCK: Mutex<()> = Mutex::new(());
+
+#[derive(Debug)]
 pub struct CaddyStore {
     directory: PathBuf,
-    write_lock: Mutex<()>,
 }
 
 impl CaddyStore {
+    /// The app's former private store. Nothing is written here any more; the
+    /// Caddy commands use `in_directory` with the authorized work directory.
     pub fn new(app_config_directory: &Path) -> Self {
         Self {
             directory: app_config_directory.join(STORE_DIRECTORY),
-            write_lock: Mutex::new(()),
+        }
+    }
+
+    pub fn in_directory(directory: &Path) -> Self {
+        Self {
+            directory: directory.to_path_buf(),
+        }
+    }
+
+    pub fn directory(&self) -> &Path {
+        &self.directory
+    }
+
+    /// Whether anything is in the directory. Only the entries are listed; no
+    /// file is opened.
+    pub fn has_content(&self) -> bool {
+        match fs::symlink_metadata(&self.directory) {
+            Ok(metadata) if metadata.is_dir() => {
+                fs::read_dir(&self.directory).is_ok_and(|mut entries| entries.next().is_some())
+            }
+            _ => false,
         }
     }
 
@@ -96,7 +122,7 @@ impl CaddyStore {
         if text.contains('\0') {
             return Err(AppError::invalid_input("原文包含不允许的字符，未保存。"));
         }
-        let _guard = self.write_lock.lock().map_err(|_| AppError::internal())?;
+        let _guard = WRITE_LOCK.lock().map_err(|_| AppError::internal())?;
         self.ensure_directory()?;
         if let Some(existing) = self.read_store_file(RAW_FILE)? {
             String::from_utf8(existing).map_err(|_| raw_not_text())?;
@@ -152,7 +178,7 @@ impl CaddyStore {
             return Err(AppError::invalid_input("规则超过大小上限，未保存。"));
         }
 
-        let _guard = self.write_lock.lock().map_err(|_| AppError::internal())?;
+        let _guard = WRITE_LOCK.lock().map_err(|_| AppError::internal())?;
         self.ensure_directory()?;
         if let Some(existing) = self.read_store_file(RULES_FILE)? {
             decode_rules(&existing)?;
@@ -830,6 +856,38 @@ mod tests {
         assert_eq!(
             root.store().checks_root().expect_err("refused").code(),
             AppErrorCode::PermissionDenied
+        );
+    }
+
+    #[test]
+    fn a_store_in_a_directory_keeps_its_files_directly_inside_it() {
+        let root = TempRoot::new();
+        let workdir = root.0.join("workdir");
+        fs::create_dir_all(&workdir).expect("work directory");
+        let store = CaddyStore::in_directory(&workdir);
+
+        store.save(&two_sites()).expect("save");
+
+        assert_eq!(
+            file_names(&workdir),
+            vec![CADDYFILE.to_owned(), RULES_FILE.to_owned()]
+        );
+        assert!(!root.caddy_dir().exists());
+        assert_eq!(store.load_rules().expect("load").rules, two_sites());
+    }
+
+    #[test]
+    fn has_content_reports_entries_without_opening_them() {
+        let root = TempRoot::new();
+        let store = root.store();
+        assert!(!store.has_content());
+
+        write_store_file(&root.caddy_dir(), RULES_FILE, b"{\"version\":1,");
+
+        assert!(store.has_content());
+        assert_eq!(
+            fs::read(root.caddy_dir().join(RULES_FILE)).expect("untouched"),
+            b"{\"version\":1,"
         );
     }
 }

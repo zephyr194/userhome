@@ -1,4 +1,7 @@
-use std::path::Path;
+use std::{
+    path::{Path, PathBuf},
+    sync::atomic::AtomicBool,
+};
 
 #[cfg(test)]
 use crate::caddy::generate::generate_caddyfile;
@@ -26,12 +29,13 @@ use crate::{
             CaddyRunner, CheckRequest, MAX_CHECK_BYTES, SystemCaddyRunner, ValidationReport,
             ValidationRuns, check, valid_run_id,
         },
+        workdir::{self, DEFAULT_DIRECTORY_NAME},
     },
     config::ConfigCoordinator,
     error::AppError,
     grants::{
-        ConfirmRequest, GrantCoordinator, GrantId, GrantPurpose, ReadError,
-        ResourceWriteBatchPreview, ResourceWriteContext, ResourceWriteCoordinator,
+        ConfirmRequest, GrantCoordinator, GrantError, GrantId, GrantPurpose, GrantSummary,
+        ReadError, ResourceWriteBatchPreview, ResourceWriteContext, ResourceWriteCoordinator,
         ResourceWriteExecution, WriteRequest,
     },
     lifecycle::LifecycleCoordinator,
@@ -41,6 +45,11 @@ use crate::{
         snapshot::{ResidentCaddySnapshot, read_system},
     },
     settings::SettingsCoordinator,
+};
+
+use crate::commands::grants::{
+    NativePicker, PICKER_OPEN, PickMode, PickerSlot, SelectGrantOutcome, canonical_home,
+    native_picker,
 };
 
 // The rules arrive as structured data only. Nothing here accepts a path or raw
@@ -66,28 +75,24 @@ pub struct CaddyPreview {
 }
 
 #[tauri::command]
-pub fn caddy_load_rules(store: State<'_, CaddyStore>) -> Result<LoadedRules, AppError> {
-    store.load_rules()
+pub fn caddy_load_rules(grants: State<'_, GrantCoordinator>) -> Result<LoadedRules, AppError> {
+    workdir_store(&grants)?.load_rules()
 }
 
 #[tauri::command]
 pub fn caddy_preview(
-    store: State<'_, CaddyStore>,
     grants: State<'_, GrantCoordinator>,
     input: CaddyRules,
 ) -> Result<CaddyPreview, AppError> {
-    let saved = store.saved_caddyfile()?;
+    let saved = workdir_store(&grants)?.saved_caddyfile()?;
     build_preview_with(&input, saved.as_deref(), |rules| {
         generate_with_grants(rules, &grants)
     })
 }
 
 #[tauri::command]
-pub fn caddy_save(
-    store: State<'_, CaddyStore>,
-    grants: State<'_, GrantCoordinator>,
-    input: CaddyRules,
-) -> Result<(), AppError> {
+pub fn caddy_save(grants: State<'_, GrantCoordinator>, input: CaddyRules) -> Result<(), AppError> {
+    let store = workdir_store(&grants)?;
     let caddyfile = generate_with_grants(&input, &grants)?;
     store.save_generated(&input, &caddyfile)
 }
@@ -367,7 +372,6 @@ pub struct ConfirmExternalRawInput {
 
 #[tauri::command]
 pub fn caddy_load_raw(
-    store: State<'_, CaddyStore>,
     grants: State<'_, GrantCoordinator>,
     input: LoadRawInput,
 ) -> Result<RawDocument, AppError> {
@@ -381,29 +385,34 @@ pub fn caddy_load_raw(
                 sha256: Some(sha256),
             })
         }
-        None => Ok(match store.load_raw()? {
-            Some(text) => RawDocument {
-                origin: RawOrigin::Saved,
-                text,
-                sha256: None,
-            },
-            None => RawDocument {
-                origin: RawOrigin::Empty,
-                text: String::new(),
-                sha256: None,
-            },
-        }),
+        None => {
+            let store = workdir_store(&grants)?;
+            Ok(match store.load_raw()? {
+                Some(text) => RawDocument {
+                    origin: RawOrigin::Saved,
+                    text,
+                    sha256: None,
+                },
+                None => RawDocument {
+                    origin: RawOrigin::Empty,
+                    text: String::new(),
+                    sha256: None,
+                },
+            })
+        }
     }
 }
 
 #[tauri::command]
-pub fn caddy_save_raw(store: State<'_, CaddyStore>, input: SaveRawInput) -> Result<(), AppError> {
-    store.save_raw(&input.text)
+pub fn caddy_save_raw(
+    grants: State<'_, GrantCoordinator>,
+    input: SaveRawInput,
+) -> Result<(), AppError> {
+    workdir_store(&grants)?.save_raw(&input.text)
 }
 
 #[tauri::command]
 pub async fn caddy_validate(
-    store: State<'_, CaddyStore>,
     grants: State<'_, GrantCoordinator>,
     runs: State<'_, ValidationRuns>,
     input: ValidateInput,
@@ -422,7 +431,7 @@ pub async fn caddy_validate(
         .as_ref()
         .map_or_else(Vec::new, |rules| sensitive_tls_paths(rules, &grants));
     let text = source_text(input.source, &grants)?;
-    let checks_root = store.checks_root()?;
+    let checks_root = workdir_store(&grants)?.checks_root()?;
     let allow = input.allow_external_references;
     let run = runs.begin(&input.run_id)?;
     let cancel = run.cancel_flag();
@@ -624,10 +633,10 @@ const NOT_SAVED_RAW: &str = "尚未保存原文，无法开启。";
 #[tauri::command]
 pub async fn caddy_prepare_start(
     app: AppHandle,
-    store: State<'_, CaddyStore>,
     grants: State<'_, GrantCoordinator>,
     input: PrepareStartInput,
 ) -> Result<StartSummary, AppError> {
+    let store = run_store(&grants)?;
     let user = input
         .executable_grant_id
         .as_deref()
@@ -654,17 +663,14 @@ pub async fn caddy_prepare_start(
 }
 
 #[tauri::command]
-pub async fn caddy_start(
-    app: AppHandle,
-    store: State<'_, CaddyStore>,
-    input: StartInput,
-) -> Result<RunStatus, AppError> {
+pub async fn caddy_start(app: AppHandle, input: StartInput) -> Result<RunStatus, AppError> {
     if !input.confirmed {
         return Err(AppError::invalid_input("开启前需先确认摘要。"));
     }
     if !valid_run_id(&input.plan_id) {
         return Err(AppError::invalid_input("开启编号无效。"));
     }
+    let store = run_store(&app.state::<GrantCoordinator>())?;
     let targets = app
         .state::<CaddyRunCoordinator>()
         .plan_targets(&input.plan_id, input.source)?;
@@ -738,12 +744,9 @@ fn require_confirmation(confirmed: bool) -> Result<(), AppError> {
 /// Reloads the own serving instance with the saved text. The saved text is read
 /// here, never supplied by the caller.
 #[tauri::command]
-pub async fn caddy_apply(
-    app: AppHandle,
-    store: State<'_, CaddyStore>,
-    input: ApplyInput,
-) -> Result<ApplyReport, AppError> {
+pub async fn caddy_apply(app: AppHandle, input: ApplyInput) -> Result<ApplyReport, AppError> {
     require_confirmation(input.confirmed)?;
+    let store = workdir_store(&app.state::<GrantCoordinator>())?;
     let (text, rules) = saved_config(&store, input.source)?;
     let tls = rules
         .as_ref()
@@ -768,12 +771,15 @@ pub async fn caddy_apply(
 #[tauri::command]
 pub fn caddy_status(
     runs: State<'_, CaddyRunCoordinator>,
-    store: State<'_, CaddyStore>,
+    grants: State<'_, GrantCoordinator>,
 ) -> CaddyStatusView {
     let run = runs.status();
     let applied = match run.source {
         Some(source) => {
-            let saved = saved_config(&store, source).ok().map(|(text, _)| text);
+            let saved = workdir_store(&grants)
+                .ok()
+                .and_then(|store| saved_config(&store, source).ok())
+                .map(|(text, _)| text);
             runs.applied(source, saved.as_deref())
         }
         None => Applied::Unknown,
@@ -792,6 +798,137 @@ pub fn caddy_logs(
     input: LogsInput,
 ) -> Result<LogPage, AppError> {
     runs.logs(&input.session_id, input.stdout_offset, input.stderr_offset)
+}
+
+const WORKDIR_REQUIRED: &str = "需要先选择工作目录，未保存、校验或开启任何 Caddy 配置。";
+const WORKDIR_REASON: &str = "workdir_required";
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UseDefaultWorkdirInput {
+    pub confirmed: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaddyWorkdirStatus {
+    pub authorized: Option<GrantSummary>,
+    pub default_display_path: String,
+    pub legacy_data_present: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub legacy_display_path: Option<String>,
+}
+
+/// The store of the authorized work directory. Without a live grant the Caddy
+/// commands stop; they never fall back to the app's former private directory.
+fn workdir_store(grants: &GrantCoordinator) -> Result<CaddyStore, AppError> {
+    match grants.resolve_caddy_workdir() {
+        Ok(record) => Ok(CaddyStore::in_directory(&record.path)),
+        Err(GrantError::UnknownGrant) => Err(workdir_required()),
+        Err(error) => Err(error.into()),
+    }
+}
+
+/// The store for starting or applying a run; its admin socket path is checked
+/// before anything is launched.
+fn run_store(grants: &GrantCoordinator) -> Result<CaddyStore, AppError> {
+    let store = workdir_store(grants)?;
+    workdir::check_socket_path(store.directory())?;
+    Ok(store)
+}
+
+fn workdir_required() -> AppError {
+    AppError::conflict_with_reason(WORKDIR_REQUIRED, WORKDIR_REASON)
+}
+
+fn workdir_status(
+    legacy: &CaddyStore,
+    grants: &GrantCoordinator,
+    home: Option<&Path>,
+) -> Result<CaddyWorkdirStatus, AppError> {
+    let authorized = grants
+        .active_caddy_workdir()?
+        .map(|record| record.summary(home));
+    let legacy_data_present = legacy.has_content();
+    Ok(CaddyWorkdirStatus {
+        authorized,
+        default_display_path: format!("~/{DEFAULT_DIRECTORY_NAME}"),
+        legacy_data_present,
+        legacy_display_path: legacy_data_present
+            .then(|| crate::grants::display_path(legacy.directory(), home)),
+    })
+}
+
+/// Reports the current work directory and whether the former private directory
+/// holds data. The legacy data is only listed, never read or moved.
+#[tauri::command]
+pub fn caddy_workdir_status(
+    legacy: State<'_, CaddyStore>,
+    grants: State<'_, GrantCoordinator>,
+) -> Result<CaddyWorkdirStatus, AppError> {
+    let home = canonical_home();
+    workdir_status(&legacy, &grants, home.as_deref())
+}
+
+#[tauri::command]
+pub async fn caddy_workdir_select(
+    app: AppHandle,
+    grants: State<'_, GrantCoordinator>,
+) -> Result<SelectGrantOutcome, AppError> {
+    select_workdir(&grants, &PICKER_OPEN, native_picker(app), canonical_home()).await
+}
+
+/// Opens the directory picker and grants the chosen directory as the work
+/// directory once it passes the checks. Only the redacted summary leaves here.
+async fn select_workdir<P: NativePicker>(
+    grants: &GrantCoordinator,
+    picker_open: &AtomicBool,
+    picker: P,
+    home: Option<PathBuf>,
+) -> Result<SelectGrantOutcome, AppError> {
+    let home = home.ok_or(GrantError::HomeUnavailable)?;
+    let _slot = PickerSlot::acquire(picker_open)?;
+    let picked = tauri::async_runtime::spawn_blocking(move || picker.pick(PickMode::Directory))
+        .await
+        .map_err(|_| AppError::internal())??;
+    let Some(path) = picked else {
+        return Ok(SelectGrantOutcome::Cancelled);
+    };
+    let chosen = workdir::validate_candidate(&path, &home)?;
+    let record = grants.create_caddy_workdir(&chosen)?;
+    Ok(SelectGrantOutcome::Selected(
+        record.summary(Some(home.as_path())),
+    ))
+}
+
+#[tauri::command]
+pub fn caddy_workdir_use_default(
+    grants: State<'_, GrantCoordinator>,
+    input: UseDefaultWorkdirInput,
+) -> Result<SelectGrantOutcome, AppError> {
+    use_default_workdir(&grants, canonical_home(), input.confirmed)
+}
+
+/// Creates `~/.caddy` owner-only and grants it, but only after the user confirmed.
+fn use_default_workdir(
+    grants: &GrantCoordinator,
+    home: Option<PathBuf>,
+    confirmed: bool,
+) -> Result<SelectGrantOutcome, AppError> {
+    if !confirmed {
+        return Err(AppError::invalid_input("创建并授权 ~/.caddy 前需先确认。"));
+    }
+    let home = home.ok_or(GrantError::HomeUnavailable)?;
+    let path = workdir::prepare(&workdir::default_candidate(&home), &home)?;
+    let record = grants.create_caddy_workdir(&path)?;
+    Ok(SelectGrantOutcome::Selected(
+        record.summary(Some(home.as_path())),
+    ))
+}
+
+#[tauri::command]
+pub fn caddy_workdir_revoke(grants: State<'_, GrantCoordinator>) -> Result<(), AppError> {
+    Ok(grants.revoke_caddy_workdir()?)
 }
 
 fn system_snapshot() -> Option<ResidentCaddySnapshot> {
@@ -1794,5 +1931,299 @@ mod tls_tests {
             .map(|_| ()),
         );
         let _ = std::fs::remove_dir_all(&root);
+    }
+}
+
+#[cfg(test)]
+mod workdir_tests {
+    use std::{
+        fs,
+        os::unix::fs::{PermissionsExt, symlink},
+        path::PathBuf,
+        sync::atomic::AtomicBool,
+    };
+
+    use serde_json::{Value, json};
+    use uuid::Uuid;
+
+    use super::*;
+    use crate::{
+        caddy::{
+            config::{Listen, RULES_VERSION, SiteRule, Upstream, UpstreamScheme},
+            store::RulesSource,
+        },
+        error::AppErrorCode,
+        grants::GrantStore,
+    };
+
+    struct Sandbox {
+        root: PathBuf,
+        home: PathBuf,
+        app_config: PathBuf,
+    }
+
+    impl Sandbox {
+        fn new() -> Self {
+            let root = fs::canonicalize(std::env::temp_dir())
+                .expect("canonical temp dir")
+                .join(format!("userhome-caddy-cmd-{}", Uuid::new_v4()));
+            let home = root.join("home");
+            let app_config = home.join("Library/Application Support/UserHome");
+            fs::create_dir_all(&app_config).expect("app config");
+            Self {
+                root,
+                home,
+                app_config,
+            }
+        }
+
+        fn coordinator(&self) -> GrantCoordinator {
+            GrantCoordinator::new(
+                GrantStore::new(self.root.join("support")),
+                Some(self.home.clone()),
+            )
+        }
+
+        fn legacy(&self) -> CaddyStore {
+            CaddyStore::new(&self.app_config)
+        }
+
+        fn workdir(&self) -> PathBuf {
+            self.home.join(".caddy")
+        }
+    }
+
+    impl Drop for Sandbox {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    struct FakePicker(Result<Option<PathBuf>, AppError>);
+
+    impl NativePicker for FakePicker {
+        fn pick(&self, _mode: PickMode) -> Result<Option<PathBuf>, AppError> {
+            self.0.clone()
+        }
+    }
+
+    fn rules() -> CaddyRules {
+        CaddyRules {
+            version: RULES_VERSION,
+            sites: vec![SiteRule {
+                tls: None,
+                access_log: false,
+                enabled: true,
+                listen: Listen {
+                    host: "127.0.0.1".to_owned(),
+                    port: 8080,
+                },
+                upstreams: vec![Upstream {
+                    scheme: UpstreamScheme::Http,
+                    host: "127.0.0.1".to_owned(),
+                    port: 3000,
+                }],
+            }],
+        }
+    }
+
+    fn reason_of(error: &AppError) -> Value {
+        serde_json::to_value(error).expect("error json")["details"]["reason"].clone()
+    }
+
+    fn mode_of(path: &std::path::Path) -> u32 {
+        fs::metadata(path).expect("metadata").permissions().mode() & 0o777
+    }
+
+    #[test]
+    fn without_a_work_directory_every_store_path_stops_and_never_uses_the_legacy_directory() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        sandbox.legacy().save(&rules()).expect("legacy rules");
+
+        let error = workdir_store(&grants).expect_err("needs a work directory");
+
+        assert_eq!(error.code(), AppErrorCode::Conflict);
+        assert_eq!(reason_of(&error), json!("workdir_required"));
+        assert!(error.message().contains("需要先选择工作目录"));
+        assert!(sandbox.legacy().has_content());
+    }
+
+    #[test]
+    fn a_saved_rule_lands_only_in_the_authorized_work_directory() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        crate::caddy::workdir::prepare(&sandbox.workdir(), &sandbox.home).expect("prepared");
+        grants
+            .create_caddy_workdir(&sandbox.workdir())
+            .expect("granted");
+
+        let store = workdir_store(&grants).expect("store");
+        store.save(&rules()).expect("saved");
+
+        assert!(sandbox.workdir().join("rules.json").is_file());
+        assert!(sandbox.workdir().join("Caddyfile").is_file());
+        assert!(!sandbox.legacy().has_content());
+        assert_eq!(store.load_rules().expect("load").source, RulesSource::Saved);
+    }
+
+    #[test]
+    fn a_revoked_work_directory_stops_the_commands_again() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        crate::caddy::workdir::prepare(&sandbox.workdir(), &sandbox.home).expect("prepared");
+        grants
+            .create_caddy_workdir(&sandbox.workdir())
+            .expect("granted");
+        workdir_store(&grants).expect("usable before revoke");
+
+        grants.revoke_caddy_workdir().expect("revoked");
+
+        let error = workdir_store(&grants).expect_err("revoked");
+        assert_eq!(reason_of(&error), json!("workdir_required"));
+        assert!(sandbox.workdir().is_dir(), "revoking keeps the directory");
+    }
+
+    #[test]
+    fn status_names_the_legacy_data_without_reading_or_moving_it() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        let legacy = sandbox.legacy();
+        legacy.save(&rules()).expect("legacy rules");
+        let legacy_file = sandbox.app_config.join("caddy").join("rules.json");
+        let before = fs::read(&legacy_file).expect("before");
+
+        let status =
+            workdir_status(&legacy, &grants, Some(sandbox.home.as_path())).expect("status");
+        let json = serde_json::to_value(&status).expect("json");
+
+        assert!(json["authorized"].is_null());
+        assert_eq!(json["defaultDisplayPath"], "~/.caddy");
+        assert_eq!(json["legacyDataPresent"], true);
+        assert_eq!(
+            json["legacyDisplayPath"],
+            "~/Library/Application Support/UserHome/caddy"
+        );
+        assert_eq!(fs::read(&legacy_file).expect("after"), before);
+        assert!(!sandbox.workdir().exists());
+    }
+
+    #[test]
+    fn status_reports_the_authorized_directory_and_no_legacy_data_when_there_is_none() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        crate::caddy::workdir::prepare(&sandbox.workdir(), &sandbox.home).expect("prepared");
+        grants
+            .create_caddy_workdir(&sandbox.workdir())
+            .expect("granted");
+
+        let status = workdir_status(&sandbox.legacy(), &grants, Some(sandbox.home.as_path()))
+            .expect("status");
+        let json = serde_json::to_value(&status).expect("json");
+
+        assert_eq!(json["authorized"]["displayPath"], "~/.caddy");
+        assert_eq!(json["authorized"]["purpose"], "CADDY_WORK_DIR");
+        assert_eq!(json["legacyDataPresent"], false);
+        assert!(json.get("legacyDisplayPath").is_none());
+    }
+
+    #[test]
+    fn the_default_suggestion_creates_nothing_until_the_user_confirms() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+
+        let error = use_default_workdir(&grants, Some(sandbox.home.clone()), false)
+            .expect_err("needs confirmation");
+
+        assert_eq!(error.code(), AppErrorCode::InvalidInput);
+        assert!(!sandbox.workdir().exists());
+        assert_eq!(grants.active_caddy_workdir().expect("active"), None);
+
+        let outcome =
+            use_default_workdir(&grants, Some(sandbox.home.clone()), true).expect("confirmed");
+
+        assert!(matches!(outcome, SelectGrantOutcome::Selected(_)));
+        assert_eq!(mode_of(&sandbox.workdir()), 0o700);
+    }
+
+    #[test]
+    fn selecting_grants_the_chosen_directory_and_cancelling_grants_nothing() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        let chosen = sandbox.home.join("caddy-dir");
+        fs::create_dir_all(&chosen).expect("chosen");
+        let open = AtomicBool::new(false);
+
+        let cancelled = tauri::async_runtime::block_on(select_workdir(
+            &grants,
+            &open,
+            FakePicker(Ok(None)),
+            Some(sandbox.home.clone()),
+        ))
+        .expect("cancelled");
+        assert_eq!(cancelled, SelectGrantOutcome::Cancelled);
+        assert_eq!(grants.active_caddy_workdir().expect("active"), None);
+
+        let selected = tauri::async_runtime::block_on(select_workdir(
+            &grants,
+            &open,
+            FakePicker(Ok(Some(chosen.clone()))),
+            Some(sandbox.home.clone()),
+        ))
+        .expect("selected");
+        let SelectGrantOutcome::Selected(summary) = selected else {
+            panic!("expected a selected work directory");
+        };
+        assert_eq!(summary.display_path, "~/caddy-dir");
+        assert_eq!(
+            grants
+                .active_caddy_workdir()
+                .expect("active")
+                .map(|record| record.path),
+            Some(chosen)
+        );
+    }
+
+    #[test]
+    fn a_selected_directory_writable_by_others_is_refused_and_grants_nothing() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        let shared = sandbox.home.join("shared");
+        fs::create_dir_all(&shared).expect("shared");
+        fs::set_permissions(&shared, fs::Permissions::from_mode(0o777)).expect("mode");
+        let open = AtomicBool::new(false);
+
+        let error = tauri::async_runtime::block_on(select_workdir(
+            &grants,
+            &open,
+            FakePicker(Ok(Some(shared))),
+            Some(sandbox.home.clone()),
+        ))
+        .expect_err("refused");
+
+        assert_eq!(error.code(), AppErrorCode::PermissionDenied);
+        assert_eq!(grants.active_caddy_workdir().expect("active"), None);
+    }
+
+    #[test]
+    fn a_selected_symbolic_link_to_a_directory_is_refused_and_grants_nothing() {
+        let sandbox = Sandbox::new();
+        let grants = sandbox.coordinator();
+        let elsewhere = sandbox.root.join("elsewhere");
+        fs::create_dir_all(&elsewhere).expect("elsewhere");
+        let link = sandbox.home.join("link");
+        symlink(&elsewhere, &link).expect("link");
+        let open = AtomicBool::new(false);
+
+        let error = tauri::async_runtime::block_on(select_workdir(
+            &grants,
+            &open,
+            FakePicker(Ok(Some(link))),
+            Some(sandbox.home.clone()),
+        ))
+        .expect_err("refused");
+
+        assert_eq!(error.code(), AppErrorCode::PermissionDenied);
+        assert_eq!(grants.active_caddy_workdir().expect("active"), None);
     }
 }

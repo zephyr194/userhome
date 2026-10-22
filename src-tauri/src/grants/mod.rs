@@ -301,7 +301,7 @@ pub struct GrantSummary {
     pub created_at_epoch_ms: u64,
 }
 
-fn display_path(path: &Path, home: Option<&Path>) -> String {
+pub(crate) fn display_path(path: &Path, home: Option<&Path>) -> String {
     if let Some(home) = home
         && let Ok(relative) = path.strip_prefix(home)
     {
