@@ -150,6 +150,9 @@ const checks: Array<[foreground: string, background: string, minimum: number]> =
   ...["--app-surface", "--app-canvas", "--app-surface-muted", "--app-sidebar"].map(
     (background): [string, string, number] => ["--app-focus-ring", background, UI],
   ),
+  ...["--app-surface", "--app-canvas", "--app-selection"].map(
+    (background): [string, string, number] => ["--app-selection-border", background, UI],
+  ),
 ];
 
 describe("token contrast, resolved from global.css", () => {
