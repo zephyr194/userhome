@@ -11,7 +11,8 @@ export type GrantPurpose =
   | "EXECUTABLE"
   | "SHELL_STARTUP_FILE"
   | "LAUNCH_AGENT_FILE"
-  | "TLS_MATERIAL_FILE";
+  | "TLS_MATERIAL_FILE"
+  | "CADDY_WORK_DIR";
 export type GrantKind = "DIRECTORY" | "FILE";
 
 export interface GrantSummary {
@@ -29,7 +30,9 @@ const GRANT_PURPOSES: readonly string[] = [
   "SHELL_STARTUP_FILE",
   "LAUNCH_AGENT_FILE",
   "TLS_MATERIAL_FILE",
+  "CADDY_WORK_DIR",
 ];
+const DIRECTORY_PURPOSES: readonly string[] = ["CONFIG_DIRECTORY", "CADDY_WORK_DIR"];
 const GRANT_KINDS: readonly string[] = ["DIRECTORY", "FILE"];
 const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
   CONFIG_DIRECTORY: "配置目录",
@@ -38,6 +41,7 @@ const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
   SHELL_STARTUP_FILE: "shell 启动文件",
   LAUNCH_AGENT_FILE: "launchd 自建任务配置",
   TLS_MATERIAL_FILE: "TLS 证书或私钥文件",
+  CADDY_WORK_DIR: "Caddy 工作目录",
 };
 const GRANT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -72,7 +76,7 @@ export function decodeGrantSummary(value: unknown): GrantSummary {
   }
   const purpose = value.purpose as GrantPurpose;
   const kind = value.kind as GrantKind;
-  if ((purpose === "CONFIG_DIRECTORY") !== (kind === "DIRECTORY")) {
+  if (DIRECTORY_PURPOSES.includes(purpose) !== (kind === "DIRECTORY")) {
     throw createInternalError();
   }
   return {
@@ -119,7 +123,11 @@ export function revokeGrant(grantId: string): Promise<void> {
  */
 export type FileGrantPurpose = Exclude<
   GrantPurpose,
-  "CONFIG_DIRECTORY" | "SHELL_STARTUP_FILE" | "LAUNCH_AGENT_FILE" | "TLS_MATERIAL_FILE"
+  | "CONFIG_DIRECTORY"
+  | "SHELL_STARTUP_FILE"
+  | "LAUNCH_AGENT_FILE"
+  | "TLS_MATERIAL_FILE"
+  | "CADDY_WORK_DIR"
 >;
 
 export type SelectGrantResult =

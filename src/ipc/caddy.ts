@@ -1,5 +1,17 @@
-import { createInternalError, invokeCommand, isRecord } from "./core";
-import { isGrantId } from "./grants";
+import {
+  createInternalError,
+  hasControlCharacters,
+  invokeCommand,
+  isRecord,
+  type AppError,
+} from "./core";
+import {
+  decodeGrantSummary,
+  decodeSelectGrantResult,
+  isGrantId,
+  type GrantSummary,
+  type SelectGrantResult,
+} from "./grants";
 
 // Wire shapes mirror src-tauri/src/caddy/{config,detect,diff,store}.rs and
 // commands/caddy.rs. The frontend sends structured rules only; it never sends a
@@ -1156,4 +1168,83 @@ export function caddyLogs(
   return invokeCommand("caddy_logs", decodeLogPage, {
     input: { sessionId, stdoutOffset, stderrOffset },
   });
+}
+
+export const CADDY_WORKDIR_REQUIRED_REASON = "workdir_required";
+
+export interface CaddyWorkdirStatus {
+  authorized?: GrantSummary;
+  defaultDisplayPath: string;
+  legacyDataPresent: boolean;
+  legacyDisplayPath?: string;
+}
+
+const MAX_WORKDIR_PATH_LENGTH = 1024;
+
+function decodeWorkdirPath(value: unknown): string {
+  const decoded = nonEmptyText(value);
+  if (decoded.length > MAX_WORKDIR_PATH_LENGTH || hasControlCharacters(decoded)) {
+    throw createInternalError();
+  }
+  return decoded;
+}
+
+function decodeWorkdirGrant(value: unknown): GrantSummary {
+  const grant = decodeGrantSummary(value);
+  if (grant.purpose !== "CADDY_WORK_DIR" || grant.kind !== "DIRECTORY") {
+    throw createInternalError();
+  }
+  return grant;
+}
+
+export function decodeWorkdirStatus(value: unknown): CaddyWorkdirStatus {
+  const wire = record(value);
+  exactKeys(
+    wire,
+    ["authorized", "defaultDisplayPath", "legacyDataPresent"],
+    ["legacyDisplayPath"],
+  );
+  const legacyDataPresent = boolean(wire.legacyDataPresent);
+  if (legacyDataPresent !== (wire.legacyDisplayPath !== undefined)) {
+    throw createInternalError();
+  }
+  return {
+    ...(wire.authorized === null ? {} : { authorized: decodeWorkdirGrant(wire.authorized) }),
+    defaultDisplayPath: decodeWorkdirPath(wire.defaultDisplayPath),
+    legacyDataPresent,
+    ...(wire.legacyDisplayPath === undefined
+      ? {}
+      : { legacyDisplayPath: decodeWorkdirPath(wire.legacyDisplayPath) }),
+  };
+}
+
+// The backend opens the directory picker itself; the frontend sends no path.
+export function caddyWorkdirStatus(): Promise<CaddyWorkdirStatus> {
+  return invokeCommand("caddy_workdir_status", decodeWorkdirStatus);
+}
+
+export function caddyWorkdirSelect(): Promise<SelectGrantResult> {
+  return invokeCommand("caddy_workdir_select", (value) =>
+    decodeSelectGrantResult(value, "CADDY_WORK_DIR"),
+  );
+}
+
+// The button that calls this names the directory and its 0700 mode, so the click
+// is the confirmation the backend requires.
+export function caddyWorkdirUseDefault(): Promise<SelectGrantResult> {
+  return invokeCommand(
+    "caddy_workdir_use_default",
+    (value) => decodeSelectGrantResult(value, "CADDY_WORK_DIR"),
+    { input: { confirmed: true } },
+  );
+}
+
+export function caddyWorkdirRevoke(): Promise<void> {
+  return invokeCommand("caddy_workdir_revoke", decodeNothing);
+}
+
+// Caddy commands report a missing work directory as a conflict with this reason;
+// the page then asks the user to choose a directory instead of showing the error.
+export function isWorkdirRequired(error: AppError): boolean {
+  return error.code === "CONFLICT" && error.details?.reason === CADDY_WORKDIR_REQUIRED_REASON;
 }

@@ -134,6 +134,24 @@ describe("environment page state", () => {
     expect(state.selectedGrantId).toBe(FIRST);
   });
 
+  it("does not list the Caddy work directory among the generic directory authorizations", () => {
+    const state = run([
+      {
+        type: "grantsLoaded",
+        grants: [
+          grant("5f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b", {
+            purpose: "CADDY_WORK_DIR",
+            displayPath: "~/.caddy",
+          }),
+          grant(FIRST),
+        ],
+      },
+    ]);
+
+    expect(state.grants.status === "ready" && state.grants.grants.map((item) => item.id)).toEqual([FIRST]);
+    expect(state.selectedGrantId).toBe(FIRST);
+  });
+
   it("does not list shell startup file grants among the directory authorizations", () => {
     const state = run([
       {

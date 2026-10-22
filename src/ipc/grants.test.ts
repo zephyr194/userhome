@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
+  decodeGrantList,
   decodeGrantStoreReset,
   decodeGrantStoreStatus,
   decodeGrantSummary,
@@ -446,6 +447,30 @@ describe("shell startup file grants", () => {
 
   it("keeps the purpose and kind rule: a shell startup grant is a file grant", () => {
     expect(() => decodeGrantSummary(shellGrant({ kind: "DIRECTORY" }))).toThrow();
+  });
+
+  it("decodes a Caddy work directory grant as a directory and labels it", () => {
+    const grant = decodeGrantSummary(wireGrant({ purpose: "CADDY_WORK_DIR", displayPath: "~/.caddy" }));
+    expect(grant).toEqual({
+      id: GRANT_ID,
+      purpose: "CADDY_WORK_DIR",
+      kind: "DIRECTORY",
+      displayPath: "~/.caddy",
+      createdAtEpochMs: 1_760_000_000_000,
+    });
+    expect(grantPurposeLabel("CADDY_WORK_DIR")).toBe("Caddy 工作目录");
+  });
+
+  it("refuses a Caddy work directory grant that is not a directory", () => {
+    expect(() => decodeGrantSummary(wireGrant({ purpose: "CADDY_WORK_DIR", kind: "FILE" }))).toThrow();
+  });
+
+  it("keeps a list containing a Caddy work directory grant decodable", () => {
+    const grants = decodeGrantList([
+      wireGrant(),
+      wireGrant({ id: "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d", purpose: "CADDY_WORK_DIR", displayPath: "~/.caddy" }),
+    ]);
+    expect(grants.map((grant) => grant.purpose)).toEqual(["CONFIG_DIRECTORY", "CADDY_WORK_DIR"]);
   });
 
   it("labels every purpose, the new one as a shell startup file", () => {

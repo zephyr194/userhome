@@ -158,8 +158,11 @@ export type EnvironmentAction =
   | { type: "fileLoaded"; requestId: number; outcome: EnvFileOutcome }
   | { type: "fileFailed"; requestId: number; error: AppError };
 
+// The Caddy work directory is managed only by the Caddy page, never as a generic directory.
 function directoryGrants(grants: readonly GrantSummary[]): GrantSummary[] {
-  return grants.filter((grant) => grant.kind === "DIRECTORY");
+  return grants.filter(
+    (grant) => grant.kind === "DIRECTORY" && grant.purpose !== "CADDY_WORK_DIR",
+  );
 }
 
 const CLEARED = {
