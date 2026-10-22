@@ -94,7 +94,7 @@ pub(super) fn resolve_within(
 
 /// `canonical` must lie strictly below `home` (component-wise, so `/Users/ab`
 /// never covers `/Users/abc`) and outside the protected credential locations.
-pub(super) fn ensure_below_home(canonical: &Path, home: Option<&Path>) -> Result<(), GrantError> {
+pub(crate) fn ensure_below_home(canonical: &Path, home: Option<&Path>) -> Result<(), GrantError> {
     let home = usable_home(home)?;
     match canonical.strip_prefix(home) {
         Ok(relative) if !relative.as_os_str().is_empty() => {}

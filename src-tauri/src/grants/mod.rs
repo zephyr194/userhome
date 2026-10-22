@@ -21,6 +21,7 @@ mod recovery;
 mod store;
 mod write;
 
+pub(crate) use path::ensure_below_home;
 pub use read::{
     BuiltInReadError, ContentFingerprint, DEFAULT_MAX_READ_BYTES, GrantedRange, GrantedRead,
     RangeStart, ReadError, built_in_dir, is_below_home, read_built_in,

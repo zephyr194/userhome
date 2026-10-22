@@ -66,9 +66,9 @@ const MAX_DIAGNOSTIC_BYTES: usize = 500;
 pub const RUN_WORKING_DIRECTORY_LABEL: &str = "<私有运行目录>";
 pub const ADMIN_ENDPOINT_LABEL: &str = "仅本次运行的私有 Unix socket（不占用默认 localhost:2019）";
 
-const ADMIN_SOCKET_FILE: &str = "admin.sock";
+pub(crate) const ADMIN_SOCKET_FILE: &str = "admin.sock";
 /// `sun_path` holds 104 bytes on macOS including the terminator; keep a margin.
-const SOCKET_PATH_LIMIT: usize = 100;
+pub(crate) const SOCKET_PATH_LIMIT: usize = 100;
 const FALLBACK_SOCKET_ROOT: &str = "/tmp";
 const READINESS_POLL: Duration = Duration::from_millis(100);
 const PROBE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -386,7 +386,7 @@ pub fn inject_admin(text: &str, socket: &Path) -> String {
     out
 }
 
-fn socket_path_usable(path: &Path) -> bool {
+pub(crate) fn socket_path_usable(path: &Path) -> bool {
     let bytes = path.as_os_str().as_bytes();
     bytes.len() <= SOCKET_PATH_LIMIT
         && bytes.iter().all(|byte| {
