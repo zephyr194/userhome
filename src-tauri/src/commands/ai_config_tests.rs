@@ -1,7 +1,9 @@
 use serde_json::{Value, json};
 
 use super::{catalog_item, edit_status, key_diff, value_at};
-use crate::ai_config::registry::{SettingDefinition, ToolDefinition, parse_definitions};
+use crate::ai_config::registry::{
+    SettingDefinition, ToolDefinition, VerifiedVersions, parse_definitions,
+};
 
 const SOURCE_URL: &str = "https://code.claude.com/docs/en/settings-reference";
 
@@ -211,6 +213,7 @@ fn catalog_item_carries_the_official_description_default_and_source_as_read_only
     assert_eq!(item.default_note, "fixture");
     assert_eq!(item.source_url, SOURCE_URL);
     assert_eq!(item.source_retrieved_on, "2026-10-21");
+    assert_eq!(item.verified_version.as_deref(), Some("1.0.0 至 1.5.0"));
     let mut keys: Vec<&str> = wire
         .as_object()
         .expect("item is an object")
@@ -231,7 +234,37 @@ fn catalog_item_carries_the_official_description_default_and_source_as_read_only
             "sourceRetrievedOn",
             "sourceUrl",
             "valueType",
+            "verifiedVersion",
         ]
+    );
+}
+
+#[test]
+fn verified_version_is_the_single_version_when_the_range_is_exact() {
+    let tool = tool();
+    let mut setting = find(&tool, "editableKey").clone();
+    setting.versions = Some(VerifiedVersions {
+        min: "2.1.287".to_owned(),
+        max: "2.1.287".to_owned(),
+    });
+    let item = catalog_item(&setting, Some("2.1.287"));
+
+    assert_eq!(item.verified_version.as_deref(), Some("2.1.287"));
+    assert_eq!(
+        serde_json::to_value(&item).expect("item serializes")["verifiedVersion"],
+        json!("2.1.287")
+    );
+}
+
+#[test]
+fn verified_version_is_null_for_a_setting_without_a_verified_range() {
+    let tool = tool();
+    let item = catalog_item(find(&tool, "displayed"), None);
+
+    assert_eq!(item.verified_version, None);
+    assert_eq!(
+        serde_json::to_value(&item).expect("item serializes")["verifiedVersion"],
+        Value::Null
     );
 }
 

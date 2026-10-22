@@ -22,7 +22,10 @@ use crate::{
             ClaudeLocations, ClaudeReadView, ClaudeSnapshotSummary, MAX_SETTINGS_BYTES,
             claude_tool, managed_directory, read_claude_view, snapshot_summary, value_type_label,
         },
-        registry::{CoverageStatus, Definitions, SettingDefinition, ToolDefinition, ValueType},
+        registry::{
+            CoverageStatus, Definitions, SettingDefinition, ToolDefinition, ValueType,
+            VerifiedVersions,
+        },
         validate::load_all,
         write::{
             EditAction, EditGate, EditRefusal, EditRequest, apply_edit, edit_gate, is_settings_file,
@@ -115,6 +118,7 @@ pub struct ClaudeEditItem {
     pub allowed_values: Vec<String>,
     pub editable: bool,
     pub reason: Option<&'static str>,
+    pub verified_version: Option<String>,
     pub description: String,
     pub description_truncated: bool,
     pub default_note: String,
@@ -156,12 +160,23 @@ fn catalog_item(setting: &SettingDefinition, detected: Option<&str>) -> ClaudeEd
         allowed_values: setting.allowed_values.clone(),
         editable,
         reason,
+        verified_version: verified_version_label(setting.versions.as_ref()),
         description,
         description_truncated,
         default_note,
         source_url: setting.source.url.clone(),
         source_retrieved_on: setting.source.retrieved_on.clone(),
     }
+}
+
+fn verified_version_label(versions: Option<&VerifiedVersions>) -> Option<String> {
+    versions.map(|range| {
+        if range.min == range.max {
+            range.min.clone()
+        } else {
+            format!("{} 至 {}", range.min, range.max)
+        }
+    })
 }
 
 fn bounded_text(text: &str) -> (String, bool) {
