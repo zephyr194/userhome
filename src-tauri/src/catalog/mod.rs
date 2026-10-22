@@ -25,7 +25,6 @@ const MAX_PATH_VARIANTS_PER_DOCUMENT: usize = 8;
 const MAX_LIST_ENTRIES: usize = 32;
 const MAX_STRING_BYTES: usize = 512;
 const DEFAULT_PRESENTATION_CATEGORY: &str = "Other";
-pub const MINIMUM_ELIGIBLE_TEXT_COVERAGE_PERCENT: u8 = 90;
 pub const PRIORITY_A_APP_IDS: &[&str] =
     &["github-copilot", "caddy", "git", "openssh", "zsh", "npm"];
 pub const PRIORITY_B_APP_IDS: &[&str] = &[
@@ -340,24 +339,6 @@ pub enum CatalogCoverageClass {
     Excluded,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum CatalogPriority {
-    PriorityA,
-    PriorityB,
-    PriorityC,
-}
-
-pub fn catalog_priority(app_id: &str) -> CatalogPriority {
-    if PRIORITY_A_APP_IDS.contains(&app_id) {
-        CatalogPriority::PriorityA
-    } else if PRIORITY_B_APP_IDS.contains(&app_id) {
-        CatalogPriority::PriorityB
-    } else {
-        CatalogPriority::PriorityC
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ManagedAppPresentation {
@@ -585,24 +566,6 @@ pub fn load_builtin_catalog() -> Result<Catalog, CatalogValidationError> {
     preset::parse_preset_catalog(BUILTIN_PRESET_JSON, &schemas, &sources)
         .map_err(|_| CatalogValidationError::InvalidPresetDefinitions)?;
     Ok(catalog)
-}
-
-pub fn load_builtin_sources() -> Result<source::SourceCatalog, source::SourceValidationError> {
-    source::parse_source_catalog(BUILTIN_SOURCE_JSON)
-}
-
-pub fn load_builtin_schemas(
-    catalog: &Catalog,
-    sources: &source::SourceCatalog,
-) -> Result<schema::SchemaCatalog, schema::SchemaValidationError> {
-    schema::parse_schema_catalog(BUILTIN_SCHEMA_JSON, catalog, sources)
-}
-
-pub fn load_builtin_presets(
-    schemas: &schema::SchemaCatalog,
-    sources: &source::SourceCatalog,
-) -> Result<preset::PresetCatalog, preset::PresetValidationError> {
-    preset::parse_preset_catalog(BUILTIN_PRESET_JSON, schemas, sources)
 }
 
 pub fn parse_catalog(source: &str) -> Result<Catalog, CatalogValidationError> {

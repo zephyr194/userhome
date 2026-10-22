@@ -269,14 +269,6 @@ impl OperationCoordinator {
         store.acknowledge_cancelled(operation_id)
     }
 
-    pub(crate) fn finish_success(&self, operation_id: &str) -> Result<OperationEvent, AppError> {
-        self.finish_success_with_output(
-            operation_id,
-            Some("Configuration operation completed."),
-            None,
-        )
-    }
-
     pub(crate) fn finish_success_with_output(
         &self,
         operation_id: &str,

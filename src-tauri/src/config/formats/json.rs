@@ -1,29 +1,6 @@
 use serde_json::Value;
 
-use crate::{catalog::ConfigSensitivity, config::redaction::redact_json, error::AppError};
-
-use super::ReadOnlyFormatView;
-
-pub(super) fn inspect(
-    format: &str,
-    sensitivity: ConfigSensitivity,
-    content: &str,
-) -> Result<ReadOnlyFormatView, AppError> {
-    let value = parse_document(format, content)?;
-
-    if sensitivity == ConfigSensitivity::Standard {
-        return Ok(ReadOnlyFormatView {
-            content: Some(format_json(&value)?),
-            redacted: false,
-        });
-    }
-
-    let redacted = redact_json(&value);
-    Ok(ReadOnlyFormatView {
-        content: Some(format_json(&redacted)?),
-        redacted: redacted != value,
-    })
-}
+use crate::error::AppError;
 
 pub(super) fn parse_document(format: &str, content: &str) -> Result<Value, AppError> {
     let normalized = match format {
@@ -37,12 +14,6 @@ pub(super) fn parse_document(format: &str, content: &str) -> Result<Value, AppEr
     };
     serde_json::from_str(&normalized)
         .map_err(|_| AppError::validation_failed("Read-only configuration JSON is invalid."))
-}
-
-fn format_json(value: &Value) -> Result<String, AppError> {
-    serde_json::to_string_pretty(value)
-        .map(|content| format!("{content}\n"))
-        .map_err(|_| AppError::internal())
 }
 
 fn normalize_jsonc(content: &str) -> Result<String, AppError> {

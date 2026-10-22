@@ -1,10 +1,7 @@
 use serde_json::{Value, json};
-use userhome_lib::{
-    catalog::{
-        BUILTIN_CATALOG_JSON, CATALOG_SCHEMA_VERSION, CatalogCoverageClass, CatalogValidationError,
-        MAX_CATALOG_BYTES, MAX_CONFIG_DOCUMENT_BYTES, parse_catalog,
-    },
-    commands::catalog::list_managed_apps,
+use userhome_lib::catalog::{
+    BUILTIN_CATALOG_JSON, CATALOG_SCHEMA_VERSION, CatalogCoverageClass, CatalogValidationError,
+    MAX_CATALOG_BYTES, MAX_CONFIG_DOCUMENT_BYTES, parse_catalog,
 };
 
 fn mutate_catalog(mutator: impl FnOnce(&mut Value)) -> String {
@@ -393,38 +390,6 @@ fn catalog_preserves_prior_batches_and_adds_ai_developer_tools() {
             "excluded Copilot runtime path appeared in catalog: {excluded}"
         );
     }
-}
-
-#[test]
-fn catalog_ipc_summary_exposes_only_sanitized_path_variants() {
-    let response = list_managed_apps().expect("catalog command should succeed");
-    let serialized = serde_json::to_value(response).expect("catalog response should serialize");
-    let encoded = serialized.to_string();
-
-    assert_eq!(serialized["schemaVersion"], json!(CATALOG_SCHEMA_VERSION));
-    assert_eq!(serialized["coveragePolicy"]["priorityATotal"], json!(6));
-    assert_eq!(serialized["coveragePolicy"]["priorityAUsable"], json!(6));
-    assert_eq!(serialized["coveragePolicy"]["priorityBTotal"], json!(20));
-    assert_eq!(serialized["coveragePolicy"]["priorityBCovered"], json!(20));
-    assert_eq!(
-        serialized["coveragePolicy"]["minimumEligibleTextPercent"],
-        json!(90)
-    );
-    assert_eq!(
-        serialized["applications"]
-            .as_array()
-            .expect("applications should be an array")
-            .len(),
-        50
-    );
-    assert!(encoded.contains("pathVariants"));
-    assert!(encoded.contains("detectionEvidence"));
-    assert!(encoded.contains("support"));
-    assert!(encoded.contains("HOMEBREW_PREFIX"));
-    assert!(!encoded.contains("pathTemplate"));
-    assert!(!encoded.contains("~/."));
-    assert!(!encoded.contains("~/"));
-    assert!(!encoded.contains("/Users/"));
 }
 
 #[test]

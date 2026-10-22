@@ -11,135 +11,16 @@ use std::{
 
 use uuid::Uuid;
 
-use crate::{error::AppError, settings::BackupRetention};
+use crate::error::AppError;
 
 use super::{
-    ConfigEnvironment,
-    backup::{BackupRecord, create_backup, read_backup_content},
+    backup::{BackupRecord, read_backup_content},
     read::{hash_bytes, read_bounded},
 };
 
 pub(crate) enum AtomicReplaceError {
     BeforeCommit(AppError),
     AfterCommit(AppError),
-}
-
-pub(crate) struct BackedUpReplace<'a> {
-    pub app_id: &'a str,
-    pub config_id: &'a str,
-    pub target: &'a Path,
-    pub content: &'a [u8],
-    pub expected_hash: &'a str,
-    pub max_size_bytes: usize,
-    pub desired_mode: Option<u32>,
-    pub retention: BackupRetention,
-}
-
-/// Backs up the current bytes, atomically replaces the target, then runs
-/// `post_validate` on the written bytes; any post-commit failure restores the
-/// backup before the error is returned.
-pub(crate) fn replace_with_backup<F>(
-    environment: &ConfigEnvironment,
-    request: BackedUpReplace<'_>,
-    post_validate: F,
-) -> Result<BackupRecord, AppError>
-where
-    F: FnOnce(&[u8]) -> Result<(), AppError>,
-{
-    let BackedUpReplace {
-        app_id,
-        config_id,
-        target,
-        content,
-        expected_hash,
-        max_size_bytes,
-        desired_mode,
-        retention,
-    } = request;
-    let current = read_bounded(target, max_size_bytes)?;
-    if hash_bytes(&current) != expected_hash {
-        return Err(AppError::conflict("Configuration changed after preview."));
-    }
-    let current_mode = fs::metadata(target)
-        .map_err(|_| AppError::not_found("Configuration document is unavailable."))?
-        .permissions()
-        .mode()
-        & 0o777;
-    let backup = create_backup(
-        environment,
-        app_id,
-        config_id,
-        &current,
-        current_mode,
-        retention,
-    )?;
-
-    match atomic_replace(
-        target,
-        content,
-        desired_mode.unwrap_or(current_mode),
-        Some((expected_hash, max_size_bytes)),
-    ) {
-        Ok(()) => {}
-        Err(AtomicReplaceError::BeforeCommit(error)) => return Err(error),
-        Err(AtomicReplaceError::AfterCommit(error)) => {
-            restore_backup_after_commit_failure(target, &backup, max_size_bytes)?;
-            return Err(error);
-        }
-    }
-    let written = read_bounded(target, max_size_bytes)?;
-    let post_result = if written == content {
-        post_validate(&written)
-    } else {
-        Err(AppError::validation_failed(
-            "Configuration verification failed after replacement.",
-        ))
-    };
-    if let Err(error) = post_result {
-        restore_backup_after_commit_failure(target, &backup, max_size_bytes)?;
-        return Err(error);
-    }
-    Ok(backup)
-}
-
-/// Atomically creates a missing file, verifies it with `post_validate`, and
-/// removes it again when verification fails.
-pub(crate) fn create_new_verified<F>(
-    target: &Path,
-    content: &[u8],
-    mode: u32,
-    max_size_bytes: usize,
-    post_validate: F,
-) -> Result<(), AppError>
-where
-    F: FnOnce(&[u8]) -> Result<(), AppError>,
-{
-    atomic_create_new(target, content, mode)?;
-    let written = read_bounded(target, max_size_bytes)?;
-    let post_result = if written == content {
-        post_validate(&written)
-    } else {
-        Err(AppError::validation_failed(
-            "Configuration verification failed after creation.",
-        ))
-    };
-    if let Err(error) = post_result {
-        let parent = target.parent().ok_or_else(AppError::internal)?;
-        fs::remove_file(target).map_err(|_| {
-            AppError::partial_failure(
-                "New configuration validation failed and rollback could not remove it.",
-                false,
-            )
-        })?;
-        sync_directory(parent).map_err(|_| {
-            AppError::partial_failure(
-                "New configuration rollback could not be synchronized.",
-                false,
-            )
-        })?;
-        return Err(error);
-    }
-    Ok(())
 }
 
 pub(crate) fn restore_backup_after_commit_failure(
@@ -301,42 +182,25 @@ pub(crate) fn sync_directory(path: &Path) -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs,
-        os::unix::fs::{PermissionsExt, symlink},
-        path::PathBuf,
-    };
+    use std::{fs, os::unix::fs::PermissionsExt, path::PathBuf};
 
     use uuid::Uuid;
 
-    use crate::{error::AppError, error::AppErrorCode, settings::BackupRetention};
+    use crate::error::AppErrorCode;
 
-    use super::{
-        super::{ConfigEnvironment, read::hash_bytes},
-        BackedUpReplace, atomic_create_new, atomic_replace, create_new_verified,
-        replace_with_backup,
-    };
+    use super::{super::read::hash_bytes, atomic_create_new, atomic_replace};
 
     struct Fixture {
         root: PathBuf,
         home: PathBuf,
-        environment: ConfigEnvironment,
     }
 
     impl Fixture {
         fn new() -> Self {
             let root = std::env::temp_dir().join(format!("userhome-atomic-{}", Uuid::new_v4()));
             let home = root.join("home");
-            let brew = root.join("brew");
             fs::create_dir_all(&home).expect("create home");
-            fs::create_dir_all(&brew).expect("create brew");
-            let environment =
-                ConfigEnvironment::new(home.clone(), brew, home.join(".userhome/backups"));
-            Self {
-                root,
-                home,
-                environment,
-            }
+            Self { root, home }
         }
     }
 
@@ -389,84 +253,5 @@ mod tests {
         assert_eq!(error.code(), AppErrorCode::Conflict);
         assert_eq!(fs::read(&target).expect("read"), b"existing");
         assert_eq!(fs::read_dir(&fixture.home).expect("list").count(), 1);
-    }
-
-    #[test]
-    fn create_new_verified_removes_the_file_when_verification_fails() {
-        let fixture = Fixture::new();
-        let target = fixture.home.join("file");
-
-        let error = create_new_verified(&target, b"new", 0o600, 64, |_| {
-            Err(AppError::validation_failed("forced failure"))
-        })
-        .expect_err("verification must fail");
-
-        assert_eq!(error.code(), AppErrorCode::ValidationFailed);
-        assert!(!target.exists());
-    }
-
-    #[test]
-    fn replace_with_backup_protects_backup_and_preserves_symlink_and_mode() {
-        let fixture = Fixture::new();
-        let real = fixture.home.join("real");
-        let link = fixture.home.join("link");
-        fs::write(&real, b"before").expect("write fixture");
-        fs::set_permissions(&real, fs::Permissions::from_mode(0o640)).expect("set mode");
-        symlink("real", &link).expect("symlink");
-        let target = fs::canonicalize(&link).expect("canonical");
-
-        let backup = replace_with_backup(
-            &fixture.environment,
-            BackedUpReplace {
-                app_id: "app",
-                config_id: "doc",
-                target: &target,
-                content: b"after",
-                expected_hash: &hash_bytes(b"before"),
-                max_size_bytes: 64,
-                desired_mode: None,
-                retention: BackupRetention::TWENTY,
-            },
-            |_| Ok(()),
-        )
-        .expect("replace");
-
-        assert!(link.is_symlink());
-        assert_eq!(fs::read(&real).expect("read"), b"after");
-        assert_eq!(mode_of(&real), 0o640);
-        assert_eq!(fs::read(&backup.content_path).expect("backup"), b"before");
-        assert_eq!(mode_of(&backup.content_path), 0o600);
-        assert_eq!(
-            mode_of(backup.content_path.parent().expect("backup dir")),
-            0o700
-        );
-    }
-
-    #[test]
-    fn replace_with_backup_restores_prior_bytes_when_post_validation_fails() {
-        let fixture = Fixture::new();
-        let target = fixture.home.join("file");
-        fs::write(&target, b"before").expect("write fixture");
-        fs::set_permissions(&target, fs::Permissions::from_mode(0o600)).expect("set mode");
-
-        let error = replace_with_backup(
-            &fixture.environment,
-            BackedUpReplace {
-                app_id: "app",
-                config_id: "doc",
-                target: &target,
-                content: b"after",
-                expected_hash: &hash_bytes(b"before"),
-                max_size_bytes: 64,
-                desired_mode: Some(0o644),
-                retention: BackupRetention::TWENTY,
-            },
-            |_| Err(AppError::validation_failed("forced failure")),
-        )
-        .expect_err("post validation must fail");
-
-        assert_eq!(error.code(), AppErrorCode::ValidationFailed);
-        assert_eq!(fs::read(&target).expect("read"), b"before");
-        assert_eq!(mode_of(&target), 0o600);
     }
 }
