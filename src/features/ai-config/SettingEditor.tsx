@@ -1,5 +1,5 @@
 import { useReducer, useState } from "react";
-import { Button } from "../../components/ui";
+import { Button, StatusBadge } from "../../components/ui";
 import {
   CheckboxField,
   SelectField,
@@ -12,6 +12,7 @@ import {
   type ClaudeEditCatalog,
   type ClaudeEditItem,
   type ClaudeEditPreview,
+  type ClaudeReadView,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
@@ -20,9 +21,13 @@ import {
   editBlockedReason,
   editControl,
   editReducer,
+  groupSettings,
   initialDraft,
   recoveryNote,
   resultMessage,
+  settingBadges,
+  userLevelText,
+  versionNoteText,
   type EditDraft,
   type EditPhase,
 } from "./claudeEditModel";
@@ -97,9 +102,6 @@ export function SettingEditor({
       aria-label={`编辑 ${item.keyPath}`}
       className="grid min-w-0 gap-ui-sm"
     >
-      <p className="m-0 text-aux text-muted-foreground">
-        保存只修改该键，其余内容（包括未知键与键序）原样保留。
-      </p>
       {blocked ? (
         <p className="m-0 text-aux text-danger" role="status">
           {blocked}
@@ -109,6 +111,7 @@ export function SettingEditor({
       {control === "boolean" ? (
         <CheckboxField
           label="开启"
+          description={item.description}
           checked={draft === true}
           disabled={blocked !== null || busy}
           onCheckedChange={(checked) => setDraft(checked)}
@@ -117,6 +120,7 @@ export function SettingEditor({
       {control === "enum" ? (
         <SelectField<string>
           label="取值"
+          description={item.description}
           value={typeof draft === "string" ? draft : ""}
           disabled={blocked !== null || busy}
           options={item.allowedValues.map((value) => ({ value, label: value }))}
@@ -126,6 +130,7 @@ export function SettingEditor({
       {control === "string" ? (
         <TextField
           label="文本值"
+          description={item.description}
           value={typeof draft === "string" ? draft : ""}
           maxLength={256}
           disabled={blocked !== null || busy}
@@ -298,8 +303,13 @@ export interface EditPanelProps {
   readonly settingsFile: SettingsFileSelection | null;
   readonly choosing: boolean;
   readonly chooseError: AppError | null;
+  readonly view?: ClaudeReadView | null;
   readonly onChooseSettingsFile: () => void;
   readonly onSaved: () => void;
+}
+
+function settingRowId(keyPath: string): string {
+  return `setting-${keyPath}`;
 }
 
 export function EditPanel({
@@ -307,13 +317,31 @@ export function EditPanel({
   settingsFile,
   choosing,
   chooseError,
+  view = null,
   onChooseSettingsFile,
   onSaved,
 }: EditPanelProps) {
-  const [selectedKey, setSelectedKey] = useState("");
-  const item =
-    catalog?.items.find((candidate) => candidate.keyPath === selectedKey) ??
-    null;
+  const [jumpKey, setJumpKey] = useState("");
+  const [query, setQuery] = useState("");
+  const [editableOnly, setEditableOnly] = useState(false);
+  const [displayOpen, setDisplayOpen] = useState(false);
+  const groups = catalog
+    ? groupSettings(catalog.items, { query, editableOnly })
+    : null;
+
+  const jumpTo = (keyPath: string) => {
+    setJumpKey(keyPath);
+    const target = catalog?.items.find((candidate) => candidate.keyPath === keyPath);
+    if (!target) return;
+    setQuery("");
+    setEditableOnly(false);
+    if (!target.editable) setDisplayOpen(true);
+    window.setTimeout(() => {
+      const row = document.getElementById(settingRowId(keyPath));
+      row?.scrollIntoView({ block: "center" });
+      row?.focus({ preventScroll: true });
+    }, 0);
+  };
 
   return (
     <section
@@ -322,10 +350,8 @@ export function EditPanel({
     >
       <h3 className="m-0 text-aux font-semibold">编辑（用户设置文件）</h3>
       <p className="m-0 text-aux text-muted-foreground">
-        编辑入口存在，但在版本区间核实前整体禁用；保存前会显示预览，需你确认后才写入。
-        {catalog?.detectedVersion
-          ? `本机版本：${catalog.detectedVersion}。`
-          : "未检测到本机版本。"}
+        编辑项由后端逐项决定是否可写。保存只修改该键，其余内容（包括未知键与键序）原样保留；保存前会显示预览，需你确认后才写入。
+        {versionNoteText(catalog?.detectedVersion ?? null, catalog?.items ?? [])}
       </p>
       <div className="flex flex-wrap items-center gap-ui-sm">
         <span className="text-aux text-muted-foreground">
@@ -344,32 +370,150 @@ export function EditPanel({
           {chooseError.message}
         </p>
       ) : null}
-      {catalog === null ? (
+      {catalog === null || groups === null ? (
         <p className="m-0 text-aux text-muted-foreground">编辑定义不可用。</p>
       ) : (
-        <SelectField<string>
-          label="选择要编辑的键"
-          value={selectedKey}
-          options={[
-            { value: "", label: "请选择" },
-            ...catalog.items.map((candidate) => ({
-              value: candidate.keyPath,
-              label: candidate.editable
-                ? candidate.keyPath
-                : `${candidate.keyPath}（仅展示）`,
-            })),
-          ]}
-          onValueChange={setSelectedKey}
-        />
+        <>
+          <SelectField<string>
+            label="选择要编辑的键"
+            description="选择后定位到该设置；仅展示项会展开下方的分组。"
+            value={jumpKey}
+            options={[
+              { value: "", label: "请选择" },
+              ...catalog.items.map((candidate) => ({
+                value: candidate.keyPath,
+                label: candidate.editable
+                  ? candidate.keyPath
+                  : `${candidate.keyPath}（仅展示）`,
+              })),
+            ]}
+            onValueChange={jumpTo}
+          />
+          <TextField
+            label="搜索键名或描述"
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CheckboxField
+            label="仅显示可编辑"
+            checked={editableOnly}
+            onCheckedChange={setEditableOnly}
+          />
+          <div className="grid min-w-0 gap-ui-md">
+            {groups.editable.length === 0 ? (
+              <p className="m-0 text-aux text-muted-foreground">
+                没有匹配的可编辑设置。
+              </p>
+            ) : (
+              <ul
+                aria-label="可编辑设置"
+                className="m-0 grid list-none gap-ui-sm p-0"
+              >
+                {groups.editable.map((candidate) => (
+                  <SettingRow
+                    key={candidate.keyPath}
+                    item={candidate}
+                    view={view}
+                    detectedVersion={catalog.detectedVersion}
+                    settingsGrantId={settingsFile?.id ?? null}
+                    onSaved={onSaved}
+                  />
+                ))}
+              </ul>
+            )}
+            {editableOnly ? null : (
+              <details
+                open={displayOpen}
+                onToggle={(event) => setDisplayOpen(event.currentTarget.open)}
+                className="grid min-w-0 gap-ui-sm"
+              >
+                <summary className="text-aux font-semibold">
+                  {`仅展示（${groups.displayOnly.length}）`}
+                </summary>
+                <ul
+                  aria-label="仅展示设置"
+                  className="m-0 mt-ui-sm grid list-none gap-ui-sm p-0"
+                >
+                  {groups.displayOnly.map((candidate) => (
+                    <SettingRow
+                      key={candidate.keyPath}
+                      item={candidate}
+                      view={view}
+                      detectedVersion={catalog.detectedVersion}
+                      settingsGrantId={settingsFile?.id ?? null}
+                      onSaved={onSaved}
+                    />
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        </>
       )}
-      {item ? (
+    </section>
+  );
+}
+
+function SettingRow({
+  item,
+  view,
+  detectedVersion,
+  settingsGrantId,
+  onSaved,
+}: {
+  readonly item: ClaudeEditItem;
+  readonly view: ClaudeReadView | null;
+  readonly detectedVersion: string | null;
+  readonly settingsGrantId: string | null;
+  readonly onSaved: () => void;
+}) {
+  const descriptionVisible = !item.editable || editControl(item) === "none";
+  return (
+    <li
+      id={settingRowId(item.keyPath)}
+      tabIndex={-1}
+      className="grid min-w-0 gap-ui-sm border-t border-border pt-ui-sm"
+    >
+      <div className="flex flex-wrap items-center gap-ui-sm">
+        <code className="min-w-0 break-all font-mono text-aux font-semibold">
+          {item.keyPath}
+        </code>
+        {settingBadges(item, detectedVersion).map((badge) => (
+          <StatusBadge key={badge.label} tone={badge.tone}>
+            {badge.label}
+          </StatusBadge>
+        ))}
+      </div>
+      {descriptionVisible ? (
+        <p className="m-0 break-words text-aux text-foreground">
+          {item.description}
+        </p>
+      ) : null}
+      {item.descriptionTruncated ? (
+        <p className="m-0 text-aux text-muted-foreground">
+          官方描述超过长度上限已截断，完整说明见官方文档。
+        </p>
+      ) : null}
+      <p className="m-0 text-aux text-muted-foreground">
+        {`默认值：${item.defaultNote}`}
+      </p>
+      <p className="m-0 text-aux text-muted-foreground">
+        {`当前用户值：${userLevelText(item.keyPath, view)}`}
+      </p>
+      <p className="m-0 break-all text-aux text-muted-foreground">
+        {`来源：${item.sourceUrl}（抓取日期 ${item.sourceRetrievedOn}）`}
+      </p>
+      {item.editable ? (
         <SettingEditor
-          key={item.keyPath}
           item={item}
-          settingsGrantId={settingsFile?.id ?? null}
+          settingsGrantId={settingsGrantId}
           onSaved={onSaved}
         />
-      ) : null}
-    </section>
+      ) : (
+        <p className="m-0 text-aux text-danger" role="status">
+          {item.reason}
+        </p>
+      )}
+    </li>
   );
 }

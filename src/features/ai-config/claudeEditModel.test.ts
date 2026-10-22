@@ -10,11 +10,16 @@ import {
   editBlockedReason,
   editControl,
   editReducer,
+  groupSettings,
   initialDraft,
   recoveryNote,
   resultMessage,
+  settingBadges,
+  userLevelText,
+  versionNoteText,
   type EditPhase,
 } from "./claudeEditModel";
+import type { ClaudeReadView } from "../../ipc/aiConfig";
 
 const GRANT = "11111111-1111-4111-8111-111111111111";
 
@@ -25,6 +30,12 @@ function item(overrides: Partial<ClaudeEditItem> = {}): ClaudeEditItem {
     allowedValues: ["low", "medium", "high", "xhigh"],
     editable: true,
     reason: null,
+    verifiedVersion: "2.1.287",
+    description: "Effort level for the session.",
+    descriptionTruncated: false,
+    defaultNote: "未设置时由 CLI 决定",
+    sourceUrl: "https://code.claude.com/docs/en/settings-reference",
+    sourceRetrievedOn: "2026-10-21",
     ...overrides,
   };
 }
@@ -258,3 +269,197 @@ describe("display helpers", () => {
     ).toBe("文件已被修改，请重新预览。");
   });
 });
+
+function catalogItem(
+  overrides: Partial<ClaudeEditItem> = {},
+): ClaudeEditItem {
+  return {
+    ...item(),
+    description: "Effort level for the session.",
+    descriptionTruncated: false,
+    defaultNote: "未设置时由 CLI 决定",
+    sourceUrl: "https://code.claude.com/docs/en/settings-reference",
+    sourceRetrievedOn: "2026-10-21",
+    ...overrides,
+  };
+}
+
+describe("groupSettings", () => {
+  const items = [
+    catalogItem({ keyPath: "effortLevel" }),
+    catalogItem({
+      keyPath: "verbose",
+      valueType: "boolean",
+      allowedValues: [],
+      editable: false,
+      reason: "仅展示，版本未核实",
+      description: "Show verbose output.",
+    }),
+    catalogItem({
+      keyPath: "language",
+      valueType: "string",
+      allowedValues: [],
+      description: "Interface language.",
+    }),
+  ];
+
+  it("splits editable items from display-only ones, keeping catalog order", () => {
+    const groups = groupSettings(items, { query: "", editableOnly: false });
+
+    expect(groups.editable.map((entry) => entry.keyPath)).toEqual([
+      "effortLevel",
+      "language",
+    ]);
+    expect(groups.displayOnly.map((entry) => entry.keyPath)).toEqual(["verbose"]);
+  });
+
+  it("hides the display-only group when only editable settings are wanted", () => {
+    const groups = groupSettings(items, { query: "", editableOnly: true });
+
+    expect(groups.displayOnly).toEqual([]);
+    expect(groups.editable).toHaveLength(2);
+  });
+
+  it("matches the query against the key name or the official description, ignoring case", () => {
+    const byKey = groupSettings(items, { query: "  EFFORT ", editableOnly: false });
+    const byDescription = groupSettings(items, { query: "verbose", editableOnly: false });
+
+    expect(byKey.editable.map((entry) => entry.keyPath)).toEqual(["effortLevel"]);
+    expect(byKey.displayOnly).toEqual([]);
+    expect(byDescription.displayOnly.map((entry) => entry.keyPath)).toEqual(["verbose"]);
+    expect(byDescription.editable).toEqual([]);
+  });
+});
+
+describe("userLevelText", () => {
+  const view: ClaudeReadView = {
+    toolId: "claude-code",
+    layers: [],
+    warnings: [],
+    entries: [
+      {
+        key: "effortLevel",
+        documented: true,
+        valueType: "enum",
+        coverage: "editable",
+        value: "high",
+        masked: false,
+        merged: false,
+        winner: "claude-user-settings",
+        definedIn: [{ layerId: "claude-user-settings", overridden: false }],
+      },
+      {
+        key: "verbose",
+        documented: true,
+        valueType: "boolean",
+        coverage: "displayOnly",
+        value: true,
+        masked: false,
+        merged: false,
+        winner: "claude-managed-settings",
+        definedIn: [
+          { layerId: "claude-managed-settings", overridden: false },
+          { layerId: "claude-user-settings", overridden: true },
+        ],
+      },
+      {
+        key: "secretish",
+        documented: true,
+        valueType: "string",
+        coverage: "displayOnly",
+        value: "[REDACTED]",
+        masked: true,
+        merged: false,
+        winner: "claude-user-settings",
+        definedIn: [{ layerId: "claude-user-settings", overridden: false }],
+      },
+    ],
+  };
+
+  it("shows the user-level value when the user file is the winning source", () => {
+    expect(userLevelText("effortLevel", view)).toBe('"high"');
+  });
+
+  it("says a key is unset when no layer defines it, or the user layer does not", () => {
+    expect(userLevelText("language", view)).toBe("未设置");
+    expect(userLevelText("language", { ...view, entries: [] })).toBe("未设置");
+  });
+
+  it("does not show a user value that a higher layer overrides or that is masked", () => {
+    expect(userLevelText("verbose", view)).toBe(
+      "已设置，但被其他来源覆盖或合并，此处不显示",
+    );
+    expect(userLevelText("secretish", view)).toBe("已设置（内容已遮盖）");
+  });
+
+  it("reports that the view has not loaded yet", () => {
+    expect(userLevelText("effortLevel", null)).toBe("未读取");
+  });
+});
+
+describe("settingBadges", () => {
+  it("marks an editable key as editable and a blocked key as display-only, both with text", () => {
+    expect(settingBadges(item(), "2.1.287").map((badge) => badge.label)).toEqual([
+      "可编辑",
+    ]);
+    expect(
+      settingBadges(
+        item({ editable: false, reason: "仅展示，版本未核实", verifiedVersion: null }),
+        "2.1.287",
+      ).map((badge) => badge.label),
+    ).toEqual(["仅展示"]);
+  });
+
+  it("asks for the verified version on a version-gated key and flags an undetected version", () => {
+    const gated = item({
+      editable: false,
+      reason: "版本未确认，写入已禁用：本机版本不在已验证区间内",
+      verifiedVersion: "2.1.287",
+    });
+
+    expect(settingBadges(gated, "2.2.0").map((badge) => badge.label)).toEqual([
+      "仅展示",
+      "需要版本 2.1.287",
+    ]);
+    expect(settingBadges(gated, null).map((badge) => badge.label)).toEqual([
+      "仅展示",
+      "需要版本 2.1.287",
+      "版本未检测",
+    ]);
+  });
+
+  it("gives the display-only state a neutral tone and each warning a warning tone", () => {
+    const tones = settingBadges(item({ editable: false, reason: "x", verifiedVersion: "1" }), null).map(
+      (badge) => badge.tone,
+    );
+    expect(tones).toEqual(["neutral", "warning", "warning"]);
+  });
+});
+
+describe("versionNoteText", () => {
+  it("names the detected version and the single verified version", () => {
+    expect(versionNoteText("2.1.287", [item()])).toBe(
+      "本机版本：2.1.287。已验证版本：2.1.287。",
+    );
+  });
+
+  it("says the local version is undetected and lists each distinct verified version once", () => {
+    const items = [
+      item(),
+      item({ keyPath: "other", verifiedVersion: "2.1.287" }),
+      item({ keyPath: "range", verifiedVersion: "1.0.0 至 1.5.0" }),
+      item({ keyPath: "none", verifiedVersion: null }),
+    ];
+
+    expect(versionNoteText(null, items)).toBe(
+      "未检测到本机版本。已验证版本：2.1.287、1.0.0 至 1.5.0。",
+    );
+  });
+
+  it("reports that no version is verified when no item carries one", () => {
+    expect(versionNoteText("2.1.287", [item({ verifiedVersion: null })])).toBe(
+      "本机版本：2.1.287。尚无已验证版本。",
+    );
+  });
+});
+

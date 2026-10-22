@@ -22,11 +22,13 @@ export function resolveSelection(
   return { id: result.grant.id, displayPath: result.grant.displayPath };
 }
 
+export const USER_LAYER_ID = "claude-user-settings";
+
 const LAYER_TITLES: Readonly<Record<string, string>> = {
   "claude-managed-settings": "托管设置（只读）",
   "claude-project-local-settings": "项目本地设置",
   "claude-project-shared-settings": "项目共享设置",
-  "claude-user-settings": "用户设置",
+  [USER_LAYER_ID]: "用户设置",
   "claude-sign-in-metadata": "认证状态（仅元数据，不读取内容）",
 };
 

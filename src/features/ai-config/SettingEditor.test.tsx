@@ -7,6 +7,7 @@ import type {
   ClaudeEditPreview,
   ClaudeEditResult,
 } from "../../ipc/aiConfig";
+import type { ClaudeReadView } from "../../ipc/aiConfig";
 import { EditPanel, PhaseView, SettingEditor } from "./SettingEditor";
 import type { EditPhase } from "./claudeEditModel";
 
@@ -20,6 +21,12 @@ function item(overrides: Partial<ClaudeEditItem> = {}): ClaudeEditItem {
     allowedValues: ["low", "medium", "high", "xhigh"],
     editable: true,
     reason: null,
+    verifiedVersion: "2.1.287",
+    description: "Effort level for the session.",
+    descriptionTruncated: false,
+    defaultNote: "未设置时由 CLI 决定",
+    sourceUrl: "https://code.claude.com/docs/en/settings-reference",
+    sourceRetrievedOn: "2026-10-21",
     ...overrides,
   };
 }
@@ -285,5 +292,157 @@ describe("EditPanel", () => {
 
     expect(markup).toContain("~/.claude/settings.json");
     expect(markup).toContain("更换文件");
+  });
+});
+
+describe("EditPanel settings form", () => {
+  const editableCatalog: ClaudeEditCatalog = {
+    detectedVersion: "2.1.287",
+    items: [item()],
+  };
+
+  it("shows each official description unchanged with its default and source", () => {
+    const markup = render(
+      <EditPanel
+        catalog={editableCatalog}
+        settingsFile={null}
+        choosing={false}
+        chooseError={null}
+        onChooseSettingsFile={noop}
+        onSaved={noop}
+      />,
+    );
+
+    expect(markup).toContain("Effort level for the session.");
+    expect(markup).toContain("默认值：未设置时由 CLI 决定");
+    expect(markup).toContain("https://code.claude.com/docs/en/settings-reference");
+    expect(markup).toContain("抓取日期 2026-10-21");
+  });
+
+  it("shows the user-level value a key has, and says when the view is not loaded", () => {
+    const view: ClaudeReadView = {
+      toolId: "claude-code",
+      layers: [],
+      warnings: [],
+      entries: [
+        {
+          key: "effortLevel",
+          documented: true,
+          valueType: "enum",
+          coverage: "editable",
+          value: "high",
+          masked: false,
+          merged: false,
+          winner: "claude-user-settings",
+          definedIn: [{ layerId: "claude-user-settings", overridden: false }],
+        },
+      ],
+    };
+    const withView = render(
+      <EditPanel
+        catalog={editableCatalog}
+        settingsFile={null}
+        choosing={false}
+        chooseError={null}
+        view={view}
+        onChooseSettingsFile={noop}
+        onSaved={noop}
+      />,
+    );
+    const withoutView = render(
+      <EditPanel
+        catalog={editableCatalog}
+        settingsFile={null}
+        choosing={false}
+        chooseError={null}
+        onChooseSettingsFile={noop}
+        onSaved={noop}
+      />,
+    );
+
+    expect(withView).toContain("当前用户值：&quot;high&quot;");
+    expect(withoutView).toContain("当前用户值：未读取");
+  });
+
+  it("keeps display-only keys without any control, inside a collapsed group", () => {
+    const markup = render(
+      <EditPanel
+        catalog={{
+          detectedVersion: "2.1.287",
+          items: [
+            item({
+              keyPath: "promptCacheTtl",
+              valueType: "string",
+              allowedValues: [],
+              editable: false,
+              reason: "仅展示，版本未核实",
+              verifiedVersion: null,
+            }),
+          ],
+        }}
+        settingsFile={null}
+        choosing={false}
+        chooseError={null}
+        onChooseSettingsFile={noop}
+        onSaved={noop}
+      />,
+    );
+
+    expect(markup).toContain("仅展示（1）");
+    expect(markup).not.toContain('open=""');
+    expect(markup).toContain("仅展示，版本未核实");
+    expect(markup.split("<select").length - 1).toBe(1);
+    expect(markup.split('role="checkbox"').length - 1).toBe(1);
+  });
+
+  it("says the local version is undetected and that no version is verified", () => {
+    const markup = render(
+      <EditPanel
+        catalog={{
+          detectedVersion: null,
+          items: [
+            item({
+              editable: false,
+              reason: "版本未确认，写入已禁用：未能检测本机版本",
+              verifiedVersion: null,
+            }),
+          ],
+        }}
+        settingsFile={null}
+        choosing={false}
+        chooseError={null}
+        onChooseSettingsFile={noop}
+        onSaved={noop}
+      />,
+    );
+
+    expect(markup).toContain("未检测到本机版本。尚无已验证版本。");
+    expect(markup).toContain("版本未检测");
+    expect(markup).toContain("未能检测本机版本");
+  });
+
+  it("names the version a version-gated key needs", () => {
+    const markup = render(
+      <EditPanel
+        catalog={{
+          detectedVersion: "2.2.0",
+          items: [
+            item({
+              editable: false,
+              reason: "版本未确认，写入已禁用：本机版本不在已验证区间内",
+              verifiedVersion: "2.1.287",
+            }),
+          ],
+        }}
+        settingsFile={null}
+        choosing={false}
+        chooseError={null}
+        onChooseSettingsFile={noop}
+        onSaved={noop}
+      />,
+    );
+
+    expect(markup).toContain("需要版本 2.1.287");
+    expect(markup).toContain("本机版本不在已验证区间内");
   });
 });

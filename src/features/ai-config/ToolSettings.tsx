@@ -70,7 +70,7 @@ export function ClaudeSettingsView({
         <h2 className="m-0 text-body font-semibold">Claude Code 设置</h2>
         <p className="m-0 text-aux text-muted-foreground">
           仅展示官方设置文件的内容与覆盖关系，不运行 hooks、MCP 或项目命令，不修改信任设置。
-          编辑入口存在，但在版本区间核实前整体禁用；所有键当前均为仅展示，版本未核实。
+          编辑入口存在，但在版本区间核实前整体禁用；编辑项由后端 editable/reason 逐项决定。
         </p>
         {snapshot ? (
           <p className="m-0 text-aux text-muted-foreground">
@@ -119,7 +119,12 @@ export function ClaudeSettingsView({
       ) : null}
 
       {state.status === "ready" ? <ReadResult view={state.view} /> : null}
-      {editing ? <EditPanel {...editing} /> : null}
+      {editing ? (
+        <EditPanel
+          {...editing}
+          view={state.status === "ready" ? state.view : null}
+        />
+      ) : null}
     </section>
   );
 }
