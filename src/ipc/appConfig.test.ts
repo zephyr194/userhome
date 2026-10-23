@@ -1,11 +1,18 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
 import {
+  confirmAppConfigEdit,
+  decodeAppConfigEditRead,
   decodeAppConfigList,
+  decodeAppConfigPreviewResult,
   decodeAppConfigReadResult,
+  decodeAppConfigSchema,
+  getAppConfigSchema,
   isAppConfigId,
   listAppConfigEntries,
+  previewAppConfigEdit,
   readAppConfigEntry,
+  readAppConfigForEdit,
 } from "./appConfig";
 
 afterEach(() => {
@@ -241,6 +248,227 @@ describe("readAppConfigEntry", () => {
     await expect(readAppConfigEntry("zed-settings")).rejects.toMatchObject({
       code: "INTERNAL",
     });
+  });
+});
+
+function fieldWire(overrides: Record<string, unknown> = {}) {
+  return {
+    path: "user.name",
+    label: "提交作者名",
+    description: "每次提交时记录的作者名称。",
+    kind: "string",
+    enumValues: [],
+    min: null,
+    max: null,
+    pattern: null,
+    default: null,
+    sensitive: false,
+    ...overrides,
+  };
+}
+
+function schemaWire(overrides: Record<string, unknown> = {}) {
+  return {
+    visualSupported: true,
+    advancedSupported: true,
+    formatLabel: "INI（Git 配置格式）",
+    fields: [fieldWire()],
+    ...overrides,
+  };
+}
+
+function editReadWire(overrides: Record<string, unknown> = {}) {
+  return {
+    fields: [{ path: "user.name", present: true, value: "Ada" }],
+    rawText: "[user]\n\tname = Ada\n",
+    hash: "abc123",
+    rawBlockedReason: null,
+    ...overrides,
+  };
+}
+
+function previewWire(overrides: Record<string, unknown> = {}) {
+  return {
+    ok: true,
+    errors: [],
+    diff: "-\tname = Ada\n+\tname = Grace\n",
+    warnings: [],
+    previewToken: "token-1",
+    ...overrides,
+  };
+}
+
+describe("decodeAppConfigSchema", () => {
+  it("decodes enum values, ranges and patterns", () => {
+    const schema = decodeAppConfigSchema(
+      schemaWire({
+        fields: [
+          fieldWire({ path: "core.autocrlf", kind: "enum", enumValues: ["true", "false", "input"], default: "未设置时为 false" }),
+          fieldWire({ path: "user.email", pattern: { kind: "containsSeparator", separator: "@" } }),
+          fieldWire({ path: "window.opacity", kind: "number", min: 0, max: 1 }),
+        ],
+      }),
+    );
+
+    expect(schema.fields[0].enumValues).toEqual(["true", "false", "input"]);
+    expect(schema.fields[1].pattern).toEqual({ kind: "containsSeparator", separator: "@" });
+    expect(schema.fields[2]).toMatchObject({ min: 0, max: 1 });
+  });
+
+  it.each([
+    ["an unknown field kind", schemaWire({ fields: [fieldWire({ kind: "date" })] })],
+    ["a field path without a dot", schemaWire({ fields: [fieldWire({ path: "name" })] })],
+    ["an unknown pattern kind", schemaWire({ fields: [fieldWire({ pattern: { kind: "regex", source: ".*" } })] })],
+    ["a missing sensitive flag", schemaWire({ fields: [fieldWire({ sensitive: undefined })] })],
+    ["a string range bound", schemaWire({ fields: [fieldWire({ min: "0" })] })],
+    ["a non-array field list", schemaWire({ fields: "user.name" })],
+  ])("fails closed on %s", (_label, payload) => {
+    expect(() => decodeAppConfigSchema(payload)).toThrow();
+  });
+});
+
+describe("decodeAppConfigEditRead", () => {
+  it("decodes null, boolean, number and string field values", () => {
+    const read = decodeAppConfigEditRead(
+      editReadWire({
+        fields: [
+          { path: "user.name", present: true, value: "Ada" },
+          { path: "pull.rebase", present: true, value: true },
+          { path: "window.opacity", present: true, value: 0.9 },
+          { path: "user.email", present: false, value: null },
+        ],
+        rawText: null,
+        rawBlockedReason: "文件里有疑似秘密的值，请用外部编辑器修改。",
+      }),
+    );
+
+    expect(read.fields.map((field) => field.value)).toEqual(["Ada", true, 0.9, null]);
+    expect(read.rawText).toBeNull();
+    expect(read.rawBlockedReason).toContain("疑似秘密");
+  });
+
+  it.each([
+    ["a missing field value", editReadWire({ fields: [{ path: "user.name", present: true }] })],
+    ["an object field value", editReadWire({ fields: [{ path: "user.name", present: true, value: { a: 1 } }] })],
+    ["a missing hash", editReadWire({ hash: undefined })],
+    ["a non-string raw text", editReadWire({ rawText: 3 })],
+  ])("fails closed on %s", (_label, payload) => {
+    expect(() => decodeAppConfigEditRead(payload)).toThrow();
+  });
+});
+
+describe("decodeAppConfigPreviewResult", () => {
+  it("decodes a successful preview with its token", () => {
+    expect(decodeAppConfigPreviewResult(previewWire())).toEqual({
+      ok: true,
+      errors: [],
+      diff: "-\tname = Ada\n+\tname = Grace\n",
+      warnings: [],
+      previewToken: "token-1",
+    });
+  });
+
+  it("decodes issues with either a path or a line", () => {
+    const result = decodeAppConfigPreviewResult(
+      previewWire({
+        ok: false,
+        errors: [
+          { path: "user.email", message: "格式不正确。" },
+          { line: 4, message: "这一行格式不正确。" },
+        ],
+        previewToken: null,
+      }),
+    );
+
+    expect(result.errors).toEqual([
+      { path: "user.email", message: "格式不正确。" },
+      { line: 4, message: "这一行格式不正确。" },
+    ]);
+    expect(result.previewToken).toBeNull();
+  });
+
+  it.each([
+    ["a missing ok flag", previewWire({ ok: undefined })],
+    ["an issue without a message", previewWire({ ok: false, errors: [{ path: "user.name" }] })],
+    ["a negative issue line", previewWire({ ok: false, errors: [{ line: -1, message: "x" }] })],
+    ["a non-array warnings list", previewWire({ warnings: "x" })],
+  ])("fails closed on %s", (_label, payload) => {
+    expect(() => decodeAppConfigPreviewResult(payload)).toThrow();
+  });
+});
+
+describe("app config edit commands", () => {
+  it("getAppConfigSchema sends only the registry id", async () => {
+    let captured: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      captured = { command, payload };
+      return schemaWire();
+    });
+
+    const schema = await getAppConfigSchema("git-config-home");
+
+    expect(captured).toEqual({ command: "app_config_schema", payload: { id: "git-config-home" } });
+    expect(schema.visualSupported).toBe(true);
+  });
+
+  it("readAppConfigForEdit refuses path-like ids before invoking", async () => {
+    let invoked = false;
+    mockIPC(() => {
+      invoked = true;
+      return editReadWire();
+    });
+
+    await expect(readAppConfigForEdit("~/.gitconfig")).rejects.toMatchObject({
+      code: "INVALID_INPUT",
+    });
+    expect(invoked).toBe(false);
+  });
+
+  it("previewAppConfigEdit sends the whole input under one key", async () => {
+    let captured: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      captured = { command, payload };
+      return previewWire();
+    });
+    const input = {
+      id: "git-config-home",
+      mode: "fields" as const,
+      changes: [{ path: "user.name", value: "Grace" }],
+      rawText: null,
+      expectedHash: "abc123",
+    };
+
+    const result = await previewAppConfigEdit(input);
+
+    expect(captured).toEqual({ command: "app_config_preview_edit", payload: { input } });
+    expect(result.previewToken).toBe("token-1");
+  });
+
+  it("confirmAppConfigEdit sends only the preview token and decodes the read result", async () => {
+    let captured: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      captured = { command, payload };
+      return contentWire();
+    });
+
+    const result = await confirmAppConfigEdit("token-1");
+
+    expect(captured).toEqual({
+      command: "app_config_confirm_edit",
+      payload: { input: { previewToken: "token-1" } },
+    });
+    expect(result.outcome).toBe("content");
+  });
+
+  it("confirmAppConfigEdit refuses an empty token before invoking", async () => {
+    let invoked = false;
+    mockIPC(() => {
+      invoked = true;
+      return contentWire();
+    });
+
+    await expect(confirmAppConfigEdit("  ")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(invoked).toBe(false);
   });
 });
 

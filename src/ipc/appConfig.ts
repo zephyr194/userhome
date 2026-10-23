@@ -276,3 +276,241 @@ export async function readAppConfigEntry(
   }
   return invokeCommand("app_config_read", decodeAppConfigReadResult, { id });
 }
+
+export const APP_CONFIG_FIELD_KINDS = [
+  "string",
+  "bool",
+  "integer",
+  "number",
+  "enum",
+] as const;
+export type AppConfigFieldKind = (typeof APP_CONFIG_FIELD_KINDS)[number];
+
+export type AppConfigFieldPattern =
+  | { kind: "containsSeparator"; separator: string }
+  | { kind: "charset"; allowed: string };
+
+export interface AppConfigFieldSpec {
+  path: string;
+  label: string;
+  description: string;
+  kind: AppConfigFieldKind;
+  enumValues: string[];
+  min: number | null;
+  max: number | null;
+  pattern: AppConfigFieldPattern | null;
+  default: string | null;
+  sensitive: boolean;
+}
+
+export interface AppConfigSchema {
+  visualSupported: boolean;
+  advancedSupported: boolean;
+  formatLabel: string;
+  fields: AppConfigFieldSpec[];
+}
+
+export type AppConfigFieldValue = string | number | boolean | null;
+
+export interface AppConfigFieldReadout {
+  path: string;
+  present: boolean;
+  value: AppConfigFieldValue;
+}
+
+export interface AppConfigEditRead {
+  fields: AppConfigFieldReadout[];
+  rawText: string | null;
+  hash: string;
+  rawBlockedReason: string | null;
+}
+
+export type AppConfigEditMode = "fields" | "raw";
+
+export interface AppConfigFieldChange {
+  path: string;
+  value: AppConfigFieldValue;
+}
+
+export interface AppConfigPreviewInput {
+  id: string;
+  mode: AppConfigEditMode;
+  changes: AppConfigFieldChange[];
+  rawText: string | null;
+  expectedHash: string;
+}
+
+export interface AppConfigPreviewIssue {
+  path?: string;
+  line?: number;
+  message: string;
+}
+
+export interface AppConfigPreviewResult {
+  ok: boolean;
+  errors: AppConfigPreviewIssue[];
+  diff: string;
+  warnings: string[];
+  previewToken: string | null;
+}
+
+function requireNumber(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw decodeFailure();
+  }
+  return value;
+}
+
+function requireNullableNumber(value: unknown): number | null {
+  return value === null ? null : requireNumber(value);
+}
+
+function requireNullableString(value: unknown): string | null {
+  return value === null ? null : requireString(value);
+}
+
+function decodeFieldPattern(value: unknown): AppConfigFieldPattern | null {
+  if (value === null) return null;
+  const record = requireRecord(value);
+  switch (record.kind) {
+    case "containsSeparator":
+      return {
+        kind: "containsSeparator",
+        separator: requireNonEmptyString(record.separator),
+      };
+    case "charset":
+      return { kind: "charset", allowed: requireNonEmptyString(record.allowed) };
+    default:
+      throw decodeFailure();
+  }
+}
+
+function decodeFieldSpec(value: unknown): AppConfigFieldSpec {
+  const record = requireRecord(value);
+  const path = requireNonEmptyString(record.path);
+  if (!/^[A-Za-z0-9]+(?:\.[A-Za-z][A-Za-z0-9]*)+$/.test(path)) {
+    throw decodeFailure();
+  }
+  return {
+    path,
+    label: requireNonEmptyString(record.label),
+    description: requireNonEmptyString(record.description),
+    kind: requireOneOf(APP_CONFIG_FIELD_KINDS, record.kind),
+    enumValues: requireArray(record.enumValues).map(requireNonEmptyString),
+    min: requireNullableNumber(record.min),
+    max: requireNullableNumber(record.max),
+    pattern: decodeFieldPattern(record.pattern),
+    default: requireNullableString(record.default),
+    sensitive: requireBoolean(record.sensitive),
+  };
+}
+
+export function decodeAppConfigSchema(value: unknown): AppConfigSchema {
+  const record = requireRecord(value);
+  return {
+    visualSupported: requireBoolean(record.visualSupported),
+    advancedSupported: requireBoolean(record.advancedSupported),
+    formatLabel: requireNonEmptyString(record.formatLabel),
+    fields: requireArray(record.fields).map(decodeFieldSpec),
+  };
+}
+
+function decodeFieldValue(value: unknown): AppConfigFieldValue {
+  if (value === null || typeof value === "boolean") return value;
+  if (typeof value === "string") return value;
+  return requireNumber(value);
+}
+
+function decodeFieldReadout(value: unknown): AppConfigFieldReadout {
+  const record = requireRecord(value);
+  return {
+    path: requireNonEmptyString(record.path),
+    present: requireBoolean(record.present),
+    value: decodeFieldValue(record.value),
+  };
+}
+
+export function decodeAppConfigEditRead(value: unknown): AppConfigEditRead {
+  const record = requireRecord(value);
+  return {
+    fields: requireArray(record.fields).map(decodeFieldReadout),
+    rawText: requireNullableString(record.rawText),
+    hash: requireString(record.hash),
+    rawBlockedReason: requireNullableString(record.rawBlockedReason),
+  };
+}
+
+function decodePreviewIssue(value: unknown): AppConfigPreviewIssue {
+  const record = requireRecord(value);
+  const issue: AppConfigPreviewIssue = {
+    message: requireNonEmptyString(record.message),
+  };
+  if (record.path !== undefined) issue.path = requireNonEmptyString(record.path);
+  if (record.line !== undefined) issue.line = requireCount(record.line);
+  return issue;
+}
+
+export function decodeAppConfigPreviewResult(
+  value: unknown,
+): AppConfigPreviewResult {
+  const record = requireRecord(value);
+  return {
+    ok: requireBoolean(record.ok),
+    errors: requireArray(record.errors).map(decodePreviewIssue),
+    diff: requireString(record.diff),
+    warnings: requireArray(record.warnings).map(requireString),
+    previewToken: requireNullableString(record.previewToken),
+  };
+}
+
+function requireEntryId(id: string): void {
+  if (!isAppConfigId(id)) {
+    const error: AppError = {
+      code: "INVALID_INPUT",
+      message: "未知的应用配置条目。",
+      retryable: false,
+    };
+    throw error;
+  }
+}
+
+export async function getAppConfigSchema(id: string): Promise<AppConfigSchema> {
+  requireEntryId(id);
+  return invokeCommand("app_config_schema", decodeAppConfigSchema, { id });
+}
+
+export async function readAppConfigForEdit(
+  id: string,
+): Promise<AppConfigEditRead> {
+  requireEntryId(id);
+  return invokeCommand("app_config_read_for_edit", decodeAppConfigEditRead, {
+    id,
+  });
+}
+
+export async function previewAppConfigEdit(
+  input: AppConfigPreviewInput,
+): Promise<AppConfigPreviewResult> {
+  requireEntryId(input.id);
+  return invokeCommand(
+    "app_config_preview_edit",
+    decodeAppConfigPreviewResult,
+    { input },
+  );
+}
+
+export async function confirmAppConfigEdit(
+  previewToken: string,
+): Promise<AppConfigReadResult> {
+  if (previewToken.trim().length === 0) {
+    const error: AppError = {
+      code: "INVALID_INPUT",
+      message: "预览已失效，请重新预览。",
+      retryable: false,
+    };
+    throw error;
+  }
+  return invokeCommand("app_config_confirm_edit", decodeAppConfigReadResult, {
+    input: { previewToken },
+  });
+}
