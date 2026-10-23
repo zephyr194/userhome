@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearMocks, mockIPC } from "@tauri-apps/api/mocks";
-import { decodeAiConfigReport, detectAiConfig } from "./aiConfig";
+import {
+  decodeAiConfigFileView,
+  decodeAiConfigReport,
+  detectAiConfig,
+  readAiConfigFile,
+} from "./aiConfig";
 
 afterEach(() => {
   clearMocks();
@@ -228,5 +233,88 @@ describe("detectAiConfig cache", () => {
     await aiConfig.detectAiConfig();
 
     expect(calls).toBe(2);
+  });
+});
+
+function configFileWire(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    toolId: "claude-code",
+    displayPath: "~/.claude/settings.json",
+    exists: true,
+    language: "json",
+    content: '{\n  "apiKey": "••••••",\n  "model": "sonnet"\n}',
+    truncated: false,
+    sizeBytes: 48,
+    redactedCount: 1,
+    readAt: "2026-10-23T00:00:00Z",
+    ...overrides,
+  };
+}
+
+describe("decodeAiConfigFileView", () => {
+  it("decodes a masked view and tolerates unknown fields", () => {
+    const decoded = decodeAiConfigFileView(configFileWire({ extra: true }), "claude-code");
+
+    expect(decoded).toMatchObject({
+      toolId: "claude-code",
+      exists: true,
+      language: "json",
+      redactedCount: 1,
+      sizeBytes: 48,
+    });
+    expect(decoded.content).toContain("••••••");
+  });
+
+  it("decodes an absent file without content and without an error", () => {
+    const decoded = decodeAiConfigFileView(
+      configFileWire({ exists: false, content: null, sizeBytes: null, redactedCount: 0 }),
+      "claude-code",
+    );
+
+    expect(decoded).toMatchObject({ exists: false, content: null, sizeBytes: null });
+  });
+
+  it.each([
+    ["a different tool id", { toolId: "gemini-cli" }],
+    ["an unknown language", { language: "yaml-ish" }],
+    ["content on an absent file", { exists: false, sizeBytes: null, redactedCount: 0 }],
+    ["an existing file without content", { content: null }],
+    ["an existing file without a size", { sizeBytes: null }],
+    ["truncation on an absent file", { exists: false, content: null, sizeBytes: null, truncated: true }],
+    ["content above the 256 KiB limit", { content: "a".repeat(256 * 1024 + 1) }],
+    ["a negative redaction count", { redactedCount: -1 }],
+    ["a fractional size", { sizeBytes: 1.5 }],
+    ["a non-string display path", { displayPath: 7 }],
+    ["a missing read timestamp", { readAt: undefined }],
+  ])("rejects %s", (_label, overrides) => {
+    expect(() => decodeAiConfigFileView(configFileWire(overrides), "claude-code")).toThrow();
+  });
+
+  it("rejects a non-object payload", () => {
+    expect(() => decodeAiConfigFileView("claude-code", "claude-code")).toThrow();
+  });
+});
+
+describe("readAiConfigFile", () => {
+  it("sends the tool id and returns the decoded view", async () => {
+    let captured: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      captured = { command, payload };
+      return configFileWire();
+    });
+
+    const view = await readAiConfigFile("claude-code");
+
+    expect(captured).toEqual({
+      command: "ai_config_read_config",
+      payload: { toolId: "claude-code" },
+    });
+    expect(view.exists).toBe(true);
+  });
+
+  it("fails closed with an internal error when the payload does not decode", async () => {
+    mockIPC(() => configFileWire({ language: "markdown-ish" }));
+
+    await expect(readAiConfigFile("claude-code")).rejects.toMatchObject({ code: "INTERNAL" });
   });
 });

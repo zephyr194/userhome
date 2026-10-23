@@ -1154,3 +1154,74 @@ export function openClaudeCommandInTerminal(request: ClaudeCommandRequest): Prom
     input: { toolId: "claude-code", request, projectGrantId: null },
   });
 }
+
+// Read-only view of a tool's registered main configuration file. Mirrors
+// ai_config/config_view.rs: secret values arrive already masked, and the decoder
+// keeps only what the view renders.
+
+export const AI_CONFIG_LANGUAGES = ["json", "toml", "yaml", "markdown", "text"] as const;
+export type AiConfigLanguage = (typeof AI_CONFIG_LANGUAGES)[number];
+
+const MAX_AI_CONFIG_CONTENT_LENGTH = 256 * 1024;
+const MAX_AI_CONFIG_REDACTED_COUNT = 100_000;
+const MAX_AI_CONFIG_READ_AT_LENGTH = 64;
+
+export interface AiConfigFileView {
+  toolId: AiToolId;
+  displayPath: string;
+  exists: boolean;
+  language: AiConfigLanguage;
+  content: string | null;
+  truncated: boolean;
+  sizeBytes: number | null;
+  redactedCount: number;
+  readAt: string;
+}
+
+function requireWholeNumber(value: unknown, max: number): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0 || value > max) {
+    throw decodeFailure();
+  }
+  return value;
+}
+
+function requireContent(value: unknown): string {
+  if (typeof value !== "string" || value.length > MAX_AI_CONFIG_CONTENT_LENGTH) {
+    throw decodeFailure();
+  }
+  return value;
+}
+
+export function decodeAiConfigFileView(value: unknown, expectedId: AiToolId): AiConfigFileView {
+  const record = requireRecord(value);
+  const toolId = requireOneOf(AI_TOOL_IDS, record.toolId);
+  if (toolId !== expectedId) throw decodeFailure();
+  const exists = requireBoolean(record.exists);
+  const truncated = requireBoolean(record.truncated);
+  const content = record.content === null ? null : requireContent(record.content);
+  const sizeBytes =
+    record.sizeBytes === null
+      ? null
+      : requireWholeNumber(record.sizeBytes, Number.MAX_SAFE_INTEGER);
+  if (exists !== (content !== null) || exists !== (sizeBytes !== null)) throw decodeFailure();
+  if (!exists && truncated) throw decodeFailure();
+  return {
+    toolId,
+    displayPath: requireText(record.displayPath, MAX_CONFIG_DISPLAY_PATH_LENGTH),
+    exists,
+    language: requireOneOf(AI_CONFIG_LANGUAGES, record.language),
+    content,
+    truncated,
+    sizeBytes,
+    redactedCount: requireWholeNumber(record.redactedCount, MAX_AI_CONFIG_REDACTED_COUNT),
+    readAt: requireText(record.readAt, MAX_AI_CONFIG_READ_AT_LENGTH),
+  };
+}
+
+export function readAiConfigFile(toolId: AiToolId): Promise<AiConfigFileView> {
+  return invokeCommand(
+    "ai_config_read_config",
+    (value) => decodeAiConfigFileView(value, toolId),
+    { toolId },
+  );
+}
