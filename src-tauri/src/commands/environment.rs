@@ -10,7 +10,7 @@ use crate::{
     environment::{
         self, FileOutcome, FileRequest, RevealRequest, RevealedValue,
         dotenv::{KeyEdit, is_valid_key},
-        launchctl::{self, LaunchctlEnvironment},
+        launchctl::{self, LaunchctlChange, LaunchctlEnvironment, SetPreview},
         save::{
             CreatePreviewRequest, EditPreviewRequest, EnvironmentEditCoordinator,
             EnvironmentEditPreview,
@@ -178,6 +178,37 @@ pub async fn read_launchctl_environment() -> Result<LaunchctlEnvironment, AppErr
 #[tauri::command]
 pub async fn reveal_launchctl_value(key: String) -> Result<String, AppError> {
     tauri::async_runtime::spawn_blocking(move || launchctl::reveal_value(&key))
+        .await
+        .map_err(|_| AppError::internal())?
+}
+
+/// Says what a login session set would change, without changing anything. The
+/// value is only checked; the current value is never returned.
+#[tauri::command]
+pub async fn preview_launchctl_set(key: String, value: String) -> Result<SetPreview, AppError> {
+    tauri::async_runtime::spawn_blocking(move || launchctl::preview_set(&key, &value))
+        .await
+        .map_err(|_| AppError::internal())?
+}
+
+/// Sets one login session variable. `expected_current` is the digest from the
+/// preview; a value changed since then is refused.
+#[tauri::command]
+pub async fn execute_launchctl_set(
+    key: String,
+    value: String,
+    expected_current: Option<String>,
+) -> Result<LaunchctlChange, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        launchctl::set_value(&key, &value, expected_current.as_deref())
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+#[tauri::command]
+pub async fn execute_launchctl_unset(key: String) -> Result<LaunchctlChange, AppError> {
+    tauri::async_runtime::spawn_blocking(move || launchctl::unset_value(&key))
         .await
         .map_err(|_| AppError::internal())?
 }

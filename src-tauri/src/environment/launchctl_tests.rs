@@ -173,3 +173,177 @@ fn reveal_does_not_find_keys_cut_off_by_the_output_cap() {
         AppErrorCode::NotFound
     );
 }
+
+#[test]
+fn set_names_follow_the_shell_safe_shape_and_length() {
+    let longest = "A".repeat(128);
+    let too_long = "A".repeat(129);
+    for key in ["PATH", "_X", "A1_b", longest.as_str()] {
+        assert!(validate_set_name(key).is_ok(), "{key:?}");
+    }
+    for key in ["", "1A", "A-B", "A B", "A=B", "é", "A.B", too_long.as_str()] {
+        assert_eq!(
+            validate_set_name(key).unwrap_err().code(),
+            AppErrorCode::InvalidInput,
+            "{key:?}"
+        );
+    }
+}
+
+#[test]
+fn protected_names_are_refused_for_set_and_unset_alike() {
+    for key in [
+        "HOME",
+        "USER",
+        "LOGNAME",
+        "SHELL",
+        "TMPDIR",
+        "SSH_AUTH_SOCK",
+        "__CF_USER_TEXT_ENCODING",
+        "DYLD_INSERT_LIBRARIES",
+        "LD_PRELOAD",
+        "XPC_SERVICE_NAME",
+    ] {
+        assert_eq!(
+            validate_set_name(key).unwrap_err().code(),
+            AppErrorCode::InvalidInput,
+            "{key}"
+        );
+    }
+    for key in ["PATH", "EDITOR", "LDFLAGS", "XPCX"] {
+        assert!(validate_set_name(key).is_ok(), "{key}");
+    }
+}
+
+#[test]
+fn set_values_are_capped_and_may_not_contain_nul() {
+    let at_cap = "x".repeat(MAX_SET_VALUE_BYTES);
+    let over_cap = "x".repeat(MAX_SET_VALUE_BYTES + 1);
+    assert!(validate_set_value("").is_ok());
+    assert!(validate_set_value("a b; rm -rf $HOME `x` $(y)").is_ok());
+    assert!(validate_set_value(&at_cap).is_ok());
+    assert_eq!(
+        validate_set_value(&over_cap).unwrap_err().code(),
+        AppErrorCode::InvalidInput
+    );
+    assert_eq!(
+        validate_set_value("a\0b").unwrap_err().code(),
+        AppErrorCode::InvalidInput
+    );
+}
+
+#[test]
+fn expected_digest_must_be_absent_or_lowercase_sha256_hex() {
+    let upper = "A".repeat(64);
+    let not_hex = "g".repeat(64);
+    let short = "a".repeat(63);
+    assert!(validate_expected(None).is_ok());
+    assert!(validate_expected(Some(&digest("x"))).is_ok());
+    for bad in ["", "abc", upper.as_str(), not_hex.as_str(), short.as_str()] {
+        assert_eq!(
+            validate_expected(Some(bad)).unwrap_err().code(),
+            AppErrorCode::InvalidInput,
+            "{bad:?}"
+        );
+    }
+}
+
+#[test]
+fn write_arguments_are_one_element_per_field_without_a_shell() {
+    let value = "a b; rm -rf $HOME";
+    assert_eq!(setenv_args("EDITOR", value), ["setenv", "EDITOR", value]);
+    assert_eq!(unsetenv_args("EDITOR"), ["unsetenv", "EDITOR"]);
+}
+
+#[test]
+fn preview_reports_existence_and_secrecy_without_values() {
+    let parsed = parse_print_output(PRINT, false);
+
+    let absent = preview_from(&parsed, "NOT_SET").unwrap();
+    assert!(!absent.current_exists);
+    assert!(!absent.current_secret);
+    assert_eq!(absent.expected_current, None);
+
+    let plain = preview_from(&parsed, "ZED_THEME").unwrap();
+    assert!(plain.current_exists);
+    assert!(!plain.current_secret);
+    assert_eq!(plain.expected_current, Some(digest("dark")));
+
+    let secret = preview_from(&parsed, "API_TOKEN").unwrap();
+    assert!(secret.current_secret);
+    let json = serde_json::to_string(&secret).unwrap();
+    assert!(!json.contains("abc123"));
+    assert!(json.contains("\"expectedCurrent\""));
+}
+
+#[test]
+fn preview_refuses_a_missing_key_when_the_read_was_partial() {
+    let parsed = parse_print_output("\tenvironment = {\n\t\tA => 1\n\t\tB => 2", true);
+
+    assert!(preview_from(&parsed, "A").is_ok());
+    assert_eq!(
+        preview_from(&parsed, "C").unwrap_err().code(),
+        AppErrorCode::ProcessFailed
+    );
+}
+
+#[test]
+fn execute_refuses_a_change_made_after_the_preview() {
+    let parsed = parse_print_output(PRINT, false);
+
+    assert!(check_expected(&parsed, "ZED_THEME", Some(&digest("dark"))).is_ok());
+    assert!(check_expected(&parsed, "NOT_SET", None).is_ok());
+
+    assert_eq!(
+        check_expected(&parsed, "ZED_THEME", Some(&digest("light")))
+            .unwrap_err()
+            .code(),
+        AppErrorCode::Conflict
+    );
+    assert_eq!(
+        check_expected(&parsed, "ZED_THEME", None)
+            .unwrap_err()
+            .code(),
+        AppErrorCode::Conflict
+    );
+    assert_eq!(
+        check_expected(&parsed, "NOT_SET", Some(&digest("x")))
+            .unwrap_err()
+            .code(),
+        AppErrorCode::Conflict
+    );
+}
+
+#[test]
+fn write_failures_never_carry_the_value_or_the_process_output() {
+    let failed = ProcessError::Failed {
+        code: Some(1),
+        stdout: "leaked-value".to_owned(),
+        stderr: "leaked-value".to_owned(),
+    };
+    let error = map_write_error(failed);
+    assert_eq!(error.code(), AppErrorCode::ProcessFailed);
+    assert!(error.retryable());
+    assert!(!error.message().contains("leaked-value"));
+
+    assert_eq!(
+        map_write_error(ProcessError::Spawn).code(),
+        AppErrorCode::NotSupported
+    );
+    assert_eq!(
+        map_write_error(ProcessError::Timeout).code(),
+        AppErrorCode::ProcessFailed
+    );
+}
+
+#[test]
+fn digest_is_stable_lowercase_hex_and_differs_by_value() {
+    let one = digest("dark");
+    assert_eq!(one.len(), 64);
+    assert!(
+        one.bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    );
+    assert_eq!(one, digest("dark"));
+    assert_ne!(one, digest("light"));
+}
