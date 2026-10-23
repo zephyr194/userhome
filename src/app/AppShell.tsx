@@ -24,6 +24,9 @@ import {
   registerDeepLinkListener,
   takePendingDeepLink,
 } from "../ipc/deepLink";
+import type { TranslateFunction } from "../i18n";
+import { LocaleProvider } from "../i18n/LocaleProvider";
+import { useT } from "../i18n/useLocale";
 import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
 import { CopyPageLinkButton } from "./CopyPageLinkButton";
@@ -32,6 +35,8 @@ import {
   APP_ROUTES,
   activeSectionOf,
   navigationRouteOf,
+  routeDescription,
+  routeLabel,
   type AppRouteId,
   type NavigationIntent,
   type NavigationSource,
@@ -112,6 +117,7 @@ export function QuitConfirmationDialog({
   onConfirm: () => void;
   prompt: QuitPrompt;
 }) {
+  const t = useT();
   const busy = prompt.phase === "stopping" || prompt.phase === "quitting";
   return (
     <ConfirmDialog
@@ -124,16 +130,14 @@ export function QuitConfirmationDialog({
         className="break-words [overflow-wrap:anywhere]"
         id="quit-confirmation-heading"
       >
-        退出 UserHome？
+        {t("shell.quit.title")}
       </h3>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        UserHome 仍有 {prompt.processCount} 个由它启动的进程在运行。
-        “停止并退出”会先停止这些进程，确认全部已退出后才退出应用；
-        “取消退出”不会改变任何内容。
+        {t("shell.quit.body", { processCount: prompt.processCount })}
       </p>
       {prompt.items?.length ? (
         <ul
-          aria-label="仍在运行的项目"
+          aria-label={t("shell.quit.runningItems")}
           className="m-0 flex list-none flex-col gap-ui-4 p-0 text-sm text-foreground"
         >
           {prompt.items.map((item) => (
@@ -156,8 +160,8 @@ export function QuitConfirmationDialog({
           aria-live="polite"
         >
           {prompt.phase === "stopping"
-            ? "正在停止进程并等待其退出…"
-            : "进程已全部退出，正在退出应用…"}
+            ? t("shell.quit.stopping")
+            : t("shell.quit.quitting")}
         </p>
       ) : null}
       {prompt.phase === "failed" ? (
@@ -170,10 +174,10 @@ export function QuitConfirmationDialog({
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">
         <Button data-dialog-cancel disabled={busy} onClick={onCancel}>
-          取消退出
+          {t("shell.quit.cancel")}
         </Button>
         <Button variant="danger" disabled={busy} onClick={onConfirm}>
-          {prompt.phase === "failed" ? "重试停止并退出" : "停止并退出"}
+          {prompt.phase === "failed" ? t("shell.quit.retry") : t("shell.quit.confirm")}
         </Button>
       </div>
     </ConfirmDialog>
@@ -217,13 +221,26 @@ function suppressTitlebarDoubleClick(event: MouseEvent<HTMLElement>) {
   event.stopPropagation();
 }
 
-export function AppShell({
+export function AppShell(props: AppShellProps) {
+  const preference =
+    props.state.preferences.status === "loading"
+      ? "system"
+      : props.state.preferences.preferences.language;
+  return (
+    <LocaleProvider preference={preference}>
+      <ShellContent {...props} />
+    </LocaleProvider>
+  );
+}
+
+export function ShellContent({
   onAppearanceChange,
   onPreferencesChange,
   onPreferencesReset,
   onRefresh,
   state,
 }: AppShellProps) {
+  const t: TranslateFunction = useT();
   const [commandError, setCommandError] = useState<string>();
   const grantStore = useGrantStoreNotice();
   const grantStoreVisible = isGrantStoreNoticeVisible(grantStore.state);
@@ -341,7 +358,7 @@ export function AppShell({
       })
       .catch(() => {
         if (!disposed) {
-          setCommandError("无法监听应用菜单命令。");
+          setCommandError(t("shell.error.menuListener"));
         }
       });
 
@@ -349,7 +366,7 @@ export function AppShell({
       disposed = true;
       unlisten?.();
     };
-  }, [navigate]);
+  }, [navigate, t]);
 
   const navigateToRef = useRef(navigateTo);
   useEffect(() => {
@@ -403,7 +420,7 @@ export function AppShell({
       })
       .catch(() => {
         if (!disposed) {
-          setCommandError("无法监听应用退出请求。");
+          setCommandError(t("shell.error.quitListener"));
         }
       });
 
@@ -411,7 +428,7 @@ export function AppShell({
       disposed = true;
       unlisten?.();
     };
-  }, []);
+  }, [t]);
 
   const closeQuitPrompt = useCallback(() => {
     setQuitPrompt(undefined);
@@ -428,10 +445,10 @@ export function AppShell({
   const cancelQuitPrompt = useCallback(() => {
     void cancelQuit()
       .catch(() => {
-        setCommandError("无法取消退出请求。");
+        setCommandError(t("shell.quit.cancelFailed"));
       })
       .finally(closeQuitPrompt);
-  }, [closeQuitPrompt]);
+  }, [closeQuitPrompt, t]);
 
   const confirmQuitPrompt = useCallback(() => {
     setQuitPrompt((current) =>
@@ -454,7 +471,9 @@ export function AppShell({
                 phase: "failed",
                 processCount,
                 items,
-                message: `应用未退出：无法确认以下进程已退出：${result.unconfirmed.join("、")}。它们可能仍在运行。`,
+                message: t("shell.quit.unconfirmed", {
+                  names: result.unconfirmed.join(t("shell.listSeparator")),
+                }),
               };
         }),
       )
@@ -465,23 +484,23 @@ export function AppShell({
             phase: "failed",
             processCount,
             items: current?.items,
-            message: "无法完成退出请求，应用未退出。",
+            message: t("shell.quit.failed"),
           };
         }),
       );
-  }, []);
+  }, [t]);
 
   const preferencesNotice =
     state.preferences.status === "loading" ? (
       <ShellNotice
         busy
-        label="加载中"
+        label={t("common.loading")}
         tone="warning"
       >
-        正在加载本机偏好设置…
+        {t("shell.preferences.loading")}
       </ShellNotice>
     ) : state.preferences.status === "safe-default" ? (
-      <ShellNotice label="安全默认值" role="alert" tone="warning">
+      <ShellNotice label={t("shell.preferences.safeDefault")} role="alert" tone="warning">
         {state.preferences.diagnostic.message}
       </ShellNotice>
     ) : undefined;
@@ -496,17 +515,17 @@ export function AppShell({
         role="alert"
       >
         <StatusBadge className="shrink-0" tone="danger">
-          刷新未完成
+          {t("shell.refresh.failed")}
         </StatusBadge>
         <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-danger">
           {state.refresh.message}
           {state.discovery.status === "error" &&
           state.discovery.previousSnapshot
-            ? " 已保留上次成功加载的数据。"
+            ? ` ${t("shell.refresh.retained")}`
             : ""}
         </p>
         <Button className="shrink-0" size="sm" onClick={onRefresh}>
-          重试
+          {t("common.retry")}
         </Button>
       </div>
     ) : refreshCompletedAt !== undefined && refreshCompletedAt !== dismissedRefreshAt ? (
@@ -515,10 +534,10 @@ export function AppShell({
         role="status"
       >
         <StatusBadge className="shrink-0" tone="success">
-          已刷新
+          {t("shell.refresh.refreshed")}
         </StatusBadge>
         <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-muted-foreground">
-          本机状态已刷新。
+          {t("shell.refresh.refreshedDetail")}
         </p>
       </div>
     ) : undefined;
@@ -526,7 +545,7 @@ export function AppShell({
   return (
     <>
       <a className="skip-link" href="#main-content">
-        跳到主要内容
+        {t("shell.skipToContent")}
       </a>
       {quitPrompt ? (
         <QuitConfirmationDialog
@@ -562,7 +581,7 @@ export function AppShell({
             grantStoreVisible ? (
               <div className="divide-y divide-border">
                 {commandError ? (
-                  <ShellNotice label="命令不可用" role="alert" tone="danger">
+                  <ShellNotice label={t("shell.notice.commandUnavailable")} role="alert" tone="danger">
                     {commandError}
                   </ShellNotice>
                 ) : null}
@@ -581,10 +600,10 @@ export function AppShell({
             <div className="flex w-full min-w-0 items-center justify-between gap-ui-12">
               <div className="min-w-0 flex-1">
                 <h1 className="desktop-workspace__page-title">
-                  {activeRoute.label}
+                  {routeLabel(activeRoute, t)}
                 </h1>
                 <p className="m-0 mt-ui-2 min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
-                  {activeRoute.description}
+                  {routeDescription(activeRoute, t)}
                 </p>
               </div>
               <ActionRow>
@@ -598,8 +617,8 @@ export function AppShell({
                   onClick={onRefresh}
                   aria-label={
                     state.refresh.status === "refreshing"
-                      ? "正在刷新本机状态"
-                      : "刷新本机状态"
+                      ? t("shell.refresh.buttonBusy")
+                      : t("shell.refresh.button")
                   }
                 >
                   <svg
@@ -613,12 +632,16 @@ export function AppShell({
                   >
                     <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
                   </svg>
-                  {state.refresh.status === "refreshing" ? "刷新中" : "刷新"}
+                  {state.refresh.status === "refreshing"
+                    ? t("common.refreshing")
+                    : t("common.refresh")}
                 </Button>
               </ActionRow>
             </div>
           }
-          detailLabel={`${activeRoute.label}内容`}
+          detailLabel={t("shell.workspace.content", {
+            label: routeLabel(activeRoute, t),
+          })}
           detail={
             <SectionContext.Provider value={sectionContext}>
               <RoutePanel

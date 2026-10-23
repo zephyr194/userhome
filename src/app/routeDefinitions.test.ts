@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { translate, type TranslateFunction } from "../i18n";
 import {
   APP_ROUTES,
   groupNavigationRoutes,
   isRestorableRoute,
   NAV_GROUPS,
+  navGroupLabel,
   navigationRouteOf,
   primaryNavigationRoutes,
+  routeDescription,
+  routeLabel,
 } from "./routeDefinitions";
+
+const zh: TranslateFunction = (key, params) => translate("zh-CN", key, params);
 
 describe("route registry", () => {
   it("registers every route id exactly once", () => {
@@ -18,7 +24,7 @@ describe("route registry", () => {
   });
 
   it("lists the sidebar entries in the fixed order across the groups", () => {
-    expect(primaryNavigationRoutes(APP_ROUTES).map((route) => route.label)).toEqual([
+    expect(primaryNavigationRoutes(APP_ROUTES).map((route) => routeLabel(route, zh))).toEqual([
       "概览",
       "环境变量",
       "应用配置",
@@ -31,14 +37,14 @@ describe("route registry", () => {
   });
 
   it("puts the overview first as an unheaded entry, then the headed groups in the fixed order", () => {
-    expect(NAV_GROUPS.map((group) => [group.id, group.label])).toEqual([
+    expect(NAV_GROUPS.map((group) => [group.id, navGroupLabel(group, zh)])).toEqual([
       ["overview", null],
       ["system-tools", "系统工具"],
       ["toolset", "工具集"],
       ["support", "支撑"],
     ]);
     const groups = groupNavigationRoutes(APP_ROUTES);
-    expect(groups.map(({ group }) => group.label)).toEqual([null, "系统工具", "工具集", "支撑"]);
+    expect(groups.map(({ group }) => navGroupLabel(group, zh))).toEqual([null, "系统工具", "工具集", "支撑"]);
     expect(groups.map(({ routes }) => routes.map((route) => route.id))).toEqual([
       ["dashboard"],
       ["environment", "appConfig", "aiConfig", "systemTools"],
@@ -59,11 +65,9 @@ describe("route registry", () => {
 
   it("gives the system tools route its label, eyebrow and description", () => {
     const tools = APP_ROUTES.find((route) => route.id === "systemTools");
-    expect(tools).toMatchObject({
-      label: "系统工具",
-      eyebrow: "系统工具",
-      description: "本机常用系统工具入口。",
-    });
+    expect(tools).toBeDefined();
+    expect(tools && routeLabel(tools, zh)).toBe("系统工具");
+    expect(tools && routeDescription(tools, zh)).toBe("本机常用系统工具入口。");
   });
 
   it("keeps Caddy out of the sidebar and under the system tools page", () => {
@@ -89,10 +93,10 @@ describe("route registry", () => {
 
   it("describes the services page as launchd discovery, not Homebrew-only management", () => {
     const services = APP_ROUTES.find((route) => route.id === "services");
-    expect(services?.description).toBe(
+    expect(services && routeDescription(services, zh)).toBe(
       "发现并查看本机常驻任务（launchd），管理自建任务。",
     );
-    expect(services?.description).not.toContain("Homebrew");
+    expect(services && routeDescription(services, zh)).not.toContain("Homebrew");
   });
 
   it("places the tools page in its own group between system tools and the support group", () => {

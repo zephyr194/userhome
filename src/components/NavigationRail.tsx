@@ -1,9 +1,14 @@
 import type { ConnectionState } from "../app/shellState";
 import {
   groupNavigationRoutes,
+  navGroupLabel,
+  routeDescription,
+  routeLabel,
   type AppRoute,
   type AppRouteId,
 } from "../app/routeDefinitions";
+import { useT } from "../i18n/useLocale";
+import type { TranslateFunction } from "../i18n";
 import { BrandMark } from "./ui/BrandMark";
 import { useSlideIndicator } from "./ui/useSlideIndicator";
 import { RouteIcon } from "./RouteIcon";
@@ -15,14 +20,17 @@ interface NavigationRailProps {
   routes: readonly AppRoute[];
 }
 
-function connectionDetails(connection?: ConnectionState) {
+function connectionDetails(t: TranslateFunction, connection?: ConnectionState) {
   if (!connection || connection.status === "loading") {
-    return { label: "正在连接", tone: "loading" };
+    return { label: t("nav.connection.connecting"), tone: "loading" };
   }
   if (connection.status === "error") {
-    return { label: "连接异常", tone: "error" };
+    return { label: t("nav.connection.error"), tone: "error" };
   }
-  return { label: `本机在线 · v${connection.appStatus.version}`, tone: "ready" };
+  return {
+    label: t("nav.connection.online", { version: connection.appStatus.version }),
+    tone: "ready",
+  };
 }
 
 export function NavigationRail({
@@ -31,10 +39,11 @@ export function NavigationRail({
   onNavigate,
   routes,
 }: NavigationRailProps) {
-  const status = connectionDetails(connection);
+  const t = useT();
+  const status = connectionDetails(t, connection);
   const railRef = useSlideIndicator(activeRouteId, "y", "primary");
   return (
-    <nav aria-label="主导航" className="navigation-rail slide-list" ref={railRef}>
+    <nav aria-label={t("nav.label")} className="navigation-rail slide-list" ref={railRef}>
       <div className="navigation-rail__brand">
         <BrandMark className="navigation-rail__brand-mark" />
         <span>
@@ -42,35 +51,43 @@ export function NavigationRail({
           <small>CONTROL LAB</small>
         </span>
       </div>
+<<<<<<< HEAD
       {groupNavigationRoutes(routes).map(({ group, routes: groupRoutes }) => {
-        const headingId = group.label ? `nav-group-${group.id}` : undefined;
+        const groupLabel = navGroupLabel(group, t);
+        const headingId = groupLabel ? `nav-group-${group.id}` : undefined;
         return (
           <div className={`navigation-rail__group navigation-rail__group--${group.id}`} key={group.id}>
-            {group.label && (
+            {groupLabel && (
               <p className="navigation-rail__section-label" id={headingId}>
-                {group.label}
+                {groupLabel}
               </p>
             )}
             <ul aria-labelledby={headingId}>
-              {groupRoutes.map((route) => (
-                <li key={route.id}>
-                  <a
-                    href={`#${route.id}`}
-                    className="slide-item"
-                    aria-label={`${route.label}：${route.description}`}
-                    aria-current={activeRouteId === route.id ? "page" : undefined}
-                    aria-controls="main-content"
-                    title={route.label}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      if (activeRouteId !== route.id) onNavigate(route.id);
-                    }}
-                  >
-                    <span className="navigation-rail__icon"><RouteIcon icon={route.icon} /></span>
-                    <span className="navigation-rail__label">{route.label}</span>
-                  </a>
-                </li>
-              ))}
+              {groupRoutes.map((route) => {
+                const label = routeLabel(route, t);
+                return (
+                  <li key={route.id}>
+                    <a
+                      href={`#${route.id}`}
+                      className="slide-item"
+                      aria-label={t("nav.itemLabel", {
+                        label,
+                        description: routeDescription(route, t),
+                      })}
+                      aria-current={activeRouteId === route.id ? "page" : undefined}
+                      aria-controls="main-content"
+                      title={label}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        if (activeRouteId !== route.id) onNavigate(route.id);
+                      }}
+                    >
+                      <span className="navigation-rail__icon"><RouteIcon icon={route.icon} /></span>
+                      <span className="navigation-rail__label">{label}</span>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         );

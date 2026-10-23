@@ -2904,3 +2904,16 @@ code {
   }
 }
 /* /r8-deeplink */
+/* r8-i18n-shell */
+.navigation-rail a {
+  height: auto;
+  min-height: var(--app-row-height-compact);
+  padding-block: var(--app-space-4);
+}
+
+.navigation-rail__label {
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+}
+/* /r8-i18n-shell */

@@ -3,7 +3,12 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { APP_ROUTES, primaryNavigationRoutes } from "../app/routeDefinitions";
+import {
+  APP_ROUTES,
+  primaryNavigationRoutes,
+  routeLabel,
+} from "../app/routeDefinitions";
+import { translate } from "../i18n";
 
 const css = readFileSync(
   fileURLToPath(new URL("./global.css", import.meta.url)),
@@ -111,7 +116,9 @@ describe("圆角审计（UI-01）", () => {
   });
 
   it("导航标签与分组标题不超过侧栏 188px 的字符上限", () => {
-    const labels = primaryNavigationRoutes(APP_ROUTES).map((route) => route.label);
+    const labels = primaryNavigationRoutes(APP_ROUTES).map((route) =>
+      routeLabel(route, (key) => translate("zh-CN", key)),
+    );
     const longest = Math.max(...labels.map((label) => Array.from(label).length));
     expect(longest).toBeLessThanOrEqual(NAV_LABEL_MAX_CHARS);
   });

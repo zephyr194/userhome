@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useT } from "../i18n/useLocale";
 
 interface DesktopWorkspaceProps {
   banner?: ReactNode;
@@ -18,13 +19,14 @@ export function DesktopWorkspace({
   detail,
   detailLabel,
   inspector,
-  inspectorLabel = "检查器",
+  inspectorLabel,
   list,
-  listLabel = "项目列表",
+  listLabel,
   operationProgress,
   sidebar,
   toolbar,
 }: DesktopWorkspaceProps) {
+  const t = useT();
   const paneClassName = [
     "desktop-workspace__panes",
     list ? "desktop-workspace__panes--with-list" : "",
@@ -43,7 +45,7 @@ export function DesktopWorkspace({
       >
         <header
           className="desktop-workspace__toolbar"
-          aria-label="当前页面工具栏"
+          aria-label={t("shell.workspace.toolbar")}
         >
           {toolbar}
         </header>
@@ -58,7 +60,7 @@ export function DesktopWorkspace({
             <section
               key="list"
               className="desktop-workspace__list min-w-0 min-h-0"
-              aria-label={listLabel}
+              aria-label={listLabel ?? t("shell.workspace.list")}
             >
               {list}
             </section>
@@ -74,7 +76,7 @@ export function DesktopWorkspace({
             <aside
               key="inspector"
               className="desktop-workspace__inspector min-w-0 min-h-0"
-              aria-label={inspectorLabel}
+              aria-label={inspectorLabel ?? t("shell.workspace.inspector")}
             >
               {inspector}
             </aside>
@@ -83,7 +85,7 @@ export function DesktopWorkspace({
         {operationProgress ? (
           <section
             className="desktop-workspace__operation-progress min-w-0 min-h-0"
-            aria-label="操作进度"
+            aria-label={t("shell.workspace.progress")}
           >
             {operationProgress}
           </section>

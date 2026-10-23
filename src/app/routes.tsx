@@ -19,11 +19,14 @@ import type {
   RecentOperationState,
   RefreshState,
 } from "./shellState";
-import type {
-  AppRoute,
-  NavigationIntent,
-  ServiceFocus,
+import {
+  routeDescription,
+  routeLabel,
+  type AppRoute,
+  type NavigationIntent,
+  type ServiceFocus,
 } from "./routeDefinitions";
+import { useT } from "../i18n/useLocale";
 import { RouteNavigationContext } from "./routeNavigation";
 import type { SelectionMemory } from "./selectionMemory";
 
@@ -63,6 +66,7 @@ export function RoutePanel({
   serviceFocus,
   settingsGroup,
 }: RoutePanelProps) {
+  const t = useT();
   if (route.id === "dashboard") {
     return (
       <DashboardPage
@@ -151,9 +155,9 @@ export function RoutePanel({
 
   return (
     <section className="placeholder-panel" aria-labelledby="placeholder-heading">
-      <p className="section-kicker">即将提供</p>
-      <h2 id="placeholder-heading">{route.label}功能尚未实现</h2>
-      <p>{route.description} 此页面会在后续任务中逐步开放。</p>
+      <p className="section-kicker">{t("shell.placeholder.kicker")}</p>
+      <h2 id="placeholder-heading">{t("shell.placeholder.title", { label: routeLabel(route, t) })}</h2>
+      <p>{t("shell.placeholder.body", { description: routeDescription(route, t) })}</p>
     </section>
   );
 }

@@ -1,3 +1,5 @@
+import type { MessageKey, TranslateFunction } from "../i18n";
+
 export type AppRouteId =
   | "dashboard"
   | "applications"
@@ -29,16 +31,20 @@ export type NavGroupId = "overview" | "system-tools" | "toolset" | "support";
 export interface NavGroup {
   id: NavGroupId;
   /** Heading shown above the group; null for a group without a heading. */
-  label: string | null;
+  labelKey: MessageKey | null;
 }
 
 /** Primary navigation groups, in display order. */
 export const NAV_GROUPS: readonly NavGroup[] = [
-  { id: "overview", label: null },
-  { id: "system-tools", label: "系统工具" },
-  { id: "toolset", label: "工具集" },
-  { id: "support", label: "支撑" },
+  { id: "overview", labelKey: null },
+  { id: "system-tools", labelKey: "nav.group.systemTools" },
+  { id: "toolset", labelKey: "nav.group.toolset" },
+  { id: "support", labelKey: "nav.group.support" },
 ];
+
+export function navGroupLabel(group: NavGroup, t: TranslateFunction): string | null {
+  return group.labelKey ? t(group.labelKey) : null;
+}
 
 export interface AppRouteSection {
   id: string;
@@ -48,9 +54,9 @@ export interface AppRouteSection {
 export interface AppRoute {
   id: AppRouteId;
   icon: AppRouteIcon;
-  label: string;
-  eyebrow: string;
-  description: string;
+  labelKey: MessageKey;
+  eyebrowKey: MessageKey;
+  descriptionKey: MessageKey;
   /**
    * Sidebar entry that stays highlighted while this page is open. A route with
    * a parent has no sidebar entry of its own; it is reached from the parent page.
@@ -58,6 +64,18 @@ export interface AppRoute {
   parent?: AppRouteId;
   /** Section tabs shown above the content of the tool page. */
   sections?: readonly AppRouteSection[];
+}
+
+export function routeLabel(route: AppRoute, t: TranslateFunction): string {
+  return t(route.labelKey);
+}
+
+export function routeEyebrow(route: AppRoute, t: TranslateFunction): string {
+  return t(route.eyebrowKey);
+}
+
+export function routeDescription(route: AppRoute, t: TranslateFunction): string {
+  return t(route.descriptionKey);
 }
 
 /** The section a route shows: the stored id when the route declares it, otherwise its first section. */
@@ -81,82 +99,82 @@ export function routeSectionsOf(routeId: AppRouteId): readonly AppRouteSection[]
 const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
   dashboard: {
     icon: "dashboard",
-    label: "概览",
-    eyebrow: "本机概览",
-    description: "本机开发环境一览：服务、AI 工具、环境变量与应用配置。",
+    labelKey: "route.dashboard.label",
+    eyebrowKey: "route.dashboard.eyebrow",
+    descriptionKey: "route.dashboard.description",
   },
   // Retired from the primary navigation; page and code are kept.
   applications: {
     icon: "applications",
-    label: "应用与配置",
-    eyebrow: "配置工作区",
-    description: "发现、检查并安全管理本机应用配置。",
+    labelKey: "route.applications.label",
+    eyebrowKey: "route.applications.eyebrow",
+    descriptionKey: "route.applications.description",
   },
   // Retired from the primary navigation; page and code are kept.
   homebrew: {
     icon: "homebrew",
-    label: "软件",
-    eyebrow: "Homebrew",
-    description: "浏览、搜索并维护 Homebrew 软件。",
+    labelKey: "route.homebrew.label",
+    eyebrowKey: "route.homebrew.eyebrow",
+    descriptionKey: "route.homebrew.description",
   },
   services: {
     icon: "services",
-    label: "服务",
-    eyebrow: "后台服务",
-    description: "发现并查看本机常驻任务（launchd），管理自建任务。",
+    labelKey: "route.services.label",
+    eyebrowKey: "route.services.eyebrow",
+    descriptionKey: "route.services.description",
   },
   environment: {
     icon: "environment",
-    label: "环境变量",
-    eyebrow: "环境文件",
-    description: "按域查看项目 dotenv、用户 zsh 启动文件与登录会话的环境变量，秘密值默认遮盖。",
+    labelKey: "route.environment.label",
+    eyebrowKey: "route.environment.eyebrow",
+    descriptionKey: "route.environment.description",
     sections: [
-      { id: "dotenv", label: "dotenv 文件" },
-      { id: "zsh", label: "zsh 启动文件" },
-      { id: "launchctl", label: "登录会话" },
+      { id: "dotenv", label: "dotenv 文件" }, // i18n-phase-two
+      { id: "zsh", label: "zsh 启动文件" }, // i18n-phase-two
+      { id: "launchctl", label: "登录会话" }, // i18n-phase-two
     ],
   },
   caddy: {
     icon: "caddy",
-    label: "Caddy",
-    eyebrow: "本地代理",
-    description: "检测 Caddy 并编辑本机反向代理规则；保存不会启动或重载 Caddy。",
+    labelKey: "route.caddy.label",
+    eyebrowKey: "route.caddy.eyebrow",
+    descriptionKey: "route.caddy.description",
     parent: "systemTools",
     sections: [
-      { id: "rules", label: "站点规则" },
-      { id: "run", label: "运行" },
-      { id: "raw", label: "原文 Caddyfile" },
+      { id: "rules", label: "站点规则" }, // i18n-phase-two
+      { id: "run", label: "运行" }, // i18n-phase-two
+      { id: "raw", label: "原文 Caddyfile" }, // i18n-phase-two
     ],
   },
   appConfig: {
     icon: "appConfig",
-    label: "应用配置",
-    eyebrow: "只读配置",
-    description: "按登记的默认位置只读查看应用配置，秘密值默认遮盖。",
+    labelKey: "route.appConfig.label",
+    eyebrowKey: "route.appConfig.eyebrow",
+    descriptionKey: "route.appConfig.description",
   },
   aiConfig: {
     icon: "aiConfig",
-    label: "AI 工具",
-    eyebrow: "AI 工具",
-    description: "只读检测 Claude Code、Codex、Gemini 与 Copilot CLI 的安装状态、版本与配置位置。",
+    labelKey: "route.aiConfig.label",
+    eyebrowKey: "route.aiConfig.eyebrow",
+    descriptionKey: "route.aiConfig.description",
   },
   systemTools: {
     icon: "systemTools",
-    label: "系统工具",
-    eyebrow: "系统工具",
-    description: "本机常用系统工具入口。",
+    labelKey: "route.systemTools.label",
+    eyebrowKey: "route.systemTools.eyebrow",
+    descriptionKey: "route.systemTools.description",
   },
   tools: {
     icon: "tools",
-    label: "工具集",
-    eyebrow: "文本工具",
-    description: "本机格式化与转换文本，输入只保存在本次页面中。",
+    labelKey: "route.tools.label",
+    eyebrowKey: "route.tools.eyebrow",
+    descriptionKey: "route.tools.description",
   },
   settings: {
     icon: "settings",
-    label: "设置",
-    eyebrow: "应用设置",
-    description: "调整 UserHome 的本地行为与安全边界。",
+    labelKey: "route.settings.label",
+    eyebrowKey: "route.settings.eyebrow",
+    descriptionKey: "route.settings.description",
   },
 };
 

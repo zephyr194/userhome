@@ -1,8 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { AppShell, QuitConfirmationDialog, type QuitPrompt } from "./AppShell";
+import { AppShell, QuitConfirmationDialog, ShellContent, type QuitPrompt } from "./AppShell";
 import { applyAppearance } from "./appearance";
 import { AppearanceSettings } from "../features/settings/AppearanceSettings";
+import { DEFAULT_USER_PREFERENCES } from "../ipc/settings";
 import type { ShellState } from "./shellState";
 
 const loadingState: ShellState = {
@@ -157,13 +158,15 @@ describe("AppShell", () => {
   it("renders the three persisted appearance choices", () => {
     const markup = renderToStaticMarkup(
       <AppearanceSettings
-        appearance="LIGHT"
-        onChange={() => Promise.resolve()}
+        onAppearanceChange={() => Promise.resolve()}
+        onPreferencesChange={() => Promise.resolve()}
+        preferences={{ ...DEFAULT_USER_PREFERENCES, appearance: "LIGHT" }}
       />,
     );
 
-    expect(markup.match(/role="radio"/g) ?? []).toHaveLength(3);
-    expect(markup.match(/aria-checked="true"/g) ?? []).toHaveLength(1);
+    const appearanceGroup = markup.split("<fieldset")[1]?.split("</fieldset>")[0] ?? "";
+    expect(appearanceGroup.match(/role="radio"/g) ?? []).toHaveLength(3);
+    expect(appearanceGroup.match(/aria-checked="true"/g) ?? []).toHaveLength(1);
     expect(markup).toContain('name="appearance"');
     expect(markup).toContain('value="LIGHT"');
     expect(markup).toContain("系统");
@@ -172,7 +175,7 @@ describe("AppShell", () => {
   });
 
   it("keeps primary navigation focus while allowing source-sensitive main focus", () => {
-    const source = AppShell.toString();
+    const source = ShellContent.toString();
     expect(source).toContain("primary-nav");
     expect(source).toContain("main-content");
     expect(source).toContain("preventScroll");
