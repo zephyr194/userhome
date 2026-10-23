@@ -8,6 +8,7 @@ import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import { BrewUpdate } from "./BrewUpdate";
 import { ConfigSearchBar } from "./ConfigSearchControls";
+import { ConfigFileViewer } from "./ConfigFileViewer";
 import { ToolReference } from "./ToolReference";
 import {
   CONFIG_LABELS,
@@ -385,6 +386,7 @@ function ToolCard({ tool, onRefresh }: { tool: AiToolReport; onRefresh: () => vo
           </ul>
         </dd>
       </dl>
+      {tool.configDisplayPath ? <ConfigFileViewer toolId={tool.id} /> : null}
       <p className="m-0 text-aux text-muted-foreground">{tool.verificationNote}</p>
     </Panel>
   );
