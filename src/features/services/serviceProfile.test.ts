@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { translate } from "../../i18n";
+import { translate, type MessageKey } from "../../i18n";
 import { zhCN } from "../../i18n/messages/zh-CN";
 import { en } from "../../i18n/messages/en";
 import { CREATED_LABEL, CREATED_OWNERSHIP, configFile, launchdService, APPLE_OWNERSHIP, DAEMON_OWNERSHIP } from "./launchdFixtures";
@@ -533,5 +533,37 @@ describe("injectorBasisOf", () => {
     ).toBe("应用 Docker.app 的后台组件");
     expect(injectorBasisOf(launchdService(), zh)).toBe("位于 ~/Library/LaunchAgents");
     expect(injectorBasisOf(launchdService({ configFiles: [] }), zh)).toBe("无法从路径或 label 判断来源");
+  });
+});
+
+describe("dictionary purpose matching is exact", () => {
+  it.each([
+    ["a program named after an exporter", "com.example.metrics", "/usr/local/bin/mysqld_exporter"],
+    ["a label named after an exporter", "com.example.postgres_exporter", "/usr/local/bin/example"],
+    ["a backup label of a store", "com.example.redis-backup", "/usr/local/bin/backup-tool"],
+    ["a backup program of a store", "com.example.backup", "/usr/local/bin/redis-backup"],
+    ["a proxy label of a web server", "com.example.nginx-proxy", "/usr/local/bin/proxy"],
+  ])("does not match %s to the dictionary", (_name, label, program) => {
+    expect(purposeOf(launchdService({ label, configFiles: [userFile(program)] }), zh)).toBeNull();
+  });
+
+  it.each<[string, string, MessageKey]>([
+    ["a versioned Homebrew formula label", "homebrew.mxcl.postgresql@16", "services.purpose.relationalDb"],
+    ["a Homebrew mysql 8.4 formula label", "homebrew.mxcl.mysql@8.4", "services.purpose.relationalDb"],
+    ["a label whose last part is a dictionary key", "com.example.redis", "services.purpose.keyValueStore"],
+    ["a helper label of a dictionary key", "com.example.redis-helper", "services.purpose.keyValueStore"],
+    ["an agent label of a dictionary key", "com.example.redis-agent", "services.purpose.keyValueStore"],
+    ["a .plist label of a dictionary key", "com.example.redis.plist", "services.purpose.keyValueStore"],
+  ])("still matches %s", (_name, label, purpose) => {
+    expect(purposeOf(launchdService({ label, configFiles: [] }), zh)).toBe(zh(purpose));
+  });
+
+  it("still matches the program file name of a dictionary key", () => {
+    expect(
+      purposeOf(
+        launchdService({ label: "com.example.agent", configFiles: [userFile("/opt/homebrew/bin/redis-server")] }),
+        zh,
+      ),
+    ).toBe(zh("services.purpose.keyValueStore"));
   });
 });

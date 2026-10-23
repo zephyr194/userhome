@@ -38,16 +38,10 @@ const APPLICATIONS_PROGRAM = /^(?:\/Applications|~\/Applications|\/Users\/[^/]+\
 const APP_BUNDLE_NAME = /(?:^|\/)([^/]+)\.app\//;
 const REVERSE_DOMAIN_SEGMENT = /^[A-Za-z0-9-]+$/;
 const COMMON_LABEL_PREFIXES = new Set(["com", "org", "net", "io", "dev", "me", "app", "cn", "co", "edu", "gov"]);
-function escapeForPattern(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-const DICTIONARY_PATTERNS = [...SERVICE_DICTIONARY]
-  .sort((a, b) => b.key.length - a.key.length)
-  .map((entry) => ({
-    purpose: entry.purpose,
-    pattern: new RegExp(`(^|[^a-z0-9])${escapeForPattern(entry.key)}($|[^a-z0-9])`),
-  }));
+const DICTIONARY_PURPOSES: ReadonlyMap<string, MessageKey> = new Map(
+  SERVICE_DICTIONARY.map((entry): [string, MessageKey] => [entry.key, entry.purpose]),
+);
+const LABEL_SUFFIXES = ["-helper", "-agent"] as const;
 
 function programOf(file: LaunchdConfigFile): string | undefined {
   return file.details?.program ?? file.details?.programArguments[0];
@@ -113,13 +107,26 @@ export function displayNameOf(service: LaunchdService): string {
   return segments.slice(-2).join(".");
 }
 
-function dictionaryPurposeKey(service: LaunchdService) {
-  const candidates = [
-    service.label.toLowerCase(),
-    ...programPaths(service).map((path) => (path.split("/").pop() ?? "").toLowerCase()),
-  ];
-  for (const { purpose, pattern } of DICTIONARY_PATTERNS) {
-    if (candidates.some((candidate) => pattern.test(candidate))) return purpose;
+/** The formula name of a Homebrew label, or else its last segment; .plist and helper/agent suffixes are dropped. */
+function labelNameKey(label: string): string {
+  const name = label.toLowerCase().replace(/\.plist$/, "");
+  const last = name.startsWith(HOMEBREW_PREFIX)
+    ? name.slice(HOMEBREW_PREFIX.length)
+    : (name.split(".").pop() ?? "");
+  const suffix = LABEL_SUFFIXES.find((item) => last.endsWith(item) && last.length > item.length);
+  return suffix === undefined ? last : last.slice(0, -suffix.length);
+}
+
+/** The program file name without its extension. */
+function programNameKey(path: string): string {
+  return (path.split("/").pop() ?? "").toLowerCase().replace(/\.[^.]+$/, "");
+}
+
+function dictionaryPurposeKey(service: LaunchdService): MessageKey | undefined {
+  const candidates = [labelNameKey(service.label), ...programPaths(service).map(programNameKey)];
+  for (const candidate of candidates) {
+    const purpose = DICTIONARY_PURPOSES.get(candidate);
+    if (purpose !== undefined) return purpose;
   }
   return undefined;
 }
