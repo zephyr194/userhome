@@ -300,6 +300,7 @@ fn is_iso_date(value: &str) -> bool {
 }
 
 const VERIFIED_ON: &str = "2026-10-21";
+const GEMINI_VERIFIED_ON: &str = "2026-10-23";
 const GIT_CONFIG_SOURCE: &str = "https://git-scm.com/docs/git-config";
 const TMUX_SOURCE: &str = "https://raw.githubusercontent.com/tmux/tmux/master/tmux.1";
 
@@ -470,6 +471,20 @@ pub const BUILTIN_ENTRIES: &[Entry] = &[
         source: Source {
             url: "https://code.claude.com/docs/en/settings",
             verified_on: VERIFIED_ON,
+        },
+    },
+    Entry {
+        id: "gemini-user-settings",
+        name: "Gemini CLI 用户设置",
+        category: Category::AiClient,
+        location: Location::Home(".gemini/settings.json"),
+        format: Format::Json,
+        capability: Capability::ReadOnly,
+        sensitivity: Sensitivity::SensitiveKeys,
+        metadata_only: false,
+        source: Source {
+            url: "https://geminicli.com/docs/reference/configuration",
+            verified_on: GEMINI_VERIFIED_ON,
         },
     },
     Entry {

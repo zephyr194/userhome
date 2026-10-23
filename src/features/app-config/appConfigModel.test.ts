@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { AppConfigListItem, AppConfigReadResult } from "../../ipc/appConfig";
 import type { AppError } from "../../ipc/core";
 import {
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
   INITIAL_APP_CONFIG_STATE,
   appConfigReducer,
   defaultEntryId,
@@ -171,6 +173,14 @@ describe("defaultEntryId", () => {
     expect(defaultEntryId(reloaded)).toBe("zed-settings");
   });
 
+  it("falls back to the first row for a saved AI id that the listing no longer contains", () => {
+    const gemini = item("gemini-user-settings", { category: "editor" });
+    const selected = withDetail(loaded([ZED, gemini]), "gemini-user-settings");
+    const reloaded = appConfigReducer(selected, { type: "listLoaded", items: [ZED] });
+    expect(defaultEntryId(reloaded)).toBe("zed-settings");
+    expect(isKnownEntry(reloaded, "gemini-user-settings")).toBe(false);
+  });
+
   it("selects nothing when the listing is empty", () => {
     expect(defaultEntryId(loaded([]))).toBeUndefined();
   });
@@ -190,12 +200,17 @@ describe("groupByCategory", () => {
     const groups = groupByCategory([
       item("ssh-system-config", { category: "system" }),
       item("zed-settings", { category: "editor" }),
-      item("claude-code-settings", { category: "aiClient" }),
+      item("ghostty-config", { category: "terminal" }),
       item("neovim-init", { category: "editor" }),
     ]);
 
-    expect(groups.map((group) => group.label)).toEqual(["编辑器", "AI 客户端", "系统"]);
+    expect(groups.map((group) => group.label)).toEqual(["编辑器", "终端", "系统"]);
     expect(groups[0]?.items.map((entry) => entry.summary.id)).toEqual(["zed-settings", "neovim-init"]);
+  });
+
+  it("has no AI client category, so AI tool configs never appear as a group", () => {
+    expect(CATEGORY_ORDER).not.toContain("aiClient");
+    expect(Object.keys(CATEGORY_LABELS)).not.toContain("aiClient");
   });
 
   it("omits categories without entries", () => {

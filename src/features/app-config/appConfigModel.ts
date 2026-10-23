@@ -129,7 +129,6 @@ function isCurrentRequest(
 
 export const CATEGORY_ORDER: readonly AppConfigCategory[] = [
   "editor",
-  "aiClient",
   "terminal",
   "developerTool",
   "system",
@@ -137,7 +136,6 @@ export const CATEGORY_ORDER: readonly AppConfigCategory[] = [
 
 export const CATEGORY_LABELS: Record<AppConfigCategory, string> = {
   editor: "编辑器",
-  aiClient: "AI 客户端",
   terminal: "终端",
   developerTool: "开发工具",
   system: "系统",

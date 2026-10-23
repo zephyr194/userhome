@@ -6,7 +6,6 @@ import { createInternalError, invokeCommand, isRecord, type AppError } from "./c
 
 export const APP_CONFIG_CATEGORIES = [
   "editor",
-  "aiClient",
   "terminal",
   "developerTool",
   "system",

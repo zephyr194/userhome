@@ -601,6 +601,15 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
             "https://code.claude.com/docs/en/settings",
         ),
         (
+            "gemini-user-settings",
+            "~/.gemini/settings.json",
+            Format::Json,
+            Capability::ReadOnly,
+            Sensitivity::SensitiveKeys,
+            false,
+            "https://geminicli.com/docs/reference/configuration",
+        ),
+        (
             "docker-config",
             "~/.docker/config.json",
             Format::Json,
@@ -633,7 +642,12 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
         assert_eq!(summary.sensitivity, sensitivity, "{id}");
         assert_eq!(summary.metadata_only, metadata_only, "{id}");
         assert_eq!(summary.source_url, url, "{id}");
-        assert_eq!(summary.verified_on, "2026-10-21", "{id}");
+        let verified_on = if id == "gemini-user-settings" {
+            "2026-10-23"
+        } else {
+            "2026-10-21"
+        };
+        assert_eq!(summary.verified_on, verified_on, "{id}");
     }
 }
 

@@ -10,7 +10,7 @@ use crate::{
     app_config::{
         discover::{ConfigFs, ProbeStatus, StdFs, probe},
         read::{ReadResult, read_entry},
-        registry::{EntrySummary, Registry},
+        registry::{Category, EntrySummary, Registry},
     },
     commands::grants::canonical_home,
     error::AppError,
@@ -37,12 +37,14 @@ pub fn app_config_read(id: String) -> Result<ReadResult, AppError> {
     read_entry_by_id(&registry, &id, &home, &StdFs)
 }
 
-/// Every registered entry with its probe. Each probe is independent, so one
+/// Every non-AI entry with its probe. AI client configs are read on the AI tool
+/// page, so they stay out of this list. Each probe is independent, so one
 /// unreadable location does not change the others.
 pub fn list_entries(registry: &Registry, home: &Path, fs: &dyn ConfigFs) -> Vec<AppConfigListItem> {
     registry
         .entries()
         .iter()
+        .filter(|entry| entry.category != Category::AiClient)
         .map(|entry| AppConfigListItem {
             summary: EntrySummary::from(entry),
             probe: probe(entry, home, fs),
@@ -78,7 +80,10 @@ mod tests {
 
     use crate::{
         app_config::{
-            discover::ProbeStatus, read::ReadResult, registry::Registry, test_support::FakeFs,
+            discover::ProbeStatus,
+            read::ReadResult,
+            registry::{Category, Registry},
+            test_support::FakeFs,
         },
         error::AppErrorCode,
     };
@@ -88,16 +93,47 @@ mod tests {
     const HOME: &str = "/Users/example";
 
     #[test]
-    fn list_returns_every_registered_entry_in_registry_order() {
+    fn list_returns_every_non_ai_entry_in_registry_order() {
         let registry = Registry::builtin().expect("built-in registry is valid");
         let fs = FakeFs::new().dir(HOME);
 
         let items = list_entries(&registry, Path::new(HOME), &fs);
 
         let ids: Vec<&str> = items.iter().map(|item| item.summary.id.as_str()).collect();
-        let expected: Vec<&str> = registry.entries().iter().map(|entry| entry.id).collect();
+        let expected: Vec<&str> = registry
+            .entries()
+            .iter()
+            .filter(|entry| entry.category != Category::AiClient)
+            .map(|entry| entry.id)
+            .collect();
         assert_eq!(ids, expected);
         assert!(items.iter().all(|item| item.probe == ProbeStatus::NotFound));
+    }
+
+    #[test]
+    fn list_never_contains_ai_client_entries() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+        let fs = FakeFs::new().dir(HOME);
+
+        let items = list_entries(&registry, Path::new(HOME), &fs);
+
+        assert!(items.iter().all(|item| item.summary.category != Category::AiClient));
+        for id in ["claude-code-settings", "gemini-user-settings"] {
+            assert!(items.iter().all(|item| item.summary.id != id), "{id}");
+        }
+    }
+
+    #[test]
+    fn ai_client_entries_stay_readable_by_id_for_the_ai_tool_page() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+        let fs = FakeFs::new()
+            .dir(HOME)
+            .file("/Users/example/.gemini/settings.json", "{\"theme\":\"dark\"}");
+
+        let result = read_entry_by_id(&registry, "gemini-user-settings", Path::new(HOME), &fs)
+            .expect("registered AI entry reads");
+
+        assert!(matches!(result, ReadResult::Content { .. }));
     }
 
     #[test]
@@ -120,7 +156,6 @@ mod tests {
         };
         assert_eq!(status("zed-settings"), ProbeStatus::Inaccessible);
         assert!(matches!(status("git-config-home"), ProbeStatus::Found(_)));
-        assert_eq!(status("claude-code-settings"), ProbeStatus::NotFound);
     }
 
     #[test]
