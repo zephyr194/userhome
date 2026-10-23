@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { useT } from "../../i18n/useLocale";
 import { Button } from "./Button";
 import { classNames } from "./classNames";
 import { canHighlight, tokenizeLines, type CodeLanguage, type CodeLine } from "./codeTokens";
@@ -30,6 +31,7 @@ export function CodeViewer({
   text,
   title,
 }: CodeViewerProps) {
+  const t = useT();
   const [wrap, setWrap] = useState(initialWrap);
   const [windowOpen, setWindowOpen] = useState(false);
   const highlight = useMemo(() => canHighlight(text), [text]);
@@ -59,7 +61,7 @@ export function CodeViewer({
         className="r6-code-window"
         footer={
           <Button data-modal-cancel onClick={() => setWindowOpen(false)} size="sm" variant="secondary">
-            关闭
+            {t("common.close")}
           </Button>
         }
         onClose={() => setWindowOpen(false)}
@@ -93,19 +95,20 @@ function CodeToolbar({
   onToggleWrap: () => void;
   wrap: boolean;
 }) {
+  const t = useT();
   return (
     <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
       <div className="min-w-0 text-aux text-muted-foreground">
         {notice}
-        {highlightOff ? <p className="m-0">内容较长，已关闭高亮。</p> : null}
+        {highlightOff ? <p className="m-0">{t("common.code.highlightOff")}</p> : null}
       </div>
       <div className="flex shrink-0 items-center gap-ui-8">
         <Button onClick={onToggleWrap} size="sm" variant="secondary">
-          {wrap ? "不换行" : "换行"}
+          {wrap ? t("common.code.unwrap") : t("common.code.wrap")}
         </Button>
         {onOpenWindow ? (
           <Button aria-haspopup="dialog" onClick={onOpenWindow} size="sm" variant="secondary">
-            在窗口中查看
+            {t("common.code.openWindow")}
           </Button>
         ) : null}
       </div>

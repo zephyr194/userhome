@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useT } from "../../i18n/useLocale";
 import { classNames } from "./classNames";
 
 const EDGE = 8;
@@ -21,6 +22,7 @@ export function InfoTip({
   description: ReactNode;
   title: string;
 }) {
+  const t = useT();
   const bubbleId = useId();
   const wrapperRef = useRef<HTMLSpanElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -76,7 +78,7 @@ export function InfoTip({
     >
       <HeadlessButton
         aria-describedby={bubbleId}
-        aria-label={`说明：${title}`}
+        aria-label={t("common.infoTip.label", { title })}
         className="info-tip__trigger"
         data-open={open || undefined}
         onClick={() => {

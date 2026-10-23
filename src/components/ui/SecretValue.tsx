@@ -6,6 +6,7 @@ import {
   type FocusEvent,
   type KeyboardEvent,
 } from "react";
+import { useT } from "../../i18n/useLocale";
 import { Button } from "./Button";
 import { classNames } from "./classNames";
 import {
@@ -37,6 +38,7 @@ function SecretValueView({
     INITIAL_SECRET_VIEW_STATE,
   );
   const valueId = useId();
+  const t = useT();
   const { copy, revealed } = state;
 
   useEffect(() => {
@@ -88,39 +90,45 @@ function SecretValueView({
       >
         {revealed ? (
           value === "" ? (
-            <span className="font-sans text-muted-foreground">（空值）</span>
+            <span className="font-sans text-muted-foreground">
+              {t("common.secret.emptyValue")}
+            </span>
           ) : (
             value
           )
         ) : (
           <>
             <span aria-hidden="true">{SECRET_MASK}</span>
-            <span className="sr-only">已隐藏</span>
+            <span className="sr-only">{t("common.secret.hiddenValue")}</span>
           </>
         )}
       </code>
       <Button
         aria-controls={valueId}
-        aria-label={`${revealed ? "隐藏" : "显示"} ${label} 的值`}
+        aria-label={
+          revealed
+            ? t("common.secret.hideValueOf", { label })
+            : t("common.secret.showValueOf", { label })
+        }
         onClick={() => dispatch("toggle")}
         size="sm"
         variant="ghost"
       >
-        {revealed ? "隐藏" : "显示"}
+        {revealed ? t("common.secret.hide") : t("common.secret.show")}
       </Button>
       <Button
-        aria-label={`复制 ${label} 的值`}
+        aria-label={t("common.secret.copyValueOf", { label })}
         onClick={copyValue}
         size="sm"
         variant="ghost"
       >
-        复制
+        {t("common.copy")}
       </Button>
       <span className="text-aux text-muted-foreground" role="status">
         {copy === "copied"
-          ? "已复制到剪贴板"
+          ? t("common.clipboard.copied")
           : copy === "failed"
-            ? "复制失败：无法写入剪贴板"
+            ? t("common.clipboard.writeFailed")
             : ""}
       </span>
     </span>

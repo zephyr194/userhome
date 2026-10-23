@@ -6,6 +6,7 @@ import {
   useState,
   type UIEvent,
 } from "react";
+import { useT } from "../../i18n/useLocale";
 import { Button } from "./Button";
 import { classNames } from "./classNames";
 import { TextField } from "./forms";
@@ -47,13 +48,14 @@ export interface LogViewerProps {
 export function LogViewer({
   className,
   droppedCount = 0,
-  emptyText = "暂无日志",
+  emptyText,
   label,
   lines,
   maxLines = DEFAULT_LOG_MAX_LINES,
   paused: controlledPaused,
   onPauseChange,
 }: LogViewerProps) {
+  const t = useT();
   const limit = normalizeMaxLines(maxLines);
   const live = useMemo(
     () => boundLines({ lines, droppedCount }, limit),
@@ -118,7 +120,7 @@ export function LogViewer({
         <TextField
           autoComplete="off"
           className="min-w-48 flex-1"
-          label="筛选日志"
+          label={t("common.log.filter")}
           spellCheck={false}
           type="search"
           value={state.query}
@@ -127,14 +129,16 @@ export function LogViewer({
             setState((previous) => setLogQuery(previous, query));
           }}
         />
-        <Button onClick={togglePause}>{isPaused ? "继续" : "暂停"}</Button>
+        <Button onClick={togglePause}>
+          {isPaused ? t("common.log.resume") : t("common.log.pause")}
+        </Button>
         <Button disabled={visibleLines.length === 0} onClick={copyVisible}>
-          复制当前显示
+          {t("common.log.copyVisible")}
         </Button>
       </div>
 
       <p className="break-words text-aux text-muted-foreground">
-        日志可能包含敏感信息，仅对已知敏感值脱敏；复制需手动操作。
+        {t("common.log.sensitiveNotice")}
       </p>
 
       {view.droppedCount > 0 ? (
@@ -142,35 +146,40 @@ export function LogViewer({
           className="break-words rounded-control bg-warning-soft px-ui-8 py-ui-8 text-aux text-warning"
           data-log-truncated
         >
-          已丢弃较早的 {view.droppedCount} 行，仅保留最近 {view.lines.length}{" "}
-          行
+          {t("common.log.truncated", {
+            dropped: view.droppedCount,
+            kept: view.lines.length,
+          })}
         </p>
       ) : null}
 
       <div className="flex min-w-0 flex-wrap items-center gap-x-ui-12 gap-y-ui-4 text-aux text-muted-foreground">
         <span>
           {filtering
-            ? `匹配 ${visibleLines.length} / ${view.lines.length} 行`
-            : `${view.lines.length} 行`}
+            ? t("common.log.matchCount", {
+                visible: visibleLines.length,
+                total: view.lines.length,
+              })
+            : t("common.log.lineCount", { count: view.lines.length })}
         </span>
         {isPaused ? (
           <span>
-            已暂停，视图不再更新
-            {pending > 0 ? `；另有 ${pending} 行新日志，继续后显示` : ""}
+            {t("common.log.paused")}
+            {pending > 0 ? t("common.log.pendingLines", { count: pending }) : ""}
           </span>
         ) : null}
         <span role="status">
           {copyFeedback === "copied"
-            ? `已复制 ${visibleLines.length} 行到剪贴板`
+            ? t("common.log.copiedLines", { count: visibleLines.length })
             : copyFeedback === "failed"
-              ? "复制失败：无法写入剪贴板"
+              ? t("common.clipboard.writeFailed")
               : ""}
         </span>
       </div>
 
       <div
         ref={scrollerRef}
-        aria-label={`${label}内容`}
+        aria-label={t("common.log.contentLabel", { label })}
         aria-live="off"
         className="max-h-96 min-h-32 overflow-auto rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux text-foreground"
         onScroll={handleScroll}
@@ -179,7 +188,9 @@ export function LogViewer({
       >
         {visibleLines.length === 0 ? (
           <p className="font-sans text-muted-foreground">
-            {filtering && view.lines.length > 0 ? "没有匹配的行" : emptyText}
+            {filtering && view.lines.length > 0
+              ? t("common.log.noMatch")
+              : (emptyText ?? t("common.log.empty"))}
           </p>
         ) : (
           <ol className="m-0 list-none p-0">

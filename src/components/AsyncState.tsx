@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useT } from "../i18n/useLocale";
 import { classNames } from "./ui/classNames";
 
 type AsyncStateKind = "loading" | "empty" | "partial" | "error";
@@ -17,6 +18,7 @@ export function AsyncState({
   children: ReactNode;
   kind: AsyncStateKind;
 }) {
+  const t = useT();
   return (
     <div
       className={classNames(
@@ -29,7 +31,9 @@ export function AsyncState({
     >
       {kind === "partial" || kind === "error" ? (
         <strong className="mr-ui-8">
-          {kind === "error" ? "错误：" : "注意："}
+          {kind === "error"
+            ? t("common.async.errorPrefix")
+            : t("common.async.warningPrefix")}
         </strong>
       ) : null}
       {children}

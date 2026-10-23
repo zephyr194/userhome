@@ -23,6 +23,7 @@ import type {
   Ref,
   TextareaHTMLAttributes,
 } from "react";
+import { useT } from "../../../i18n/useLocale";
 import { Button } from "../Button";
 import { classNames } from "../classNames";
 import { Modal } from "../Modal";
@@ -197,8 +198,10 @@ export function TextAreaField({
 }: AreaProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
-  const fieldName = typeof label === "string" ? label : "文本";
-  const expandLabel = `在独立框中打开${fieldName}`;
+  const t = useT();
+  const fieldName =
+    typeof label === "string" ? label : t("common.forms.defaultFieldName");
+  const expandLabel = t("common.forms.expandField", { field: fieldName });
   const dialogTitle = expandTitle ?? fieldName;
 
   return (
@@ -247,7 +250,7 @@ export function TextAreaField({
             footer={
               <>
                 <Button variant="ghost" onClick={() => setEditing(false)}>
-                  取消
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   variant="primary"
@@ -256,7 +259,7 @@ export function TextAreaField({
                     setEditing(false);
                   }}
                 >
-                  完成
+                  {t("common.done")}
                 </Button>
               </>
             }

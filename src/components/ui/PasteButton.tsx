@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import type { MessageKey } from "../../i18n";
+import { useT } from "../../i18n/useLocale";
 import { Button } from "./Button";
 import { classNames } from "./classNames";
 
-const UNREADABLE_MESSAGE = "无法读取粘贴板：请在输入框中按 ⌘V 粘贴。";
-const EMPTY_MESSAGE = "粘贴板里没有文本。";
+const UNREADABLE_MESSAGE: MessageKey = "common.paste.unreadable";
+const EMPTY_MESSAGE: MessageKey = "common.paste.empty";
 
 export interface PasteButtonProps {
   className?: string;
@@ -16,8 +18,9 @@ export function PasteButton({
   disabled = false,
   onPaste,
 }: PasteButtonProps) {
+  const t = useT();
   const [reading, setReading] = useState(false);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<MessageKey | "">("");
   const mounted = useRef(false);
   const inFlight = useRef(false);
 
@@ -63,7 +66,7 @@ export function PasteButton({
         aria-live="polite"
         className="min-w-0 break-words text-right text-aux text-muted-foreground"
       >
-        {notice}
+        {notice ? t(notice) : ""}
       </span>
       <Button
         size="sm"
@@ -71,7 +74,7 @@ export function PasteButton({
         disabled={reading || disabled}
         onClick={() => void paste()}
       >
-        读取粘贴板
+        {t("common.paste.read")}
       </Button>
     </span>
   );
