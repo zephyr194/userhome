@@ -1,6 +1,7 @@
 import { RouteIcon } from "../../components/RouteIcon";
 import { Button } from "../../components/ui";
 import { PageRegion, PageShell } from "../../components/ui/PageShell";
+import { useT } from "../../i18n/useLocale";
 import { SYSTEM_TOOL_CARDS, type SystemToolRouteId } from "./toolCards";
 
 interface SystemToolsPageProps {
@@ -8,6 +9,7 @@ interface SystemToolsPageProps {
 }
 
 export function SystemToolsPage({ onOpen }: SystemToolsPageProps) {
+  const t = useT();
   return (
     <PageShell layout="strip" scrollKey="system-tools">
       <PageRegion className="system-tools-grid">
@@ -21,8 +23,8 @@ export function SystemToolsPage({ onOpen }: SystemToolsPageProps) {
               <RouteIcon icon={tool.icon} />
             </span>
             <span className="system-tool-card__name">{tool.name}</span>
-            <span className="system-tool-card__desc">{tool.description}</span>
-            <span className="system-tool-card__action">打开</span>
+            <span className="system-tool-card__desc">{t(tool.descriptionKey)}</span>
+            <span className="system-tool-card__action">{t("systemTools.open")}</span>
           </Button>
         ))}
       </PageRegion>

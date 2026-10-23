@@ -4,6 +4,7 @@ import { detectAiConfig, lastAiConfigReport, type AiConfigReport } from "../../i
 import { listAppConfigEntries } from "../../ipc/appConfig";
 import { readZshStartupFiles } from "../../ipc/environment";
 import { listGrants } from "../../ipc/grants";
+import type { TranslateFunction } from "../../i18n";
 
 export interface Reading<T> {
   value: T;
@@ -128,8 +129,14 @@ export function clearOverviewFactCache(): void {
   aiObservedAt = undefined;
 }
 
-export function freshnessLabel(readAt: number | undefined, now: number): string {
-  if (readAt === undefined) return "未读取";
+export function freshnessLabel(
+  readAt: number | undefined,
+  now: number,
+  t: TranslateFunction,
+): string {
+  if (readAt === undefined) return t("dashboard.freshness.unread");
   const minutes = Math.floor((now - readAt) / 60_000);
-  return minutes < 1 ? "刚刚读取" : `${minutes} 分钟前读取`;
+  return minutes < 1
+    ? t("dashboard.freshness.justNow")
+    : t("dashboard.freshness.minutesAgo", { count: minutes });
 }

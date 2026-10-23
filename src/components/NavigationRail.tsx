@@ -51,7 +51,6 @@ export function NavigationRail({
           <small>CONTROL LAB</small>
         </span>
       </div>
-<<<<<<< HEAD
       {groupNavigationRoutes(routes).map(({ group, routes: groupRoutes }) => {
         const groupLabel = navGroupLabel(group, t);
         const headingId = groupLabel ? `nav-group-${group.id}` : undefined;

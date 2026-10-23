@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import type { NavigationIntent } from "../../app/routeDefinitions";
 import type { ConnectionState, DiscoveryState, RefreshState } from "../../app/shellState";
 import { BoardCell, Button, PageShell } from "../../components/ui";
+import type { Locale, TranslateFunction } from "../../i18n";
+import { formatNumber } from "../../i18n/format";
+import { useLocale, useT } from "../../i18n/useLocale";
 import type { ServiceSummary } from "../../ipc/services";
 import { StatusMark, type StatusTone } from "./StatusMark";
 import {
@@ -49,8 +52,9 @@ function useFinishedRefreshCount(status: RefreshState["status"]): number {
 }
 
 function SystemStrip({ state }: { state: DiscoveryState }) {
+  const t = useT();
   if (state.status === "loading") {
-    return <p className="ov-strip ov-strip--muted">正在读取本机信息。</p>;
+    return <p className="ov-strip ov-strip--muted">{t("dashboard.system.loading")}</p>;
   }
   const snapshot = state.status === "ready" ? state.snapshot : state.previousSnapshot;
   const system = snapshot?.system;
@@ -60,22 +64,27 @@ function SystemStrip({ state }: { state: DiscoveryState }) {
         ? system.error.message
         : state.status === "error"
           ? state.error.message
-          : "本机信息暂不可用。";
-    return <p className="ov-strip ov-strip--warning" role="alert">{message}，可点击“刷新”重试。</p>;
+          : t("dashboard.system.unavailable");
+    return (
+      <p className="ov-strip ov-strip--warning" role="alert">
+        {t("dashboard.system.errorHint", { message })}
+      </p>
+    );
   }
   const data = system.data;
   const complete = data.completeness === "COMPLETE";
+  const unavailable = t("dashboard.value.unavailable");
   return (
-    <dl className="ov-strip" aria-label="系统信息摘要">
-      <div><dt>macOS</dt><dd>{data.osVersion ?? "不可用"}</dd></div>
-      <div><dt>架构</dt><dd>{data.architecture ?? "不可用"}</dd></div>
-      <div><dt>登录 Shell</dt><dd>{data.shell ?? "不可用"}</dd></div>
+    <dl className="ov-strip" aria-label={t("dashboard.system.regionLabel")}>
+      <div><dt>macOS</dt><dd>{data.osVersion ?? unavailable}</dd></div>
+      <div><dt>{t("dashboard.system.architecture")}</dt><dd>{data.architecture ?? unavailable}</dd></div>
+      <div><dt>{t("dashboard.system.loginShell")}</dt><dd>{data.shell ?? unavailable}</dd></div>
       <div>
-        <dt>读取</dt>
+        <dt>{t("dashboard.system.readState")}</dt>
         <dd>
           <span className="ov-strip__state">
             <StatusMark tone={complete ? "success" : "warning"} />
-            <span>{complete ? "完整" : "部分可用"}</span>
+            <span>{complete ? t("dashboard.system.complete") : t("dashboard.system.partial")}</span>
           </span>
         </dd>
       </div>
@@ -96,6 +105,7 @@ interface FactModel {
 }
 
 function FactCell({ model, now, onNavigate }: { model: FactModel; now: number; onNavigate: (intent: NavigationIntent) => void }) {
+  const t = useT();
   return (
     <article className="ov-fact">
       <Button
@@ -105,7 +115,7 @@ function FactCell({ model, now, onNavigate }: { model: FactModel; now: number; o
       >
         <span className="ov-fact__head">
           <span className="ov-fact__title">{model.title}</span>
-          <span className="ov-fact__fresh">{freshnessLabel(model.freshnessAt, now)}</span>
+          <span className="ov-fact__fresh">{freshnessLabel(model.freshnessAt, now, t)}</span>
         </span>
         <span className="ov-fact__figure">{model.figure}</span>
         <span className="ov-fact__desc">{model.description}</span>
@@ -142,22 +152,36 @@ function valueOf<T>(state: FactState<T>): Reading<T> | undefined {
   }
 }
 
-function readFailure(message: string): string {
-  return `读取失败：${message}。可点击“重试”再读一次。`;
+function readFailure(message: string, t: TranslateFunction): string {
+  return t("dashboard.fact.readFailed", { message });
 }
 
-function readStatus<T>(state: FactState<T>, attention = false): FactModel["status"] {
-  if (state.status === "reading") return { tone: "neutral", label: "读取中…", busy: true };
-  if (state.status === "error") return { tone: "danger", label: "读取失败" };
-  if (state.status === "unread") return { tone: "neutral", label: "未读取" };
-  return attention ? { tone: "warning", label: "需留意" } : { tone: "success", label: "正常" };
+function readStatus<T>(
+  state: FactState<T>,
+  t: TranslateFunction,
+  attention = false,
+): FactModel["status"] {
+  if (state.status === "reading") {
+    return { tone: "neutral", label: t("dashboard.fact.reading"), busy: true };
+  }
+  if (state.status === "error") return { tone: "danger", label: t("dashboard.fact.failed") };
+  if (state.status === "unread") return { tone: "neutral", label: t("dashboard.fact.unread") };
+  return attention
+    ? { tone: "warning", label: t("dashboard.fact.attention") }
+    : { tone: "success", label: t("dashboard.fact.normal") };
 }
 
-function readButton<T>(state: FactState<T>, read: () => void): Pick<FactModel, "onRead" | "readBusy" | "readLabel"> {
+function readButton<T>(
+  state: FactState<T>,
+  read: () => void,
+  t: TranslateFunction,
+): Pick<FactModel, "onRead" | "readBusy" | "readLabel"> {
   if (state.status === "ready") return {};
-  if (state.status === "reading") return { onRead: read, readBusy: true, readLabel: "读取中…" };
-  if (state.status === "error") return { onRead: read, readLabel: "重试" };
-  return { onRead: read, readLabel: "读取" };
+  if (state.status === "reading") {
+    return { onRead: read, readBusy: true, readLabel: t("dashboard.fact.reading") };
+  }
+  if (state.status === "error") return { onRead: read, readLabel: t("common.retry") };
+  return { onRead: read, readLabel: t("dashboard.fact.read") };
 }
 
 function aiNeedsAttention(report: AiConfigReport): boolean {
@@ -167,94 +191,120 @@ function aiNeedsAttention(report: AiConfigReport): boolean {
 function aiModel(
   state: FactState<AiConfigReport>,
   read: () => void,
+  t: TranslateFunction,
+  locale: Locale,
 ): FactModel {
   const value = valueOf(state);
   const names = value ? installedAiToolNames(value.value) : [];
   const description =
     value === undefined
       ? state.status === "error"
-        ? readFailure(state.message)
-        : "读取后显示本机已安装的 AI 工具。"
+        ? readFailure(state.message, t)
+        : t("dashboard.ai.unread")
       : names.length > 0
-        ? `已安装：${names.join("、")}`
-        : "未发现已安装的 AI 工具。";
+        ? t("dashboard.ai.installed", {
+            names: names.join(t("dashboard.ai.separator")),
+          })
+        : t("dashboard.ai.none");
   return {
-    ...readButton(state, read),
+    ...readButton(state, read, t),
     description,
-    figure: value ? `${names.length}/${value.value.tools.length}` : "—",
+    figure: value
+      ? `${formatNumber(names.length, locale)}/${formatNumber(value.value.tools.length, locale)}`
+      : "—",
     freshnessAt: value?.readAt,
-    status: readStatus(state, value ? aiNeedsAttention(value.value) : false),
+    status: readStatus(state, t, value ? aiNeedsAttention(value.value) : false),
     target: { routeId: "aiConfig" },
-    title: "AI 工具",
+    title: t("dashboard.fact.aiTools"),
   };
 }
 
-function environmentModel(state: FactState<EnvironmentFacts>, read: () => void): FactModel {
+function environmentModel(
+  state: FactState<EnvironmentFacts>,
+  read: () => void,
+  t: TranslateFunction,
+  locale: Locale,
+): FactModel {
   const value = valueOf(state);
   return {
-    ...readButton(state, read),
+    ...readButton(state, read, t),
     description: value
-      ? `zsh 启动文件 ${value.value.zshFiles} 个 · 授权目录 ${value.value.dotenvDirectories} 个`
+      ? t("dashboard.environment.summary", {
+          zshFiles: formatNumber(value.value.zshFiles, locale),
+          directories: formatNumber(value.value.dotenvDirectories, locale),
+        })
       : state.status === "error"
-        ? readFailure(state.message)
-        : "读取后显示 zsh 启动文件与授权目录。",
-    figure: value ? String(value.value.zshFiles) : "—",
+        ? readFailure(state.message, t)
+        : t("dashboard.environment.unread"),
+    figure: value ? formatNumber(value.value.zshFiles, locale) : "—",
     freshnessAt: value?.readAt,
-    status: readStatus(state),
+    status: readStatus(state, t),
     target: { routeId: "environment" },
-    title: "环境变量",
+    title: t("dashboard.fact.environment"),
   };
 }
 
-function appConfigModel(state: FactState<number>, read: () => void): FactModel {
+function appConfigModel(
+  state: FactState<number>,
+  read: () => void,
+  t: TranslateFunction,
+  locale: Locale,
+): FactModel {
   const value = valueOf(state);
   return {
-    ...readButton(state, read),
+    ...readButton(state, read, t),
     description: value
-      ? "已发现的应用配置条目数。"
+      ? t("dashboard.appConfig.summary")
       : state.status === "error"
-        ? readFailure(state.message)
-        : "读取后显示已发现的应用配置条目数。",
-    figure: value ? `已发现 ${value.value} 项` : "—",
+        ? readFailure(state.message, t)
+        : t("dashboard.appConfig.unread"),
+    figure: value
+      ? t("dashboard.appConfig.figure", { count: formatNumber(value.value, locale) })
+      : "—",
     freshnessAt: value?.readAt,
-    status: readStatus(state),
+    status: readStatus(state, t),
     target: { routeId: "appConfig" },
-    title: "应用配置",
+    title: t("dashboard.fact.appConfig"),
   };
 }
 
 function serviceModel(
   overview: ReturnType<typeof useServiceOverview>,
+  t: TranslateFunction,
+  locale: Locale,
 ): FactModel {
   const target: NavigationIntent = { routeId: "services" };
+  const title = t("dashboard.fact.services");
   if (overview.status === "loading") {
     return {
-      description: "正在读取服务列表。",
+      description: t("dashboard.service.loading"),
       figure: "—",
-      status: { tone: "neutral", label: "读取中…", busy: true },
+      status: { tone: "neutral", label: t("dashboard.fact.reading"), busy: true },
       target,
-      title: "服务",
+      title,
     };
   }
   if (overview.status === "error") {
     return {
-      description: readFailure(overview.error.message),
+      description: readFailure(overview.error.message, t),
       figure: "—",
-      status: { tone: "danger", label: "读取失败" },
+      status: { tone: "danger", label: t("dashboard.fact.failed") },
       target,
-      title: "服务",
+      title,
     };
   }
   const services: readonly ServiceSummary[] = overview.services;
   const running = services.filter((service) => service.state === "STARTED").length;
   const failed = services.some((service) => service.state === "ERROR");
   return {
-    description: `UserHome 管理的任务，运行中 ${running} 个`,
-    figure: String(services.length),
+    description: t("dashboard.service.summary", { running: formatNumber(running, locale) }),
+    figure: formatNumber(services.length, locale),
     freshnessAt: overview.loadedAt,
-    status: failed ? { tone: "warning", label: "需留意" } : { tone: "success", label: "正常" },
+    status: failed
+      ? { tone: "warning", label: t("dashboard.fact.attention") }
+      : { tone: "success", label: t("dashboard.fact.normal") },
     target,
-    title: "服务",
+    title,
   };
 }
 
@@ -264,6 +314,8 @@ export function DashboardPage({
   refresh = DEFAULT_REFRESH,
   state,
 }: DashboardPageProps) {
+  const t = useT();
+  const locale = useLocale();
   const now = useNow();
   const finished = useFinishedRefreshCount(refresh.status);
   const refreshId = state.status === "ready" ? state.snapshot.refreshId : undefined;
@@ -273,19 +325,22 @@ export function DashboardPage({
   const appConfig = useFact(appConfigSource, finished);
 
   const models: { key: string; model: FactModel }[] = [
-    { key: "services", model: serviceModel(services) },
-    { key: "aiTools", model: aiModel(ai.state, ai.read) },
-    { key: "environment", model: environmentModel(environment.state, environment.read) },
-    { key: "appConfig", model: appConfigModel(appConfig.state, appConfig.read) },
+    { key: "services", model: serviceModel(services, t, locale) },
+    { key: "aiTools", model: aiModel(ai.state, ai.read, t, locale) },
+    {
+      key: "environment",
+      model: environmentModel(environment.state, environment.read, t, locale),
+    },
+    { key: "appConfig", model: appConfigModel(appConfig.state, appConfig.read, t, locale) },
   ];
 
   return (
-    <section className="dashboard-workspace" aria-label="概览">
+    <section className="dashboard-workspace" aria-label={t("dashboard.regionLabel")}>
       <PageShell layout="board">
         <BoardCell span={12}>
           {connection?.status === "error" ? (
             <p className="ov-strip ov-strip--danger" role="alert">
-              本地服务连接失败：{connection.error.message}，可点击“刷新”重试。
+              {t("dashboard.connection.errorHint", { message: connection.error.message })}
             </p>
           ) : null}
           <SystemStrip state={state} />

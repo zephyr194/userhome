@@ -1,24 +1,31 @@
 import { StatusBadge } from "../../components/ui";
+import type { MessageKey, TranslateFunction } from "../../i18n";
+import { formatNumber } from "../../i18n/format";
+import { useLocale, useT } from "../../i18n/useLocale";
 import type {
   DetectionEvidence,
   DetectionStatus,
   SystemSummary as SystemSummaryData,
 } from "../../ipc/discovery";
 
-function evidenceLabel(evidence: DetectionEvidence): string {
+function evidenceLabel(evidence: DetectionEvidence, t: TranslateFunction): string {
   if (evidence.kind === "CONFIG_PRESENT") {
-    return evidence.present ? "配置存在" : "未发现配置";
+    return evidence.present
+      ? t("dashboard.evidence.configPresent")
+      : t("dashboard.evidence.configMissing");
   }
-  return evidence.present ? "命令可用" : "未发现命令";
+  return evidence.present
+    ? t("dashboard.evidence.commandAvailable")
+    : t("dashboard.evidence.commandMissing");
 }
 
 const APPLICATION_STATUS: Record<
   DetectionStatus,
-  { label: string; tone: "neutral" | "success" | "warning" }
+  { labelKey: MessageKey; tone: "neutral" | "success" | "warning" }
 > = {
-  DETECTED: { label: "已检测", tone: "success" },
-  PARTIAL: { label: "部分检测", tone: "warning" },
-  ABSENT: { label: "未检测", tone: "neutral" },
+  DETECTED: { labelKey: "dashboard.applicationStatus.detected", tone: "success" },
+  PARTIAL: { labelKey: "dashboard.applicationStatus.partial", tone: "warning" },
+  ABSENT: { labelKey: "dashboard.applicationStatus.absent", tone: "neutral" },
 };
 
 function PresenceIcon({ present }: { present: boolean }) {
@@ -52,6 +59,9 @@ function PresenceIcon({ present }: { present: boolean }) {
 }
 
 export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
+  const t = useT();
+  const locale = useLocale();
+  const unavailable = t("dashboard.value.unavailable");
   const detected = summary.applications.filter(
     (application) => application.status !== "ABSENT",
   );
@@ -67,33 +77,35 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
       <section aria-labelledby="machine-summary-heading">
         <header className="dashboard-subgroup-heading">
           <div className="min-w-0">
-            <h4 id="machine-summary-heading">机器信息</h4>
-            <p>当前登录环境</p>
+            <h4 id="machine-summary-heading">{t("dashboard.machine.heading")}</h4>
+            <p>{t("dashboard.machine.caption")}</p>
           </div>
           <StatusBadge
             className="shrink-0"
             tone={summary.completeness === "COMPLETE" ? "success" : "warning"}
           >
-            {summary.completeness === "COMPLETE" ? "完整" : "部分可用"}
+            {summary.completeness === "COMPLETE"
+              ? t("dashboard.system.complete")
+              : t("dashboard.system.partial")}
           </StatusBadge>
         </header>
 
         <dl className="dashboard-machine-rows">
           <div>
             <dt>macOS</dt>
-            <dd>{summary.osVersion ?? "不可用"}</dd>
+            <dd>{summary.osVersion ?? unavailable}</dd>
           </div>
           <div>
-            <dt>架构</dt>
-            <dd>{summary.architecture ?? "不可用"}</dd>
+            <dt>{t("dashboard.system.architecture")}</dt>
+            <dd>{summary.architecture ?? unavailable}</dd>
           </div>
           <div>
-            <dt>用户目录</dt>
+            <dt>{t("dashboard.machine.homeDirectory")}</dt>
             <dd>{summary.homeDirectory}</dd>
           </div>
           <div>
-            <dt>登录 Shell</dt>
-            <dd>{summary.shell ?? "不可用"}</dd>
+            <dt>{t("dashboard.system.loginShell")}</dt>
+            <dd>{summary.shell ?? unavailable}</dd>
           </div>
         </dl>
       </section>
@@ -101,9 +113,12 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
       <section aria-labelledby="applications-summary-heading">
         <header className="dashboard-subgroup-heading">
           <div className="min-w-0">
-            <h4 id="applications-summary-heading">应用检测</h4>
+            <h4 id="applications-summary-heading">{t("dashboard.applications.heading")}</h4>
             <p>
-              已识别 {detected.length}/{summary.applications.length} 个应用
+              {t("dashboard.applications.identified", {
+                detected: formatNumber(detected.length, locale),
+                total: formatNumber(summary.applications.length, locale),
+              })}
             </p>
           </div>
         </header>
@@ -116,22 +131,22 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
             <PresenceIcon present={false} />
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8">
-                <strong className="min-w-0 text-xs">应用检测结果</strong>
-                <StatusBadge className="shrink-0">无数据</StatusBadge>
+                <strong className="min-w-0 text-xs">{t("dashboard.applications.emptyTitle")}</strong>
+                <StatusBadge className="shrink-0">{t("dashboard.applications.noData")}</StatusBadge>
               </div>
               <p className="mt-ui-4 min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
-                本次发现未返回应用检测条目。
+                {t("dashboard.applications.emptyBody")}
               </p>
             </div>
           </div>
         ) : (
           <details className="dashboard-applications">
             <summary>
-              <span>查看检测证据</span>
+              <span>{t("dashboard.applications.showEvidence")}</span>
               <span className="dashboard-counts">
-                完整 <strong>{fullyDetected}</strong>
+                {t("dashboard.applications.fullCount")} <strong>{formatNumber(fullyDetected, locale)}</strong>
                 <span aria-hidden="true">·</span>
-                部分 <strong>{partial}</strong>
+                {t("dashboard.applications.partialCount")} <strong>{formatNumber(partial, locale)}</strong>
               </span>
             </summary>
             <ul className="dashboard-application-rows">
@@ -148,12 +163,12 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
                       className="shrink-0"
                       tone={APPLICATION_STATUS[application.status].tone}
                     >
-                      {APPLICATION_STATUS[application.status].label}
+                      {t(APPLICATION_STATUS[application.status].labelKey)}
                     </StatusBadge>
                   </div>
                   {application.evidence.length === 0 ? (
                     <p className="mt-ui-4 min-w-0 break-words text-xs leading-relaxed text-muted-foreground">
-                      未返回检测证据。
+                      {t("dashboard.applications.noEvidence")}
                     </p>
                   ) : (
                     <ul>
@@ -161,7 +176,8 @@ export function SystemSummary({ summary }: { summary: SystemSummaryData }) {
                         <li key={`${evidence.kind}-${evidence.label}`}>
                           <PresenceIcon present={evidence.present} />
                           <span className="min-w-0 break-words">
-                            <strong>{evidenceLabel(evidence)}</strong>：
+                            <strong>{evidenceLabel(evidence, t)}</strong>
+                            {t("dashboard.separator.colon")}
                             {evidence.path?.displayPath ?? evidence.label}
                           </span>
                         </li>

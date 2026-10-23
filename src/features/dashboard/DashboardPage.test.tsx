@@ -21,6 +21,8 @@ type Rtl = typeof import("@testing-library/react");
 
 const srcRoot = join(process.cwd(), "src");
 
+const CJK_PATTERN = /[\u3400-\u9fff\uf900-\uffaf]/;
+
 const TOOL_IDS = [
   ["claude-code", "Claude Code"],
   ["codex-cli", "Codex CLI"],
@@ -71,6 +73,7 @@ const READY_STATE = { status: "ready" as const, snapshot: readySnapshot() };
 
 let rtl: Rtl;
 let DashboardPage: typeof import("./DashboardPage").DashboardPage;
+let LocaleProvider: typeof import("../../i18n/LocaleProvider").LocaleProvider;
 let clearOverviewFactCache: typeof import("./overviewFacts").clearOverviewFactCache;
 let listServiceCalls = 0;
 let detectCalls = 0;
@@ -79,6 +82,7 @@ async function freshModules(): Promise<void> {
   vi.resetModules();
   rtl = await import("@testing-library/react");
   ({ DashboardPage } = await import("./DashboardPage"));
+  ({ LocaleProvider } = await import("../../i18n/LocaleProvider"));
   ({ clearOverviewFactCache } = await import("./overviewFacts"));
 }
 
@@ -272,5 +276,27 @@ describe("DashboardPage single-screen layout", () => {
     expect(block.length).toBeGreaterThan(0);
     expect(block).not.toMatch(/overflow-y|overflow:\s*(auto|scroll)/);
     expect(block).not.toMatch(/clip-path|gradient|box-shadow|outline/);
+  });
+});
+
+describe("DashboardPage English copy", () => {
+  it("renders the overview in English without Chinese text under the en preference", () => {
+    rtl.render(
+      <LocaleProvider preference="en">
+        <DashboardPage state={READY_STATE} />
+      </LocaleProvider>,
+    );
+    const text = document.body.textContent ?? "";
+
+    expect(rtl.screen.getByRole("region", { name: "Overview" })).toBeTruthy();
+    expect(factCell("Services").textContent).toContain("Reading the service list.");
+    expect(factCell("AI tools").textContent).toContain("Read to show AI tools installed on this Mac.");
+    expect(factCell("Environment variables").textContent).toContain(
+      "Read to show zsh startup files and authorized directories.",
+    );
+    expect(factCell("App configs").textContent).toContain("Read to show the number of app config entries found.");
+    expect(document.querySelector('dl[aria-label="Machine summary"]')).not.toBeNull();
+    expect(text).toContain("Login shell");
+    expect(text).not.toMatch(CJK_PATTERN);
   });
 });

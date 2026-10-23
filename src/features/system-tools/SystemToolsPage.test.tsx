@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "../../i18n/LocaleProvider";
 import { SystemToolsPage } from "./SystemToolsPage";
 import { SYSTEM_TOOL_CARDS } from "./toolCards";
 
@@ -30,5 +31,19 @@ describe("系统工具卡片页", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Caddy/ }));
     expect(onOpen).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledWith("caddy");
+  });
+});
+
+describe("系统工具卡片页英文文案", () => {
+  it("在 en 偏好下渲染英文且不含中文字符", () => {
+    const markup = renderToStaticMarkup(
+      <LocaleProvider preference="en">
+        <SystemToolsPage onOpen={() => undefined} />
+      </LocaleProvider>,
+    );
+
+    expect(markup).toContain("Detect Caddy and edit local reverse-proxy rules.");
+    expect(markup).toContain('class="system-tool-card__action">Open</span>');
+    expect(markup).not.toMatch(/[\u3400-\u9fff\uf900-\uffaf]/);
   });
 });
