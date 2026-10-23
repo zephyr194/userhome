@@ -114,6 +114,10 @@ export function ServiceManagement({
   if (view.kind === "none") return null;
 
   const close = () => setOpen(undefined);
+  const openDialog = (next: OpenDialog) => {
+    setNotice(undefined);
+    setOpen(next);
+  };
 
   return (
     <Panel aria-labelledby="service-management-heading" className="min-w-0">
@@ -129,7 +133,7 @@ export function ServiceManagement({
               {t("services.management.adoptIntro")}
             </p>
             <div>
-              <Button onClick={() => setOpen("adopt")} variant="primary">
+              <Button onClick={() => openDialog("adopt")} variant="primary">
                 {t("services.management.adopt")}
               </Button>
             </div>
@@ -158,18 +162,18 @@ export function ServiceManagement({
             )}
             <div className="flex flex-wrap gap-ui-8">
               {view.editBlockers.length === 0 ? (
-                <Button onClick={() => setOpen("edit")} variant="primary">
+                <Button onClick={() => openDialog("edit")} variant="primary">
                   {t("services.management.edit")}
                 </Button>
               ) : null}
-              <Button onClick={() => setOpen("release")}>
+              <Button onClick={() => openDialog("release")}>
                 {t("services.management.release")}
               </Button>
             </div>
           </>
         ) : null}
 
-        {notice ? (
+        {notice && open === undefined ? (
           <p className="text-sm text-success" role="status" aria-live="polite">
             {notice}
           </p>
