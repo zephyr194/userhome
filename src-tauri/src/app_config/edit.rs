@@ -32,7 +32,7 @@ use crate::{
             AtomicReplaceError, atomic_create_new, atomic_replace,
             restore_backup_after_commit_failure,
         },
-        backup::create_backup,
+        backup::{BackupRecord, create_backup},
         diff::unified_text,
         read::{hash_bytes, read_bounded},
     },
@@ -58,7 +58,61 @@ pub struct Target {
 struct Loaded {
     exists: bool,
     bytes: Vec<u8>,
-    mode: u32,
+}
+
+/// Writes that touch the real disk. Confirm goes through this so tests can replace it.
+pub(crate) trait ConfigStore {
+    fn mode(&self, path: &Path) -> Result<u32, AppError>;
+    fn read(&self, path: &Path) -> Result<Vec<u8>, AppError>;
+    fn create_new(&self, path: &Path, bytes: &[u8], mode: u32) -> Result<(), AppError>;
+    fn backup(&self, config_id: &str, bytes: &[u8], mode: u32) -> Result<BackupRecord, AppError>;
+    fn replace(
+        &self,
+        path: &Path,
+        bytes: &[u8],
+        mode: u32,
+        before_hash: &str,
+    ) -> Result<(), AtomicReplaceError>;
+    fn restore(&self, path: &Path, backup: &BackupRecord) -> Result<(), AppError>;
+}
+
+struct DiskStore<'a> {
+    environment: &'a ConfigEnvironment,
+    retention: BackupRetention,
+}
+
+impl ConfigStore for DiskStore<'_> {
+    fn mode(&self, path: &Path) -> Result<u32, AppError> {
+        let metadata = fs::metadata(path)
+            .map_err(|_| AppError::permission_denied("无法读取配置文件，请检查文件权限。"))?;
+        Ok(metadata.permissions().mode() & 0o777)
+    }
+
+    fn read(&self, path: &Path) -> Result<Vec<u8>, AppError> {
+        read_bounded(path, MAX_RAW_BYTES)
+    }
+
+    fn create_new(&self, path: &Path, bytes: &[u8], mode: u32) -> Result<(), AppError> {
+        atomic_create_new(path, bytes, mode)
+    }
+
+    fn backup(&self, config_id: &str, bytes: &[u8], mode: u32) -> Result<BackupRecord, AppError> {
+        create_backup(self.environment, APP_ID, config_id, bytes, mode, self.retention)
+    }
+
+    fn replace(
+        &self,
+        path: &Path,
+        bytes: &[u8],
+        mode: u32,
+        before_hash: &str,
+    ) -> Result<(), AtomicReplaceError> {
+        atomic_replace(path, bytes, mode, Some((before_hash, MAX_RAW_BYTES)))
+    }
+
+    fn restore(&self, path: &Path, backup: &BackupRecord) -> Result<(), AppError> {
+        restore_backup_after_commit_failure(path, backup, MAX_RAW_BYTES)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -176,7 +230,6 @@ fn load(target: &Target, fs: &dyn ConfigFs) -> Result<Loaded, AppError> {
         return Ok(Loaded {
             exists: false,
             bytes: Vec::new(),
-            mode: NEW_FILE_MODE,
         });
     }
     let bytes = fs
@@ -188,15 +241,9 @@ fn load(target: &Target, fs: &dyn ConfigFs) -> Result<Loaded, AppError> {
                 AppError::permission_denied("无法读取配置文件，请检查文件权限。")
             }
         })?;
-    let mode = fs::metadata(&target.path)
-        .map_err(|_| AppError::permission_denied("无法读取配置文件，请检查文件权限。"))?
-        .permissions()
-        .mode()
-        & 0o777;
     Ok(Loaded {
         exists: true,
         bytes,
-        mode,
     })
 }
 
@@ -295,6 +342,19 @@ pub fn preview(
         return Err(AppError::conflict("配置文件已经变化，请重新读取后再预览。"));
     }
     let current = text_of(&loaded.bytes)?;
+    if input.mode == EditMode::Raw && raw_secret_present(entry.format, &current) {
+        return Ok(PreviewResult {
+            ok: false,
+            errors: vec![PreviewIssue {
+                path: None,
+                line: None,
+                message: SECRET_RAW_REASON.to_owned(),
+            }],
+            diff: String::new(),
+            warnings: Vec::new(),
+            preview_token: None,
+        });
+    }
     let mut plan = match input.mode {
         EditMode::Fields => plan_fields(entry.format, &schema, &current, &input.changes),
         EditMode::Raw => plan_raw(entry.format, input.raw_text.as_deref()),
@@ -365,6 +425,11 @@ fn plan_fields(format: crate::app_config::registry::Format, schema: &EditSchema,
         match apply_change(format, &plan.proposed, field.path, &operation) {
             Ok(next) => plan.proposed = next,
             Err(message) => plan.issue(Some(field.path), None, message),
+        }
+    }
+    if plan.issues.is_empty() {
+        if let Err(RawError { line, message }) = check_raw(format, &plan.proposed) {
+            plan.issue(None, line, message);
         }
     }
     plan
@@ -441,7 +506,23 @@ pub fn confirm(
     retention: BackupRetention,
     token: &str,
 ) -> Result<ReadResult, AppError> {
-    let pending = state.take(token)?;
+    let store = DiskStore {
+        environment,
+        retention,
+    };
+    confirm_at(registry, home, fs, &store, state, token, Instant::now())
+}
+
+pub(crate) fn confirm_at(
+    registry: &Registry,
+    home: &Path,
+    fs: &dyn ConfigFs,
+    store: &dyn ConfigStore,
+    state: &AppConfigEditState,
+    token: &str,
+    now: Instant,
+) -> Result<ReadResult, AppError> {
+    let pending = state.take_at(token, now)?;
     let entry = registry
         .get(pending.entry_id)
         .map_err(|_| AppError::not_found("未知的应用配置条目。"))?;
@@ -456,59 +537,54 @@ pub fn confirm(
             "配置文件已在预览后变化，请重新读取并预览。",
         ));
     }
+    let mode = if target.exists {
+        store.mode(&target.path)?
+    } else {
+        NEW_FILE_MODE
+    };
     write_and_verify(
+        store,
         &target,
-        &loaded,
+        &loaded.bytes,
+        mode,
         pending.proposed.as_bytes(),
         entry.id,
-        environment,
-        retention,
     )?;
     Ok(read_entry(entry, home, fs))
 }
 
 fn write_and_verify(
+    store: &dyn ConfigStore,
     target: &Target,
-    loaded: &Loaded,
+    before: &[u8],
+    mode: u32,
     proposed: &[u8],
     config_id: &str,
-    environment: &ConfigEnvironment,
-    retention: BackupRetention,
 ) -> Result<(), AppError> {
     if !target.exists {
-        atomic_create_new(&target.path, proposed, NEW_FILE_MODE)?;
-    } else {
-        let backup = create_backup(
-            environment,
-            APP_ID,
-            config_id,
-            &loaded.bytes,
-            loaded.mode,
-            retention,
-        )?;
-        let before = hash_bytes(&loaded.bytes);
-        match atomic_replace(&target.path, proposed, loaded.mode, Some((&before, MAX_RAW_BYTES))) {
-            Ok(()) => {}
-            Err(AtomicReplaceError::BeforeCommit(error)) => return Err(error),
-            Err(AtomicReplaceError::AfterCommit(error)) => {
-                restore_backup_after_commit_failure(&target.path, &backup, MAX_RAW_BYTES)?;
-                return Err(error);
-            }
-        }
-        let written = read_bounded(&target.path, MAX_RAW_BYTES)?;
-        if written != proposed {
-            restore_backup_after_commit_failure(&target.path, &backup, MAX_RAW_BYTES)?;
+        store.create_new(&target.path, proposed, mode)?;
+        if store.read(&target.path)? != proposed {
             return Err(AppError::partial_failure(
-                "写入后的内容与预览不一致，已恢复原内容。",
+                "写入后的内容与预览不一致，请检查该文件。",
                 false,
             ));
         }
         return Ok(());
     }
-    let written = read_bounded(&target.path, MAX_RAW_BYTES)?;
-    if written != proposed {
+    let backup = store.backup(config_id, before, mode)?;
+    let before_hash = hash_bytes(before);
+    match store.replace(&target.path, proposed, mode, &before_hash) {
+        Ok(()) => {}
+        Err(AtomicReplaceError::BeforeCommit(error)) => return Err(error),
+        Err(AtomicReplaceError::AfterCommit(error)) => {
+            store.restore(&target.path, &backup)?;
+            return Err(error);
+        }
+    }
+    if store.read(&target.path)? != proposed {
+        store.restore(&target.path, &backup)?;
         return Err(AppError::partial_failure(
-            "写入后的内容与预览不一致，请检查该文件。",
+            "写入后的内容与预览不一致，已恢复原内容。",
             false,
         ));
     }

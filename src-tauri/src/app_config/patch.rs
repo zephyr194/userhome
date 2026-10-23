@@ -264,7 +264,7 @@ pub fn split_path(path: &str) -> Option<(Vec<&str>, &str)> {
 pub fn apply_change(format: Format, text: &str, path: &str, change: &Change) -> Result<String, String> {
     let (table, key) = split_path(path).ok_or_else(|| "字段路径无效。".to_owned())?;
     match format {
-        Format::Ini if table.len() == 1 => Ok(ini_patch(text, table[0], key, change)),
+        Format::Ini if table.len() == 1 => ini_patch(text, table[0], key, change),
         Format::Toml => toml_patch(text, &table, key, change),
         _ => Err("这个格式只能使用高级模式修改。".to_owned()),
     }

@@ -280,6 +280,15 @@ pub fn toml_lookup(text: &str, table: &[&str], key: &str) -> Lookup {
     }
 }
 
+/// True when `path` starts with `prefix`; equal paths count.
+fn has_prefix<A: AsRef<str>, B: AsRef<str>>(path: &[A], prefix: &[B]) -> bool {
+    path.len() >= prefix.len()
+        && path
+            .iter()
+            .zip(prefix)
+            .all(|(segment, wanted)| segment.as_ref() == wanted.as_ref())
+}
+
 pub fn toml_patch(text: &str, table: &[&str], key: &str, change: &Change) -> Result<String, String> {
     let mut lines = split_lines(text);
     let (entries, _) = scan_toml(&lines);
@@ -287,6 +296,7 @@ pub fn toml_patch(text: &str, table: &[&str], key: &str, change: &Change) -> Res
     wanted_full.push(key);
 
     let mut direct: Option<usize> = None;
+    let mut dotted: Vec<(usize, Vec<String>)> = Vec::new();
     for (index, entry) in entries.iter().enumerate() {
         match entry {
             TomlEntry::Key {
@@ -294,16 +304,22 @@ pub fn toml_patch(text: &str, table: &[&str], key: &str, change: &Change) -> Res
                 segments,
                 ..
             } => {
+                let full: Vec<String> = key_table.iter().chain(segments).cloned().collect();
                 if path_is(key_table, table) && segments.len() == 1 && segments[0] == key {
                     direct = Some(index);
                 } else if full_equals(key_table, segments, table, key)
                     || defines_ancestor(key_table, segments, table)
+                    || has_prefix(&full, &wanted_full)
                 {
                     return Err(UNSAFE_LOCATION.to_owned());
+                } else if key_table.len() < table.len() && has_prefix(&full, table) {
+                    dotted.push((index, key_table.clone()));
                 }
             }
             TomlEntry::Header { segments, array } => {
-                if path_is(segments, &wanted_full) || (*array && path_is(segments, table)) {
+                if has_prefix(segments, &wanted_full)
+                    || (*array && has_prefix(table, segments))
+                {
                     return Err(UNSAFE_LOCATION.to_owned());
                 }
             }
@@ -329,7 +345,7 @@ pub fn toml_patch(text: &str, table: &[&str], key: &str, change: &Change) -> Res
                     }
                     replace_value(&mut lines[index], &entries[index], &rendered);
                 }
-                None => insert_key(&mut lines, &entries, table, key, &rendered),
+                None => insert_key(&mut lines, &entries, table, key, &rendered, &dotted)?,
             }
         }
     }
@@ -362,7 +378,8 @@ fn insert_key(
     table: &[&str],
     key: &str,
     rendered: &str,
-) {
+    dotted: &[(usize, Vec<String>)],
+) -> Result<(), String> {
     let assignment = format!("{key} = {rendered}");
     if table.is_empty() {
         let first_header = entries
@@ -371,7 +388,7 @@ fn insert_key(
             .unwrap_or(lines.len());
         let position = back_over_blanks(lines, first_header, 0);
         insert_lines(lines, position, vec![assignment]);
-        return;
+        return Ok(());
     }
     let header = entries
         .iter()
@@ -383,6 +400,9 @@ fn insert_key(
         .last();
     match header {
         Some(start) => {
+            if !dotted.is_empty() {
+                return Err(UNSAFE_LOCATION.to_owned());
+            }
             let end = entries
                 .iter()
                 .enumerate()
@@ -396,7 +416,9 @@ fn insert_key(
                 .map(|index| leading_whitespace(&lines[index].text).to_owned())
                 .unwrap_or_default();
             insert_lines(lines, position, vec![format!("{indent}{assignment}")]);
+            Ok(())
         }
+        None if !dotted.is_empty() => insert_dotted(lines, entries, table, key, rendered, dotted),
         None => {
             if lines.last().is_some_and(|line| !line.text.trim().is_empty()) {
                 let end = lines.len();
@@ -408,9 +430,38 @@ fn insert_key(
                 end,
                 vec![format!("[{}]", table.join(".")), assignment],
             );
+            Ok(())
         }
     }
 }
+
+/// Adds the key as a dotted sibling right after the dotted keys that already create the table.
+fn insert_dotted(
+    lines: &mut Vec<Line>,
+    entries: &[TomlEntry],
+    table: &[&str],
+    key: &str,
+    rendered: &str,
+    dotted: &[(usize, Vec<String>)],
+) -> Result<(), String> {
+    let (Some((last, _)), Some((_, parent))) = (dotted.last(), dotted.first()) else {
+        return Err(UNSAFE_LOCATION.to_owned());
+    };
+    let same_parent = dotted.iter().all(|(_, owner)| owner == parent);
+    let all_single_line = dotted.iter().all(|(index, _)| !is_complex(&entries[*index]));
+    if !same_parent || !all_single_line {
+        return Err(UNSAFE_LOCATION.to_owned());
+    }
+    let relative = table[parent.len()..].join(".");
+    let indent = leading_whitespace(&lines[*last].text).to_owned();
+    insert_lines(
+        lines,
+        last + 1,
+        vec![format!("{indent}{relative}.{key} = {rendered}")],
+    );
+    Ok(())
+}
+
 
 fn back_over_blanks(lines: &[Line], mut position: usize, floor: usize) -> usize {
     while position > floor && lines[position - 1].text.trim().is_empty() {
