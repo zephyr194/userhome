@@ -22,6 +22,7 @@ const readyState: ShellState = {
       preferredEditorMode: "STRUCTURED",
       backupRetention: 20,
       optionalDiscoveryRoots: [],
+      language: "system",
     },
   },
   recentOperation: { status: "empty" },

@@ -203,6 +203,7 @@ describe("AppShell", () => {
           preferredEditorMode: "STRUCTURED",
           backupRetention: 20,
           optionalDiscoveryRoots: [],
+          language: "system",
         },
         diagnostic: {
           code: "INVALID_DOCUMENT",
@@ -354,6 +355,7 @@ describe("AppShell", () => {
           preferredEditorMode: "STRUCTURED",
           backupRetention: 20,
           optionalDiscoveryRoots: [],
+          language: "system",
         },
       },
       recentOperation: { status: "empty" },

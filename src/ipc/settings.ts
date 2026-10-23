@@ -19,6 +19,7 @@ export type CloseBehavior = "KEEP_RUNNING_IN_TRAY" | "QUIT_APPLICATION";
 export type ProviderTimeoutPreset = "SHORT" | "STANDARD" | "EXTENDED";
 export type PreferredEditorMode = "STRUCTURED" | "RAW";
 export type BackupRetention = 5 | 10 | 20;
+export type LanguagePreference = "system" | "zh-CN" | "en";
 export type OptionalDiscoveryRoot =
   | "HOME"
   | "XDG_CONFIG_HOME"
@@ -37,6 +38,7 @@ export interface UserPreferences {
   readonly preferredEditorMode: PreferredEditorMode;
   readonly backupRetention: BackupRetention;
   readonly optionalDiscoveryRoots: readonly OptionalDiscoveryRoot[];
+  readonly language: LanguagePreference;
 }
 
 export interface UpdatePreferencesRequest {
@@ -50,6 +52,7 @@ export interface UpdatePreferencesRequest {
   preferredEditorMode?: PreferredEditorMode;
   backupRetention?: BackupRetention;
   optionalDiscoveryRoots?: readonly OptionalDiscoveryRoot[];
+  language?: LanguagePreference;
 }
 
 export type SettingsDiagnosticCode =
@@ -141,9 +144,11 @@ export const DEFAULT_USER_PREFERENCES = {
     "APPLICATION_SUPPORT",
     "HOMEBREW_PREFIX",
   ],
+  language: "system",
 } as const satisfies UserPreferences;
 
 const APPEARANCES: readonly string[] = ["SYSTEM", "LIGHT", "DARK"];
+const LANGUAGES: readonly string[] = ["system", "zh-CN", "en"];
 const CLOSE_BEHAVIORS: readonly string[] = [
   "KEEP_RUNNING_IN_TRAY",
   "QUIT_APPLICATION",
@@ -257,6 +262,10 @@ function decodePreferences(value: unknown): UserPreferences {
     optionalDiscoveryRoots: decodeOptionalDiscoveryRoots(
       value.optionalDiscoveryRoots,
     ),
+    language:
+      value.language === undefined
+        ? DEFAULT_USER_PREFERENCES.language
+        : decodeKnownValue<LanguagePreference>(value.language, LANGUAGES),
   };
 }
 

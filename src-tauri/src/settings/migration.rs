@@ -1,8 +1,8 @@
 use serde::Deserialize;
 
 use super::{
-    Appearance, BackupRetention, CloseBehavior, OptionalDiscoveryRoot, PreferredEditorMode,
-    ProviderTimeoutPreset, SETTINGS_SCHEMA_VERSION, UserPreferences,
+    Appearance, BackupRetention, CloseBehavior, Language, OptionalDiscoveryRoot,
+    PreferredEditorMode, ProviderTimeoutPreset, SETTINGS_SCHEMA_VERSION, UserPreferences,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,6 +66,7 @@ fn migrate_v0(legacy: UserPreferencesV0) -> Result<UserPreferences, MigrationErr
         preferred_editor_mode: legacy.preferred_editor_mode,
         backup_retention: legacy.backup_retention,
         optional_discovery_roots: OptionalDiscoveryRoot::ALL.to_vec(),
+        language: Language::System,
     })
 }
 
@@ -110,6 +111,29 @@ mod tests {
             migrated.optional_discovery_roots(),
             UserPreferences::default().optional_discovery_roots()
         );
+    }
+
+    #[test]
+    fn settings_v1_documents_without_language_default_to_system() {
+        let document = serde_json::to_vec(&json!({
+            "schemaVersion": 1,
+            "appearance": "DARK",
+            "openWindowOnLaunch": true,
+            "closeBehavior": "KEEP_RUNNING_IN_TRAY",
+            "restoreSelection": true,
+            "refreshOnLaunch": true,
+            "refreshOnReopen": true,
+            "providerTimeoutPreset": "STANDARD",
+            "preferredEditorMode": "STRUCTURED",
+            "backupRetention": 20,
+            "optionalDiscoveryRoots": ["HOME"]
+        }))
+        .expect("serialize v1 preferences");
+
+        let migrated = decode_and_migrate(&document).expect("decode v1 preferences");
+
+        assert_eq!(migrated.language(), Language::System);
+        assert_eq!(migrated.appearance(), Appearance::Dark);
     }
 
     #[test]

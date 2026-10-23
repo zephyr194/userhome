@@ -31,6 +31,7 @@ const preferences: UserPreferences = {
   preferredEditorMode: "STRUCTURED",
   backupRetention: 10,
   optionalDiscoveryRoots: ["HOME"],
+  language: "system",
 };
 
 const readyState: PreferencesState = { status: "ready", preferences };

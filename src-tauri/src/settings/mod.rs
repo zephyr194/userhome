@@ -46,6 +46,17 @@ pub enum PreferredEditorMode {
     Raw,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Language {
+    #[default]
+    #[serde(rename = "system")]
+    System,
+    #[serde(rename = "zh-CN")]
+    ZhCn,
+    #[serde(rename = "en")]
+    En,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BackupRetention(u8);
 
@@ -116,6 +127,8 @@ pub struct UserPreferences {
     preferred_editor_mode: PreferredEditorMode,
     backup_retention: BackupRetention,
     optional_discovery_roots: Vec<OptionalDiscoveryRoot>,
+    #[serde(default)]
+    language: Language,
 }
 
 impl Default for UserPreferences {
@@ -132,6 +145,7 @@ impl Default for UserPreferences {
             preferred_editor_mode: PreferredEditorMode::Structured,
             backup_retention: BackupRetention::TWENTY,
             optional_discovery_roots: OptionalDiscoveryRoot::ALL.to_vec(),
+            language: Language::System,
         }
     }
 }
@@ -181,6 +195,10 @@ impl UserPreferences {
         &self.optional_discovery_roots
     }
 
+    pub fn language(&self) -> Language {
+        self.language
+    }
+
     pub(crate) fn validate(&self) -> bool {
         self.schema_version == SETTINGS_SCHEMA_VERSION
             && self.optional_discovery_roots.len()
@@ -222,6 +240,9 @@ impl UserPreferences {
         if let Some(value) = patch.optional_discovery_roots {
             self.optional_discovery_roots = value;
         }
+        if let Some(value) = patch.language {
+            self.language = value;
+        }
         self.validate()
             .then_some(())
             .ok_or_else(|| AppError::invalid_input("Preference update is invalid."))
@@ -241,6 +262,7 @@ pub struct UpdatePreferencesRequest {
     preferred_editor_mode: Option<PreferredEditorMode>,
     backup_retention: Option<BackupRetention>,
     optional_discovery_roots: Option<Vec<OptionalDiscoveryRoot>>,
+    language: Option<Language>,
 }
 
 impl UpdatePreferencesRequest {
@@ -430,8 +452,24 @@ mod tests {
                     "XDG_CONFIG_HOME",
                     "APPLICATION_SUPPORT",
                     "HOMEBREW_PREFIX"
-                ]
+                ],
+                "language": "system"
             })
+        );
+    }
+
+    #[test]
+    fn settings_language_accepts_only_approved_values() {
+        let zh = serde_json::from_value::<UpdatePreferencesRequest>(json!({ "language": "zh-CN" }))
+            .expect("zh-CN is approved");
+        assert_eq!(zh.language, Some(Language::ZhCn));
+        assert!(
+            serde_json::from_value::<UpdatePreferencesRequest>(json!({ "language": "fr" }))
+                .is_err()
+        );
+        assert_eq!(
+            serde_json::to_value(Language::En).expect("serialize language"),
+            json!("en")
         );
     }
 
