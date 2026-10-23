@@ -46,6 +46,7 @@ describe("services page layout (UIB-4b)", () => {
 
   it("marks every selectable service row with the slide selection language", () => {
     const markup = renderView();
-    expect(markup.match(/class="[^"]*\bslide-item\b[^"]*services-inventory-row/g)).toHaveLength(6);
+    // Four rows: the two system services are hidden until the toggle is on.
+    expect(markup.match(/class="[^"]*\bslide-item\b[^"]*services-inventory-row/g)).toHaveLength(4);
   });
 });

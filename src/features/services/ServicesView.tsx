@@ -1,15 +1,14 @@
-import { useRef, type KeyboardEvent, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
   Panel,
   PageShell,
   SelectField,
-  StatusBadge,
   TextField,
 } from "../../components/ui";
-import { classNames } from "../../components/ui/classNames";
 import { PageRegion } from "../../components/ui/PageShell";
+import { useT } from "../../i18n/useLocale";
 import {
   LAUNCHD_DOMAINS,
   LAUNCHD_OWNERSHIPS,
@@ -24,7 +23,7 @@ import {
   discoveryErrorText,
   filterServices,
   isFilterActive,
-  moveIndex,
+  isSystemService,
   ownershipLabel,
   resolveSelection,
   domainLabel,
@@ -32,12 +31,11 @@ import {
   sourceLabel,
   sourceProblems,
   sourceStatusLabel,
-  statusPresentation,
   type DiscoveryState,
   type EvidenceState,
   type ServiceFilter,
 } from "./launchdModel";
-import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
+import { ServiceGroups } from "./ServiceGroups";
 
 export interface ServicesViewProps {
   state: DiscoveryState;
@@ -97,6 +95,9 @@ export function ServicesView(props: ServicesViewProps) {
   const services =
     state.status === "ready" ? state.discovery.services : undefined;
   const visible = services ? filterServices(services, props.filter) : [];
+  const candidateCount = services?.filter(
+    (service) => props.filter.showSystem || !isSystemService(service),
+  ).length;
 
   return (
     <PageShell layout="master-detail" scrollKey="compact">
@@ -131,7 +132,7 @@ export function ServicesView(props: ServicesViewProps) {
             onFilterChange={props.onFilterChange}
             shown={services ? visible.length : undefined}
             state={state}
-            total={services?.length}
+            total={candidateCount}
           />
 
           <div className="min-h-0 overflow-y-auto overscroll-contain">
@@ -234,7 +235,9 @@ function FilterBar({
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => onFilterChange(EMPTY_FILTER)}
+            onClick={() =>
+              onFilterChange({ ...EMPTY_FILTER, showSystem: filter.showSystem })
+            }
           >
             清除筛选
           </Button>
@@ -246,6 +249,8 @@ function FilterBar({
 
 
 function ListBody({
+  filter,
+  onFilterChange,
   onRefresh,
   onSelect,
   refreshDisabled,
@@ -324,84 +329,19 @@ function ListBody({
               : "未读取到任何常驻任务，但部分来源未能读取，不能据此认为没有常驻任务。"}
           </AsyncState>
         </div>
-      ) : visible.length === 0 ? (
-        <div className="px-ui-12">
-          <AsyncState kind="empty">没有符合筛选条件的任务。</AsyncState>
-        </div>
       ) : (
-        <ServiceList
-          onSelect={onSelect}
-          selectedId={selectedId}
+        <ServiceGroups
+          services={services ?? []}
           visible={visible}
+          showSystem={filter.showSystem}
+          onShowSystemChange={(showSystem) =>
+            onFilterChange({ ...filter, showSystem })
+          }
+          selectedId={selectedId}
+          onSelect={onSelect}
         />
       )}
     </>
-  );
-}
-
-function ServiceList({
-  onSelect,
-  selectedId,
-  visible,
-}: {
-  onSelect: (id: string) => void;
-  selectedId: string | undefined;
-  visible: readonly LaunchdService[];
-}) {
-  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
-  const selectedIsVisible = visible.some((service) => service.id === selectedId);
-  const listRef = useSlideIndicator(selectedId);
-
-  function onKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-    const next = moveIndex(event.key, index, visible.length);
-    if (next === undefined) return;
-    event.preventDefault();
-    if (next === index) return;
-    const id = visible[next].id;
-    onSelect(id);
-    rowRefs.current.get(id)?.focus();
-  }
-
-  return (
-    <ul ref={listRef} className="slide-list" aria-label={`常驻任务清单，共 ${visible.length} 项`}>
-      {visible.map((service, index) => {
-        const isSelected = service.id === selectedId;
-        const isTabStop = isSelected || (!selectedIsVisible && index === 0);
-        const status = statusPresentation(service);
-        return (
-          <li className="border-b border-border" key={service.id}>
-            <Button
-              variant="ghost"
-              ref={(button) => {
-                if (button) rowRefs.current.set(service.id, button);
-                else rowRefs.current.delete(service.id);
-              }}
-              className={classNames(
-                "slide-item services-inventory-row",
-                isSelected && "services-inventory-row--selected",
-              )}
-              aria-label={`${service.label}，${scopeLabel(service.scope)}，${status.label}`}
-              aria-current={isSelected ? "true" : undefined}
-              tabIndex={isTabStop ? 0 : -1}
-              onClick={() => onSelect(service.id)}
-              onKeyDown={(event) => onKeyDown(event, index)}
-            >
-              <span className="services-inventory-row__head">
-                <strong className="services-inventory-row__label" title={service.label}>
-                  {service.label}
-                </strong>
-                <StatusBadge className="shrink-0 px-ui-8 text-meta" tone={status.tone}>
-                  {status.label}
-                </StatusBadge>
-              </span>
-              <span className="services-inventory-row__meta">
-                {`来源：${scopeLabel(service.scope)} · 归属：${ownershipLabel(service.ownership.kind)}`}
-              </span>
-            </Button>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 
@@ -415,6 +355,7 @@ function DetailsPane({
   state,
   visible,
 }: ServicesViewProps & { visible: readonly LaunchdService[] }) {
+  const t = useT();
   if (selectedId === undefined) {
     return (
       <AsyncState kind="empty">
@@ -441,12 +382,15 @@ function DetailsPane({
       </AsyncState>
     );
   }
-  const hidden =
-    isFilterActive(filter) &&
-    !visible.some((service) => service.id === resolved.service.id);
+  const notShown = !visible.some((service) => service.id === resolved.service.id);
+  const systemHidden =
+    notShown && !filter.showSystem && isSystemService(resolved.service);
+  const hidden = notShown && isFilterActive(filter);
   return (
     <div className="grid min-w-0 gap-ui-12">
-      {hidden ? (
+      {systemHidden ? (
+        <AsyncState kind="partial">{t("services.selectedSystemHidden")}</AsyncState>
+      ) : hidden ? (
         <AsyncState kind="partial">
           所选任务被当前筛选条件隐藏，清单中不显示它；清除筛选后可在清单中看到。
         </AsyncState>

@@ -52,7 +52,7 @@ describe("services page discovery retry", () => {
 
     expect(listLaunchdServices).toHaveBeenCalledTimes(2);
     expect(screen.queryByText(/already running/)).toBeNull();
-    expect(screen.getAllByText("com.example.agent").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("example.agent").length).toBeGreaterThan(0);
   });
 
   it("explains a second busy read in Chinese and offers a retry", async () => {

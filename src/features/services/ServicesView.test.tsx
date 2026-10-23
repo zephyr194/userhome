@@ -75,6 +75,13 @@ function ready(
   return { status: "ready", discovery, refreshing: false, ...extra };
 }
 
+/** Tab stops of the job rows only; the show-system checkbox is also focusable. */
+function rowTabStops(markup: string, value: "0" | "-1"): string[] {
+  return markup.match(/<button[^>]*services-inventory-row[^>]*>/g)?.filter((tag) =>
+    tag.includes(`tabindex="${value}"`),
+  ) ?? [];
+}
+
 function withFilter(filter: Partial<ServiceFilter>): ServiceFilter {
   return { ...EMPTY_FILTER, ...filter };
 }
@@ -146,13 +153,13 @@ describe("services view states", () => {
 });
 
 describe("services list", () => {
-  it("shows label, source, ownership and status in each row", () => {
+  it("shows a readable name, a purpose line and the status in each row", () => {
     const markup = view();
-    expect(markup).toContain("com.example.agent");
-    expect(markup).toContain("来源：用户代理");
+    expect(markup).toContain("example.agent");
     expect(markup).toContain("运行中");
-    expect(markup).toContain("系统 daemon");
-    expect(markup).toContain("Apple 路径 daemon");
+    expect(markup).toContain("example");
+    expect(markup).not.toContain("来源：");
+    expect(markup).not.toContain("归属：");
   });
 
   it("keeps path, executable, PID and exit code out of the rows", () => {
@@ -187,12 +194,12 @@ describe("services list", () => {
 
   it("is a keyboard list with a roving tab stop, labels and the selected row marked", () => {
     const markup = view({ selectedId: "gui/501/com.example.idle" });
-    expect(markup).toMatch(/<ul[^>]*aria-label="常驻任务清单，共 6 项"/);
+    expect(markup).toMatch(/<ul[^>]*aria-label="用户自建的，4 项"/);
     expect(markup).toContain('aria-current="true"');
     expect(markup.match(/aria-current="true"/g)).toHaveLength(1);
-    // One tab stop: the selected row.
-    expect(markup.match(/tabindex="0"/g)).toHaveLength(1);
-    expect(markup.match(/tabindex="-1"/g)).toHaveLength(5);
+    // One tab stop: the selected row. The show-system checkbox is a separate control.
+    expect(rowTabStops(markup, "0")).toHaveLength(1);
+    expect(rowTabStops(markup, "-1")).toHaveLength(3);
     expect(markup).toMatch(
       /aria-label="com\.example\.idle，用户代理，已加载，未运行/,
     );
@@ -201,7 +208,7 @@ describe("services list", () => {
 
   it("falls back to the first row as the tab stop with no selection", () => {
     const markup = view();
-    expect(markup.match(/tabindex="0"/g)).toHaveLength(1);
+    expect(rowTabStops(markup, "0")).toHaveLength(1);
     expect(markup).not.toContain('aria-current="true"');
   });
 
@@ -236,21 +243,25 @@ describe("services filters", () => {
     expect(markup).toContain(">全部来源<");
     expect(markup).toContain(">全部作用域<");
     expect(markup).toContain(">全部状态<");
-    expect(markup).toContain("系统 daemon");
+    expect(markup).toContain("显示系统服务");
   });
 
   it("filters the list and reports how many are shown", () => {
-    const markup = view({ filter: withFilter({ scope: "SYSTEM_DAEMON" }) });
+    const markup = view({
+      filter: withFilter({ scope: "SYSTEM_DAEMON", showSystem: true }),
+    });
     expect(markup).toContain("显示 1 / 6 项");
     expect(markup).toContain("com.vendor.daemon");
     expect(markup).not.toContain("com.example.idle");
+    // Without the toggle, the same filter finds nothing: system services are hidden.
+    expect(view({ filter: withFilter({ scope: "SYSTEM_DAEMON" }) })).toContain("显示 0 / 4 项");
   });
 
   it("explains an empty filter result and offers to clear it", () => {
     const markup = view({ filter: withFilter({ query: "zzz-none" }) });
     expect(markup).toContain("没有符合筛选条件的任务");
     expect(markup).toContain(">清除筛选<");
-    expect(markup).toContain("显示 0 / 6 项");
+    expect(markup).toContain("显示 0 / 4 项");
   });
 });
 
@@ -688,18 +699,19 @@ describe("ownership in the list", () => {
   });
 
   it("filters the list by ownership", () => {
-    const markup = view({ filter: withFilter({ ownership: "APPLE_MANAGED" }) });
+    const markup = view({
+      filter: withFilter({ ownership: "APPLE_MANAGED", showSystem: true }),
+    });
     expect(markup).toContain("显示 1 / 6 项");
     expect(markup).toContain("com.apple.metadata.mds");
     expect(markup).not.toContain("com.vendor.daemon<");
   });
 
-  it("shows each job's ownership class on its row", () => {
-    const markup = view();
-    expect(markup).toContain("归属：Apple 管理");
-    expect(markup).toContain("归属：系统 daemon");
-    expect(markup).toContain("归属：第三方");
-    expect(markup).toContain("归属：当前用户代理");
+  it("shows the injector as a group heading instead of a row field", () => {
+    const markup = view({ filter: withFilter({ showSystem: true }) });
+    expect(markup).toContain("用户自建的");
+    expect(markup).toContain("系统");
+    expect(markup).not.toContain("归属：");
     expect(CREATED_LABEL).toContain("userhome.agent");
   });
 });

@@ -19,6 +19,7 @@ import {
   type EvidenceState,
   type ServiceFilter,
 } from "./launchdModel";
+import { isSystemService } from "./launchdModel";
 import { ServiceLogs } from "./ServiceLogs";
 import { ServiceManagement } from "./ServiceManagement";
 import { ServicesView } from "./ServicesView";
@@ -104,7 +105,12 @@ export function ServicesPage({
         focusRef.current = undefined;
         const focused =
           focus === undefined ? undefined : findServiceByFocus(discovery.services, focus);
-        if (focused) select(focused.id);
+        if (focused) {
+          select(focused.id);
+          if (isSystemService(focused)) {
+            setFilter((current) => ({ ...current, showSystem: true }));
+          }
+        }
       })
       .catch((error: unknown) => {
         if (requestRef.current !== requestId) return;
