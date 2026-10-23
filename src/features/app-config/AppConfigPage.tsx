@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { readAppConfigEntry, listAppConfigEntries } from "../../ipc/appConfig";
 import { decodeAppError } from "../../ipc/core";
 import {
@@ -8,16 +8,20 @@ import {
   isKnownEntry,
   type AppConfigState,
 } from "./appConfigModel";
-import { AppConfigView } from "./AppConfigView";
+import { AppConfigView, type AppConfigEditControls } from "./AppConfigView";
+
+const SAVED_NOTICE = "已保存，并备份了原文件。";
 
 /**
- * Connects the read-only listing and the per-entry views to the backend. The
- * frontend only ever sends a registry id that the current listing contains.
- * Responses are matched to the request that asked for them, so a slow earlier
- * read cannot replace a newer selection. Nothing is written to browser storage.
+ * Connects the listing and the per-entry views to the backend. The frontend only
+ * ever sends a registry id that the current listing contains. Responses are
+ * matched to the request that asked for them, so a slow earlier read cannot
+ * replace a newer selection. Nothing is written to browser storage.
  */
 export function AppConfigPage({ refreshId }: { refreshId?: string }) {
   const [state, dispatch] = useReducer(appConfigReducer, INITIAL_APP_CONFIG_STATE);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const stateRef = useRef<AppConfigState>(state);
   const requestCounter = useRef(0);
 
@@ -59,12 +63,41 @@ export function AppConfigPage({ refreshId }: { refreshId?: string }) {
     if (id !== undefined) selectEntry(id);
   }, [state, selectEntry]);
 
+  const editing =
+    editingId !== null && state.detail.status !== "idle" && state.detail.id === editingId
+      ? editingId
+      : null;
+
+  const choose = useCallback(
+    (id: string) => {
+      setNotice(null);
+      selectEntry(id);
+    },
+    [selectEntry],
+  );
+
+  const edit: AppConfigEditControls = {
+    editingId: editing,
+    notice,
+    onStart: (id) => {
+      setNotice(null);
+      setEditingId(id);
+    },
+    onExit: () => setEditingId(null),
+    onSaved: () => {
+      if (editing !== null) selectEntry(editing);
+      setEditingId(null);
+      setNotice(SAVED_NOTICE);
+    },
+  };
+
   return (
     <AppConfigView
       detail={state.detail}
+      edit={edit}
       list={state.list}
       onReload={loadList}
-      onSelect={selectEntry}
+      onSelect={choose}
     />
   );
 }

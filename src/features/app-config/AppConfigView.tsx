@@ -16,6 +16,7 @@ import {
   type ProbeTone,
 } from "./appConfigModel";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
+import { AppConfigEditor } from "./AppConfigEditor";
 
 const PROBE_TEXT_CLASS: Record<ProbeTone, string> = {
   neutral: "text-muted-foreground",
@@ -24,14 +25,23 @@ const PROBE_TEXT_CLASS: Record<ProbeTone, string> = {
   danger: "text-danger",
 };
 
+export interface AppConfigEditControls {
+  editingId: string | null;
+  notice: string | null;
+  onStart: (id: string) => void;
+  onExit: () => void;
+  onSaved: () => void;
+}
+
 export interface AppConfigViewProps {
   list: ListState;
   detail: DetailState;
   onReload: () => void;
   onSelect: (id: string) => void;
+  edit?: AppConfigEditControls;
 }
 
-export function AppConfigView({ list, detail, onReload, onSelect }: AppConfigViewProps) {
+export function AppConfigView({ list, detail, onReload, onSelect, edit }: AppConfigViewProps) {
   const items = list.status === "ready" || list.status === "partial" ? list.items : undefined;
   const selectedId = detail.status === "idle" ? undefined : detail.id;
 
@@ -40,11 +50,16 @@ export function AppConfigView({ list, detail, onReload, onSelect }: AppConfigVie
       <PageRegion className="r4-fe4-scroll content-start gap-ui-12 overflow-y-auto overscroll-contain">
         <ListStatusNotice list={list} onReload={onReload} />
         {items ? (
-          <EntryList items={items} selectedId={selectedId} onSelect={onSelect} />
+          <EntryList
+            items={items}
+            locked={Boolean(edit?.editingId)}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
         ) : null}
       </PageRegion>
       <PageRegion className="r4-fe4-scroll content-start overflow-y-auto overscroll-contain">
-        {items ? <EntryDetail items={items} detail={detail} /> : null}
+        {items ? <EntryDetail items={items} detail={detail} edit={edit} /> : null}
       </PageRegion>
     </PageShell>
   );
@@ -94,10 +109,12 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
 
 function EntryList({
   items,
+  locked,
   selectedId,
   onSelect,
 }: {
   items: AppConfigListItem[];
+  locked: boolean;
   selectedId: string | undefined;
   onSelect: (id: string) => void;
 }) {
@@ -118,6 +135,7 @@ function EntryList({
                 <EntryRow
                   key={item.summary.id}
                   item={item}
+                  locked={locked}
                   selected={item.summary.id === selectedId}
                   onSelect={onSelect}
                 />
@@ -127,7 +145,9 @@ function EntryList({
         ))}
       </div>
       <p className="m-0 text-aux text-muted-foreground">
-        仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。
+        {locked
+          ? "编辑中不能切换条目，请先返回查看。"
+          : "仅显示默认位置。查看不修改任何文件，也不检查未登记的文件。"}
       </p>
     </Panel>
   );
@@ -135,10 +155,12 @@ function EntryList({
 
 function EntryRow({
   item,
+  locked,
   selected,
   onSelect,
 }: {
   item: AppConfigListItem;
+  locked: boolean;
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -147,7 +169,8 @@ function EntryRow({
     <li>
       <HeadlessButton
         aria-current={selected ? "true" : undefined}
-        className="slide-item entry-row grid w-full min-w-0 content-center gap-ui-2 px-ui-12 py-ui-4 text-left"
+        className="slide-item entry-row grid w-full min-w-0 content-center gap-ui-2 px-ui-12 py-ui-4 text-left disabled:cursor-not-allowed"
+        disabled={locked}
         onClick={() => onSelect(summary.id)}
       >
         <span className="flex min-w-0 items-baseline justify-between gap-ui-8">
@@ -179,12 +202,18 @@ function ProbeStatus({ probe }: { probe: AppConfigProbeStatus }) {
 function EntryDetail({
   items,
   detail,
+  edit,
 }: {
   items: AppConfigListItem[];
   detail: DetailState;
+  edit: AppConfigEditControls | undefined;
 }) {
   const headingId = "app-config-detail-title";
   const selected = detail.status === "idle" ? undefined : items.find((item) => item.summary.id === detail.id);
+  const editing = Boolean(selected && edit && edit.editingId === selected.summary.id);
+  const canEdit = Boolean(
+    selected && edit && !edit.editingId && selected.summary.capability === "writable",
+  );
 
   return (
     <Panel
@@ -195,15 +224,43 @@ function EntryDetail({
       <h2 id={headingId} className="m-0 text-group font-semibold">
         {selected ? selected.summary.name : "详情"}
       </h2>
-      {selected ? <EntryHeader item={selected} /> : null}
+      {selected ? (
+        <EntryHeader
+          item={selected}
+          onEdit={canEdit && edit ? () => edit.onStart(selected.summary.id) : undefined}
+        />
+      ) : null}
       {selected ? <EntryFacts item={selected} /> : null}
-      <EntryBody items={items} detail={detail} />
+      {!editing && edit?.notice ? (
+        <p role="status" className="m-0 text-body">
+          {edit.notice}
+        </p>
+      ) : null}
+      {selected && editing && edit ? (
+        <AppConfigEditor
+          key={selected.summary.id}
+          item={selected}
+          onExit={edit.onExit}
+          onSaved={edit.onSaved}
+        />
+      ) : (
+        <EntryBody items={items} detail={detail} />
+      )}
     </Panel>
   );
 }
 
-function EntryHeader({ item }: { item: AppConfigListItem }) {
-  return <ProbeStatus probe={item.probe} />;
+function EntryHeader({ item, onEdit }: { item: AppConfigListItem; onEdit?: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-ui-8">
+      <ProbeStatus probe={item.probe} />
+      {onEdit ? (
+        <Button size="sm" variant="secondary" onClick={onEdit}>
+          编辑
+        </Button>
+      ) : null}
+    </div>
+  );
 }
 
 function EntryFacts({ item }: { item: AppConfigListItem }) {

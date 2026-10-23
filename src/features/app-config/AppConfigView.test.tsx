@@ -121,10 +121,10 @@ describe("AppConfigView states", () => {
     expect(html).not.toContain('role="alert"');
   });
 
-  it("states that only default locations are shown and the page is read-only", () => {
+  it("states that only default locations are shown and that viewing changes nothing", () => {
     const html = render({ status: "ready", items: [ZED] });
     expect(html).toContain("仅显示默认位置");
-    expect(html).toContain("本页只读");
+    expect(html).toContain("查看不修改任何文件");
   });
 });
 
@@ -305,7 +305,7 @@ describe("AppConfigView flat entry rows (UIF-14)", () => {
     const rows = html.match(/<button[^>]*slide-item[^>]*>.*?<\/button>/g) ?? [];
     expect(rows).toHaveLength(2);
     for (const row of rows) expect(row).not.toContain("只读");
-    expect(html).toContain("仅显示默认位置。本页只读，不修改任何文件，也不检查未登记的文件。");
+    expect(html).toContain("仅显示默认位置。查看不修改任何文件，也不检查未登记的文件。");
   });
 
   it("shows the path once in the detail, in the location row, with the status in the header", () => {
