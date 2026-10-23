@@ -8,6 +8,8 @@ import type {
   ClaudeReadView,
 } from "../../ipc/aiConfig";
 import type { AppError } from "../../ipc/core";
+import type { TranslateFunction } from "../../i18n";
+import { zhT } from "./aiConfigModel";
 import { USER_LAYER_ID, valueText } from "./claudeSettingsModel";
 
 export type EditControl = "boolean" | "enum" | "string" | "none";
@@ -37,9 +39,10 @@ export function initialDraft(item: ClaudeEditItem): EditDraft {
 export function editBlockedReason(
   item: ClaudeEditItem,
   settingsGrantId: string | null,
+  t: TranslateFunction = zhT,
 ): string | null {
-  if (!item.editable) return item.reason ?? "该设置仅供查看，暂不能修改。";
-  if (settingsGrantId === null) return "请先选择要修改的用户设置文件。";
+  if (!item.editable) return item.reason ?? t("aiConfig.edit.viewOnly");
+  if (settingsGrantId === null) return t("aiConfig.edit.chooseFileFirst");
   return null;
 }
 
@@ -52,6 +55,7 @@ export function buildEditRequest(
   settingsGrantId: string,
   action: ClaudeEditAction,
   draft: EditDraft,
+  t: TranslateFunction = zhT,
 ): EditRequestResult {
   const base = { grantId: settingsGrantId, keyPath: item.keyPath };
   if (action !== "set") return { ok: true, request: { ...base, action } };
@@ -59,11 +63,11 @@ export function buildEditRequest(
     case "boolean":
       return typeof draft === "boolean"
         ? { ok: true, request: { ...base, action, value: draft } }
-        : { ok: false, reason: "取值无效：应为布尔值。" };
+        : { ok: false, reason: t("aiConfig.edit.invalidBoolean") };
     case "enum":
       return typeof draft === "string" && item.allowedValues.includes(draft)
         ? { ok: true, request: { ...base, action, value: draft } }
-        : { ok: false, reason: "取值无效：不在官方允许列表内。" };
+        : { ok: false, reason: t("aiConfig.edit.invalidEnum") };
     case "string":
       return typeof draft === "string" &&
         draft.trim().length > 0 &&
@@ -71,10 +75,10 @@ export function buildEditRequest(
         ? { ok: true, request: { ...base, action, value: draft } }
         : {
             ok: false,
-            reason: `取值无效：应为非空文本，最长 ${MAX_TEXT_VALUE_LENGTH} 字符。`,
+            reason: t("aiConfig.edit.invalidText", { max: MAX_TEXT_VALUE_LENGTH }),
           };
     default:
-      return { ok: false, reason: "该设置当前不能修改。" };
+      return { ok: false, reason: t("aiConfig.edit.notEditable") };
   }
 }
 
@@ -132,17 +136,15 @@ export function diffSymbol(line: ClaudeEditDiffLine): string {
   return line.kind === "ADDED" ? "+" : "-";
 }
 
-export function recoveryNote(preview: ClaudeEditPreview): string {
-  if (preview.kind === "CREATE") return "文件尚不存在，将新建；没有恢复点。";
-  if (preview.recoveryPoint === "BACKUP") {
-    return "写入前会先备份当前文件；校验失败时恢复原内容。";
-  }
-  return "无法创建备份，本次不会写入。";
+export function recoveryNote(preview: ClaudeEditPreview, t: TranslateFunction = zhT): string {
+  if (preview.kind === "CREATE") return t("aiConfig.edit.recoveryCreate");
+  if (preview.recoveryPoint === "BACKUP") return t("aiConfig.edit.recoveryBackup");
+  return t("aiConfig.edit.recoveryNone");
 }
 
-export function resultMessage(result: ClaudeEditResult): string {
+export function resultMessage(result: ClaudeEditResult, t: TranslateFunction = zhT): string {
   if (result.outcome.status === "SUCCEEDED") {
-    return `已保存。${result.reloadNote}`;
+    return t("aiConfig.edit.saved", { note: result.reloadNote });
   }
   return result.outcome.error?.message ?? result.outcome.summary;
 }
@@ -179,17 +181,18 @@ export function groupSettings(
 export function userLevelText(
   keyPath: string,
   view: ClaudeReadView | null,
+  t: TranslateFunction = zhT,
 ): string {
-  if (view === null) return "未读取";
+  if (view === null) return t("aiConfig.edit.userNotRead");
   const entry = view.entries.find((candidate) => candidate.key === keyPath);
-  if (!entry) return "未设置";
+  if (!entry) return t("aiConfig.edit.userNotSet");
   const userSource = entry.definedIn.find(
     (source) => source.layerId === USER_LAYER_ID,
   );
-  if (!userSource) return "未设置";
-  if (entry.masked) return "已设置（内容已遮盖）";
+  if (!userSource) return t("aiConfig.edit.userNotSet");
+  if (entry.masked) return t("aiConfig.edit.userMasked");
   if (userSource.overridden || entry.merged) {
-    return "已设置，但被其他来源覆盖或合并，此处不显示";
+    return t("aiConfig.edit.userHiddenOverride");
   }
   return valueText(entry.value);
 }
@@ -202,17 +205,21 @@ export interface SettingBadge {
 export function settingBadges(
   item: ClaudeEditItem,
   detectedVersion: string | null,
+  t: TranslateFunction = zhT,
 ): readonly SettingBadge[] {
   const badges: SettingBadge[] = [
     item.editable
-      ? { label: "可编辑", tone: "success" }
-      : { label: "仅展示", tone: "neutral" },
+      ? { label: t("aiConfig.edit.badge.editable"), tone: "success" }
+      : { label: t("aiConfig.claude.badge.displayOnly"), tone: "neutral" },
   ];
   if (!item.editable && item.verifiedVersion !== null) {
-    badges.push({ label: `需要版本 ${item.verifiedVersion}`, tone: "warning" });
+    badges.push({
+      label: t("aiConfig.edit.badge.requiresVersion", { version: item.verifiedVersion }),
+      tone: "warning",
+    });
   }
   if (detectedVersion === null) {
-    badges.push({ label: "版本未检测", tone: "warning" });
+    badges.push({ label: t("aiConfig.edit.badge.versionNotDetected"), tone: "warning" });
   }
   return badges;
 }
@@ -220,6 +227,7 @@ export function settingBadges(
 export function versionNoteText(
   detectedVersion: string | null,
   items: readonly ClaudeEditItem[],
+  t: TranslateFunction = zhT,
 ): string {
   const verified = [
     ...new Set(
@@ -230,11 +238,13 @@ export function versionNoteText(
   ];
   const detected =
     detectedVersion === null
-      ? "未检测到本机版本。"
-      : `本机版本：${detectedVersion}。`;
+      ? t("aiConfig.edit.version.notDetected")
+      : t("aiConfig.edit.version.detected", { version: detectedVersion });
   const expected =
     verified.length === 0
-      ? "尚无已验证版本。"
-      : `已验证版本：${verified.join("、")}。`;
+      ? t("aiConfig.edit.version.noneVerified")
+      : t("aiConfig.edit.version.verified", {
+          versions: verified.join(t("aiConfig.listSeparator")),
+        });
   return `${detected}${expected}`;
 }

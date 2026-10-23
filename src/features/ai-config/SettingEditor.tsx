@@ -15,6 +15,9 @@ import {
   type ClaudeReadView,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import { localizeErrorMessage } from "../../i18n/errors";
+import type { MessageKey } from "../../i18n";
+import { useT } from "../../i18n/useLocale";
 import { HighlightText } from "./ConfigSearchControls";
 import { configSearchItem, matchesSearch, searchTerms } from "./configSearch";
 import {
@@ -45,10 +48,10 @@ export interface SettingEditorProps {
   readonly onSaved: () => void;
 }
 
-const ACTION_LABELS: Record<ClaudeEditAction, string> = {
-  set: "预览修改",
-  restoreDefault: "恢复默认（移除该键）",
-  setNull: "设为 null",
+const ACTION_LABEL_KEYS: Record<ClaudeEditAction, MessageKey> = {
+  set: "aiConfig.edit.action.set",
+  restoreDefault: "aiConfig.edit.action.restoreDefault",
+  setNull: "aiConfig.edit.action.setNull",
 };
 
 export function SettingEditor({
@@ -56,17 +59,18 @@ export function SettingEditor({
   settingsGrantId,
   onSaved,
 }: SettingEditorProps) {
+  const t = useT();
   const [draft, setDraft] = useState<EditDraft>(() => initialDraft(item));
   const [phase, dispatch] = useReducer(editReducer, {
     status: "idle",
   } as EditPhase);
-  const blocked = editBlockedReason(item, settingsGrantId);
+  const blocked = editBlockedReason(item, settingsGrantId, t);
   const control = editControl(item);
   const busy = phase.status === "previewing" || phase.status === "confirming";
 
   const runPreview = (action: ClaudeEditAction) => {
     if (settingsGrantId === null) return;
-    const built = buildEditRequest(item, settingsGrantId, action, draft);
+    const built = buildEditRequest(item, settingsGrantId, action, draft, t);
     if (!built.ok) {
       dispatch({
         type: "failed",
@@ -101,7 +105,7 @@ export function SettingEditor({
 
   return (
     <section
-      aria-label={`编辑 ${item.keyPath}`}
+      aria-label={t("aiConfig.edit.rowLabel", { key: item.keyPath })}
       className="grid min-w-0 gap-ui-8"
     >
       {blocked ? (
@@ -112,7 +116,7 @@ export function SettingEditor({
 
       {control === "boolean" ? (
         <CheckboxField
-          label="开启"
+          label={t("aiConfig.edit.switchOn")}
           description={item.description}
           checked={draft === true}
           disabled={blocked !== null || busy}
@@ -121,7 +125,7 @@ export function SettingEditor({
       ) : null}
       {control === "enum" ? (
         <SelectField<string>
-          label="取值"
+          label={t("aiConfig.edit.valueLabel")}
           description={item.description}
           value={typeof draft === "string" ? draft : ""}
           disabled={blocked !== null || busy}
@@ -131,7 +135,7 @@ export function SettingEditor({
       ) : null}
       {control === "string" ? (
         <TextField
-          label="文本值"
+          label={t("aiConfig.edit.textLabel")}
           description={item.description}
           value={typeof draft === "string" ? draft : ""}
           maxLength={256}
@@ -153,7 +157,7 @@ export function SettingEditor({
             }
             onClick={() => runPreview(action)}
           >
-            {ACTION_LABELS[action]}
+            {t(ACTION_LABEL_KEYS[action])}
           </Button>
         ))}
       </div>
@@ -176,13 +180,14 @@ export function PhaseView({
   readonly onConfirm: (operationId: string) => void;
   readonly onCancel: () => void;
 }) {
+  const t = useT();
   switch (phase.status) {
     case "idle":
       return null;
     case "previewing":
       return (
         <p className="m-0 text-aux text-muted-foreground" role="status">
-          正在生成预览…
+          {t("aiConfig.edit.previewing")}
         </p>
       );
     case "previewed":
@@ -206,13 +211,13 @@ export function PhaseView({
     case "saved":
       return (
         <p className="m-0 text-aux text-foreground" role="status">
-          {resultMessage(phase.result)}
+          {resultMessage(phase.result, t)}
         </p>
       );
     case "writeFailed":
       return (
         <p className="m-0 text-aux text-danger" role="alert">
-          {resultMessage(phase.result)}
+          {resultMessage(phase.result, t)}
         </p>
       );
     case "failed":
@@ -233,8 +238,9 @@ function PreviewBlock({
   readonly onConfirm: (operationId: string) => void;
   readonly onCancel: () => void;
 }) {
+  const t = useT();
   return (
-    <div aria-label="修改预览" className="grid min-w-0 gap-ui-4">
+    <div aria-label={t("aiConfig.edit.previewLabel")} className="grid min-w-0 gap-ui-4">
       <p className="m-0 text-aux text-foreground">{preview.summary}</p>
       {preview.effects.map((effect) => (
         <p key={effect} className="m-0 text-aux text-muted-foreground">
@@ -242,15 +248,15 @@ function PreviewBlock({
         </p>
       ))}
       <p className="m-0 text-aux text-muted-foreground">
-        {recoveryNote(preview)}
+        {recoveryNote(preview, t)}
       </p>
       {preview.diff.redacted ? (
         <p className="m-0 text-aux text-muted-foreground">
-          内容已遮盖，不显示差异。
+          {t("aiConfig.edit.previewRedacted")}
         </p>
       ) : null}
       {preview.diff.truncated ? (
-        <p className="m-0 text-aux text-muted-foreground">差异过长，已截断。</p>
+        <p className="m-0 text-aux text-muted-foreground">{t("aiConfig.edit.previewTruncated")}</p>
       ) : null}
       <pre className="m-0 max-h-48 overflow-auto rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux">
         {preview.diff.lines.map((line, index) => (
@@ -266,14 +272,14 @@ function PreviewBlock({
           disabled={busy}
           onClick={() => onConfirm(preview.operationId)}
         >
-          确认写入
+          {t("aiConfig.edit.confirmWrite")}
         </Button>
         <Button variant="ghost" disabled={busy} onClick={onCancel}>
-          取消
+          {t("common.cancel")}
         </Button>
         {busy ? (
           <span className="text-aux text-muted-foreground" role="status">
-            正在写入…
+            {t("aiConfig.edit.writing")}
           </span>
         ) : null}
       </div>
@@ -288,13 +294,14 @@ function ErrorLine({
   readonly error: AppError;
   readonly onCancel: () => void;
 }) {
+  const t = useT();
   return (
     <div className="grid justify-items-start gap-ui-4">
       <p className="m-0 text-aux text-danger" role="alert">
-        {error.message}
+        {localizeErrorMessage(error, t)}
       </p>
       <Button variant="ghost" onClick={onCancel}>
-        关闭
+        {t("common.close")}
       </Button>
     </div>
   );
@@ -325,6 +332,7 @@ export function EditPanel({
   onChooseSettingsFile,
   onSaved,
 }: EditPanelProps) {
+  const t = useT();
   const [jumpKey, setJumpKey] = useState("");
   const [query, setQuery] = useState("");
   const [editableOnly, setEditableOnly] = useState(false);
@@ -353,68 +361,70 @@ export function EditPanel({
 
   return (
     <section
-      aria-label="编辑设置"
+      aria-label={t("aiConfig.edit.sectionLabel")}
       className="grid min-w-0 gap-ui-8 border-t border-border pt-ui-8"
     >
-      <h3 className="m-0 text-aux font-semibold">编辑（用户设置文件）</h3>
+      <h3 className="m-0 text-aux font-semibold">{t("aiConfig.edit.heading")}</h3>
       <p className="m-0 text-aux text-muted-foreground">
-        编辑项由后端逐项决定是否可写。保存只修改该键，其余内容（包括未知键与键序）原样保留；保存前会显示预览，需你确认后才写入。
-        {versionNoteText(catalog?.detectedVersion ?? null, catalog?.items ?? [])}
+        {t("aiConfig.edit.intro")}
+        {versionNoteText(catalog?.detectedVersion ?? null, catalog?.items ?? [], t)}
       </p>
       <div className="flex flex-wrap items-center gap-ui-8">
         <span className="text-aux text-muted-foreground">
-          文件：{settingsFile ? settingsFile.displayPath : "未选择"}
+          {t("aiConfig.edit.file", {
+            path: settingsFile ? settingsFile.displayPath : t("aiConfig.edit.noFile"),
+          })}
         </span>
         <Button
           variant="secondary"
           disabled={choosing}
           onClick={onChooseSettingsFile}
         >
-          {settingsFile ? "更换文件" : "选择设置文件"}
+          {settingsFile ? t("aiConfig.edit.changeFile") : t("aiConfig.edit.chooseFile")}
         </Button>
       </div>
       {chooseError ? (
         <p role="alert" className="m-0 text-aux text-danger">
-          {chooseError.message}
+          {localizeErrorMessage(chooseError, t)}
         </p>
       ) : null}
       {catalog === null || groups === null ? (
-        <p className="m-0 text-aux text-muted-foreground">编辑定义不可用。</p>
+        <p className="m-0 text-aux text-muted-foreground">{t("aiConfig.edit.unavailable")}</p>
       ) : (
         <>
           <SelectField<string>
-            label="选择要编辑的键"
-            description="选择后定位到该设置；仅展示项会展开下方的分组。"
+            label={t("aiConfig.edit.jumpLabel")}
+            description={t("aiConfig.edit.jumpDescription")}
             value={jumpKey}
             options={[
-              { value: "", label: "请选择" },
+              { value: "", label: t("aiConfig.edit.choose") },
               ...scopedItems.map((candidate) => ({
                 value: candidate.keyPath,
                 label: candidate.editable
                   ? candidate.keyPath
-                  : `${candidate.keyPath}（仅展示）`,
+                  : t("aiConfig.edit.displayOnlyOption", { key: candidate.keyPath }),
               })),
             ]}
             onValueChange={jumpTo}
           />
           <TextField
-            label="搜索键名或描述"
+            label={t("aiConfig.edit.searchLabel")}
             value={query}
             onValueChange={setQuery}
           />
           <CheckboxField
-            label="仅显示可编辑"
+            label={t("aiConfig.edit.editableOnly")}
             checked={editableOnly}
             onCheckedChange={setEditableOnly}
           />
           <div className="grid min-w-0 gap-ui-8">
             {groups.editable.length === 0 ? (
               <p className="m-0 text-aux text-muted-foreground">
-                没有匹配的可编辑设置。
+                {t("aiConfig.edit.noEditable")}
               </p>
             ) : (
               <ul
-                aria-label="可编辑设置"
+                aria-label={t("aiConfig.edit.editableList")}
                 className="m-0 grid list-none gap-ui-8 p-0"
               >
                 {groups.editable.map((candidate) => (
@@ -437,10 +447,10 @@ export function EditPanel({
                 className="grid min-w-0 gap-ui-8"
               >
                 <summary className="text-aux font-semibold">
-                  {`仅展示（${groups.displayOnly.length}）`}
+                  {t("aiConfig.edit.displayOnlyGroup", { count: groups.displayOnly.length })}
                 </summary>
                 <ul
-                  aria-label="仅展示设置"
+                  aria-label={t("aiConfig.edit.displayOnlyList")}
                   className="m-0 mt-ui-8 grid list-none gap-ui-8 p-0"
                 >
                   {groups.displayOnly.map((candidate) => (
@@ -479,6 +489,7 @@ function SettingRow({
   readonly settingsGrantId: string | null;
   readonly onSaved: () => void;
 }) {
+  const t = useT();
   const descriptionVisible = !item.editable || editControl(item) === "none";
   return (
     <li
@@ -490,7 +501,7 @@ function SettingRow({
         <code className="min-w-0 break-all font-mono text-aux font-semibold">
           <HighlightText text={item.keyPath} terms={terms} />
         </code>
-        {settingBadges(item, detectedVersion).map((badge) => (
+        {settingBadges(item, detectedVersion, t).map((badge) => (
           <StatusBadge key={badge.label} tone={badge.tone}>
             {badge.label}
           </StatusBadge>
@@ -503,17 +514,17 @@ function SettingRow({
       ) : null}
       {item.descriptionTruncated ? (
         <p className="m-0 text-aux text-muted-foreground">
-          官方描述超过长度上限已截断，完整说明见官方文档。
+          {t("aiConfig.edit.descriptionTruncated")}
         </p>
       ) : null}
       <p className="m-0 text-aux text-muted-foreground">
-        {`默认值：${item.defaultNote}`}
+        {t("aiConfig.edit.rowDefault", { value: item.defaultNote })}
       </p>
       <p className="m-0 text-aux text-muted-foreground">
-        {`当前用户值：${userLevelText(item.keyPath, view)}`}
+        {t("aiConfig.edit.rowCurrentUser", { value: userLevelText(item.keyPath, view, t) })}
       </p>
       <p className="m-0 break-all text-aux text-muted-foreground">
-        {`来源：${item.sourceUrl}（抓取日期 ${item.sourceRetrievedOn}）`}
+        {t("aiConfig.edit.rowSource", { url: item.sourceUrl, date: item.sourceRetrievedOn })}
       </p>
       {item.editable ? (
         <SettingEditor

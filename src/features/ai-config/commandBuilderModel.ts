@@ -5,6 +5,8 @@ import type {
   ClaudeOptionValueType,
   ClaudeVersionStatus,
 } from "../../ipc/aiConfig";
+import type { MessageKey, TranslateFunction } from "../../i18n";
+import { zhT } from "./aiConfigModel";
 
 export interface ItemSelection {
   readonly checked: boolean;
@@ -50,6 +52,7 @@ export function planRequest(
   items: readonly ClaudeOptionItem[],
   selection: Selection,
   detectedVersion: string,
+  t: TranslateFunction = zhT,
 ): RequestPlan {
   const chosen = items.filter((item) => item.generatable && selectionOf(selection, item.id).checked);
   if (chosen.length === 0) return { status: "empty" };
@@ -57,10 +60,10 @@ export function planRequest(
   for (const item of chosen) {
     const state = selectionOf(selection, item.id);
     if (item.risks.length > 0 && !state.acknowledged) {
-      return { status: "incomplete", message: `请先确认「${item.id}」的风险。` };
+      return { status: "incomplete", message: t("aiConfig.cmd.riskConfirm", { id: item.id }) };
     }
     if (needsValueInput(item) && state.value.length === 0) {
-      return { status: "incomplete", message: `请填写「${item.id}」的取值。` };
+      return { status: "incomplete", message: t("aiConfig.cmd.valueRequired", { id: item.id }) };
     }
   }
 
@@ -82,46 +85,45 @@ export function planRequest(
   };
 }
 
-export const VALUE_TYPE_LABELS: Readonly<Record<ClaudeOptionValueType, string>> = {
-  string: "文本",
-  boolean: "开关",
-  number: "数字",
-  stringArray: "列表",
-  object: "对象",
-  enum: "枚举",
-  unknown: "类型未确认",
+export const VALUE_TYPE_LABELS: Readonly<Record<ClaudeOptionValueType, MessageKey>> = {
+  string: "aiConfig.cmd.valueType.string",
+  boolean: "aiConfig.cmd.valueType.boolean",
+  number: "aiConfig.cmd.valueType.number",
+  stringArray: "aiConfig.cmd.valueType.stringArray",
+  object: "aiConfig.cmd.valueType.object",
+  enum: "aiConfig.cmd.valueType.enum",
+  unknown: "aiConfig.cmd.valueType.unknown",
 };
 
-export const RISK_LABELS: Readonly<Record<ClaudeOptionRisk, string>> = {
-  executesCommand: "执行命令",
-  relaxesPermissions: "放宽权限",
-  externalServer: "外部服务",
+export const RISK_LABELS: Readonly<Record<ClaudeOptionRisk, MessageKey>> = {
+  executesCommand: "aiConfig.cmd.risk.executesCommand",
+  relaxesPermissions: "aiConfig.cmd.risk.relaxesPermissions",
+  externalServer: "aiConfig.cmd.risk.externalServer",
 };
 
-export const NOTICE_LABELS: Readonly<Record<ClaudeVersionStatus, string>> = {
-  compatible: "版本满足",
-  unconfirmed: "版本未确认",
-  incompatible: "版本不兼容",
-  notStated: "未给出版本要求",
+export const NOTICE_LABELS: Readonly<Record<ClaudeVersionStatus, MessageKey>> = {
+  compatible: "aiConfig.cmd.notice.compatible",
+  unconfirmed: "aiConfig.cmd.notice.unconfirmed",
+  incompatible: "aiConfig.cmd.notice.incompatible",
+  notStated: "aiConfig.cmd.notice.notStated",
 };
 
-export const SECRET_NOTE =
-  "敏感项在命令中只生成占位符，需要你在本机自行替换。不要把真实密钥粘贴进共享位置。";
+export const SECRET_NOTE_KEY: MessageKey = "aiConfig.cmd.secretNote";
 
-export const RISK_CONFIRM_LABEL = "我已了解该项可能放宽权限或执行命令";
+export const RISK_CONFIRM_LABEL_KEY: MessageKey = "aiConfig.cmd.riskConfirmLabel";
 
-export function versionText(item: ClaudeOptionItem): string {
-  if (item.versions === null) return "文档未给出版本要求";
-  return `需要 Claude Code ${item.versions.min} 或更高版本`;
+export function versionText(item: ClaudeOptionItem, t: TranslateFunction = zhT): string {
+  if (item.versions === null) return t("aiConfig.cmd.version.none");
+  return t("aiConfig.cmd.version.min", { version: item.versions.min });
 }
 
-export function relationTexts(item: ClaudeOptionItem): string[] {
+export function relationTexts(item: ClaudeOptionItem, t: TranslateFunction = zhT): string[] {
   return [
-    ...item.excludes.map((other) => `与 ${other} 互斥`),
-    ...item.requires.map((other) => `需要同时选择 ${other}`),
+    ...item.excludes.map((other) => t("aiConfig.cmd.relation.excludes", { other })),
+    ...item.requires.map((other) => t("aiConfig.cmd.relation.requires", { other })),
   ];
 }
 
-export function kindLabel(item: ClaudeOptionItem): string {
-  return item.kind === "flag" ? "命令行参数" : "环境变量";
+export function kindLabel(item: ClaudeOptionItem, t: TranslateFunction = zhT): string {
+  return t(item.kind === "flag" ? "aiConfig.cmd.kind.flag" : "aiConfig.cmd.kind.env");
 }

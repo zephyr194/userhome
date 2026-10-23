@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { translate } from "../../i18n";
 import type { ReferenceSetting } from "../../ipc/aiConfigReference";
 import {
   COVERAGE_LABELS,
@@ -142,7 +143,11 @@ describe("label maps", () => {
     expect(Object.keys(VALUE_TYPE_LABELS).sort()).toEqual(
       ["boolean", "enum", "number", "object", "string", "stringArray", "unknown"],
     );
-    expect(VALUE_TYPE_FILTER_OPTIONS[0]).toEqual({ value: "all", label: "全部类型" });
+    expect(VALUE_TYPE_FILTER_OPTIONS[0]).toEqual({
+      value: "all",
+      labelKey: "aiConfig.ref.valueType.all",
+    });
+    expect(translate("zh-CN", VALUE_TYPE_FILTER_OPTIONS[0].labelKey)).toBe("全部类型");
     expect(Object.keys(COVERAGE_LABELS).sort()).toEqual(
       ["displayOnly", "editable", "notApplicable", "unsupported", "versionUnknown"],
     );

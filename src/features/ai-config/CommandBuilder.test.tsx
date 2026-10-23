@@ -7,7 +7,8 @@ import type {
   ClaudeOptionSummary,
 } from "../../ipc/aiConfig";
 import { CommandBuilderView, type CommandOptionsState, type CommandPreview } from "./CommandBuilder";
-import { RISK_CONFIRM_LABEL, SECRET_NOTE, type Selection } from "./commandBuilderModel";
+import { RISK_CONFIRM_LABEL_KEY, SECRET_NOTE_KEY, type Selection } from "./commandBuilderModel";
+import { zhT } from "./aiConfigModel";
 
 const SECRET_SAMPLE = "sk-ant-test-0123456789";
 
@@ -125,7 +126,7 @@ describe("CommandBuilderView", () => {
     const markup = render({
       preview: { status: "ready", built: BUILT },
     });
-    expect(markup).toContain(SECRET_NOTE);
+    expect(markup).toContain(zhT(SECRET_NOTE_KEY));
     expect(markup).toContain("在此填入，勿提交");
     expect(markup).not.toContain(SECRET_SAMPLE);
   });
@@ -147,7 +148,7 @@ describe("CommandBuilderView", () => {
         "--dangerously-skip-permissions": { checked: true, value: "", acknowledged: false },
       },
     });
-    expect(markup).toContain(RISK_CONFIRM_LABEL);
+    expect(markup).toContain(zhT(RISK_CONFIRM_LABEL_KEY));
   });
 
   it("shows the idle hint when nothing is chosen", () => {

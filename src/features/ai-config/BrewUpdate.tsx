@@ -7,6 +7,7 @@ import {
   type AiToolId,
 } from "../../ipc/aiConfig";
 import { decodeAppError } from "../../ipc/core";
+import { useT } from "../../i18n/useLocale";
 
 type UpdateState =
   | { readonly status: "idle" }
@@ -26,6 +27,7 @@ export interface BrewUpdateProps {
 export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: BrewUpdateProps) {
   const [state, setState] = useState<UpdateState>({ status: "idle" });
   const titleId = useId();
+  const t = useT();
 
   function run() {
     setState({ status: "running" });
@@ -47,8 +49,10 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
   const result =
     state.status === "finished" && failure === null
       ? state.outcome.status === "UPGRADED"
-        ? `已更新到 ${state.outcome.newVersion ?? "新版本"}`
-        : "已是最新版本"
+        ? t("aiConfig.brew.updatedTo", {
+            version: state.outcome.newVersion ?? t("aiConfig.brew.newVersion"),
+          })
+        : t("aiConfig.brew.upToDate")
       : null;
 
   return (
@@ -59,7 +63,7 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
             {failure}
           </p>
           <Button size="sm" variant="secondary" onClick={() => setState({ status: "confirming" })}>
-            重试
+            {t("common.retry")}
           </Button>
         </>
       ) : (
@@ -69,7 +73,7 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
           disabled={state.status === "running"}
           onClick={() => setState({ status: "confirming" })}
         >
-          {state.status === "running" ? "正在更新…" : "更新"}
+          {state.status === "running" ? t("aiConfig.brew.updating") : t("aiConfig.brew.update")}
         </Button>
       )}
       {result !== null ? (
@@ -85,18 +89,18 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
         >
           <div className="grid gap-ui-8">
             <h3 id={titleId} className="m-0 text-group font-semibold">
-              更新 {displayName}？
+              {t("aiConfig.brew.confirmTitle", { name: displayName })}
             </h3>
             <p className="m-0 text-body">
-              将运行 brew upgrade {packageName}，可能需要几分钟，期间请不要关闭应用。
+              {t("aiConfig.brew.confirmBody", { package: packageName })}
             </p>
           </div>
           <ActionRow align="end">
             <Button variant="secondary" onClick={() => setState({ status: "idle" })}>
-              取消
+              {t("common.cancel")}
             </Button>
             <Button variant="primary" onClick={run}>
-              开始更新
+              {t("aiConfig.brew.startUpdate")}
             </Button>
           </ActionRow>
         </ConfirmDialog>

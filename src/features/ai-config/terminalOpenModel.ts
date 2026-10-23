@@ -1,4 +1,6 @@
+import type { TranslateFunction } from "../../i18n";
 import type { AppError } from "../../ipc/core";
+import { zhT } from "./aiConfigModel";
 
 export type TerminalOpenState =
   | { readonly status: "idle" }
@@ -23,16 +25,19 @@ export type TerminalCommandSource =
   | { readonly status: "failed"; readonly error: AppError };
 
 /** Why the command cannot be opened in Terminal right now, or null when it can. */
-export function terminalBlockReason(source: TerminalCommandSource): string | null {
+export function terminalBlockReason(
+  source: TerminalCommandSource,
+  t: TranslateFunction = zhT,
+): string | null {
   switch (source.status) {
     case "ready":
       return source.built.placeholders.length > 0
-        ? "命令含占位符，请先复制命令并在终端中替换后运行"
+        ? t("aiConfig.terminal.placeholders")
         : null;
     case "idle":
       return source.message;
     case "loading":
-      return "正在生成命令…";
+      return t("aiConfig.terminal.generating");
     case "failed":
       return source.error.message;
   }

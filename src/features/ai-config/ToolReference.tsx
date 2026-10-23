@@ -10,6 +10,10 @@ import {
   type ToolReference as ToolReferenceData,
 } from "../../ipc/aiConfigReference";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import type { Locale } from "../../i18n";
+import { localizeErrorMessage } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
+import { definitionDescription } from "./aiConfigModel";
 import { HighlightText } from "./ConfigSearchControls";
 import { configSearchItem, matchesSearch, searchTerms } from "./configSearch";
 import { publishToolSearchItems } from "./configSearchStore";
@@ -17,7 +21,7 @@ import {
   COVERAGE_LABELS,
   COVERAGE_TONES,
   LAYER_LABELS,
-  REFERENCE_BANNER_TEXT,
+  REFERENCE_BANNER_KEY,
   REFERENCE_PAGE_SIZE,
   RISK_LABELS,
   VALUE_TYPE_FILTER_OPTIONS,
@@ -41,10 +45,18 @@ export interface ToolReferenceProps {
   readonly query?: string;
 }
 
+function localizedSetting(setting: ReferenceSetting, locale: Locale): ReferenceSetting {
+  return {
+    ...setting,
+    description: definitionDescription(setting.keyPath, setting.description, locale),
+  };
+}
+
 /** Callers key this by tool id, so each tool starts from a fresh, unfiltered list. */
 export function ToolReference({ toolId, query = "" }: ToolReferenceProps) {
   const [state, setState] = useState<ToolReferenceState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
+  const locale = useLocale();
 
   useEffect(() => {
     let current = true;
@@ -63,8 +75,13 @@ export function ToolReference({ toolId, query = "" }: ToolReferenceProps) {
 
   useEffect(() => {
     if (state.status !== "ready") return;
-    publishToolSearchItems(toolId, state.reference.settings.map(configSearchItem));
-  }, [state, toolId]);
+    publishToolSearchItems(
+      toolId,
+      state.reference.settings.map((setting) =>
+        configSearchItem(localizedSetting(setting, locale)),
+      ),
+    );
+  }, [state, toolId, locale]);
 
   const retry = useCallback(() => {
     setState({ status: "loading" });
@@ -83,19 +100,20 @@ export function ToolReferenceView({
   readonly onRetry: () => void;
   readonly query?: string;
 }) {
+  const t = useT();
   if (state.status === "loading") {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        正在读取官方设置参考……
+        {t("aiConfig.ref.loading")}
       </p>
     );
   }
   if (state.status === "failed") {
     return (
       <Panel role="alert" className="grid justify-items-start gap-ui-8 p-ui-12">
-        <p className="m-0 text-body font-semibold text-danger">无法读取官方设置参考</p>
-        <p className="m-0 text-body">{state.error.message}</p>
-        <Button onClick={onRetry}>重试</Button>
+        <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.ref.failed")}</p>
+        <p className="m-0 text-body">{localizeErrorMessage(state.error, t)}</p>
+        <Button onClick={onRetry}>{t("common.retry")}</Button>
       </Panel>
     );
   }
@@ -109,24 +127,28 @@ function ReferenceContent({
   readonly reference: ToolReferenceData;
   readonly query: string;
 }) {
+  const t = useT();
+  const locale = useLocale();
+  const settings = reference.settings.map((setting) => localizedSetting(setting, locale));
   return (
     <section
-      aria-label={`${reference.displayName} 官方设置参考`}
+      aria-label={t("aiConfig.ref.regionLabel", { name: reference.displayName })}
       className="grid min-w-0 content-start gap-ui-12"
     >
       <Panel className="grid gap-ui-8 p-ui-12">
-        <h3 className="m-0 text-group font-semibold">官方设置参考</h3>
+        <h3 className="m-0 text-group font-semibold">{t("aiConfig.ref.heading")}</h3>
         <p role="note" className="m-0 text-body font-semibold">
-          {REFERENCE_BANNER_TEXT}
+          {t(REFERENCE_BANNER_KEY)}
         </p>
         <p className="m-0 text-aux text-muted-foreground">
-          来源：<span className="break-all font-mono">{reference.source.url}</span>（
-          {formatVersionNote(reference)}）
+          {t("aiConfig.ref.sourceLabel")}
+          <span className="break-all font-mono">{reference.source.url}</span>
+          {t("aiConfig.ref.sourceNote", { note: formatVersionNote(reference, t) })}
         </p>
       </Panel>
 
       {reference.notices.length > 0 ? (
-        <ul aria-label="官方提示" className="m-0 grid list-none gap-ui-8 p-0">
+        <ul aria-label={t("aiConfig.ref.noticeLabel")} className="m-0 grid list-none gap-ui-8 p-0">
           {reference.notices.map((notice) => (
             <li
               key={notice}
@@ -136,7 +158,7 @@ function ReferenceContent({
                 <span aria-hidden="true" className="font-semibold">
                   ⚠
                 </span>
-                <StatusBadge tone="warning">需注意</StatusBadge>
+                <StatusBadge tone="warning">{t("aiConfig.ref.noticeBadge")}</StatusBadge>
               </div>
               <p className="m-0">{notice}</p>
             </li>
@@ -146,34 +168,37 @@ function ReferenceContent({
 
       <ResourceList resources={reference.resources} />
       <CoverageSummary flags={reference.flagsCoverage} env={reference.envCoverage} />
-      <SettingsList settings={reference.settings} query={query} />
+      <SettingsList settings={settings} query={query} />
     </section>
   );
 }
 
 function ResourceList({ resources }: { readonly resources: readonly ReferenceResource[] }) {
+  const t = useT();
   return (
     <section aria-labelledby="ai-reference-resources" className="grid min-w-0 gap-ui-8">
       <h3 id="ai-reference-resources" className="m-0 text-body font-semibold">
-        来源资源（{resources.length}）
+        {t("aiConfig.ref.resourcesHeading", { count: resources.length })}
       </h3>
-      <ul aria-label="来源资源列表" className="m-0 grid list-none gap-ui-8 p-0">
+      <ul aria-label={t("aiConfig.ref.resourcesLabel")} className="m-0 grid list-none gap-ui-8 p-0">
         {resources.map((resource) => (
           <li key={resource.id} className="grid min-w-0 gap-ui-4 border-t border-border pt-ui-8">
             <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
               <code className="break-all text-aux font-semibold">{resource.id}</code>
               <StatusBadge tone={COVERAGE_TONES[resource.coverage]}>
-                {COVERAGE_LABELS[resource.coverage]}
+                {t(COVERAGE_LABELS[resource.coverage])}
               </StatusBadge>
-              {resource.metadataOnly ? <StatusBadge tone="neutral">仅元数据</StatusBadge> : null}
+              {resource.metadataOnly ? (
+                <StatusBadge tone="neutral">{t("aiConfig.ref.metadataOnly")}</StatusBadge>
+              ) : null}
             </div>
             <p className="m-0 break-all text-aux text-muted-foreground">
-              {LAYER_LABELS[resource.layer]} · {resource.format} ·{" "}
+              {t(LAYER_LABELS[resource.layer])} · {resource.format} ·{" "}
               <code className="font-mono">{resource.location}</code>
             </p>
             <p className="m-0 text-aux">
               {resource.description}
-              {resource.descriptionTruncated ? "（说明已截断，完整内容见官方来源）" : ""}
+              {resource.descriptionTruncated ? t("aiConfig.ref.descriptionTruncated") : ""}
             </p>
           </li>
         ))}
@@ -189,26 +214,29 @@ function CoverageSummary({
   readonly flags: ReferenceListing;
   readonly env: ReferenceListing;
 }) {
+  const t = useT();
   return (
     <section aria-labelledby="ai-reference-coverage" className="grid min-w-0 gap-ui-4">
       <h3 id="ai-reference-coverage" className="m-0 text-body font-semibold">
-        命令行参数与环境变量覆盖
+        {t("aiConfig.ref.coverageHeading")}
       </h3>
-      <ListingLine label="命令行参数" listing={flags} />
-      <ListingLine label="环境变量" listing={env} />
+      <ListingLine label={t("aiConfig.ref.flags")} listing={flags} />
+      <ListingLine label={t("aiConfig.ref.env")} listing={env} />
     </section>
   );
 }
 
 function ListingLine({ label, listing }: { readonly label: string; readonly listing: ReferenceListing }) {
+  const t = useT();
   return (
     <p className="m-0 break-words text-aux">
-      {label}：{listingStatusText(listing.snapshotComplete)}
-      {listing.coverageNote ? `。${listing.coverageNote}` : ""}
-      {listing.coverageNoteTruncated ? "（说明已截断）" : ""}
+      {t("aiConfig.ref.listingLine", { label, status: listingStatusText(listing.snapshotComplete, t) })}
+      {listing.coverageNote ? t("aiConfig.ref.listingNote", { note: listing.coverageNote }) : ""}
+      {listing.coverageNoteTruncated ? t("aiConfig.ref.coverageNoteTruncated") : ""}
       <span className="text-muted-foreground">
         {" "}
-        来源：<span className="break-all font-mono">{listing.sourceUrl}</span>
+        {t("aiConfig.ref.sourceLabel")}
+        <span className="break-all font-mono">{listing.sourceUrl}</span>
       </span>
     </p>
   );
@@ -221,6 +249,7 @@ function SettingsList({
   readonly settings: readonly ReferenceSetting[];
   readonly query: string;
 }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [valueType, setValueType] = useState<ValueTypeFilter>("all");
   const [riskOnly, setRiskOnly] = useState(false);
@@ -234,11 +263,11 @@ function SettingsList({
   return (
     <section aria-labelledby="ai-reference-settings" className="grid min-w-0 gap-ui-8">
       <h3 id="ai-reference-settings" className="m-0 text-body font-semibold">
-        设置清单（{filtered.length} / {settings.length}）
+        {t("aiConfig.ref.settingsHeading", { shown: filtered.length, total: settings.length })}
       </h3>
       <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
         <TextField
-          label="搜索键名或描述"
+          label={t("aiConfig.ref.searchLabel")}
           className="min-w-0 flex-1"
           value={query}
           onValueChange={(next) => {
@@ -247,11 +276,11 @@ function SettingsList({
           }}
         />
         <SelectField<ValueTypeFilter>
-          label="按类型"
+          label={t("aiConfig.ref.typeLabel")}
           value={valueType}
           options={VALUE_TYPE_FILTER_OPTIONS.map((option) => ({
             value: option.value,
-            label: option.label,
+            label: t(option.labelKey),
           }))}
           onValueChange={(next) => {
             setValueType(next);
@@ -259,7 +288,7 @@ function SettingsList({
           }}
         />
         <CheckboxField
-          label="只看有风险或敏感的键"
+          label={t("aiConfig.ref.riskOnlyLabel")}
           checked={riskOnly}
           onCheckedChange={(next) => {
             setRiskOnly(next);
@@ -270,10 +299,10 @@ function SettingsList({
 
       {filtered.length === 0 ? (
         <p role="status" className="m-0 text-aux text-muted-foreground">
-          没有匹配的设置键。
+          {t("aiConfig.ref.noMatchingKeys")}
         </p>
       ) : (
-        <ul aria-label="官方设置键" className="m-0 grid list-none gap-ui-8 p-0">
+        <ul aria-label={t("aiConfig.ref.settingsListLabel")} className="m-0 grid list-none gap-ui-8 p-0">
           {page.visible.map((setting) => (
             <SettingRow key={setting.id} setting={setting} terms={terms} />
           ))}
@@ -283,7 +312,7 @@ function SettingsList({
       {page.hasMore ? (
         <div>
           <Button variant="secondary" onClick={() => setShown(nextShownCount(shown, filtered.length))}>
-            显示更多（还有 {page.remaining} 项）
+            {t("aiConfig.ref.showMore", { count: page.remaining })}
           </Button>
         </div>
       ) : null}
@@ -298,35 +327,40 @@ function SettingRow({
   readonly setting: ReferenceSetting;
   readonly terms: readonly string[];
 }) {
+  const t = useT();
   return (
     <li className="grid min-w-0 gap-ui-4 border-t border-border pt-ui-8">
       <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
         <code className="break-all text-aux font-semibold">
           <HighlightText text={setting.keyPath} terms={terms} />
         </code>
-        <StatusBadge tone="neutral">{VALUE_TYPE_LABELS[setting.valueType]}</StatusBadge>
+        <StatusBadge tone="neutral">{t(VALUE_TYPE_LABELS[setting.valueType])}</StatusBadge>
         {setting.risks.map((risk) => (
           <StatusBadge key={risk} tone="warning">
-            {RISK_LABELS[risk]}
+            {t(RISK_LABELS[risk])}
           </StatusBadge>
         ))}
-        {setting.secret ? <StatusBadge tone="danger">敏感</StatusBadge> : null}
+        {setting.secret ? <StatusBadge tone="danger">{t("aiConfig.ref.secret")}</StatusBadge> : null}
       </div>
       <p className="m-0 text-aux">
         <HighlightText text={setting.description} terms={terms} />
-        {setting.descriptionTruncated ? "（说明已截断，完整内容见官方来源）" : ""}
+        {setting.descriptionTruncated ? t("aiConfig.ref.descriptionTruncated") : ""}
       </p>
       <p className="m-0 break-words text-aux text-muted-foreground">
-        默认值：{setting.defaultNote}
-        {setting.defaultNoteTruncated ? "（已截断）" : ""}
+        {t("aiConfig.ref.defaultNote", { value: setting.defaultNote })}
+        {setting.defaultNoteTruncated ? t("aiConfig.ref.defaultNoteTruncated") : ""}
       </p>
       {setting.valueType === "enum" ? (
         <p className="m-0 break-words text-aux text-muted-foreground">
-          可选值：<HighlightText text={setting.allowedValues.join("、")} terms={terms} />
+          {t("aiConfig.ref.allowedValues")}
+          <HighlightText
+            text={setting.allowedValues.join(t("aiConfig.listSeparator"))}
+            terms={terms}
+          />
         </p>
       ) : null}
       <p className="m-0 text-aux text-muted-foreground">
-        覆盖：{COVERAGE_LABELS[setting.coverage]}
+        {t("aiConfig.ref.coverage", { status: t(COVERAGE_LABELS[setting.coverage]) })}
       </p>
     </li>
   );

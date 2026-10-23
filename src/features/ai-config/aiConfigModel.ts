@@ -5,7 +5,18 @@ import type {
   AiInvalidReason,
   AiToolReport,
 } from "../../ipc/aiConfig";
+import { translate, type Locale, type MessageKey, type TranslateFunction } from "../../i18n";
+import { aiConfigDefinitionEn } from "../../i18n/messages/aiConfig";
 import type { AppError } from "../../ipc/core";
+
+/** Model helpers default to zh-CN so their callers and tests keep the original text. */
+export const zhT: TranslateFunction = (key, params) => translate("zh-CN", key, params);
+
+/** Definition text stays in the source language unless the English catalogue has a copy for this key. */
+export function definitionDescription(keyPath: string, description: string, locale: Locale): string {
+  if (locale !== "en") return description;
+  return aiConfigDefinitionEn[keyPath] ?? description;
+}
 
 export type AiConfigState =
   | { status: "loading" }
@@ -34,35 +45,35 @@ export function countInconclusive(report: AiConfigReport): number {
 
 export const INSTALL_LABELS: Record<
   AiInstallStatus,
-  { label: string; symbol: string; tone: AiBadgeTone }
+  { labelKey: MessageKey; symbol: string; tone: AiBadgeTone }
 > = {
-  found: { label: "已找到", symbol: "✓", tone: "success" },
-  missing: { label: "未找到", symbol: "○", tone: "warning" },
-  invalid: { label: "无效", symbol: "!", tone: "danger" },
+  found: { labelKey: "aiConfig.install.found", symbol: "✓", tone: "success" },
+  missing: { labelKey: "aiConfig.install.missing", symbol: "○", tone: "warning" },
+  invalid: { labelKey: "aiConfig.install.invalid", symbol: "!", tone: "danger" },
 };
 
-export const INVALID_REASON_TEXT: Record<AiInvalidReason, string> = {
-  unreadable: "无法读取该位置",
-  outsideRoot: "符号链接指向允许范围之外",
-  notRegularFile: "不是普通文件",
-  notExecutable: "没有可执行权限",
-  groupOrWorldWritable: "组或其他用户可写，已拒绝运行",
+export const INVALID_REASON_KEYS: Record<AiInvalidReason, MessageKey> = {
+  unreadable: "aiConfig.invalidReason.unreadable",
+  outsideRoot: "aiConfig.invalidReason.outsideRoot",
+  notRegularFile: "aiConfig.invalidReason.notRegularFile",
+  notExecutable: "aiConfig.invalidReason.notExecutable",
+  groupOrWorldWritable: "aiConfig.invalidReason.groupOrWorldWritable",
 };
 
 export const CONFIG_LABELS: Record<
   AiConfigPresence,
-  { text: string; symbol: string }
+  { textKey: MessageKey; symbol: string }
 > = {
-  found: { text: "已发现配置文件（不代表已安装）", symbol: "✓" },
-  notFound: { text: "未发现配置文件", symbol: "○" },
-  unavailable: { text: "无法检查配置位置", symbol: "!" },
-  notRegistered: { text: "暂未提供配置位置", symbol: "–" },
+  found: { textKey: "aiConfig.config.found", symbol: "✓" },
+  notFound: { textKey: "aiConfig.config.notFound", symbol: "○" },
+  unavailable: { textKey: "aiConfig.config.unavailable", symbol: "!" },
+  notRegistered: { textKey: "aiConfig.config.notRegistered", symbol: "–" },
 };
 
-export const NO_CONFIG_PATH_TEXT = "暂无";
+export const NO_CONFIG_PATH_KEY = "aiConfig.config.noPath";
 
-export const UNCONFIRMED_VERSION_TEXT = "版本未确认";
-export const NO_EXECUTABLE_TEXT = "未找到可执行文件";
+export const UNCONFIRMED_VERSION_KEY = "aiConfig.version.unconfirmed";
+export const NO_EXECUTABLE_KEY = "aiConfig.executable.none";
 
 export const CLAUDE_CODE_TOOL_ID = "claude-code";
 

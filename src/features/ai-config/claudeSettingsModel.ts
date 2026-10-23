@@ -5,6 +5,8 @@ import type {
   ClaudeSettingEntry,
 } from "../../ipc/aiConfig";
 import type { SelectGrantResult } from "../../ipc/grants";
+import type { MessageKey, TranslateFunction } from "../../i18n";
+import { zhT } from "./aiConfigModel";
 
 export interface ProjectGrant {
   readonly id: string;
@@ -24,34 +26,37 @@ export function resolveSelection(
 
 export const USER_LAYER_ID = "claude-user-settings";
 
-const LAYER_TITLES: Readonly<Record<string, string>> = {
-  "claude-managed-settings": "托管设置（只读）",
-  "claude-project-local-settings": "项目本地设置",
-  "claude-project-shared-settings": "项目共享设置",
-  [USER_LAYER_ID]: "用户设置",
-  "claude-sign-in-metadata": "认证状态（仅元数据，不读取内容）",
+const LAYER_TITLE_KEYS: Readonly<Record<string, MessageKey>> = {
+  "claude-managed-settings": "aiConfig.claude.layer.managed",
+  "claude-project-local-settings": "aiConfig.claude.layer.projectLocal",
+  "claude-project-shared-settings": "aiConfig.claude.layer.projectShared",
+  [USER_LAYER_ID]: "aiConfig.claude.layer.user",
+  "claude-sign-in-metadata": "aiConfig.claude.layer.signIn",
 };
 
-export function layerTitle(id: string): string {
-  return LAYER_TITLES[id] ?? id;
+export function layerTitle(id: string, t: TranslateFunction = zhT): string {
+  const key = LAYER_TITLE_KEYS[id];
+  return key === undefined ? id : t(key);
 }
 
-const STATE_TEXT: Readonly<Record<ClaudeLayerStateKind, string>> = {
-  loaded: "已读取",
-  present: "存在",
-  missing: "不存在",
-  notSelected: "未选择项目",
-  notApplicable: "当前系统不适用",
-  notReadable: "无法读取",
-  existsUnreadable: "存在但不可读",
-  notRegularFile: "不是普通文件，已忽略",
-  tooLarge: "超过读取上限",
-  malformed: "解析失败",
+const STATE_KEYS: Readonly<Record<ClaudeLayerStateKind, MessageKey>> = {
+  loaded: "aiConfig.claude.state.loaded",
+  present: "aiConfig.claude.state.present",
+  missing: "aiConfig.claude.state.missing",
+  notSelected: "aiConfig.claude.state.notSelected",
+  notApplicable: "aiConfig.claude.state.notApplicable",
+  notReadable: "aiConfig.claude.state.notReadable",
+  existsUnreadable: "aiConfig.claude.state.existsUnreadable",
+  notRegularFile: "aiConfig.claude.state.notRegularFile",
+  tooLarge: "aiConfig.claude.state.tooLarge",
+  malformed: "aiConfig.claude.state.malformed",
 };
 
-export function layerStateText(state: ClaudeLayerState): string {
-  if (state.kind === "malformed" && state.message) return `解析失败：${state.message}`;
-  return STATE_TEXT[state.kind];
+export function layerStateText(state: ClaudeLayerState, t: TranslateFunction = zhT): string {
+  if (state.kind === "malformed" && state.message) {
+    return t("aiConfig.claude.state.malformedDetail", { message: state.message });
+  }
+  return t(STATE_KEYS[state.kind]);
 }
 
 const PARTIAL_STATES: readonly ClaudeLayerStateKind[] = [
@@ -71,25 +76,28 @@ export function isPartialView(view: ClaudeReadView): boolean {
 
 // Every entry is display-only in this slice: the snapshot records no verified
 // version range, so nothing is claimed as editable or fully supported.
-export function entryBadges(entry: ClaudeSettingEntry): string[] {
+export function entryBadges(entry: ClaudeSettingEntry, t: TranslateFunction = zhT): string[] {
   const badges: string[] = [];
-  if (!entry.documented) badges.push("未登记定义·仅展示");
-  else if (entry.valueType === "unknown") badges.push("类型未核实·仅展示");
-  else badges.push("仅展示");
-  if (entry.masked) badges.push("已遮盖");
-  if (entry.merged) badges.push("列表合并");
+  if (!entry.documented) badges.push(t("aiConfig.claude.badge.undocumented"));
+  else if (entry.valueType === "unknown") badges.push(t("aiConfig.claude.badge.unverifiedType"));
+  else badges.push(t("aiConfig.claude.badge.displayOnly"));
+  if (entry.masked) badges.push(t("aiConfig.claude.badge.masked"));
+  if (entry.merged) badges.push(t("aiConfig.claude.badge.merged"));
   return badges;
 }
 
-export function winnerText(entry: ClaudeSettingEntry): string {
-  if (entry.merged) return "多层合并";
-  return entry.winner ? layerTitle(entry.winner) : "—";
+export function winnerText(entry: ClaudeSettingEntry, t: TranslateFunction = zhT): string {
+  if (entry.merged) return t("aiConfig.claude.winner.merged");
+  return entry.winner ? layerTitle(entry.winner, t) : "—";
 }
 
-export function overriddenText(entry: ClaudeSettingEntry): string {
+export function overriddenText(entry: ClaudeSettingEntry, t: TranslateFunction = zhT): string {
   const overridden = entry.definedIn.filter((source) => source.overridden);
-  if (overridden.length === 0) return "无被覆盖的来源";
-  return `被覆盖：${overridden.map((source) => layerTitle(source.layerId)).join("、")}`;
+  if (overridden.length === 0) return t("aiConfig.claude.overridden.none");
+  const layers = overridden
+    .map((source) => layerTitle(source.layerId, t))
+    .join(t("aiConfig.listSeparator"));
+  return t("aiConfig.claude.overridden.list", { layers });
 }
 
 const MAX_VALUE_TEXT = 200;

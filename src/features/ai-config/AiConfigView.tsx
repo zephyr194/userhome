@@ -4,16 +4,18 @@ import { PageRegion } from "../../components/ui/PageShell";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import type { AppError } from "../../ipc/core";
+import { localizeErrorMessage } from "../../i18n/errors";
+import { useT } from "../../i18n/useLocale";
 import { BrewUpdate } from "./BrewUpdate";
 import { ConfigSearchBar } from "./ConfigSearchControls";
 import { ToolReference } from "./ToolReference";
 import {
   CONFIG_LABELS,
   INSTALL_LABELS,
-  INVALID_REASON_TEXT,
-  NO_CONFIG_PATH_TEXT,
-  NO_EXECUTABLE_TEXT,
-  UNCONFIRMED_VERSION_TEXT,
+  INVALID_REASON_KEYS,
+  NO_CONFIG_PATH_KEY,
+  NO_EXECUTABLE_KEY,
+  UNCONFIRMED_VERSION_KEY,
   countInconclusive,
   selectedToolOf,
   showsClaudePanel,
@@ -55,6 +57,7 @@ export function AiConfigView({
   onQueryChange = () => undefined,
   searchIndex = NO_SEARCH_INDEX,
 }: AiConfigViewProps) {
+  const t = useT();
   const summary = summarizeState(state);
   const tools = state.status === "ready" ? state.report.tools : [];
   const selected = selectedToolOf(tools, selectedToolId);
@@ -80,10 +83,10 @@ export function AiConfigView({
           className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
           <h2 id="ai-tools-heading" className="m-0 text-group font-semibold">
-            工具列表
+            {t("aiConfig.view.toolListHeading")}
           </h2>
           <p className="m-0 text-aux text-muted-foreground">
-            只读检测四个 AI 命令行工具。版本检测只运行固定的 --version，不读取凭据、不发起模型请求。配置文件存在不等于已安装，两者分开显示。
+            {t("aiConfig.view.toolListIntro")}
           </p>
           <StateNotice
             state={state}
@@ -96,7 +99,7 @@ export function AiConfigView({
           {state.status === "ready" ? (
             <ul
               ref={toolListRef}
-              aria-label="AI 工具列表"
+              aria-label={t("aiConfig.view.toolListLabel")}
               className="slide-list m-0 grid list-none gap-ui-4 p-0"
             >
               {tools.map((tool) => (
@@ -115,7 +118,7 @@ export function AiConfigView({
 
       <PageRegion>
         <section
-          aria-label="所选工具"
+          aria-label={t("aiConfig.view.selectedToolLabel")}
           className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
           <ConfigSearchBar
@@ -160,14 +163,15 @@ function StateNotice({
   refreshError: AppError | undefined;
   onRetry: () => void;
 }) {
+  const t = useT();
   if (state.status === "failed") {
     return (
       <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-        <p className="m-0 text-body font-semibold text-danger">无法检测 AI 工具</p>
-        <p className="m-0 text-body">{state.error.message}</p>
+        <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.view.detectFailed")}</p>
+        <p className="m-0 text-body">{localizeErrorMessage(state.error, t)}</p>
         <div>
           <Button size="sm" onClick={onRetry}>
-            重试
+            {t("common.retry")}
           </Button>
         </div>
       </Panel>
@@ -176,37 +180,37 @@ function StateNotice({
   if (state.status === "loading") {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        正在检测 AI 工具……
+        {t("aiConfig.view.detecting")}
       </p>
     );
   }
   if (refreshError) {
     return (
       <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-        <p className="m-0 text-body font-semibold text-danger">刷新失败，仍显示上次读取的结果</p>
-        <p className="m-0 text-body">{refreshError.message}</p>
-        <p className="m-0 text-aux text-muted-foreground">可在页头点击“刷新”重试。</p>
+        <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.view.refreshFailed")}</p>
+        <p className="m-0 text-body">{localizeErrorMessage(refreshError, t)}</p>
+        <p className="m-0 text-aux text-muted-foreground">{t("aiConfig.view.refreshFailedHint")}</p>
       </Panel>
     );
   }
   if (refreshing) {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        正在刷新…
+        {t("aiConfig.view.refreshing")}
       </p>
     );
   }
   if (summary === "empty") {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        没有可检测的 AI 工具。
+        {t("aiConfig.view.noTools")}
       </p>
     );
   }
   if (state.status === "ready" && summary === "partial") {
     return (
       <p role="status" className="m-0 text-body">
-        有 {countInconclusive(state.report)} 个工具无法完整检测（安装无效或配置无法检查），其余工具不受影响。
+        {t("aiConfig.view.partial", { count: countInconclusive(state.report) })}
       </p>
     );
   }
@@ -222,13 +226,14 @@ function SearchEmpty({
   unloadedCount: number;
   onSelectTool: (toolId: string) => void;
 }) {
+  const t = useT();
   const total = matches.reduce((sum, match) => sum + match.count, 0);
-  let otherText = "其他工具里没有匹配。";
-  if (total > 0) otherText = `其他工具里有 ${total} 个匹配。`;
-  else if (unloadedCount > 0) otherText = "已打开过的其他工具里没有匹配。";
+  let otherText = t("aiConfig.view.noOtherMatches");
+  if (total > 0) otherText = t("aiConfig.view.otherMatches", { count: total });
+  else if (unloadedCount > 0) otherText = t("aiConfig.view.noOpenedMatches");
   return (
-    <section aria-label="搜索结果" className="grid min-w-0 justify-items-start gap-ui-8">
-      <p className="m-0 text-body font-semibold">没有匹配的配置项。</p>
+    <section aria-label={t("aiConfig.view.searchResults")} className="grid min-w-0 justify-items-start gap-ui-8">
+      <p className="m-0 text-body font-semibold">{t("aiConfig.view.noMatchingSettings")}</p>
       <p className="m-0 text-aux text-muted-foreground">{otherText}</p>
       {matches.length > 0 ? (
         <ActionRow>
@@ -239,14 +244,14 @@ function SearchEmpty({
               variant="secondary"
               onClick={() => onSelectTool(match.toolId)}
             >
-              {`查看 ${match.displayName}（${match.count} 项）`}
+              {t("aiConfig.view.openTool", { name: match.displayName, count: match.count })}
             </Button>
           ))}
         </ActionRow>
       ) : null}
       {unloadedCount > 0 ? (
         <p className="m-0 text-aux text-muted-foreground">
-          {`还有 ${unloadedCount} 个工具尚未打开过，其配置项未计入。`}
+          {t("aiConfig.view.unloadedTools", { count: unloadedCount })}
         </p>
       ) : null}
     </section>
@@ -275,6 +280,7 @@ function ToolRow({
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
+  const t = useT();
   const install = INSTALL_LABELS[tool.installStatus];
   return (
     <Button
@@ -288,10 +294,10 @@ function ToolRow({
       <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
         <StatusBadge tone={install.tone}>
           <span aria-hidden="true">{install.symbol} </span>
-          {install.label}
+          {t(install.labelKey)}
         </StatusBadge>
         {tool.invalidReason ? (
-          <span className="text-aux">{INVALID_REASON_TEXT[tool.invalidReason]}</span>
+          <span className="text-aux">{t(INVALID_REASON_KEYS[tool.invalidReason])}</span>
         ) : null}
       </span>
     </Button>
@@ -300,6 +306,7 @@ function ToolRow({
 
 function ToolCard({ tool, onRefresh }: { tool: AiToolReport; onRefresh: () => void }) {
   const headingId = `ai-tool-${tool.id}`;
+  const t = useT();
   const install = INSTALL_LABELS[tool.installStatus];
   const config = CONFIG_LABELS[tool.configPresence];
   return (
@@ -308,26 +315,27 @@ function ToolCard({ tool, onRefresh }: { tool: AiToolReport; onRefresh: () => vo
         {tool.displayName}
       </h3>
       <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-ui-8 gap-y-ui-8 text-body">
-        <dt className="text-muted-foreground">安装状态</dt>
+        <dt className="text-muted-foreground">{t("aiConfig.view.installStatus")}</dt>
         <dd className="m-0 grid min-w-0 justify-items-start gap-ui-4">
           <StatusBadge tone={install.tone}>
             <span aria-hidden="true">{install.symbol} </span>
-            {install.label}
+            {t(install.labelKey)}
           </StatusBadge>
           {tool.invalidReason ? (
-            <span className="text-aux">{INVALID_REASON_TEXT[tool.invalidReason]}</span>
+            <span className="text-aux">{t(INVALID_REASON_KEYS[tool.invalidReason])}</span>
           ) : null}
         </dd>
         {tool.installSource ? (
           <>
-            <dt className="text-muted-foreground">安装方式</dt>
+            <dt className="text-muted-foreground">{t("aiConfig.view.installSource")}</dt>
             <dd className="m-0 grid min-w-0 justify-items-start gap-ui-8">
               {tool.installSource.type === "homebrew" ? (
                 <>
                   <span className="break-all">
-                    Homebrew（
-                    {tool.installSource.kind === "CASK" ? "cask" : "formula"}{" "}
-                    {tool.installSource.package}）
+                    {t("aiConfig.install.homebrew", {
+                      kind: tool.installSource.kind === "CASK" ? "cask" : "formula",
+                      package: tool.installSource.package,
+                    })}
                   </span>
                   <BrewUpdate
                     toolId={tool.id}
@@ -338,34 +346,34 @@ function ToolCard({ tool, onRefresh }: { tool: AiToolReport; onRefresh: () => vo
                 </>
               ) : (
                 <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
-                  <span>直接安装</span>
+                  <span>{t("aiConfig.view.directInstall")}</span>
                   <InfoTip
-                    title="安装方式说明"
-                    description="直接安装的工具请用它自带的更新方式。"
+                    title={t("aiConfig.view.directInstallTitle")}
+                    description={t("aiConfig.view.directInstallDescription")}
                   />
                 </span>
               )}
             </dd>
           </>
         ) : null}
-        <dt className="text-muted-foreground">可执行文件</dt>
+        <dt className="text-muted-foreground">{t("aiConfig.view.executable")}</dt>
         <dd className="m-0 break-all font-mono text-aux">
-          {tool.displayPath ?? NO_EXECUTABLE_TEXT}
+          {tool.displayPath ?? t(NO_EXECUTABLE_KEY)}
         </dd>
-        <dt className="text-muted-foreground">版本</dt>
+        <dt className="text-muted-foreground">{t("aiConfig.view.version")}</dt>
         <dd className="m-0 break-all font-mono text-aux">
-          {tool.version ?? UNCONFIRMED_VERSION_TEXT}
+          {tool.version ?? t(UNCONFIRMED_VERSION_KEY)}
         </dd>
-        <dt className="text-muted-foreground">配置文件</dt>
+        <dt className="text-muted-foreground">{t("aiConfig.view.configFile")}</dt>
         <dd className="m-0">
           <span aria-hidden="true">{config.symbol} </span>
-          {config.text}
+          {t(config.textKey)}
         </dd>
-        <dt className="text-muted-foreground">配置路径</dt>
+        <dt className="text-muted-foreground">{t("aiConfig.view.configPath")}</dt>
         <dd className="m-0 break-all font-mono text-aux">
-          {tool.configDisplayPath ?? NO_CONFIG_PATH_TEXT}
+          {tool.configDisplayPath ?? t(NO_CONFIG_PATH_KEY)}
         </dd>
-        <dt className="text-muted-foreground">官方参考</dt>
+        <dt className="text-muted-foreground">{t("aiConfig.view.officialReferences")}</dt>
         <dd className="m-0 min-w-0">
           <ul className="m-0 grid list-none gap-ui-4 p-0">
             {tool.references.map((url) => (

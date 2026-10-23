@@ -1,9 +1,8 @@
 import { Fragment, useRef, type KeyboardEvent } from "react";
 import { Button } from "../../components/ui";
 import { TextField } from "../../components/ui/forms";
+import { useT } from "../../i18n/useLocale";
 import { MAX_QUERY_LENGTH, highlightSegments } from "./configSearch";
-
-export const SEARCH_PLACEHOLDER = "搜索配置项（键名或说明）";
 
 export interface ConfigSearchBarProps {
   readonly query: string;
@@ -14,6 +13,7 @@ export interface ConfigSearchBarProps {
 
 export function ConfigSearchBar({ query, matchCount, onQueryChange }: ConfigSearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   const clear = () => {
     onQueryChange("");
@@ -30,8 +30,8 @@ export function ConfigSearchBar({ query, matchCount, onQueryChange }: ConfigSear
     <div className="config-search grid min-w-0 gap-ui-4">
       <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
         <TextField
-          label="搜索配置项"
-          placeholder={SEARCH_PLACEHOLDER}
+          label={t("aiConfig.search.label")}
+          placeholder={t("aiConfig.search.placeholder")}
           inputRef={inputRef}
           className="min-w-0 flex-1"
           value={query}
@@ -43,12 +43,12 @@ export function ConfigSearchBar({ query, matchCount, onQueryChange }: ConfigSear
         />
         {query === "" ? null : (
           <Button variant="ghost" onClick={clear}>
-            清除
+            {t("aiConfig.search.clear")}
           </Button>
         )}
       </div>
       <p aria-live="polite" className="m-0 text-aux text-muted-foreground">
-        {query !== "" && matchCount !== undefined ? `匹配 ${matchCount} 项` : "\u00a0"}
+        {query !== "" && matchCount !== undefined ? t("aiConfig.search.matchCount", { count: matchCount }) : "\u00a0"}
       </p>
     </div>
   );

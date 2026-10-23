@@ -2,6 +2,7 @@ import type { ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { AiConfigReport, AiToolReport } from "../../ipc/aiConfig";
+import { translate } from "../../i18n";
 import { AiConfigView } from "./AiConfigView";
 import {
   INSTALL_LABELS,
@@ -251,7 +252,7 @@ describe("aiConfigModel", () => {
   it("gives every install status a distinct symbol and label", () => {
     const labels = Object.values(INSTALL_LABELS);
 
-    expect(new Set(labels.map((entry) => entry.label)).size).toBe(3);
+    expect(new Set(labels.map((entry) => translate("zh-CN", entry.labelKey))).size).toBe(3);
     expect(new Set(labels.map((entry) => entry.symbol)).size).toBe(3);
   });
 });

@@ -8,13 +8,15 @@ import {
   type ClaudeOptionSummary,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import { localizeErrorMessage } from "../../i18n/errors";
+import { useT } from "../../i18n/useLocale";
 import { Button, Modal } from "../../components/ui";
 import { CheckboxField, SelectField, TextField } from "../../components/ui/forms";
 import {
   NOTICE_LABELS,
-  RISK_CONFIRM_LABEL,
+  RISK_CONFIRM_LABEL_KEY,
   RISK_LABELS,
-  SECRET_NOTE,
+  SECRET_NOTE_KEY,
   VALUE_TYPE_LABELS,
   kindLabel,
   needsValueInput,
@@ -46,7 +48,7 @@ export type CommandPreview =
   | { readonly status: "ready"; readonly built: ClaudeBuiltCommand }
   | { readonly status: "failed"; readonly error: AppError };
 
-const EMPTY_HINT = "勾选命令行参数或环境变量后，这里会生成可复制的命令。";
+const EMPTY_HINT_KEY = "aiConfig.cmd.emptyHint";
 const MAX_VALUE_LENGTH = 8192;
 
 interface CommandBuilderViewProps {
@@ -78,20 +80,21 @@ export function CommandBuilderView({
   onCopy,
   onRetry,
 }: CommandBuilderViewProps) {
+  const t = useT();
   return (
-    <section aria-label="Claude Code 命令生成" className="grid min-w-0 gap-ui-8">
-      <h2 className="m-0 text-body font-semibold">Claude Code 命令生成</h2>
+    <section aria-label={t("aiConfig.cmd.heading")} className="grid min-w-0 gap-ui-8">
+      <h2 className="m-0 text-body font-semibold">{t("aiConfig.cmd.heading")}</h2>
       {options.status === "loading" ? (
         <p role="status" className="m-0 text-aux">
-          正在读取命令行参数与环境变量…
+          {t("aiConfig.cmd.loading")}
         </p>
       ) : null}
       {options.status === "failed" ? (
         <div role="alert" className="grid gap-ui-8">
-          <p className="m-0 text-aux">{options.error.message}</p>
+          <p className="m-0 text-aux">{localizeErrorMessage(options.error, t)}</p>
           <div>
             <Button variant="ghost" onClick={onRetry}>
-              重试
+              {t("common.retry")}
             </Button>
           </div>
         </div>
@@ -101,14 +104,14 @@ export function CommandBuilderView({
           <CoverageNotice summary={options.summary} />
           <p className="m-0 text-aux">{options.summary.coverageNote}</p>
           <TextField
-            label="本机版本（可选）"
-            description="填写后会检查各项版本要求；留空时版本显示为未确认。"
+            label={t("aiConfig.cmd.versionLabel")}
+            description={t("aiConfig.cmd.versionDescription")}
             value={detectedVersion}
             maxLength={32}
             onValueChange={onVersionChange}
           />
           {options.summary.items.length === 0 ? (
-            <p className="m-0 text-aux">没有可显示的命令行参数或环境变量。</p>
+            <p className="m-0 text-aux">{t("aiConfig.cmd.noItems")}</p>
           ) : (
             <ul className="m-0 grid list-none gap-ui-8 p-0">
               {options.summary.items.map((item) => (
@@ -139,30 +142,38 @@ const COVERAGE_BOX_CLASS =
  * coverage metadata counts as unknown, which is always treated as partial.
  */
 function CoverageNotice({ summary }: { readonly summary: ClaudeOptionSummary }) {
+  const t = useT();
   const { flagsCoverage: flags, envCoverage: env } = summary;
   if (flags === null || env === null) {
     return (
       <div role="note" className={COVERAGE_BOX_CLASS}>
         <p className="m-0 font-semibold">
-          ⚠ 收录范围未知，按部分收录处理：官方页面更多，未收录项不可选。
+          {t("aiConfig.cmd.coverageUnknown")}
         </p>
       </div>
     );
   }
-  const counts = `已收录 ${flags.listedCount} 项命令行参数 / ${env.listedCount} 项环境变量`;
+  const counts = t("aiConfig.cmd.coverageCounts", {
+    flags: flags.listedCount,
+    env: env.listedCount,
+  });
   const complete = flags.snapshotComplete && env.snapshotComplete;
   return (
     <div role="note" className={COVERAGE_BOX_CLASS}>
       <p className="m-0 font-semibold">
         {complete
-          ? `✔ 已完整收录：${counts}。`
-          : `⚠ 部分收录：${counts}；官方页面更多，未收录项不可选。`}
+          ? t("aiConfig.cmd.coverageComplete", { counts })
+          : t("aiConfig.cmd.coveragePartial", { counts })}
       </p>
       {flags.coverageNote !== null ? <p className="m-0 text-aux">{flags.coverageNote}</p> : null}
       {env.coverageNote !== null ? <p className="m-0 text-aux">{env.coverageNote}</p> : null}
       <p className="m-0 text-aux">
-        官方来源：命令行参数页面 {flags.sourceUrl}（检索于 {flags.retrievedOn}）；环境变量页面{" "}
-        {env.sourceUrl}（检索于 {env.retrievedOn}）。
+        {t("aiConfig.cmd.coverageSource", {
+          flagsUrl: flags.sourceUrl,
+          flagsDate: flags.retrievedOn,
+          envUrl: env.sourceUrl,
+          envDate: env.retrievedOn,
+        })}
       </p>
     </div>
   );
@@ -177,13 +188,14 @@ interface OptionRowProps {
 }
 
 function OptionRow({ item, state, onToggle, onValueChange, onAcknowledge }: OptionRowProps) {
-  const relations = relationTexts(item);
-  const risks = item.risks.map((risk) => RISK_LABELS[risk]);
+  const t = useT();
+  const relations = relationTexts(item, t);
+  const risks = item.risks.map((risk) => t(RISK_LABELS[risk]));
   const facts = [
-    kindLabel(item),
-    VALUE_TYPE_LABELS[item.valueType],
-    versionText(item),
-    item.secret ? "敏感（仅占位符）" : null,
+    kindLabel(item, t),
+    t(VALUE_TYPE_LABELS[item.valueType]),
+    versionText(item, t),
+    item.secret ? t("aiConfig.cmd.secretFact") : null,
   ].filter((fact): fact is string => fact !== null);
 
   return (
@@ -195,30 +207,34 @@ function OptionRow({ item, state, onToggle, onValueChange, onAcknowledge }: Opti
           onCheckedChange={(checked) => onToggle(item.id, checked)}
         />
       ) : (
-        <p className="m-0 font-mono text-aux">{item.id}（仅展示，不生成）</p>
+        <p className="m-0 font-mono text-aux">{t("aiConfig.cmd.displayOnlyItem", { id: item.id })}</p>
       )}
       <p className="m-0 text-aux">{facts.join(" · ")}</p>
       <p className="m-0 text-aux">{item.description}</p>
-      {relations.length > 0 ? <p className="m-0 text-aux">{relations.join("；")}</p> : null}
+      {relations.length > 0 ? (
+        <p className="m-0 text-aux">{relations.join(t("aiConfig.cmd.joinRelations"))}</p>
+      ) : null}
       {item.configAlternative !== null ? (
-        <p className="m-0 text-aux">配置替代项：{item.configAlternative}</p>
+        <p className="m-0 text-aux">
+          {t("aiConfig.cmd.configAlternative", { value: item.configAlternative })}
+        </p>
       ) : null}
       {risks.length > 0 ? (
         <p role="note" className="m-0 text-aux">
-          [风险] {risks.join("、")}
+          {t("aiConfig.cmd.riskList", { risks: risks.join(t("aiConfig.listSeparator")) })}
         </p>
       ) : null}
       {item.secret && item.generatable ? (
         <p role="note" className="m-0 text-aux">
-          {SECRET_NOTE}
+          {t(SECRET_NOTE_KEY)}
         </p>
       ) : null}
       {state.checked && needsValueInput(item) && item.valueType === "enum" ? (
         <SelectField<string>
-          label="取值"
+          label={t("aiConfig.edit.valueLabel")}
           value={state.value}
           options={[
-            { value: "", label: "请选择" },
+            { value: "", label: t("aiConfig.edit.choose") },
             ...item.allowedValues.map((value) => ({ value, label: value })),
           ]}
           onValueChange={(value) => onValueChange(item.id, value)}
@@ -226,7 +242,7 @@ function OptionRow({ item, state, onToggle, onValueChange, onAcknowledge }: Opti
       ) : null}
       {state.checked && needsValueInput(item) && item.valueType !== "enum" ? (
         <TextField
-          label="取值"
+          label={t("aiConfig.edit.valueLabel")}
           value={state.value}
           maxLength={MAX_VALUE_LENGTH}
           onValueChange={(value) => onValueChange(item.id, value)}
@@ -234,7 +250,7 @@ function OptionRow({ item, state, onToggle, onValueChange, onAcknowledge }: Opti
       ) : null}
       {state.checked && risks.length > 0 ? (
         <CheckboxField
-          label={RISK_CONFIRM_LABEL}
+          label={t(RISK_CONFIRM_LABEL_KEY)}
           checked={state.acknowledged}
           onCheckedChange={(acknowledged) => onAcknowledge(item.id, acknowledged)}
         />
@@ -252,6 +268,7 @@ function PreviewPanel({
   readonly copyMessage: string | null;
   readonly onCopy: (text: string) => void;
 }) {
+  const t = useT();
   if (preview.status === "idle") {
     return (
       <p role="status" className="m-0 text-aux">
@@ -262,14 +279,14 @@ function PreviewPanel({
   if (preview.status === "loading") {
     return (
       <p role="status" className="m-0 text-aux">
-        正在生成命令…
+        {t("aiConfig.terminal.generating")}
       </p>
     );
   }
   if (preview.status === "failed") {
     return (
       <p role="alert" className="m-0 text-aux">
-        {preview.error.message}
+        {localizeErrorMessage(preview.error, t)}
       </p>
     );
   }
@@ -277,27 +294,31 @@ function PreviewPanel({
   return (
     <div className="grid min-w-0 gap-ui-8">
       <pre
-        aria-label="生成的命令"
+        aria-label={t("aiConfig.cmd.commandLabel")}
         className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux"
       >
         {built.text}
       </pre>
       <div className="flex flex-wrap items-center gap-ui-8">
         <Button variant="ghost" onClick={() => onCopy(built.text)}>
-          复制命令
+          {t("aiConfig.cmd.copy")}
         </Button>
         {copyMessage !== null ? <span role="status" className="text-aux">{copyMessage}</span> : null}
       </div>
       {built.placeholders.length > 0 ? (
         <p role="note" className="m-0 text-aux">
-          {SECRET_NOTE}
+          {t(SECRET_NOTE_KEY)}
         </p>
       ) : null}
       {built.notices.length > 0 ? (
         <ul className="m-0 grid list-none gap-ui-4 p-0 text-aux">
           {built.notices.map((notice) => (
             <li key={notice.id}>
-              {notice.id}：{NOTICE_LABELS[notice.status]}。{notice.message}
+              {t("aiConfig.cmd.noticeRow", {
+                id: notice.id,
+                status: t(NOTICE_LABELS[notice.status]),
+                message: notice.message,
+              })}
             </li>
           ))}
         </ul>
@@ -321,29 +342,30 @@ export function TerminalOpenControl({
   onCancel,
   onConfirm,
 }: TerminalOpenControlProps) {
-  const blockReason = terminalBlockReason(preview);
+  const t = useT();
+  const blockReason = terminalBlockReason(preview, t);
 
   const busy = terminal.status === "opening";
   return (
     <div className="grid min-w-0 gap-ui-8">
       <div className="flex flex-wrap items-center gap-ui-8">
         <Button disabled={blockReason !== null || busy} onClick={onRequest}>
-          在终端打开
+          {t("aiConfig.terminal.open")}
         </Button>
       </div>
       {blockReason !== null ? (
         <p role="note" className="m-0 text-aux">
-          无法在终端打开：{blockReason}
+          {t("aiConfig.terminal.blocked", { reason: blockReason })}
         </p>
       ) : null}
       {terminal.status === "opened" ? (
         <p role="status" className="m-0 text-aux">
-          已在 Terminal 中打开命令。请在 Terminal 窗口中查看并按回车运行；UserHome 不会运行或读取输出。
+          {t("aiConfig.terminal.opened")}
         </p>
       ) : null}
       {terminal.status === "failed" ? (
         <p role="alert" className="m-0 text-danger">
-          {terminal.error.message}
+          {localizeErrorMessage(terminal.error, t)}
         </p>
       ) : null}
       {(terminal.status === "confirming" || terminal.status === "opening") &&
@@ -365,30 +387,31 @@ function TerminalConfirmDialog({
   readonly onCancel: () => void;
   readonly onConfirm: () => void;
 }) {
+  const t = useT();
   return (
     <Modal
       busy={busy}
       footer={
         <>
           <Button data-modal-cancel disabled={busy} onClick={onCancel}>
-            取消
+            {t("common.cancel")}
           </Button>
           <Button variant="primary" disabled={busy} onClick={onConfirm}>
-            在 Terminal 中打开
+            {t("aiConfig.terminal.confirm")}
           </Button>
         </>
       }
       onClose={onCancel}
       open
-      title="在终端中打开命令"
+      title={t("aiConfig.terminal.dialogTitle")}
     >
       <div className="grid min-w-0 gap-ui-8">
         <p className="m-0 text-aux">
-          将在 Terminal 中打开这条命令，需要你在终端里按回车才会运行；UserHome 不会运行或读取输出。
+          {t("aiConfig.terminal.dialogBody")}
         </p>
-        <p className="m-0 text-aux">工作目录：用户主目录（未选择项目目录）。</p>
+        <p className="m-0 text-aux">{t("aiConfig.terminal.workingDirectory")}</p>
         <pre
-          aria-label="将在终端中运行的命令"
+          aria-label={t("aiConfig.terminal.commandLabel")}
           className="m-0 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux"
         >
           {built.text}
@@ -407,6 +430,7 @@ type CommandResult =
  * the newest request may update the view, and nothing is stored in browser storage.
  */
 export function CommandBuilder() {
+  const t = useT();
   const [options, setOptions] = useState<CommandOptionsState>({ status: "loading" });
   const [selection, setSelection] = useState<Selection>({});
   const [detectedVersion, setDetectedVersion] = useState("");
@@ -443,9 +467,9 @@ export function CommandBuilder() {
   const plan = useMemo<RequestPlan | null>(
     () =>
       options.status === "ready"
-        ? planRequest(options.summary.items, selection, detectedVersion)
+        ? planRequest(options.summary.items, selection, detectedVersion, t)
         : null,
-    [options, selection, detectedVersion],
+    [options, selection, detectedVersion, t],
   );
 
   useEffect(() => {
@@ -468,14 +492,14 @@ export function CommandBuilder() {
 
   const preview = useMemo<CommandPreview>(() => {
     if (plan === null) return { status: "loading" };
-    if (plan.status === "empty") return { status: "idle", message: EMPTY_HINT };
+    if (plan.status === "empty") return { status: "idle", message: t(EMPTY_HINT_KEY) };
     if (plan.status === "incomplete") return { status: "idle", message: plan.message };
     const key = JSON.stringify(plan.request);
     if (result === null || result.key !== key) return { status: "loading" };
     return result.outcome.ok
       ? { status: "ready", built: result.outcome.built }
       : { status: "failed", error: result.outcome.error };
-  }, [plan, result]);
+  }, [plan, result, t]);
 
   const planKey = plan?.status === "ready" ? JSON.stringify(plan.request) : null;
   const [terminalRecord, setTerminalRecord] = useState<{
@@ -503,14 +527,14 @@ export function CommandBuilder() {
 
   const copy = useCallback((text: string) => {
     if (!navigator.clipboard?.writeText) {
-      setCopyMessage("无法复制命令。请检查系统剪贴板权限后重试。");
+      setCopyMessage(t("aiConfig.cmd.copyFailed"));
       return;
     }
     navigator.clipboard.writeText(text).then(
-      () => setCopyMessage("命令已复制到剪贴板。"),
-      () => setCopyMessage("无法复制命令。请检查系统剪贴板权限后重试。"),
+      () => setCopyMessage(t("aiConfig.cmd.copied")),
+      () => setCopyMessage(t("aiConfig.cmd.copyFailed")),
     );
-  }, []);
+  }, [t]);
 
   return (
     <CommandBuilderView
