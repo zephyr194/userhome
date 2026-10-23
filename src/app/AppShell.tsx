@@ -20,8 +20,14 @@ import {
   confirmQuit,
   registerQuitConfirmationListener,
 } from "../ipc/lifecycle";
+import {
+  registerDeepLinkListener,
+  takePendingDeepLink,
+} from "../ipc/deepLink";
 import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
+import { CopyPageLinkButton } from "./CopyPageLinkButton";
+import { buildPageDeepLink, validateDeepLinkPayload } from "./deepLink";
 import {
   APP_ROUTES,
   activeSectionOf,
@@ -241,6 +247,11 @@ export function AppShell({
     Partial<Record<AppRouteId, string>>
   >({});
   const activeSectionId = activeSectionOf(activeRoute, sectionByRoute[activeRoute.id])?.id;
+  const pageLink = buildPageDeepLink(
+    activeRoute.id,
+    activeSectionId,
+    activeRoute.id === "settings" ? settingsGroup : undefined,
+  );
   const selectSection = useCallback((routeId: AppRouteId, section: string) => {
     setSectionByRoute((current) => ({ ...current, [routeId]: section }));
   }, [setSectionByRoute]);
@@ -339,6 +350,39 @@ export function AppShell({
       unlisten?.();
     };
   }, [navigate]);
+
+  const navigateToRef = useRef(navigateTo);
+  useEffect(() => {
+    navigateToRef.current = navigateTo;
+  }, [navigateTo]);
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    const openDeepLink = (payload: unknown) => {
+      const intent = validateDeepLinkPayload(payload);
+      if (intent) navigateToRef.current(intent);
+    };
+
+    void registerDeepLinkListener(openDeepLink)
+      .then(
+        (cleanup) => {
+          if (disposed) {
+            cleanup();
+          } else {
+            unlisten = cleanup;
+          }
+        },
+        () => undefined,
+      )
+      .then(() => takePendingDeepLink())
+      .then(openDeepLink, () => undefined);
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, []);
 
   useEffect(() => {
     let disposed = false;
@@ -544,6 +588,7 @@ export function AppShell({
                 </p>
               </div>
               <ActionRow>
+                <CopyPageLinkButton key={pageLink ?? ""} link={pageLink} />
                 <Button
                   className="toolbar-refresh-button"
                   disabled={

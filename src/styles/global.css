@@ -2846,3 +2846,61 @@ code {
   }
 }
 /* /r8-aisearch */
+/* r8-deeplink ------------------------------------------------------------ */
+.r8-deeplink-examples {
+  display: grid;
+  gap: var(--app-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.r8-deeplink-examples__row {
+  display: grid;
+  gap: var(--app-space-4);
+  min-width: 0;
+}
+
+.r8-deeplink-examples__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-8);
+  min-width: 0;
+}
+
+.r8-deeplink-examples__link,
+.r8-deeplink-copy-failure__link {
+  min-width: 0;
+  padding: var(--app-space-2) var(--app-space-8);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-control);
+  background: var(--app-surface-muted);
+  color: var(--app-foreground);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.r8-deeplink-copy-failure {
+  display: grid;
+  gap: var(--app-space-4);
+  min-width: 0;
+  font-size: 12px;
+  color: var(--app-danger);
+}
+
+.r8-deeplink-copy-failure__link {
+  display: block;
+}
+
+@media (forced-colors: active) {
+  .r8-deeplink-examples__link,
+  .r8-deeplink-copy-failure__link {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+/* /r8-deeplink */
