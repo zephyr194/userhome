@@ -10,6 +10,10 @@ import {
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import { selectDirectoryGrant, selectFileGrant } from "../../ipc/grants";
+import { HighlightText } from "./ConfigSearchControls";
+import { claudeSearchItems, matchesSearch, searchTerms, type SearchItem } from "./configSearch";
+import { publishToolSearchItems } from "./configSearchStore";
+import { CLAUDE_CODE_TOOL_ID } from "./aiConfigModel";
 import {
   entryBadges,
   isPartialView,
@@ -51,6 +55,7 @@ export interface ClaudeSettingsViewProps {
   readonly onClearProject: () => void;
   readonly onRetry: () => void;
   readonly editing?: EditingState;
+  readonly query?: string;
 }
 
 export function ClaudeSettingsView({
@@ -62,8 +67,10 @@ export function ClaudeSettingsView({
   onClearProject,
   onRetry,
   editing,
+  query = "",
 }: ClaudeSettingsViewProps) {
   const busy = state.status === "loading" || selection.status === "selecting";
+  const terms = searchTerms(query);
   return (
     <section className="grid min-w-0 gap-ui-8" aria-label="Claude Code 设置">
       <header className="grid gap-ui-4">
@@ -118,18 +125,43 @@ export function ClaudeSettingsView({
         </div>
       ) : null}
 
-      {state.status === "ready" ? <ReadResult view={state.view} /> : null}
+      {state.status === "ready" ? (
+        <ReadResult
+          view={state.view}
+          terms={terms}
+          catalogItems={editing?.catalog?.items ?? []}
+        />
+      ) : null}
       {editing ? (
         <EditPanel
           {...editing}
           view={state.status === "ready" ? state.view : null}
+          query={query}
         />
       ) : null}
     </section>
   );
 }
 
-function ReadResult({ view }: { readonly view: ClaudeReadView }) {
+function ReadResult({
+  view,
+  terms,
+  catalogItems,
+}: {
+  readonly view: ClaudeReadView;
+  readonly terms: readonly string[];
+  readonly catalogItems: NonNullable<EditingState["catalog"]>["items"];
+}) {
+  const searchable = new Map<string, SearchItem>(
+    claudeSearchItems(
+      view.entries.map((entry) => entry.key),
+      catalogItems,
+    ).map((item) => [item.keyPath, item]),
+  );
+  const shownEntries = view.entries.filter((entry) => {
+    const item = searchable.get(entry.key);
+    return item === undefined || matchesSearch(item, terms);
+  });
   return (
     <div className="grid min-w-0 gap-ui-8">
       {isPartialView(view) ? (
@@ -163,12 +195,18 @@ function ReadResult({ view }: { readonly view: ClaudeReadView }) {
 
       {view.entries.length === 0 ? (
         <p className="m-0 text-aux text-muted-foreground">未发现已设置的键。</p>
+      ) : shownEntries.length === 0 ? (
+        <p role="status" className="m-0 text-aux text-muted-foreground">
+          没有匹配的设置键。
+        </p>
       ) : (
         <ul aria-label="设置键" className="m-0 grid list-none gap-ui-8 p-0">
-          {view.entries.map((entry) => (
+          {shownEntries.map((entry) => (
             <li key={entry.key} className="grid gap-ui-4 border-t border-border pt-ui-8">
               <div className="flex flex-wrap items-baseline gap-ui-8">
-                <code className="text-aux font-semibold">{entry.key}</code>
+                <code className="text-aux font-semibold">
+                  <HighlightText text={entry.key} terms={terms} />
+                </code>
                 {entryBadges(entry).map((badge) => (
                   <span key={badge} className="text-aux text-muted-foreground">
                     [{badge}]
@@ -187,7 +225,7 @@ function ReadResult({ view }: { readonly view: ClaudeReadView }) {
   );
 }
 
-export function ToolSettings() {
+export function ToolSettings({ query = "" }: { readonly query?: string }) {
   const [state, setState] = useState<ClaudeReadState>({ status: "loading" });
   const [snapshot, setSnapshot] = useState<ClaudeSnapshotSummary | null>(null);
   const [projectGrant, setProjectGrant] = useState<ProjectGrant | null>(null);
@@ -225,6 +263,17 @@ export function ToolSettings() {
     void getClaudeEditCatalog().then(setCatalog, () => setCatalog(null));
     void fetchView(null);
   }, [fetchView]);
+
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    publishToolSearchItems(
+      CLAUDE_CODE_TOOL_ID,
+      claudeSearchItems(
+        state.view.entries.map((entry) => entry.key),
+        catalog?.items ?? [],
+      ),
+    );
+  }, [state, catalog]);
 
   const chooseProject = useCallback(() => {
     setSelection({ status: "selecting" });
@@ -275,6 +324,7 @@ export function ToolSettings() {
       onChooseProject={chooseProject}
       onClearProject={clearProject}
       onRetry={retry}
+      query={query}
       editing={{
         catalog,
         settingsFile,

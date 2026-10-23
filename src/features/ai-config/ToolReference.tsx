@@ -10,6 +10,9 @@ import {
   type ToolReference as ToolReferenceData,
 } from "../../ipc/aiConfigReference";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import { HighlightText } from "./ConfigSearchControls";
+import { configSearchItem, matchesSearch, searchTerms } from "./configSearch";
+import { publishToolSearchItems } from "./configSearchStore";
 import {
   COVERAGE_LABELS,
   COVERAGE_TONES,
@@ -34,10 +37,12 @@ export type ToolReferenceState =
 
 export interface ToolReferenceProps {
   readonly toolId: AiToolId;
+  /** The page-wide search term; only settings matching it are listed. */
+  readonly query?: string;
 }
 
 /** Callers key this by tool id, so each tool starts from a fresh, unfiltered list. */
-export function ToolReference({ toolId }: ToolReferenceProps) {
+export function ToolReference({ toolId, query = "" }: ToolReferenceProps) {
   const [state, setState] = useState<ToolReferenceState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
@@ -56,20 +61,27 @@ export function ToolReference({ toolId }: ToolReferenceProps) {
     };
   }, [toolId, attempt]);
 
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    publishToolSearchItems(toolId, state.reference.settings.map(configSearchItem));
+  }, [state, toolId]);
+
   const retry = useCallback(() => {
     setState({ status: "loading" });
     setAttempt((count) => count + 1);
   }, []);
 
-  return <ToolReferenceView state={state} onRetry={retry} />;
+  return <ToolReferenceView state={state} onRetry={retry} query={query} />;
 }
 
 export function ToolReferenceView({
   state,
   onRetry,
+  query = "",
 }: {
   readonly state: ToolReferenceState;
   readonly onRetry: () => void;
+  readonly query?: string;
 }) {
   if (state.status === "loading") {
     return (
@@ -87,10 +99,16 @@ export function ToolReferenceView({
       </Panel>
     );
   }
-  return <ReferenceContent reference={state.reference} />;
+  return <ReferenceContent reference={state.reference} query={query} />;
 }
 
-function ReferenceContent({ reference }: { readonly reference: ToolReferenceData }) {
+function ReferenceContent({
+  reference,
+  query,
+}: {
+  readonly reference: ToolReferenceData;
+  readonly query: string;
+}) {
   return (
     <section
       aria-label={`${reference.displayName} 官方设置参考`}
@@ -128,7 +146,7 @@ function ReferenceContent({ reference }: { readonly reference: ToolReferenceData
 
       <ResourceList resources={reference.resources} />
       <CoverageSummary flags={reference.flagsCoverage} env={reference.envCoverage} />
-      <SettingsList settings={reference.settings} />
+      <SettingsList settings={reference.settings} query={query} />
     </section>
   );
 }
@@ -196,13 +214,21 @@ function ListingLine({ label, listing }: { readonly label: string; readonly list
   );
 }
 
-function SettingsList({ settings }: { readonly settings: readonly ReferenceSetting[] }) {
+function SettingsList({
+  settings,
+  query: searchQuery,
+}: {
+  readonly settings: readonly ReferenceSetting[];
+  readonly query: string;
+}) {
   const [query, setQuery] = useState("");
   const [valueType, setValueType] = useState<ValueTypeFilter>("all");
   const [riskOnly, setRiskOnly] = useState(false);
   const [shown, setShown] = useState(REFERENCE_PAGE_SIZE);
 
-  const filtered = filterSettings(settings, { query, valueType, riskOnly });
+  const terms = searchTerms(searchQuery);
+  const scoped = settings.filter((setting) => matchesSearch(configSearchItem(setting), terms));
+  const filtered = filterSettings(scoped, { query, valueType, riskOnly });
   const page = visiblePage(filtered, shown);
 
   return (
@@ -249,7 +275,7 @@ function SettingsList({ settings }: { readonly settings: readonly ReferenceSetti
       ) : (
         <ul aria-label="官方设置键" className="m-0 grid list-none gap-ui-8 p-0">
           {page.visible.map((setting) => (
-            <SettingRow key={setting.id} setting={setting} />
+            <SettingRow key={setting.id} setting={setting} terms={terms} />
           ))}
         </ul>
       )}
@@ -265,11 +291,19 @@ function SettingsList({ settings }: { readonly settings: readonly ReferenceSetti
   );
 }
 
-function SettingRow({ setting }: { readonly setting: ReferenceSetting }) {
+function SettingRow({
+  setting,
+  terms,
+}: {
+  readonly setting: ReferenceSetting;
+  readonly terms: readonly string[];
+}) {
   return (
     <li className="grid min-w-0 gap-ui-4 border-t border-border pt-ui-8">
       <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
-        <code className="break-all text-aux font-semibold">{setting.keyPath}</code>
+        <code className="break-all text-aux font-semibold">
+          <HighlightText text={setting.keyPath} terms={terms} />
+        </code>
         <StatusBadge tone="neutral">{VALUE_TYPE_LABELS[setting.valueType]}</StatusBadge>
         {setting.risks.map((risk) => (
           <StatusBadge key={risk} tone="warning">
@@ -279,7 +313,7 @@ function SettingRow({ setting }: { readonly setting: ReferenceSetting }) {
         {setting.secret ? <StatusBadge tone="danger">敏感</StatusBadge> : null}
       </div>
       <p className="m-0 text-aux">
-        {setting.description}
+        <HighlightText text={setting.description} terms={terms} />
         {setting.descriptionTruncated ? "（说明已截断，完整内容见官方来源）" : ""}
       </p>
       <p className="m-0 break-words text-aux text-muted-foreground">
@@ -288,7 +322,7 @@ function SettingRow({ setting }: { readonly setting: ReferenceSetting }) {
       </p>
       {setting.valueType === "enum" ? (
         <p className="m-0 break-words text-aux text-muted-foreground">
-          可选值：{setting.allowedValues.join("、")}
+          可选值：<HighlightText text={setting.allowedValues.join("、")} terms={terms} />
         </p>
       ) : null}
       <p className="m-0 text-aux text-muted-foreground">

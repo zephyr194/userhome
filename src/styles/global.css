@@ -2811,3 +2811,38 @@ code {
   min-width: 0;
 }
 /* /r8-appcfg */
+/* r8-aisearch ------------------------------------------------------------ */
+:root {
+  --r8-aisearch-mark-bg: #F2E0CC;
+}
+
+:root[data-appearance="dark"] {
+  --r8-aisearch-mark-bg: #5A3A22;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-appearance]),
+  :root[data-appearance="system"] {
+    --r8-aisearch-mark-bg: #5A3A22;
+  }
+}
+
+/* 只换底色并加下划线：行高与前景色不变，行内高亮不撑开行间距。 */
+.config-search-mark {
+  background-color: var(--r8-aisearch-mark-bg);
+  color: inherit;
+  font-weight: 600;
+  line-height: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .config-search-mark {
+    background-color: Mark;
+    color: MarkText;
+  }
+}
+/* /r8-aisearch */

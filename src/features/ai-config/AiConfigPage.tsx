@@ -4,6 +4,7 @@ import { decodeAppError, type AppError } from "../../ipc/core";
 import { AiConfigView } from "./AiConfigView";
 import { CommandBuilder } from "./CommandBuilder";
 import { ToolSettings } from "./ToolSettings";
+import { useToolSearchIndex } from "./configSearchStore";
 import { CLAUDE_CODE_TOOL_ID, type AiConfigState } from "./aiConfigModel";
 
 interface PageState {
@@ -14,6 +15,8 @@ interface PageState {
 
 // In memory for this session only, so returning to the page keeps the tool the user picked.
 let rememberedToolId = CLAUDE_CODE_TOOL_ID;
+// Kept in memory only, like the detection cache, so it survives leaving and returning to the page.
+let rememberedQuery = "";
 
 function initialPageState(): PageState {
   const cached = lastAiConfigReport();
@@ -31,6 +34,8 @@ function initialPageState(): PageState {
 export function AiConfigPage({ refreshId }: { refreshId?: string }) {
   const [page, setPage] = useState<PageState>(initialPageState);
   const [selectedToolId, setSelectedToolId] = useState(rememberedToolId);
+  const [query, setQuery] = useState(rememberedQuery);
+  const searchIndex = useToolSearchIndex();
   const requestCounter = useRef(0);
 
   const detect = useCallback(() => {
@@ -79,6 +84,11 @@ export function AiConfigPage({ refreshId }: { refreshId?: string }) {
     setSelectedToolId(toolId);
   }, []);
 
+  const changeQuery = useCallback((next: string) => {
+    rememberedQuery = next;
+    setQuery(next);
+  }, []);
+
   return (
     <AiConfigView
       state={page.view}
@@ -87,9 +97,12 @@ export function AiConfigPage({ refreshId }: { refreshId?: string }) {
       selectedToolId={selectedToolId}
       onSelectTool={selectTool}
       onRefresh={refresh}
+      query={query}
+      onQueryChange={changeQuery}
+      searchIndex={searchIndex}
       claudePanel={
         <>
-          <ToolSettings />
+          <ToolSettings query={query} />
           <CommandBuilder />
         </>
       }

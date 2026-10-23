@@ -15,6 +15,8 @@ import {
   type ClaudeReadView,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import { HighlightText } from "./ConfigSearchControls";
+import { configSearchItem, matchesSearch, searchTerms } from "./configSearch";
 import {
   buildEditRequest,
   diffSymbol,
@@ -304,6 +306,7 @@ export interface EditPanelProps {
   readonly choosing: boolean;
   readonly chooseError: AppError | null;
   readonly view?: ClaudeReadView | null;
+  readonly query?: string;
   readonly onChooseSettingsFile: () => void;
   readonly onSaved: () => void;
 }
@@ -318,6 +321,7 @@ export function EditPanel({
   choosing,
   chooseError,
   view = null,
+  query: searchQuery = "",
   onChooseSettingsFile,
   onSaved,
 }: EditPanelProps) {
@@ -325,8 +329,12 @@ export function EditPanel({
   const [query, setQuery] = useState("");
   const [editableOnly, setEditableOnly] = useState(false);
   const [displayOpen, setDisplayOpen] = useState(false);
+  const terms = searchTerms(searchQuery);
+  const scopedItems = catalog?.items.filter((item) =>
+    matchesSearch(configSearchItem(item), terms),
+  ) ?? [];
   const groups = catalog
-    ? groupSettings(catalog.items, { query, editableOnly })
+    ? groupSettings(scopedItems, { query, editableOnly })
     : null;
 
   const jumpTo = (keyPath: string) => {
@@ -380,7 +388,7 @@ export function EditPanel({
             value={jumpKey}
             options={[
               { value: "", label: "请选择" },
-              ...catalog.items.map((candidate) => ({
+              ...scopedItems.map((candidate) => ({
                 value: candidate.keyPath,
                 label: candidate.editable
                   ? candidate.keyPath
@@ -413,6 +421,7 @@ export function EditPanel({
                   <SettingRow
                     key={candidate.keyPath}
                     item={candidate}
+                    terms={terms}
                     view={view}
                     detectedVersion={catalog.detectedVersion}
                     settingsGrantId={settingsFile?.id ?? null}
@@ -438,6 +447,7 @@ export function EditPanel({
                     <SettingRow
                       key={candidate.keyPath}
                       item={candidate}
+                      terms={terms}
                       view={view}
                       detectedVersion={catalog.detectedVersion}
                       settingsGrantId={settingsFile?.id ?? null}
@@ -456,12 +466,14 @@ export function EditPanel({
 
 function SettingRow({
   item,
+  terms,
   view,
   detectedVersion,
   settingsGrantId,
   onSaved,
 }: {
   readonly item: ClaudeEditItem;
+  readonly terms: readonly string[];
   readonly view: ClaudeReadView | null;
   readonly detectedVersion: string | null;
   readonly settingsGrantId: string | null;
@@ -476,7 +488,7 @@ function SettingRow({
     >
       <div className="flex flex-wrap items-center gap-ui-8">
         <code className="min-w-0 break-all font-mono text-aux font-semibold">
-          {item.keyPath}
+          <HighlightText text={item.keyPath} terms={terms} />
         </code>
         {settingBadges(item, detectedVersion).map((badge) => (
           <StatusBadge key={badge.label} tone={badge.tone}>
@@ -486,7 +498,7 @@ function SettingRow({
       </div>
       {descriptionVisible ? (
         <p className="m-0 break-words text-aux text-foreground">
-          {item.description}
+          <HighlightText text={item.description} terms={terms} />
         </p>
       ) : null}
       {item.descriptionTruncated ? (

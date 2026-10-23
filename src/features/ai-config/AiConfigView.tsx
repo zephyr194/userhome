@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { Button, InfoTip, PageShell, Panel, StatusBadge } from "../../components/ui";
+import { ActionRow, Button, InfoTip, PageShell, Panel, StatusBadge } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import type { AppError } from "../../ipc/core";
 import { BrewUpdate } from "./BrewUpdate";
+import { ConfigSearchBar } from "./ConfigSearchControls";
 import { ToolReference } from "./ToolReference";
 import {
   CONFIG_LABELS,
@@ -20,6 +21,8 @@ import {
   type AiConfigState,
   type AiConfigSummary,
 } from "./aiConfigModel";
+import { countMatches, searchTerms } from "./configSearch";
+import type { ToolSearchIndex } from "./configSearchStore";
 
 export interface AiConfigViewProps {
   state: AiConfigState;
@@ -32,7 +35,13 @@ export interface AiConfigViewProps {
   onRefresh: () => void;
   /** Claude Code settings and command panels, supplied by the page; hidden while another tool is selected. */
   claudePanel?: ReactNode;
+  query?: string;
+  onQueryChange?: (query: string) => void;
+  /** Searchable items per tool; a tool missing from the map has not been loaded yet. */
+  searchIndex?: ToolSearchIndex;
 }
+
+const NO_SEARCH_INDEX: ToolSearchIndex = new Map();
 
 export function AiConfigView({
   state,
@@ -42,12 +51,26 @@ export function AiConfigView({
   onSelectTool,
   onRefresh,
   claudePanel,
+  query = "",
+  onQueryChange = () => undefined,
+  searchIndex = NO_SEARCH_INDEX,
 }: AiConfigViewProps) {
   const summary = summarizeState(state);
   const tools = state.status === "ready" ? state.report.tools : [];
   const selected = selectedToolOf(tools, selectedToolId);
   const showClaudePanel = showsClaudePanel(selected);
   const toolListRef = useSlideIndicator(selected?.id);
+  const terms = searchTerms(query);
+  const searching = terms.length > 0;
+  const countFor = (toolId: string): number | undefined => {
+    const items = searchIndex.get(toolId);
+    return items === undefined ? undefined : countMatches(items, terms);
+  };
+  const selectedCount = selected && searching ? countFor(selected.id) : undefined;
+  const otherTools = tools
+    .filter((tool) => tool.id !== selected?.id)
+    .map((tool) => ({ tool, count: countFor(tool.id) }));
+  const otherMatches = otherTools.filter((other) => (other.count ?? 0) > 0);
 
   return (
     <PageShell layout="master-detail" scrollKey="compact">
@@ -95,9 +118,25 @@ export function AiConfigView({
           aria-label="所选工具"
           className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
+          <ConfigSearchBar
+            query={query}
+            matchCount={selectedCount}
+            onQueryChange={onQueryChange}
+          />
+          {searching && selectedCount === 0 ? (
+            <SearchEmpty
+              unloadedCount={otherTools.filter((other) => other.count === undefined).length}
+              matches={otherMatches.map((other) => ({
+                toolId: other.tool.id,
+                displayName: other.tool.displayName,
+                count: other.count ?? 0,
+              }))}
+              onSelectTool={onSelectTool}
+            />
+          ) : null}
           {selected ? <ToolCard key={selected.id} tool={selected} onRefresh={onRefresh} /> : null}
           {selected && !showClaudePanel ? (
-            <ToolReference key={selected.id} toolId={selected.id} />
+            <ToolReference key={selected.id} toolId={selected.id} query={query} />
           ) : null}
           <div hidden={!showClaudePanel}>
             <div className="grid min-w-0 gap-ui-12">{claudePanel}</div>
@@ -172,6 +211,46 @@ function StateNotice({
     );
   }
   return null;
+}
+
+function SearchEmpty({
+  matches,
+  unloadedCount,
+  onSelectTool,
+}: {
+  matches: { toolId: string; displayName: string; count: number }[];
+  unloadedCount: number;
+  onSelectTool: (toolId: string) => void;
+}) {
+  const total = matches.reduce((sum, match) => sum + match.count, 0);
+  let otherText = "其他工具里没有匹配。";
+  if (total > 0) otherText = `其他工具里有 ${total} 个匹配。`;
+  else if (unloadedCount > 0) otherText = "已打开过的其他工具里没有匹配。";
+  return (
+    <section aria-label="搜索结果" className="grid min-w-0 justify-items-start gap-ui-8">
+      <p className="m-0 text-body font-semibold">没有匹配的配置项。</p>
+      <p className="m-0 text-aux text-muted-foreground">{otherText}</p>
+      {matches.length > 0 ? (
+        <ActionRow>
+          {matches.map((match) => (
+            <Button
+              key={match.toolId}
+              size="sm"
+              variant="secondary"
+              onClick={() => onSelectTool(match.toolId)}
+            >
+              {`查看 ${match.displayName}（${match.count} 项）`}
+            </Button>
+          ))}
+        </ActionRow>
+      ) : null}
+      {unloadedCount > 0 ? (
+        <p className="m-0 text-aux text-muted-foreground">
+          {`还有 ${unloadedCount} 个工具尚未打开过，其配置项未计入。`}
+        </p>
+      ) : null}
+    </section>
+  );
 }
 
 function ToolSkeleton() {
