@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { dataHub } from "../../app/dataHub";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   ActionRow,
@@ -204,7 +205,10 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
     if (result.previewToken === null) return;
     setPhase({ status: "confirming", result });
     confirmAppConfigEdit(result.previewToken).then(
-      () => onSaved(created),
+      () => {
+        dataHub.invalidate("appConfig");
+        onSaved(created);
+      },
       (error: unknown) => {
         const decoded = decodeAppError(error);
         setPhase(decoded.code === "CONFLICT" ? { status: "conflict" } : { status: "failed", error: decoded });

@@ -5,6 +5,7 @@ import { AiConfigView } from "./AiConfigView";
 import { CommandBuilder } from "./CommandBuilder";
 import { ToolSettings } from "./ToolSettings";
 import { useToolSearchIndex } from "./configSearchStore";
+import { dataHub } from "../../app/dataHub";
 import { CLAUDE_CODE_TOOL_ID, type AiConfigState } from "./aiConfigModel";
 
 interface PageState {
@@ -42,6 +43,7 @@ export function AiConfigPage({ refreshId }: { refreshId?: string }) {
     const requestId = ++requestCounter.current;
     detectAiConfig().then(
       (report) => {
+        dataHub.publish("aiTools", report);
         if (requestId === requestCounter.current) {
           setPage({ view: { status: "ready", report }, refreshing: false });
         }

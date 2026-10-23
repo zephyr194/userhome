@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { dataHub } from "../../app/dataHub";
 import { Button } from "../../components/ui";
 import {
   getClaudeEditCatalog,
@@ -308,6 +309,7 @@ export function ToolSettings({ query = "" }: { readonly query?: string }) {
         setSelection({ status: "idle" });
         if (next !== projectGrant) {
           setProjectGrant(next);
+          dataHub.invalidate("authorizedDirectories");
           load(next);
         }
       },

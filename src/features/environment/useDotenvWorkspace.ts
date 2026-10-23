@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { countAuthorizedDirectories, dataHub } from "../../app/dataHub";
 import { decodeAppError } from "../../ipc/core";
 import {
   readEnvironmentFile,
@@ -77,6 +78,7 @@ export function useDotenvWorkspace() {
   const loadGrants = useCallback(async () => {
     try {
       const grants = await listGrants();
+      dataHub.publish("authorizedDirectories", countAuthorizedDirectories(grants));
       dispatch({ type: "grantsLoaded", grants, remembered: rememberedDirectory });
     } catch (error) {
       dispatch({ type: "grantsFailed", error: decodeAppError(error) });

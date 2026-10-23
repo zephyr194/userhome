@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { useLocale } from "../../i18n/useLocale";
+import { dataHub } from "../../app/dataHub";
 import { readAppConfigEntry, listAppConfigEntries } from "../../ipc/appConfig";
 import { decodeAppError } from "../../ipc/core";
 import {
@@ -34,7 +35,10 @@ export function AppConfigPage({ refreshId }: { refreshId?: string }) {
   const loadList = useCallback(() => {
     dispatch({ type: "listRequested" });
     listAppConfigEntries().then(
-      (items) => dispatch({ type: "listLoaded", items }),
+      (items) => {
+        dispatch({ type: "listLoaded", items });
+        dataHub.publish("appConfig", items.length);
+      },
       (error: unknown) =>
         dispatch({ type: "listFailed", error: decodeAppError(error) }),
     );

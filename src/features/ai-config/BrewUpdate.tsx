@@ -6,6 +6,7 @@ import {
   type AiBrewUpgradeOutcome,
   type AiToolId,
 } from "../../ipc/aiConfig";
+import { dataHub } from "../../app/dataHub";
 import { decodeAppError } from "../../ipc/core";
 import { useT } from "../../i18n/useLocale";
 
@@ -34,7 +35,10 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
     aiConfigBrewUpgrade(toolId).then(
       (outcome) => {
         setState({ status: "finished", outcome });
-        if (outcome.status !== "FAILED") onRefreshed();
+        if (outcome.status !== "FAILED") {
+          dataHub.invalidate("aiTools");
+          onRefreshed();
+        }
       },
       (error: unknown) => setState({ status: "errored", message: decodeAppError(error).message }),
     );

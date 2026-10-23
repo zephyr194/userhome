@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { countReadyZshFiles, dataHub } from "../../app/dataHub";
 import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
@@ -45,7 +46,10 @@ export function ZshPage() {
     const requestId = ++requestCounter.current;
     dispatch({ type: "loadRequested", requestId });
     readZshStartupFiles(grantId).then(
-      (overview) => dispatch({ type: "loaded", requestId, overview }),
+      (overview) => {
+        dispatch({ type: "loaded", requestId, overview });
+        if (grantId === undefined) dataHub.publish("zshStartup", countReadyZshFiles(overview));
+      },
       (error: unknown) =>
         dispatch({ type: "loadFailed", requestId, error: decodeAppError(error) }),
     );
@@ -63,6 +67,7 @@ export function ZshPage() {
   // After a save ran (or failed in a way that may have changed the file), the
   // read-only view must show what the files contain now.
   const onSaved = useCallback(() => {
+    dataHub.invalidate("zshStartup");
     load(stateRef.current.zdotdirGrantId);
   }, [load]);
   const editor = useZshEditor(onSaved);
@@ -103,6 +108,7 @@ export function ZshPage() {
       if (result.status === "CANCELLED") {
         setNotice({ tone: "info", text: t("env.zsh.zdotdir.cancelled") });
       } else {
+        dataHub.invalidate("authorizedDirectories");
         dispatch({ type: "directoryChosen", grantId: result.grant.id });
         load(result.grant.id);
       }
