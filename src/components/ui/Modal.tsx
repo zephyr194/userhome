@@ -48,13 +48,13 @@ export function Modal({
           aria-labelledby={titleId}
           aria-modal="true"
           className={classNames(
-            "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
+            "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
             className,
           )}
           role="dialog"
         >
           {title !== undefined ? (
-            <div className="border-b border-line px-ui-16 py-ui-12">
+            <div className="shrink-0 border-b border-line px-ui-16 py-ui-12">
               <div className="min-w-0 break-words text-group font-semibold">
                 {title}
               </div>
@@ -62,14 +62,14 @@ export function Modal({
           ) : null}
           <div
             className={classNames(
-              "min-w-0 break-words px-ui-16 py-ui-12 text-body",
+              "min-h-0 flex-1 overflow-y-auto min-w-0 break-words px-ui-16 py-ui-12 text-body",
               bodyClassName,
             )}
           >
             {children}
           </div>
           {footer ? (
-            <div className="flex flex-wrap justify-end gap-ui-8 px-ui-16 py-ui-12">
+            <div className="flex shrink-0 flex-wrap justify-end gap-ui-8 border-t border-line px-ui-16 py-ui-12">
               {footer}
             </div>
           ) : null}
@@ -98,7 +98,7 @@ export function Modal({
             aria-busy={busy || undefined}
             aria-labelledby={titleId}
             className={classNames(
-              "max-h-full w-full max-w-xl overflow-y-auto rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
+              "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
               "state-transition data-closed:opacity-0",
               className,
             )}
@@ -110,7 +110,7 @@ export function Modal({
             transition
           >
             {title !== undefined ? (
-              <div className="border-b border-line px-ui-16 py-ui-12">
+              <div className="shrink-0 border-b border-line px-ui-16 py-ui-12">
                 <DialogTitle
                   as="div"
                   className="min-w-0 break-words text-group font-semibold"
@@ -121,14 +121,14 @@ export function Modal({
             ) : null}
             <div
               className={classNames(
-                "min-w-0 break-words px-ui-16 py-ui-12 text-body",
+                "min-h-0 flex-1 overflow-y-auto min-w-0 break-words px-ui-16 py-ui-12 text-body",
                 bodyClassName,
               )}
             >
               {children}
             </div>
             {footer ? (
-              <div className="flex flex-wrap justify-end gap-ui-8 px-ui-16 py-ui-12">
+              <div className="flex shrink-0 flex-wrap justify-end gap-ui-8 border-t border-line px-ui-16 py-ui-12">
                 {footer}
               </div>
             ) : null}

@@ -174,6 +174,18 @@ describe("SupportedConfigsDialog sizing", () => {
   });
 });
 
+describe("SupportedConfigsDialog scrolling", () => {
+  it("keeps the title fixed while the list body alone scrolls", async () => {
+    render(<SupportedConfigsDialog open onClose={() => undefined} items={[]} />);
+    await waitForRows();
+
+    expect(document.getElementById("app-config-supported-title")?.closest(".overflow-y-auto")).toBeNull();
+    const body = document.querySelector(".r8-appcfg-tools__body");
+    expect(body?.classList.contains("overflow-y-auto")).toBe(true);
+    expect(body?.querySelector(".overflow-y-auto")).toBeNull();
+  });
+});
+
 describe("SupportedConfigsAction", () => {
   it("opens the sheet from a button and closes on Escape, returning focus to the button", async () => {
     render(<SupportedConfigsAction items={[]} />);

@@ -413,11 +413,11 @@ describe("AppConfigView 配置内容高亮与窗口展示", () => {
 });
 
 describe("AppConfigView discovered-only list (r8-appcfg)", () => {
-  it("places the supported-configurations action above the discovered entries", () => {
+  it("places the supported-configurations action in the list title row, before the entries", () => {
     const html = render({ status: "ready", items: [ZED] });
     const action = html.indexOf("支持的配置");
-    expect(action).toBeGreaterThan(-1);
-    expect(action).toBeLessThan(html.indexOf("app-config-list-title"));
+    expect(action).toBeGreaterThan(html.indexOf("app-config-list-title"));
+    expect(action).toBeLessThan(html.indexOf("slide-list"));
   });
 
   it("keeps the action available while the listing is still loading", () => {

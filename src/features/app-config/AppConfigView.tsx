@@ -53,11 +53,7 @@ export function AppConfigView({ list, detail, onReload, onSelect, edit }: AppCon
   return (
     <PageShell layout="master-detail" scrollKey="compact">
       <PageRegion className="r4-fe4-scroll content-start gap-ui-12 overflow-y-auto overscroll-contain">
-        {list.status !== "empty" ? (
-          <ActionRow align="end">
-            <SupportedConfigsAction items={items} />
-          </ActionRow>
-        ) : null}
+        {list.status === "loading" ? <ListHeading items={undefined} /> : null}
         <ListStatusNotice list={list} onReload={onReload} />
         {items ? (
           <EntryList
@@ -111,16 +107,29 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
             {copy.t("appConfig.list.loadFailed")}
           </p>
           <p className="m-0 text-body">{localizeError(list.error, copy.locale)}</p>
-          <div>
+          <ActionRow>
             <Button size="sm" onClick={onReload}>
               {copy.t("common.retry")}
             </Button>
-          </div>
+            <SupportedConfigsAction items={undefined} />
+          </ActionRow>
         </Panel>
       );
     case "ready":
       return null;
   }
+}
+
+function ListHeading({ items }: { items: readonly AppConfigListItem[] | undefined }) {
+  const copy = appConfigCopy(useLocale());
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-ui-8">
+      <h2 id="app-config-list-title" className="m-0 min-w-0 text-group font-semibold">
+        {copy.t("appConfig.list.heading")}
+      </h2>
+      <SupportedConfigsAction items={items} />
+    </div>
+  );
 }
 
 function EntryList({
@@ -138,9 +147,7 @@ function EntryList({
   const listRef = useSlideIndicator(selectedId);
   return (
     <Panel aria-labelledby="app-config-list-title" className="grid content-start gap-ui-8 p-ui-8">
-      <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
-        {copy.t("appConfig.list.heading")}
-      </h2>
+      <ListHeading items={items} />
       <div ref={listRef} className="slide-list grid gap-ui-4">
         {groupByCategory(items, copy).map((group) => (
           <div key={group.category} className="grid gap-ui-4">
