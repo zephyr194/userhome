@@ -3,6 +3,8 @@ import { caddyEn } from "./caddy";
 import { commonEn } from "./common";
 import { operationsEn } from "./operations";
 import { toolsEn } from "./tools";
+import { aiConfigEn } from "./aiConfig";
+import { appConfigEn } from "./appConfig";
 import { environmentEn } from "./environment";
 import { dashboardEn } from "./dashboard";
 import { servicesEn } from "./services";
@@ -21,4 +23,6 @@ export const en: Record<MessageKey, string> = {
   ...operationsEn,
   ...commonEn,
   ...environmentEn,
+  ...aiConfigEn,
+  ...appConfigEn,
 };
