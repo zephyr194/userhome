@@ -108,6 +108,58 @@ describe("expanding the reading chain", () => {
   });
 });
 
+describe("reading chain under a search", () => {
+  const ONLY_EDITOR = ROWS.filter((row) => row.name === "EDITOR");
+
+  function renderWithTerms(terms: string[]) {
+    const onRevealFinal = vi.fn(() => Promise.resolve("plain-final"));
+    const view = render(
+      <VariableChainTable
+        label="变量"
+        onRevealFinal={onRevealFinal}
+        rows={ONLY_EDITOR}
+        terms={terms}
+      />,
+    );
+    return {
+      ...view,
+      rerenderWith: (next: string[]) =>
+        view.rerender(
+          <VariableChainTable
+            label="变量"
+            onRevealFinal={onRevealFinal}
+            rows={ONLY_EDITOR}
+            terms={next}
+          />,
+        ),
+    };
+  }
+
+  it("opens a chain that holds a hit, and lets the user collapse it", () => {
+    renderWithTerms(["vim"]);
+    const toggle = screen.getByRole("button", { name: "过程值 2" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("list", { name: "EDITOR 的读取顺序" })).toBeNull();
+  });
+
+  it("keeps the user's collapse while the same search stays", () => {
+    const { rerenderWith } = renderWithTerms(["vim"]);
+    fireEvent.click(screen.getByRole("button", { name: "过程值 2" }));
+    rerenderWith(["vim"]);
+    expect(screen.getByRole("button", { name: "过程值 2" }).getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("opens the chain again when the search words change", () => {
+    const { rerenderWith } = renderWithTerms(["vim"]);
+    fireEvent.click(screen.getByRole("button", { name: "过程值 2" }));
+    rerenderWith(["zprofile"]);
+    expect(screen.getByRole("button", { name: "过程值 2" }).getAttribute("aria-expanded")).toBe("true");
+  });
+
+});
+
 describe("secrets", () => {
   it("masks a secret process value and offers no reveal control for it", () => {
     renderTable();

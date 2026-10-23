@@ -49,6 +49,7 @@ export interface VariableChainListProps
 }
 
 const CELL = "min-w-0 px-ui-8 py-ui-4 align-top";
+const NO_KEYS: ReadonlySet<string> = new Set();
 const MONO = "break-all font-mono text-aux";
 
 function sourceText(source: ChainSource): string {
@@ -142,14 +143,21 @@ export function VariableChainTable({
   terms = [],
 }: VariableChainTableProps) {
   const t = useT();
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
+  const termsKey = terms.join("\n");
+  // Rows the user toggled away from their default; a chain with a search hit opens by default.
+  const [flipped, setFlipped] = useState<{ terms: string; keys: ReadonlySet<string> }>(() => ({
+    terms: termsKey,
+    keys: new Set(),
+  }));
+  const flippedKeys = flipped.terms === termsKey ? flipped.keys : NO_KEYS;
 
   const toggle = (key: string) =>
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
+    setFlipped((current) => {
+      const base = current.terms === termsKey ? current.keys : NO_KEYS;
+      const keys = new Set(base);
+      if (keys.has(key)) keys.delete(key);
+      else keys.add(key);
+      return { terms: termsKey, keys };
     });
 
   return (
@@ -178,7 +186,7 @@ export function VariableChainTable({
             const hits = chainHitsFor(row, terms);
             return (
               <Row
-                isOpen={expanded.has(key) || hits.length > 0}
+                isOpen={(hits.length > 0) !== flippedKeys.has(key)}
                 hits={hits}
                 key={key}
                 onEdit={onEdit}
