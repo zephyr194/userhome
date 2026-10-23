@@ -235,8 +235,19 @@ describe("AppConfigEditor 预览、确认与冲突", () => {
     expect(screen.getByText(/备份原文件/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "确认写入" }));
-    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(false));
     expect(mocks.confirmAppConfigEdit).toHaveBeenCalledWith("token-1");
+  });
+
+  it("says a missing file is created without a backup", async () => {
+    const { onSaved } = renderEditor(entry({}, { status: "notFound" }));
+    await waitForLoaded();
+    fireEvent.change(screen.getByLabelText("提交作者名"), { target: { value: "Bo" } });
+    fireEvent.click(screen.getByRole("button", { name: "预览更改" }));
+    expect(await screen.findByText("文件还不存在，保存时会创建它，不需要备份。")).toBeTruthy();
+    expect(screen.queryByText(/保存前会备份原文件/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "确认写入" }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith(true));
   });
 
   it("does not write anything when the preview is cancelled", async () => {

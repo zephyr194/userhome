@@ -46,7 +46,7 @@ import {
 export interface AppConfigEditorProps {
   item: AppConfigListItem;
   onExit: () => void;
-  onSaved: () => void;
+  onSaved: (created: boolean) => void;
 }
 
 interface LoadedEdit {
@@ -85,6 +85,7 @@ const LOADING: LoadState = { status: "loading" };
 
 export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps) {
   const { summary, probe } = item;
+  const created = probe.status === "notFound";
   const [loaded, setLoaded] = useState<{ key: number; state: LoadState } | null>(null);
   const [loadKey, setLoadKey] = useState(0);
   const load = loaded?.key === loadKey ? loaded.state : LOADING;
@@ -196,7 +197,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
     if (result.previewToken === null) return;
     setPhase({ status: "confirming", result });
     confirmAppConfigEdit(result.previewToken).then(
-      () => onSaved(),
+      () => onSaved(created),
       (error: unknown) => {
         const decoded = decodeAppError(error);
         setPhase(decoded.code === "CONFLICT" ? { status: "conflict" } : { status: "failed", error: decoded });
@@ -329,6 +330,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
         <PreviewModal
           result={phase.result}
           displayPath={summary.displayPath}
+          created={created}
           busy={false}
           onCancel={() => setPhase({ status: "idle" })}
           onConfirm={() => runConfirm(phase.result)}
@@ -338,6 +340,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
         <PreviewModal
           result={phase.result}
           displayPath={summary.displayPath}
+          created={created}
           busy
           onCancel={() => undefined}
           onConfirm={() => undefined}
@@ -417,12 +420,14 @@ function PhaseNotice({ phase, onReload }: { phase: Phase; onReload: () => void }
 function PreviewModal({
   result,
   displayPath,
+  created,
   busy,
   onCancel,
   onConfirm,
 }: {
   result: AppConfigPreviewResult;
   displayPath: string;
+  created: boolean;
   busy: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -450,8 +455,9 @@ function PreviewModal({
       onClose={onCancel}
     >
       <div className="grid min-w-0 gap-ui-8">
-        <p className="m-0 break-all text-aux">
-          保存到 {displayPath}。保存前会备份原文件。
+        <p className="m-0 break-all text-aux">保存到 {displayPath}。</p>
+        <p className="m-0 text-aux">
+          {created ? "文件还不存在，保存时会创建它，不需要备份。" : "保存前会备份原文件。"}
         </p>
         {result.warnings.map((warning) => (
           <p key={warning} className="m-0 text-aux text-warning">

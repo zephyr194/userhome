@@ -11,6 +11,7 @@ import {
 import { AppConfigView, type AppConfigEditControls } from "./AppConfigView";
 
 const SAVED_NOTICE = "已保存，并备份了原文件。";
+const CREATED_NOTICE = "已保存，并创建了该文件。";
 
 /**
  * Connects the listing and the per-entry views to the backend. The frontend only
@@ -84,10 +85,10 @@ export function AppConfigPage({ refreshId }: { refreshId?: string }) {
       setEditingId(id);
     },
     onExit: () => setEditingId(null),
-    onSaved: () => {
+    onSaved: (created) => {
       if (editing !== null) selectEntry(editing);
       setEditingId(null);
-      setNotice(SAVED_NOTICE);
+      setNotice(created ? CREATED_NOTICE : SAVED_NOTICE);
     },
   };
 

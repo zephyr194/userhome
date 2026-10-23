@@ -30,7 +30,7 @@ export interface AppConfigEditControls {
   notice: string | null;
   onStart: (id: string) => void;
   onExit: () => void;
-  onSaved: () => void;
+  onSaved: (created: boolean) => void;
 }
 
 export interface AppConfigViewProps {
