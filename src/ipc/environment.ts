@@ -238,6 +238,11 @@ function relativePath(value: unknown): string {
   return typeof value === "string" && isSafeRelativePath(value) ? value : fail();
 }
 
+/** A key the backend does not send is a contract change, so it is refused rather than ignored. */
+function requireKeysWithin(value: Record<string, unknown>, allowed: readonly string[]): void {
+  if (Object.keys(value).some((key) => !allowed.includes(key))) fail();
+}
+
 function list(value: unknown, max: number): unknown[] {
   return Array.isArray(value) && value.length <= max ? value : fail();
 }
@@ -966,6 +971,21 @@ function decodeZshSegment(value: unknown): ZshPathSegment {
 }
 
 function decodeZshEntry(value: Record<string, unknown>, line: number): ZshEntryRow {
+  requireKeysWithin(value, [
+    "kind",
+    "line",
+    "endLine",
+    "name",
+    "exported",
+    "operation",
+    "secret",
+    "hasValue",
+    "valueLength",
+    "value",
+    "state",
+    "reason",
+    "pathSegments",
+  ]);
   const endLine = count(value.endLine);
   const name =
     typeof value.name === "string" && KEY_PATTERN.test(value.name)
@@ -1020,8 +1040,10 @@ function decodeZshRow(value: unknown): ZshRow {
   if (line < 1) return fail();
   switch (value.kind) {
     case "BLANK":
+      requireKeysWithin(value, ["kind", "line"]);
       return { kind: "BLANK", line };
     case "COMMENT": {
+      requireKeysWithin(value, ["kind", "line", "text", "withheld"]);
       const text = optionalText(nullable(value.text), MAX_INLINE_CHARS);
       const withheld = flag(value.withheld);
       if (withheld !== (text === undefined)) return fail();
@@ -1029,6 +1051,12 @@ function decodeZshRow(value: unknown): ZshRow {
     }
     case "DYNAMIC":
     case "UNRECOGNIZED": {
+      requireKeysWithin(
+        value,
+        value.kind === "DYNAMIC"
+          ? ["kind", "line", "endLine", "reason", "text", "withheld"]
+          : ["kind", "line", "endLine", "text", "withheld"],
+      );
       const endLine = count(value.endLine);
       const text = optionalText(nullable(value.text), MAX_INLINE_CHARS);
       const withheld = flag(value.withheld);
@@ -1087,6 +1115,7 @@ function decodeZshOutcome(value: unknown): ZshFileOutcome {
 
 function decodeZshFile(value: unknown): ZshFile {
   if (!isRecord(value)) return fail();
+  requireKeysWithin(value, ["file", "name", "appliesTo", "position", "displayPath", "outcome"]);
   const file = oneOf<ZshFileKey>(value.file, ZSH_FILE_KEYS);
   const appliesTo = oneOf<ZshAppliesTo>(value.appliesTo, ZSH_APPLIES_TO);
   const outcome = decodeZshOutcome(value.outcome);
@@ -1109,6 +1138,7 @@ function decodeZshFile(value: unknown): ZshFile {
 
 export function decodeZshOverview(value: unknown): ZshOverview {
   if (!isRecord(value)) return fail();
+  requireKeysWithin(value, ["source", "order", "zdotdir", "files"]);
   const order = decodeZshOrder(value.order);
   const files = list(value.files, ZSH_FILE_KEYS.length).map(decodeZshFile);
   const seen = new Set<ZshFileKey>();

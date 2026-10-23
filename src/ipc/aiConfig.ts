@@ -123,17 +123,17 @@ function nullableText(value: unknown, maxLength: number): string | null {
   return value === null ? null : requireText(value, maxLength);
 }
 
-/** An unknown or malformed source reads as "not known" rather than failing the whole report. */
-function decodeInstallSource(value: unknown): AiInstallSource | null {
-  if (!isRecord(value)) return null;
-  if (value.type === "direct") {
-    return Object.keys(value).length === 1 ? { type: "direct" } : null;
+function decodeInstallSource(value: unknown): AiInstallSource {
+  const record = requireRecord(value);
+  if (record.type === "direct") {
+    requireExactKeys(record, ["type"]);
+    return { type: "direct" };
   }
-  if (value.type !== "homebrew" || Object.keys(value).length !== 3) return null;
-  const { kind, package: packageName } = value;
-  if (kind !== "FORMULA" && kind !== "CASK") return null;
-  if (typeof packageName !== "string" || packageName.length > 128) return null;
-  if (!BREW_PACKAGE_PATTERN.test(packageName)) return null;
+  requireExactKeys(record, ["type", "kind", "package"]);
+  if (record.type !== "homebrew") throw decodeFailure();
+  const kind = requireOneOf(["FORMULA", "CASK"] as const, record.kind);
+  const packageName = requireText(record.package, 128);
+  if (!BREW_PACKAGE_PATTERN.test(packageName)) throw decodeFailure();
   return { type: "homebrew", kind, package: packageName };
 }
 
@@ -169,7 +169,8 @@ function decodeToolReport(value: unknown, expectedId: AiToolId): AiToolReport {
     id,
     displayName: requireText(record.displayName, MAX_DISPLAY_NAME_LENGTH),
     installStatus,
-    installSource: decodeInstallSource(record.installSource),
+    installSource:
+    record.installSource === null ? null : decodeInstallSource(record.installSource),
     displayPath,
     invalidReason,
     version,

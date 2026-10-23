@@ -63,7 +63,7 @@ describe("ToolReport installSource 解码", () => {
     expect(decodeAiConfigReport(reportWith(null)).tools[0].installSource).toBeNull();
   });
 
-  it("未知或畸形的来源当作 null，不让整份报告失败", () => {
+  it("拒绝未知或畸形的来源，而不是静默当作 null", () => {
     const malformed: unknown[] = [
       { type: "npm", package: "claude" },
       { type: "homebrew", kind: "TAP", package: "claude-code" },
@@ -76,7 +76,7 @@ describe("ToolReport installSource 解码", () => {
       42,
     ];
     for (const source of malformed) {
-      expect(decodeAiConfigReport(reportWith(source)).tools[0].installSource).toBeNull();
+      expect(() => decodeAiConfigReport(reportWith(source)), JSON.stringify(source)).toThrow();
     }
   });
 

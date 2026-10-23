@@ -81,6 +81,22 @@ describe("decodeAiConfigReport", () => {
     expect(report.tools[0].references).toHaveLength(1);
   });
 
+  it("reads an unknown install source as null only when the backend says so", () => {
+    const report = decodeAiConfigReport(reportWire({ 0: { installSource: null } }));
+    expect(report.tools[0].installSource).toBeNull();
+  });
+
+  it("decodes a known install source and keeps its package name", () => {
+    const report = decodeAiConfigReport(
+      reportWire({ 0: { installSource: { type: "homebrew", kind: "CASK", package: "claude-code" } } }),
+    );
+    expect(report.tools[0].installSource).toEqual({
+      type: "homebrew",
+      kind: "CASK",
+      package: "claude-code",
+    });
+  });
+
   it("keeps the registered config path for Gemini CLI and Claude Code", () => {
     const report = decodeAiConfigReport(
       reportWire({

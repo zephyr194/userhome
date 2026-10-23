@@ -470,6 +470,17 @@ describe("zsh payload decoding", () => {
       zshrcWith(
         Array.from({ length: 5001 }, (_, index) => ({ kind: "BLANK", line: index + 1 })),
       ),
+      { ...base, unexpected: true },
+      withFiles([{ ...wireFile("ZSHRC", ".zshrc", "INTERACTIVE", 6, ready([])), unexpected: true }]),
+      zshrcWith([{ kind: "BLANK", line: 1, unexpected: true }]),
+      zshrcWith([{ kind: "COMMENT", line: 1, text: "# x", withheld: false, unexpected: true }]),
+      zshrcWith([
+        { kind: "UNRECOGNIZED", line: 1, endLine: 1, text: null, withheld: false, unexpected: true },
+      ]),
+      zshrcWith([
+        { kind: "DYNAMIC", line: 1, endLine: 1, reason: "SOURCE", text: null, withheld: false, unexpected: 1 },
+      ]),
+      zshrcWith([entryRow({ unexpected: true })]),
     ];
     for (const payload of bad) {
       expect(() => decodeZshOverview(payload), JSON.stringify(payload)?.slice(0, 160)).toThrow();
