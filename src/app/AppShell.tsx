@@ -506,6 +506,7 @@ export function AppShell({
           sidebar={
             <NavigationRail
               activeRouteId={navigationRouteOf(activeRouteId)}
+              connection={state.connection}
               onNavigate={navigate}
               routes={APP_ROUTES}
             />

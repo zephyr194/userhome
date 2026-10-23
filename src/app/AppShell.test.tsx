@@ -72,6 +72,27 @@ describe("AppShell", () => {
     expect(nav).toContain('aria-controls="main-content"');
   });
 
+  it("shows the connection state of the app in the navigation rail footer", () => {
+    const render = (connection: ShellState["connection"]) =>
+      renderToStaticMarkup(
+        <AppShell
+          onAppearanceChange={() => Promise.resolve()}
+          onRefresh={() => undefined}
+          state={{ ...loadingState, connection }}
+        />,
+      );
+
+    expect(render({ status: "loading" })).toContain("正在连接");
+    expect(
+      render({ status: "error", error: { code: "INTERNAL", message: "x", retryable: true } }),
+    ).toContain("连接异常");
+    const ready = render({
+      status: "ready",
+      appStatus: { name: "UserHome", version: "0.1.0", platform: "macos" } as never,
+    });
+    expect(ready).toContain("本机在线 · v0.1.0");
+  });
+
   it("keeps a single brand identity inside the navigation rail", () => {
     const markup = renderToStaticMarkup(
       <AppShell
