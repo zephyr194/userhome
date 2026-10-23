@@ -165,7 +165,7 @@ export function launchctlVariableRows(entries: readonly LaunchctlEntry[]): Varia
       final: {
         value: entry.secret
           ? { kind: "masked" }
-          : entry.value === null
+          : entry.value === null || entry.value === ""
             ? { kind: "empty" }
             : { kind: "text", text: entry.value },
         source: { file: LAUNCHCTL_SOURCE },

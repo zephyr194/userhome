@@ -248,6 +248,14 @@ describe("login session chain", () => {
     expect(rows[1]?.final.value).toEqual({ kind: "text", text: "/usr/bin" });
     expect(rows[0]?.final.value).toEqual({ kind: "masked" });
   });
+
+  it("shows an empty login session value as empty, not as an empty text", () => {
+    const rows = launchctlVariableRows([
+      { key: "EMPTY_ONE", value: "", secret: false },
+      { key: "UNSET_ONE", value: null, secret: false },
+    ]);
+    expect(rows.map((row) => row.final.value)).toEqual([{ kind: "empty" }, { kind: "empty" }]);
+  });
 });
 
 describe("dotenv chain within one file", () => {
