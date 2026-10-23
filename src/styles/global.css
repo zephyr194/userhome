@@ -2801,3 +2801,13 @@ code {
   box-decoration-break: clone;
 }
 /* /r8-type */
+/* r8-appcfg */
+.r8-appcfg-tools {
+  width: min(720px, 90vw);
+  max-width: none;
+}
+
+.r8-appcfg-tools__body {
+  min-width: 0;
+}
+/* /r8-appcfg */
