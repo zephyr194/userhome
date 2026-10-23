@@ -148,7 +148,6 @@ export function SettingEditor({
         {(["set", "restoreDefault", "setNull"] as const).map((action) => (
           <Button
             key={action}
-
             variant="secondary"
             disabled={
               blocked !== null ||
@@ -274,7 +273,7 @@ function PreviewBlock({
         >
           {t("aiConfig.edit.confirmWrite")}
         </Button>
-        <Button variant="ghost" disabled={busy} onClick={onCancel}>
+        <Button variant="secondary" disabled={busy} onClick={onCancel}>
           {t("common.cancel")}
         </Button>
         {busy ? (
@@ -301,7 +300,7 @@ function ErrorLine({
       <p className="m-0 text-aux text-danger" role="alert">
         {localizeError(error, locale)}
       </p>
-      <Button variant="ghost" onClick={onCancel}>
+      <Button variant="secondary" onClick={onCancel}>
         {t("common.close")}
       </Button>
     </div>

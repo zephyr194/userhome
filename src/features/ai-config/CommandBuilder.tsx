@@ -94,7 +94,7 @@ export function CommandBuilderView({
         <div role="alert" className="grid gap-ui-8">
           <p className="m-0 text-aux">{localizeError(options.error, locale)}</p>
           <div>
-            <Button variant="ghost" onClick={onRetry}>
+            <Button variant="secondary" onClick={onRetry}>
               {t("common.retry")}
             </Button>
           </div>
@@ -352,7 +352,7 @@ export function TerminalOpenControl({
   return (
     <div className="grid min-w-0 gap-ui-8">
       <div className="flex flex-wrap items-center gap-ui-8">
-        <Button disabled={blockReason !== null || busy} onClick={onRequest}>
+        <Button variant="primary" disabled={blockReason !== null || busy} onClick={onRequest}>
           {t("aiConfig.terminal.open")}
         </Button>
       </div>
@@ -396,7 +396,7 @@ function TerminalConfirmDialog({
       busy={busy}
       footer={
         <>
-          <Button data-modal-cancel disabled={busy} onClick={onCancel}>
+          <Button data-modal-cancel variant="secondary" disabled={busy} onClick={onCancel}>
             {t("common.cancel")}
           </Button>
           <Button variant="primary" disabled={busy} onClick={onConfirm}>

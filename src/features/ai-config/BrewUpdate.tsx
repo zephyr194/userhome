@@ -73,7 +73,7 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
       ) : (
         <Button
           size="sm"
-          variant="secondary"
+          variant="primary"
           disabled={state.status === "running"}
           onClick={() => setState({ status: "confirming" })}
         >

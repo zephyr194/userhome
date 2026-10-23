@@ -114,7 +114,7 @@ export function ToolReferenceView({
       <Panel role="alert" className="grid justify-items-start gap-ui-8 p-ui-12">
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.ref.failed")}</p>
         <p className="m-0 text-body">{localizeError(state.error, locale)}</p>
-        <Button onClick={onRetry}>{t("common.retry")}</Button>
+        <Button variant="secondary" onClick={onRetry}>{t("common.retry")}</Button>
       </Panel>
     );
   }
@@ -312,7 +312,7 @@ function SettingsList({
 
       {page.hasMore ? (
         <div>
-          <Button variant="secondary" onClick={() => setShown(nextShownCount(shown, filtered.length))}>
+          <Button variant="ghost" onClick={() => setShown(nextShownCount(shown, filtered.length))}>
             {t("aiConfig.ref.showMore", { count: page.remaining })}
           </Button>
         </div>
