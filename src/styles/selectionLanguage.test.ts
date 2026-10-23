@@ -88,10 +88,17 @@ describe("选中语言：滑动指示器", () => {
     expect(section).not.toContain("outline");
   });
 
-  it("指示器与列表项全部直角：竖向与横向共用直角，选中语言区块不再引用控件圆角令牌", () => {
-    expect(lastDeclaredIn(section, INDICATOR, "border-radius")).toBe("0");
-    expect(lastDeclaredIn(section, ".slide-list .slide-item", "border-radius")).toBe("0");
-    expect(section).not.toContain("var(--app-radius-control)");
+  it("纵向列表的指示器与列表项圆角为控件令牌，横向标签页与其下划线保持直角", () => {
+    expect(lastDeclaredIn(section, INDICATOR, "border-radius")).toBe("var(--app-radius-control)");
+    expect(lastDeclaredIn(section, ".slide-list .slide-item", "border-radius")).toBe(
+      "var(--app-radius-control)",
+    );
+    expect(
+      lastDeclaredIn(section, '.slide-list[data-slide-axis="x"][data-slide-ready]::before', "border-radius"),
+    ).toBe("0");
+    expect(
+      lastDeclaredIn(section, '.slide-list[data-slide-axis="x"] .slide-item', "border-radius"),
+    ).toBe("0");
   });
 
   it("横向标签页指示器无底色，只保留贯穿标签栏底部的 2px 橙线，高度由测量变量加发丝线 1px", () => {
@@ -122,12 +129,17 @@ describe("选中语言：滑动指示器", () => {
     expect(lastDeclaredIn(section, hoverX, "color")).toBe("var(--app-foreground)");
   });
 
-  it("指示器过渡 120ms、标准曲线，只过渡 transform/width/height", () => {
-    expect(lastDeclaredIn(section, INDICATOR, "transition-property")).toBe("transform, width, height");
-    expect(lastDeclaredIn(section, INDICATOR, "transition-duration")).toBe("120ms");
-    expect(toMs(lastDeclaredIn(section, INDICATOR, "transition-duration"))).toBeLessThanOrEqual(120);
+  it("指示器过渡 240ms 标准曲线，位置与尺寸一起过渡，并淡出空选中态", () => {
+    expect(declaredIn(section, INDICATOR, "transition-property")[0]).toBe(
+      "transform, width, height, opacity",
+    );
+    expect(declaredIn(section, INDICATOR, "transition-duration")[0]).toBe("var(--app-motion-slide)");
+    expect(toMs(tokenValue("app-motion-slide"))).toBeGreaterThanOrEqual(200);
     expect(lastDeclaredIn(section, INDICATOR, "transition-timing-function")).toBe(
       "cubic-bezier(0.2, 0.7, 0.2, 1)",
+    );
+    expect(lastDeclaredIn(section, ".slide-list[data-slide-ready][data-slide-empty]::before", "opacity")).toBe(
+      "0",
     );
   });
 
@@ -193,10 +205,12 @@ describe("选中语言：退化规则", () => {
     expect(body).toMatch(/border-bottom:\s*2px solid Highlight/);
   });
 
-  it("prefers-reduced-motion 下取消指示器过渡", () => {
+  it("prefers-reduced-motion 下不再位移，只保留透明度过渡", () => {
     const motion = section.match(/@media \(prefers-reduced-motion: reduce\)\s*\{([\s\S]*?)\n\}/);
     expect(motion).not.toBeNull();
-    expect(motion?.[1]).toMatch(/\.slide-list\[data-slide-ready\]::before\s*\{[^}]*transition:\s*none/);
+    expect(motion?.[1]).toMatch(
+      /\.slide-list\[data-slide-ready\]::before\s*\{\s*transition-property:\s*opacity;\s*\}/,
+    );
   });
 
   it("选中项文字与指示器过渡都取线性或标准曲线，时长不超过 120ms 状态上限", () => {
