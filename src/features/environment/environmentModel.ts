@@ -3,6 +3,7 @@ import {
   DEFAULT_ENV_PATTERNS,
   type EntryFlag,
   type EnvFileOutcome,
+  type EnvFileView,
   type EnvRow,
   type FailureKind,
   type PartialReason,
@@ -390,4 +391,78 @@ export function formatBytes(bytes: number): string {
 /** Entries whose value needs an explicit fetch: secrets and very long values. */
 export function needsFetch(row: Extract<EnvRow, { kind: "ENTRY" }>): boolean {
   return row.secret || (row.hasValue && row.value === undefined);
+}
+
+// ---- same keys in one file -------------------------------------------------
+
+export type DotenvEditIntent =
+  | { readonly kind: "addition" }
+  | { readonly kind: "entry"; readonly line: number };
+
+export interface DotenvEditFocus {
+  readonly id: number;
+  readonly target: DotenvEditIntent;
+}
+
+export interface DotenvDisplay {
+  readonly rows: readonly EnvRow[];
+  /** Earlier lines a shown entry replaces, keyed by the shown line. */
+  readonly replaced: ReadonlyMap<number, readonly number[]>;
+  readonly entryCount: number;
+  readonly secretCount: number;
+  readonly flaggedCount: number;
+}
+
+/**
+ * A key that appears more than once in one file shows only its last line, the
+ * one that takes effect. A file that was cut short is shown as read: a later
+ * line for the same key may sit past the cut.
+ */
+export function dotenvDisplay(file: EnvFileView): DotenvDisplay {
+  const unchanged: DotenvDisplay = {
+    rows: file.rows,
+    replaced: new Map(),
+    entryCount: file.entryCount,
+    secretCount: file.secretCount,
+    flaggedCount: file.flaggedCount,
+  };
+  if (file.rowsTruncated) return unchanged;
+
+  const lastLine = new Map<string, number>();
+  for (const row of file.rows) {
+    if (row.kind === "ENTRY") lastLine.set(row.key, row.line);
+  }
+  const hidden = new Set<number>();
+  const replaced = new Map<number, number[]>();
+  for (const row of file.rows) {
+    if (row.kind !== "ENTRY") continue;
+    const winner = lastLine.get(row.key) ?? row.line;
+    if (winner === row.line) continue;
+    hidden.add(row.line);
+    replaced.set(winner, [...(replaced.get(winner) ?? []), row.line]);
+  }
+  if (hidden.size === 0) return unchanged;
+
+  let { entryCount, secretCount, flaggedCount } = file;
+  const rows: EnvRow[] = [];
+  for (const row of file.rows) {
+    if (row.kind !== "ENTRY") {
+      rows.push(row);
+      continue;
+    }
+    if (hidden.has(row.line)) {
+      entryCount -= 1;
+      if (row.secret) secretCount -= 1;
+      if (row.flags.length > 0) flaggedCount -= 1;
+      continue;
+    }
+    if (!replaced.has(row.line)) {
+      rows.push(row);
+      continue;
+    }
+    const flags = row.flags.filter((flag) => flag !== "DUPLICATE_KEY");
+    if (flags.length === 0 && row.flags.length > 0) flaggedCount -= 1;
+    rows.push({ ...row, flags });
+  }
+  return { rows, replaced, entryCount, secretCount, flaggedCount };
 }

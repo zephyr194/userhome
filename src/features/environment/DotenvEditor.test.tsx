@@ -386,7 +386,7 @@ describe("the page integration", () => {
   it("stays read-only without an editor", () => {
     const markup = renderToStaticMarkup(<EnvironmentView {...baseProps} />);
     expect(markup).toContain("文件内容（只读）");
-    expect(markup).not.toContain("编辑…");
+    expect(markup).not.toContain("设置变量");
     expect(markup).not.toContain("新建环境文件");
   });
 
@@ -398,7 +398,7 @@ describe("the page integration", () => {
         onNewFile={() => undefined}
       />,
     );
-    expect(markup).toContain("编辑…");
+    expect(markup).toContain("设置变量");
     expect(markup).toContain("新建环境文件…");
   });
 
@@ -419,7 +419,7 @@ describe("the page integration", () => {
     expect(markup).toContain("编辑环境文件");
     expect(markup).toContain("预览改动");
     expect(markup).not.toContain("文件内容（只读）");
-    expect(markup).not.toContain("编辑…");
+    expect(markup).not.toContain("设置变量");
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>新建环境文件…<\/button>/);
     expect(markup).toMatch(/<button[^>]*title="\.env"[^>]*disabled=""/);
   });

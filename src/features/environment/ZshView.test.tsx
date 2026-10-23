@@ -344,7 +344,8 @@ describe("zsh view entries", () => {
     expect(markup).toContain("动态／未解析");
     expect(markup).toContain("命令替换");
     expect(markup).toContain("$HOME/work");
-    expect(markup).toContain("vim");
+    expect(markup).toContain("nano");
+    expect(markup).not.toContain(">vim<");
   });
 
   it("lists PATH items in order, flags unresolved ones and keeps an empty item visible", () => {
@@ -408,17 +409,13 @@ describe("zsh view entries", () => {
 });
 
 describe("zsh view same names", () => {
-  it("lists same-name entries per file and never names an effective one", () => {
+  it("no longer lists a separate same-name section", () => {
     const markup = render(readyState(FULL));
-    expect(markup).toContain("同名项对照");
-    expect(markup).toContain("EDITOR 的各处设置");
-    expect(markup).toContain("vim");
-    expect(markup).toContain("nano");
-    expect(markup).toContain("这里不判断");
-    expect(markup).not.toMatch(/最终生效值|有效值：|生效的是/);
+    expect(markup).not.toContain("同名项对照");
+    expect(markup).not.toContain("这里不判断");
   });
 
-  it("omits the section when no name repeats", () => {
+  it("omits the separate section when no name repeats", () => {
     const markup = render(
       readyState(overview([file("ZSHENV", ready([entry({ name: "A" })])), file("ZSHRC", ready([entry({ name: "B" })]))])),
     );

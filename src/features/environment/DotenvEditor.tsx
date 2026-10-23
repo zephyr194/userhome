@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   ActionRow,
@@ -23,6 +24,8 @@ import {
   type EntryRow,
   type SaveResult,
 } from "./dotenvEditorModel";
+import type { DotenvEditFocus } from "./environmentModel";
+import { useFocusRequest } from "./useFocusRequest";
 
 export type DotenvEditorActions = Pick<
   DotenvEditorController,
@@ -43,6 +46,8 @@ export interface DotenvEditorProps {
   /** The current drafts checked against the file (`controller.check()`). */
   check: DraftCheck;
   actions: DotenvEditorActions;
+  /** Where focus should go once the editor shows it: a line, or the new row. */
+  focus?: DotenvEditFocus;
 }
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
@@ -54,7 +59,8 @@ const WRAP = "break-words [overflow-wrap:anywhere]";
  * inputs, are never shown in the preview, and nothing is written until the
  * preview dialog is confirmed.
  */
-export function DotenvEditor({ actions, check, state }: DotenvEditorProps) {
+export function DotenvEditor({ actions, check, focus, state }: DotenvEditorProps) {
+  const focusRef = useFocusRequest<HTMLInputElement>(focus);
   const { target } = state;
   if (target === undefined) return null;
   const busy = state.phase === "previewing" || state.phase === "saving";
@@ -63,6 +69,13 @@ export function DotenvEditor({ actions, check, state }: DotenvEditorProps) {
     target.kind === "existing"
       ? target.file.rows.filter((row): row is EntryRow => row.kind === "ENTRY")
       : [];
+  const focusTarget = {
+    line: focus?.target.kind === "entry" ? focus.target.line : undefined,
+    addition:
+      focus?.target.kind === "addition"
+        ? state.additions[state.additions.length - 1]?.id
+        : undefined,
+  };
 
   return (
     <div className="grid gap-ui-8">
@@ -99,13 +112,22 @@ export function DotenvEditor({ actions, check, state }: DotenvEditorProps) {
             <EntryList
               check={check}
               disabled={locked}
+              focusLine={focusTarget.line}
+              focusRef={focusRef}
               onMode={actions.setEntryMode}
               onValue={actions.setEntryValue}
               rows={rows}
               state={state}
             />
           ) : null}
-          <AdditionList actions={actions} check={check} disabled={locked} state={state} />
+          <AdditionList
+            actions={actions}
+            check={check}
+            disabled={locked}
+            focusId={focusTarget.addition}
+            focusRef={focusRef}
+            state={state}
+          />
           <ActionRow className="min-w-0">
             <Button
               disabled={locked || !check.ready}
@@ -169,6 +191,8 @@ function Notice({ notice }: { notice: EditorNotice }) {
 function EntryList({
   check,
   disabled,
+  focusLine,
+  focusRef,
   onMode,
   onValue,
   rows,
@@ -176,6 +200,8 @@ function EntryList({
 }: {
   check: DraftCheck;
   disabled: boolean;
+  focusLine?: number;
+  focusRef: Ref<HTMLInputElement>;
   onMode: DotenvEditorActions["setEntryMode"];
   onValue: DotenvEditorActions["setEntryValue"];
   rows: EntryRow[];
@@ -191,6 +217,7 @@ function EntryList({
         const draft = state.entryEdits[row.key];
         const removing = draft?.mode === "remove";
         const problem = check.problems.entries[row.key];
+        const inputRef = row.line === focusLine ? focusRef : undefined;
         return (
           <li
             className={classNames(
@@ -216,6 +243,7 @@ function EntryList({
                     description="秘密不会显示。输入新值以替换；留空表示不修改。"
                     disabled={disabled || removing}
                     error={problem}
+                    inputRef={inputRef}
                     label={`${row.key} 的新值`}
                     onValueChange={(value) => onValue(row.key, value)}
                     value={draft?.mode === "set" ? draft.value : ""}
@@ -226,6 +254,7 @@ function EntryList({
                     className="min-w-0 flex-1"
                     disabled={disabled || removing}
                     error={problem}
+                    inputRef={inputRef}
                     label={`${row.key} 的值`}
                     onValueChange={(value) => onValue(row.key, value)}
                     spellCheck={false}
@@ -264,11 +293,15 @@ function AdditionList({
   actions,
   check,
   disabled,
+  focusId,
+  focusRef,
   state,
 }: {
   actions: DotenvEditorActions;
   check: DraftCheck;
   disabled: boolean;
+  focusId?: number;
+  focusRef: Ref<HTMLInputElement>;
   state: EditorState;
 }) {
   return (
@@ -311,6 +344,7 @@ function AdditionList({
                     className="min-w-0 flex-1"
                     disabled={disabled}
                     error={problem}
+                    inputRef={row.id === focusId ? focusRef : undefined}
                     label={`第 ${index + 1} 行的键名`}
                     onValueChange={(key) => actions.updateRow(row.id, { key })}
                     spellCheck={false}

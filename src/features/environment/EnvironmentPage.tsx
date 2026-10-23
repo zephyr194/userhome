@@ -22,6 +22,8 @@ import {
   INITIAL_ENVIRONMENT_STATE,
   checkSettings,
   environmentReducer,
+  type DotenvEditFocus,
+  type DotenvEditIntent,
 } from "./environmentModel";
 import { useDotenvEditor } from "./useDotenvEditor";
 import { LaunchctlPage } from "./LaunchctlPage";
@@ -100,6 +102,8 @@ function DotenvPage() {
   const [addingGrant, setAddingGrant] = useState(false);
   const [choosingNewFile, setChoosingNewFile] = useState(false);
   const [grantNotice, setGrantNotice] = useState<GrantNotice>();
+  const [editFocus, setEditFocus] = useState<DotenvEditFocus>();
+  const focusCounter = useRef(0);
   const requestCounter = useRef(0);
   const stateRef = useRef(state);
   useEffect(() => {
@@ -195,23 +199,28 @@ function DotenvPage() {
   );
   const editor = useDotenvEditor(reloadAfterSave);
 
-  const editFile = useCallback(() => {
-    const current = stateRef.current;
-    if (
-      !current.selectedGrantId ||
-      current.scan.status !== "ready" ||
-      current.file.status !== "loaded" ||
-      current.file.outcome.status !== "READY"
-    ) {
-      return;
-    }
-    editor.controller.openExisting({
-      grantId: current.selectedGrantId,
-      path: current.file.path,
-      settings: current.scan.settings,
-      file: current.file.outcome.file,
-    });
-  }, [editor.controller]);
+  const editFile = useCallback(
+    (intent: DotenvEditIntent) => {
+      const current = stateRef.current;
+      if (
+        !current.selectedGrantId ||
+        current.scan.status !== "ready" ||
+        current.file.status !== "loaded" ||
+        current.file.outcome.status !== "READY"
+      ) {
+        return;
+      }
+      editor.controller.openExisting({
+        grantId: current.selectedGrantId,
+        path: current.file.path,
+        settings: current.scan.settings,
+        file: current.file.outcome.file,
+      });
+      if (intent.kind === "addition") editor.controller.addRow();
+      setEditFocus({ id: ++focusCounter.current, target: intent });
+    },
+    [editor.controller],
+  );
 
   // The native save panel names the target and the file name; the backend turns
   // that into a one-file authorization. Nothing is created until a preview is
@@ -269,6 +278,7 @@ function DotenvPage() {
       editor={{
         actions: editor.controller,
         check: editor.check,
+        focus: editFocus,
         state: editor.state,
       }}
       grantNotice={grantNotice}

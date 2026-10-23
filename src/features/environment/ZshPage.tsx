@@ -10,7 +10,12 @@ import { selectDirectoryGrant } from "../../ipc/grants";
 import { useZshEditor } from "./useZshEditor";
 import { ZshEditor } from "./ZshEditor";
 import { ZshView, type ZshViewProps } from "./ZshView";
-import { INITIAL_ZSH_STATE, zshReducer } from "./zshModel";
+import {
+  INITIAL_ZSH_STATE,
+  zshReducer,
+  type ZshEditFocus,
+  type ZshEditIntent,
+} from "./zshModel";
 
 type Notice = ZshViewProps["notice"];
 
@@ -57,13 +62,29 @@ export function ZshPage() {
     load(stateRef.current.zdotdirGrantId);
   }, [load]);
   const editor = useZshEditor(onSaved);
+  const [editFocus, setEditFocus] = useState<ZshEditFocus>();
+  const focusCounter = useRef(0);
   const openEditor = useCallback(
-    (file: ZshFileKey) => {
+    (file: ZshFileKey, intent?: ZshEditIntent) => {
       const zdotdirGrantId = stateRef.current.zdotdirGrantId;
-      void editor.controller.open({
-        file,
-        ...(zdotdirGrantId === undefined ? {} : { zdotdirGrantId }),
-      });
+      setEditFocus(
+        intent === undefined ? undefined : { id: ++focusCounter.current, target: intent },
+      );
+      void editor.controller
+        .open({
+          file,
+          ...(zdotdirGrantId === undefined ? {} : { zdotdirGrantId }),
+        })
+        .then(() => {
+          const current = editor.controller.getState();
+          if (
+            intent?.kind === "addition" &&
+            current.phase === "editing" &&
+            current.loaded?.enabled
+          ) {
+            editor.controller.addVariable();
+          }
+        });
     },
     [editor.controller],
   );
@@ -110,6 +131,7 @@ export function ZshPage() {
       <ZshEditor
         actions={editor.controller}
         check={editor.check}
+        focus={editFocus}
         state={editor.state}
       />
     );

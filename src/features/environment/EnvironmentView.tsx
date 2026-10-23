@@ -17,6 +17,7 @@ import type {
 import type { GrantSummary } from "../../ipc/grants";
 import {
   checkSettings,
+  dotenvDisplay,
   failureText,
   flagText,
   formatBytes,
@@ -24,11 +25,13 @@ import {
   partialReasonText,
   sameSettings,
   skipReasonText,
+  type DotenvEditIntent,
   type EnvironmentState,
   type FileState,
 } from "./environmentModel";
 import { DotenvEditor, type DotenvEditorProps } from "./DotenvEditor";
 import { LazySecretValue } from "./LazySecretValue";
+import { SameNameHint } from "./SameNameHint";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 
 export interface EnvironmentViewProps {
@@ -48,8 +51,8 @@ export interface EnvironmentViewProps {
   onLoadValue: (row: Extract<EnvRow, { kind: "ENTRY" }>) => Promise<string>;
   /** 键编辑器；未提供时页面保持只读。 */
   editor?: DotenvEditorProps;
-  /** 打开所选文件的键编辑器。 */
-  onEditFile?: () => void;
+  /** 打开所选文件的键编辑器；intent 说明要新增一行，还是定位到某一行。 */
+  onEditFile?: (intent: DotenvEditIntent) => void;
   /** 经“选择保存位置”新建环境文件。 */
   onNewFile?: () => void;
   /** 保存位置面板正打开着。 */
@@ -439,7 +442,7 @@ function ScanReady({
 // ---- file view ---------------------------------------------------------------
 
 function FilePane(props: EnvironmentViewProps) {
-  const { editor, state } = props;
+  const { editor, onEditFile, state } = props;
   const editing = editor !== undefined && editor.state.phase !== "closed";
   const loaded =
     state.file.status === "loaded" && state.file.outcome.status === "READY";
@@ -450,9 +453,14 @@ function FilePane(props: EnvironmentViewProps) {
     >
       <SectionHeader
         action={
-          !editing && props.onEditFile && loaded ? (
-            <Button onClick={props.onEditFile} size="sm" variant="primary">
-              编辑…
+          !editing && onEditFile ? (
+            <Button
+              disabled={!loaded}
+              onClick={() => onEditFile({ kind: "addition" })}
+              size="sm"
+              variant="primary"
+            >
+              设置变量
             </Button>
           ) : undefined
         }
@@ -480,6 +488,7 @@ function FilePane(props: EnvironmentViewProps) {
 
 function FileBody({
   file,
+  onEditFile,
   onLoadValue,
 }: EnvironmentViewProps & { file: FileState }) {
   if (file.status === "idle") {
@@ -499,6 +508,7 @@ function FileBody({
   }
   return (
     <LoadedFile
+      onEditFile={onEditFile}
       onLoadValue={onLoadValue}
       outcome={file.outcome}
       path={file.path}
@@ -507,10 +517,12 @@ function FileBody({
 }
 
 function LoadedFile({
+  onEditFile,
   onLoadValue,
   outcome,
   path,
 }: {
+  onEditFile?: EnvironmentViewProps["onEditFile"];
   onLoadValue: EnvironmentViewProps["onLoadValue"];
   outcome: EnvFileOutcome;
   path: string;
@@ -525,18 +537,28 @@ function LoadedFile({
       </AsyncState>
     );
   }
-  return <FileRows file={outcome.file} onLoadValue={onLoadValue} path={path} />;
+  return (
+    <FileRows
+      file={outcome.file}
+      onEditFile={onEditFile}
+      onLoadValue={onLoadValue}
+      path={path}
+    />
+  );
 }
 
 function FileRows({
   file,
+  onEditFile,
   onLoadValue,
   path,
 }: {
   file: EnvFileView;
+  onEditFile?: EnvironmentViewProps["onEditFile"];
   onLoadValue: EnvironmentViewProps["onLoadValue"];
   path: string;
 }) {
+  const display = dotenvDisplay(file);
   return (
     <>
       <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
@@ -545,10 +567,10 @@ function FileRows({
         </StatusBadge>
         <span>{formatBytes(file.sizeBytes)}</span>
         <span>{file.lineCount} 行</span>
-        <span>{file.entryCount} 项</span>
-        <span>{file.secretCount} 项已遮盖</span>
-        {file.flaggedCount > 0 ? (
-          <StatusBadge tone="warning">{file.flaggedCount} 项需注意</StatusBadge>
+        <span>{display.entryCount} 项</span>
+        <span>{display.secretCount} 项已遮盖</span>
+        {display.flaggedCount > 0 ? (
+          <StatusBadge tone="warning">{display.flaggedCount} 项需注意</StatusBadge>
         ) : null}
       </div>
       {file.kind === "TEMPLATE" ? (
@@ -564,13 +586,23 @@ function FileRows({
           文件行数过多，只显示前 {file.rows.length} 行（共 {file.lineCount} 行）。
         </AsyncState>
       ) : null}
-      {file.rows.length === 0 ? (
+      {display.rows.length === 0 ? (
         <AsyncState kind="empty">文件是空的。</AsyncState>
       ) : (
         <ol aria-label={`${path} 的内容`} className="mt-ui-8 grid gap-ui-4">
-          {file.rows.map((row) => (
+          {display.rows.map((row) => (
             <li key={`${row.line}:${row.kind}`}>
-              <RowView onLoadValue={onLoadValue} path={path} row={row} />
+              <RowView
+                onEdit={
+                  onEditFile && row.kind === "ENTRY"
+                    ? () => onEditFile({ kind: "entry", line: row.line })
+                    : undefined
+                }
+                onLoadValue={onLoadValue}
+                path={path}
+                replaced={display.replaced.get(row.line)}
+                row={row}
+              />
             </li>
           ))}
         </ol>
@@ -578,6 +610,7 @@ function FileRows({
     </>
   );
 }
+
 
 function LineNumber({ line }: { line: number }) {
   return (
@@ -591,12 +624,16 @@ function LineNumber({ line }: { line: number }) {
 }
 
 function RowView({
+  onEdit,
   onLoadValue,
   path,
+  replaced,
   row,
 }: {
+  onEdit?: () => void;
   onLoadValue: EnvironmentViewProps["onLoadValue"];
   path: string;
+  replaced?: readonly number[];
   row: EnvRow;
 }) {
   const base = "flex min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-4";
@@ -653,6 +690,23 @@ function RowView({
             <span className="text-meta text-muted-foreground">
               第 {row.line}–{row.endLine} 行
             </span>
+          ) : null}
+          {replaced ? (
+            <SameNameHint
+              description={`被覆盖的位置：${path} 第 ${replaced.join("、")} 行。同一文件里最后一处生效；这里不显示被覆盖的值。`}
+              label={`覆盖了前面 ${replaced.length} 处`}
+              title={`${row.key} 的覆盖位置`}
+            />
+          ) : null}
+          {onEdit ? (
+            <Button
+              aria-label={`修改 ${row.key}`}
+              onClick={onEdit}
+              size="sm"
+              variant="ghost"
+            >
+              修改
+            </Button>
           ) : null}
         </div>
         <div className="mt-ui-4 min-w-0">

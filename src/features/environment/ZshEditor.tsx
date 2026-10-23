@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
@@ -39,7 +40,8 @@ import {
   warningText,
   type ZshDraftCheck,
 } from "./zshEditorModel";
-import { pathSegmentText, reasonText, valueStateText } from "./zshModel";
+import { pathSegmentText, reasonText, valueStateText, type ZshEditFocus } from "./zshModel";
+import { useFocusRequest } from "./useFocusRequest";
 
 export type ZshEditorActions = Pick<
   ZshEditorController,
@@ -67,6 +69,8 @@ export interface ZshEditorProps {
   /** The current drafts checked against the file (`controller.check()`). */
   check: ZshDraftCheck | undefined;
   actions: ZshEditorActions;
+  /** Where focus should go once the editor shows it: a variable, or the new row. */
+  focus?: ZshEditFocus;
 }
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
@@ -83,7 +87,8 @@ const HEADER_CLASSES =
  * typed into masked inputs, are never shown in the preview, and nothing is
  * written until the preview dialog is confirmed.
  */
-export function ZshEditor({ actions, check, state }: ZshEditorProps) {
+export function ZshEditor({ actions, check, focus, state }: ZshEditorProps) {
+  const focusRef = useFocusRequest<HTMLInputElement>(focus);
   const busy =
     state.phase === "loading" ||
     state.phase === "enabling" ||
@@ -109,7 +114,7 @@ export function ZshEditor({ actions, check, state }: ZshEditorProps) {
         </Button>
       </header>
       <div className="grid gap-ui-12 px-ui-12 py-ui-8">
-        <Body actions={actions} busy={busy} check={check} state={state} />
+        <Body actions={actions} busy={busy} check={check} focus={focus} focusRef={focusRef} state={state} />
       </div>
     </section>
   );
@@ -119,8 +124,10 @@ function Body({
   actions,
   busy,
   check,
+  focus,
+  focusRef,
   state,
-}: ZshEditorProps & { busy: boolean }) {
+}: ZshEditorProps & { busy: boolean; focusRef: Ref<HTMLInputElement> }) {
   if (state.phase === "loading" && state.loaded === undefined) {
     return <AsyncState kind="loading">正在读取文件…</AsyncState>;
   }
@@ -162,7 +169,14 @@ function Body({
         <>
           {editable && check ? (
             <>
-              <VariablesSection actions={actions} check={check} disabled={locked} state={state} />
+              <VariablesSection
+                actions={actions}
+                check={check}
+                disabled={locked}
+                focus={focus}
+                focusRef={focusRef}
+                state={state}
+              />
               <PathSection actions={actions} check={check} disabled={locked} state={state} />
               <ActionRow className="min-w-0">
                 <Button
@@ -322,16 +336,26 @@ function VariablesSection({
   actions,
   check,
   disabled,
+  focus,
+  focusRef,
   state,
 }: {
   actions: ZshEditorActions;
   check: ZshDraftCheck;
   disabled: boolean;
+  focus?: ZshEditFocus;
+  focusRef: Ref<HTMLInputElement>;
   state: ZshEditorState;
 }) {
   const loaded = state.loaded;
   if (loaded === undefined) return null;
   const variables = managedVariables(loaded);
+  const target = focus?.target;
+  const focusName = target?.kind === "variable" ? target.name : undefined;
+  const focusAddition =
+    target?.kind === "addition" ? state.drafts.additions[state.drafts.additions.length - 1]?.id : undefined;
+  const outsideBlock =
+    target?.kind === "variable" && !variables.some((variable) => variable.name === target.name);
   return (
     <section aria-labelledby="zsh-editor-variables-heading" className="grid gap-ui-8">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
@@ -343,6 +367,13 @@ function VariablesSection({
         </Button>
       </div>
       <p className={NOTE_CLASSES}>{VALUE_FORM_NOTE}</p>
+      {outsideBlock && target?.kind === "variable" ? (
+        <AsyncState kind="partial">
+          <span className={WRAP}>
+            {target.name} 在第 {target.line} 行，不在 UserHome 专用块里。编辑器只改动专用块，这一行保持原样；需要修改时请直接编辑该文件。
+          </span>
+        </AsyncState>
+      ) : null}
       {variables.length === 0 && state.drafts.additions.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           专用块里还没有变量。块外的同名赋值不会被读取为专用块的变量，也不会被删除。
@@ -376,6 +407,7 @@ function VariablesSection({
                         description="秘密不会显示。输入新值以替换；留空表示不修改。"
                         disabled={disabled || removing}
                         error={problem}
+                        inputRef={variable.name === focusName ? focusRef : undefined}
                         label={`${variable.name} 的新值`}
                         onValueChange={(value) => actions.setVariableValue(variable.name, value)}
                         value={draft?.mode === "set" ? draft.value : ""}
@@ -386,6 +418,7 @@ function VariablesSection({
                         className="min-w-0 flex-1"
                         disabled={disabled || removing}
                         error={problem}
+                        inputRef={variable.name === focusName ? focusRef : undefined}
                         label={`${variable.name} 的值`}
                         onValueChange={(value) => actions.setVariableValue(variable.name, value)}
                         spellCheck={false}
@@ -437,6 +470,7 @@ function VariablesSection({
                     className="min-w-0 flex-1"
                     disabled={disabled}
                     error={problem}
+                    inputRef={row.id === focusAddition ? focusRef : undefined}
                     label={`新增第 ${index + 1} 行的变量名`}
                     onValueChange={(name) => actions.updateVariable(row.id, { name })}
                     spellCheck={false}

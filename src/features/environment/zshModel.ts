@@ -4,9 +4,11 @@ import type {
   ZshDynamicReason,
   ZshEntryRow,
   ZshFile,
+  ZshFileDetail,
   ZshFileKey,
   ZshOrderStep,
   ZshOverview,
+  ZshRow,
   ZshUndeterminedReason,
   ZshValueState,
   ZshZdotdir,
@@ -296,48 +298,116 @@ export function needsFetch(row: ZshEntryRow): boolean {
   return row.secret || (row.hasValue && row.value === undefined);
 }
 
-export interface SameNameItem {
+export type ZshEditIntent =
+  | { readonly kind: "addition" }
+  | { readonly kind: "variable"; readonly name: string; readonly line: number };
+
+export interface ZshEditFocus {
+  readonly id: number;
+  readonly target: ZshEditIntent;
+}
+
+export interface ZshLocation {
+  readonly fileName: string;
+  readonly line: number;
+}
+
+export type ZshNameNote =
+  | { readonly kind: "replaces"; readonly replaced: readonly ZshLocation[] }
+  | { readonly kind: "shared"; readonly others: readonly ZshLocation[] };
+
+export interface ZshNameResolution {
+  /** Entries a later one replaces, as `zshRowKey`. */
+  readonly hidden: ReadonlySet<string>;
+  /** Notes for shown entries whose name appears elsewhere, as `zshRowKey`. */
+  readonly notes: ReadonlyMap<string, ZshNameNote>;
+}
+
+export function zshRowKey(file: ZshFileKey, line: number): string {
+  return `${file}:${line}`;
+}
+
+interface NameItem {
   readonly file: ZshFileKey;
   readonly fileName: string;
-  readonly position: number;
   readonly line: number;
   readonly row: ZshEntryRow;
 }
 
-export interface SameNameGroup {
-  readonly name: string;
-  readonly items: readonly SameNameItem[];
-}
-
 /**
- * Names that appear more than once, listed per file and line in reading order.
- * Nothing is merged and no item is marked as the winner: which one applies
- * depends on the shell that reads the files.
+ * The last assignment of a name in reading order replaces the earlier ones. A
+ * last assignment that appends (`+=`) or is dynamic says nothing about the final
+ * value, so every occurrence stays and only points at the others. When any file
+ * was cut short, nothing is resolved: a later occurrence may sit past the cut.
  */
-export function groupSameNames(overview: ZshOverview): SameNameGroup[] {
-  const byName = new Map<string, SameNameItem[]>();
-  for (const file of overview.files) {
+export function resolveZshNames(overview: ZshOverview): ZshNameResolution {
+  const files = [...overview.files].sort((left, right) => left.position - right.position);
+  const truncated = files.some(
+    (file) => file.outcome.status === "READY" && file.outcome.rowsTruncated,
+  );
+  if (truncated) return { hidden: new Set(), notes: new Map() };
+
+  const byName = new Map<string, NameItem[]>();
+  for (const file of files) {
     if (file.outcome.status !== "READY") continue;
     for (const row of file.outcome.rows) {
       if (row.kind !== "ENTRY") continue;
       const items = byName.get(row.name) ?? [];
-      items.push({
-        file: file.file,
-        fileName: file.name,
-        position: file.position,
-        line: row.line,
-        row,
-      });
+      items.push({ file: file.file, fileName: file.name, line: row.line, row });
       byName.set(row.name, items);
     }
   }
-  return [...byName.entries()]
-    .filter(([, items]) => items.length > 1)
-    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-    .map(([name, items]) => ({
-      name,
-      items: [...items].sort(
-        (left, right) => left.position - right.position || left.line - right.line,
-      ),
-    }));
+
+  const hidden = new Set<string>();
+  const notes = new Map<string, ZshNameNote>();
+  const location = (item: NameItem): ZshLocation => ({ fileName: item.fileName, line: item.line });
+  for (const items of byName.values()) {
+    if (items.length < 2) continue;
+    const last = items[items.length - 1];
+    if (last === undefined) continue;
+    const earlier = items.slice(0, -1);
+    if (last.row.operation === "SET" && last.row.state !== "DYNAMIC") {
+      for (const item of earlier) hidden.add(zshRowKey(item.file, item.line));
+      notes.set(zshRowKey(last.file, last.line), {
+        kind: "replaces",
+        replaced: earlier.map(location),
+      });
+      continue;
+    }
+    for (const item of items) {
+      notes.set(zshRowKey(item.file, item.line), {
+        kind: "shared",
+        others: items.filter((other) => other !== item).map(location),
+      });
+    }
+  }
+  return { hidden, notes };
 }
+
+export interface ZshFileDisplay {
+  readonly rows: readonly ZshRow[];
+  readonly entryCount: number;
+  readonly secretCount: number;
+  readonly dynamicCount: number;
+}
+
+/** The rows a file shows after resolution, with its counts lowered to match. */
+export function zshFileDisplay(
+  file: ZshFileKey,
+  detail: ZshFileDetail,
+  resolution: ZshNameResolution,
+): ZshFileDisplay {
+  let { entryCount, secretCount, dynamicCount } = detail;
+  const rows: ZshRow[] = [];
+  for (const row of detail.rows) {
+    if (row.kind === "ENTRY" && resolution.hidden.has(zshRowKey(file, row.line))) {
+      entryCount -= 1;
+      if (row.secret) secretCount -= 1;
+      if (row.state === "DYNAMIC") dynamicCount -= 1;
+      continue;
+    }
+    rows.push(row);
+  }
+  return { rows, entryCount, secretCount, dynamicCount };
+}
+

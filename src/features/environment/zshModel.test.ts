@@ -11,7 +11,6 @@ import {
   INITIAL_ZSH_STATE,
   appliesToText,
   fileStatus,
-  groupSameNames,
   needsFetch,
   pathSegmentText,
   reasonText,
@@ -318,48 +317,6 @@ describe("entries", () => {
     expect(needsFetch(entry({ hasValue: false, value: undefined, valueLength: 0 }))).toBe(false);
   });
 
-  it("lists same-name entries side by side per file without choosing one", () => {
-    const groups = groupSameNames(
-      overview([
-        file("ZSHENV", 2, ready([entry({ name: "EDITOR", value: "vim" }), entry({ name: "ONLY_HERE", line: 2 })])),
-        file("ZPROFILE", 4, ready([entry({ name: "EDITOR", value: "nano", line: 7 })])),
-        file("ZSHRC", 6, ready([entry({ name: "EDITOR", value: "$VISUAL", state: "DYNAMIC", reason: "UNRESOLVED_REFERENCE", line: 3 })])),
-        file("ZLOGIN", 8, { status: "UNAVAILABLE", reason: "NOT_FOUND", message: "m" }),
-      ]),
-    );
-    expect(groups).toHaveLength(1);
-    expect(groups[0]?.name).toBe("EDITOR");
-    expect(groups[0]?.items.map((item) => [item.file, item.line, item.row.value])).toEqual([
-      ["ZSHENV", 1, "vim"],
-      ["ZPROFILE", 7, "nano"],
-      ["ZSHRC", 3, "$VISUAL"],
-    ]);
-    expect(Object.keys(groups[0] ?? {})).toEqual(["name", "items"]);
-  });
-
-  it("groups repeated names within one file too and sorts groups by name", () => {
-    const groups = groupSameNames(
-      overview([
-        file("ZSHRC", 6, ready([
-          entry({ name: "ZED", line: 1 }),
-          entry({ name: "ZED", line: 2 }),
-          entry({ name: "ALPHA", line: 3 }),
-          entry({ name: "ALPHA", line: 4 }),
-        ])),
-      ]),
-    );
-    expect(groups.map((group) => group.name)).toEqual(["ALPHA", "ZED"]);
-  });
-
-  it("treats PATH and path as the same variable family only by exact name", () => {
-    const groups = groupSameNames(
-      overview([
-        file("ZSHENV", 2, ready([entry({ name: "PATH" })])),
-        file("ZSHRC", 6, ready([entry({ name: "path" })])),
-      ]),
-    );
-    expect(groups).toEqual([]);
-  });
 });
 
 describe("zdotdir parent segment wording", () => {
