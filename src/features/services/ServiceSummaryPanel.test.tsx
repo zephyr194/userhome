@@ -67,6 +67,26 @@ afterEach(() => {
 });
 
 describe("service summary panel", () => {
+  it("reads the log paths from the primary config file, not from the first one", () => {
+    const service = launchdService({
+      configFiles: [
+        configFile({ path: "/tmp/plain.plist", details: undefined }),
+        configFile({
+          path: "/tmp/main.plist",
+          details: {
+            programArguments: ["/usr/bin/true"],
+            argumentsTruncated: false,
+            environmentKeys: [],
+            standardOutPath: "/tmp/main.out.log",
+          },
+        }),
+      ],
+    });
+    render(<ServiceSummaryPanel service={service} />);
+    expect(screen.getByText("/tmp/main.out.log")).toBeTruthy();
+    expect(screen.queryByText("没有配置日志文件，输出由系统日志接管。")).toBeNull();
+  });
+
   it("shows the four sections in order", () => {
     const { container } = render(<ServiceSummaryPanel service={launchdService()} />);
     expect(summarySections(container)).toEqual([

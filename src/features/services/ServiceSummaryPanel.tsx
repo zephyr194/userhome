@@ -5,7 +5,7 @@ import { useT } from "../../i18n/useLocale";
 import type { LaunchdService } from "../../ipc/services";
 import { LaunchdActionPanel } from "./LaunchdActionPanel";
 import { isActionable } from "./launchdActionModel";
-import { executionOf, statusPresentation } from "./launchdModel";
+import { executionOf, primaryConfigFile, statusPresentation } from "./launchdModel";
 import {
   INJECTOR_TITLE_KEYS,
   displayNameOf,
@@ -46,7 +46,7 @@ export function ServiceSummaryPanel({
   const trigger = triggerOf(service, t);
   const status = statusPresentation(service, t);
   const purpose = purposeOf(service, t);
-  const logDetails = service.configFiles[0]?.details;
+  const logDetails = primaryConfigFile(service)?.details;
   const stdoutPath = logDetails?.standardOutPath;
   const stderrPath = logDetails?.standardErrorPath;
   const hasLogPaths = stdoutPath !== undefined || stderrPath !== undefined;
@@ -92,7 +92,7 @@ export function ServiceSummaryPanel({
               {status.detail}
             </span>
           </Fact>
-          <Fact label="PID">
+          <Fact label={t("services.summary.pid")}>
             {service.pid === undefined ? t("services.summary.noPid") : String(service.pid)}
           </Fact>
         </dl>
