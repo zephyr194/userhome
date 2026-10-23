@@ -1,4 +1,7 @@
+import { caddyZh } from "./caddy";
 import { commonZh } from "./common";
+import { operationsZh } from "./operations";
+import { toolsZh } from "./tools";
 import { environmentZh } from "./environment";
 import { dashboardZh } from "./dashboard";
 import { servicesZh } from "./services";
@@ -12,6 +15,9 @@ export const zhCN = {
   ...dashboardZh,
   ...systemToolsZh,
   ...servicesZh,
+  ...caddyZh,
+  ...toolsZh,
+  ...operationsZh,
   ...commonZh,
   ...environmentZh,
 } as const;

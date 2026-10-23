@@ -1,4 +1,4 @@
-import type { MessageKey, TranslateFunction } from "../i18n";
+import { translate, type Locale, type MessageKey, type TranslateFunction } from "../i18n";
 
 export type AppRouteId =
   | "dashboard"
@@ -48,6 +48,11 @@ export function navGroupLabel(group: NavGroup, t: TranslateFunction): string | n
 
 export interface AppRouteSection {
   id: string;
+  labelKey: MessageKey;
+}
+
+export interface AppRouteSectionTab {
+  id: string;
   label: string;
 }
 
@@ -86,9 +91,15 @@ export function activeSectionOf(
   return route.sections?.find((section) => section.id === storedId) ?? route.sections?.[0];
 }
 
-/** The sections a route declares, in display order; empty when it declares none. */
-export function routeSectionsOf(routeId: AppRouteId): readonly AppRouteSection[] {
-  return ROUTE_REGISTRY[routeId].sections ?? [];
+/** The sections a route declares, in display order, with labels in the given locale; empty when it declares none. */
+export function routeSectionsOf(
+  routeId: AppRouteId,
+  locale: Locale = "zh-CN",
+): readonly AppRouteSectionTab[] {
+  return (ROUTE_REGISTRY[routeId].sections ?? []).map((section) => ({
+    id: section.id,
+    label: translate(locale, section.labelKey),
+  }));
 }
 
 /**
@@ -129,9 +140,9 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrowKey: "route.environment.eyebrow",
     descriptionKey: "route.environment.description",
     sections: [
-      { id: "dotenv", label: "dotenv 文件" }, // i18n-phase-two
-      { id: "zsh", label: "zsh 启动文件" }, // i18n-phase-two
-      { id: "launchctl", label: "登录会话" }, // i18n-phase-two
+      { id: "dotenv", labelKey: "route.section.dotenv" },
+      { id: "zsh", labelKey: "route.section.zsh" },
+      { id: "launchctl", labelKey: "route.section.launchctl" },
     ],
   },
   caddy: {
@@ -141,9 +152,9 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     descriptionKey: "route.caddy.description",
     parent: "systemTools",
     sections: [
-      { id: "rules", label: "站点规则" }, // i18n-phase-two
-      { id: "run", label: "运行" }, // i18n-phase-two
-      { id: "raw", label: "原文 Caddyfile" }, // i18n-phase-two
+      { id: "rules", labelKey: "route.section.rules" },
+      { id: "run", labelKey: "route.section.run" },
+      { id: "raw", labelKey: "route.section.raw" },
     ],
   },
   appConfig: {

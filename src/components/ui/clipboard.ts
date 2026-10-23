@@ -1,4 +1,8 @@
-export const COPY_LINK_FAILED = "复制失败：请手动选择链接复制。";
+import { translate } from "../../i18n";
+
+export const COPY_LINK_FAILED_KEY = "common.clipboard.copyLinkFailed";
+
+export const COPY_LINK_FAILED = translate("zh-CN", COPY_LINK_FAILED_KEY);
 
 export async function copyText(text: string): Promise<boolean> {
   try {

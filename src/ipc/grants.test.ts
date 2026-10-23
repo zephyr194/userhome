@@ -476,7 +476,7 @@ describe("shell startup file grants", () => {
   it("labels every purpose, the new one as a shell startup file", () => {
     expect(grantPurposeLabel("SHELL_STARTUP_FILE")).toBe("shell 启动文件");
     const labels = (["CONFIG_DIRECTORY", "CONFIG_FILE", "EXECUTABLE", "SHELL_STARTUP_FILE"] as const).map(
-      grantPurposeLabel,
+      (purpose) => grantPurposeLabel(purpose),
     );
     expect(new Set(labels).size).toBe(4);
   });
@@ -534,7 +534,7 @@ describe("launch agent file grants", () => {
         "SHELL_STARTUP_FILE",
         "LAUNCH_AGENT_FILE",
       ] as const
-    ).map(grantPurposeLabel);
+    ).map((purpose) => grantPurposeLabel(purpose));
     expect(new Set(labels).size).toBe(5);
   });
 

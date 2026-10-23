@@ -89,4 +89,16 @@ describe("shared components in English", () => {
     expect(screen.getByRole("log", { name: "Caddy log content" })).toBeTruthy();
     expectNoCjk(container.textContent ?? "");
   });
+
+  it("renders LogViewer truncation and paused notices in English", () => {
+    const { container } = renderInEnglish(
+      <LogViewer droppedCount={3} label="Caddy log" lines={["one", "two"]} paused />,
+    );
+
+    expect(
+      screen.getByText("Dropped 3 earlier lines and kept the latest 2."),
+    ).toBeTruthy();
+    expect(screen.getByText("Paused. The view stops updating.")).toBeTruthy();
+    expectNoCjk(container.textContent ?? "");
+  });
 });

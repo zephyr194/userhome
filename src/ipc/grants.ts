@@ -4,6 +4,7 @@ import {
   invokeCommand,
   isRecord,
 } from "./core";
+import { translate, type Locale, type MessageKey } from "../i18n";
 
 export type GrantPurpose =
   | "CONFIG_DIRECTORY"
@@ -34,22 +35,22 @@ const GRANT_PURPOSES: readonly string[] = [
 ];
 const DIRECTORY_PURPOSES: readonly string[] = ["CONFIG_DIRECTORY", "CADDY_WORK_DIR"];
 const GRANT_KINDS: readonly string[] = ["DIRECTORY", "FILE"];
-const GRANT_PURPOSE_LABELS: Record<GrantPurpose, string> = {
-  CONFIG_DIRECTORY: "配置目录",
-  CONFIG_FILE: "配置文件",
-  EXECUTABLE: "可执行文件",
-  SHELL_STARTUP_FILE: "shell 启动文件",
-  LAUNCH_AGENT_FILE: "launchd 自建任务配置",
-  TLS_MATERIAL_FILE: "TLS 证书或私钥文件",
-  CADDY_WORK_DIR: "Caddy 工作目录",
+const GRANT_PURPOSE_LABEL_KEYS: Record<GrantPurpose, MessageKey> = {
+  CONFIG_DIRECTORY: "grants.purpose.CONFIG_DIRECTORY",
+  CONFIG_FILE: "grants.purpose.CONFIG_FILE",
+  EXECUTABLE: "grants.purpose.EXECUTABLE",
+  SHELL_STARTUP_FILE: "grants.purpose.SHELL_STARTUP_FILE",
+  LAUNCH_AGENT_FILE: "grants.purpose.LAUNCH_AGENT_FILE",
+  TLS_MATERIAL_FILE: "grants.purpose.TLS_MATERIAL_FILE",
+  CADDY_WORK_DIR: "grants.purpose.CADDY_WORK_DIR",
 };
 const GRANT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAX_DISPLAY_PATH_LENGTH = 1024;
 const MAX_GRANTS = 256;
 
-export function grantPurposeLabel(purpose: GrantPurpose): string {
-  return GRANT_PURPOSE_LABELS[purpose];
+export function grantPurposeLabel(purpose: GrantPurpose, locale: Locale = "zh-CN"): string {
+  return translate(locale, GRANT_PURPOSE_LABEL_KEYS[purpose]);
 }
 
 export function isGrantId(value: unknown): value is string {

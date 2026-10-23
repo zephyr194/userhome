@@ -18,6 +18,12 @@ import {
 } from "./app/shellState";
 import { decodeAppError, type AppError, getAppStatus } from "./ipc/core";
 import {
+  resolveLocale,
+  translate,
+  type LanguagePreference,
+  type MessageKey,
+} from "./i18n";
+import {
   getSystemSnapshot,
   refreshSystemSnapshot,
 } from "./ipc/discovery";
@@ -33,6 +39,10 @@ import {
   type LoadedPreferences,
   type UpdatePreferencesRequest,
 } from "./ipc/settings";
+
+function translateFor(language: LanguagePreference, key: MessageKey): string {
+  return translate(resolveLocale(language, globalThis.navigator?.language), key);
+}
 
 async function getRecentOperation(): Promise<OperationDetails | null> {
   const operations = await listOperations();
@@ -84,6 +94,15 @@ function App({
     state.preferences.status === "loading"
       ? initialPreferences.preferences.appearance
       : state.preferences.preferences.appearance;
+  const language =
+    state.preferences.status === "loading"
+      ? initialPreferences.preferences.language
+      : state.preferences.preferences.language;
+  const languageRef = useRef(language);
+
+  useEffect(() => {
+    languageRef.current = language;
+  }, [language]);
 
   useLayoutEffect(() => {
     applyAppearance(appearance);
@@ -171,12 +190,12 @@ function App({
 
           dispatch({
             type: "refresh-error",
-            message: "刷新完成，但部分信息不可用。",
+            message: translateFor(language, "app.refresh.partialUnavailable"),
           });
         },
       );
     return request;
-  }, [preferencesHydrated]);
+  }, [language, preferencesHydrated]);
   const loadShell = useMemo(
     () => createRefreshCoordinator(runLoadShell),
     [runLoadShell],
@@ -258,7 +277,7 @@ function App({
         if (!disposed) {
           dispatch({
             type: "refresh-error",
-            message: "无法监听托盘刷新请求。",
+            message: translateFor(languageRef.current, "app.tray.listenFailed"),
           });
         }
       });

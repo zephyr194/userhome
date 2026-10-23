@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "../components/ui/Button";
-import { COPY_LINK_FAILED, copyText } from "../components/ui/clipboard";
+import { COPY_LINK_FAILED_KEY, copyText } from "../components/ui/clipboard";
+import { useT } from "../i18n/useLocale";
 
 /** Copies the link of the page on screen; the key remounts it so a stale status never outlives its page. */
 export function CopyPageLinkButton({ link }: { link: string | undefined }) {
+  const t = useT();
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
 
   async function copyLink() {
@@ -15,12 +17,12 @@ export function CopyPageLinkButton({ link }: { link: string | undefined }) {
     <span className="inline-flex min-w-0 flex-wrap items-center justify-end gap-ui-8">
       {status === "failed" && link !== undefined ? (
         <span className="r8-deeplink-copy-failure" role="alert">
-          <span>{COPY_LINK_FAILED}</span>
+          <span>{t(COPY_LINK_FAILED_KEY)}</span>
           <code className="r8-deeplink-copy-failure__link">{link}</code>
         </span>
       ) : status === "copied" ? (
         <span className="text-aux text-muted-foreground" role="status">
-          已复制链接
+          {t("common.copyLink.copied")}
         </span>
       ) : null}
       <Button
@@ -29,7 +31,7 @@ export function CopyPageLinkButton({ link }: { link: string | undefined }) {
         size="sm"
         variant="secondary"
       >
-        复制链接
+        {t("common.copyLink.copy")}
       </Button>
     </span>
   );

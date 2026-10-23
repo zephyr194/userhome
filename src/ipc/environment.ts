@@ -4,6 +4,7 @@ import {
   invokeCommand,
   isRecord,
 } from "./core";
+import { translate, type Locale } from "../i18n";
 import { isGrantId } from "./grants";
 import {
   decodeResourceWriteExecution,
@@ -585,28 +586,31 @@ export function decodeEnvEditPreview(value: unknown): EnvEditPreview {
 }
 
 /** The reason a set of edits cannot be sent, or `undefined` when it can. */
-export function editsProblem(edits: readonly EnvKeyEdit[]): string | undefined {
+export function editsProblem(
+  edits: readonly EnvKeyEdit[],
+  locale: Locale = "zh-CN",
+): string | undefined {
   if (!Array.isArray(edits) || edits.length === 0 || edits.length > MAX_EDITS) {
-    return "一次保存需要 1 到 64 项改动。";
+    return translate(locale, "common.envProblem.editCountRange");
   }
   const seen = new Set<string>();
   for (const edit of edits) {
     if (typeof edit.key !== "string" || !KEY_PATTERN.test(edit.key)) {
-      return "键名必须匹配 [A-Za-z_][A-Za-z0-9_]*，且不超过 255 个字符。";
+      return translate(locale, "common.envProblem.keyName");
     }
-    if (seen.has(edit.key)) return "同一个键在一次保存里只能改动一次。";
+    if (seen.has(edit.key)) return translate(locale, "common.envProblem.duplicateKey");
     seen.add(edit.key);
     if (edit.op === "REMOVE") {
-      if ("value" in edit) return "删除不带值。";
+      if ("value" in edit) return translate(locale, "common.envProblem.removeHasValue");
     } else if (edit.op === "ADD" || edit.op === "SET") {
       if (
         typeof edit.value !== "string" ||
         [...edit.value].length > MAX_EDIT_VALUE_CHARS
       ) {
-        return "值必须是不超过 8192 个字符的文本。";
+        return translate(locale, "common.envProblem.valueTooLong");
       }
     } else {
-      return "不支持的改动类型。";
+      return translate(locale, "common.envProblem.unsupportedChange");
     }
   }
   return undefined;
@@ -1756,10 +1760,13 @@ export function decodeZshEditExecution(value: unknown): ZshEditExecution {
 }
 
 /** The reason an edit cannot be sent, or `undefined` when it can. */
-export function zshEditProblem(edit: ZshBlockEdit): string | undefined {
+export function zshEditProblem(
+  edit: ZshBlockEdit,
+  locale: Locale = "zh-CN",
+): string | undefined {
   const variables = edit.variables;
   if (!Array.isArray(variables) || variables.length > MAX_ZSH_VARIABLES) {
-    return "一次保存最多改动 128 个变量。";
+    return translate(locale, "common.envProblem.zshVariableLimit");
   }
   if (
     edit.path !== undefined &&
@@ -1767,27 +1774,29 @@ export function zshEditProblem(edit: ZshBlockEdit): string | undefined {
       edit.path.length > MAX_ZSH_PATH_ITEMS ||
       edit.path.some((item) => typeof item !== "string"))
   ) {
-    return "PATH 列表最多 64 项，且每项必须是文本。";
+    return translate(locale, "common.envProblem.zshPathLimit");
   }
-  if (variables.length === 0 && edit.path === undefined) return "没有需要保存的改动。";
+  if (variables.length === 0 && edit.path === undefined) {
+    return translate(locale, "common.envProblem.noChanges");
+  }
   const seen = new Set<string>();
   for (const item of variables) {
     if (typeof item.name !== "string" || !KEY_PATTERN.test(item.name)) {
-      return "变量名必须匹配 [A-Za-z_][A-Za-z0-9_]*，且不超过 255 个字符。";
+      return translate(locale, "common.envProblem.zshName");
     }
     if (ZSH_RESERVED_NAMES.includes(item.name)) {
-      return "PATH 请通过 PATH 列表编辑，不能作为普通变量写入。";
+      return translate(locale, "common.envProblem.zshReservedName");
     }
-    if (seen.has(item.name)) return "同一个变量在一次保存里只能改动一次。";
+    if (seen.has(item.name)) return translate(locale, "common.envProblem.zshDuplicate");
     seen.add(item.name);
     if (item.op === "REMOVE") {
-      if ("value" in item) return "删除不带值。";
+      if ("value" in item) return translate(locale, "common.envProblem.removeHasValue");
     } else if (item.op === "SET") {
       if (typeof item.value !== "string" || [...item.value].length > MAX_EDIT_VALUE_CHARS) {
-        return "值必须是不超过 8192 个字符的文本。";
+        return translate(locale, "common.envProblem.valueTooLong");
       }
     } else {
-      return "不支持的改动类型。";
+      return translate(locale, "common.envProblem.unsupportedChange");
     }
   }
   return undefined;

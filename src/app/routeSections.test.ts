@@ -15,11 +15,11 @@ describe("route sections", () => {
     ]);
   });
 
-  it("hardcodes the Caddy sections in display order", () => {
+  it("declares the Caddy sections in display order", () => {
     expect(routeOf("caddy").sections).toEqual([
-      { id: "rules", label: "站点规则" },
-      { id: "run", label: "运行" },
-      { id: "raw", label: "原文 Caddyfile" },
+      { id: "rules", labelKey: "route.section.rules" },
+      { id: "run", labelKey: "route.section.run" },
+      { id: "raw", labelKey: "route.section.raw" },
     ]);
   });
 
@@ -28,11 +28,11 @@ describe("route sections", () => {
     expect(routeSectionsOf("aiConfig")).toEqual([]);
   });
 
-  it("hardcodes the environment sections to match its domain menu", () => {
+  it("declares the environment sections to match its domain menu", () => {
     expect(routeOf("environment").sections).toEqual([
-      { id: "dotenv", label: "dotenv 文件" },
-      { id: "zsh", label: "zsh 启动文件" },
-      { id: "launchctl", label: "登录会话" },
+      { id: "dotenv", labelKey: "route.section.dotenv" },
+      { id: "zsh", labelKey: "route.section.zsh" },
+      { id: "launchctl", labelKey: "route.section.launchctl" },
     ]);
   });
 
@@ -48,8 +48,12 @@ describe("route sections", () => {
     expect(activeSectionOf(routeOf("dashboard"), "rules")).toBeUndefined();
   });
 
-  it("returns the declared sections per route and none for a route without them", () => {
-    expect(routeSectionsOf("caddy")).toEqual(routeOf("caddy").sections);
+  it("returns the declared sections per route with zh-CN labels by default", () => {
+    expect(routeSectionsOf("caddy")).toEqual([
+      { id: "rules", label: "站点规则" },
+      { id: "run", label: "运行" },
+      { id: "raw", label: "原文 Caddyfile" },
+    ]);
     expect(routeSectionsOf("dashboard")).toEqual([]);
   });
 });

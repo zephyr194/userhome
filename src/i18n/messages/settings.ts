@@ -218,6 +218,16 @@ export const settingsZh = {
   "settings.summary.timeout.extended": "延长",
   "settings.summary.timeout.short": "短",
   "settings.summary.timeout.standard": "标准",
+  "settings.deepLink.title": "链接打开",
+  "settings.deepLink.description": "在浏览器、文档或终端里点击 userhome:// 链接，UserHome 会显示主窗口并打开对应页面。链接只做导航，不会执行任何操作。",
+  "settings.deepLink.availability": "仅安装后可用",
+  "settings.deepLink.availabilityNote": "只在安装后的应用中可用；开发运行（tauri dev）时系统不会注册这个链接。",
+  "settings.deepLink.examplesLabel": "链接示例",
+  "settings.deepLink.copy": "复制",
+  "settings.deepLink.copied": "已复制：{purpose}",
+  "settings.deepLink.example.environmentZsh": "打开环境变量的 zsh 启动文件",
+  "settings.deepLink.example.caddyRules": "打开 Caddy 站点规则",
+  "settings.deepLink.example.settingsGeneral": "打开通用设置",
 } as const;
 
 export const settingsEn = {
@@ -440,4 +450,14 @@ export const settingsEn = {
   "settings.summary.timeout.extended": "Extended",
   "settings.summary.timeout.short": "Short",
   "settings.summary.timeout.standard": "Standard",
+  "settings.deepLink.title": "Link opening",
+  "settings.deepLink.description": "Click a userhome:// link in a browser, document, or terminal. UserHome shows the main window and opens the matching page. Links only navigate and never run an action.",
+  "settings.deepLink.availability": "Installed app only",
+  "settings.deepLink.availabilityNote": "Links work only in the installed app. During development (tauri dev), the system does not register these links.",
+  "settings.deepLink.examplesLabel": "Link examples",
+  "settings.deepLink.copy": "Copy",
+  "settings.deepLink.copied": "Copied: {purpose}",
+  "settings.deepLink.example.environmentZsh": "Open the zsh startup file for environment variables",
+  "settings.deepLink.example.caddyRules": "Open Caddy site rules",
+  "settings.deepLink.example.settingsGeneral": "Open General settings",
 } satisfies Record<keyof typeof settingsZh, string>;

@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { applyAppearance } from "./app/appearance";
+import { resolveLocale, translate } from "./i18n";
 import {
   DEFAULT_USER_PREFERENCES,
   getPreferences,
@@ -19,7 +20,10 @@ async function loadInitialPreferences(): Promise<LoadedPreferences> {
       preferences: DEFAULT_USER_PREFERENCES,
       diagnostic: {
         code: "READ_FAILED",
-        message: "偏好设置不可用，已启用安全默认值。",
+        message: translate(
+          resolveLocale(DEFAULT_USER_PREFERENCES.language, globalThis.navigator?.language),
+          "app.preferences.readFailed",
+        ),
       },
     };
   }
