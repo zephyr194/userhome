@@ -1,22 +1,21 @@
 import { useEffect, useState } from "react";
 import type { NavigationIntent } from "../../app/routeDefinitions";
 import type { ConnectionState, DiscoveryState, RefreshState } from "../../app/shellState";
+import { dataHub, useHubSource, type HubSourceId, type HubState } from "../../app/dataHub";
 import { BoardCell, Button, PageShell } from "../../components/ui";
 import type { Locale, TranslateFunction } from "../../i18n";
+import { localizeError } from "../../i18n/errors";
 import { formatNumber } from "../../i18n/format";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type { ServiceSummary } from "../../ipc/services";
 import { StatusMark, type StatusTone } from "./StatusMark";
 import {
-  aiToolsSource,
-  appConfigSource,
-  environmentSource,
+  combineEnvironment,
   freshnessLabel,
   installedAiToolNames,
-  useFact,
+  OVERVIEW_SOURCE_IDS,
+  readingOf,
   type EnvironmentFacts,
-  type FactState,
-  type Reading,
 } from "./overviewFacts";
 import type { AiConfigReport } from "../../ipc/aiConfig";
 import { useServiceOverview } from "./useServiceOverview";
@@ -96,9 +95,7 @@ interface FactModel {
   description: string;
   figure: string;
   freshnessAt?: number;
-  onRead?: () => void;
-  readBusy?: boolean;
-  readLabel?: string;
+  onRetry?: () => void;
   status: { tone: StatusTone; label: string; busy?: boolean };
   target: NavigationIntent;
   title: string;
@@ -124,32 +121,13 @@ function FactCell({ model, now, onNavigate }: { model: FactModel; now: number; o
           <span>{model.status.label}</span>
         </span>
       </Button>
-      {model.onRead ? (
-        <Button
-          className="ov-fact__read"
-          disabled={model.readBusy}
-          onClick={model.onRead}
-          size="sm"
-          variant="secondary"
-        >
-          {model.readLabel}
+      {model.onRetry ? (
+        <Button className="ov-fact__read" onClick={model.onRetry} size="sm" variant="secondary">
+          {t("common.retry")}
         </Button>
       ) : null}
     </article>
   );
-}
-
-/** The last successful value, kept visible while a re-read is in flight or after it fails. */
-function valueOf<T>(state: FactState<T>): Reading<T> | undefined {
-  switch (state.status) {
-    case "ready":
-      return state.reading;
-    case "reading":
-    case "error":
-      return state.previous;
-    case "unread":
-      return undefined;
-  }
 }
 
 function readFailure(message: string, t: TranslateFunction): string {
@@ -157,31 +135,40 @@ function readFailure(message: string, t: TranslateFunction): string {
 }
 
 function readStatus<T>(
-  state: FactState<T>,
+  state: HubState<T>,
   t: TranslateFunction,
   attention = false,
 ): FactModel["status"] {
-  if (state.status === "reading") {
-    return { tone: "neutral", label: t("dashboard.fact.reading"), busy: true };
+  switch (state.status) {
+    case "loading":
+      return state.previous === undefined
+        ? { tone: "neutral", label: t("dashboard.fact.reading"), busy: true }
+        : { tone: "neutral", label: t("dashboard.fact.updating"), busy: true };
+    case "error":
+      return { tone: "danger", label: t("dashboard.fact.failed") };
+    case "empty":
+      return { tone: "neutral", label: t("dashboard.fact.unread") };
+    case "ready":
+      return attention
+        ? { tone: "warning", label: t("dashboard.fact.attention") }
+        : { tone: "success", label: t("dashboard.fact.normal") };
   }
-  if (state.status === "error") return { tone: "danger", label: t("dashboard.fact.failed") };
-  if (state.status === "unread") return { tone: "neutral", label: t("dashboard.fact.unread") };
-  return attention
-    ? { tone: "warning", label: t("dashboard.fact.attention") }
-    : { tone: "success", label: t("dashboard.fact.normal") };
 }
 
-function readButton<T>(
-  state: FactState<T>,
-  read: () => void,
+function retryWhenFailed<T>(state: HubState<T>, retry: () => void): (() => void) | undefined {
+  return state.status === "error" ? retry : undefined;
+}
+
+/** Text for a cell that has no value yet: the read in progress, the failure, or the empty hint. */
+function pendingDescription<T>(
+  state: HubState<T>,
+  emptyText: string,
   t: TranslateFunction,
-): Pick<FactModel, "onRead" | "readBusy" | "readLabel"> {
-  if (state.status === "ready") return {};
-  if (state.status === "reading") {
-    return { onRead: read, readBusy: true, readLabel: t("dashboard.fact.reading") };
-  }
-  if (state.status === "error") return { onRead: read, readLabel: t("common.retry") };
-  return { onRead: read, readLabel: t("dashboard.fact.read") };
+  locale: Locale,
+): string {
+  if (state.status === "error") return readFailure(localizeError(state.error, locale), t);
+  if (state.status === "loading") return t("dashboard.fact.reading");
+  return emptyText;
 }
 
 function aiNeedsAttention(report: AiConfigReport): boolean {
@@ -189,30 +176,28 @@ function aiNeedsAttention(report: AiConfigReport): boolean {
 }
 
 function aiModel(
-  state: FactState<AiConfigReport>,
-  read: () => void,
+  state: HubState<AiConfigReport>,
+  retry: () => void,
   t: TranslateFunction,
   locale: Locale,
 ): FactModel {
-  const value = valueOf(state);
+  const value = readingOf(state);
   const names = value ? installedAiToolNames(value.value) : [];
   const description =
     value === undefined
-      ? state.status === "error"
-        ? readFailure(state.message, t)
-        : t("dashboard.ai.unread")
+      ? pendingDescription(state, t("dashboard.ai.unread"), t, locale)
       : names.length > 0
         ? t("dashboard.ai.installed", {
             names: names.join(t("dashboard.ai.separator")),
           })
         : t("dashboard.ai.none");
   return {
-    ...readButton(state, read, t),
     description,
     figure: value
       ? `${formatNumber(names.length, locale)}/${formatNumber(value.value.tools.length, locale)}`
       : "—",
     freshnessAt: value?.readAt,
+    onRetry: retryWhenFailed(state, retry),
     status: readStatus(state, t, value ? aiNeedsAttention(value.value) : false),
     target: { routeId: "aiConfig" },
     title: t("dashboard.fact.aiTools"),
@@ -220,24 +205,22 @@ function aiModel(
 }
 
 function environmentModel(
-  state: FactState<EnvironmentFacts>,
-  read: () => void,
+  state: HubState<EnvironmentFacts>,
+  retry: () => void,
   t: TranslateFunction,
   locale: Locale,
 ): FactModel {
-  const value = valueOf(state);
+  const value = readingOf(state);
   return {
-    ...readButton(state, read, t),
     description: value
       ? t("dashboard.environment.summary", {
           zshFiles: formatNumber(value.value.zshFiles, locale),
           directories: formatNumber(value.value.dotenvDirectories, locale),
         })
-      : state.status === "error"
-        ? readFailure(state.message, t)
-        : t("dashboard.environment.unread"),
+      : pendingDescription(state, t("dashboard.environment.unread"), t, locale),
     figure: value ? formatNumber(value.value.zshFiles, locale) : "—",
     freshnessAt: value?.readAt,
+    onRetry: retryWhenFailed(state, retry),
     status: readStatus(state, t),
     target: { routeId: "environment" },
     title: t("dashboard.fact.environment"),
@@ -245,23 +228,21 @@ function environmentModel(
 }
 
 function appConfigModel(
-  state: FactState<number>,
-  read: () => void,
+  state: HubState<number>,
+  retry: () => void,
   t: TranslateFunction,
   locale: Locale,
 ): FactModel {
-  const value = valueOf(state);
+  const value = readingOf(state);
   return {
-    ...readButton(state, read, t),
     description: value
       ? t("dashboard.appConfig.summary")
-      : state.status === "error"
-        ? readFailure(state.message, t)
-        : t("dashboard.appConfig.unread"),
+      : pendingDescription(state, t("dashboard.appConfig.unread"), t, locale),
     figure: value
       ? t("dashboard.appConfig.figure", { count: formatNumber(value.value, locale) })
       : "—",
     freshnessAt: value?.readAt,
+    onRetry: retryWhenFailed(state, retry),
     status: readStatus(state, t),
     target: { routeId: "appConfig" },
     title: t("dashboard.fact.appConfig"),
@@ -308,6 +289,16 @@ function serviceModel(
   };
 }
 
+function ignoreFailure(): void {
+  return undefined;
+}
+
+function retryOf(...ids: HubSourceId[]): () => void {
+  return () => {
+    for (const id of ids) void dataHub.refresh(id).catch(ignoreFailure);
+  };
+}
+
 export function DashboardPage({
   connection,
   onNavigate = () => undefined,
@@ -320,18 +311,29 @@ export function DashboardPage({
   const finished = useFinishedRefreshCount(refresh.status);
   const refreshId = state.status === "ready" ? state.snapshot.refreshId : undefined;
   const services = useServiceOverview(refreshId);
-  const ai = useFact(aiToolsSource, finished);
-  const environment = useFact(environmentSource, finished);
-  const appConfig = useFact(appConfigSource, finished);
+  const appConfig = useHubSource("appConfig");
+  const zshStartup = useHubSource("zshStartup");
+  const directories = useHubSource("authorizedDirectories");
+  const aiTools = useHubSource("aiTools");
 
+  useEffect(() => {
+    for (const id of OVERVIEW_SOURCE_IDS) void dataHub.ensure(id).catch(ignoreFailure);
+  }, []);
+
+  useEffect(() => {
+    if (finished === 0) return;
+    for (const id of OVERVIEW_SOURCE_IDS) void dataHub.refresh(id).catch(ignoreFailure);
+  }, [finished]);
+
+  const environment = combineEnvironment(zshStartup, directories);
   const models: { key: string; model: FactModel }[] = [
     { key: "services", model: serviceModel(services, t, locale) },
-    { key: "aiTools", model: aiModel(ai.state, ai.read, t, locale) },
+    { key: "aiTools", model: aiModel(aiTools, retryOf("aiTools"), t, locale) },
     {
       key: "environment",
-      model: environmentModel(environment.state, environment.read, t, locale),
+      model: environmentModel(environment, retryOf("zshStartup", "authorizedDirectories"), t, locale),
     },
-    { key: "appConfig", model: appConfigModel(appConfig.state, appConfig.read, t, locale) },
+    { key: "appConfig", model: appConfigModel(appConfig, retryOf("appConfig"), t, locale) },
   ];
 
   return (
