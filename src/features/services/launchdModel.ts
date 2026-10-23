@@ -410,6 +410,8 @@ export function executionOf(service: LaunchdService): Execution | undefined {
 
 export interface ServiceFilter {
   query: string;
+  /** System services are hidden unless this is set. A view option, not a narrowing filter. */
+  showSystem: boolean;
   /** Where the definition sits, by directory. Not the ownership verdict. */
   scope: LaunchdScope | "ALL";
   /** The backend's ownership verdict. */
@@ -420,6 +422,7 @@ export interface ServiceFilter {
 
 export const EMPTY_FILTER: ServiceFilter = {
   query: "",
+  showSystem: false,
   scope: "ALL",
   ownership: "ALL",
   domain: "ALL",
@@ -457,6 +460,7 @@ export function filterServices(
   const query = filter.query.trim().toLocaleLowerCase("zh-CN");
   return services.filter(
     (service) =>
+      (filter.showSystem || !isSystemService(service)) &&
       (filter.scope === "ALL" || service.scope === filter.scope) &&
       (filter.ownership === "ALL" ||
         service.ownership.kind === filter.ownership) &&
@@ -556,6 +560,15 @@ export function evidenceFor(
 
 export function isHomebrewLabel(label: string): boolean {
   return label.startsWith(HOMEBREW_LABEL_PREFIX);
+}
+
+/** Apple-managed and system-domain jobs; hidden from the default list. */
+export function isSystemService(service: LaunchdService): boolean {
+  return (
+    service.ownership.kind === "APPLE_MANAGED" ||
+    service.ownership.kind === "SYSTEM_DAEMON" ||
+    service.label.startsWith("com.apple.")
+  );
 }
 
 // ---- discovery state machine --------------------------------------------------

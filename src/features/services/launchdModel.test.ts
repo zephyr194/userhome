@@ -55,8 +55,13 @@ const ERROR: AppError = {
   retryable: true,
 };
 
+/** Opts in to system services: these assertions test filter semantics over the whole inventory. */
 function ids(filter: Partial<ServiceFilter>) {
-  return filterServices(sampleServices(), { ...EMPTY_FILTER, ...filter }).map(
+  return filterServices(sampleServices(), {
+    ...EMPTY_FILTER,
+    showSystem: true,
+    ...filter,
+  }).map(
     (service) => service.label,
   );
 }
@@ -180,6 +185,26 @@ describe("execution summary", () => {
 describe("search and filters", () => {
   it("returns everything for the empty filter", () => {
     expect(ids({})).toHaveLength(6);
+  });
+
+  it("hides Apple-managed and system-domain jobs unless system services are shown", () => {
+    const hidden = filterServices(sampleServices(), EMPTY_FILTER).map((service) => service.label);
+    expect(hidden).toEqual(["com.example.agent", "com.example.idle", "com.example.disabled", "broken"]);
+    const shown = filterServices(sampleServices(), { ...EMPTY_FILTER, showSystem: true });
+    expect(shown).toHaveLength(6);
+  });
+
+  it("hides com.apple. labels even when the ownership verdict is not Apple-managed", () => {
+    const apple = launchdService({
+      id: "gui/501/com.apple.helper",
+      label: "com.apple.helper",
+      ownership: CREATED_OWNERSHIP,
+    });
+    expect(filterServices([apple], EMPTY_FILTER)).toEqual([]);
+  });
+
+  it("does not count showSystem as an active filter", () => {
+    expect(isFilterActive({ ...EMPTY_FILTER, showSystem: true })).toBe(false);
   });
 
   it("searches label, short name and paths case-insensitively", () => {
