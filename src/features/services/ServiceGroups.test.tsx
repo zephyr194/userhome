@@ -41,6 +41,20 @@ function groupTitles(): string[] {
   );
 }
 
+describe("start timing badge", () => {
+  it("shows the start timing as visible text on the row, not only by colour", () => {
+    renderList();
+    expect(screen.getAllByText("登录时启动 · 条件保持运行").length).toBeGreaterThan(0);
+  });
+
+  it("shows unknown when a row has no plist details", () => {
+    renderList({
+      state: readyState([launchdService({ label: "com.example.bare", configFiles: [] })]),
+    });
+    expect(screen.getByText("未知")).toBeTruthy();
+  });
+});
+
 describe("default system visibility", () => {
   it("hides system services by default and says how many were hidden", () => {
     renderList();

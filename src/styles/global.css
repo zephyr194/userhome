@@ -3042,6 +3042,22 @@ code {
   background: var(--app-warning);
 }
 
+.services-inventory-row__foot {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--app-space-4) var(--app-space-12);
+}
+
+.services-inventory-row__trigger {
+  min-width: 0;
+  font-size: var(--app-font-size-aux);
+  font-weight: 500;
+  color: var(--app-foreground);
+  overflow-wrap: anywhere;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .services-group__summary::before {
     transition: none;

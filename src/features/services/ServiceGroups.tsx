@@ -13,6 +13,7 @@ import {
   programFileName,
   purposeOf,
   systemServiceCount,
+  triggerOf,
   type Injector,
 } from "./serviceProfile";
 
@@ -190,6 +191,7 @@ function ServiceRow({
   const purpose = purposeOf(service, t);
   const program = programFileName(service);
   const name = displayNameOf(service);
+  const trigger = triggerOf(service, t);
   return (
     <li className="border-b border-border">
       <Button
@@ -199,7 +201,7 @@ function ServiceRow({
           "slide-item services-inventory-row",
           isSelected && "services-inventory-row--selected",
         )}
-        aria-label={`${service.label}，${scopeLabel(service.scope)}，${status.label}`}
+        aria-label={`${service.label}，${scopeLabel(service.scope)}，${status.label}，${trigger.badge}`}
         aria-current={isSelected ? "true" : undefined}
         tabIndex={isTabStop ? 0 : -1}
         onClick={onSelect}
@@ -218,15 +220,18 @@ function ServiceRow({
         <span className="services-inventory-row__purpose">
           {purpose ?? program ?? t("services.noProgramPath")}
         </span>
-        <span className="services-inventory-row__status">
-          <span
-            className={classNames(
-              "services-inventory-row__dot",
-              `services-inventory-row__dot--${status.tone}`,
-            )}
-            aria-hidden="true"
-          />
-          {status.label}
+        <span className="services-inventory-row__foot">
+          <span className="services-inventory-row__trigger">{trigger.badge}</span>
+          <span className="services-inventory-row__status">
+            <span
+              className={classNames(
+                "services-inventory-row__dot",
+                `services-inventory-row__dot--${status.tone}`,
+              )}
+              aria-hidden="true"
+            />
+            {status.label}
+          </span>
         </span>
       </Button>
     </li>
