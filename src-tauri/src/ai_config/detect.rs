@@ -28,6 +28,7 @@ use crate::{
         discover::{ConfigFs, ProbeStatus, probe},
         registry::{Registry, display_path},
     },
+    brew::{BrewPackageKind, validate_package_identifier},
     caddy::detect::{Candidate, CandidateOutcome, ExecutableSource, inspect},
 };
 
@@ -45,6 +46,23 @@ pub enum ToolId {
     CodexCli,
     GeminiCli,
     CopilotCli,
+}
+
+impl ToolId {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ClaudeCode => "claude-code",
+            Self::CodexCli => "codex-cli",
+            Self::GeminiCli => "gemini-cli",
+            Self::CopilotCli => "copilot-cli",
+        }
+    }
+}
+
+pub fn profile_for_tool_id(tool_id: &str) -> Option<&'static ToolProfile> {
+    TOOL_PROFILES
+        .iter()
+        .find(|profile| profile.id.as_str() == tool_id)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -153,12 +171,64 @@ pub enum ConfigPresence {
     NotRegistered,
 }
 
+const HOMEBREW_STORES: &[(&str, BrewPackageKind)] = &[
+    ("/opt/homebrew/Cellar/", BrewPackageKind::Formula),
+    ("/usr/local/Cellar/", BrewPackageKind::Formula),
+    ("/opt/homebrew/Caskroom/", BrewPackageKind::Cask),
+    ("/usr/local/Caskroom/", BrewPackageKind::Cask),
+];
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum InstallSource {
+    Homebrew {
+        kind: BrewPackageKind,
+        package: String,
+    },
+    Direct,
+}
+
+/// Classifies an already-resolved executable path. Only the Homebrew store
+/// prefixes count; the package name is the directory right below them.
+pub fn classify_install_source(real_path: &str) -> InstallSource {
+    for (store, kind) in HOMEBREW_STORES {
+        let Some(rest) = real_path.strip_prefix(store) else {
+            continue;
+        };
+        let Some((package, below)) = rest.split_once('/') else {
+            return InstallSource::Direct;
+        };
+        if below.is_empty() || !validate_package_identifier(package) {
+            return InstallSource::Direct;
+        }
+        return InstallSource::Homebrew {
+            kind: *kind,
+            package: package.to_owned(),
+        };
+    }
+    InstallSource::Direct
+}
+
+pub fn install_source_of(executable: &Path) -> InstallSource {
+    match fs::canonicalize(executable) {
+        Ok(real) => real
+            .to_str()
+            .map_or(InstallSource::Direct, classify_install_source),
+        Err(_) => InstallSource::Direct,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolReport {
     pub id: ToolId,
     pub display_name: &'static str,
     pub install_status: InstallStatus,
+    pub install_source: Option<InstallSource>,
     pub display_path: Option<String>,
     pub invalid_reason: Option<InvalidReason>,
     pub version: Option<String>,
@@ -214,25 +284,32 @@ pub fn detect_claude_version(env: &ProbeEnv<'_>) -> Option<String> {
 }
 
 pub fn detect_tool(profile: &ToolProfile, env: &ProbeEnv<'_>) -> ToolReport {
-    let (install_status, display_path, invalid_reason, version) = match locate(profile, env) {
-        Located::Found {
-            display,
-            executable,
-        } => (
-            InstallStatus::Found,
-            Some(display),
-            None,
-            env.version.version(&executable),
-        ),
-        Located::Invalid { display, reason } => {
-            (InstallStatus::Invalid, Some(display), Some(reason), None)
-        }
-        Located::Missing => (InstallStatus::Missing, None, None, None),
-    };
+    let (install_status, install_source, display_path, invalid_reason, version) =
+        match locate(profile, env) {
+            Located::Found {
+                display,
+                executable,
+            } => (
+                InstallStatus::Found,
+                Some(install_source_of(&executable)),
+                Some(display),
+                None,
+                env.version.version(&executable),
+            ),
+            Located::Invalid { display, reason } => (
+                InstallStatus::Invalid,
+                None,
+                Some(display),
+                Some(reason),
+                None,
+            ),
+            Located::Missing => (InstallStatus::Missing, None, None, None, None),
+        };
     ToolReport {
         id: profile.id,
         display_name: profile.display_name,
         install_status,
+        install_source,
         display_path,
         invalid_reason,
         version,

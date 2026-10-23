@@ -1,8 +1,15 @@
 use serde_json::{Value, json};
 
-use super::{catalog_item, edit_status, key_diff, value_at};
-use crate::ai_config::registry::{
-    SettingDefinition, ToolDefinition, VerifiedVersions, parse_definitions,
+use super::{
+    AiBrewUpgradeOutcome, BrewUpgradeStatus, brew_failure_message, brew_outcome, catalog_item,
+    edit_status, key_diff, output_tail, value_at,
+};
+use crate::{
+    ai_config::{
+        detect::profile_for_tool_id,
+        registry::{SettingDefinition, ToolDefinition, VerifiedVersions, parse_definitions},
+    },
+    brew::client::BrewClientError,
 };
 
 const SOURCE_URL: &str = "https://code.claude.com/docs/en/settings-reference";
@@ -289,4 +296,90 @@ fn description_at_exactly_the_catalog_limit_is_kept_whole_and_not_flagged() {
 
     assert_eq!(item.description, "a".repeat(200));
     assert!(!item.description_truncated);
+}
+
+#[test]
+fn upgrade_accepts_only_the_four_ai_tool_ids() {
+    for id in ["claude-code", "codex-cli", "gemini-cli", "copilot-cli"] {
+        assert!(profile_for_tool_id(id).is_some(), "{id}");
+    }
+    for id in ["", "--formula", "claude", "brew", "claude-code;whoami"] {
+        assert!(profile_for_tool_id(id).is_none(), "{id}");
+    }
+}
+
+#[test]
+fn upgrade_reports_upgraded_only_when_the_version_changed() {
+    assert_eq!(
+        brew_outcome(Some("1.0.0"), Some("1.1.0")),
+        AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::Upgraded,
+            message: "已更新到 1.1.0。".to_owned(),
+            new_version: Some("1.1.0".to_owned()),
+        }
+    );
+    assert_eq!(
+        brew_outcome(Some("1.1.0"), Some("1.1.0")),
+        AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::AlreadyCurrent,
+            message: "已是最新版本（1.1.0）。".to_owned(),
+            new_version: Some("1.1.0".to_owned()),
+        }
+    );
+}
+
+#[test]
+fn upgrade_does_not_claim_success_when_the_new_version_is_unreadable() {
+    let outcome = brew_outcome(Some("1.0.0"), None);
+
+    assert_eq!(outcome.status, BrewUpgradeStatus::Failed);
+    assert_eq!(outcome.new_version, None);
+}
+
+#[test]
+fn upgrade_output_tail_is_bounded_and_drops_escapes_and_secret_lines() {
+    let noisy = format!(
+        "{}\n\u{1b}[31mdone\u{1b}[0m\nHOMEBREW_GITHUB_API_TOKEN=abc123secret",
+        "x".repeat(5000)
+    );
+
+    let tail = output_tail(&noisy);
+
+    assert!(tail.len() <= 2 * 1024, "{}", tail.len());
+    assert!(!tail.contains('\u{1b}'));
+    assert!(tail.contains("done"));
+    assert!(!tail.contains("abc123secret"));
+}
+
+#[test]
+fn upgrade_output_tail_cuts_on_a_character_boundary() {
+    let tail = output_tail(&"中".repeat(2000));
+
+    assert!(tail.len() <= 2 * 1024);
+    assert!(tail.chars().all(|character| character == '中'));
+}
+
+#[test]
+fn upgrade_failure_message_names_the_package_and_the_next_step() {
+    let message = brew_failure_message(
+        &BrewClientError::ProcessFailed {
+            code: Some(1),
+            stdout: String::new(),
+            stderr: "Error: claude-code download failed".to_owned(),
+        },
+        "claude-code",
+    );
+
+    assert!(message.contains("claude-code"));
+    assert!(message.contains("退出码 1"));
+    assert!(message.contains("download failed"));
+    assert!(message.contains("可稍后重试"));
+}
+
+#[test]
+fn upgrade_timeout_message_says_the_update_stopped_waiting() {
+    let message = brew_failure_message(&BrewClientError::Timeout, "claude-code");
+
+    assert!(message.contains("已停止等待"));
+    assert!(message.contains("稍后"));
 }

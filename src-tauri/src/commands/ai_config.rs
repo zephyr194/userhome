@@ -3,7 +3,7 @@
 //! are opaque grant ids, a fixed key path and a JSON value that is validated
 //! against the definition before anything is written.
 
-use std::{path::PathBuf, sync::Mutex};
+use std::{collections::BTreeMap, path::PathBuf, sync::Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,8 +16,8 @@ use crate::{
             option_summary,
         },
         detect::{
-            AiConfigReport, ProbeEnv, SystemVersionProbe, detect_all, detect_claude_version,
-            fixed_locations,
+            AiConfigReport, InstallSource, ProbeEnv, SystemVersionProbe, ToolProfile, ToolReport,
+            detect_all, detect_claude_version, detect_tool, fixed_locations, profile_for_tool_id,
         },
         read::{
             ClaudeLocations, ClaudeReadView, ClaudeSnapshotSummary, MAX_SETTINGS_BYTES,
@@ -35,6 +35,10 @@ use crate::{
         },
     },
     app_config::{discover::StdFs, registry::Registry},
+    brew::{
+        actions::BrewAction,
+        client::{BrewClient, BrewClientError, BrewCommand},
+    },
     commands::grants::canonical_home,
     config::{
         ConfigCoordinator,
@@ -47,7 +51,7 @@ use crate::{
         RecoveryPoint, ResourceWriteContext, ResourceWriteCoordinator, WriteKind, WriteOutcome,
         WriteRequest,
     },
-    operations::OperationCoordinator,
+    operations::{OperationCoordinator, OperationIntent, OperationKind, sanitize_payload},
     settings::SettingsCoordinator,
 };
 
@@ -673,6 +677,190 @@ pub async fn ai_config_claude_open_in_terminal(
     })
     .await
     .map_err(|_| AppError::internal())?
+}
+
+const BREW_OUTPUT_TAIL_BYTES: usize = 2 * 1024;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum BrewUpgradeStatus {
+    Upgraded,
+    AlreadyCurrent,
+    Failed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiBrewUpgradeOutcome {
+    pub status: BrewUpgradeStatus,
+    pub message: String,
+    pub new_version: Option<String>,
+}
+
+#[tauri::command]
+pub async fn ai_config_brew_upgrade(
+    app: AppHandle,
+    tool_id: String,
+) -> Result<AiBrewUpgradeOutcome, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        brew_upgrade(&app.state::<OperationCoordinator>(), &tool_id)
+    })
+    .await
+    .map_err(|_| AppError::internal())?
+}
+
+fn brew_upgrade(
+    operations: &OperationCoordinator,
+    tool_id: &str,
+) -> Result<AiBrewUpgradeOutcome, AppError> {
+    let profile = profile_for_tool_id(tool_id)
+        .ok_or_else(|| AppError::invalid_input("未知的 AI 工具，无法更新。"))?;
+    let report = detect_profile(profile)?;
+    let (kind, package) = match report.install_source {
+        Some(InstallSource::Homebrew { kind, package }) => (kind, package),
+        Some(InstallSource::Direct) => {
+            return Err(AppError::validation_failed(
+                "该工具是直接安装的，请使用它自带的更新方式。",
+            ));
+        }
+        None => return Err(AppError::not_found("未检测到该工具，请先安装后再更新。")),
+    };
+
+    let intent = OperationIntent::new(
+        OperationKind::BrewUpgrade,
+        package.clone(),
+        BTreeMap::from([("tool".to_owned(), tool_id.to_owned())]),
+    );
+    let preview = operations.preview(
+        intent.clone(),
+        &format!("更新 {} · brew upgrade {package}", profile.display_name),
+        vec![format!("运行 brew upgrade {package}，可能需要几分钟。")],
+    )?;
+    let operation_id = preview.operation_id;
+    operations.authorize_mutation(&operation_id, &intent)?;
+    operations.record_progress(&operation_id, "正在运行 brew upgrade。")?;
+
+    let command = BrewCommand::Action {
+        action: BrewAction::Upgrade,
+        kind,
+        identifier: package.clone(),
+    };
+    match BrewClient::resolve().and_then(|client| client.run(&command)) {
+        Ok(_) => {
+            let after = detect_profile(profile)
+                .ok()
+                .and_then(|report| report.version);
+            let outcome = brew_outcome(report.version.as_deref(), after.as_deref());
+            match outcome.status {
+                BrewUpgradeStatus::Failed => operations.finish_failure(
+                    &operation_id,
+                    AppError::process_failed(&outcome.message, true),
+                )?,
+                _ => operations.finish_success_with_output(
+                    &operation_id,
+                    Some(&outcome.message),
+                    None,
+                )?,
+            };
+            Ok(outcome)
+        }
+        Err(error) => {
+            let message = brew_failure_message(&error, &package);
+            operations.finish_failure(&operation_id, AppError::process_failed(&message, true))?;
+            Ok(AiBrewUpgradeOutcome {
+                status: BrewUpgradeStatus::Failed,
+                message,
+                new_version: None,
+            })
+        }
+    }
+}
+
+fn brew_outcome(before: Option<&str>, after: Option<&str>) -> AiBrewUpgradeOutcome {
+    match after {
+        None => AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::Failed,
+            message:
+                "Homebrew 已结束，但无法读取新版本，因此不能确认更新结果。请刷新页面重新检测。"
+                    .to_owned(),
+            new_version: None,
+        },
+        Some(version) if Some(version) == before => AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::AlreadyCurrent,
+            message: format!("已是最新版本（{version}）。"),
+            new_version: Some(version.to_owned()),
+        },
+        Some(version) => AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::Upgraded,
+            message: format!("已更新到 {version}。"),
+            new_version: Some(version.to_owned()),
+        },
+    }
+}
+
+fn brew_failure_message(error: &BrewClientError, package: &str) -> String {
+    match error {
+        BrewClientError::NotFound => {
+            "没有找到 Homebrew，无法更新。请确认 Homebrew 已安装后重试。".to_owned()
+        }
+        BrewClientError::InvalidInstallation => {
+            "Homebrew 安装不完整，无法运行更新。请在终端运行 brew doctor 检查后重试。".to_owned()
+        }
+        BrewClientError::Timeout => {
+            "更新超过时限仍未完成，已停止等待。请稍后刷新核对是否已更新。".to_owned()
+        }
+        BrewClientError::OutputTooLarge => {
+            "Homebrew 输出超过上限，已停止。请稍后刷新核对，或在终端运行 brew upgrade 查看完整输出。"
+                .to_owned()
+        }
+        BrewClientError::ProcessFailed {
+            code,
+            stdout,
+            stderr,
+        } => {
+            let source = if stderr.trim().is_empty() { stdout } else { stderr };
+            let tail = output_tail(source);
+            let code = code.map_or_else(|| "未知".to_owned(), |code| code.to_string());
+            let mut message = format!("brew upgrade {package} 未能完成（退出码 {code}）。");
+            if !tail.is_empty() {
+                message.push_str("\n最后的输出：\n");
+                message.push_str(&tail);
+            }
+            message.push_str("\n可稍后重试，或在终端运行 brew upgrade 查看完整输出。");
+            message
+        }
+    }
+}
+
+fn output_tail(text: &str) -> String {
+    let cleaned: String = text
+        .chars()
+        .filter(|character| *character == '\n' || !character.is_control())
+        .collect();
+    let redacted = sanitize_payload(&cleaned, usize::MAX, &[]);
+    let mut start = redacted.len().saturating_sub(BREW_OUTPUT_TAIL_BYTES);
+    while !redacted.is_char_boundary(start) {
+        start += 1;
+    }
+    redacted[start..].trim().to_owned()
+}
+
+fn detect_profile(profile: &ToolProfile) -> Result<ToolReport, AppError> {
+    let registry =
+        Registry::builtin().map_err(|_| AppError::validation_failed("应用配置注册表校验失败。"))?;
+    let home =
+        canonical_home().ok_or_else(|| AppError::not_found("无法确定主目录，AI 配置不可用。"))?;
+    let locations = fixed_locations(&home);
+    Ok(detect_tool(
+        profile,
+        &ProbeEnv {
+            home: &home,
+            locations: &locations,
+            version: &SystemVersionProbe,
+            fs: &StdFs,
+            registry: &registry,
+        },
+    ))
 }
 
 #[cfg(test)]

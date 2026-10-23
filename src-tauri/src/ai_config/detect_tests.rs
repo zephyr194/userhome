@@ -9,7 +9,10 @@ use std::{
 
 use uuid::Uuid;
 
-use crate::app_config::{registry::Registry, test_support::FakeFs};
+use crate::{
+    app_config::{registry::Registry, test_support::FakeFs},
+    brew::BrewPackageKind,
+};
 
 use super::*;
 
@@ -723,4 +726,128 @@ fn serialized_report_omits_the_resolved_home_and_any_candidate_list() {
     assert!(!json.contains("candidates"));
     assert!(json.contains("\"installStatus\":\"missing\""));
     assert!(json.contains("\"configPresence\":\"notRegistered\""));
+}
+
+#[test]
+fn install_source_recognises_homebrew_formulae_under_both_prefixes() {
+    assert_eq!(
+        classify_install_source("/opt/homebrew/Cellar/claude-code/1.2.3/bin/claude"),
+        InstallSource::Homebrew {
+            kind: BrewPackageKind::Formula,
+            package: "claude-code".to_owned(),
+        }
+    );
+    assert_eq!(
+        classify_install_source("/usr/local/Cellar/codex/0.9.0/bin/codex"),
+        InstallSource::Homebrew {
+            kind: BrewPackageKind::Formula,
+            package: "codex".to_owned(),
+        }
+    );
+}
+
+#[test]
+fn install_source_recognises_homebrew_casks_under_both_prefixes() {
+    assert_eq!(
+        classify_install_source("/opt/homebrew/Caskroom/gemini-cli/0.3.0/bin/gemini"),
+        InstallSource::Homebrew {
+            kind: BrewPackageKind::Cask,
+            package: "gemini-cli".to_owned(),
+        }
+    );
+    assert_eq!(
+        classify_install_source("/usr/local/Caskroom/copilot-cli/1.0/bin/copilot"),
+        InstallSource::Homebrew {
+            kind: BrewPackageKind::Cask,
+            package: "copilot-cli".to_owned(),
+        }
+    );
+}
+
+#[test]
+fn install_source_treats_user_and_package_manager_locations_as_direct() {
+    for path in [
+        "/Users/example/.local/bin/claude",
+        "/Users/example/.npm-global/bin/gemini",
+        "/usr/local/bin/codex",
+        "/opt/homebrew/bin/claude",
+    ] {
+        assert_eq!(
+            classify_install_source(path),
+            InstallSource::Direct,
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn install_source_rejects_malformed_homebrew_paths_as_direct() {
+    for path in [
+        "/opt/homebrew/Cellar/-rf/1.0/bin/tool",
+        "/opt/homebrew/Cellar/a;b/1.0/bin/tool",
+        "/opt/homebrew/Cellar//1.0/bin/tool",
+        "/opt/homebrew/Cellar/claude-code",
+        "/opt/homebrew/Cellar/claude-code/",
+        "/opt/homebrew/Cellarx/claude-code/1.0/bin/tool",
+        "relative/opt/homebrew/Cellar/claude-code/1.0/bin/tool",
+    ] {
+        assert_eq!(
+            classify_install_source(path),
+            InstallSource::Direct,
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn install_source_of_an_unresolvable_path_is_direct() {
+    let missing = Path::new("/nonexistent-userhome-probe/claude");
+    assert_eq!(install_source_of(missing), InstallSource::Direct);
+}
+
+#[test]
+fn install_source_serializes_without_absolute_paths() {
+    let homebrew = serde_json::to_value(InstallSource::Homebrew {
+        kind: BrewPackageKind::Formula,
+        package: "claude-code".to_owned(),
+    })
+    .expect("serialize");
+    assert_eq!(
+        homebrew,
+        serde_json::json!({"type": "homebrew", "kind": "FORMULA", "package": "claude-code"})
+    );
+    let direct = serde_json::to_value(InstallSource::Direct).expect("serialize");
+    assert_eq!(direct, serde_json::json!({"type": "direct"}));
+}
+
+#[test]
+fn a_tool_found_outside_homebrew_reports_a_direct_install_source() {
+    let root = TempRoot::new();
+    root.executable("home/.local/bin/claude", 0o755);
+
+    let report = run(
+        &root.home(),
+        &root.locations(),
+        &FakeVersion::answering_everything("2.1.0"),
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::ClaudeCode).install_source,
+        Some(InstallSource::Direct)
+    );
+}
+
+#[test]
+fn a_missing_tool_has_no_install_source() {
+    let root = TempRoot::new();
+
+    let report = run(
+        &root.home(),
+        &root.locations(),
+        &FakeVersion::none(),
+        &FakeFs::new(),
+    );
+
+    assert_eq!(tool(&report, ToolId::CodexCli).install_source, None);
 }
