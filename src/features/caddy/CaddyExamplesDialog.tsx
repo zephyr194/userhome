@@ -65,6 +65,7 @@ function ExamplesContent({ onClose }: { onClose: () => void }) {
             </p>
           ) : null}
           <CodeViewer
+            allowWindow={false}
             label="Caddyfile 示例"
             language="caddyfile"
             scrollClassName="r7-caddy-examples__code"

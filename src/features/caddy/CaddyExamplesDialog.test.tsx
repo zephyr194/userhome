@@ -80,6 +80,11 @@ describe("CaddyExamplesDialog", () => {
     expect(codeText(screen.getByRole("region", { name: REGION }))).toBe(shown(FIRST.text));
   });
 
+  it("does not nest a second window inside the dialog", () => {
+    renderDialog();
+    expect(screen.queryByRole("button", { name: "在窗口中查看" })).toBeNull();
+  });
+
   it("shows the chosen example in the code area when another tab is selected", () => {
     renderDialog();
     fireEvent.click(tabFor(REFERENCE));

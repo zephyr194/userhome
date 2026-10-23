@@ -16,9 +16,12 @@ export interface CodeViewerProps {
   /** 工具行左侧的说明，例如敏感值已遮盖的提示。 */
   notice?: ReactNode;
   scrollClassName?: string;
+  /** false 时不显示“在窗口中查看”（已经在弹层里时使用）。 */
+  allowWindow?: boolean;
 }
 
 export function CodeViewer({
+  allowWindow = true,
   initialWrap = false,
   label,
   language,
@@ -41,7 +44,7 @@ export function CodeViewer({
       <CodeToolbar
         highlightOff={!highlight}
         notice={notice}
-        onOpenWindow={() => setWindowOpen(true)}
+        onOpenWindow={allowWindow ? () => setWindowOpen(true) : undefined}
         onToggleWrap={toggleWrap}
         wrap={wrap}
       />

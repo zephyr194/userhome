@@ -126,3 +126,13 @@ describe("CodeViewer", () => {
     expect(region.textContent).toContain("# not a comment");
   });
 });
+
+describe("CodeViewer inside a dialog", () => {
+  it("hides the window button when allowWindow is false", () => {
+    render(
+      <CodeViewer allowWindow={false} label={LABEL} language="dotenv" text={DOTENV} title="a.env" />,
+    );
+    expect(screen.queryByRole("button", { name: "在窗口中查看" })).toBeNull();
+    expect(screen.getByRole("button", { name: "换行" })).toBeTruthy();
+  });
+});
