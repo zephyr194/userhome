@@ -36,6 +36,12 @@ function valueProblem(value: string): string | null {
   return null;
 }
 
+interface PreviewedChange {
+  readonly key: string;
+  readonly value: string;
+  readonly preview: LaunchctlSetPreview;
+}
+
 function currentStateText(preview: LaunchctlSetPreview): string {
   if (!preview.currentExists) return "未设置";
   return preview.currentSecret ? "已设置（已遮盖）" : "已设置";
@@ -65,7 +71,8 @@ export function LaunchctlSetDialog({
   const [value, setValue] = useState(entry && !entry.secret ? (entry.value ?? "") : "");
   const [errors, setErrors] = useState<{ name?: string; value?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<LaunchctlSetPreview | null>(null);
+  // The name and value that were previewed; the confirmation uses only this copy.
+  const [previewed, setPreviewed] = useState<PreviewedChange | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function previewChange(event: FormEvent) {
@@ -77,7 +84,8 @@ export function LaunchctlSetDialog({
     setFormError(null);
     setBusy(true);
     try {
-      setPreview(await onPreview(name, value));
+      const preview = await onPreview(name, value);
+      setPreviewed({ key: name, value, preview });
     } catch (error) {
       setFormError(decodeAppError(error).message);
     } finally {
@@ -86,16 +94,20 @@ export function LaunchctlSetDialog({
   }
 
   async function confirm() {
-    if (preview === null) return;
+    if (previewed === null) return;
     setFormError(null);
     setBusy(true);
     try {
-      const change = await onSet({ key: name, value, expectedCurrent: preview.expectedCurrent });
-      onDone(change, name);
+      const change = await onSet({
+        key: previewed.key,
+        value: previewed.value,
+        expectedCurrent: previewed.preview.expectedCurrent,
+      });
+      onDone(change, previewed.key);
     } catch (error) {
       const failure = decodeAppError(error);
       // A value changed since the preview: go back to the form so it is previewed again.
-      if (failure.code === "CONFLICT") setPreview(null);
+      if (failure.code === "CONFLICT") setPreviewed(null);
       setFormError(failure.message);
     } finally {
       setBusy(false);
@@ -104,13 +116,13 @@ export function LaunchctlSetDialog({
 
   const title = editing ? "修改变量" : "设置变量";
 
-  if (preview !== null) {
+  if (previewed !== null) {
     return (
       <Modal
         busy={busy}
         footer={
           <>
-            <Button disabled={busy} onClick={() => setPreview(null)} variant="secondary">
+            <Button disabled={busy} onClick={() => setPreviewed(null)} variant="secondary">
               返回修改
             </Button>
             <Button disabled={busy} onClick={confirm} variant="primary">
@@ -123,8 +135,8 @@ export function LaunchctlSetDialog({
         title={title}
       >
         <div className="grid min-w-0 gap-ui-8">
-          <p className="font-semibold text-foreground">将设置 {name}</p>
-          <p className="text-aux text-foreground">当前：{currentStateText(preview)}</p>
+          <p className="font-semibold text-foreground">将设置 {previewed.key}</p>
+          <p className="text-aux text-foreground">当前：{currentStateText(previewed.preview)}</p>
           <p className="text-aux text-muted-foreground">{LAUNCHCTL_SCOPE_NOTE}</p>
           {formError !== null ? (
             <p className="text-aux text-danger" role="alert">
@@ -160,7 +172,7 @@ export function LaunchctlSetDialog({
           error={errors.name}
           label="变量名"
           onValueChange={setName}
-          readOnly={editing}
+          readOnly={editing || busy}
           spellCheck={false}
           value={name}
         />
@@ -170,6 +182,7 @@ export function LaunchctlSetDialog({
           error={errors.value}
           label="值"
           onValueChange={setValue}
+          readOnly={busy}
           rows={4}
           spellCheck={false}
           value={value}

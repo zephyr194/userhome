@@ -214,6 +214,45 @@ describe("LaunchctlView", () => {
     expect(screen.getByText("将设置 API_TOKEN")).toBeTruthy();
   });
 
+  it("confirms the name and value that were previewed, not what the form shows afterwards", async () => {
+    let answer: (preview: LaunchctlSetPreview) => void = () => undefined;
+    const onPreview = vi.fn(
+      () => new Promise<LaunchctlSetPreview>((resolve) => { answer = resolve; }),
+    );
+    const props = renderView({ status: "ready", environment: ENVIRONMENT }, { onPreview });
+
+    const dialog = openSetDialog();
+    fillForm("EDITOR", "vim");
+    fireEvent.click(within(dialog).getByRole("button", { name: "预览设置" }));
+    await waitFor(() => expect(onPreview).toHaveBeenCalledWith("EDITOR", "vim"));
+    fillForm("OTHER", "nano");
+    answer(ABSENT);
+
+    const preview = await screen.findByRole("dialog");
+    expect(preview.textContent).toContain("将设置 EDITOR");
+    expect(preview.textContent).not.toContain("OTHER");
+    expect(within(preview).queryByLabelText("变量名")).toBeNull();
+
+    fireEvent.click(within(preview).getByRole("button", { name: "确认设置" }));
+    await waitFor(() =>
+      expect(props.onSet).toHaveBeenCalledWith({ key: "EDITOR", value: "vim", expectedCurrent: null }),
+    );
+  });
+
+  it("previews again under a new name after returning to the form", async () => {
+    const props = renderView({ status: "ready", environment: ENVIRONMENT });
+
+    const dialog = openSetDialog();
+    fillForm("EDITOR", "vim");
+    fireEvent.click(within(dialog).getByRole("button", { name: "预览设置" }));
+    fireEvent.click(await screen.findByRole("button", { name: "返回修改" }));
+    fillForm("OTHER", "nano");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "预览设置" }));
+
+    await waitFor(() => expect(props.onPreview).toHaveBeenLastCalledWith("OTHER", "nano"));
+    expect((await screen.findByRole("dialog")).textContent).toContain("将设置 OTHER");
+  });
+
   it("validates the name and the value before any preview is sent", () => {
     const { onPreview } = renderView({ status: "ready", environment: ENVIRONMENT });
 
