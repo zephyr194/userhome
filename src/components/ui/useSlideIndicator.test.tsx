@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useSlideIndicator, type SlideAxis } from "./useSlideIndicator";
 
@@ -27,13 +27,13 @@ function restoreLayout() {
   });
 }
 
-const observers: Array<{ disconnect: ReturnType<typeof vi.fn> }> = [];
+const observers: FakeResizeObserver[] = [];
 
 class FakeResizeObserver {
   disconnect = vi.fn();
   observe = vi.fn();
   unobserve = vi.fn();
-  constructor() {
+  constructor(readonly callback: () => void) {
     observers.push(this);
   }
 }
@@ -98,14 +98,61 @@ describe("useSlideIndicator", () => {
     expect(list?.style.getPropertyValue("--slide-w")).toBe("96px");
   });
 
-  it("没有选中项时移除 data-slide-ready，回到渐进增强态", () => {
+  it("没有选中项时保留上一次位置并标记 data-slide-empty，不摘掉 data-slide-ready", () => {
+    stubLayout();
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const { container, rerender } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    rerender(<Harness selected="missing" />);
+    expect(list?.hasAttribute("data-slide-ready")).toBe(true);
+    expect(list?.hasAttribute("data-slide-empty")).toBe(true);
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("32px");
+    rerender(<Harness selected="third" />);
+    expect(list?.hasAttribute("data-slide-empty")).toBe(false);
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("64px");
+  });
+
+  it("选中变化时始终是同一个容器元素，指示器有起点可以滑动", () => {
     stubLayout();
     vi.stubGlobal("ResizeObserver", FakeResizeObserver);
     const { container, rerender } = render(<Harness selected="first" />);
     const list = container.querySelector<HTMLElement>(".slide-list");
-    expect(list?.hasAttribute("data-slide-ready")).toBe(true);
-    rerender(<Harness selected="missing" />);
-    expect(list?.hasAttribute("data-slide-ready")).toBe(false);
+    for (const selected of ["second", "third", "first"]) {
+      rerender(<Harness selected={selected} />);
+      expect(container.querySelector(".slide-list")).toBe(list);
+      expect(list?.hasAttribute("data-slide-ready")).toBe(true);
+    }
+  });
+
+  it("隐藏子树测量为 0 时保留上一次位置，显示后由尺寸观察者重新测量", () => {
+    stubLayout();
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const { container, rerender } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    const third = container.querySelector<HTMLElement>('[data-testid="third"]')!;
+    rerender(<Harness selected="third" />);
+    third.dataset.offsetWidth = "0";
+    third.dataset.offsetHeight = "0";
+    act(() => observers[observers.length - 1].callback());
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("64px");
+    expect(list?.style.getPropertyValue("--slide-w")).toBe("96px");
+    third.dataset.offsetWidth = "96";
+    third.dataset.offsetHeight = "28";
+    act(() => observers[observers.length - 1].callback());
+    expect(list?.style.getPropertyValue("--slide-w")).toBe("96px");
+  });
+
+  it("观察选中项本身，选中项尺寸变化时重新测量", () => {
+    stubLayout();
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const { container } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    const second = container.querySelector<HTMLElement>('[data-testid="second"]')!;
+    expect(observers[0].observe).toHaveBeenCalledWith(list);
+    expect(observers[0].observe).toHaveBeenCalledWith(second);
+    second.dataset.offsetHeight = "44";
+    act(() => observers[observers.length - 1].callback());
+    expect(list?.style.getPropertyValue("--slide-h")).toBe("44px");
   });
 
   it("axis 为 x 时写入 data-slide-axis，并使用 left/width 滑动", () => {
