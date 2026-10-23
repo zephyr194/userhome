@@ -1274,6 +1274,11 @@ body {
   transition-timing-function: linear;
 }
 
+/* 纵向列表的行是 Button：按钮文案不换行的规则不适用于行内的长标识，需要换行而不是溢出 */
+.slide-list:not([data-slide-axis="x"]) .slide-item {
+  white-space: normal;
+}
+
 .slide-item:hover:not(:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"])) {
   background: var(--app-surface-muted);
 }
