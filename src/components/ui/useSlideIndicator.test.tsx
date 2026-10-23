@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useSlideIndicator, type SlideAxis, type SlideLevel } from "./useSlideIndicator";
 
 const OFFSETS = ["offsetLeft", "offsetTop", "offsetWidth", "offsetHeight"] as const;
@@ -202,5 +202,126 @@ describe("useSlideIndicator", () => {
     const { container } = render(<Harness selected="first" />);
     const list = container.querySelector<HTMLElement>(".slide-list");
     expect(list?.hasAttribute("data-slide-ready")).toBe(true);
+  });
+});
+
+describe("useSlideIndicator 非选中变化", () => {
+  let frames: Map<number, FrameRequestCallback>;
+  let nextFrameId: number;
+
+  function flushFrames() {
+    const pending = [...frames.values()];
+    frames.clear();
+    act(() => {
+      for (const callback of pending) callback(0);
+    });
+  }
+
+  beforeEach(() => {
+    frames = new Map();
+    nextFrameId = 1;
+    stubLayout();
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      const id = nextFrameId++;
+      frames.set(id, callback);
+      return id;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+      frames.delete(id);
+    });
+  });
+
+  afterEach(() => {
+    document.documentElement.lang = "";
+  });
+
+  it("首次测量先置 data-slide-instant，下一帧移除", () => {
+    const { container } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    expect(list?.hasAttribute("data-slide-instant")).toBe(true);
+    flushFrames();
+    expect(list?.hasAttribute("data-slide-instant")).toBe(false);
+  });
+
+  it("前面的项换行使选中项下移（尺寸不变）时，观察者回调立即到位并置 instant", () => {
+    const { container } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    const second = container.querySelector<HTMLElement>('[data-testid="second"]')!;
+    flushFrames();
+    second.dataset.offsetTop = "48";
+    act(() => observers[observers.length - 1].callback());
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("48px");
+    expect(list?.hasAttribute("data-slide-instant")).toBe(true);
+    flushFrames();
+    expect(list?.hasAttribute("data-slide-instant")).toBe(false);
+  });
+
+  it("没有变化时不置 instant，避免打断正在进行的滑动", () => {
+    const { container } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    flushFrames();
+    act(() => observers[observers.length - 1].callback());
+    expect(list?.hasAttribute("data-slide-instant")).toBe(false);
+  });
+
+  it("选中变化时始终不置 instant，保留 240ms 滑动", () => {
+    const { container, rerender } = render(<Harness selected="first" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    flushFrames();
+    rerender(<Harness selected="third" />);
+    expect(list?.hasAttribute("data-slide-instant")).toBe(false);
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("64px");
+    flushFrames();
+    expect(list?.hasAttribute("data-slide-instant")).toBe(false);
+  });
+
+  it("文字或子树变化（如换语言）经 MutationObserver 节流到下一帧再测量", async () => {
+    const { container } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    const second = container.querySelector<HTMLElement>('[data-testid="second"]')!;
+    flushFrames();
+    await act(async () => {
+      second.textContent = "second, wrapped onto two lines";
+      second.dataset.offsetHeight = "44";
+    });
+    expect(list?.style.getPropertyValue("--slide-h")).toBe("28px");
+    flushFrames();
+    expect(list?.style.getPropertyValue("--slide-h")).toBe("44px");
+    expect(list?.hasAttribute("data-slide-instant")).toBe(true);
+    flushFrames();
+    expect(list?.hasAttribute("data-slide-instant")).toBe(false);
+  });
+
+  it("document.documentElement.lang 变化后重新测量", async () => {
+    const { container } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    const second = container.querySelector<HTMLElement>('[data-testid="second"]')!;
+    flushFrames();
+    second.dataset.offsetTop = "52";
+    await act(async () => {
+      document.documentElement.lang = "en";
+    });
+    flushFrames();
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("52px");
+  });
+
+  it("字体加载完成后重新测量", () => {
+    const fonts = Object.assign(new EventTarget(), { ready: Promise.resolve() });
+    Object.defineProperty(document, "fonts", { configurable: true, value: fonts });
+    try {
+      const { container } = render(<Harness selected="second" />);
+      const list = container.querySelector<HTMLElement>(".slide-list");
+      const second = container.querySelector<HTMLElement>('[data-testid="second"]')!;
+      flushFrames();
+      second.dataset.offsetTop = "60";
+      act(() => {
+        fonts.dispatchEvent(new Event("loadingdone"));
+      });
+      flushFrames();
+      expect(list?.style.getPropertyValue("--slide-y")).toBe("60px");
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fonts;
+    }
   });
 });
