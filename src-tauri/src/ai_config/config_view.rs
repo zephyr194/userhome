@@ -8,7 +8,7 @@ use serde::Serialize;
 use crate::{
     app_config::{
         discover::{ConfigFs, Located, ProbeStatus, locate},
-        read::{is_secret_key, mask_url_credentials},
+        read::{is_protected_container, is_secret_key, mask_url_credentials},
         registry::{Format, Registry, Sensitivity, display_path},
     },
     error::AppError,
@@ -153,10 +153,314 @@ fn utf8_text(bytes: &[u8], truncated: bool) -> Result<&str, AppError> {
 
 /// Masks secret values line by line. The rules ignore the format, so one pass covers
 /// JSON, TOML, INI and YAML-like files. Returns the masked text and the masked-value count.
+///
+/// Two layers run on every line. `Masker` handles the first key of a line and the
+/// multi-line forms; `Sweeper` then re-reads the result and masks every other secret
+/// pair on the line, values inside `env`/`headers` containers and the value that
+/// follows a secret command-line flag, so a secret is not left behind just because
+/// it is not the first key of its line.
 pub fn mask_config_text(text: &str) -> (String, u32) {
     let mut masker = Masker::default();
-    let lines: Vec<String> = text.split('\n').map(|line| masker.line(line)).collect();
-    (lines.join("\n"), masker.redacted)
+    let mut sweeper = Sweeper::default();
+    let lines: Vec<String> = text
+        .split('\n')
+        .map(|line| sweeper.line(&masker.line(line)))
+        .collect();
+    (lines.join("\n"), masker.redacted + sweeper.redacted)
+}
+
+/// Second layer: finds every `key: value` / `key = value` pair on a line, not only the first.
+#[derive(Debug, Default)]
+struct Sweeper {
+    redacted: u32,
+    /// Bracket nesting outside strings, carried across lines.
+    depth: i32,
+    /// Depths opened by a secret value: every value inside is masked.
+    forced: Vec<i32>,
+    /// Depths opened by an `env`/`headers` object: every value inside is masked.
+    protected: Vec<i32>,
+    /// The previous string was a secret flag such as `--token`; the next string is its value.
+    mask_next: bool,
+    /// Inside a TOML `[…env]` / `[…headers]` table.
+    toml_protected: bool,
+    /// Indent of a YAML `env:` / `headers:` key whose nested lines are all values.
+    yaml_protected: Option<usize>,
+}
+
+impl Sweeper {
+    fn line(&mut self, line: &str) -> String {
+        let trimmed = line.trim();
+        let indent = indent_of(line);
+        if let Some(level) = self.yaml_protected
+            && !trimmed.is_empty()
+            && indent <= level
+        {
+            self.yaml_protected = None;
+        }
+        if is_table_header(trimmed) {
+            self.toml_protected = header_is_protected(trimmed);
+            return line.to_owned();
+        }
+        let block_force = self.toml_protected || self.yaml_protected.is_some();
+        let bytes = line.as_bytes();
+        let mut edits: Vec<(usize, usize)> = Vec::new();
+        let mut pending_force = false;
+        let mut pending_protect = false;
+        let mut index = 0;
+        while index < bytes.len() {
+            match bytes[index] {
+                quote @ (b'"' | b'\'') => {
+                    let Some(close) = closing_quote(&line[index + 1..], quote) else {
+                        index += 1;
+                        continue;
+                    };
+                    let end = index + 1 + close;
+                    if !followed_by_separator(bytes, end + 1) {
+                        self.value_string(line, index + 1, end, block_force, &mut edits);
+                    }
+                    index = end + 1;
+                }
+                b':' | b'=' if is_pair_separator(bytes, index) => {
+                    let Some(key) = key_before(line, index) else {
+                        index += 1;
+                        continue;
+                    };
+                    let value_start = skip_spaces(bytes, index + 1);
+                    let secret = block_force
+                        || !self.forced.is_empty()
+                        || !self.protected.is_empty()
+                        || is_secret_key(key);
+                    if secret {
+                        index = self.mask_value(line, value_start, &mut edits, &mut pending_force);
+                        continue;
+                    }
+                    if is_protected_container(key) {
+                        pending_protect = bytes.get(value_start) == Some(&b'{');
+                        if bytes[index] == b':' && value_start >= bytes.len() {
+                            self.yaml_protected = Some(indent);
+                        }
+                    }
+                    index += 1;
+                }
+                b'{' | b'[' => {
+                    self.depth += 1;
+                    if pending_force {
+                        self.forced.push(self.depth);
+                        pending_force = false;
+                    }
+                    if pending_protect && bytes[index] == b'{' {
+                        self.protected.push(self.depth);
+                        pending_protect = false;
+                    }
+                    index += 1;
+                }
+                b'}' | b']' => {
+                    while self.forced.last() == Some(&self.depth) {
+                        self.forced.pop();
+                    }
+                    while self.protected.last() == Some(&self.depth) {
+                        self.protected.pop();
+                    }
+                    self.depth = (self.depth - 1).max(0);
+                    self.mask_next = false;
+                    index += 1;
+                }
+                b'#' if index == 0 || bytes[index - 1].is_ascii_whitespace() => break,
+                _ => index += 1,
+            }
+        }
+        apply_edits(line, &edits)
+    }
+
+    /// A string that is not a key: an array element, a value inside a masked
+    /// container, or the value of a secret flag.
+    fn value_string(
+        &mut self,
+        line: &str,
+        start: usize,
+        end: usize,
+        block_force: bool,
+        edits: &mut Vec<(usize, usize)>,
+    ) {
+        let inner = &line[start..end];
+        if inner == SECRET_MASK {
+            return;
+        }
+        if self.mask_next || block_force || !self.forced.is_empty() || !self.protected.is_empty() {
+            self.mask_next = false;
+            if !inner.is_empty() {
+                edits.push((start, end));
+                self.redacted += 1;
+            }
+            return;
+        }
+        if is_secret_flag(inner) {
+            match inner.find('=') {
+                Some(equals) if equals + 1 < inner.len() => {
+                    edits.push((start + equals + 1, end));
+                    self.redacted += 1;
+                }
+                Some(_) => {}
+                None => self.mask_next = true,
+            }
+        }
+    }
+
+    /// Masks the value that starts at `start` and returns where scanning resumes.
+    fn mask_value(
+        &mut self,
+        line: &str,
+        start: usize,
+        edits: &mut Vec<(usize, usize)>,
+        pending_force: &mut bool,
+    ) -> usize {
+        let bytes = line.as_bytes();
+        let Some(&first) = bytes.get(start) else {
+            return start;
+        };
+        match first {
+            quote @ (b'"' | b'\'') => match closing_quote(&line[start + 1..], quote) {
+                Some(close) => {
+                    let end = start + 1 + close;
+                    let inner = &line[start + 1..end];
+                    if !inner.is_empty() && inner != SECRET_MASK {
+                        edits.push((start + 1, end));
+                        self.redacted += 1;
+                    }
+                    end + 1
+                }
+                None => {
+                    let inner = &line[start + 1..];
+                    if !inner.is_empty() && inner != SECRET_MASK {
+                        edits.push((start + 1, line.len()));
+                        self.redacted += 1;
+                    }
+                    line.len()
+                }
+            },
+            b'{' | b'[' => {
+                *pending_force = true;
+                self.redacted += 1;
+                start
+            }
+            b'|' | b'>' => start + 1,
+            _ => {
+                let rest = &line[start..];
+                let stop = rest
+                    .find([',', '}', ']'])
+                    .into_iter()
+                    .chain(rest.find(" #"))
+                    .min()
+                    .unwrap_or(rest.len());
+                let value = rest[..stop].trim_end();
+                if !value.is_empty() && !value.starts_with(SECRET_MASK) {
+                    edits.push((start, start + value.len()));
+                    self.redacted += 1;
+                }
+                start + stop
+            }
+        }
+    }
+}
+
+fn apply_edits(line: &str, edits: &[(usize, usize)]) -> String {
+    if edits.is_empty() {
+        return line.to_owned();
+    }
+    let mut output = String::with_capacity(line.len());
+    let mut cursor = 0;
+    for &(start, end) in edits {
+        if start < cursor || end < start {
+            continue;
+        }
+        output.push_str(&line[cursor..start]);
+        output.push_str(SECRET_MASK);
+        cursor = end;
+    }
+    output.push_str(&line[cursor..]);
+    output
+}
+
+fn skip_spaces(bytes: &[u8], from: usize) -> usize {
+    let mut index = from;
+    while bytes
+        .get(index)
+        .is_some_and(|byte| byte.is_ascii_whitespace())
+    {
+        index += 1;
+    }
+    index
+}
+
+fn followed_by_separator(bytes: &[u8], from: usize) -> bool {
+    match bytes.get(skip_spaces(bytes, from)) {
+        Some(b':') => true,
+        Some(b'=') => bytes.get(skip_spaces(bytes, from) + 1) != Some(&b'='),
+        _ => false,
+    }
+}
+
+/// `:` or `=` that separates a key from its value, not part of `://` or `==`.
+fn is_pair_separator(bytes: &[u8], index: usize) -> bool {
+    let next = bytes.get(index + 1);
+    let previous = bytes[..index]
+        .iter()
+        .rev()
+        .find(|byte| !byte.is_ascii_whitespace());
+    match bytes[index] {
+        b':' => {
+            next.is_none_or(|byte| {
+                byte.is_ascii_whitespace() || matches!(byte, b'"' | b'\'' | b'{' | b'[')
+            }) || matches!(previous, Some(b'"' | b'\''))
+        }
+        _ => next != Some(&b'=') && !matches!(previous, Some(b'!' | b'<' | b'>' | b'=')),
+    }
+}
+
+/// The key to the left of the separator at `separator`: a quoted string or a bare word.
+fn key_before(line: &str, separator: usize) -> Option<&str> {
+    let bytes = line.as_bytes();
+    let mut end = separator;
+    while end > 0 && bytes[end - 1].is_ascii_whitespace() {
+        end -= 1;
+    }
+    let last = *bytes.get(end.checked_sub(1)?)?;
+    if last == b'"' || last == b'\'' {
+        let open = line[..end - 1].rfind(char::from(last))?;
+        return Some(&line[open + 1..end - 1]);
+    }
+    let mut start = end;
+    while start > 0 && is_key_byte(bytes[start - 1]) {
+        start -= 1;
+    }
+    (start < end).then(|| &line[start..end])
+}
+
+fn is_key_byte(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.')
+}
+
+/// A command-line flag whose next argument is a secret, e.g. `--token` or `--api-key=…`.
+fn is_secret_flag(text: &str) -> bool {
+    let Some(name) = text.strip_prefix('-') else {
+        return false;
+    };
+    let name = name.trim_start_matches('-');
+    let name = name.split('=').next().unwrap_or(name);
+    !name.is_empty() && is_secret_key(name)
+}
+
+fn is_table_header(trimmed: &str) -> bool {
+    trimmed.len() > 2
+        && trimmed.starts_with('[')
+        && trimmed.ends_with(']')
+        && !trimmed.contains([',', '=', ':', ' '])
+}
+
+fn header_is_protected(trimmed: &str) -> bool {
+    let inner = trimmed.trim_matches(['[', ']']);
+    let last = inner.rsplit('.').next().unwrap_or(inner);
+    is_protected_container(last.trim().trim_matches(['"', '\'']))
 }
 
 #[derive(Debug, Default)]

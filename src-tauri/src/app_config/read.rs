@@ -263,7 +263,7 @@ pub fn is_secret_key(key: &str) -> bool {
         .any(|fragment| normalized.contains(fragment))
 }
 
-fn is_protected_container(key: &str) -> bool {
+pub fn is_protected_container(key: &str) -> bool {
     matches!(key.to_ascii_lowercase().as_str(), "env" | "headers")
 }
 
