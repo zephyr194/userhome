@@ -106,7 +106,7 @@ describe("AppConfigPage default selection", () => {
     mocks.listAppConfigEntries.mockResolvedValue([]);
     render(<AppConfigPage />);
 
-    expect(await screen.findByText("没有登记的应用配置条目。")).toBeTruthy();
+    expect(await screen.findByText("本机没有发现受支持的应用配置。")).toBeTruthy();
     expect(mocks.readAppConfigEntry).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: /名称/ })).toBeNull();
   });

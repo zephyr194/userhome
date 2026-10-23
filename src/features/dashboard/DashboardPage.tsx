@@ -215,7 +215,7 @@ function appConfigModel(state: FactState<number>, read: () => void): FactModel {
       : state.status === "error"
         ? readFailure(state.message)
         : "读取后显示已发现的应用配置条目数。",
-    figure: value ? String(value.value) : "—",
+    figure: value ? `已发现 ${value.value} 项` : "—",
     freshnessAt: value?.readAt,
     status: readStatus(state),
     target: { routeId: "appConfig" },

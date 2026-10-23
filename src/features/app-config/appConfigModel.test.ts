@@ -227,8 +227,8 @@ describe("describeProbe", () => {
     });
     expect(describeProbe({ status: "notFound" }).label).toBe("未发现");
     expect(describeProbe({ status: "symlinkOrNonRegular" }).label).toBe("符号链接或非常规文件");
-    expect(describeProbe({ status: "inaccessible" }).label).toBe("不可访问");
-    expect(describeProbe({ status: "outOfBounds" }).label).toBe("越界");
+    expect(describeProbe({ status: "inaccessible" }).label).toBe("无法检查");
+    expect(describeProbe({ status: "outOfBounds" }).label).toBe("无法检查");
     for (const probe of [
       { status: "notFound" as const },
       { status: "inaccessible" as const },

@@ -184,7 +184,7 @@ describe("DashboardPage fact ledger", () => {
     rtl.render(<DashboardPage state={READY_STATE} />);
     rtl.fireEvent.click(rtl.within(factCell("应用配置")).getByRole("button", { name: "读取" }));
     await rtl.screen.findByText("已发现的应用配置条目数。");
-    expect(factCell("应用配置").textContent).toContain("3");
+    expect(factCell("应用配置").textContent).toContain("已发现 3 项");
     expect(mocks.listAppConfigEntries).toHaveBeenCalledTimes(1);
   });
 

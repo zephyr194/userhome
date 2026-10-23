@@ -191,9 +191,8 @@ export function describeProbe(probe: AppConfigProbeStatus): ProbeBadge {
     case "symlinkOrNonRegular":
       return { symbol: "⚠", label: "符号链接或非常规文件", tone: "warning" };
     case "inaccessible":
-      return { symbol: "⊘", label: "不可访问", tone: "danger" };
     case "outOfBounds":
-      return { symbol: "✕", label: "越界", tone: "danger" };
+      return { symbol: "⊘", label: "无法检查", tone: "warning" };
   }
 }
 

@@ -87,10 +87,13 @@ describe("AppConfigView states", () => {
     expect(html).not.toContain('role="region"');
   });
 
-  it("announces an empty registry as a status", () => {
+  it("says that nothing was found on this machine, with the supported sheet and a refresh action", () => {
     const html = render({ status: "empty" });
-    expect(html).toContain("没有登记的应用配置条目");
+    expect(html).toContain("本机没有发现受支持的应用配置。");
+    expect(html).toContain("支持的配置");
+    expect(html).toContain("刷新");
     expect(html).not.toContain("条目</h2>");
+    expect(html).not.toContain("app-config-detail-title");
   });
 
   it("shows a listing error with a retry action and no entries", () => {
@@ -112,7 +115,7 @@ describe("AppConfigView states", () => {
     expect(html).toContain("有 1 个条目无法检查");
     expect(html).toContain("名称 zed-settings");
     expect(html).toContain("名称 git-config-home");
-    expect(html).toContain("不可访问");
+    expect(html).toContain("无法检查");
   });
 
   it("does not show a status notice for a fully loaded listing", () => {
@@ -131,7 +134,8 @@ describe("AppConfigView states", () => {
 describe("AppConfigView selection and redaction", () => {
   it("lists entries as keyboard-operable buttons grouped by category", () => {
     const html = render({ status: "ready", items: [ZED, TMUX, SSH] });
-    expect(html.match(/<button/g)).toHaveLength(3);
+    // The supported-configurations action is also a button, so only entry rows are counted.
+    expect(html.match(/class="slide-item/g)).toHaveLength(3);
     expect(html).toContain("<h3");
     expect(html).toContain("编辑器");
     expect(html).toContain("终端");
@@ -288,7 +292,7 @@ describe("AppConfigView flat entry rows (UIF-14)", () => {
 
   it("keeps the refresh action on the empty state, where there is no list", () => {
     const html = render({ status: "empty" });
-    expect(html).toMatch(/没有登记的应用配置条目。<\/p><button[^>]*>刷新<\/button>/);
+    expect(html).toMatch(/本机没有发现受支持的应用配置。<\/p>[\s\S]*<button[^>]*>刷新<\/button>/);
   });
 
   it("renders each entry as a borderless row with the full path in a title attribute", () => {
@@ -405,5 +409,23 @@ describe("AppConfigView 配置内容高亮与窗口展示", () => {
     );
     expect(html).toContain("（文件没有可显示的内容）");
     expect(html).not.toContain('aria-label="解析后的内容"');
+  });
+});
+
+describe("AppConfigView discovered-only list (r8-appcfg)", () => {
+  it("places the supported-configurations action above the discovered entries", () => {
+    const html = render({ status: "ready", items: [ZED] });
+    const action = html.indexOf("支持的配置");
+    expect(action).toBeGreaterThan(-1);
+    expect(action).toBeLessThan(html.indexOf("app-config-list-title"));
+  });
+
+  it("keeps the action available while the listing is still loading", () => {
+    expect(render({ status: "loading" })).toContain("支持的配置");
+  });
+
+  it("does not offer a detail panel for an empty listing", () => {
+    const html = render({ status: "empty" });
+    expect(html).not.toContain("选择左侧条目");
   });
 });

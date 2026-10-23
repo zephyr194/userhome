@@ -1,5 +1,5 @@
 import { Button as HeadlessButton } from "@headlessui/react";
-import { Button, CodeViewer, PageShell, Panel } from "../../components/ui";
+import { ActionRow, Button, CodeViewer, PageShell, Panel } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import type { AppConfigListItem, AppConfigProbeStatus, AppConfigReadResult } from "../../ipc/appConfig";
 import {
@@ -17,6 +17,7 @@ import {
 } from "./appConfigModel";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import { AppConfigEditor } from "./AppConfigEditor";
+import { SupportedConfigsAction } from "./SupportedConfigsAction";
 
 const PROBE_TEXT_CLASS: Record<ProbeTone, string> = {
   neutral: "text-muted-foreground",
@@ -48,6 +49,11 @@ export function AppConfigView({ list, detail, onReload, onSelect, edit }: AppCon
   return (
     <PageShell layout="master-detail" scrollKey="compact">
       <PageRegion className="r4-fe4-scroll content-start gap-ui-12 overflow-y-auto overscroll-contain">
+        {list.status !== "empty" ? (
+          <ActionRow align="end">
+            <SupportedConfigsAction items={items} />
+          </ActionRow>
+        ) : null}
         <ListStatusNotice list={list} onReload={onReload} />
         {items ? (
           <EntryList
@@ -75,19 +81,22 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
       );
     case "empty":
       return (
-        <div className="flex flex-wrap items-center justify-between gap-ui-8">
+        <div className="grid gap-ui-8">
           <p role="status" className="m-0 text-body text-muted-foreground">
-            没有登记的应用配置条目。
+            本机没有发现受支持的应用配置。
           </p>
-          <Button size="sm" onClick={onReload}>
-            刷新
-          </Button>
+          <ActionRow>
+            <Button size="sm" onClick={onReload}>
+              刷新
+            </Button>
+            <SupportedConfigsAction items={[]} />
+          </ActionRow>
         </div>
       );
     case "partial":
       return (
         <p role="status" className="m-0 text-body">
-          有 {list.failedCount} 个条目无法检查（不可访问或越界），其余条目不受影响。
+          有 {list.failedCount} 个条目无法检查，其余条目不受影响。
         </p>
       );
     case "error":
