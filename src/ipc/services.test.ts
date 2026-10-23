@@ -398,6 +398,96 @@ function discoveryWith(services: unknown[]) {
   return discovery({ services });
 }
 
+function scheduleDetails(overrides: Record<string, unknown> = {}) {
+  return {
+    ...configFile().details,
+    startInterval: 300,
+    startCalendar: [{ minute: 0, hour: 3 }, { weekday: 1 }],
+    startCalendarTruncated: false,
+    watchPathsCount: 2,
+    queueDirectoriesCount: 1,
+    socketNames: ["Listeners"],
+    startOnMount: true,
+    ...overrides,
+  };
+}
+
+describe("launchd scheduling fields decoding", () => {
+  it("decodes the scheduling summary", () => {
+    const file = decodeLaunchdConfigFile(configFile({ details: scheduleDetails() }));
+    expect(file.details).toMatchObject({
+      startInterval: 300,
+      startCalendar: [{ minute: 0, hour: 3 }, { weekday: 1 }],
+      startCalendarTruncated: false,
+      watchPathsCount: 2,
+      queueDirectoriesCount: 1,
+      socketNames: ["Listeners"],
+      startOnMount: true,
+    });
+  });
+
+  it("treats null scheduling fields as absent rather than as empty", () => {
+    const details = decodeLaunchdConfigFile(
+      configFile({
+        details: scheduleDetails({
+          startInterval: null,
+          startCalendar: null,
+          startCalendarTruncated: null,
+          startOnMount: null,
+          socketNames: null,
+        }),
+      }),
+    ).details;
+    expect(details).not.toHaveProperty("startInterval");
+    expect(details).not.toHaveProperty("startCalendar");
+    expect(details).not.toHaveProperty("startCalendarTruncated");
+    expect(details).not.toHaveProperty("startOnMount");
+    expect(details).not.toHaveProperty("socketNames");
+  });
+
+  it("accepts a response from a backend that predates the scheduling fields", () => {
+    const details = decodeLaunchdConfigFile(configFile()).details;
+    expect(details).not.toHaveProperty("startInterval");
+    expect(details).not.toHaveProperty("startCalendar");
+    expect(details).not.toHaveProperty("watchPathsCount");
+    expect(details).not.toHaveProperty("queueDirectoriesCount");
+    expect(details).not.toHaveProperty("socketNames");
+    expect(details?.programArguments).toEqual(["/bin/svc", "--token", "[REDACTED]"]);
+  });
+
+  it("accepts a calendar of exactly 24 slots", () => {
+    const slots = Array.from({ length: 24 }, () => ({ hour: 1 }));
+    const details = decodeLaunchdConfigFile(
+      configFile({ details: scheduleDetails({ startCalendar: slots }) }),
+    ).details;
+    expect(details?.startCalendar).toHaveLength(24);
+  });
+
+  it.each([
+    ["a negative interval", { startInterval: -1 }],
+    ["a fractional interval", { startInterval: 1.5 }],
+    ["an interval that is text", { startInterval: "300" }],
+    ["a calendar that is not an array", { startCalendar: { hour: 3 } }],
+    ["a calendar of 25 slots", { startCalendar: Array.from({ length: 25 }, () => ({ hour: 1 })) }],
+    ["a calendar slot that is not an object", { startCalendar: [3] }],
+    ["a calendar hour out of range", { startCalendar: [{ hour: 24 }] }],
+    ["a calendar minute out of range", { startCalendar: [{ minute: 60 }] }],
+    ["a calendar weekday out of range", { startCalendar: [{ weekday: 8 }] }],
+    ["a calendar month out of range", { startCalendar: [{ month: 13 }] }],
+    ["a calendar day out of range", { startCalendar: [{ day: 32 }] }],
+    ["a non-boolean truncation flag", { startCalendarTruncated: "no" }],
+    ["a negative watch count", { watchPathsCount: -1 }],
+    ["a fractional queue count", { queueDirectoriesCount: 0.5 }],
+    ["socket names that are not an array", { socketNames: "Listeners" }],
+    ["17 socket names", { socketNames: Array.from({ length: 17 }, (_, index) => `S${index}`) }],
+    ["a non-boolean start-on-mount", { startOnMount: "yes" }],
+  ])("rejects a config file with %s", (_name, overrides) => {
+    expect(() =>
+      decodeLaunchdConfigFile(configFile({ details: scheduleDetails(overrides) })),
+    ).toThrow();
+  });
+});
+
 describe("listLaunchdServices", () => {
   afterEach(() => {
     clearMocks();

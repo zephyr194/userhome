@@ -291,6 +291,15 @@ export interface LaunchdKeepAlive {
   conditions: string[];
 }
 
+/** One `StartCalendarInterval` entry; an absent field is `undefined`. */
+export interface LaunchdCalendarSlot {
+  minute?: number;
+  hour?: number;
+  day?: number;
+  weekday?: number;
+  month?: number;
+}
+
 export interface LaunchdLinkTarget {
   state: LaunchdLinkState;
   display?: string;
@@ -309,6 +318,14 @@ export interface LaunchdPlistDetails {
   standardErrorPath?: string;
   disabled?: boolean;
   userName?: string;
+  /** Absent from backends that predate the scheduling summary, so unknown rather than empty. */
+  startInterval?: number;
+  startCalendar?: LaunchdCalendarSlot[];
+  startCalendarTruncated?: boolean;
+  watchPathsCount?: number;
+  queueDirectoriesCount?: number;
+  socketNames?: string[];
+  startOnMount?: boolean;
 }
 
 export interface LaunchdConfigFile {
@@ -422,6 +439,14 @@ function decodeOptionalCount(value: unknown): number | undefined {
   return value === undefined || value === null ? undefined : decodeCount(value);
 }
 
+function decodeOptionalCalendarField(value: unknown, max: number): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0 || value > max) {
+    throw createInternalError();
+  }
+  return value;
+}
+
 function decodeList<T>(
   value: unknown,
   limit: number,
@@ -431,6 +456,16 @@ function decodeList<T>(
     throw createInternalError();
   }
   return value.map(decodeItem);
+}
+
+function decodeOptionalList<T>(
+  value: unknown,
+  limit: number,
+  decodeItem: (item: unknown) => T,
+): T[] | undefined {
+  return value === undefined || value === null
+    ? undefined
+    : decodeList(value, limit, decodeItem);
 }
 
 function decodeLaunchdLastExit(value: unknown): LaunchdLastExit | undefined {
@@ -457,6 +492,22 @@ function decodeLaunchdKeepAlive(value: unknown): LaunchdKeepAlive | undefined {
   };
 }
 
+function decodeLaunchdCalendarSlot(value: unknown): LaunchdCalendarSlot {
+  if (!isRecord(value)) throw createInternalError();
+  const minute = decodeOptionalCalendarField(value.minute, 59);
+  const hour = decodeOptionalCalendarField(value.hour, 23);
+  const day = decodeOptionalCalendarField(value.day, 31);
+  const weekday = decodeOptionalCalendarField(value.weekday, 7);
+  const month = decodeOptionalCalendarField(value.month, 12);
+  return {
+    ...(minute === undefined ? {} : { minute }),
+    ...(hour === undefined ? {} : { hour }),
+    ...(day === undefined ? {} : { day }),
+    ...(weekday === undefined ? {} : { weekday }),
+    ...(month === undefined ? {} : { month }),
+  };
+}
+
 function decodeLaunchdPlistDetails(
   value: unknown,
 ): LaunchdPlistDetails | undefined {
@@ -469,6 +520,17 @@ function decodeLaunchdPlistDetails(
   const standardErrorPath = decodeOptionalLaunchdText(value.standardErrorPath);
   const disabled = decodeOptionalBoolean(value.disabled);
   const userName = decodeOptionalLaunchdText(value.userName);
+  const startInterval = decodeOptionalCount(value.startInterval);
+  const startCalendar = decodeOptionalList(
+    value.startCalendar,
+    24,
+    decodeLaunchdCalendarSlot,
+  );
+  const startCalendarTruncated = decodeOptionalBoolean(value.startCalendarTruncated);
+  const watchPathsCount = decodeOptionalCount(value.watchPathsCount);
+  const queueDirectoriesCount = decodeOptionalCount(value.queueDirectoriesCount);
+  const socketNames = decodeOptionalList(value.socketNames, 16, decodeLaunchdText);
+  const startOnMount = decodeOptionalBoolean(value.startOnMount);
   return {
     ...(program === undefined ? {} : { program }),
     programArguments: decodeList(
@@ -488,6 +550,13 @@ function decodeLaunchdPlistDetails(
     ...(standardErrorPath === undefined ? {} : { standardErrorPath }),
     ...(disabled === undefined ? {} : { disabled }),
     ...(userName === undefined ? {} : { userName }),
+    ...(startInterval === undefined ? {} : { startInterval }),
+    ...(startCalendar === undefined ? {} : { startCalendar }),
+    ...(startCalendarTruncated === undefined ? {} : { startCalendarTruncated }),
+    ...(watchPathsCount === undefined ? {} : { watchPathsCount }),
+    ...(queueDirectoriesCount === undefined ? {} : { queueDirectoriesCount }),
+    ...(socketNames === undefined ? {} : { socketNames }),
+    ...(startOnMount === undefined ? {} : { startOnMount }),
   };
 }
 
