@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { EnvironmentPage } from "./EnvironmentPage";
@@ -33,5 +35,15 @@ describe("environment page layout (UIB-4e)", () => {
     const selected = (tabs.filter((tag) => tag.includes('aria-selected="true"')));
     expect(selected).toHaveLength(1);
     expect(selected[0]).toMatch(/class="[^"]*\bslide-item\b/);
+  });
+});
+
+describe("environment page scrolling", () => {
+  it("scrolls only the domain content, not the domain menu", () => {
+    const markup = renderPage();
+    expect(markup).toMatch(/class="environment-page__detail[^"]*"/);
+    const css = readFileSync(fileURLToPath(new URL("../../styles/global.css", import.meta.url)), "utf8");
+    expect(css).toMatch(/\.environment-page__detail\s*\{[^}]*overflow-y:\s*auto/);
+    expect(css).not.toMatch(/\.environment-page__menu\s*\{[^}]*overflow/);
   });
 });

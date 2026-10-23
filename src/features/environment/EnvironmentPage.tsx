@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { useToolSection } from "../../app/SectionContext";
 import { PageShell, VerticalMenu, type VerticalMenuItem } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
+import { createScrollMemory } from "../../components/ui/pageScrollMemory";
 import { decodeAppError } from "../../ipc/core";
 import {
   readEnvironmentFile,
@@ -47,6 +48,13 @@ export function EnvironmentPage() {
   const [launchctlOpened, setLaunchctlOpened] = useState(section === "launchctl");
   if (section === "zsh" && !zshOpened) setZshOpened(true);
   if (section === "launchctl" && !launchctlOpened) setLaunchctlOpened(true);
+  // The domain menu stays put; only the domain content scrolls, and each domain
+  // keeps its own offset while another one is shown.
+  const detailRef = useRef<HTMLDivElement>(null);
+  const [scrollMemory] = useState(() => createScrollMemory(section));
+  useLayoutEffect(() => {
+    if (detailRef.current) detailRef.current.scrollTop = scrollMemory.switchTo(section);
+  }, [section, scrollMemory]);
   return (
     <div className="environment-page h-full min-h-0 min-w-0">
       <PageShell layout="master-detail" scrollKey={section}>
@@ -58,7 +66,11 @@ export function EnvironmentPage() {
             selected={section}
           />
         </div>
-        <div className="min-w-0">
+        <div
+          className="environment-page__detail min-w-0"
+          onScroll={(event) => scrollMemory.record(event.currentTarget.scrollTop)}
+          ref={detailRef}
+        >
           <div className="min-w-0" hidden={section !== "dotenv"}>
             <DotenvPage />
           </div>

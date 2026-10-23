@@ -2456,6 +2456,14 @@ button[class*="border-border"],
   .environment-page__menu {
     border-right: 1px solid var(--app-line-subtle);
   }
+
+  /* r6-env: 二级菜单固定，只有域内容滚动 */
+  .environment-page__detail {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 }
 /* /r5b-n2 */
 /* r6-nav ------------------------------------------------------------ */
