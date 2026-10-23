@@ -1,6 +1,11 @@
-import type { TranslateFunction } from "../../i18n";
-import type { LaunchdConfigFile, LaunchdService } from "../../ipc/services";
-import { isHomebrewLabel, isSystemService } from "./launchdModel";
+import type { MessageKey, TranslateFunction } from "../../i18n";
+import type {
+  LaunchdCalendarSlot,
+  LaunchdConfigFile,
+  LaunchdPlistDetails,
+  LaunchdService,
+} from "../../ipc/services";
+import { isHomebrewLabel, isSystemService, primaryConfigFile } from "./launchdModel";
 import { SERVICE_DICTIONARY } from "./serviceDictionary";
 
 export const INJECTOR_ORDER = [
@@ -120,6 +125,195 @@ export function purposeOf(service: LaunchdService, t: TranslateFunction): string
   const app = appBundleOf(service);
   if (app !== undefined) return t("services.purpose.appHelper", { app });
   return null;
+}
+
+export type TriggerKind =
+  | "LOGIN"
+  | "BOOT"
+  | "KEEP_ALIVE"
+  | "KEEP_CONDITIONAL"
+  | "INTERVAL"
+  | "CALENDAR"
+  | "ON_EVENT"
+  | "ON_MOUNT"
+  | "MANUAL"
+  | "DISABLED"
+  | "UNKNOWN";
+
+export interface ServiceTrigger {
+  kinds: TriggerKind[];
+  /** At most two distinct labels, then an ellipsis when more were dropped. */
+  badge: string;
+  sentence: string;
+}
+
+interface TriggerPart {
+  kind: TriggerKind;
+  badge: string;
+  phrase: string;
+}
+
+const BADGE_LIMIT = 2;
+const BADGE_JOINER = " · ";
+const CALENDAR_LIST_LIMIT = 3;
+const WEEKDAY_KEYS: readonly MessageKey[] = [
+  "services.trigger.weekday.0",
+  "services.trigger.weekday.1",
+  "services.trigger.weekday.2",
+  "services.trigger.weekday.3",
+  "services.trigger.weekday.4",
+  "services.trigger.weekday.5",
+  "services.trigger.weekday.6",
+];
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function describeCalendarSlot(slot: LaunchdCalendarSlot, t: TranslateFunction): string | undefined {
+  const { minute, hour, day, weekday, month } = slot;
+  if (minute === undefined || hour === undefined || month !== undefined) return undefined;
+  const time = `${pad2(hour)}:${pad2(minute)}`;
+  if (day !== undefined) {
+    return weekday === undefined
+      ? t("services.trigger.calendarMonthly", { day, time })
+      : undefined;
+  }
+  if (weekday !== undefined) {
+    return t("services.trigger.calendarWeekly", {
+      weekday: t(WEEKDAY_KEYS[weekday % 7]),
+      time,
+    });
+  }
+  return t("services.trigger.calendarDaily", { time });
+}
+
+function calendarPhrase(
+  slots: readonly LaunchdCalendarSlot[],
+  truncated: boolean,
+  t: TranslateFunction,
+): string {
+  const described: string[] = [];
+  for (const slot of slots) {
+    const phrase = describeCalendarSlot(slot, t);
+    if (phrase === undefined) return t("services.trigger.calendarFallback");
+    described.push(phrase);
+  }
+  if (truncated) return t("services.trigger.calendarTruncated", { count: slots.length });
+  if (described.length > CALENDAR_LIST_LIMIT) {
+    return t("services.trigger.calendarCount", { count: slots.length });
+  }
+  return described.join(t("services.trigger.listJoiner"));
+}
+
+function intervalPhrase(seconds: number, t: TranslateFunction): string {
+  if (seconds % 3600 === 0) return t("services.trigger.intervalHours", { count: seconds / 3600 });
+  if (seconds % 60 === 0) return t("services.trigger.intervalMinutes", { count: seconds / 60 });
+  return t("services.trigger.intervalSeconds", { count: seconds });
+}
+
+function triggerParts(
+  service: LaunchdService,
+  details: LaunchdPlistDetails,
+  t: TranslateFunction,
+): TriggerPart[] {
+  const parts: TriggerPart[] = [];
+  if (details.runAtLoad === true) {
+    const boot = service.domain === "SYSTEM";
+    const key = boot ? "services.trigger.boot" : "services.trigger.login";
+    parts.push({ kind: boot ? "BOOT" : "LOGIN", badge: t(key), phrase: t(key) });
+  }
+  const keepAliveMode = details.keepAlive?.mode;
+  if (keepAliveMode === "ALWAYS") {
+    parts.push({
+      kind: "KEEP_ALIVE",
+      badge: t("services.trigger.keepAliveBadge"),
+      phrase: t("services.trigger.keepAlive"),
+    });
+  }
+  if (keepAliveMode === "CONDITIONAL") {
+    parts.push({
+      kind: "KEEP_CONDITIONAL",
+      badge: t("services.trigger.keepConditionalBadge"),
+      phrase: t("services.trigger.keepConditional"),
+    });
+  }
+  if (details.startInterval !== undefined && details.startInterval > 0) {
+    parts.push({
+      kind: "INTERVAL",
+      badge: t("services.trigger.scheduled"),
+      phrase: intervalPhrase(details.startInterval, t),
+    });
+  }
+  if (details.startCalendar !== undefined && details.startCalendar.length > 0) {
+    parts.push({
+      kind: "CALENDAR",
+      badge: t("services.trigger.scheduled"),
+      phrase: calendarPhrase(details.startCalendar, details.startCalendarTruncated === true, t),
+    });
+  }
+  if (
+    (details.watchPathsCount ?? 0) > 0 ||
+    (details.queueDirectoriesCount ?? 0) > 0 ||
+    (details.socketNames?.length ?? 0) > 0
+  ) {
+    parts.push({
+      kind: "ON_EVENT",
+      badge: t("services.trigger.onDemand"),
+      phrase: t("services.trigger.onEvent"),
+    });
+  }
+  if (details.startOnMount === true) {
+    parts.push({
+      kind: "ON_MOUNT",
+      badge: t("services.trigger.onMountBadge"),
+      phrase: t("services.trigger.onMount"),
+    });
+  }
+  if (parts.length === 0) {
+    parts.push({
+      kind: "MANUAL",
+      badge: t("services.trigger.manualBadge"),
+      phrase: t("services.trigger.manual"),
+    });
+  }
+  if (details.disabled === true) {
+    parts.push({
+      kind: "DISABLED",
+      badge: t("services.trigger.disabled"),
+      phrase: t("services.trigger.disabled"),
+    });
+  }
+  return parts;
+}
+
+function lowerFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+/** How a job starts, judged only from the plist summary already loaded. */
+export function triggerOf(service: LaunchdService, t: TranslateFunction): ServiceTrigger {
+  const details = primaryConfigFile(service)?.details;
+  const parts: TriggerPart[] =
+    details === undefined
+      ? [
+          {
+            kind: "UNKNOWN",
+            badge: t("services.trigger.unknownBadge"),
+            phrase: t("services.trigger.unknown"),
+          },
+        ]
+      : triggerParts(service, details, t);
+  const badges = [...new Set(parts.map((part) => part.badge))];
+  const shown = badges.slice(0, BADGE_LIMIT).join(BADGE_JOINER);
+  const sentence = parts
+    .map((part, index) => (index === 0 ? part.phrase : lowerFirst(part.phrase)))
+    .join(t("services.trigger.joiner"));
+  return {
+    kinds: parts.map((part) => part.kind),
+    badge: badges.length > BADGE_LIMIT ? `${shown}…` : shown,
+    sentence: `${sentence}${t("services.trigger.end")}`,
+  };
 }
 
 export function groupServices(services: readonly LaunchdService[]): ServiceGroup[] {
