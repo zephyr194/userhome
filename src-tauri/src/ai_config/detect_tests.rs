@@ -800,6 +800,21 @@ fn install_source_rejects_malformed_homebrew_paths_as_direct() {
 }
 
 #[test]
+fn install_source_rejects_relative_segments_as_package_names() {
+    for path in [
+        "/opt/homebrew/Cellar/../1.0/bin/tool",
+        "/opt/homebrew/Cellar/./1.0/bin/tool",
+        "/usr/local/Caskroom/../1.0/bin/tool",
+    ] {
+        assert_eq!(
+            classify_install_source(path),
+            InstallSource::Direct,
+            "{path}"
+        );
+    }
+}
+
+#[test]
 fn install_source_of_an_unresolvable_path_is_direct() {
     let missing = Path::new("/nonexistent-userhome-probe/claude");
     assert_eq!(install_source_of(missing), InstallSource::Direct);

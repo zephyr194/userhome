@@ -202,7 +202,7 @@ pub fn classify_install_source(real_path: &str) -> InstallSource {
         let Some((package, below)) = rest.split_once('/') else {
             return InstallSource::Direct;
         };
-        if below.is_empty() || !validate_package_identifier(package) {
+        if below.is_empty() || !is_plain_package_name(package) {
             return InstallSource::Direct;
         }
         return InstallSource::Homebrew {
@@ -211,6 +211,10 @@ pub fn classify_install_source(real_path: &str) -> InstallSource {
         };
     }
     InstallSource::Direct
+}
+
+fn is_plain_package_name(name: &str) -> bool {
+    name != "." && name != ".." && !name.contains('/') && validate_package_identifier(name)
 }
 
 pub fn install_source_of(executable: &Path) -> InstallSource {
