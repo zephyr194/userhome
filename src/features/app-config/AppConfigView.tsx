@@ -1,13 +1,13 @@
-import { useState } from "react";
 import { Button as HeadlessButton } from "@headlessui/react";
-import { Button, PageShell, Panel } from "../../components/ui";
-import { classNames } from "../../components/ui/classNames";
+import { Button, CodeViewer, PageShell, Panel } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import type { AppConfigListItem, AppConfigProbeStatus, AppConfigReadResult } from "../../ipc/appConfig";
 import {
   CAPABILITY_LABELS,
+  codeLanguageFor,
   describeEntryDetail,
   describeProbe,
+  fileNameOf,
   groupByCategory,
   type EntryDetailView,
   isFixedLocation,
@@ -269,7 +269,7 @@ function ReadResultBody({
   const view = describeEntryDetail(item.summary, result);
   switch (view.kind) {
     case "content":
-      return <ContentBody view={view} />;
+      return <ContentBody item={item} view={view} />;
     case "metadata":
       return (
         <div className="grid gap-ui-8">
@@ -292,39 +292,31 @@ function ReadResultBody({
 }
 
 function ContentBody({
+  item,
   view,
 }: {
+  item: AppConfigListItem;
   view: Extract<EntryDetailView, { kind: "content" }>;
 }) {
-  const [wrapLines, setWrapLines] = useState(false);
+  const notice = view.redacted ? (
+    <p className="m-0">敏感值已遮盖（显示为 [REDACTED]）。</p>
+  ) : undefined;
   return (
     <div className="grid min-w-0 gap-ui-8">
-      <div className="flex flex-wrap items-center justify-between gap-ui-8">
-        {view.redacted ? (
-          <p className="m-0 text-aux text-muted-foreground">
-            敏感值已遮盖（显示为 [REDACTED]）。
-          </p>
-        ) : (
-          <span />
-        )}
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => setWrapLines((wrap) => !wrap)}
-        >
-          {wrapLines ? "不换行" : "换行"}
-        </Button>
-      </div>
-      <pre
-        aria-label="解析后的内容"
-        tabIndex={0}
-        className={classNames(
-          "m-0 min-w-0 rounded-control bg-surface-muted p-ui-8 font-mono text-meta",
-          wrapLines ? "whitespace-pre-wrap break-words" : "r4-fe4-scroll overflow-x-auto whitespace-pre",
-        )}
-      >
-        {view.text || "（文件没有可显示的内容）"}
-      </pre>
+      {view.text ? (
+        <CodeViewer
+          label="解析后的内容"
+          language={codeLanguageFor(item.summary)}
+          notice={notice}
+          text={view.text}
+          title={fileNameOf(item.summary.displayPath)}
+        />
+      ) : (
+        <>
+          {notice}
+          <p className="m-0 text-aux text-muted-foreground">（文件没有可显示的内容）</p>
+        </>
+      )}
       {view.withheldLines > 0 ? (
         <p className="m-0 text-aux text-muted-foreground">
           有 {view.withheldLines} 行（注释或无法识别的行）未显示。

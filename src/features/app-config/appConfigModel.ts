@@ -1,3 +1,4 @@
+import type { CodeLanguage } from "../../components/ui/codeTokens";
 import type { AppError } from "../../ipc/core";
 import {
   isAppConfigId,
@@ -200,6 +201,50 @@ export function describeProbe(probe: AppConfigProbeStatus): ProbeBadge {
 
 export function isFixedLocation(summary: AppConfigEntrySummary): boolean {
   return !summary.displayPath.startsWith("~/");
+}
+
+export function fileNameOf(displayPath: string): string {
+  const slash = displayPath.lastIndexOf("/");
+  return slash === -1 ? displayPath : displayPath.slice(slash + 1);
+}
+
+const SHELL_FILE_NAMES = new Set([
+  ".zshrc",
+  ".zshenv",
+  ".zprofile",
+  ".zlogin",
+  ".zlogout",
+  ".bashrc",
+  ".bash_profile",
+  ".profile",
+]);
+
+export function codeLanguageFor(
+  summary: Pick<AppConfigEntrySummary, "format" | "displayPath">,
+): CodeLanguage {
+  switch (summary.format) {
+    case "json":
+    case "jsonc":
+      return "json";
+    case "toml":
+      return "toml";
+    case "ini":
+      return "ini";
+    case "dotenv":
+      return "dotenv";
+    case "text":
+      return languageFromFileName(fileNameOf(summary.displayPath));
+    case "plist":
+      return "plain";
+  }
+}
+
+function languageFromFileName(name: string): CodeLanguage {
+  const lower = name.toLowerCase();
+  if (lower === "caddyfile" || lower.endsWith(".caddyfile")) return "caddyfile";
+  if (SHELL_FILE_NAMES.has(lower) || /\.(zsh|sh|bash)$/.test(lower)) return "shell";
+  if (lower === ".env" || lower.startsWith(".env.") || lower.endsWith(".env")) return "dotenv";
+  return "plain";
 }
 
 export function formatBytes(size: number): string {

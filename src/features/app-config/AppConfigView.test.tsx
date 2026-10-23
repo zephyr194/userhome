@@ -343,3 +343,67 @@ describe("AppConfigView r4-fe4 fixes", () => {
     );
   });
 });
+
+describe("AppConfigView 配置内容高亮与窗口展示", () => {
+  const ZSHRC = item(
+    "zsh-config",
+    { category: "terminal", format: "text", displayPath: "~/.zshrc" },
+    { status: "found", size: 80, modifiedUnixMillis: 1_700_000_000_000 },
+  );
+
+  it("highlights JSON keys and values and offers a window view", () => {
+    const html = render(
+      { status: "ready", items: [ZED] },
+      readyDetail("zed-settings", {
+        outcome: "content",
+        view: { text: '{\n  "theme": "dark"\n}\n', redacted: false, withheldLines: 0, warnings: [] },
+      }),
+    );
+    expect(html).toContain('data-token="key"');
+    expect(html).toContain('data-token="string"');
+    expect(html).toContain("在窗口中查看");
+    expect(html).toContain("settings.json");
+  });
+
+  it("chooses the shell highlighter for a shell startup file", () => {
+    const html = render(
+      { status: "ready", items: [ZSHRC] },
+      readyDetail("zsh-config", {
+        outcome: "content",
+        view: { text: "export EDITOR=vim\n", redacted: false, withheldLines: 0, warnings: [] },
+      }),
+    );
+    expect(html).toContain('data-token="keyword">export<');
+    expect(html).toContain('aria-label="解析后的内容"');
+  });
+
+  it("keeps the redaction note on a view that is highlighted", () => {
+    const html = render(
+      { status: "ready", items: [ZED] },
+      readyDetail("zed-settings", {
+        outcome: "content",
+        view: {
+          text: '{\n  "apiKey": "[REDACTED]"\n}\n',
+          redacted: true,
+          withheldLines: 2,
+          warnings: [],
+        },
+      }),
+    );
+    expect(html).toContain("敏感值已遮盖（显示为 [REDACTED]）。");
+    expect(html).toContain("[REDACTED]");
+    expect(html).toContain("有 2 行");
+  });
+
+  it("explains an empty file instead of rendering an empty viewer", () => {
+    const html = render(
+      { status: "ready", items: [ZED] },
+      readyDetail("zed-settings", {
+        outcome: "content",
+        view: { text: "", redacted: false, withheldLines: 0, warnings: [] },
+      }),
+    );
+    expect(html).toContain("（文件没有可显示的内容）");
+    expect(html).not.toContain('aria-label="解析后的内容"');
+  });
+});

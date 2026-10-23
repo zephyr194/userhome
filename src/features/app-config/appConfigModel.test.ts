@@ -6,7 +6,9 @@ import {
   appConfigReducer,
   defaultEntryId,
   describeEntryDetail,
+  codeLanguageFor,
   describeProbe,
+  fileNameOf,
   formatBytes,
   groupByCategory,
   isFixedLocation,
@@ -301,5 +303,43 @@ describe("display helpers", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(2048)).toBe("2.0 KB");
     expect(formatBytes(3 * 1024 * 1024)).toBe("3.0 MB");
+  });
+});
+
+describe("代码高亮语言推断", () => {
+  const summary = (format: string, displayPath: string) => ({
+    format: format as "json",
+    displayPath,
+  });
+
+  it("按格式选择高亮语言", () => {
+    expect(codeLanguageFor(summary("json", "~/.config/zed/settings.json"))).toBe("json");
+    expect(codeLanguageFor(summary("jsonc", "~/.config/code/settings.jsonc"))).toBe("json");
+    expect(codeLanguageFor(summary("toml", "~/.cargo/config.toml"))).toBe("toml");
+    expect(codeLanguageFor(summary("ini", "~/.gitconfig"))).toBe("ini");
+    expect(codeLanguageFor(summary("dotenv", "~/.env"))).toBe("dotenv");
+  });
+
+  it("纯文本格式按文件名推断 shell 与 Caddyfile", () => {
+    expect(codeLanguageFor(summary("text", "~/.zshrc"))).toBe("shell");
+    expect(codeLanguageFor(summary("text", "~/.zprofile"))).toBe("shell");
+    expect(codeLanguageFor(summary("text", "~/.config/tool/init.zsh"))).toBe("shell");
+    expect(codeLanguageFor(summary("text", "/opt/homebrew/etc/Caddyfile"))).toBe("caddyfile");
+    expect(codeLanguageFor(summary("text", "~/proj/site.Caddyfile"))).toBe("caddyfile");
+    expect(codeLanguageFor(summary("text", "~/proj/.env.local"))).toBe("dotenv");
+  });
+
+  it("推断不出来时使用纯文本，plist 与未知文件不做高亮", () => {
+    expect(codeLanguageFor(summary("text", "~/notes/readme.txt"))).toBe("plain");
+    expect(codeLanguageFor(summary("plist", "~/Library/Preferences/app.plist"))).toBe("plain");
+  });
+});
+
+describe("文件名", () => {
+  it("取路径的最后一段", () => {
+    expect(fileNameOf("~/.config/zed/settings.json")).toBe("settings.json");
+    expect(fileNameOf("/etc/Caddyfile")).toBe("Caddyfile");
+    expect(fileNameOf("~/.zshrc")).toBe(".zshrc");
+    expect(fileNameOf("plain")).toBe("plain");
   });
 });
