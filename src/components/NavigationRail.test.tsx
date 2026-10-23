@@ -31,9 +31,9 @@ describe("NavigationRail", () => {
     }
   });
 
-  it("renders three group headings, each labelling its own list", () => {
+  it("renders three group headings, each labelling its own list, and an unheaded overview list", () => {
     const markup = renderRail("dashboard");
-    expect(markup.match(/<ul/g)).toHaveLength(3);
+    expect(markup.match(/<ul/g)).toHaveLength(4);
     for (const [id, label] of [
       ["system-tools", "系统工具"],
       ["toolset", "工具集"],
@@ -44,34 +44,43 @@ describe("NavigationRail", () => {
       );
       expect(markup, label).toContain(`<ul aria-labelledby="nav-group-${id}">`);
     }
+    expect(markup).not.toContain("nav-group-overview");
   });
 
-  it("wraps each group in its own block and places the support group last, above the footer", () => {
+  it("places the overview block first and the support group last, above the footer", () => {
     const markup = renderRail("dashboard");
-    for (const id of ["system-tools", "toolset", "support"]) {
+    for (const id of ["overview", "system-tools", "toolset", "support"]) {
       expect(markup, id).toContain(`navigation-rail__group--${id}`);
     }
-    const support = markup.indexOf("navigation-rail__group--support");
+    const overview = markup.indexOf("navigation-rail__group--overview");
+    const systemTools = markup.indexOf("navigation-rail__group--system-tools");
     const toolset = markup.indexOf("navigation-rail__group--toolset");
+    const support = markup.indexOf("navigation-rail__group--support");
     const footer = markup.indexOf("navigation-rail__status");
+    expect(overview).toBeLessThan(systemTools);
+    expect(systemTools).toBeLessThan(toolset);
     expect(support).toBeGreaterThan(toolset);
     expect(support).toBeLessThan(footer);
+    const overviewBlock = markup.slice(overview, systemTools);
+    expect(overviewBlock).toContain('href="#dashboard"');
+    expect(overviewBlock).not.toContain("<p ");
     const supportBlock = markup.slice(support, footer);
     expect(supportBlock).toContain('id="nav-group-support"');
-    expect(supportBlock).toContain('href="#dashboard"');
+    expect(supportBlock).toContain('href="#services"');
     expect(supportBlock).toContain('href="#settings"');
+    expect(supportBlock).not.toContain('href="#dashboard"');
   });
 
-  it("lists the entries in the fixed order across the groups", () => {
+  it("lists the entries in the fixed order across the groups, with the overview first and settings last", () => {
     const markup = renderRail("dashboard");
     const hrefs = [...markup.matchAll(/<a href="#([A-Za-z]+)"/g)].map((match) => match[1]);
     expect(hrefs).toEqual([
+      "dashboard",
       "environment",
       "appConfig",
       "aiConfig",
       "systemTools",
       "tools",
-      "dashboard",
       "services",
       "settings",
     ]);

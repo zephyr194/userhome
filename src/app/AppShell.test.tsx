@@ -51,12 +51,12 @@ describe("AppShell", () => {
     expect(nav).toBeDefined();
     expect(nav?.match(/navigation-rail__section-label/g)).toHaveLength(3);
     const positions = [
+      "#dashboard",
       "#environment",
       "#appConfig",
       "#aiConfig",
       "#systemTools",
       "#tools",
-      "#dashboard",
       "#services",
       "#settings",
     ].map((href) => nav?.indexOf(`href="${href}"`) ?? -1);

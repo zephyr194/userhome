@@ -124,3 +124,49 @@ describe("selection memory route restore", () => {
     expect(JSON.parse(encoded).routeId).toBe("dashboard");
   });
 });
+
+describe("selection memory default route", () => {
+  function withStorage(raw: string | null, run: (storage: Map<string, string>) => void) {
+    const storage = new Map<string, string>();
+    if (raw !== null) storage.set("userhome.selection.v1", raw);
+    const original = globalThis.window;
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => void storage.set(key, value),
+        removeItem: (key: string) => void storage.delete(key),
+      },
+    });
+    try {
+      run(storage);
+    } finally {
+      vi.unstubAllGlobals();
+      if (original) vi.stubGlobal("window", original);
+    }
+  }
+
+  it("opens the overview on first launch with nothing persisted", () => {
+    withStorage(null, () => {
+      expect(loadSelectionMemory(true).routeId).toBe("dashboard");
+    });
+  });
+
+  it("opens the overview when the persisted value is not valid JSON", () => {
+    withStorage("{not json", (storage) => {
+      expect(loadSelectionMemory(true).routeId).toBe("dashboard");
+      expect(storage.has("userhome.selection.v1")).toBe(false);
+    });
+  });
+
+  it("opens the overview when the persisted route is not restorable", () => {
+    withStorage(JSON.stringify({ routeId: "aiConfig-typo", settingsGroup: "appearance" }), () => {
+      expect(loadSelectionMemory(true).routeId).toBe("dashboard");
+    });
+  });
+
+  it("opens the overview when persistence is disabled", () => {
+    withStorage(JSON.stringify({ routeId: "services", settingsGroup: "appearance" }), () => {
+      expect(loadSelectionMemory(false).routeId).toBe("dashboard");
+    });
+  });
+});

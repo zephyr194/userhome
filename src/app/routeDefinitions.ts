@@ -24,15 +24,17 @@ export type AppRouteIcon =
   | "tools"
   | "settings";
 
-export type NavGroupId = "system-tools" | "toolset" | "support";
+export type NavGroupId = "overview" | "system-tools" | "toolset" | "support";
 
 export interface NavGroup {
   id: NavGroupId;
-  label: string;
+  /** Heading shown above the group; null for a group without a heading. */
+  label: string | null;
 }
 
 /** Primary navigation groups, in display order. */
 export const NAV_GROUPS: readonly NavGroup[] = [
+  { id: "overview", label: null },
   { id: "system-tools", label: "系统工具" },
   { id: "toolset", label: "工具集" },
   { id: "support", label: "支撑" },
@@ -167,9 +169,10 @@ export const APP_ROUTES: readonly AppRoute[] = (
  * sidebar entry; a child page (with `parent`) is reached from its parent.
  */
 const NAV_LAYOUT: Record<NavGroupId, readonly AppRouteId[]> = {
+  overview: ["dashboard"],
   "system-tools": ["environment", "appConfig", "aiConfig", "systemTools"],
   toolset: ["tools"],
-  support: ["dashboard", "services", "settings"],
+  support: ["services", "settings"],
 };
 
 const PRIMARY_NAV_ORDER: readonly AppRouteId[] = NAV_GROUPS.flatMap(

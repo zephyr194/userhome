@@ -79,14 +79,14 @@ describe("侧栏选中框：单一选中标记与滑动", () => {
     );
   });
 
-  it("三个分组共用同一个 .slide-list 容器，选中框的定位上下文不被分组打断", () => {
+  it("四个分组共用同一个 .slide-list 容器，选中框的定位上下文不被分组打断", () => {
     stubLayout();
     const { container } = render(<Harness initial="dashboard" />);
     expect(container.querySelectorAll(".slide-list")).toHaveLength(1);
     expect(container.querySelector(".slide-list")).toBe(
       document.querySelector("nav.navigation-rail"),
     );
-    expect(container.querySelectorAll(".slide-list ul")).toHaveLength(3);
+    expect(container.querySelectorAll(".slide-list ul")).toHaveLength(4);
     for (const list of container.querySelectorAll(".slide-list ul")) {
       expect(list.closest(".slide-list")).toBe(container.querySelector(".slide-list"));
     }
