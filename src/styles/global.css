@@ -2151,6 +2151,7 @@ button[class*="border-border"],
 
 .system-tools-grid .system-tool-card {
   display: grid;
+  justify-content: start;
   justify-items: start;
   align-content: start;
   row-gap: 8px;
