@@ -172,7 +172,7 @@ export function LogViewer({
         ref={scrollerRef}
         aria-label={`${label}内容`}
         aria-live="off"
-        className="max-h-96 min-h-32 overflow-auto rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux leading-snug text-foreground"
+        className="max-h-96 min-h-32 overflow-auto rounded-control bg-surface-muted px-ui-8 py-ui-8 font-mono text-aux text-foreground"
         onScroll={handleScroll}
         role="log"
         tabIndex={0}

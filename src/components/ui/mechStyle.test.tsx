@@ -154,7 +154,8 @@ describe("AsyncState 与 LogViewer", () => {
     const markup = renderToStaticMarkup(<LogViewer label="Caddy 日志" lines={["一行"]} />);
     expect(markup).toContain('role="log"');
     expect(markup).toContain("font-mono");
-    expect(markup).toContain("leading-snug");
+    expect(markup).toContain("text-aux");
+    expect(markup).not.toMatch(/leading-(none|tight|snug)/);
     expect(markup).toContain('tabindex="0"');
   });
 });

@@ -45,14 +45,13 @@ function classOf(markup: string, opening: RegExp): string {
   throw new Error(`no element matching ${opening} in markup`);
 }
 
-// 单行内容高度 = 行高 + 边框，须小于令牌，单行时高度才恰好等于令牌
+// 单行内容高度 = 行高（令牌为 px）+ 边框，须小于控件令牌，单行时高度才恰好等于令牌
 function singleLineContentPx(classes: string): number {
   const size = /(?<![\w-])text-(meta|aux|body|group)(?![\w-])/.exec(classes)?.[1];
   if (!size) throw new Error(`no text size in: ${classes}`);
-  const fontPx = Number.parseFloat(tokenValue(`app-font-size-${size}`));
   const lineHeight = Number.parseFloat(tokenValue(`app-line-height-${size}`));
   const border = /(?<![\w-])border(?![\w-])/.test(classes) ? 2 : 0;
-  return fontPx * lineHeight + border;
+  return lineHeight + border;
 }
 
 function productionTsx(dir: string, files: string[] = []): string[] {
