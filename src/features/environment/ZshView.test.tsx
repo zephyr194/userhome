@@ -345,7 +345,8 @@ describe("zsh view entries", () => {
     expect(markup).toContain("命令替换");
     expect(markup).toContain("$HOME/work");
     expect(markup).toContain("nano");
-    expect(markup).not.toContain(">vim<");
+    expect(markup).toContain(">vim<");
+    expect(markup).toContain("可能被后面的文件覆盖");
   });
 
   it("lists PATH items in order, flags unresolved ones and keeps an empty item visible", () => {

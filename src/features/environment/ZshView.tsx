@@ -61,8 +61,9 @@ const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
 
 /**
  * 只读视图：四个 zsh 启动文件的适用 shell 类型、读取顺序、ZDOTDIR 判断和静态
- * 识别出的条目。按原文显示，不展开变量、不执行命令。同名变量只显示读取顺序里
- * 最后一处的结果，被覆盖的位置收在一行提示里；追加或动态写法的同名项全部保留。
+ * 识别出的条目。按原文显示，不展开变量、不执行命令。同名变量只隐藏被所有适用
+ * shell 都覆盖的位置；只覆盖部分 shell 的、后面文件无法读取的、以及追加或动态写法
+ * 的同名项都保留，并在行内说明。
  * 默认没有任何编辑入口；只有页面传入 onEditFile 时，位置已确定的文件才出现入口
  * （编辑器本身不在这个视图里）。
  */
@@ -205,7 +206,7 @@ function ReadingOrder({ overview }: { overview: ZshOverview }) {
         读取顺序
       </h3>
       <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
-        zsh 启动时按下面的顺序读取；后读取的文件可以覆盖先读取的设置。同名变量只显示最后一处，是否真的生效还取决于 shell 的类型和动态写法。
+        zsh 启动时按下面的顺序读取；后读取的文件可以覆盖先读取的设置。同名变量按 shell 类型分别判断，被完全覆盖的设置不再显示，只覆盖部分 shell 的会标出范围。是否真的生效还取决于 shell 的类型和动态写法。
       </p>
       <div className="mt-ui-8 min-w-0 overflow-x-auto">
         <table
@@ -715,20 +716,63 @@ function PathSegments({ segments }: { segments: readonly ZshPathSegment[] }) {
 
 function NameNote({ name, note }: { name: string; note: ZshNameNote }) {
   const place = (item: ZshLocation) => `${item.fileName} 第 ${item.line} 行`;
-  if (note.kind === "replaces") {
-    return (
-      <SameNameHint
-        description={`被覆盖的位置：${note.replaced.map(place).join("、")}。按读取顺序，最后一处生效；不同类型的 shell 读取的文件不同。这里不显示被覆盖的值。`}
-        label={`覆盖了前面 ${note.replaced.length} 处`}
-        title={`${name} 的覆盖位置`}
-      />
-    );
-  }
-  return (
-    <SameNameHint
-      description={`其他位置：${note.others.map(place).join("、")}。含追加或动态写法，最终值无法只看最后一处，全部保留。`}
-      label={`同名 ${note.others.length + 1} 处，未合并`}
-      title={`${name} 的同名位置`}
-    />
+  const scope = (
+    <StatusBadge title={appliesToText(note.appliesTo).detail}>
+      {appliesToText(note.appliesTo).label}
+    </StatusBadge>
   );
+  switch (note.kind) {
+    case "replaces":
+      return (
+        <>
+          {scope}
+          <SameNameHint
+            description={`被覆盖的位置：${note.replaced.map(place).join("、")}。在同一范围内，按读取顺序靠后的设置生效。这里不显示被覆盖的值。`}
+            label={`覆盖了前面 ${note.replaced.length} 处`}
+            title={`${name} 的覆盖位置`}
+          />
+        </>
+      );
+    case "narrower": {
+      const others =
+        note.appliesTo === "ALL"
+          ? "非交互 zsh 仍使用前面的值。"
+          : "这里的值仍在其它 shell 中生效。";
+      return (
+        <>
+          {scope}
+          <SameNameHint
+            description={`后面的位置：${note.narrower
+              .map((item) => `${place(item)}（${appliesToText(item.appliesTo).label}）`)
+              .join("、")}。它们只在各自范围的 shell 中覆盖这个值；${others}`}
+            label="部分范围被覆盖"
+            title={`${name} 的范围覆盖`}
+          />
+        </>
+      );
+    }
+    case "unread":
+      return (
+        <>
+          {scope}
+          <SameNameHint
+            description={`后面的 ${note.unreadFiles.join("、")} 无法读取，它可能再次设置这个变量，所以这里的值不一定是最终值。`}
+            label="可能被后面的文件覆盖"
+            title={`${name} 可能被覆盖`}
+          />
+        </>
+      );
+    case "shared":
+      return (
+        <>
+          {scope}
+          <SameNameHint
+            description={`其他位置：${note.others.map(place).join("、")}。含追加或动态写法，无法确定最终值，全部保留。`}
+            label={`同名 ${note.others.length + 1} 处，未合并`}
+            title={`${name} 的同名位置`}
+          />
+        </>
+      );
+  }
 }
+

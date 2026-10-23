@@ -95,18 +95,30 @@ function renderView(state: ZshState, overrides: Partial<ZshViewProps> = {}) {
   );
 }
 
-describe("zsh view: a name assigned more than once shows its last assignment", () => {
-  it("renders the name once, with the value that takes effect", () => {
+describe("zsh view: a name assigned in more than one file", () => {
+  it("shows each assignment that takes effect, with the shells it applies to", () => {
     renderView(stateOf(FILES));
-    expect(screen.getAllByText("EDITOR")).toHaveLength(1);
+    expect(screen.getAllByText("EDITOR")).toHaveLength(2);
+    expect(screen.getByText("vim")).toBeTruthy();
     expect(screen.getByText("code")).toBeTruthy();
-    expect(screen.queryByText("vim")).toBeNull();
+    expect(screen.getByText("部分范围被覆盖")).toBeTruthy();
   });
 
-  it("says how many earlier assignments it replaces and where they are", () => {
+  it("says which shells the later assignment overrides, and that non-interactive zsh keeps the earlier value", () => {
     const { container } = renderView(stateOf(FILES));
+    expect(container.textContent).toContain(".zshrc 第 3 行（仅交互 shell）");
+    expect(container.textContent).toContain("非交互 zsh 仍使用前面的值。");
+  });
+
+  it("renders a same-shell replacement once, and says how many earlier assignments it replaces", () => {
+    const { container } = renderView(
+      stateOf([
+        file("ZPROFILE", ready([entry({ line: 1, name: "EDITOR", value: "vim" })])),
+        file("ZLOGIN", ready([entry({ line: 3, name: "EDITOR", value: "code" })])),
+      ]),
+    );
     expect(screen.getByText("覆盖了前面 1 处")).toBeTruthy();
-    expect(container.textContent).toContain(".zshenv 第 1 行");
+    expect(container.textContent).toContain(".zprofile 第 1 行");
     expect(container.textContent).not.toContain("vim");
   });
 
@@ -137,11 +149,14 @@ describe("zsh view: variable actions", () => {
     expect(onEditFile).toHaveBeenCalledWith("ZSHRC", { kind: "addition" });
   });
 
-  it("opens the file that takes effect at the variable from 修改", () => {
+  it("opens the file and line of the assignment each 修改 button belongs to", () => {
     const onEditFile = vi.fn();
     renderView(stateOf(FILES), { onEditFile });
-    fireEvent.click(screen.getByRole("button", { name: "修改 EDITOR" }));
-    expect(onEditFile).toHaveBeenCalledWith("ZSHRC", { kind: "variable", name: "EDITOR", line: 3 });
+    const [zshenvEdit, zshrcEdit] = screen.getAllByRole("button", { name: "修改 EDITOR" });
+    fireEvent.click(zshrcEdit as HTMLElement);
+    expect(onEditFile).toHaveBeenLastCalledWith("ZSHRC", { kind: "variable", name: "EDITOR", line: 3 });
+    fireEvent.click(zshenvEdit as HTMLElement);
+    expect(onEditFile).toHaveBeenLastCalledWith("ZSHENV", { kind: "variable", name: "EDITOR", line: 1 });
   });
 
   it("disables 设置变量 when .zshrc cannot be edited", () => {

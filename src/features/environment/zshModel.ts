@@ -281,15 +281,23 @@ export interface ZshSummary {
   readonly problems: readonly string[];
 }
 
+/** A file that is absent contributes no entries, so it cannot override anything. */
+function isAbsent(file: ZshFile): boolean {
+  return file.outcome.status === "UNAVAILABLE" && file.outcome.reason === "NOT_FOUND";
+}
+
+function isUnreadable(file: ZshFile): boolean {
+  return file.outcome.status !== "READY" && !isAbsent(file);
+}
+
 export function summarize(overview: ZshOverview): ZshSummary {
-  const absent = (file: ZshFile) =>
-    file.outcome.status === "UNAVAILABLE" && file.outcome.reason === "NOT_FOUND";
-  if (overview.files.every(absent)) return { kind: "empty", problems: [] };
+  if (overview.files.every(isAbsent)) return { kind: "empty", problems: [] };
   const problems = overview.files
-    .filter((file) => file.outcome.status !== "READY" && !absent(file))
+    .filter((file) => file.outcome.status !== "READY" && !isAbsent(file))
     .map((file) => `${file.name}：${fileStatus(file).label}`);
   return { kind: problems.length > 0 ? "partial" : "ok", problems };
 }
+
 
 // ---- entries -------------------------------------------------------------
 
@@ -310,11 +318,29 @@ export interface ZshEditFocus {
 export interface ZshLocation {
   readonly fileName: string;
   readonly line: number;
+  readonly appliesTo: ZshAppliesTo;
 }
 
+/** `appliesTo` is the scope of the row the note is shown on. */
 export type ZshNameNote =
-  | { readonly kind: "replaces"; readonly replaced: readonly ZshLocation[] }
-  | { readonly kind: "shared"; readonly others: readonly ZshLocation[] };
+  | {
+      readonly kind: "replaces";
+      readonly appliesTo: ZshAppliesTo;
+      readonly replaced: readonly ZshLocation[];
+    }
+  | {
+      readonly kind: "narrower";
+      readonly appliesTo: ZshAppliesTo;
+      /** Later plain assignments that cover only some of the shells this row serves. */
+      readonly narrower: readonly ZshLocation[];
+    }
+  | { readonly kind: "shared"; readonly appliesTo: ZshAppliesTo; readonly others: readonly ZshLocation[] }
+  | {
+      readonly kind: "unread";
+      readonly appliesTo: ZshAppliesTo;
+      /** Later files that could not be read and might assign the name again. */
+      readonly unreadFiles: readonly string[];
+    };
 
 export interface ZshNameResolution {
   /** Entries a later one replaces, as `zshRowKey`. */
@@ -328,17 +354,31 @@ export function zshRowKey(file: ZshFileKey, line: number): string {
 }
 
 interface NameItem {
-  readonly file: ZshFileKey;
-  readonly fileName: string;
-  readonly line: number;
+  readonly file: ZshFile;
   readonly row: ZshEntryRow;
 }
 
+function nameLocation(item: NameItem): ZshLocation {
+  return { fileName: item.file.name, line: item.row.line, appliesTo: item.file.appliesTo };
+}
+
+/** Whether a file read by `writer` is also read by every shell that reads `target`. */
+function covers(writer: ZshAppliesTo, target: ZshAppliesTo): boolean {
+  return writer === "ALL" || writer === target;
+}
+
+function setsValue(item: NameItem): boolean {
+  return item.row.operation === "SET" && item.row.state !== "DYNAMIC";
+}
+
 /**
- * The last assignment of a name in reading order replaces the earlier ones. A
- * last assignment that appends (`+=`) or is dynamic says nothing about the final
- * value, so every occurrence stays and only points at the others. When any file
- * was cut short, nothing is resolved: a later occurrence may sit past the cut.
+ * A later plain assignment hides an earlier one only where it covers every shell
+ * that reads it: `.zshenv` (all shells) is still read by `zsh -c` after
+ * `.zshrc` (interactive only) sets the name. An appending or dynamic assignment
+ * says nothing about the final value, so nothing is hidden by it. A file that
+ * could not be read after an occurrence may assign the name again, so the
+ * occurrence is marked instead of treated as final. When any file was cut
+ * short, nothing is resolved: a later occurrence may sit past the cut.
  */
 export function resolveZshNames(overview: ZshOverview): ZshNameResolution {
   const files = [...overview.files].sort((left, right) => left.position - right.position);
@@ -347,39 +387,55 @@ export function resolveZshNames(overview: ZshOverview): ZshNameResolution {
   );
   if (truncated) return { hidden: new Set(), notes: new Map() };
 
+  const unreadable = files.filter(isUnreadable);
   const byName = new Map<string, NameItem[]>();
   for (const file of files) {
     if (file.outcome.status !== "READY") continue;
     for (const row of file.outcome.rows) {
       if (row.kind !== "ENTRY") continue;
       const items = byName.get(row.name) ?? [];
-      items.push({ file: file.file, fileName: file.name, line: row.line, row });
+      items.push({ file, row });
       byName.set(row.name, items);
     }
   }
 
   const hidden = new Set<string>();
   const notes = new Map<string, ZshNameNote>();
-  const location = (item: NameItem): ZshLocation => ({ fileName: item.fileName, line: item.line });
   for (const items of byName.values()) {
-    if (items.length < 2) continue;
-    const last = items[items.length - 1];
-    if (last === undefined) continue;
-    const earlier = items.slice(0, -1);
-    if (last.row.operation === "SET" && last.row.state !== "DYNAMIC") {
-      for (const item of earlier) hidden.add(zshRowKey(item.file, item.line));
-      notes.set(zshRowKey(last.file, last.line), {
-        kind: "replaces",
-        replaced: earlier.map(location),
-      });
-      continue;
-    }
-    for (const item of items) {
-      notes.set(zshRowKey(item.file, item.line), {
-        kind: "shared",
-        others: items.filter((other) => other !== item).map(location),
-      });
-    }
+    items.forEach((item, index) => {
+      const key = zshRowKey(item.file.file, item.row.line);
+      const { appliesTo } = item.file;
+      const earlier = items.slice(0, index);
+      const later = items.slice(index + 1);
+      if (later.some((other) => setsValue(other) && covers(other.file.appliesTo, appliesTo))) {
+        hidden.add(key);
+        return;
+      }
+      const unreadLater = unreadable.filter((file) => file.position > item.file.position);
+      if (unreadLater.length > 0) {
+        notes.set(key, { kind: "unread", appliesTo, unreadFiles: unreadLater.map((file) => file.name) });
+        return;
+      }
+      const narrower = later.filter(setsValue);
+      if (narrower.length > 0) {
+        notes.set(key, { kind: "narrower", appliesTo, narrower: narrower.map(nameLocation) });
+        return;
+      }
+      const replaced = setsValue(item)
+        ? earlier.filter((other) => covers(appliesTo, other.file.appliesTo))
+        : [];
+      if (replaced.length > 0) {
+        notes.set(key, { kind: "replaces", appliesTo, replaced: replaced.map(nameLocation) });
+        return;
+      }
+      if (items.length > 1) {
+        notes.set(key, {
+          kind: "shared",
+          appliesTo,
+          others: items.filter((other) => other !== item).map(nameLocation),
+        });
+      }
+    });
   }
   return { hidden, notes };
 }
