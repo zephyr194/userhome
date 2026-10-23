@@ -1,16 +1,36 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { decodeAppError } from "../../ipc/core";
-import { readLaunchctlEnvironment, revealLaunchctlValue } from "../../ipc/environment";
+import {
+  previewLaunchctlSet,
+  readLaunchctlEnvironment,
+  revealLaunchctlValue,
+  setLaunchctlValue,
+  unsetLaunchctlValue,
+  type LaunchctlChange,
+  type LaunchctlEnvironment,
+} from "../../ipc/environment";
+import type { LaunchctlSetInput } from "./LaunchctlDialogs";
 import { LaunchctlView, type LaunchctlState } from "./LaunchctlView";
 
 /**
  * Reads the login session variables when the section is first opened, then
  * stays mounted. Nothing is stored in the browser: the list and any revealed
- * secret live only in component state, and a re-read drops them.
+ * secret live only in component state, and a re-read drops them. A change
+ * replaces the list with the result it returns, without a loading state.
  */
 export function LaunchctlPage() {
   const [state, setState] = useState<LaunchctlState>({ status: "loading" });
   const requestCounter = useRef(0);
+
+  const applyChange = useCallback((change: LaunchctlChange) => {
+    requestCounter.current += 1;
+    const environment: LaunchctlEnvironment = {
+      entries: change.entries,
+      readAt: change.readAt,
+      partial: change.partial,
+    };
+    setState({ status: "ready", environment });
+  }, []);
 
   const read = useCallback(() => {
     const requestId = ++requestCounter.current;
@@ -38,6 +58,32 @@ export function LaunchctlPage() {
   }, [read]);
 
   const reveal = useCallback((key: string) => revealLaunchctlValue(key), []);
+  const preview = useCallback((key: string, value: string) => previewLaunchctlSet(key, value), []);
+  const set = useCallback(
+    async (input: LaunchctlSetInput) => {
+      const change = await setLaunchctlValue(input);
+      applyChange(change);
+      return change;
+    },
+    [applyChange],
+  );
+  const unset = useCallback(
+    async (key: string) => {
+      const change = await unsetLaunchctlValue(key);
+      applyChange(change);
+      return change;
+    },
+    [applyChange],
+  );
 
-  return <LaunchctlView onReveal={reveal} onRetry={retry} state={state} />;
+  return (
+    <LaunchctlView
+      onPreview={preview}
+      onReveal={reveal}
+      onRetry={retry}
+      onSet={set}
+      onUnset={unset}
+      state={state}
+    />
+  );
 }

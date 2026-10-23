@@ -1,6 +1,16 @@
-import { useId } from "react";
-import { Button, InfoTip } from "../../components/ui";
-import type { LaunchctlEnvironment } from "../../ipc/environment";
+import { useId, useState } from "react";
+import { ActionRow, Button, InfoTip } from "../../components/ui";
+import type {
+  LaunchctlChange,
+  LaunchctlEntry,
+  LaunchctlEnvironment,
+  LaunchctlSetPreview,
+} from "../../ipc/environment";
+import {
+  LaunchctlRemoveDialog,
+  LaunchctlSetDialog,
+  type LaunchctlSetInput,
+} from "./LaunchctlDialogs";
 import { LazySecretValue } from "./LazySecretValue";
 
 export type LaunchctlState =
@@ -12,18 +22,45 @@ export interface LaunchctlViewProps {
   state: LaunchctlState;
   onReveal: (key: string) => Promise<string>;
   onRetry: () => void;
+  onPreview: (key: string, value: string) => Promise<LaunchctlSetPreview>;
+  onSet: (input: LaunchctlSetInput) => Promise<LaunchctlChange>;
+  onUnset: (key: string) => Promise<LaunchctlChange>;
 }
+
+type LaunchctlDialog =
+  | { kind: "set"; entry?: LaunchctlEntry }
+  | { kind: "remove"; key: string };
 
 function formatReadAt(readAt: string): string {
   const date = new Date(readAt);
   return Number.isNaN(date.getTime()) ? readAt : date.toLocaleString("zh-CN");
 }
 
-/** The login session variables, read-only: names are visible, secret values stay masked until asked for. */
-export function LaunchctlView({ state, onReveal, onRetry }: LaunchctlViewProps) {
+/**
+ * The login session variables. Names are visible and secret values stay masked
+ * until asked for. Setting, modifying and removing go through a dialog; the
+ * list is re-read from the change result, so the scroll position stays put.
+ */
+export function LaunchctlView({
+  onPreview,
+  onReveal,
+  onRetry,
+  onSet,
+  onUnset,
+  state,
+}: LaunchctlViewProps) {
   const headingId = useId();
+  const [dialog, setDialog] = useState<LaunchctlDialog | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
   const loading = state.status === "loading";
   const environment = state.status === "ready" ? state.environment : undefined;
+
+  function completeChange(change: LaunchctlChange, verb: string, key: string) {
+    setDialog(null);
+    setNotice(`${verb} ${key}。${change.note}`);
+    setRevision((count) => count + 1);
+  }
 
   return (
     <section
@@ -34,10 +71,10 @@ export function LaunchctlView({ state, onReveal, onRetry }: LaunchctlViewProps) 
         <div className="flex min-w-0 flex-col gap-ui-4">
           <div className="flex min-w-0 items-center gap-ui-4">
             <h2 className="text-group font-semibold text-foreground" id={headingId}>
-              macOS 登录会话（只读）
+              macOS 登录会话
             </h2>
             <InfoTip
-              description="显示 GUI 应用启动时继承的环境变量，只读，不会修改系统。"
+              description="显示 GUI 应用启动时继承的环境变量。可以设置、修改或移除变量，只影响之后启动的应用。"
               title="登录会话变量"
             />
           </div>
@@ -47,10 +84,26 @@ export function LaunchctlView({ state, onReveal, onRetry }: LaunchctlViewProps) 
             </p>
           ) : null}
         </div>
-        <Button disabled={loading} onClick={onRetry} size="sm" variant="secondary">
-          重新读取
-        </Button>
+        <ActionRow>
+          <Button disabled={loading} onClick={onRetry} size="sm" variant="secondary">
+            重新读取
+          </Button>
+          <Button
+            disabled={loading}
+            onClick={() => setDialog({ kind: "set" })}
+            size="sm"
+            variant="primary"
+          >
+            设置变量
+          </Button>
+        </ActionRow>
       </header>
+
+      {notice !== null ? (
+        <p className="border border-line px-ui-12 py-ui-8 text-aux text-foreground" role="status">
+          {notice}
+        </p>
+      ) : null}
 
       {state.status === "loading" ? (
         <div className="flex flex-col gap-ui-8" role="status">
@@ -102,6 +155,9 @@ export function LaunchctlView({ state, onReveal, onRetry }: LaunchctlViewProps) 
                 <th className="py-ui-8 text-aux font-normal text-muted-foreground" scope="col">
                   值
                 </th>
+                <th className="w-px whitespace-nowrap py-ui-8 pl-ui-12 text-right text-aux font-normal text-muted-foreground" scope="col">
+                  操作
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -118,7 +174,7 @@ export function LaunchctlView({ state, onReveal, onRetry }: LaunchctlViewProps) 
                       <LazySecretValue
                         label={entry.key}
                         load={() => onReveal(entry.key)}
-                        resetKey={entry.key}
+                        resetKey={`${entry.key}:${environment.readAt}:${revision}`}
                       />
                     ) : (
                       <code className="block break-all rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux text-foreground">
@@ -130,11 +186,51 @@ export function LaunchctlView({ state, onReveal, onRetry }: LaunchctlViewProps) 
                       </code>
                     )}
                   </td>
+                  <td className="w-px whitespace-nowrap py-ui-8 pl-ui-12">
+                    <ActionRow align="end">
+                      <Button
+                        aria-label={`修改 ${entry.key}`}
+                        disabled={loading}
+                        onClick={() => setDialog({ kind: "set", entry })}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        修改
+                      </Button>
+                      <Button
+                        aria-label={`移除 ${entry.key}`}
+                        disabled={loading}
+                        onClick={() => setDialog({ kind: "remove", key: entry.key })}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        移除
+                      </Button>
+                    </ActionRow>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      ) : null}
+
+      {dialog?.kind === "set" ? (
+        <LaunchctlSetDialog
+          entry={dialog.entry}
+          onClose={() => setDialog(null)}
+          onDone={(change, key) => completeChange(change, dialog.entry ? "已修改" : "已设置", key)}
+          onPreview={onPreview}
+          onSet={onSet}
+        />
+      ) : null}
+      {dialog?.kind === "remove" ? (
+        <LaunchctlRemoveDialog
+          entryKey={dialog.key}
+          onCancel={() => setDialog(null)}
+          onDone={(change, key) => completeChange(change, "已移除", key)}
+          onRemove={onUnset}
+        />
       ) : null}
     </section>
   );

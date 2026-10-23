@@ -67,7 +67,7 @@ describe("environment page domain switching", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /登录会话/ }));
     await waitFor(() => expect(calls).toContain("read_launchctl_environment"));
-    expect(screen.getByRole("heading", { name: "macOS 登录会话（只读）" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "macOS 登录会话" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("tab", { name: /用户 zsh/ }));
     fireEvent.click(screen.getByRole("tab", { name: /项目 dotenv/ }));
