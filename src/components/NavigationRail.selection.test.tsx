@@ -79,6 +79,31 @@ describe("侧栏选中框：单一选中标记与滑动", () => {
     );
   });
 
+  it("三个分组共用同一个 .slide-list 容器，选中框的定位上下文不被分组打断", () => {
+    stubLayout();
+    const { container } = render(<Harness initial="dashboard" />);
+    expect(container.querySelectorAll(".slide-list")).toHaveLength(1);
+    expect(container.querySelector(".slide-list")).toBe(
+      document.querySelector("nav.navigation-rail"),
+    );
+    expect(container.querySelectorAll(".slide-list ul")).toHaveLength(3);
+    for (const list of container.querySelectorAll(".slide-list ul")) {
+      expect(list.parentElement).toBe(container.querySelector(".slide-list"));
+    }
+  });
+
+  it("跨组切换：选中框移动到另一分组的项上，且只有一个选中标记", () => {
+    stubLayout();
+    const { container } = render(<Harness initial="environment" />);
+    const services = container.querySelector<HTMLAnchorElement>('a[href="#services"]')!;
+    act(() => {
+      fireEvent.click(services);
+    });
+    expect(container.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    expect(services.getAttribute("aria-current")).toBe("page");
+    expect(indicatorY()).toBe(`${rowIndex(services) * ROW_HEIGHT}px`);
+  });
+
   it("点击其他项：只保留一个选中标记，指示器测量到新项的纵向位置", () => {
     stubLayout();
     const { container } = render(<Harness initial="dashboard" />);

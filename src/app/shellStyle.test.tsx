@@ -123,11 +123,11 @@ describe("导航项尺寸与交互", () => {
   });
 });
 
-describe("侧栏不再有分组标题", () => {
-  it("侧栏只有扁平列表，不渲染分组标题，也没有分组标题的样式", () => {
+describe("侧栏分组标题", () => {
+  it("侧栏保留三组分组标题，样式只由 r6-nav 区块承担", () => {
     const markup = renderRail();
-    expect(markup).not.toContain("navigation-rail__section-label");
-    expect(rulesFor(".navigation-rail__section-label")).toEqual([]);
+    expect(markup.match(/navigation-rail__section-label/g)).toHaveLength(3);
+    expect(rulesFor(".navigation-rail__section-label")).not.toHaveLength(0);
   });
 });
 

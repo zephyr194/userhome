@@ -31,26 +31,31 @@ describe("NavigationRail", () => {
     }
   });
 
-  it("renders one flat list without group headings", () => {
+  it("renders three group headings, each labelling its own list", () => {
     const markup = renderRail("dashboard");
-    expect(markup.match(/<ul/g)).toHaveLength(1);
-    expect(markup).not.toContain("navigation-rail__section-label");
-    expect(markup).not.toContain("aria-labelledby");
-    for (const group of ["系统工具", "工具集", "支撑"]) {
-      expect(markup, group).not.toMatch(new RegExp(`>${group}</p>`));
+    expect(markup.match(/<ul/g)).toHaveLength(3);
+    for (const [id, label] of [
+      ["system-tools", "系统工具"],
+      ["toolset", "工具集"],
+      ["support", "支撑"],
+    ]) {
+      expect(markup, label).toContain(
+        `<p class="navigation-rail__section-label" id="nav-group-${id}">${label}</p>`,
+      );
+      expect(markup, label).toContain(`<ul aria-labelledby="nav-group-${id}">`);
     }
   });
 
-  it("lists the entries in the fixed order", () => {
+  it("lists the entries in the fixed order across the groups", () => {
     const markup = renderRail("dashboard");
     const hrefs = [...markup.matchAll(/<a href="#([A-Za-z]+)"/g)].map((match) => match[1]);
     expect(hrefs).toEqual([
-      "dashboard",
       "environment",
       "appConfig",
       "aiConfig",
       "systemTools",
       "tools",
+      "dashboard",
       "services",
       "settings",
     ]);

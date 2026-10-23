@@ -1,6 +1,7 @@
+import { Fragment } from "react";
 import type { ConnectionState } from "../app/shellState";
 import {
-  primaryNavigationRoutes,
+  groupNavigationRoutes,
   type AppRoute,
   type AppRouteId,
 } from "../app/routeDefinitions";
@@ -42,27 +43,34 @@ export function NavigationRail({
           <small>CONTROL LAB</small>
         </span>
       </div>
-      <ul>
-        {primaryNavigationRoutes(routes).map((route) => (
-          <li key={route.id}>
-            <a
-              href={`#${route.id}`}
-              className="slide-item"
-              aria-label={`${route.label}：${route.description}`}
-              aria-current={activeRouteId === route.id ? "page" : undefined}
-              aria-controls="main-content"
-              title={route.label}
-              onClick={(event) => {
-                event.preventDefault();
-                if (activeRouteId !== route.id) onNavigate(route.id);
-              }}
-            >
-              <span className="navigation-rail__icon"><RouteIcon icon={route.icon} /></span>
-              <span className="navigation-rail__label">{route.label}</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {groupNavigationRoutes(routes).map(({ group, routes: groupRoutes }) => (
+        <Fragment key={group.id}>
+          <p className="navigation-rail__section-label" id={`nav-group-${group.id}`}>
+            {group.label}
+          </p>
+          <ul aria-labelledby={`nav-group-${group.id}`}>
+            {groupRoutes.map((route) => (
+              <li key={route.id}>
+                <a
+                  href={`#${route.id}`}
+                  className="slide-item"
+                  aria-label={`${route.label}：${route.description}`}
+                  aria-current={activeRouteId === route.id ? "page" : undefined}
+                  aria-controls="main-content"
+                  title={route.label}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (activeRouteId !== route.id) onNavigate(route.id);
+                  }}
+                >
+                  <span className="navigation-rail__icon"><RouteIcon icon={route.icon} /></span>
+                  <span className="navigation-rail__label">{route.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Fragment>
+      ))}
       <div className={`navigation-rail__status navigation-rail__status--${status.tone}`}>
         <span aria-hidden="true" />
         <div><strong>{status.label}</strong><small>LOCAL WORKSPACE</small></div>

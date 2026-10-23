@@ -52,4 +52,14 @@ describe("侧栏样式审计", () => {
   it("侧栏容器是指示器的定位上下文", () => {
     expect(declaredValues(".slide-list", "position")).toContain("relative");
   });
+
+  it("分组标题为 11px 的 muted 小字，不全大写、不加字距，且不参与定位（不打断选中框测量）", () => {
+    const label = ".navigation-rail__section-label";
+    expect(declaredValues(label, "font-size")).toEqual(["var(--app-font-size-meta)"]);
+    expect(declaredValues(label, "color")).toEqual(["var(--app-muted-foreground)"]);
+    expect(declaredValues(label, "text-transform")).toEqual([]);
+    expect(declaredValues(label, "letter-spacing")).toEqual([]);
+    expect(declaredValues(label, "position")).toEqual(["absolute"]);
+    expect(declaredValues(".navigation-rail ul", "position")).toEqual([]);
+  });
 });

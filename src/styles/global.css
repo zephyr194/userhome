@@ -2443,3 +2443,29 @@ button[class*="border-border"],
   }
 }
 /* /r5b-n2 */
+/* r6-nav ------------------------------------------------------------ */
+.navigation-rail__section-label {
+  margin: var(--app-space-12) 0 var(--app-space-4);
+  padding: 0 var(--app-space-8);
+  color: var(--app-muted-foreground);
+  font-size: var(--app-font-size-meta);
+  font-weight: 500;
+  line-height: var(--app-line-height-meta);
+}
+
+@media (max-width: 760px) {
+  .navigation-rail__section-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .navigation-rail ul {
+    margin-top: var(--app-space-12);
+  }
+}
+/* /r6-nav */

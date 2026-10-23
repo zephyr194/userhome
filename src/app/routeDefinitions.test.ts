@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   APP_ROUTES,
+  groupNavigationRoutes,
   isRestorableRoute,
+  NAV_GROUPS,
   navigationRouteOf,
   primaryNavigationRoutes,
 } from "./routeDefinitions";
@@ -15,16 +17,31 @@ describe("route registry", () => {
     );
   });
 
-  it("lists the sidebar entries flat, in the fixed order", () => {
+  it("lists the sidebar entries in the fixed order across the groups", () => {
     expect(primaryNavigationRoutes(APP_ROUTES).map((route) => route.label)).toEqual([
-      "概览",
       "环境变量",
       "应用配置",
       "AI 工具",
       "系统工具",
       "工具集",
+      "概览",
       "服务",
       "设置",
+    ]);
+  });
+
+  it("puts the sidebar entries under three headed groups in the fixed order", () => {
+    expect(NAV_GROUPS.map((group) => [group.id, group.label])).toEqual([
+      ["system-tools", "系统工具"],
+      ["toolset", "工具集"],
+      ["support", "支撑"],
+    ]);
+    const groups = groupNavigationRoutes(APP_ROUTES);
+    expect(groups.map(({ group }) => group.label)).toEqual(["系统工具", "工具集", "支撑"]);
+    expect(groups.map(({ routes }) => routes.map((route) => route.id))).toEqual([
+      ["environment", "appConfig", "aiConfig", "systemTools"],
+      ["tools"],
+      ["dashboard", "services", "settings"],
     ]);
   });
 
@@ -76,9 +93,9 @@ describe("route registry", () => {
     expect(services?.description).not.toContain("Homebrew");
   });
 
-  it("places the tools page between system tools and services", () => {
-    const labels = primaryNavigationRoutes(APP_ROUTES).map((route) => route.id);
-    expect(labels.indexOf("tools")).toBe(labels.indexOf("systemTools") + 1);
-    expect(labels.indexOf("services")).toBe(labels.indexOf("tools") + 1);
+  it("places the tools page in its own group between system tools and the support group", () => {
+    const ids = primaryNavigationRoutes(APP_ROUTES).map((route) => route.id);
+    expect(ids.indexOf("tools")).toBe(ids.indexOf("systemTools") + 1);
+    expect(ids.indexOf("dashboard")).toBe(ids.indexOf("tools") + 1);
   });
 });

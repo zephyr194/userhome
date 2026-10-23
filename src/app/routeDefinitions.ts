@@ -24,6 +24,20 @@ export type AppRouteIcon =
   | "tools"
   | "settings";
 
+export type NavGroupId = "system-tools" | "toolset" | "support";
+
+export interface NavGroup {
+  id: NavGroupId;
+  label: string;
+}
+
+/** Primary navigation groups, in display order. */
+export const NAV_GROUPS: readonly NavGroup[] = [
+  { id: "system-tools", label: "系统工具" },
+  { id: "toolset", label: "工具集" },
+  { id: "support", label: "支撑" },
+];
+
 export interface AppRouteSection {
   id: string;
   label: string;
@@ -148,22 +162,39 @@ export const APP_ROUTES: readonly AppRoute[] = (
   Object.keys(ROUTE_REGISTRY) as AppRouteId[]
 ).map((id) => ({ id, ...ROUTE_REGISTRY[id] }));
 
-/** Sidebar entries from top to bottom. Routes not listed here have no sidebar entry. */
-const PRIMARY_NAV_ORDER: readonly AppRouteId[] = [
-  "dashboard",
-  "environment",
-  "appConfig",
-  "aiConfig",
-  "systemTools",
-  "tools",
-  "services",
-  "settings",
-];
+/**
+ * Sidebar entries per group, top to bottom. Routes not listed here have no
+ * sidebar entry; a child page (with `parent`) is reached from its parent.
+ */
+const NAV_LAYOUT: Record<NavGroupId, readonly AppRouteId[]> = {
+  "system-tools": ["environment", "appConfig", "aiConfig", "systemTools"],
+  toolset: ["tools"],
+  support: ["dashboard", "services", "settings"],
+};
+
+const PRIMARY_NAV_ORDER: readonly AppRouteId[] = NAV_GROUPS.flatMap(
+  (group) => NAV_LAYOUT[group.id],
+);
+
+export interface NavGroupRoutes {
+  group: NavGroup;
+  routes: readonly AppRoute[];
+}
+
+/** Sidebar entries per group, in display order; every group is returned. */
+export function groupNavigationRoutes(
+  routes: readonly AppRoute[],
+): readonly NavGroupRoutes[] {
+  return NAV_GROUPS.map((group) => ({
+    group,
+    routes: NAV_LAYOUT[group.id].flatMap((id) => routes.filter((route) => route.id === id)),
+  }));
+}
 
 export function primaryNavigationRoutes(
   routes: readonly AppRoute[],
 ): readonly AppRoute[] {
-  return PRIMARY_NAV_ORDER.flatMap((id) => routes.filter((route) => route.id === id));
+  return groupNavigationRoutes(routes).flatMap(({ routes: groupRoutes }) => groupRoutes);
 }
 
 /** The sidebar entry that stays highlighted for a route. */

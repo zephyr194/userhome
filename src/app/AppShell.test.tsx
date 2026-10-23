@@ -38,7 +38,7 @@ describe("AppShell", () => {
     expect(markup).not.toMatch(/<(?:button|a|input)[^>]*data-tauri-drag-region/);
   });
 
-  it("lists primary navigation flat, in order, and leaves out the retired application and Homebrew entries", () => {
+  it("lists primary navigation under its group headings, in order, and leaves out the retired application and Homebrew entries", () => {
     const markup = renderToStaticMarkup(
       <AppShell
         onAppearanceChange={() => Promise.resolve()}
@@ -49,14 +49,14 @@ describe("AppShell", () => {
 
     const nav = markup.match(/<nav aria-label="主导航"[\s\S]*?<\/nav>/)?.[0];
     expect(nav).toBeDefined();
-    expect(nav).not.toContain("navigation-rail__section-label");
+    expect(nav?.match(/navigation-rail__section-label/g)).toHaveLength(3);
     const positions = [
-      "#dashboard",
       "#environment",
       "#appConfig",
       "#aiConfig",
       "#systemTools",
       "#tools",
+      "#dashboard",
       "#services",
       "#settings",
     ].map((href) => nav?.indexOf(`href="${href}"`) ?? -1);
