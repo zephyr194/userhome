@@ -235,7 +235,7 @@ describe("DashboardPage fact ledger", () => {
     ]);
   });
 
-  it("re-reads every overview source when a header refresh completes", async () => {
+  it("re-reads the light overview sources when a header refresh completes, and leaves the AI scan to its cache", async () => {
     const view = rtl.render(<DashboardPage refresh={{ status: "idle" }} state={READY_STATE} />);
     await rtl.screen.findByText("zsh 启动文件 2 个 · 授权目录 1 个");
     await rtl.screen.findByText("已发现的应用配置条目数。");
@@ -245,7 +245,7 @@ describe("DashboardPage fact ledger", () => {
     view.rerender(<DashboardPage refresh={{ status: "ready", completedAt: "2026-10-22T10:00:00Z" }} state={READY_STATE} />);
     await rtl.waitFor(() => expect(mocks.readZshStartupFiles).toHaveBeenCalledTimes(2));
     await rtl.waitFor(() => expect(mocks.listAppConfigEntries).toHaveBeenCalledTimes(2));
-    await rtl.waitFor(() => expect(detectCalls).toBe(2));
+    expect(detectCalls).toBe(1);
   });
 
   it("keeps the last numbers visible with an updating label while a re-read is in flight", async () => {

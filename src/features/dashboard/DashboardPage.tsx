@@ -322,7 +322,11 @@ export function DashboardPage({
 
   useEffect(() => {
     if (finished === 0) return;
-    for (const id of OVERVIEW_SOURCE_IDS) void dataHub.refresh(id).catch(ignoreFailure);
+    // The AI tool scan runs one probe per tool; it follows the cache's TTL instead of every refresh.
+    for (const id of OVERVIEW_SOURCE_IDS) {
+      const read = id === "aiTools" ? dataHub.ensure(id) : dataHub.refresh(id);
+      void read.catch(ignoreFailure);
+    }
   }, [finished]);
 
   const environment = combineEnvironment(zshStartup, directories);

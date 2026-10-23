@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { dataHub } from "../../app/dataHub";
 import { getGrantStoreStatus, resetGrantStore } from "../../ipc/grants";
 import {
   createGrantStoreController,
@@ -14,7 +15,11 @@ export function useGrantStoreNotice(): {
   const [controller] = useState(() =>
     createGrantStoreController({
       getStatus: getGrantStoreStatus,
-      reset: resetGrantStore,
+      reset: async () => {
+        const outcome = await resetGrantStore();
+        dataHub.invalidate("authorizedDirectories");
+        return outcome;
+      },
     }),
   );
   const state = useSyncExternalStore(

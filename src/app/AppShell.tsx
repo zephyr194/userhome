@@ -259,6 +259,7 @@ export function ShellContent({
   const refreshCompletedAt =
     state.refresh.status === "ready" ? state.refresh.completedAt : undefined;
   const [dismissedRefreshAt, setDismissedRefreshAt] = useState<string>();
+  const [dismissedRefreshError, setDismissedRefreshError] = useState<string>();
   const quitReturnFocus = useRef<HTMLElement | null>(null);
   const pendingNavigationSource = useRef<NavigationSource>("primary-nav");
   const restoreSelection =
@@ -306,6 +307,12 @@ export function ShellContent({
     );
     return () => window.clearTimeout(timer);
   }, [refreshCompletedAt]);
+
+  // A later failure shows again once the user has refreshed since the dismissed one.
+  const requestRefresh = useCallback(() => {
+    setDismissedRefreshError(undefined);
+    onRefresh();
+  }, [onRefresh]);
 
   const updateSelection = useCallback((patch: Partial<SelectionMemory>) => {
     setSelection((current) => ({ ...current, ...patch }));
@@ -525,7 +532,7 @@ export function ShellContent({
   // retry action. When the discovery error still holds a previous snapshot,
   // the copy states plainly that previously loaded data is retained.
   const refreshNotice =
-    state.refresh.status === "error" ? (
+    state.refresh.status === "error" && state.refresh.message !== dismissedRefreshError ? (
       <div
         className="r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border border-danger-border px-ui-12 py-ui-8 text-xs"
         role="alert"
@@ -540,8 +547,20 @@ export function ShellContent({
             ? ` ${t("shell.refresh.retained")}`
             : ""}
         </p>
-        <Button className="shrink-0" size="sm" variant="secondary" onClick={onRefresh}>
+        <Button className="shrink-0" size="sm" variant="secondary" onClick={requestRefresh}>
           {t("common.retry")}
+        </Button>
+        <Button
+          className="shrink-0"
+          size="sm"
+          variant="secondary"
+          onClick={() =>
+            setDismissedRefreshError(
+              state.refresh.status === "error" ? state.refresh.message : undefined,
+            )
+          }
+        >
+          {t("common.close")}
         </Button>
       </div>
     ) : refreshCompletedAt !== undefined && refreshCompletedAt !== dismissedRefreshAt ? (
@@ -637,7 +656,7 @@ export function ShellContent({
                     state.preferences.status === "loading" ||
                     state.refresh.status === "refreshing"
                   }
-                  onClick={onRefresh}
+                  onClick={requestRefresh}
                   aria-label={
                     state.refresh.status === "refreshing"
                       ? t("shell.refresh.buttonBusy")

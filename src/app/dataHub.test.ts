@@ -79,6 +79,22 @@ describe("data hub cache", () => {
     expect(set.appConfig).toHaveBeenCalledTimes(2);
   });
 
+  it("retries on ensure after a refresh failed, even while the old reading is within its TTL", async () => {
+    const set = loaders({
+      appConfig: vi
+        .fn<() => Promise<number>>()
+        .mockResolvedValueOnce(3)
+        .mockRejectedValueOnce(APP_ERROR)
+        .mockResolvedValueOnce(5),
+    });
+    const hub = createDataHub(set);
+    await hub.ensure("appConfig");
+    await expect(hub.refresh("appConfig")).rejects.toMatchObject({ message: APP_ERROR.message });
+    expect(hub.state("appConfig")).toMatchObject({ status: "error", previous: { value: 3 } });
+    await expect(hub.ensure("appConfig")).resolves.toMatchObject({ value: 5 });
+    expect(set.appConfig).toHaveBeenCalledTimes(3);
+  });
+
   it("keeps the previous value visible while a re-read is in flight", async () => {
     const pending = deferred<number>();
     const set = loaders({ appConfig: vi.fn(() => pending.promise) });

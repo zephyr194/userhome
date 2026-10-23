@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { decodeAppError, type AppError } from "../ipc/core";
-import { detectAiConfig, type AiConfigReport } from "../ipc/aiConfig";
+import { detectAiConfig, lastAiConfigReport, type AiConfigReport } from "../ipc/aiConfig";
 import { listAppConfigEntries } from "../ipc/appConfig";
 import { readZshStartupFiles, type ZshOverview } from "../ipc/environment";
 import { listGrants, type GrantSummary } from "../ipc/grants";
@@ -154,6 +154,7 @@ export function createDataHub(loaders: HubLoaders, options: HubOptions = {}): Da
         const appError = decodeAppError(error);
         if (entry.generation === generation) {
           entry.error = appError;
+          entry.stale = true;
           entry.inFlight = undefined;
           commit(entry);
         }
@@ -238,7 +239,11 @@ const defaultLoaders: HubLoaders = {
   appConfig: () => listAppConfigEntries().then((items) => items.length),
   zshStartup: () => readZshStartupFiles().then(countReadyZshFiles),
   authorizedDirectories: () => listGrants().then(countAuthorizedDirectories),
-  aiTools: () => detectAiConfig(),
+  // The AI tools page keeps its last report for the session; reuse it before probing every tool again.
+  aiTools: () => {
+    const last = lastAiConfigReport();
+    return last === undefined ? detectAiConfig() : Promise.resolve(last);
+  },
 };
 
 export const dataHub: DataHub = createDataHub(defaultLoaders);

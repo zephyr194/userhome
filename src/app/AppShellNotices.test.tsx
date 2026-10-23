@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_USER_PREFERENCES } from "../ipc/settings";
 import { AppShell } from "./AppShell";
@@ -75,5 +75,20 @@ describe("workspace notices", () => {
 
     rerender(<Shell state={shellState({ refresh: { status: "idle" } })} />);
     expect(screen.queryByText(REFRESH_FAILED)).toBeNull();
+  });
+
+  it("lets the user close a refresh failure and shows it again after the next refresh request", () => {
+    const failed = shellState({ refresh: { status: "error", message: REFRESH_FAILED } });
+    const { rerender } = render(<Shell state={failed} />);
+    expect(screen.getAllByText(REFRESH_FAILED).length).toBeGreaterThan(0);
+
+    const alert = screen.getByRole("alert");
+    fireEvent.click(within(alert).getByRole("button", { name: "关闭" }));
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /刷新/ }));
+    rerender(<Shell state={shellState({ refresh: { status: "refreshing" } })} />);
+    rerender(<Shell state={failed} />);
+    expect(screen.getByRole("alert")).not.toBeNull();
   });
 });
