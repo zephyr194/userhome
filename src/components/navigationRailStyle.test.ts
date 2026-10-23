@@ -26,6 +26,10 @@ function declaredValues(selector: string, property: string): string[] {
   );
 }
 
+function lastOf(values: string[]): string {
+  return values[values.length - 1];
+}
+
 describe("侧栏样式审计", () => {
   it("导航项的 ::before 不再绘制竖条（无任何规则）", () => {
     expect(rulesFor(".navigation-rail a::before")).toEqual([]);
@@ -79,14 +83,28 @@ describe("侧栏样式审计", () => {
     );
     expect(declaredValues(".navigation-rail__status", "position")).toEqual([]);
   });
+
+  it("品牌区下方留 8px，与概览列表之间不靠边", () => {
+    expect(declaredValues(".navigation-rail__brand", "margin-bottom")).toEqual([
+      "var(--app-space-8)",
+    ]);
+    expect(declaredValues(".navigation-rail__brand", "position")).toEqual([]);
+  });
+
+  it("概览行的左右内边距与其他分组行一致：不单独覆盖内边距", () => {
+    expect(lastOf(declaredValues(".navigation-rail a", "padding"))).toBe("0 var(--app-space-8)");
+    expect(declaredValues(".navigation-rail__group--overview a", "padding")).toEqual([]);
+    expect(declaredValues(".navigation-rail__group--overview a", "padding-inline")).toEqual([]);
+    expect(declaredValues(".navigation-rail__group--overview .slide-item", "padding")).toEqual([]);
+  });
 });
 
-const r8Source = source.slice(source.indexOf("/* r8-nav"), source.indexOf("/* /r8-nav */"));
-const r8Css = r8Source.replace(/\/\*[\s\S]*?\*\//g, "");
+const r10Source = source.slice(source.indexOf("/* r10-nav"), source.indexOf("/* /r10-nav */"));
+const r10Css = r10Source.replace(/\/\*[\s\S]*?\*\//g, "");
 
 function blockOf(header: RegExp): string {
-  const match = r8Css.match(header);
-  if (!match) throw new Error(`r8-nav 区块缺少 ${header}`);
+  const match = r10Css.match(header);
+  if (!match) throw new Error(`r10-nav 区块缺少 ${header}`);
   return match[1];
 }
 
@@ -96,9 +114,9 @@ function tokenIn(body: string, token: string): string {
   return match[1].trim();
 }
 
-function r8Declared(selector: string, property: string): string[] {
+function r10Declared(selector: string, property: string): string[] {
   const pattern = new RegExp(`(?:^|[\\s;{])${property}:\\s*([^;]+);`, "g");
-  return [...r8Css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+  return [...r10Css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
     .filter((match) => match[1].trim() === selector)
     .flatMap((match) => [...match[2].matchAll(pattern)].map((hit) => hit[1].trim()));
 }
@@ -113,6 +131,10 @@ const LIGHT = {
   sidebar: "#E9EEF3",
   sidebarHover: "#DCE3EA",
   foreground: "#1D242D",
+  selectionFill: "#F8EBE1",
+  selectionText: "#A64D1D",
+  selectionBorder: "#B65C24",
+  primaryIcon: "#B65C24",
 };
 
 const DARK_BODIES = [
@@ -127,9 +149,19 @@ const DARK = {
   sidebar: "#171B20",
   sidebarHover: "#272E37",
   foreground: "#E6EBF1",
+  selectionFill: "#3B2A20",
+  selectionText: "#F0A060",
+  selectionBorder: "#F0A060",
+  primaryIcon: "#F0A060",
 };
 
 const ORANGE_TOKENS = ["#B65C24", "#F0A060", "#A64D1D", "#E9925E", "#F6BA83", "#F8EBE1", "#3B2A20"];
+
+const SELECTED =
+  '[aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]';
+const PRIMARY_ITEM = `.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"]) .slide-item:is(${SELECTED})`;
+const PRIMARY_INDICATOR =
+  '.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before';
 
 function luminance(hex: string): number {
   const channel = (value: number) => {
@@ -145,11 +177,7 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-function lastOf(values: string[]): string {
-  return values[values.length - 1];
-}
-
-describe("选中级别样式（r8-nav）", () => {
+describe("选中级别样式（r10-nav）", () => {
   const themes = [
     LIGHT,
     ...DARK_BODIES.map((body, index) => ({ ...DARK, name: `深色 ${index + 1}`, tokens: body })),
@@ -167,34 +195,42 @@ describe("选中级别样式（r8-nav）", () => {
       "--app-surface-muted: #262C34;",
       "--app-sidebar: #171B20;",
       "--app-sidebar-hover: #272E37;",
+      "--app-primary-soft: #F8EBE1;",
+      "--app-selection-foreground: #A64D1D;",
+      "--app-selection-border: #B65C24;",
+      "--app-primary-soft: #3B2A20;",
+      "--app-selection-foreground: #F0A060;",
+      "--app-selection-border: #F0A060;",
     ]) {
       expect(source, value).toContain(value);
     }
   });
 
-  it("一级与二级各自定义填充令牌，两级互不相同，二级不使用橙色", () => {
+  it("一级是信号橙浅底（--app-selection），二级是冷灰（--app-selection-secondary），两级颜色不同", () => {
     for (const theme of themes) {
-      const primary = tokenIn(theme.tokens, "--app-selection-primary");
       const secondary = tokenIn(theme.tokens, "--app-selection-secondary");
-      expect(primary, theme.name).not.toBe(secondary);
+      expect(secondary, theme.name).not.toBe(theme.selectionFill);
       expect(ORANGE_TOKENS, theme.name).not.toContain(secondary.toUpperCase());
       expect(secondary, theme.name).not.toMatch(/var\(--(app-primary|app-selection-border|r4-signal|app-brand-accent-deep)\)/);
     }
   });
 
-  it("不再定义描边令牌：一级与二级的 -border 令牌已删除，横向标签页下划线令牌保留", () => {
-    expect(source).not.toMatch(/--app-selection-(primary|secondary)-border/);
+  it("删除 r8 的一级令牌与图标令牌，描边令牌只保留 --app-selection-border", () => {
+    expect(source).not.toMatch(/--app-selection-primary/);
+    expect(source).not.toMatch(/--app-selection-secondary-border/);
     expect(source).toMatch(/--app-selection-border:\s*#B65C24;/);
   });
 
-  it("一级：白色文字在实心钢色底上 ≥4.5:1，底色相对侧栏 ≥3:1，橙色图标相对底色 ≥3:1", () => {
+  it("一级：橙字在浅底上 ≥4.5:1（浅色与深色）", () => {
     for (const theme of themes) {
-      const primary = tokenIn(theme.tokens, "--app-selection-primary");
-      const text = tokenIn(theme.tokens, "--app-selection-primary-foreground");
-      const icon = tokenIn(theme.tokens, "--app-selection-primary-icon");
-      expect(contrast(text, primary), `${theme.name} 文字`).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(primary, theme.sidebar), `${theme.name} 底色`).toBeGreaterThanOrEqual(3);
-      expect(contrast(icon, primary), `${theme.name} 图标`).toBeGreaterThanOrEqual(3);
+      expect(contrast(theme.selectionText, theme.selectionFill), theme.name).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("一级：1px 描边相对侧栏 ≥3:1，图标相对浅底 ≥3:1（浅色与深色）", () => {
+    for (const theme of themes) {
+      expect(contrast(theme.selectionBorder, theme.sidebar), `${theme.name} 描边`).toBeGreaterThanOrEqual(3);
+      expect(contrast(theme.primaryIcon, theme.selectionFill), `${theme.name} 图标`).toBeGreaterThanOrEqual(3);
     }
   });
 
@@ -211,60 +247,63 @@ describe("选中级别样式（r8-nav）", () => {
     }
   });
 
-  it("指示器按级别取填充：一级覆盖为一级填充，两级都不画描边（二级默认值在选中语言区块中断言）", () => {
-    expect(r8Declared(".slide-list[data-slide-ready]::before", "box-shadow")).toEqual([]);
-    expect(
-      r8Declared(
-        '.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before',
-        "background",
-      ),
-    ).toEqual(["var(--app-selection-primary)"]);
-    expect(
-      r8Declared(
-        '.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before',
-        "box-shadow",
-      ),
-    ).toEqual([]);
+  it("一级指示器：浅橙底 + 1px 内描边，不用外阴影", () => {
+    expect(lastOf(r10Declared(PRIMARY_INDICATOR, "background"))).toBe("var(--app-selection)");
+    expect(lastOf(r10Declared(PRIMARY_INDICATOR, "box-shadow"))).toBe(
+      "inset 0 0 0 1px var(--app-selection-border)",
+    );
   });
 
-  it("一级选中项文字与图标用一级前景与图标令牌，二级选中项用前景色", () => {
-    const primaryItem =
-      '.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"])';
-    expect(lastOf(r8Declared(primaryItem, "color"))).toBe("var(--app-selection-primary-foreground)");
-    const primaryIcon =
-      '.navigation-rail .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) .navigation-rail__icon';
-    expect(lastOf(r8Declared(primaryIcon, "color"))).toBe("var(--app-selection-primary-icon)");
+  it("一级选中项：橙字用 --app-selection-foreground，字重沿用基础样式的 600", () => {
+    expect(lastOf(r10Declared(PRIMARY_ITEM, "color"))).toBe("var(--app-selection-foreground)");
+    expect(r10Declared(PRIMARY_ITEM, "font-weight")).toEqual([]);
   });
 
-  it("一级未就绪时的回退与就绪态一致：实心一级底色，不画描边", () => {
+  it("一级未就绪时的回退与就绪态一致：浅橙底 + 1px 内描边", () => {
     const fallback = [
-      ...r8Css.matchAll(
-        /\.slide-list\[data-slide-level="primary"\]:not\(\[data-slide-axis="x"\]\):not\(\[data-slide-ready\]\)[^{]*\{([^}]*)\}/g,
+      ...r10Css.matchAll(
+        /\.slide-list\[data-slide-level="primary"\]:not\(\[data-slide-axis="x"\]\):not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\{([^}]*)\}/g,
       ),
     ].map((match) => match[1]);
     expect(fallback.length).toBeGreaterThan(0);
-    for (const body of fallback) {
-      expect(body).not.toMatch(/box-shadow:/);
-      expect(body).not.toMatch(/(^|[\s;])border(-[a-z-]+)?:/);
-    }
-    expect(fallback.join("\n")).toMatch(/background:\s*var\(--app-selection-primary\)/);
+    expect(fallback.join("\n")).toMatch(/background:\s*var\(--app-selection\);/);
+    expect(fallback.join("\n")).toMatch(/box-shadow:\s*inset 0 0 0 1px var\(--app-selection-border\);/);
   });
 
-  it("forced-colors 下用 Highlight 1px 边框代替被系统忽略的底色，写在选中项上而非隐藏的指示器上", () => {
-    const forced = r8Source.match(/@media \(forced-colors: active\)\s*\{([\s\S]*?)\n\}/);
-    expect(forced).not.toBeNull();
-    const body = forced?.[1] ?? "";
-    expect(body).toMatch(
-      /\.slide-list\[data-slide-level="primary"\]:not\(\[data-slide-axis="x"\]\) \.slide-item:is\(/,
-    );
-    expect(body).toMatch(/border:\s*1px solid Highlight;/);
-    expect(body).not.toMatch(/2px solid Highlight/);
+  it("一级图标不再单独上色，沿用基础的 --app-primary 图标色", () => {
+    expect(r10Css).not.toContain(".navigation-rail__icon");
+    expect(r10Css).not.toContain("--app-selection-primary-icon");
+  });
+
+  it("切换语言等非选中变化时关闭指示器过渡，位置立即到位", () => {
+    expect(
+      lastOf(r10Declared(".slide-list[data-slide-instant][data-slide-ready]::before", "transition")),
+    ).toBe("none");
   });
 });
 
 describe("侧栏概览分组", () => {
   it("概览分组贴顶，不借用支撑组的 margin-top:auto 被推到底部", () => {
     expect(declaredValues(".navigation-rail__group--overview", "margin-top")).toEqual([]);
-    expect(declaredValues(".navigation-rail__group--overview", "margin-bottom")).toEqual([]);
+    expect(declaredValues(".navigation-rail__group--overview", "position")).toEqual([]);
+  });
+
+  it("概览组与下一组（系统工具）之间留 12px：概览组下边距 12px，下一组标题不再叠加上边距", () => {
+    expect(declaredValues(".navigation-rail__group--overview", "margin-bottom")).toEqual([
+      "var(--app-space-12)",
+    ]);
+    expect(
+      declaredValues(
+        ".navigation-rail__group--overview + .navigation-rail__group > .navigation-rail__section-label",
+        "margin-top",
+      ),
+    ).toEqual(["0"]);
+  });
+
+  it("窄窗口下 ul 的上边距不叠加到概览与其后的分组上，间距仍只来自上面的令牌", () => {
+    expect(declaredValues(".navigation-rail__group--overview > ul", "margin-top")).toEqual(["0"]);
+    expect(
+      declaredValues(".navigation-rail__group--overview + .navigation-rail__group > ul", "margin-top"),
+    ).toEqual(["0"]);
   });
 });
