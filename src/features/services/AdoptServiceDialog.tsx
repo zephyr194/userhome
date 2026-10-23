@@ -159,7 +159,7 @@ export function AdoptServiceDialogView({
     case "previewing":
     case "executing":
       footer = (
-        <Button data-modal-cancel disabled={busy} onClick={onClose}>
+        <Button data-modal-cancel disabled={busy} onClick={onClose} variant="secondary">
           {t("services.dialog.common.cancel")}
         </Button>
       );
@@ -167,7 +167,7 @@ export function AdoptServiceDialogView({
     case "previewed":
       footer = (
         <>
-          <Button data-modal-cancel onClick={onClose}>
+          <Button data-modal-cancel onClick={onClose} variant="secondary">
             {t("services.dialog.common.cancel")}
           </Button>
           <Button onClick={onConfirm} variant="primary">
@@ -186,7 +186,7 @@ export function AdoptServiceDialogView({
     case "failed":
       footer = (
         <>
-          <Button data-modal-cancel onClick={onClose}>
+          <Button data-modal-cancel onClick={onClose} variant="secondary">
             {t("services.dialog.common.close")}
           </Button>
           <Button onClick={onRetry} variant="primary">

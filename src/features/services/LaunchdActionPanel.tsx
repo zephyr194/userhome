@@ -52,6 +52,7 @@ function PreviewCard({
 }) {
   const t = useT();
   const action = actionLabel(preview.action, t);
+  const destructive = preview.action === "STOP" || preview.action === "UNLOAD";
   return (
     <div
       className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs"
@@ -87,13 +88,13 @@ function PreviewCard({
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         <Button
           size="sm"
-          variant="primary"
+          variant={destructive ? "danger" : "primary"}
           disabled={busy}
           onClick={onConfirm}
         >
           {t("services.action.confirm", { action })}
         </Button>
-        <Button size="sm" disabled={busy} onClick={onCancel}>
+        <Button size="sm" variant="secondary" disabled={busy} onClick={onCancel}>
           {t("common.cancel")}
         </Button>
       </div>
@@ -151,11 +152,11 @@ function ResultCard({
       ) : null}
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {result.needsRefresh ? (
-          <Button size="sm" variant="primary" onClick={onRefresh}>
+          <Button size="sm" variant="secondary" onClick={onRefresh}>
             {t("common.refresh")}
           </Button>
         ) : null}
-        <Button size="sm" onClick={onDismiss}>
+        <Button size="sm" variant="secondary" onClick={onDismiss}>
           {t("common.close")}
         </Button>
       </div>
@@ -259,6 +260,7 @@ export function LaunchdActionPanel({
             >
               <Button
                 size="sm"
+                variant={action === "STOP" || action === "UNLOAD" ? "danger" : "secondary"}
                 disabled={busy || state.phase === "previewed"}
                 onClick={() => preview(action)}
               >
@@ -368,11 +370,11 @@ function ActionError({
       ) : null}
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {during === "execute" ? (
-          <Button size="sm" variant="primary" onClick={onRefresh}>
+          <Button size="sm" variant="secondary" onClick={onRefresh}>
             {t("common.refresh")}
           </Button>
         ) : null}
-        <Button size="sm" onClick={onClose}>
+        <Button size="sm" variant="secondary" onClick={onClose}>
           {t("common.close")}
         </Button>
       </div>

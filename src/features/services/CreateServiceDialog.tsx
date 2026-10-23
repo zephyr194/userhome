@@ -146,6 +146,7 @@ function FormBody({
                 disabled={disabled || index === 0}
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
                 size="sm"
+                variant="ghost"
               >
                 {t("services.dialog.common.moveUp")}
               </Button>
@@ -153,6 +154,7 @@ function FormBody({
                 disabled={disabled || index === form.arguments.length - 1}
                 onClick={() => onFormChange(moveArgument(form, row.id, 1))}
                 size="sm"
+                variant="ghost"
               >
                 {t("services.dialog.common.moveDown")}
               </Button>
@@ -172,6 +174,7 @@ function FormBody({
             disabled={disabled || form.arguments.length >= CREATE_SERVICE_LIMITS.arguments}
             onClick={() => onFormChange(addArgument(form))}
             size="sm"
+            variant="secondary"
           >
             {t("services.dialog.create.addArgument")}
           </Button>
@@ -240,6 +243,7 @@ function FormBody({
             }
             onClick={() => onFormChange(addEnvironment(form))}
             size="sm"
+            variant="secondary"
           >
             {t("services.dialog.common.addEnvironment")}
           </Button>
@@ -488,7 +492,7 @@ export function CreateServiceDialogView({
       );
       footer = (
         <>
-          <Button data-modal-cancel disabled={busy} onClick={onClose}>
+          <Button data-modal-cancel disabled={busy} onClick={onClose} variant="secondary">
             {t("services.dialog.common.cancel")}
           </Button>
           <Button disabled={busy} onClick={onPreview} variant="primary">
@@ -515,6 +519,7 @@ export function CreateServiceDialogView({
             data-modal-cancel
             disabled={dialog.phase === "creating"}
             onClick={onEdit}
+            variant="secondary"
           >
             {t("services.dialog.common.backToEdit")}
           </Button>
@@ -540,10 +545,10 @@ export function CreateServiceDialogView({
       body = <ResultBody dialog={dialog} form={form} />;
       footer = (
         <>
-          <Button data-modal-cancel onClick={onClose}>
+          <Button data-modal-cancel onClick={onClose} variant="secondary">
             {t("services.dialog.common.close")}
           </Button>
-          <Button onClick={onEdit} variant="primary">
+          <Button onClick={onEdit} variant="secondary">
             {t("services.dialog.common.backToEdit")}
           </Button>
         </>

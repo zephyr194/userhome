@@ -165,7 +165,7 @@ export function ServiceSummaryPanel({
         )}
         {hasLogPaths && renderLogs ? (
           <div className="grid min-w-0 justify-items-start gap-ui-12">
-            <Button size="sm" onClick={() => setLogsOpen((open) => !open)}>
+            <Button size="sm" variant="ghost" onClick={() => setLogsOpen((open) => !open)}>
               {logsOpen ? t("services.summary.hideLogs") : t("services.summary.viewLogs")}
             </Button>
             {logsOpen ? renderLogs(service) : null}
@@ -193,7 +193,7 @@ function PathEntry({ label, path, result, onCopy }: PathEntryProps) {
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className={`font-mono text-xs ${WRAP}`}>{path}</span>
       <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
-        <Button size="sm" onClick={() => onCopy(path)}>
+        <Button size="sm" variant="ghost" onClick={() => onCopy(path)}>
           {t("services.copy.button")}
         </Button>
         {shown?.ok ? (

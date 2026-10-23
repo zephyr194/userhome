@@ -383,7 +383,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
             disabled={!hasContent}
             onClick={() => setExportState({ stage: "confirm" })}
             size="sm"
-            variant="ghost"
+            variant="secondary"
           >
             {t("services.logs.export")}
           </Button>
@@ -422,7 +422,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
             <Button
               onClick={() => setExportState({ stage: "closed" })}
               size="sm"
-              variant="ghost"
+              variant="secondary"
             >
               {t("common.cancel")}
             </Button>
@@ -451,7 +451,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
             <Button
               onClick={() => void discardExport(exportState.preview)}
               size="sm"
-              variant="ghost"
+              variant="secondary"
             >
               {t("services.logs.discard")}
             </Button>
