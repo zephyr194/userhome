@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { useToolSection } from "../../app/SectionContext";
-import { PageShell, VerticalMenu, type VerticalMenuItem } from "../../components/ui";
+import { PageShell, SectionTabs, VerticalMenu, type SectionTab, type VerticalMenuItem } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import { createScrollMemory } from "../../components/ui/pageScrollMemory";
+import { useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import {
   readEnvironmentFile,
@@ -31,62 +32,98 @@ import { ZshPage } from "./ZshPage";
 
 type GrantNotice = EnvironmentViewProps["grantNotice"];
 
-const DOMAINS: readonly VerticalMenuItem[] = [
-  { id: "dotenv", label: "项目 dotenv", description: ".env 文件" },
-  { id: "zsh", label: "用户 zsh", description: "启动文件与读取顺序" },
-  { id: "launchctl", label: "登录会话", description: "GUI 应用看到的变量" },
-];
+type SystemTabId = "zsh" | "launchctl";
+
+function isSystemTab(section: string): section is SystemTabId {
+  return section === "zsh" || section === "launchctl";
+}
 
 /**
- * The environment page holds three domains in one place, without a new
- * navigation entry: dotenv files in authorized directories, the current user's
- * zsh startup files, and the macOS login session. The zsh and login session
- * domains only read their data the first time they are opened, and then stay
+ * The environment page holds two levels: the system variables (zsh startup files
+ * and the macOS login session, one tab each) and the dotenv files in authorized
+ * directories. The route keeps its three section values; this page maps them to
+ * the two levels. Tabs stay fixed above the content, which alone scrolls. The
+ * system tabs only read their data the first time they are opened, then stay
  * mounted so their state survives switching back and forth.
  */
 export function EnvironmentPage() {
+  const t = useT();
   const [section, setSection] = useToolSection("dotenv");
+  const [lastSystemTab, setLastSystemTab] = useState<SystemTabId>("zsh");
+  if (isSystemTab(section) && section !== lastSystemTab) setLastSystemTab(section);
   const [zshOpened, setZshOpened] = useState(section === "zsh");
   const [launchctlOpened, setLaunchctlOpened] = useState(section === "launchctl");
   if (section === "zsh" && !zshOpened) setZshOpened(true);
   if (section === "launchctl" && !launchctlOpened) setLaunchctlOpened(true);
-  // The domain menu stays put; only the domain content scrolls, and each domain
-  // keeps its own offset while another one is shown.
-  const detailRef = useRef<HTMLDivElement>(null);
+  // Only the content scrolls; each section keeps its own offset while another one is shown.
+  const contentRef = useRef<HTMLDivElement>(null);
   const [scrollMemory] = useState(() => createScrollMemory(section));
   useLayoutEffect(() => {
-    if (detailRef.current) detailRef.current.scrollTop = scrollMemory.switchTo(section);
+    if (contentRef.current) contentRef.current.scrollTop = scrollMemory.switchTo(section);
   }, [section, scrollMemory]);
+
+  const domains: readonly VerticalMenuItem[] = [
+    {
+      id: "system",
+      label: t("env.page.domain.system"),
+      description: t("env.page.domain.systemDescription"),
+    },
+    {
+      id: "dotenv",
+      label: t("env.page.domain.dotenv"),
+      description: t("env.page.domain.dotenvDescription"),
+    },
+  ];
+  const systemTabs: readonly SectionTab[] = [
+    { id: "zsh", label: t("env.page.tab.zsh") },
+    { id: "launchctl", label: t("env.page.tab.launchctl") },
+  ];
+  const domain = isSystemTab(section) ? "system" : "dotenv";
+  const selectDomain = (id: string) => setSection(id === "system" ? lastSystemTab : "dotenv");
+
   return (
     <div className="environment-page borderless-pane h-full min-h-0 min-w-0">
       <PageShell layout="master-detail" scrollKey={section}>
         <div className="environment-page__menu min-w-0 px-ui-8">
           <VerticalMenu
-            items={DOMAINS}
-            label="环境变量域"
-            onSelect={setSection}
-            selected={section}
+            items={domains}
+            label={t("env.page.menu")}
+            onSelect={selectDomain}
+            selected={domain}
           />
         </div>
-        <div
-          className="environment-page__detail min-w-0"
-          onScroll={(event) => scrollMemory.record(event.currentTarget.scrollTop)}
-          ref={detailRef}
-        >
-          <div className="min-w-0" hidden={section !== "dotenv"}>
-            <DotenvPage />
-          </div>
-          <div className="min-w-0" hidden={section !== "zsh"}>
-            <PageRegion>{zshOpened ? <ZshPage /> : null}</PageRegion>
-          </div>
-          <div className="min-w-0" hidden={section !== "launchctl"}>
-            <PageRegion>{launchctlOpened ? <LaunchctlPage /> : null}</PageRegion>
+        <div className="environment-page__detail min-w-0">
+          {domain === "system" ? (
+            <div className="environment-page__tabs shrink-0 min-w-0 px-ui-12">
+              <SectionTabs
+                label={t("env.page.systemTabs")}
+                onSelect={setSection}
+                sections={systemTabs}
+                selected={section}
+              />
+            </div>
+          ) : null}
+          <div
+            className="environment-page__content min-w-0"
+            onScroll={(event) => scrollMemory.record(event.currentTarget.scrollTop)}
+            ref={contentRef}
+          >
+            <div className="min-w-0" hidden={section !== "dotenv"}>
+              <DotenvPage />
+            </div>
+            <div className="min-w-0" hidden={section !== "zsh"}>
+              <PageRegion>{zshOpened ? <ZshPage /> : null}</PageRegion>
+            </div>
+            <div className="min-w-0" hidden={section !== "launchctl"}>
+              <PageRegion>{launchctlOpened ? <LaunchctlPage /> : null}</PageRegion>
+            </div>
           </div>
         </div>
       </PageShell>
     </div>
   );
 }
+
 
 /**
  * Wires the environment view and the key editor to the backend. Nothing is

@@ -2457,14 +2457,6 @@ button[class*="border-border"],
   .environment-page__menu {
     border-right: 1px solid var(--app-line-subtle);
   }
-
-  /* r6-env: 二级菜单固定，只有域内容滚动 */
-  .environment-page__detail {
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-  }
 }
 /* /r5b-n2 */
 /* r6-nav ------------------------------------------------------------ */
@@ -2926,6 +2918,24 @@ code {
 .env-chain-table th,
 .env-chain-table td {
   line-height: var(--app-line-height-row);
+}
+
+/* 二级菜单与三级 tabs 固定，只有内容区滚动（宽屏双栏；窄屏整页滚动，不在此约束高度） */
+@container (min-width: 760px) {
+  .environment-page__detail {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .environment-page__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
 }
 /* /r9-env */
 

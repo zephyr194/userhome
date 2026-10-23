@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { SectionContext } from "../../app/SectionContext";
 import { EnvironmentPage } from "./EnvironmentPage";
 
 function renderPage(): string {
@@ -50,12 +51,28 @@ describe("environment page layout (UIB-4e)", () => {
   });
 });
 
+const css = readFileSync(fileURLToPath(new URL("../../styles/global.css", import.meta.url)), "utf8");
+
 describe("environment page scrolling", () => {
-  it("scrolls only the domain content, not the domain menu", () => {
+  it("scrolls only the domain content region, not the domain menu or the detail column", () => {
     const markup = renderPage();
     expect(markup).toMatch(/class="environment-page__detail[^"]*"/);
-    const css = readFileSync(fileURLToPath(new URL("../../styles/global.css", import.meta.url)), "utf8");
-    expect(css).toMatch(/\.environment-page__detail\s*\{[^}]*overflow-y:\s*auto/);
+    expect(markup).toMatch(/class="environment-page__content[^"]*"/);
+    expect(css).toMatch(/\.environment-page__content\s*\{[^}]*overflow-y:\s*auto/);
+    expect(css).not.toMatch(/\.environment-page__detail\s*\{[^}]*overflow-y:\s*auto/);
     expect(css).not.toMatch(/\.environment-page__menu\s*\{[^}]*overflow/);
+  });
+
+  it("keeps the system tabs above the scrolling content region", () => {
+    const markup = renderToStaticMarkup(
+      <SectionContext.Provider value={{ section: "zsh", select: () => undefined }}>
+        <EnvironmentPage />
+      </SectionContext.Provider>,
+    );
+    const tabs = markup.indexOf('aria-label="系统环境变量分区"');
+    const content = markup.indexOf('class="environment-page__content');
+    expect(tabs).toBeGreaterThan(-1);
+    expect(tabs).toBeLessThan(content);
+    expect(markup.slice(content)).not.toContain('aria-label="系统环境变量分区"');
   });
 });
