@@ -129,10 +129,10 @@ export function LogViewer({
             setState((previous) => setLogQuery(previous, query));
           }}
         />
-        <Button onClick={togglePause}>
+        <Button onClick={togglePause} variant="ghost">
           {isPaused ? t("common.log.resume") : t("common.log.pause")}
         </Button>
-        <Button disabled={visibleLines.length === 0} onClick={copyVisible}>
+        <Button disabled={visibleLines.length === 0} onClick={copyVisible} variant="ghost">
           {t("common.log.copyVisible")}
         </Button>
       </div>

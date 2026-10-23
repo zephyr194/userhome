@@ -35,7 +35,7 @@ export function CaddyWorkdirPanel(props: CaddyWorkdirPanelProps) {
             {t("caddy.workdir.legacyOutro")}
           </p>
           <div>
-            <Button size="sm" variant="ghost" onClick={props.onDismissLegacy}>
+            <Button size="sm" variant="secondary" onClick={props.onDismissLegacy}>
               {t("caddy.workdir.legacyAck")}
             </Button>
           </div>

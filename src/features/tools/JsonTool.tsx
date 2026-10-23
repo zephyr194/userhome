@@ -148,6 +148,7 @@ export function JsonTool() {
           {view.status === "success" ? (
             <Button
               size="sm"
+              variant="ghost"
               onClick={() => copyResult(view.output.text)}
             >
               {t("tools.result.copy")}

@@ -125,7 +125,7 @@ export function DiagnosticsSettings() {
       <SettingsForm>
         <AsyncState kind="error">{state.error.message}</AsyncState>
         <SettingsActions className="border-0 pt-0">
-          <Button size="sm" onClick={() => void loadReport()}>
+          <Button size="sm" variant="secondary" onClick={() => void loadReport()}>
             {t("settings.diagnostics.regenerate")}
           </Button>
         </SettingsActions>
@@ -175,6 +175,7 @@ export function DiagnosticsSettings() {
           />
           <Button
             size="sm"
+            variant="secondary"
             disabled={busyAction !== undefined}
             onClick={() => void loadReport()}
           >
@@ -204,6 +205,7 @@ export function DiagnosticsSettings() {
         <div className="flex min-w-0 flex-wrap justify-end gap-ui-8">
           <Button
             size="sm"
+            variant="ghost"
             disabled={busyAction !== undefined}
             onClick={() => void copyReport(report)}
           >
@@ -211,6 +213,7 @@ export function DiagnosticsSettings() {
           </Button>
           <Button
             size="sm"
+            variant="secondary"
             disabled={busyAction !== undefined}
             onClick={() => void exportReport()}
           >

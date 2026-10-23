@@ -149,7 +149,7 @@ export function XmlTool() {
             {t("tools.result.heading")}
           </h3>
           {view.status === "success" ? (
-            <Button size="sm" onClick={() => copyResult(view.output.text)}>
+            <Button size="sm" variant="ghost" onClick={() => copyResult(view.output.text)}>
               {t("tools.result.copy")}
             </Button>
           ) : null}

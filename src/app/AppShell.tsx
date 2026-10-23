@@ -96,7 +96,7 @@ function ShellNotice({
         {children}
       </p>
       {onDismiss ? (
-        <Button className="shrink-0" onClick={onDismiss} size="sm">
+        <Button className="shrink-0" onClick={onDismiss} size="sm" variant="secondary">
           {dismissLabel}
         </Button>
       ) : null}
@@ -183,7 +183,7 @@ export function QuitConfirmationDialog({
         </p>
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button data-dialog-cancel disabled={busy} onClick={onCancel}>
+        <Button data-dialog-cancel disabled={busy} onClick={onCancel} variant="secondary">
           {t("shell.quit.cancel")}
         </Button>
         <Button variant="danger" disabled={busy} onClick={onConfirm}>
@@ -540,7 +540,7 @@ export function ShellContent({
             ? ` ${t("shell.refresh.retained")}`
             : ""}
         </p>
-        <Button className="shrink-0" size="sm" onClick={onRefresh}>
+        <Button className="shrink-0" size="sm" variant="secondary" onClick={onRefresh}>
           {t("common.retry")}
         </Button>
       </div>
@@ -631,6 +631,8 @@ export function ShellContent({
               <ActionRow>
                 <Button
                   className="toolbar-refresh-button"
+                  size="md"
+                  variant="secondary"
                   disabled={
                     state.preferences.status === "loading" ||
                     state.refresh.status === "refreshing"

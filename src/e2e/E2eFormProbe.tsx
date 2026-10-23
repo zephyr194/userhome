@@ -34,13 +34,13 @@ export function E2eFormProbe() {
       />
       <SecretReplacementField label="E2E token" name="token" />
       <div className="flex gap-ui-8">
-        <Button size="sm" type="submit">
+        <Button size="sm" type="submit" variant="primary">
           Probe submit
         </Button>
-        <Button size="sm" type="reset">
+        <Button size="sm" type="reset" variant="secondary">
           Probe reset
         </Button>
-        <Button size="sm" type="button" onClick={() => setDismissed(true)}>
+        <Button size="sm" type="button" variant="secondary" onClick={() => setDismissed(true)}>
           Probe dismiss
         </Button>
       </div>

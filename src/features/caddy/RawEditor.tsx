@@ -112,7 +112,7 @@ export function RawEditorView({
         />
         <div className="flex flex-wrap items-center gap-ui-8">
           <Button
-            variant="primary"
+            variant="secondary"
             disabled={loading || running || blocked}
             onClick={onValidate}
           >
@@ -132,7 +132,7 @@ export function RawEditorView({
               {t("caddy.raw.allowAndCheck")}
             </Button>
           ) : null}
-          <Button variant="secondary" disabled={saveBlocked} onClick={onSave}>
+          <Button variant="primary" disabled={saveBlocked} onClick={onSave}>
             {saving ? t("caddy.save.saving") : t("caddy.raw.saveRaw")}
           </Button>
         </div>

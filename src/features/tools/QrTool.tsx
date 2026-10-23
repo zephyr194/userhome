@@ -330,7 +330,7 @@ export function QrTool() {
             <p className="m-0 text-xs text-muted-foreground">
               {describeIcon(icon)}
             </p>
-            <Button onClick={chooseIcon} disabled={inputLocked}>
+            <Button onClick={chooseIcon} disabled={inputLocked} variant="secondary">
               {t("tools.qr.iconReplace")}
             </Button>
             <Button variant="ghost" onClick={removeIcon} disabled={inputLocked}>
@@ -339,7 +339,7 @@ export function QrTool() {
           </ActionRow>
         ) : (
           <div className="flex flex-wrap items-center gap-ui-8">
-            <Button onClick={chooseIcon} disabled={inputLocked}>
+            <Button onClick={chooseIcon} disabled={inputLocked} variant="secondary">
               {t("tools.qr.iconChoose")}
             </Button>
           </div>
@@ -463,7 +463,7 @@ export function QrTool() {
               <Button variant="primary" onClick={confirmExport}>
                 {t("tools.qr.confirmWrite")}
               </Button>
-              <Button variant="ghost" onClick={discardExport}>
+              <Button variant="secondary" onClick={discardExport}>
                 {t("common.cancel")}
               </Button>
             </ActionRow>
