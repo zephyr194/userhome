@@ -110,6 +110,7 @@ export function EnvironmentPage() {
                 disabled={dotenv.addingGrant}
                 onClick={dotenv.actions.addGrant}
                 size="sm"
+                variant="primary"
               >
                 {dotenv.addingGrant ? t("env.dotenv.grant.waiting") : t("env.dotenv.grant.add")}
               </Button>

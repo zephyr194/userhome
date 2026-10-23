@@ -148,7 +148,7 @@ export function DotenvEditor({ actions, check, focus, state }: DotenvEditorProps
                 ? t("env.editor.dotenv.action.previewBusy")
                 : t("env.editor.dotenv.action.preview")}
             </Button>
-            <Button disabled={busy} onClick={actions.close}>
+            <Button disabled={busy} onClick={actions.close} variant="secondary">
               {t("env.editor.dotenv.action.cancel")}
             </Button>
             {!check.ready && state.phase === "editing" ? (
@@ -290,7 +290,7 @@ function EntryList({
                   disabled={disabled}
                   onClick={() => onMode(row.key, removing ? "keep" : "remove")}
                   size="md"
-                  variant={removing ? "secondary" : "ghost"}
+                  variant="ghost"
                 >
                   {removing
                     ? t("env.editor.dotenv.entry.undoRemove")
@@ -336,7 +336,7 @@ function AdditionList({
         <h3 className="text-sm font-semibold" id="dotenv-additions-heading">
           {t("env.editor.dotenv.additions.heading")}
         </h3>
-        <Button disabled={disabled} onClick={actions.addRow} size="sm">
+        <Button disabled={disabled} onClick={actions.addRow} size="sm" variant="secondary">
           {t("env.editor.dotenv.additions.addRow")}
         </Button>
       </div>
@@ -546,7 +546,7 @@ function PreviewDialog({
         </p>
       ) : null}
       <ActionRow align="end">
-        <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview}>
+        <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview} variant="secondary">
           {t("env.editor.dotenv.preview.back")}
         </Button>
         <Button disabled={busy} onClick={() => void actions.confirm()} variant="primary">
@@ -600,7 +600,7 @@ function ResultPanel({
           {t("env.editor.dotenv.result.done")}
         </Button>
         {result.status === "FAILED" && canResumeEditing(result) ? (
-          <Button onClick={actions.resumeEditing}>{t("env.editor.dotenv.result.resume")}</Button>
+          <Button onClick={actions.resumeEditing} variant="primary">{t("env.editor.dotenv.result.resume")}</Button>
         ) : null}
       </ActionRow>
     </section>

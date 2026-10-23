@@ -96,6 +96,7 @@ export function ZshView(props: ZshViewProps) {
             disabled={load.status === "loading"}
             onClick={props.onReload}
             size="sm"
+            variant="secondary"
           >
             {load.status === "loading" ? t("env.zsh.reloading") : t("env.zsh.reload")}
           </Button>
@@ -130,7 +131,7 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
         <span className="break-words [overflow-wrap:anywhere]">
           {localizeError(load.error, locale)}
         </span>{" "}
-        <Button onClick={props.onReload} size="sm">
+        <Button onClick={props.onReload} size="sm" variant="secondary">
           {t("env.zsh.retry")}
         </Button>
       </AsyncState>
