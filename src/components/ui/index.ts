@@ -14,6 +14,7 @@ export {
   type PageShellStatus,
   type PageShellStatusTone,
 } from "./PageShell";
+export { PasteButton, type PasteButtonProps } from "./PasteButton";
 export { StatusBadge, type StatusBadgeProps } from "./StatusBadge";
 export {
   CheckboxField,

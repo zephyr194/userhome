@@ -388,6 +388,23 @@ describe("checkbox, switch and radio interaction", () => {
   });
 });
 
+describe("TextAreaField title-row action", () => {
+  it("places the action beside the label, outside the accessible name", () => {
+    const markup = renderToStaticMarkup(
+      <TextAreaField label="输入" action={<button type="button">读取粘贴板</button>} />,
+    );
+    expect(markup).toMatch(
+      /<label[^>]*>输入<\/label><button type="button">读取粘贴板<\/button>/,
+    );
+    expect(markup).toContain("justify-between");
+  });
+
+  it("keeps the title row unchanged when no action is given", () => {
+    const markup = renderToStaticMarkup(<TextAreaField label="输入" />);
+    expect(markup).not.toContain("justify-between");
+  });
+});
+
 describe("TextAreaField expandable editor", () => {
   afterEach(() => {
     cleanup();

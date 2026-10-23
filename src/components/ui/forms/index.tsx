@@ -59,6 +59,7 @@ function withTip(control: ReactNode, tip: ReactNode) {
 }
 
 export function FieldFrame({
+  action,
   children,
   className,
   description,
@@ -67,21 +68,33 @@ export function FieldFrame({
   label,
   required,
   tip,
-}: FieldCopyProps & { children: ReactNode; tip?: ReactNode }) {
+}: FieldCopyProps & {
+  action?: ReactNode;
+  children: ReactNode;
+  tip?: ReactNode;
+}) {
+  const labelNode = label
+    ? withTip(
+        <Label className="break-words text-body font-semibold text-foreground">
+          {label}
+          <RequiredMark required={required} />
+        </Label>,
+        tip,
+      )
+    : null;
   return (
     <Field
       className={classNames("grid min-w-0 gap-ui-4", className)}
       disabled={disabled}
     >
-      {label
-        ? withTip(
-            <Label className="break-words text-body font-semibold text-foreground">
-              {label}
-              <RequiredMark required={required} />
-            </Label>,
-            tip,
-          )
-        : null}
+      {action ? (
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
+          {labelNode}
+          {action}
+        </div>
+      ) : (
+        labelNode
+      )}
       {description ? (
         <Description className="break-words text-aux text-muted-foreground">
           {description}
@@ -151,6 +164,8 @@ type AreaProps = Omit<
   "className" | "disabled" | "onChange" | "required"
 > &
   FieldCopyProps & {
+    /** 标题行右侧的操作，例如“读取粘贴板”；不进入标签的无障碍名称。 */
+    action?: ReactNode;
     emphasis?: boolean;
     expandable?: boolean;
     /** 独立框的标题与无障碍名称，缺省时用字段标签；弹层内不再重复字段标签。 */
@@ -161,6 +176,7 @@ type AreaProps = Omit<
   };
 
 export function TextAreaField({
+  action,
   className,
   description,
   disabled,
@@ -184,6 +200,7 @@ export function TextAreaField({
 
   return (
     <FieldFrame
+      action={action}
       className={className}
       description={description}
       disabled={disabled}
