@@ -777,22 +777,25 @@ fn brew_upgrade(
 }
 
 fn brew_outcome(before: Option<&str>, after: Option<&str>) -> AiBrewUpgradeOutcome {
-    match after {
-        None => AiBrewUpgradeOutcome {
-            status: BrewUpgradeStatus::Failed,
-            message:
-                "Homebrew 已结束，但无法读取新版本，因此不能确认更新结果。请刷新页面重新检测。"
-                    .to_owned(),
+    match (before, after) {
+        (_, None) => AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::Upgraded,
+            message: "已执行更新，但没能读到新版本。请刷新页面重新检测，不需要再次更新。".to_owned(),
             new_version: None,
         },
-        Some(version) if Some(version) == before => AiBrewUpgradeOutcome {
+        (Some(before), Some(version)) if before == version => AiBrewUpgradeOutcome {
             status: BrewUpgradeStatus::AlreadyCurrent,
             message: format!("已是最新版本（{version}）。"),
             new_version: Some(version.to_owned()),
         },
-        Some(version) => AiBrewUpgradeOutcome {
+        (Some(_), Some(version)) => AiBrewUpgradeOutcome {
             status: BrewUpgradeStatus::Upgraded,
             message: format!("已更新到 {version}。"),
+            new_version: Some(version.to_owned()),
+        },
+        (None, Some(version)) => AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::Upgraded,
+            message: format!("已执行更新，当前版本为 {version}。"),
             new_version: Some(version.to_owned()),
         },
     }

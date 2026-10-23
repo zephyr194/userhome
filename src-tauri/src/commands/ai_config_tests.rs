@@ -329,11 +329,28 @@ fn upgrade_reports_upgraded_only_when_the_version_changed() {
 }
 
 #[test]
-fn upgrade_does_not_claim_success_when_the_new_version_is_unreadable() {
-    let outcome = brew_outcome(Some("1.0.0"), None);
+fn upgrade_reports_that_the_update_ran_when_the_new_version_is_unreadable() {
+    assert_eq!(
+        brew_outcome(Some("1.0.0"), None),
+        AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::Upgraded,
+            message: "已执行更新，但没能读到新版本。请刷新页面重新检测，不需要再次更新。".to_owned(),
+            new_version: None,
+        }
+    );
+    assert_eq!(brew_outcome(None, None).status, BrewUpgradeStatus::Upgraded);
+}
 
-    assert_eq!(outcome.status, BrewUpgradeStatus::Failed);
-    assert_eq!(outcome.new_version, None);
+#[test]
+fn upgrade_does_not_claim_a_version_change_when_the_previous_version_is_unknown() {
+    assert_eq!(
+        brew_outcome(None, Some("1.1.0")),
+        AiBrewUpgradeOutcome {
+            status: BrewUpgradeStatus::Upgraded,
+            message: "已执行更新，当前版本为 1.1.0。".to_owned(),
+            new_version: Some("1.1.0".to_owned()),
+        }
+    );
 }
 
 #[test]
