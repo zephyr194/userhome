@@ -108,12 +108,67 @@ const PHASE_ONE_FILES = [
   "ipc/grants.ts",
   "ipc/textTools.ts",
   "main.tsx",
+  "features/ai-config/aiConfigModel.ts",
+  "features/ai-config/AiConfigPage.tsx",
+  "features/ai-config/AiConfigView.tsx",
+  "features/ai-config/BrewUpdate.tsx",
+  "features/ai-config/claudeEditModel.ts",
+  "features/ai-config/claudeSettingsModel.ts",
+  "features/ai-config/CommandBuilder.tsx",
+  "features/ai-config/commandBuilderModel.ts",
+  "features/ai-config/configSearch.ts",
+  "features/ai-config/ConfigSearchControls.tsx",
+  "features/ai-config/configSearchStore.ts",
+  "features/ai-config/definitionSchemaIssues.ts",
+  "features/ai-config/SettingEditor.tsx",
+  "features/ai-config/terminalOpenModel.ts",
+  "features/ai-config/ToolReference.tsx",
+  "features/ai-config/toolReferenceModel.ts",
+  "features/ai-config/ToolSettings.tsx",
+  "features/app-config/appConfigCatalog.ts",
+  "features/app-config/appConfigEditModel.ts",
+  "features/app-config/AppConfigEditor.tsx",
+  "features/app-config/appConfigModel.ts",
+  "features/app-config/AppConfigPage.tsx",
+  "features/app-config/AppConfigView.tsx",
+  "features/app-config/AppToolIcon.tsx",
+  "features/app-config/SupportedConfigsAction.tsx",
+  "features/app-config/SupportedConfigsDialog.tsx",
+  "ipc/aiConfig.ts",
+  "ipc/appConfig.ts",
 ];
 
 // Exact source lines that legitimately keep Chinese: they match backend-produced Chinese text, not UI copy.
 const BACKEND_TEXT_EXCEPTIONS: readonly string[] = [
   "未识别的实体已保留。",
 ];
+
+// 允许保留中文的行：仅限下列原文，每个文件写明理由。
+const ALLOWED_CJK_LINES: Readonly<Record<string, readonly string[]>> = {
+  // 仅供漂移测试调用的 schema 校验消息，不进入界面。
+  "features/ai-config/definitionSchemaIssues.ts": [
+    "return matched ? [] : [`${path}: 不匹配 anyOf 任一分支`];",
+    "return [`${path}: 类型应为 ${node.type}`];",
+    "issues.push(`${path}: 值不在 enum 中`);",
+    "issues.push(`${path}: 值应为 ${String(node.const)}`);",
+    "issues.push(`${path}: 长度不足`);",
+    "issues.push(`${path}: 超过最大长度`);",
+    "issues.push(`${path}: 不符合 pattern`);",
+    "issues.push(`${path}: 元素数量不足`);",
+    "issues.push(`${path}: 缺少 ${key}`);",
+    "issues.push(`${path}: 未声明的键 ${key}`);",
+  ],
+  // 映射源原文：errors.ts 按原文查表输出英文，未登记时显示原文。
+  "features/app-config/AppConfigEditor.tsx": [
+    'message: "没有需要保存的修改。",',
+    'message: "请先修正标出的设置，再预览更改。",',
+  ],
+  // 映射源原文：解码器不接收 locale，展示层经 errors.ts 按原文映射。
+  "ipc/appConfig.ts": [
+    'message: "未知的应用配置条目。",',
+    'message: "预览已失效，请重新预览。",',
+  ],
+};
 
 // Lines tagged with this marker belong to pages outside phase one (e.g. environment and Caddy tabs).
 const PHASE_TWO_MARKER = "i18n-phase-two";
@@ -133,10 +188,12 @@ describe("phase-one hardcoded text audit", () => {
         .filter((line) => !BACKEND_TEXT_EXCEPTIONS.some((text) => line.includes(text)))
         .join("\n"),
     );
+    const allowed = new Set(ALLOWED_CJK_LINES[file] ?? []);
     const offending = source
       .split("\n")
       .filter((line) => CJK_PATTERN.test(line))
-      .map((line) => line.trim());
+      .map((line) => line.trim())
+      .filter((line) => !allowed.has(line));
     expect(offending).toEqual([]);
   });
 });
