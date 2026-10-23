@@ -1,4 +1,5 @@
 import { commonZh } from "./common";
+import { environmentZh } from "./environment";
 import { dashboardZh } from "./dashboard";
 import { settingsZh } from "./settings";
 import { shellZh } from "./shell";
@@ -10,6 +11,7 @@ export const zhCN = {
   ...dashboardZh,
   ...systemToolsZh,
   ...commonZh,
+  ...environmentZh,
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

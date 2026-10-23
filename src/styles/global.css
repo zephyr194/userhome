@@ -2917,3 +2917,14 @@ code {
   text-overflow: clip;
 }
 /* /r8-i18n-shell */
+/* r9-env ----------------------------------------------------------------- */
+/* 变量读取链表：行高用本区块的文本令牌，表头与行之间只用细线分隔 */
+.env-chain-table {
+  --app-line-height-row: 18px;
+}
+
+.env-chain-table th,
+.env-chain-table td {
+  line-height: var(--app-line-height-row);
+}
+/* /r9-env */

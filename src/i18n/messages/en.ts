@@ -1,5 +1,6 @@
 import type { MessageKey } from "./zh-CN";
 import { commonEn } from "./common";
+import { environmentEn } from "./environment";
 import { dashboardEn } from "./dashboard";
 import { settingsEn } from "./settings";
 import { shellEn } from "./shell";
@@ -11,4 +12,5 @@ export const en: Record<MessageKey, string> = {
   ...dashboardEn,
   ...systemToolsEn,
   ...commonEn,
+  ...environmentEn,
 };
