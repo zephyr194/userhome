@@ -9,7 +9,9 @@ import {
   decodeAppConfigSchema,
   getAppConfigSchema,
   isAppConfigId,
+  decodeAppConfigSupportedList,
   listAppConfigEntries,
+  listSupportedAppConfigEntries,
   previewAppConfigEdit,
   readAppConfigEntry,
   readAppConfigForEdit,
@@ -190,6 +192,47 @@ describe("listAppConfigEntries", () => {
     mockIPC(() => [{ summary: { id: "zed-settings" } }]);
 
     await expect(listAppConfigEntries()).rejects.toMatchObject({ code: "INTERNAL" });
+  });
+});
+
+describe("listSupportedAppConfigEntries", () => {
+  it("invokes the supported command without arguments and decodes the static summary", async () => {
+    let captured: { command: string; payload: unknown } | undefined;
+    mockIPC((command, payload) => {
+      captured = { command, payload };
+      return [{ id: "git-config-home", name: "Git 全局配置", category: "developerTool", format: "ini", capability: "writable" }];
+    });
+
+    const entries = await listSupportedAppConfigEntries();
+
+    expect(captured?.command).toBe("app_config_supported");
+    expect(entries).toEqual([
+      { id: "git-config-home", name: "Git 全局配置", category: "developerTool", format: "ini", capability: "writable" },
+    ]);
+  });
+
+  it("drops any path-like field the backend might send", () => {
+    const [entry] = decodeAppConfigSupportedList([
+      { id: "npmrc", name: "npm 用户配置", category: "developerTool", format: "ini", capability: "discoverOnly", displayPath: "~/.npmrc" },
+    ]);
+
+    expect(entry).not.toHaveProperty("displayPath");
+  });
+
+  it("fails closed on an AI client category, which the supported list never carries", () => {
+    expect(() =>
+      decodeAppConfigSupportedList([
+        { id: "claude-code-settings", name: "Claude Code 用户设置", category: "aiClient", format: "json", capability: "readOnly" },
+      ]),
+    ).toThrow();
+  });
+
+  it("fails closed on a malformed id", () => {
+    expect(() =>
+      decodeAppConfigSupportedList([
+        { id: "../etc", name: "x", category: "editor", format: "json", capability: "readOnly" },
+      ]),
+    ).toThrow();
   });
 });
 

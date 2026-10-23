@@ -262,6 +262,36 @@ export function listAppConfigEntries(): Promise<AppConfigListItem[]> {
   return invokeCommand("app_config_list", decodeAppConfigList);
 }
 
+export interface AppConfigSupportedEntry {
+  id: string;
+  name: string;
+  category: AppConfigCategory;
+  format: AppConfigFormat;
+  capability: AppConfigCapability;
+}
+
+export function decodeAppConfigSupportedEntry(value: unknown): AppConfigSupportedEntry {
+  const record = requireRecord(value);
+  const id = requireString(record.id);
+  if (!isAppConfigId(id)) throw decodeFailure();
+  return {
+    id,
+    name: requireNonEmptyString(record.name),
+    category: requireOneOf(APP_CONFIG_CATEGORIES, record.category),
+    format: requireOneOf(APP_CONFIG_FORMATS, record.format),
+    capability: requireOneOf(APP_CONFIG_CAPABILITIES, record.capability),
+  };
+}
+
+export function decodeAppConfigSupportedList(value: unknown): AppConfigSupportedEntry[] {
+  return requireArray(value).map(decodeAppConfigSupportedEntry);
+}
+
+/** Static summary of every supported non-AI entry. It probes nothing and carries no path. */
+export function listSupportedAppConfigEntries(): Promise<AppConfigSupportedEntry[]> {
+  return invokeCommand("app_config_supported", decodeAppConfigSupportedList);
+}
+
 /** Only a registry id leaves the frontend; the backend resolves the path. */
 export async function readAppConfigEntry(
   id: string,
