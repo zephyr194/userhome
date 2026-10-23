@@ -129,6 +129,7 @@ pub fn run() {
             commands::application_config::list_configuration_resources,
             commands::application_config::read_configuration_resource,
             commands::app_config::app_config_list,
+            commands::app_config::app_config_supported,
             commands::app_config::app_config_read,
             commands::app_config::app_config_schema,
             commands::app_config::app_config_read_for_edit,

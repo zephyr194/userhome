@@ -16,7 +16,7 @@ use crate::{
         },
         pending::AppConfigEditState,
         read::{ReadResult, read_entry},
-        registry::{Category, Entry, EntrySummary, Registry},
+        registry::{Capability, Category, Entry, EntrySummary, Format, Registry},
         schema::{EditSchema, schema_for},
     },
     commands::grants::canonical_home,
@@ -46,20 +46,58 @@ pub fn app_config_read(id: String) -> Result<ReadResult, AppError> {
     read_entry_by_id(&registry, &id, &home, &StdFs)
 }
 
-/// Every non-AI entry with its probe. AI client configs are read on the AI tool
-/// page, so they stay out of this list. Each probe is independent, so one
+/// Every non-AI entry that is present on this machine. AI client configs are read
+/// on the AI tool page, so they stay out of this list. A missing location is
+/// dropped; an entry whose existence cannot be determined stays listed so the
+/// frontend can say it could not be checked. Each probe is independent, so one
 /// unreadable location does not change the others.
 pub fn list_entries(registry: &Registry, home: &Path, fs: &dyn ConfigFs) -> Vec<AppConfigListItem> {
     registry
         .entries()
         .iter()
         .filter(|entry| entry.category != Category::AiClient)
-        .map(|entry| AppConfigListItem {
-            summary: EntrySummary::from(entry),
-            probe: probe(entry, home, fs),
+        .filter_map(|entry| {
+            let probe = probe(entry, home, fs);
+            (probe != ProbeStatus::NotFound).then(|| AppConfigListItem {
+                summary: EntrySummary::from(entry),
+                probe,
+            })
         })
         .collect()
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupportedEntry {
+    pub id: String,
+    pub name: String,
+    pub category: Category,
+    pub format: Format,
+    pub capability: Capability,
+}
+
+/// Static, probe-free summary of every non-AI registry entry, for the supported
+/// configurations sheet. It never names a path.
+pub fn supported_entries(registry: &Registry) -> Vec<SupportedEntry> {
+    registry
+        .entries()
+        .iter()
+        .filter(|entry| entry.category != Category::AiClient)
+        .map(|entry| SupportedEntry {
+            id: entry.id.to_owned(),
+            name: entry.name.to_owned(),
+            category: entry.category,
+            format: entry.format,
+            capability: entry.capability,
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub fn app_config_supported() -> Result<Vec<SupportedEntry>, AppError> {
+    Ok(supported_entries(&builtin_registry()?))
+}
+
 
 pub fn read_entry_by_id(
     registry: &Registry,
@@ -184,18 +222,75 @@ mod tests {
         error::AppErrorCode,
     };
 
-    use super::{list_entries, read_entry_by_id};
+    use super::{list_entries, read_entry_by_id, supported_entries};
 
     const HOME: &str = "/Users/example";
 
     #[test]
-    fn list_returns_every_non_ai_entry_in_registry_order() {
+    fn list_returns_only_discovered_non_ai_entries_in_registry_order() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+        let fs = FakeFs::new()
+            .dir(HOME)
+            .file("/Users/example/.gitconfig", "[user]\n")
+            .dir("/Users/example/.config/zed")
+            .denied("/Users/example/.config/zed");
+
+        let items = list_entries(&registry, Path::new(HOME), &fs);
+
+        let ids: Vec<&str> = items.iter().map(|item| item.summary.id.as_str()).collect();
+        assert_eq!(ids, ["git-config-home", "zed-settings"]);
+    }
+
+    #[test]
+    fn list_drops_every_entry_that_is_not_on_this_machine() {
         let registry = Registry::builtin().expect("built-in registry is valid");
         let fs = FakeFs::new().dir(HOME);
 
         let items = list_entries(&registry, Path::new(HOME), &fs);
 
-        let ids: Vec<&str> = items.iter().map(|item| item.summary.id.as_str()).collect();
+        assert!(items.is_empty());
+    }
+
+    #[test]
+    fn list_keeps_entries_that_exist_but_cannot_be_inspected() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+        let fs = FakeFs::new()
+            .dir(HOME)
+            .dir("/Users/example/.config/zed")
+            .denied("/Users/example/.config/zed");
+
+        let items = list_entries(&registry, Path::new(HOME), &fs);
+
+        let zed = items
+            .iter()
+            .find(|item| item.summary.id == "zed-settings")
+            .expect("an inaccessible entry stays listed");
+        assert_eq!(zed.probe, ProbeStatus::Inaccessible);
+    }
+
+    #[test]
+    fn list_keeps_symlinks_and_non_regular_files_as_discovered() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+        let fs = FakeFs::new()
+            .dir(HOME)
+            .special("/Users/example/.tmux.conf");
+
+        let items = list_entries(&registry, Path::new(HOME), &fs);
+
+        let tmux = items
+            .iter()
+            .find(|item| item.summary.id == "tmux-conf")
+            .expect("a non-regular node at the location is listed");
+        assert_eq!(tmux.probe, ProbeStatus::SymlinkOrNonRegular);
+    }
+
+    #[test]
+    fn supported_lists_every_non_ai_entry_in_registry_order_without_probing() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+
+        let supported = supported_entries(&registry);
+
+        let ids: Vec<&str> = supported.iter().map(|entry| entry.id.as_str()).collect();
         let expected: Vec<&str> = registry
             .entries()
             .iter()
@@ -203,7 +298,33 @@ mod tests {
             .map(|entry| entry.id)
             .collect();
         assert_eq!(ids, expected);
-        assert!(items.iter().all(|item| item.probe == ProbeStatus::NotFound));
+    }
+
+    #[test]
+    fn supported_never_contains_ai_client_entries() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+
+        let supported = supported_entries(&registry);
+
+        assert!(supported.iter().all(|entry| entry.category != Category::AiClient));
+        for id in ["claude-code-settings", "gemini-user-settings"] {
+            assert!(supported.iter().all(|entry| entry.id != id), "{id}");
+        }
+    }
+
+    #[test]
+    fn supported_output_carries_no_paths_or_sources() {
+        let registry = Registry::builtin().expect("built-in registry is valid");
+
+        let json = serde_json::to_string(&supported_entries(&registry))
+            .expect("supported list serializes");
+
+        assert!(json.contains("\"name\""));
+        assert!(json.contains("\"capability\""));
+        assert!(!json.contains("displayPath"));
+        assert!(!json.contains("sourceUrl"));
+        assert!(!json.contains("~/"));
+        assert!(!json.contains("/Users/"));
     }
 
     #[test]
