@@ -298,7 +298,15 @@ fn parse_numeric_parts(text: &str) -> Option<Vec<u64>> {
         .collect()
 }
 
+fn is_regular_file(path: &Path) -> bool {
+    fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_file())
+}
+
+/// Checked before opening, because opening a FIFO or device would block.
 fn read_small_text(path: &Path) -> Option<String> {
+    if !is_regular_file(path) {
+        return None;
+    }
     let mut text = String::new();
     fs::File::open(path)
         .ok()?

@@ -1229,3 +1229,40 @@ fn a_missing_tool_has_no_install_source() {
 
     assert_eq!(tool(&report, ToolId::CodexCli).install_source, None);
 }
+
+#[test]
+fn only_a_regular_file_that_is_not_a_link_counts_as_the_nvm_alias() {
+    let root = TempRoot::new();
+    write_nvm_alias(&root, "22\n");
+    let alias = root.path("home/.nvm/alias/default");
+    symlink(&alias, root.path("home/.nvm/alias/linked")).expect("symlink");
+
+    assert!(is_regular_file(&alias));
+    assert!(!is_regular_file(&root.path("home/.nvm/alias")));
+    assert!(!is_regular_file(&root.path("home/.nvm/alias/linked")));
+    assert!(!is_regular_file(&root.path("home/.nvm/alias/missing")));
+    assert_eq!(read_small_text(&alias).as_deref(), Some("22\n"));
+    assert_eq!(read_small_text(&root.path("home/.nvm/alias/linked")), None);
+}
+
+#[test]
+fn a_named_pipe_as_the_nvm_alias_is_never_opened() {
+    let root = TempRoot::new();
+    let alias = root.path("home/.nvm/alias/default");
+    fs::create_dir_all(alias.parent().expect("parent")).expect("alias directory");
+    let status = Command::new("/usr/bin/mkfifo")
+        .arg(&alias)
+        .status()
+        .expect("mkfifo");
+    assert!(status.success());
+
+    let (sender, receiver) = mpsc::channel();
+    let reader = alias.clone();
+    thread::spawn(move || {
+        let _ = sender.send(read_small_text(&reader));
+    });
+    let outcome = receiver
+        .recv_timeout(Duration::from_secs(2))
+        .expect("the alias read returns instead of blocking on the pipe");
+    assert_eq!(outcome, None);
+}
