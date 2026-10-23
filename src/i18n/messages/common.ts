@@ -1,0 +1,33 @@
+export const commonZh = {
+  "common.refresh": "刷新",
+  "common.refreshing": "刷新中",
+  "common.close": "关闭",
+  "common.cancel": "取消",
+  "common.confirm": "确认",
+  "common.copy": "复制",
+  "common.copied": "已复制",
+  "common.copyFailed": "复制失败",
+  "common.loading": "加载中",
+  "common.retry": "重试",
+  "common.back": "返回",
+  "common.save": "保存",
+  "common.edit": "编辑",
+  "common.previewChanges": "预览更改",
+} as const;
+
+export const commonEn = {
+  "common.refresh": "Refresh",
+  "common.refreshing": "Refreshing",
+  "common.close": "Close",
+  "common.cancel": "Cancel",
+  "common.confirm": "Confirm",
+  "common.copy": "Copy",
+  "common.copied": "Copied",
+  "common.copyFailed": "Copy failed",
+  "common.loading": "Loading",
+  "common.retry": "Retry",
+  "common.back": "Back",
+  "common.save": "Save",
+  "common.edit": "Edit",
+  "common.previewChanges": "Preview changes",
+} satisfies Record<keyof typeof commonZh, string>;
