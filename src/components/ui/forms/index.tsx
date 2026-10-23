@@ -122,6 +122,7 @@ type TextInputProps = Omit<
     inputRef?: Ref<HTMLInputElement>;
     invalid?: boolean;
     onValueChange?: (value: string) => void;
+    tip?: ReactNode;
   };
 
 export function TextField({
@@ -135,6 +136,7 @@ export function TextField({
   label,
   onValueChange,
   required,
+  tip,
   ...props
 }: TextInputProps) {
   return (
@@ -145,6 +147,7 @@ export function TextField({
       error={error}
       label={label}
       required={required}
+      tip={tip}
     >
       <Input
         {...props}
