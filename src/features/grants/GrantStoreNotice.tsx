@@ -63,7 +63,7 @@ function NoticeRow({
 }) {
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
+      className="r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border border-line px-ui-12 py-ui-8 text-xs"
       role={role}
       aria-busy={busy || undefined}
     >

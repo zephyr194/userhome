@@ -430,15 +430,13 @@ a {
   flex: 0 0 auto;
 }
 
-.desktop-workspace__banner {
+.desktop-workspace__content {
+  position: relative;
   min-width: 0;
-  max-height: min(35dvh, 160px);
-  flex: 0 0 auto;
-  border-bottom: 1px solid var(--app-line-subtle);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .desktop-workspace__panes {
@@ -1528,11 +1526,6 @@ body {
   color: var(--app-tertiary-foreground);
   font-size: var(--app-font-size-meta);
   line-height: var(--app-line-height-meta);
-}
-
-.desktop-workspace__banner {
-  background: var(--app-surface-muted);
-  border-bottom-color: var(--app-border);
 }
 
 button,
@@ -3157,3 +3150,34 @@ code {
   }
 }
 /* /r10-services */
+
+/* r12-shell ------------------------------------------------------------- */
+.desktop-workspace__banner {
+  --r12-shell-notice-max-width: 420px;
+  position: absolute;
+  inset-block-start: var(--app-space-12);
+  inset-inline-end: var(--app-space-16);
+  z-index: 20;
+  width: min(var(--r12-shell-notice-max-width), calc(100% - var(--app-space-16) * 2));
+  max-height: calc(100% - var(--app-space-24));
+  display: grid;
+  gap: var(--app-space-8);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: none;
+}
+
+.desktop-workspace__banner[hidden] {
+  display: none;
+}
+
+.desktop-workspace__banner > * {
+  pointer-events: auto;
+}
+
+.r12-shell-notice {
+  min-width: 0;
+  background: var(--app-surface-raised);
+}
+/* /r12-shell */

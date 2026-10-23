@@ -49,38 +49,41 @@ export function DesktopWorkspace({
         >
           {toolbar}
         </header>
-        <div
-          className="desktop-workspace__banner min-w-0 break-words"
-          hidden={!banner}
-        >
-          {banner}
-        </div>
-        <div className={paneClassName} key="panes">
-          {list ? (
-            <section
-              key="list"
-              className="desktop-workspace__list min-w-0 min-h-0"
-              aria-label={listLabel ?? t("shell.workspace.list")}
-            >
-              {list}
-            </section>
-          ) : null}
-          <section
-            key="detail"
-            className="desktop-workspace__detail min-w-0 min-h-0"
-            aria-label={detailLabel}
+        <div className="desktop-workspace__content">
+          <div
+            className="desktop-workspace__banner min-w-0 break-words"
+            data-overlay="notices"
+            hidden={!banner}
           >
-            {detail}
-          </section>
-          {inspector ? (
-            <aside
-              key="inspector"
-              className="desktop-workspace__inspector min-w-0 min-h-0"
-              aria-label={inspectorLabel ?? t("shell.workspace.inspector")}
+            {banner}
+          </div>
+          <div className={paneClassName} key="panes">
+            {list ? (
+              <section
+                key="list"
+                className="desktop-workspace__list min-w-0 min-h-0"
+                aria-label={listLabel ?? t("shell.workspace.list")}
+              >
+                {list}
+              </section>
+            ) : null}
+            <section
+              key="detail"
+              className="desktop-workspace__detail min-w-0 min-h-0"
+              aria-label={detailLabel}
             >
-              {inspector}
-            </aside>
-          ) : null}
+              {detail}
+            </section>
+            {inspector ? (
+              <aside
+                key="inspector"
+                className="desktop-workspace__inspector min-w-0 min-h-0"
+                aria-label={inspectorLabel ?? t("shell.workspace.inspector")}
+              >
+                {inspector}
+              </aside>
+            ) : null}
+          </div>
         </div>
         {operationProgress ? (
           <section

@@ -54,4 +54,23 @@ describe("DesktopWorkspace", () => {
     expect(markup).not.toContain("interface-preview");
     expect(markup).not.toContain("welcome-panel");
   });
+
+  it("draws notices as an overlay so the panes keep the same markup and position", () => {
+    const withNotice = renderToStaticMarkup(
+      <DesktopWorkspace {...baseProps} banner={<p role="alert">提示</p>} />,
+    );
+    const withoutNotice = renderToStaticMarkup(<DesktopWorkspace {...baseProps} />);
+    const panesFrom = (markup: string) => markup.slice(markup.indexOf('class="desktop-workspace__panes'));
+
+    expect(withNotice).toContain(
+      'class="desktop-workspace__content"><div class="desktop-workspace__banner min-w-0 break-words" data-overlay="notices">',
+    );
+    expect(panesFrom(withNotice)).toBe(panesFrom(withoutNotice));
+  });
+
+  it("hides the overlay container when there is nothing to show", () => {
+    const markup = renderToStaticMarkup(<DesktopWorkspace {...baseProps} />);
+
+    expect(markup).toContain('data-overlay="notices" hidden=""');
+  });
 });

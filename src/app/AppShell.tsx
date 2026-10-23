@@ -64,19 +64,25 @@ interface AppShellProps {
 function ShellNotice({
   busy = false,
   children,
+  dismissLabel,
   label,
+  onDismiss,
   role = "status",
   tone,
 }: {
   busy?: boolean;
   children: ReactNode;
+  dismissLabel?: string;
   label: string;
+  onDismiss?: () => void;
   role?: "alert" | "status";
   tone: "danger" | "warning";
 }) {
   return (
     <div
-      className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
+      className={`r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border px-ui-12 py-ui-8 text-xs ${
+        tone === "danger" ? "border-danger-border" : "border-warning-border"
+      }`}
       role={role}
       aria-busy={busy || undefined}
     >
@@ -90,6 +96,11 @@ function ShellNotice({
       >
         {children}
       </p>
+      {onDismiss ? (
+        <Button className="shrink-0" onClick={onDismiss} size="sm">
+          {dismissLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -242,6 +253,7 @@ export function ShellContent({
 }: AppShellProps) {
   const t: TranslateFunction = useT();
   const [commandError, setCommandError] = useState<string>();
+  const [dismissedSafeDefault, setDismissedSafeDefault] = useState<string>();
   const grantStore = useGrantStoreNotice();
   const grantStoreVisible = isGrantStoreNoticeVisible(grantStore.state);
   const [quitPrompt, setQuitPrompt] = useState<QuitPrompt>();
@@ -490,6 +502,10 @@ export function ShellContent({
       );
   }, [t]);
 
+  const safeDefaultMessage =
+    state.preferences.status === "safe-default"
+      ? state.preferences.diagnostic.message
+      : undefined;
   const preferencesNotice =
     state.preferences.status === "loading" ? (
       <ShellNotice
@@ -499,9 +515,15 @@ export function ShellContent({
       >
         {t("shell.preferences.loading")}
       </ShellNotice>
-    ) : state.preferences.status === "safe-default" ? (
-      <ShellNotice label={t("shell.preferences.safeDefault")} role="alert" tone="warning">
-        {state.preferences.diagnostic.message}
+    ) : safeDefaultMessage !== undefined && safeDefaultMessage !== dismissedSafeDefault ? (
+      <ShellNotice
+        dismissLabel={t("common.close")}
+        label={t("shell.preferences.safeDefault")}
+        onDismiss={() => setDismissedSafeDefault(safeDefaultMessage)}
+        role="alert"
+        tone="warning"
+      >
+        {safeDefaultMessage}
       </ShellNotice>
     ) : undefined;
 
@@ -511,7 +533,7 @@ export function ShellContent({
   const refreshNotice =
     state.refresh.status === "error" ? (
       <div
-        className="flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
+        className="r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border border-danger-border px-ui-12 py-ui-8 text-xs"
         role="alert"
       >
         <StatusBadge className="shrink-0" tone="danger">
@@ -530,7 +552,7 @@ export function ShellContent({
       </div>
     ) : refreshCompletedAt !== undefined && refreshCompletedAt !== dismissedRefreshAt ? (
       <div
-        className="r4-fe5-refreshed flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-16 py-ui-8 text-xs"
+        className="r4-fe5-refreshed r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border border-line px-ui-12 py-ui-8 text-xs"
         role="status"
       >
         <StatusBadge className="shrink-0" tone="success">
@@ -579,9 +601,15 @@ export function ShellContent({
             preferencesNotice ||
             refreshNotice ||
             grantStoreVisible ? (
-              <div className="divide-y divide-border">
+              <div className="grid min-w-0 gap-ui-8">
                 {commandError ? (
-                  <ShellNotice label={t("shell.notice.commandUnavailable")} role="alert" tone="danger">
+                  <ShellNotice
+                    dismissLabel={t("common.close")}
+                    label={t("shell.notice.commandUnavailable")}
+                    onDismiss={() => setCommandError(undefined)}
+                    role="alert"
+                    tone="danger"
+                  >
                     {commandError}
                   </ShellNotice>
                 ) : null}
