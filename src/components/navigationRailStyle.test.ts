@@ -87,12 +87,12 @@ function tokenIn(body: string, token: string): string {
   return match[1].trim();
 }
 
+// 与 global.css 中的真实令牌一致；下方的断言保证两者不会漂移。
 const LIGHT = {
   tokens: blockOf(/:root\s*\{([^}]*)\}/),
   canvas: "#EDF1F5",
   sidebar: "#E9EEF3",
-  surface: "#F8FAFC",
-  hover: "#E3E9EF",
+  hover: "#DCE3EA",
   foreground: "#1D242D",
   signal: "#B65C24",
 };
@@ -105,8 +105,7 @@ const DARK_BODIES = [
 const DARK = {
   canvas: "#15191E",
   sidebar: "#171B20",
-  surface: "#1D2228",
-  hover: "#262C34",
+  hover: "#272E37",
   foreground: "#E6EBF1",
   signal: "#F0A060",
 };
@@ -141,6 +140,19 @@ describe("选中级别样式", () => {
     })),
   ];
 
+  it("对比度参照色与 global.css 中的真实令牌一致", () => {
+    for (const value of [
+      "--app-canvas: #EDF1F5;",
+      "--app-sidebar: #E9EEF3;",
+      "--app-sidebar-hover: #DCE3EA;",
+      "--app-canvas: #15191E;",
+      "--app-sidebar: #171B20;",
+      "--app-sidebar-hover: #272E37;",
+    ]) {
+      expect(source, value).toContain(value);
+    }
+  });
+
   it("一级与二级令牌在浅色与两套深色下各自定义，二级不使用橙色", () => {
     for (const theme of themes) {
       const primary = tokenIn(theme.tokens, "--app-selection-primary");
@@ -156,7 +168,7 @@ describe("选中级别样式", () => {
     }
   });
 
-  it("一级与二级的对比度：边框对相邻背景 ≥3:1，文字 ≥4.5:1，二级底色比 hover 更明显", () => {
+  it("一级与二级的对比度：边框对侧栏 ≥3:1，文字 ≥4.5:1，一级底色与侧栏可分辨，二级底色比侧栏 hover 更明显", () => {
     for (const theme of themes) {
       const primary = tokenIn(theme.tokens, "--app-selection-primary");
       const primaryBorder = tokenIn(theme.tokens, "--app-selection-primary-border");
@@ -165,10 +177,11 @@ describe("选中级别样式", () => {
       expect(contrast(primaryBorder, theme.sidebar), theme.name).toBeGreaterThanOrEqual(3);
       expect(contrast(theme.signal, primary), `${theme.name} 图标`).toBeGreaterThanOrEqual(3);
       expect(contrast(theme.foreground, primary), theme.name).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(secondaryBorder, theme.surface), theme.name).toBeGreaterThanOrEqual(3);
+      expect(contrast(primary, theme.sidebar), `${theme.name} 底色`).toBeGreaterThanOrEqual(1.1);
+      expect(contrast(secondaryBorder, theme.sidebar), theme.name).toBeGreaterThanOrEqual(3);
       expect(contrast(theme.foreground, secondary), theme.name).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(secondary, theme.canvas), theme.name).toBeGreaterThan(
-        contrast(theme.hover, theme.canvas),
+      expect(contrast(secondary, theme.sidebar), theme.name).toBeGreaterThan(
+        contrast(theme.hover, theme.sidebar),
       );
     }
   });
