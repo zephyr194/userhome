@@ -5,6 +5,8 @@ import { useSlideIndicator } from "./useSlideIndicator";
 export interface SectionTab {
   id: string;
   label: string;
+  /** Full text shown on hover, for labels that are shortened. */
+  title?: string;
 }
 
 export interface SectionTabsProps {
@@ -39,6 +41,7 @@ export function SectionTabs({ label, sections, selected, onSelect }: SectionTabs
               key={section.id}
               aria-current={isSelected ? "true" : undefined}
               data-section-id={section.id}
+              title={section.title}
               className={classNames(
                 "slide-item h-control-md px-ui-8 text-aux",
                 isSelected

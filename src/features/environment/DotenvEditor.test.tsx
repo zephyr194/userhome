@@ -9,8 +9,12 @@ import {
   type EditorTarget,
   type SaveResult,
 } from "./dotenvEditorModel";
-import { EnvironmentView, type EnvironmentViewProps } from "./EnvironmentView";
-import { INITIAL_ENVIRONMENT_STATE } from "./environmentModel";
+import {
+  EnvironmentView,
+  type EnvironmentActions,
+  type EnvironmentViewProps,
+} from "./EnvironmentView";
+import type { DirectoryState } from "./dotenvDirectoryModel";
 
 const GRANT_ID = "3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b";
 const SECRET_TEXT = "hunter2-very-secret";
@@ -335,74 +339,72 @@ describe("the save result", () => {
 });
 
 describe("the page integration", () => {
-  const baseProps: EnvironmentViewProps = {
-    addingGrant: false,
-    onAddGrant: () => undefined,
-    onLoadValue: () => Promise.resolve("never"),
-    onPatternsChange: () => undefined,
-    onRecursiveChange: () => undefined,
-    onReloadGrants: () => undefined,
-    onRevokeGrant: () => undefined,
-    onScan: () => undefined,
-    onSelectFile: () => undefined,
-    onSelectGrant: () => undefined,
-    state: {
-      ...INITIAL_ENVIRONMENT_STATE,
-      grants: {
-        status: "ready",
-        grants: [
-          { id: GRANT_ID, purpose: "CONFIG_DIRECTORY", kind: "DIRECTORY", displayPath: "~/proj", createdAtEpochMs: 1 },
-        ],
-      },
-      selectedGrantId: GRANT_ID,
-      scan: {
-        status: "ready",
-        requestId: 1,
-        settings: { patterns: [".env"], recursive: false },
-        outcome: {
-          root: "~/proj",
-          recursive: false,
-          patterns: [".env"],
-          files: [{ relativePath: ".env", name: ".env", kind: "ENVIRONMENT", sizeBytes: 5, oversized: false, symlink: false }],
-          skipped: [],
-          skippedTotal: 0,
-          excludedDirectories: 0,
-          partialReasons: [],
-          entriesExamined: 1,
-          limits: { maxDepth: 5, maxEntries: 2000, maxMatches: 200, maxFileBytes: 1048576 },
-          exclusions: [],
-        },
-      },
-      selectedPath: ".env",
-      file: {
-        status: "loaded",
-        requestId: 2,
-        path: ".env",
-        outcome: { status: "READY", file: FILE },
+  const VIEW_ACTIONS: EnvironmentActions = {
+    addGrant: vi.fn(),
+    addVariable: vi.fn(),
+    editRow: vi.fn(),
+    loadValue: vi.fn(() => Promise.resolve("never")),
+    newFile: vi.fn(),
+    rescan: vi.fn(),
+    revokeGrant: vi.fn(),
+    reloadGrants: vi.fn(),
+    selectFile: vi.fn(),
+    setPatterns: vi.fn(),
+    setRecursive: vi.fn(),
+  };
+  const DIRECTORY: DirectoryState = {
+    scan: {
+      status: "ready",
+      requestId: 1,
+      settings: { patterns: [".env"], recursive: false },
+      outcome: {
+        root: "~/proj",
+        recursive: false,
+        patterns: [".env"],
+        files: [{ relativePath: ".env", name: ".env", kind: "ENVIRONMENT", sizeBytes: 5, oversized: false, symlink: false }],
+        skipped: [],
+        skippedTotal: 0,
+        excludedDirectories: 0,
+        partialReasons: [],
+        entriesExamined: 1,
+        limits: { maxDepth: 5, maxEntries: 2000, maxMatches: 200, maxFileBytes: 1048576 },
+        exclusions: [],
       },
     },
+    files: {
+      ".env": { status: "loaded", requestId: 2, outcome: { status: "READY", file: FILE } },
+    },
+  };
+  const baseProps: EnvironmentViewProps = {
+    actions: VIEW_ACTIONS,
+    addingGrant: false,
+    directory: DIRECTORY,
+    grants: { status: "ready", grants: [{ id: GRANT_ID, displayPath: "~/proj" }] },
+    patternsText: ".env",
+    recursive: false,
+    selectedGrant: { id: GRANT_ID, displayPath: "~/proj" },
   };
 
-  it("stays read-only without an editor", () => {
+  it("stays read-only without an editor and lists the variables instead", () => {
     const markup = renderToStaticMarkup(<EnvironmentView {...baseProps} />);
-    expect(markup).toContain("文件内容（只读）");
-    expect(markup).not.toContain("设置变量");
-    expect(markup).not.toContain("新建环境文件");
+    expect(markup).toContain('aria-label="目录 dotenv 的变量"');
+    expect(markup).not.toContain("编辑环境文件");
+    expect(markup).not.toContain("预览改动");
   });
 
-  it("offers editing the loaded file and creating a new one", () => {
+  it("offers setting a variable in the loaded file and creating a new file", () => {
     const markup = renderToStaticMarkup(
       <EnvironmentView
         {...baseProps}
-        onEditFile={() => undefined}
-        onNewFile={() => undefined}
+        editor={{ actions: ACTIONS, check: checkDrafts(EXISTING, stateOf({ phase: "closed" })), state: stateOf({ phase: "closed" }) }}
       />,
     );
-    expect(markup).toContain("设置变量");
+    expect(markup).toContain(">设置变量</button>");
+    expect(markup).not.toMatch(/<button[^>]* disabled=""[^>]*>设置变量<\/button>/);
     expect(markup).toContain("新建环境文件…");
   });
 
-  it("shows the editor in place of the file rows and locks file selection", () => {
+  it("shows the editor in place of the variable list, so no file can be switched meanwhile", () => {
     const state = stateOf({ entryEdits: { PORT: { mode: "set", value: "3001" } } });
     const markup = renderToStaticMarkup(
       <EnvironmentView
@@ -412,21 +414,22 @@ describe("the page integration", () => {
           check: checkDrafts(EXISTING, state),
           state,
         }}
-        onEditFile={() => undefined}
-        onNewFile={() => undefined}
       />,
     );
     expect(markup).toContain("编辑环境文件");
     expect(markup).toContain("预览改动");
-    expect(markup).not.toContain("文件内容（只读）");
+    expect(markup).not.toContain('aria-label="目录 dotenv 的变量"');
+    expect(markup).not.toContain("全部文件");
     expect(markup).not.toContain("设置变量");
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>新建环境文件…<\/button>/);
-    expect(markup).toMatch(/<button[^>]*title="\.env"[^>]*disabled=""/);
   });
 
   it("marks the new-file button busy while the save panel is open", () => {
     const markup = renderToStaticMarkup(
-      <EnvironmentView {...baseProps} choosingNewFile onNewFile={() => undefined} />,
+      <EnvironmentView
+        {...baseProps}
+        choosingNewFile
+        editor={{ actions: ACTIONS, check: checkDrafts(EXISTING, stateOf({ phase: "closed" })), state: stateOf({ phase: "closed" }) }}
+      />,
     );
     expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>等待选择…<\/button>/);
   });

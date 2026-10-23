@@ -1,3 +1,4 @@
+import type { MessageKey, TranslateFunction } from "../../i18n";
 import {
   MAX_EDIT_VALUE_CHARS,
   MAX_ZSH_PATH_ITEMS,
@@ -12,6 +13,7 @@ import {
 } from "../../ipc/environment";
 import { looksLikeSecretName } from "./dotenvEditorModel";
 import { appliesToText } from "./zshModel";
+import { zhTranslate } from "./zhTranslate";
 
 // The backend decides what can be written and re-checks everything; the rules
 // here only mirror it for early, per-field feedback. Secret values live in this
@@ -30,23 +32,17 @@ const MAX_PATH_ITEM_CHARS = 1024;
 // eslint-disable-next-line no-control-regex
 const FORBIDDEN_CHARACTERS = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/u;
 
-export function nameProblem(name: string): string | undefined {
-  if (name === "") return "请填写变量名。";
-  if (!NAME_PATTERN.test(name)) {
-    return "变量名必须匹配 [A-Za-z_][A-Za-z0-9_]*，且不超过 255 个字符。";
-  }
-  if (RESERVED_NAMES.includes(name)) {
-    return "PATH 请通过下面的 PATH 列表编辑，不能作为普通变量写入。";
-  }
+export function nameProblem(name: string, t: TranslateFunction = zhTranslate): string | undefined {
+  if (name === "") return t("env.zshEdit.name.empty");
+  if (!NAME_PATTERN.test(name)) return t("env.zshEdit.name.pattern");
+  if (RESERVED_NAMES.includes(name)) return t("env.zshEdit.name.reservedPath");
   return undefined;
 }
 
-export function valueProblem(value: string): string | undefined {
-  if (FORBIDDEN_CHARACTERS.test(value)) {
-    return "值含换行、制表符或其他控制 / 不可见方向字符，不能安全写成单行字面量。";
-  }
+export function valueProblem(value: string, t: TranslateFunction = zhTranslate): string | undefined {
+  if (FORBIDDEN_CHARACTERS.test(value)) return t("env.zshEdit.value.forbidden");
   if ([...value].length > MAX_EDIT_VALUE_CHARS) {
-    return `值超过 ${MAX_EDIT_VALUE_CHARS} 个字符。`;
+    return t("env.zshEdit.value.tooLong", { max: MAX_EDIT_VALUE_CHARS });
   }
   return undefined;
 }
@@ -60,14 +56,17 @@ export type PathNormalization =
  * else must be an absolute literal path. An empty item would mean the current
  * directory, so it is refused.
  */
-export function normalizePathItem(raw: string): PathNormalization {
+export function normalizePathItem(
+  raw: string,
+  t: TranslateFunction = zhTranslate,
+): PathNormalization {
   const refuse = (problem: string): PathNormalization => ({ ok: false, problem });
-  if (raw === "") return refuse("PATH 项不能为空；空项会让 shell 搜索当前目录。");
-  if (FORBIDDEN_CHARACTERS.test(raw)) return refuse("PATH 项含控制字符或不可见字符。");
-  if (raw.trim() !== raw) return refuse("PATH 项首尾不能有空白。");
-  if (raw.includes(":")) return refuse("PATH 项不能含“:”，请拆成多项。");
+  if (raw === "") return refuse(t("env.zshEdit.path.empty"));
+  if (FORBIDDEN_CHARACTERS.test(raw)) return refuse(t("env.zshEdit.path.forbidden"));
+  if (raw.trim() !== raw) return refuse(t("env.zshEdit.path.whitespace"));
+  if (raw.includes(":")) return refuse(t("env.zshEdit.path.colon"));
   if ([...raw].length > MAX_PATH_ITEM_CHARS) {
-    return refuse(`PATH 项超过 ${MAX_PATH_ITEM_CHARS} 个字符。`);
+    return refuse(t("env.zshEdit.path.tooLong", { max: MAX_PATH_ITEM_CHARS }));
   }
   for (const prefix of ["~", "$HOME", "${HOME}"]) {
     if (raw.startsWith(prefix)) {
@@ -77,7 +76,7 @@ export function normalizePathItem(raw: string): PathNormalization {
   }
   return raw.startsWith("/")
     ? { ok: true, item: raw }
-    : refuse("PATH 项必须是绝对路径（以 / 开头），或以 ~、$HOME 开头。");
+    : refuse(t("env.zshEdit.path.notAbsolute"));
 }
 
 // ---- availability --------------------------------------------------------------
@@ -89,11 +88,14 @@ export type EditAvailability =
   /** The block is damaged: nothing structured is written, nothing is repaired. */
   | { readonly kind: "blocked"; readonly reason: string };
 
-export function editAvailability(state: ZshEditState): EditAvailability {
+export function editAvailability(
+  state: ZshEditState,
+  t: TranslateFunction = zhTranslate,
+): EditAvailability {
   if (state.block.status === "BROKEN") {
     return {
       kind: "blocked",
-      reason: `UserHome 专用块的结构异常，已阻止结构化写入（不会尝试修复）：${state.block.message}请先手动整理该文件。`,
+      reason: t("env.zshEdit.block.broken", { message: state.block.message }),
     };
   }
   return state.enabled ? { kind: "ready" } : { kind: "needs-enable" };
@@ -110,9 +112,10 @@ export function managedPath(state: ZshEditState): readonly string[] {
 /** Existing variables that cannot be changed here, with the reason. */
 export function variableEditability(
   variable: ZshEditVariable,
+  t: TranslateFunction = zhTranslate,
 ): { readonly ok: true } | { readonly ok: false; readonly reason: string } {
   if (!variable.secret && variable.hasValue && variable.value === undefined) {
-    return { ok: false, reason: "值过长（超过 4096 个字符），不在此修改。" };
+    return { ok: false, reason: t("env.zshEdit.variable.tooLong", { max: 4096 }) };
   }
   return { ok: true };
 }
@@ -197,7 +200,11 @@ function outsideItems(state: ZshEditState): { item: string; line: number }[] {
   return items;
 }
 
-export function checkDrafts(state: ZshEditState, drafts: ZshDrafts): ZshDraftCheck {
+export function checkDrafts(
+  state: ZshEditState,
+  drafts: ZshDrafts,
+  t: TranslateFunction = zhTranslate,
+): ZshDraftCheck {
   const variables = managedVariables(state);
   const edits: ZshVariableEdit[] = [];
   const variableProblems: Record<string, string> = {};
@@ -208,10 +215,10 @@ export function checkDrafts(state: ZshEditState, drafts: ZshDrafts): ZshDraftChe
     if (draft.mode === "keep") continue;
     const current = variables.find((candidate) => candidate.name === name);
     if (current === undefined) {
-      variableProblems[name] = "专用块中没有这个变量，请重新加载文件。";
+      variableProblems[name] = t("env.zshEdit.draft.variableMissing");
       continue;
     }
-    const editability = variableEditability(current);
+    const editability = variableEditability(current, t);
     if (!editability.ok) {
       variableProblems[name] = editability.reason;
       continue;
@@ -222,7 +229,7 @@ export function checkDrafts(state: ZshEditState, drafts: ZshDrafts): ZshDraftChe
     }
     // A secret is replacement-only: an empty field leaves it as it is.
     if (current.secret ? draft.value === "" : draft.value === current.value) continue;
-    const problem = valueProblem(draft.value);
+    const problem = valueProblem(draft.value, t);
     if (problem !== undefined) {
       variableProblems[name] = problem;
       continue;
@@ -237,12 +244,12 @@ export function checkDrafts(state: ZshEditState, drafts: ZshDrafts): ZshDraftChe
   }
   for (const addition of drafts.additions) {
     const problem =
-      nameProblem(addition.name) ??
+      nameProblem(addition.name, t) ??
       (taken.has(addition.name)
-        ? "该变量已在专用块内，请直接修改它。"
+        ? t("env.zshEdit.draft.additionTaken")
         : (counts.get(addition.name) ?? 0) > 1
-          ? "变量名重复，一次保存里同一个变量只能出现一次。"
-          : valueProblem(addition.value));
+          ? t("env.zshEdit.draft.duplicateName")
+          : valueProblem(addition.value, t));
     if (problem !== undefined) {
       additionProblems[addition.id] = problem;
       continue;
@@ -253,13 +260,13 @@ export function checkDrafts(state: ZshEditState, drafts: ZshDrafts): ZshDraftChe
     // Reported on the first addition so the field can show it.
     const first = drafts.additions[0];
     if (first !== undefined && additionProblems[first.id] === undefined) {
-      additionProblems[first.id] = `专用块最多管理 ${MAX_ZSH_VARIABLES} 个变量。`;
+      additionProblems[first.id] = t("env.zshEdit.draft.maxVariables", { max: MAX_ZSH_VARIABLES });
     }
   }
 
   // PATH: the draft list as stored items, compared with what the block holds.
   const normalized: (string | undefined)[] = drafts.path.map((entry) => {
-    const result = normalizePathItem(entry.text);
+    const result = normalizePathItem(entry.text, t);
     if (!result.ok) {
       pathProblems[entry.id] = result.problem;
       return undefined;
@@ -269,7 +276,7 @@ export function checkDrafts(state: ZshEditState, drafts: ZshDrafts): ZshDraftChe
   if (drafts.path.length > MAX_ZSH_PATH_ITEMS) {
     const last = drafts.path[drafts.path.length - 1];
     if (last !== undefined && pathProblems[last.id] === undefined) {
-      pathProblems[last.id] = `专用块最多管理 ${MAX_ZSH_PATH_ITEMS} 个 PATH 项。`;
+      pathProblems[last.id] = t("env.zshEdit.draft.maxPath", { max: MAX_ZSH_PATH_ITEMS });
     }
   }
   const items = normalized.filter((item): item is string => item !== undefined);
@@ -324,29 +331,36 @@ export interface OutsideConflict {
 }
 
 /** Assignments of the same name elsewhere in the file, with who wins. */
-export function outsideConflicts(state: ZshEditState, name: string): OutsideConflict[] {
+export function outsideConflicts(
+  state: ZshEditState,
+  name: string,
+  t: TranslateFunction = zhTranslate,
+): OutsideConflict[] {
   return state.outside.variables
     .filter((variable) => variable.name === name)
     .map((variable) => ({
       line: variable.line,
       beforeBlock: variable.beforeBlock,
       text: variable.beforeBlock
-        ? `第 ${variable.line} 行在专用块之前已有同名赋值，不会被删除；专用块里的赋值在它之后，会覆盖它。`
-        : `第 ${variable.line} 行在专用块之后有同名赋值，不会被删除；它在后面执行，会覆盖专用块里的值。`,
+        ? t("env.zshEdit.outside.beforeBlock", { line: variable.line })
+        : t("env.zshEdit.outside.afterBlock", { line: variable.line }),
     }));
 }
 
 // ---- wording ---------------------------------------------------------------------------------
 
 /** Said after a successful save; nothing broader is ever claimed. */
-export const ZSH_EFFECT_NOTE =
-  "只修改了文件：不会 source，也不会执行任何命令。改动仅对之后新开的终端（新 shell）可能生效，不影响正在运行的进程、已打开的终端或图形界面应用。";
+export function zshEffectNote(t: TranslateFunction = zhTranslate): string {
+  return t("env.zshEdit.note.effect");
+}
 
-export const PATH_FORM_NOTE =
-  "PATH 项按字面量写入：以 / 开头的绝对路径用单引号；以 ~ 或 $HOME 开头的项写成 \"$HOME\"/'…'，由 shell 在新终端里展开为主目录。专用块里的 PATH 写成 export path=(… $path)：你列出的项放在最前，原有 PATH 完整保留，也不会产生空项（空项表示当前目录）。";
+export function pathFormNote(t: TranslateFunction = zhTranslate): string {
+  return t("env.zshEdit.note.path");
+}
 
-export const VALUE_FORM_NOTE =
-  "值按单引号字面量写入（值里的 ' 写作 '\\''）：引号、$、反引号、;、&、|、反斜杠和 Unicode 都只是普通字符，不会变成命令或展开；含换行、NUL、控制字符的值会被拒绝。";
+export function valueFormNote(t: TranslateFunction = zhTranslate): string {
+  return t("env.zshEdit.note.value");
+}
 
 const FILE_NAMES: Readonly<Record<ZshFileKey, string>> = {
   ZSHENV: ".zshenv",
@@ -365,49 +379,59 @@ export interface FileImpact {
   readonly order: string;
 }
 
-const IMPACT_EXTRA: Record<ZshFileKey, string> = {
-  ZSHENV: "每个 zsh 都会读取它，包括运行脚本的非交互 shell，影响面最大；这里只建议放确实需要全局可见的内容。",
-  ZPROFILE: "登录 shell 启动时读取，早于 .zshrc；普通交互终端标签通常不是登录 shell，所以改动不一定出现在每个终端里。",
-  ZSHRC: "交互式 shell 启动时读取，是日常终端最常用的位置，也是默认目标。",
-  ZLOGIN: "登录 shell 在 .zshrc 之后读取，适合只在登录时需要的内容。",
+const IMPACT_KEYS: Record<ZshFileKey, MessageKey> = {
+  ZSHENV: "env.zshEdit.impact.ZSHENV",
+  ZPROFILE: "env.zshEdit.impact.ZPROFILE",
+  ZSHRC: "env.zshEdit.impact.ZSHRC",
+  ZLOGIN: "env.zshEdit.impact.ZLOGIN",
 };
 
-export function fileImpact(state: Pick<ZshEditState, "file" | "appliesTo" | "position">): FileImpact {
-  const applies = appliesToText(state.appliesTo);
+export function fileImpact(
+  state: Pick<ZshEditState, "file" | "appliesTo" | "position">,
+  t: TranslateFunction = zhTranslate,
+): FileImpact {
+  const applies = appliesToText(state.appliesTo, t);
   return {
     label: applies.label,
-    detail: `${applies.detail}${IMPACT_EXTRA[state.file]}`,
-    order: `在 zsh 读取顺序中排第 ${state.position} 位；后读取的文件可以覆盖先读取的设置。`,
+    detail: t("env.zshEdit.impact.detail", {
+      applies: applies.detail,
+      extra: t(IMPACT_KEYS[state.file]),
+    }),
+    order: t("env.zshEdit.impact.order", { position: state.position }),
   };
 }
 
-export function warningText(warning: ZshEditWarning): string {
+export function warningText(warning: ZshEditWarning, t: TranslateFunction = zhTranslate): string {
   switch (warning.kind) {
     case "OVERRIDES_EARLIER_ASSIGNMENT":
-      return `${warning.name}：第 ${warning.line} 行在专用块之前已有同名赋值，保留不动；专用块在它之后，会覆盖它。`;
+      return t("env.zshEdit.warning.overridesEarlier", { name: warning.name, line: warning.line });
     case "OVERRIDDEN_BY_LATER_ASSIGNMENT":
-      return `${warning.name}：第 ${warning.line} 行在专用块之后有同名赋值，保留不动；它会覆盖专用块里的值。`;
+      return t("env.zshEdit.warning.overriddenByLater", { name: warning.name, line: warning.line });
     case "DUPLICATE_PATH_ITEM":
-      return `PATH 项 ${warning.item} 在专用块里重复出现，按所写保留。`;
+      return t("env.zshEdit.warning.duplicatePath", { item: warning.item });
     case "PATH_ITEM_ALSO_OUTSIDE":
-      return `PATH 项 ${warning.item} 在第 ${warning.line} 行的块外 PATH 里已有。`;
+      return t("env.zshEdit.warning.pathAlsoOutside", { item: warning.item, line: warning.line });
     case "DYNAMIC_PATH_OUTSIDE":
-      return `第 ${warning.line} 行的 PATH 写法是动态／未解析的：按原文保留，不展开、不改写；专用块的项只是放在它的结果之前。`;
+      return t("env.zshEdit.warning.dynamicPathOutside", { line: warning.line });
     case "LATER_PATH_ASSIGNMENT":
-      return `第 ${warning.line} 行在专用块之后直接给 PATH 赋值，可能替换专用块构造的 PATH。`;
+      return t("env.zshEdit.warning.laterPathAssignment", { line: warning.line });
     case "BLOCK_APPENDED":
-      return "文件里还没有专用块：会在文件末尾追加一个（原有内容的每个字节保持不变）。";
+      return t("env.zshEdit.warning.blockAppended");
     case "FILE_CREATED":
-      return "该文件不存在：会创建新文件（仅所有者可读写），没有恢复点。";
+      return t("env.zshEdit.warning.fileCreated");
     case "SENSITIVE_VARIABLE":
-      return `${warning.name}：这个变量会改变 shell 或动态链接器的行为，有风险（可能让每个新终端的行为发生变化）；仍可保存，请确认你清楚它的作用。`;
+      return t("env.zshEdit.warning.sensitiveVariable", { name: warning.name });
   }
 }
 
-export function previewKindText(preview: Pick<ZshEditPreview, "kind" | "createdBlock">): string {
-  if (preview.kind === "CREATE") return "将创建新文件，并写入专用块";
-  return preview.createdBlock ? "将在文件末尾追加专用块" : "将修改文件中的专用块";
+export function previewKindText(
+  preview: Pick<ZshEditPreview, "kind" | "createdBlock">,
+  t: TranslateFunction = zhTranslate,
+): string {
+  if (preview.kind === "CREATE") return t("env.zshEdit.preview.create");
+  return preview.createdBlock ? t("env.zshEdit.preview.append") : t("env.zshEdit.preview.modify");
 }
 
-export const NOT_ENABLED_TEXT =
-  "尚未对这个文件启用编辑。点击“启用编辑”后，UserHome 会为这个具体文件创建一项可撤销的授权（不会写入任何内容）；之后的每次保存仍要先预览并确认。";
+export function notEnabledText(t: TranslateFunction = zhTranslate): string {
+  return t("env.zshEdit.note.notEnabled");
+}

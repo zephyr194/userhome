@@ -158,6 +158,32 @@ const PHASE_ONE_FILES = [
   "features/services/serviceDictionary.ts",
   "features/services/serviceProfile.ts",
   "features/services/testTranslators.ts",
+  "features/environment/DotenvEditor.tsx",
+  "features/environment/EnvironmentPage.tsx",
+  "features/environment/EnvironmentView.tsx",
+  "features/environment/LaunchctlDialogs.tsx",
+  "features/environment/LaunchctlPage.tsx",
+  "features/environment/LaunchctlView.tsx",
+  "features/environment/LazySecretValue.tsx",
+  "features/environment/SameNameHint.tsx",
+  "features/environment/VariableChainTable.tsx",
+  "features/environment/ZshEditor.tsx",
+  "features/environment/ZshPage.tsx",
+  "features/environment/ZshView.tsx",
+  "features/environment/dotenvDirectoryModel.ts",
+  "features/environment/dotenvEditorController.ts",
+  "features/environment/dotenvEditorModel.ts",
+  "features/environment/environmentModel.ts",
+  "features/environment/useDotenvEditor.ts",
+  "features/environment/useDotenvWorkspace.ts",
+  "features/environment/useFocusRequest.ts",
+  "features/environment/useZshEditor.ts",
+  "features/environment/variableChainModel.ts",
+  "features/environment/variableSearch.ts",
+  "features/environment/zhTranslate.ts",
+  "features/environment/zshEditorController.ts",
+  "features/environment/zshEditorModel.ts",
+  "features/environment/zshModel.ts",
 ];
 
 // Exact source lines that legitimately keep Chinese: they match backend-produced Chinese text, not UI copy.
@@ -192,6 +218,12 @@ const ALLOWED_CJK_LINES: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
+// Files whose Chinese text is intentional data rather than user-facing copy.
+const CHINESE_EXCEPTIONS: Readonly<Record<string, string>> = {
+  "features/environment/zshEditorFixtures.ts":
+    "测试夹具：模拟 zsh 文件内容的原文数据，不会显示给用户",
+};
+
 // Lines tagged with this marker belong to pages outside phase one (e.g. environment and Caddy tabs).
 const PHASE_TWO_MARKER = "i18n-phase-two";
 
@@ -202,7 +234,7 @@ function stripComments(source: string): string {
 }
 
 describe("phase-one hardcoded text audit", () => {
-  it.each(PHASE_ONE_FILES)("%s has no Chinese text outside comments", (file) => {
+  it.each(PHASE_ONE_FILES.filter((file) => !(file in CHINESE_EXCEPTIONS)))("%s has no Chinese text outside comments", (file) => {
     const source = stripComments(
       readFileSync(new URL(`../${file}`, import.meta.url), "utf8")
         .split("\n")

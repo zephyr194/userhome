@@ -55,3 +55,30 @@ export function localizedErrorMessage(
   const key = SERVICE_ERROR_MESSAGE_KEYS[error.code];
   return key === undefined ? error.message : t(key);
 }
+
+/**
+ * Backend messages are Chinese and carry no translation. In English the known
+ * error code is mapped to an English message; anything unknown, and every
+ * message in Chinese, is shown as the backend wrote it.
+ */
+const ENV_CODE_KEYS: Readonly<Record<AppErrorCode, MessageKey>> = {
+  INVALID_INPUT: "error.code.INVALID_INPUT",
+  NOT_FOUND: "error.code.NOT_FOUND",
+  NOT_SUPPORTED: "error.code.NOT_SUPPORTED",
+  PERMISSION_DENIED: "error.code.PERMISSION_DENIED",
+  VALIDATION_FAILED: "error.code.VALIDATION_FAILED",
+  CONFLICT: "error.code.CONFLICT",
+  PROCESS_FAILED: "error.code.PROCESS_FAILED",
+  PARTIAL_FAILURE: "error.code.PARTIAL_FAILURE",
+  TIMEOUT: "error.code.TIMEOUT",
+  INTERNAL: "error.code.INTERNAL",
+};
+
+export function localizeAppError(
+  error: Pick<AppError, "code" | "message">,
+  t: TranslateFunction,
+  locale: Locale,
+): string {
+  if (locale === "zh-CN") return error.message;
+  return t(ENV_CODE_KEYS[error.code] ?? "error.code.INTERNAL");
+}

@@ -2943,6 +2943,29 @@ code {
 }
 /* /r9-env */
 
+/* r10-env ---------------------------------------------------------------- */
+/* 目录 tabs 超出宽度时横向滚动（选中项由组件滚入视口）；标签不收缩，按内容宽度排列 */
+.environment-page__tab-scroll [role="tab"] {
+  flex: none;
+}
+
+/* 搜索框的标签只给读屏用：工具栏只显示输入框与占位文字 */
+.env-search > label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+}
+
+/* 折叠区摘要与正文同色，不加底色或外框 */
+.environment-page details > summary {
+  width: fit-content;
+}
+/* /r10-env */
+
 /* r9-services ------------------------------------------------------------ */
 .services-groups {
   min-width: 0;

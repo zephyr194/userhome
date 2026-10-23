@@ -1,6 +1,9 @@
 import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
+import { localizeAppError } from "../../i18n/errors";
+import { formatByteSize } from "../../i18n/format";
+import { useLocale, useT } from "../../i18n/useLocale";
 import type {
   ZshEntryRow,
   ZshFile,
@@ -9,16 +12,14 @@ import type {
   ZshOverview,
   ZshRow,
 } from "../../ipc/environment";
-import { useT } from "../../i18n/useLocale";
-import { formatBytes } from "./environmentModel";
-import { VariableChainTable } from "./VariableChainTable";
+import { VariableChainList } from "./VariableChainTable";
 import { zshVariableRows, type VariableChainRow } from "./variableChainModel";
 import {
-  SOURCE_LABEL,
   appliesToText,
   fileStatus,
   reasonText,
   resolveZshNames,
+  sourceLabel,
   stepStatus,
   summarize,
   zdotdirSummary,
@@ -49,17 +50,17 @@ export interface ZshViewProps {
 }
 
 const HEADER_CLASSES =
-  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 px-ui-12 pt-ui-16 pb-ui-12";
+  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 px-ui-12 pt-ui-12 pb-ui-8";
 const CARD_CLASSES = "min-w-0 overflow-hidden";
 const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
 
 /**
- * 只读视图：四个 zsh 启动文件的适用 shell 类型、读取顺序、ZDOTDIR 判断。变量
- * 集中在一张读取链表中（最终值与过程值），其余行按原文显示，不执行命令。
- * 默认没有任何编辑入口；只有页面传入 onEditFile 时，位置已确定的文件才出现入口
- * （编辑器本身不在这个视图里）。
+ * 只读视图：变量读取链表放在最上面（最终值与过程值），zsh 的读取顺序、ZDOTDIR 与
+ * 各启动文件原文收在下方的折叠区里。不执行命令；默认没有编辑入口，只有页面传入
+ * onEditFile 时，位置已确定的文件才出现入口（编辑器本身不在这个视图里）。
  */
 export function ZshView(props: ZshViewProps) {
+  const t = useT();
   const { state } = props;
   const { load } = state;
   const overview =
@@ -75,12 +76,10 @@ export function ZshView(props: ZshViewProps) {
     >
       <header className={HEADER_CLASSES}>
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold" id="zsh-heading">
-            zsh 启动文件
+          <h2 className="text-group font-semibold" id="zsh-heading">
+            {t("env.zsh.heading")}
           </h2>
-          <p className="mt-ui-4 text-xs text-muted-foreground">
-            当前用户的 .zshenv、.zprofile、.zshrc、.zlogin，只读查看
-          </p>
+          <p className="mt-ui-4 text-xs text-muted-foreground">{t("env.zsh.subheading")}</p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
           {props.onEditFile ? (
@@ -90,7 +89,7 @@ export function ZshView(props: ZshViewProps) {
               size="sm"
               variant="primary"
             >
-              设置变量
+              {t("env.zsh.addVariable")}
             </Button>
           ) : null}
           <Button
@@ -98,12 +97,11 @@ export function ZshView(props: ZshViewProps) {
             onClick={props.onReload}
             size="sm"
           >
-            {load.status === "loading" ? "读取中…" : "重新读取"}
+            {load.status === "loading" ? t("env.zsh.reloading") : t("env.zsh.reload")}
           </Button>
         </div>
       </header>
       <div className="grid gap-ui-12 px-ui-12 py-ui-8">
-        <StaticReadingNote overview={overview} />
         {props.notice ? (
           <p
             className={classNames(
@@ -121,92 +119,102 @@ export function ZshView(props: ZshViewProps) {
   );
 }
 
+function Body(props: ZshViewProps & { overview?: ZshOverview }) {
+  const t = useT();
+  const locale = useLocale();
+  const { overview, state } = props;
+  const { load } = state;
+  if (load.status === "error") {
+    return (
+      <AsyncState kind="error">
+        <span className="break-words [overflow-wrap:anywhere]">
+          {localizeAppError(load.error, t, locale)}
+        </span>{" "}
+        <Button onClick={props.onReload} size="sm">
+          {t("env.zsh.retry")}
+        </Button>
+      </AsyncState>
+    );
+  }
+  if (!overview) {
+    return <AsyncState kind="loading">{t("env.zsh.loading")}</AsyncState>;
+  }
+  const summary = summarize(overview, t);
+  const resolution = resolveZshNames(overview);
+  return (
+    <>
+      {load.status === "loading" ? (
+        <AsyncState kind="loading">{t("env.zsh.reloadingNotice")}</AsyncState>
+      ) : null}
+      {summary.kind === "empty" ? (
+        <AsyncState kind="empty">{t("env.zsh.allMissing")}</AsyncState>
+      ) : null}
+      {summary.kind === "partial" ? (
+        <AsyncState kind="partial">
+          {t("env.zsh.partial", { problems: summary.problems.join(t("env.zsh.listSeparator")) })}
+        </AsyncState>
+      ) : null}
+      <VariablesSection
+        onEditFile={props.onEditFile}
+        onLoadValue={props.onLoadValue}
+        overview={overview}
+      />
+      <details className="group min-w-0 border-t border-line pt-ui-8">
+        <summary className="cursor-pointer text-aux font-semibold text-foreground">
+          {t("env.zsh.details")}
+        </summary>
+        <div className="grid gap-ui-12 pt-ui-12">
+          <StaticReadingNote overview={overview} />
+          <ReadingOrder overview={overview} />
+          <ZdotdirPanel {...props} overview={overview} />
+          <div className="grid gap-ui-8">
+            {overview.files.map((file) => (
+              <FileCard
+                file={file}
+                key={file.file}
+                onEditFile={props.onEditFile}
+                resolution={resolution}
+              />
+            ))}
+          </div>
+        </div>
+      </details>
+    </>
+  );
+}
+
 function StaticReadingNote({ overview }: { overview?: ZshOverview }) {
+  const t = useT();
   return (
     <div className="grid gap-ui-4">
-      <p className={NOTE_CLASSES}>
-        静态读取：不启动 shell、不 source、不执行任何文件，也不读取 /etc
-        下的系统级文件和进程环境。RCS 等选项与动态配置可能改变实际读取的内容，所以这里的展示不等于实际生效的环境。
-      </p>
+      <p className={NOTE_CLASSES}>{t("env.zsh.staticNote")}</p>
       {overview ? (
         <p className={NOTE_CLASSES}>
-          来源：{SOURCE_LABEL}，{overview.source.consultedOn} 查阅（
-          <code className="break-all font-mono">{overview.source.url}</code>）
+          {t("env.zsh.source", {
+            label: sourceLabel(t),
+            date: overview.source.consultedOn,
+          })}{" "}
+          <code className="break-all font-mono">{overview.source.url}</code>
         </p>
       ) : null}
     </div>
   );
 }
 
-function Body(props: ZshViewProps & { overview?: ZshOverview }) {
-  const { overview, state } = props;
-  const { load } = state;
-  if (load.status === "error") {
-    return (
-      <AsyncState kind="error">
-        <span className="break-words [overflow-wrap:anywhere]">{load.error.message}</span>{" "}
-        <Button onClick={props.onReload} size="sm">
-          重试
-        </Button>
-      </AsyncState>
-    );
-  }
-  if (!overview) {
-    return <AsyncState kind="loading">正在读取 zsh 启动文件…</AsyncState>;
-  }
-  const summary = summarize(overview);
-  const resolution = resolveZshNames(overview);
-  return (
-    <>
-      {load.status === "loading" ? (
-        <AsyncState kind="loading">正在重新读取…</AsyncState>
-      ) : null}
-      {summary.kind === "empty" ? (
-        <AsyncState kind="empty">
-          四个启动文件都不存在。zsh 会按下面的顺序查找它们，不存在的文件会被跳过。
-        </AsyncState>
-      ) : null}
-      {summary.kind === "partial" ? (
-        <AsyncState kind="partial">
-          部分文件没有读取：{summary.problems.join("；")}。
-        </AsyncState>
-      ) : null}
-      <ReadingOrder overview={overview} />
-      <ZdotdirPanel {...props} overview={overview} />
-      <VariablesSection
-        onEditFile={props.onEditFile}
-        onLoadValue={props.onLoadValue}
-        overview={overview}
-      />
-      <div className="grid gap-ui-8">
-        {overview.files.map((file) => (
-          <FileCard
-            file={file}
-            key={file.file}
-            onEditFile={props.onEditFile}
-            resolution={resolution}
-          />
-        ))}
-      </div>
-    </>
-  );
-}
-
 // ---- reading order ----------------------------------------------------------
 
 function ReadingOrder({ overview }: { overview: ZshOverview }) {
+  const t = useT();
   const byFile = new Map(overview.files.map((file) => [file.file, file]));
   return (
-    <section aria-labelledby="zsh-order-heading" className={classNames(CARD_CLASSES, "px-ui-12 py-ui-8")}>
-      <h3 className="text-sm font-semibold" id="zsh-order-heading">
-        读取顺序
+    <section aria-labelledby="zsh-order-heading" className={CARD_CLASSES}>
+      <h3 className="text-aux font-semibold" id="zsh-order-heading">
+        {t("env.zsh.order.heading")}
       </h3>
-      <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
-        zsh 启动时按下面的顺序读取；后读取的文件可以覆盖先读取的设置。同名变量按 shell 类型分别判断，被完全覆盖的设置不再显示，只覆盖部分 shell 的会标出范围。是否真的生效还取决于 shell 的类型和动态写法。
-      </p>
+      <p className={classNames("mt-ui-4", NOTE_CLASSES)}>{t("env.zsh.order.note")}</p>
       <div className="mt-ui-8 min-w-0 overflow-x-auto">
         <table
-          aria-label="zsh 启动文件读取顺序"
+          aria-label={t("env.zsh.order.table")}
           className="w-full min-w-[32rem] table-fixed border-collapse text-xs"
         >
           <colgroup>
@@ -217,10 +225,10 @@ function ReadingOrder({ overview }: { overview: ZshOverview }) {
           </colgroup>
           <thead>
             <tr className="border-b border-line text-left text-meta text-muted-foreground">
-              <th className="px-ui-8 py-ui-4 font-medium" scope="col">步骤</th>
-              <th className="px-ui-8 py-ui-4 font-medium" scope="col">路径</th>
-              <th className="px-ui-8 py-ui-4 font-medium" scope="col">范围</th>
-              <th className="px-ui-8 py-ui-4 font-medium" scope="col">状态</th>
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">{t("env.zsh.order.step")}</th>
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">{t("env.zsh.order.path")}</th>
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">{t("env.zsh.order.scope")}</th>
+              <th className="px-ui-8 py-ui-4 font-medium" scope="col">{t("env.zsh.order.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -239,9 +247,10 @@ function ReadingOrder({ overview }: { overview: ZshOverview }) {
 }
 
 function OrderRow({ file, step }: { file?: ZshFile; step: ZshOrderStep }) {
-  const applies = appliesToText(step.appliesTo);
-  const note = stepStatus(step);
-  const status = file ? fileStatus(file) : undefined;
+  const t = useT();
+  const applies = appliesToText(step.appliesTo, t);
+  const note = stepStatus(step, t);
+  const status = file ? fileStatus(file, t) : undefined;
   return (
     <tr
       className={classNames(
@@ -250,7 +259,7 @@ function OrderRow({ file, step }: { file?: ZshFile; step: ZshOrderStep }) {
       )}
     >
       <td className="whitespace-nowrap px-ui-8 py-ui-4 text-meta text-muted-foreground">
-        第 {step.position} 步
+        {t("env.zsh.order.position", { position: step.position })}
       </td>
       <td className="min-w-0 px-ui-8 py-ui-4">
         <code className="break-all font-mono text-aux">{step.pathLabel}</code>
@@ -289,13 +298,14 @@ function ZdotdirPanel({
   onClearDirectory,
   overview,
 }: ZshViewProps & { overview: ZshOverview }) {
-  const summary = zdotdirSummary(overview.zdotdir);
+  const t = useT();
+  const summary = zdotdirSummary(overview.zdotdir, t);
   return (
     <section
       aria-labelledby="zsh-zdotdir-heading"
       className={classNames(CARD_CLASSES, "border-l-4 px-ui-12 py-ui-8", toneClasses(summary.tone))}
     >
-      <h3 className="text-sm font-semibold" id="zsh-zdotdir-heading">
+      <h3 className="text-aux font-semibold" id="zsh-zdotdir-heading">
         {summary.title}
       </h3>
       <p className={classNames("mt-ui-4 break-words [overflow-wrap:anywhere]", NOTE_CLASSES)}>
@@ -314,19 +324,20 @@ function ZdotdirPanel({
             size="sm"
             variant={summary.needsChoice ? "primary" : "secondary"}
           >
-            {choosing ? "等待选择…" : summary.selected ? "重新选择目录…" : "选择 ZDOTDIR 目录…"}
+            {choosing
+              ? t("env.zsh.zdotdir.waiting")
+              : summary.selected
+                ? t("env.zsh.zdotdir.change")
+                : t("env.zsh.zdotdir.choose")}
           </Button>
           {summary.selected ? (
             <Button disabled={choosing} onClick={onClearDirectory} size="sm" variant="ghost">
-              清除选择
+              {t("env.zsh.zdotdir.clear")}
             </Button>
           ) : null}
         </div>
       ) : null}
-      <p className={classNames("mt-ui-8", NOTE_CLASSES)}>
-        .zshenv 始终从主目录读取。UserHome 不读取自身进程的 ZDOTDIR；/etc/zshenv
-        或启动终端的会话也可能设置它，静态读取看不到这些来源。
-      </p>
+      <p className={classNames("mt-ui-8", NOTE_CLASSES)}>{t("env.zsh.zdotdir.note")}</p>
     </section>
   );
 }
@@ -342,22 +353,23 @@ function FileCard({
   onEditFile?: ZshViewProps["onEditFile"];
   resolution: ZshNameResolution;
 }) {
-  const applies = appliesToText(file.appliesTo);
-  const status = fileStatus(file);
+  const t = useT();
+  const applies = appliesToText(file.appliesTo, t);
+  const status = fileStatus(file, t);
   const headingId = `zsh-file-${file.file}`;
   const { outcome } = file;
   return (
     <section aria-labelledby={headingId} className={CARD_CLASSES}>
       <header className={HEADER_CLASSES}>
         <div className="min-w-0">
-          <h3 className="flex flex-wrap items-center gap-ui-8 text-sm font-semibold" id={headingId}>
+          <h3 className="flex flex-wrap items-center gap-ui-8 text-aux font-semibold" id={headingId}>
             <code className="font-mono">{file.name}</code>
             <span className="text-meta font-normal text-muted-foreground">
-              第 {file.position} 步
+              {t("env.zsh.order.position", { position: file.position })}
             </span>
           </h3>
           <p className="mt-ui-4 break-all text-xs text-muted-foreground">
-            {file.displayPath ?? "位置未确定"}
+            {file.displayPath ?? t("env.zsh.file.undetermined")}
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
@@ -365,12 +377,12 @@ function FileCard({
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
           {onEditFile && canEdit(outcome) ? (
             <Button
-              aria-label={`编辑 ${file.name} 的 UserHome 专用块`}
+              aria-label={t("env.zsh.file.editBlockLabel", { name: file.name })}
               onClick={() => onEditFile(file.file)}
               size="sm"
               variant={file.file === "ZSHRC" ? "primary" : "secondary"}
             >
-              编辑专用块…
+              {t("env.zsh.file.editBlock")}
             </Button>
           ) : null}
         </div>
@@ -378,9 +390,7 @@ function FileCard({
       <div className="px-ui-12 py-ui-8">
         <p className={NOTE_CLASSES}>{applies.detail}</p>
         {onEditFile && canEdit(outcome) && file.file !== "ZSHRC" ? (
-          <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
-            默认只在 .zshrc 里编辑；这个文件需要你逐次选择，编辑前会显示它的影响范围。
-          </p>
+          <p className={classNames("mt-ui-4", NOTE_CLASSES)}>{t("env.zsh.file.nonZshrcNote")}</p>
         ) : null}
         {outcome.status === "READY" ? (
           <ReadyFile file={file} outcome={outcome} resolution={resolution} />
@@ -407,8 +417,9 @@ function zshrcEditable(overview: ZshOverview | undefined): boolean {
 }
 
 function FileProblem({ outcome }: { outcome: Exclude<ZshFile["outcome"], { status: "READY" }> }) {
+  const t = useT();
   if (outcome.status === "UNAVAILABLE" && outcome.reason === "NOT_FOUND") {
-    return <AsyncState kind="empty">该文件不存在，zsh 会跳过它。</AsyncState>;
+    return <AsyncState kind="empty">{t("env.zsh.file.missingNote")}</AsyncState>;
   }
   if (outcome.status === "NOT_LOCATED") {
     return <AsyncState kind="partial">{outcome.message}</AsyncState>;
@@ -429,31 +440,37 @@ function ReadyFile({
   outcome: Extract<ZshFile["outcome"], { status: "READY" }>;
   resolution: ZshNameResolution;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const display = zshFileDisplay(file.file, outcome, resolution);
   const lines = outcome.rows.filter(isLineRow);
   return (
     <>
       <div className="mt-ui-8 flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
-        <span>{formatBytes(outcome.sizeBytes)}</span>
-        <span>{outcome.lineCount} 行</span>
-        <span>{display.entryCount} 项</span>
-        <span>{display.secretCount} 项已遮盖</span>
+        <span>{formatByteSize(outcome.sizeBytes, locale)}</span>
+        <span>{t("env.zsh.file.lines", { count: outcome.lineCount })}</span>
+        <span>{t("env.zsh.file.entries", { count: display.entryCount })}</span>
+        <span>{t("env.zsh.file.masked", { count: display.secretCount })}</span>
         {display.dynamicCount > 0 ? (
-          <StatusBadge tone="warning">{display.dynamicCount} 处动态／未解析</StatusBadge>
+          <StatusBadge tone="warning">
+            {t("env.zsh.file.dynamic", { count: display.dynamicCount })}
+          </StatusBadge>
         ) : null}
         {outcome.unrecognizedCount > 0 ? (
-          <StatusBadge tone="warning">{outcome.unrecognizedCount} 行未识别</StatusBadge>
+          <StatusBadge tone="warning">
+            {t("env.zsh.file.unrecognized", { count: outcome.unrecognizedCount })}
+          </StatusBadge>
         ) : null}
       </div>
       {outcome.rowsTruncated ? (
         <AsyncState kind="partial">
-          文件行数过多，只显示前 {outcome.rows.length} 行（共 {outcome.lineCount} 行）。
+          {t("env.zsh.file.truncated", { shown: outcome.rows.length, total: outcome.lineCount })}
         </AsyncState>
       ) : null}
-      {outcome.rows.length === 0 ? <AsyncState kind="empty">文件是空的。</AsyncState> : null}
+      {outcome.rows.length === 0 ? <AsyncState kind="empty">{t("env.zsh.file.empty")}</AsyncState> : null}
       {lines.length > 0 ? (
         <ol
-          aria-label={`${file.name} 的内容`}
+          aria-label={t("env.zsh.file.contentLabel", { name: file.name })}
           className="mt-ui-8 grid max-h-96 gap-ui-4 overflow-y-auto"
           // The list scrolls, so keyboard users must be able to focus it.
           tabIndex={0}
@@ -477,9 +494,10 @@ function isLineRow(row: ZshRow): row is LineRow {
 }
 
 function LineNumber({ line }: { line: number }) {
+  const t = useT();
   return (
     <span
-      aria-label={`第 ${line} 行`}
+      aria-label={t("env.zsh.file.lineLabel", { line })}
       className="w-10 shrink-0 select-none text-right font-mono text-meta text-muted-foreground"
     >
       {line}
@@ -490,12 +508,13 @@ function LineNumber({ line }: { line: number }) {
 const ROW_BASE = "flex min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-4";
 
 function RowView({ row }: { row: LineRow }) {
+  const t = useT();
   switch (row.kind) {
     case "BLANK":
       return (
         <div className={classNames(ROW_BASE, "text-muted-foreground")}>
           <LineNumber line={row.line} />
-          <span className="text-meta">（空行）</span>
+          <span className="text-meta">{t("env.zsh.file.blank")}</span>
         </div>
       );
     case "COMMENT":
@@ -506,14 +525,14 @@ function RowView({ row }: { row: LineRow }) {
         </div>
       );
     case "DYNAMIC": {
-      const reason = reasonText(row.reason);
+      const reason = reasonText(row.reason, t);
       return (
         <div className={classNames(ROW_BASE, "bg-warning-soft")}>
           <LineNumber line={row.line} />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
               <StatusBadge tone="warning" title={reason.hint}>
-                动态／未解析
+                {t("env.zsh.file.dynamicBadge")}
               </StatusBadge>
               <span className="text-meta">{reason.label}</span>
               <EndLine line={row.line} endLine={row.endLine} />
@@ -532,7 +551,7 @@ function RowView({ row }: { row: LineRow }) {
           <LineNumber line={row.line} />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
-              <StatusBadge tone="warning">未识别行，保持原样</StatusBadge>
+              <StatusBadge tone="warning">{t("env.zsh.file.unrecognizedBadge")}</StatusBadge>
               <EndLine line={row.line} endLine={row.endLine} />
             </div>
             <div className="mt-ui-4">
@@ -545,9 +564,10 @@ function RowView({ row }: { row: LineRow }) {
 }
 
 function EndLine({ line, endLine }: { line: number; endLine: number }) {
+  const t = useT();
   return endLine > line ? (
     <span className="text-meta text-muted-foreground">
-      第 {line}–{endLine} 行
+      {t("env.zsh.file.lineRange", { line, endLine })}
     </span>
   ) : null;
 }
@@ -559,10 +579,9 @@ function RowText({
   className?: string;
   row: { text?: string; withheld: boolean };
 }) {
+  const t = useT();
   if (row.withheld || row.text === undefined) {
-    return (
-      <span className="text-xs text-muted-foreground">（疑似含秘密，内容已隐藏）</span>
-    );
+    return <span className="text-xs text-muted-foreground">{t("env.zsh.file.withheld")}</span>;
   }
   return (
     <code className={classNames("break-all font-mono text-aux", className)}>
@@ -581,8 +600,7 @@ function VariablesSection({
   overview: ZshOverview;
 }) {
   const t = useT();
-  const rows = zshVariableRows(overview);
-  if (rows.length === 0) return null;
+  const rows = zshVariableRows(overview, t);
   const keyByName = new Map(overview.files.map((file) => [file.name, file.file]));
 
   const edit = (row: VariableChainRow) => {
@@ -606,21 +624,18 @@ function VariablesSection({
   };
 
   return (
-    <section aria-labelledby="zsh-variables-heading" className={classNames(CARD_CLASSES, "px-ui-12 py-ui-8")}>
-      <h3 className="text-sm font-semibold" id="zsh-variables-heading">
-        变量
+    <section aria-labelledby="zsh-variables-heading" className="min-w-0">
+      <h3 className="sr-only" id="zsh-variables-heading">
+        {t("env.zsh.variables.heading")}
       </h3>
-      <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
-        每个变量显示最终值和来源。过程值是读取顺序中前面的每次赋值。同名变量按 shell 类型分行，各行的值相同则合并。秘密值默认遮盖，只能在最终值处载入。
-      </p>
-      <div className="mt-ui-8 min-w-0">
-        <VariableChainTable
-          label="zsh 变量的最终值与过程值"
-          onEdit={onEditFile ? edit : undefined}
-          onRevealFinal={reveal}
-          rows={rows}
-        />
-      </div>
+      <VariableChainList
+        emptyState={<AsyncState kind="empty">{t("env.zsh.variables.empty")}</AsyncState>}
+        label={t("env.zsh.variables.table")}
+        onEdit={onEditFile ? edit : undefined}
+        onRevealFinal={reveal}
+        rows={rows}
+        searchKey="zsh"
+      />
     </section>
   );
 }

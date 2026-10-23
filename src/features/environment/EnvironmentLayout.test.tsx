@@ -19,7 +19,9 @@ describe("environment page layout (UIB-4e)", () => {
     expect(markup).toContain("page-shell__layout--master-detail");
     expect(markup).not.toContain("page-shell__layout--strip");
     expect(markup).not.toContain("page-shell__layout--board");
-    expect(markup.indexOf('aria-label="环境变量域"')).toBeLessThan(markup.indexOf("环境文件"));
+    expect(markup.indexOf('aria-label="环境变量域"')).toBeLessThan(
+      markup.indexOf('class="environment-page__content'),
+    );
   });
 
   it("shows the dotenv domain and keeps the zsh and login session domains mounted but hidden", () => {
@@ -61,6 +63,10 @@ describe("environment page scrolling", () => {
     expect(css).toMatch(/\.environment-page__content\s*\{[^}]*overflow-y:\s*auto/);
     expect(css).not.toMatch(/\.environment-page__detail\s*\{[^}]*overflow-y:\s*auto/);
     expect(css).not.toMatch(/\.environment-page__menu\s*\{[^}]*overflow/);
+  });
+
+  it("keeps each directory tab at its content width inside the sideways-scrolling tab row", () => {
+    expect(css).toMatch(/\.environment-page__tab-scroll\s*\[role="tab"\]\s*\{[^}]*flex:\s*none/);
   });
 
   it("keeps the system tabs above the scrolling content region", () => {

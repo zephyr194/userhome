@@ -104,7 +104,10 @@ describe("LaunchctlView", () => {
   });
 
   it("shows the reason for a failed read and retries from the error block", () => {
-    const { onRetry } = renderView({ status: "failed", message: "权限不足" });
+    const { onRetry } = renderView({
+      status: "failed",
+      error: { code: "PERMISSION_DENIED", message: "权限不足", retryable: false },
+    });
 
     expect(screen.getByRole("alert").textContent).toContain("原因：权限不足");
     fireEvent.click(screen.getByRole("button", { name: "重试" }));

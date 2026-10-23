@@ -42,7 +42,7 @@ export function LaunchctlPage() {
       },
       (error: unknown) => {
         if (requestId === requestCounter.current) {
-          setState({ status: "failed", message: decodeAppError(error).message });
+          setState({ status: "failed", error: decodeAppError(error) });
         }
       },
     );

@@ -6,6 +6,8 @@ import { toolsEn } from "./tools";
 import { aiConfigEn } from "./aiConfig";
 import { appConfigEn } from "./appConfig";
 import { environmentEn } from "./environment";
+import { environmentEditorsEn } from "./environmentEditors";
+import { environmentModelsEn } from "./environmentModels";
 import { dashboardEn } from "./dashboard";
 import { servicesEn } from "./services";
 import { settingsEn } from "./settings";
@@ -25,4 +27,6 @@ export const en: Record<MessageKey, string> = {
   ...environmentEn,
   ...aiConfigEn,
   ...appConfigEn,
+  ...environmentEditorsEn,
+  ...environmentModelsEn,
 };

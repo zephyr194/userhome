@@ -4,6 +4,7 @@ import {
   previewEnvironmentCreate,
   previewEnvironmentEdit,
 } from "../../ipc/environment";
+import { useT } from "../../i18n/useLocale";
 import {
   createDotenvEditorController,
   type DotenvEditorController,
@@ -23,6 +24,7 @@ export function useDotenvEditor(onSaved: (target: EditorTarget) => void): {
   state: EditorState;
   check: DraftCheck;
 } {
+  const t = useT();
   const [controller] = useState(() =>
     createDotenvEditorController({
       preview: (target, edits) =>
@@ -43,6 +45,8 @@ export function useDotenvEditor(onSaved: (target: EditorTarget) => void): {
         }),
     }),
   );
+  // Idempotent: keeps the drafts check and new notices in the current language.
+  controller.setTranslate(t);
   useEffect(() => {
     controller.setOnSaved(onSaved);
     return () => controller.setOnSaved(undefined);

@@ -1,6 +1,8 @@
 import { useId, useState, type FormEvent } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { ActionRow, Button, Modal, TextAreaField, TextField } from "../../components/ui";
+import type { TranslateFunction } from "../../i18n";
+import { useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import type {
   LaunchctlChange,
@@ -10,7 +12,6 @@ import type {
 
 const NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
 const MAX_VALUE_BYTES = 4096;
-const LAUNCHCTL_SCOPE_NOTE = "只影响之后启动的应用，注销或重启后失效。";
 
 export interface LaunchctlSetInput {
   key: string;
@@ -18,20 +19,18 @@ export interface LaunchctlSetInput {
   expectedCurrent: string | null;
 }
 
-function nameProblem(name: string): string | null {
-  if (name.length === 0) return "请输入变量名。";
-  if (!NAME_PATTERN.test(name)) {
-    return "变量名只能由字母、数字和下划线组成，不能以数字开头，最长 128 个字符。";
-  }
+function nameProblem(name: string, t: TranslateFunction): string | null {
+  if (name.length === 0) return t("env.editor.launchctl.name.empty");
+  if (!NAME_PATTERN.test(name)) return t("env.editor.launchctl.name.pattern");
   return null;
 }
 
-function valueProblem(value: string): string | null {
-  if (value.length === 0) return "请输入值。要删除这个变量，请使用“移除”。";
-  if (value.includes("\0")) return "值不能包含空字符。";
-  if (value.startsWith("-")) return "值不能以 - 开头。请换一个值。";
+function valueProblem(value: string, t: TranslateFunction): string | null {
+  if (value.length === 0) return t("env.editor.launchctl.value.empty");
+  if (value.includes("\0")) return t("env.editor.launchctl.value.nul");
+  if (value.startsWith("-")) return t("env.editor.launchctl.value.dash");
   if (new TextEncoder().encode(value).length > MAX_VALUE_BYTES) {
-    return "值不能超过 4096 字节。";
+    return t("env.editor.launchctl.value.tooLong", { max: MAX_VALUE_BYTES });
   }
   return null;
 }
@@ -42,9 +41,11 @@ interface PreviewedChange {
   readonly preview: LaunchctlSetPreview;
 }
 
-function currentStateText(preview: LaunchctlSetPreview): string {
-  if (!preview.currentExists) return "未设置";
-  return preview.currentSecret ? "已设置（已遮盖）" : "已设置";
+function currentStateText(preview: LaunchctlSetPreview, t: TranslateFunction): string {
+  if (!preview.currentExists) return t("env.editor.launchctl.current.unset");
+  return preview.currentSecret
+    ? t("env.editor.launchctl.current.setMasked")
+    : t("env.editor.launchctl.current.set");
 }
 
 /**
@@ -65,6 +66,7 @@ export function LaunchctlSetDialog({
   onPreview: (key: string, value: string) => Promise<LaunchctlSetPreview>;
   onSet: (input: LaunchctlSetInput) => Promise<LaunchctlChange>;
 }) {
+  const t = useT();
   const formId = useId();
   const editing = entry !== undefined;
   const [name, setName] = useState(entry?.key ?? "");
@@ -77,8 +79,8 @@ export function LaunchctlSetDialog({
 
   async function previewChange(event: FormEvent) {
     event.preventDefault();
-    const nameIssue = editing ? null : nameProblem(name);
-    const valueIssue = valueProblem(value);
+    const nameIssue = editing ? null : nameProblem(name, t);
+    const valueIssue = valueProblem(value, t);
     setErrors({ name: nameIssue ?? undefined, value: valueIssue ?? undefined });
     if (nameIssue !== null || valueIssue !== null) return;
     setFormError(null);
@@ -114,7 +116,8 @@ export function LaunchctlSetDialog({
     }
   }
 
-  const title = editing ? "修改变量" : "设置变量";
+  const title = editing ? t("env.editor.launchctl.titleEdit") : t("env.editor.launchctl.titleSet");
+  const scopeNote = t("env.editor.launchctl.scopeNote");
 
   if (previewed !== null) {
     return (
@@ -123,10 +126,10 @@ export function LaunchctlSetDialog({
         footer={
           <>
             <Button disabled={busy} onClick={() => setPreviewed(null)} variant="secondary">
-              返回修改
+              {t("env.editor.launchctl.preview.back")}
             </Button>
             <Button disabled={busy} onClick={confirm} variant="primary">
-              确认设置
+              {t("env.editor.launchctl.preview.confirm")}
             </Button>
           </>
         }
@@ -135,9 +138,15 @@ export function LaunchctlSetDialog({
         title={title}
       >
         <div className="grid min-w-0 gap-ui-8">
-          <p className="font-semibold text-foreground">将设置 {previewed.key}</p>
-          <p className="text-aux text-foreground">当前：{currentStateText(previewed.preview)}</p>
-          <p className="text-aux text-muted-foreground">{LAUNCHCTL_SCOPE_NOTE}</p>
+          <p className="font-semibold text-foreground">
+            {t("env.editor.launchctl.preview.willSet", { key: previewed.key })}
+          </p>
+          <p className="text-aux text-foreground">
+            {t("env.editor.launchctl.preview.current", {
+              state: currentStateText(previewed.preview, t),
+            })}
+          </p>
+          <p className="text-aux text-muted-foreground">{scopeNote}</p>
           {formError !== null ? (
             <p className="text-aux text-danger" role="alert">
               {formError}
@@ -154,10 +163,10 @@ export function LaunchctlSetDialog({
       footer={
         <>
           <Button data-modal-cancel="" disabled={busy} onClick={onClose} variant="secondary">
-            取消
+            {t("env.editor.launchctl.cancel")}
           </Button>
           <Button disabled={busy} form={formId} type="submit" variant="primary">
-            预览设置
+            {t("env.editor.launchctl.form.preview")}
           </Button>
         </>
       }
@@ -170,7 +179,7 @@ export function LaunchctlSetDialog({
           autoComplete="off"
           data-modal-initial-focus={editing ? undefined : ""}
           error={errors.name}
-          label="变量名"
+          label={t("env.editor.launchctl.form.name")}
           onValueChange={setName}
           readOnly={editing || busy}
           spellCheck={false}
@@ -178,16 +187,18 @@ export function LaunchctlSetDialog({
         />
         <TextAreaField
           data-modal-initial-focus={editing ? "" : undefined}
-          description={editing && entry?.secret ? "原值已隐藏，输入新值后才会替换。" : undefined}
+          description={
+            editing && entry?.secret ? t("env.editor.launchctl.form.secretHidden") : undefined
+          }
           error={errors.value}
-          label="值"
+          label={t("env.editor.launchctl.form.value")}
           onValueChange={setValue}
           readOnly={busy}
           rows={4}
           spellCheck={false}
           value={value}
         />
-        <p className="text-aux text-muted-foreground">{LAUNCHCTL_SCOPE_NOTE}</p>
+        <p className="text-aux text-muted-foreground">{scopeNote}</p>
         {formError !== null ? (
           <p className="text-aux text-danger" role="alert">
             {formError}
@@ -211,6 +222,7 @@ export function LaunchctlRemoveDialog({
   onPreview: (key: string) => Promise<LaunchctlSetPreview>;
   onRemove: (key: string, expectedCurrent: string | null) => Promise<LaunchctlChange>;
 }) {
+  const t = useT();
   const titleId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,10 +248,10 @@ export function LaunchctlRemoveDialog({
       titleId={titleId}
     >
       <h3 className="text-group font-semibold text-foreground" id={titleId}>
-        移除 {entryKey}？
+        {t("env.editor.launchctl.remove.title", { key: entryKey })}
       </h3>
       <p className="text-body text-foreground">
-        将从登录会话中移除 {entryKey}。已经运行的应用不受影响，之后启动的应用将不再收到这个变量。
+        {t("env.editor.launchctl.remove.body", { key: entryKey })}
       </p>
       {error !== null ? (
         <p className="text-aux text-danger" role="alert">
@@ -248,10 +260,10 @@ export function LaunchctlRemoveDialog({
       ) : null}
       <ActionRow align="end">
         <Button data-dialog-cancel="" disabled={busy} onClick={onCancel} variant="secondary">
-          取消
+          {t("env.editor.launchctl.cancel")}
         </Button>
         <Button disabled={busy} onClick={remove} variant="danger">
-          移除变量
+          {t("env.editor.launchctl.remove.confirm")}
         </Button>
       </ActionRow>
     </ConfirmDialog>

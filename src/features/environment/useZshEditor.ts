@@ -7,6 +7,7 @@ import {
   type ZshEditTarget,
 } from "../../ipc/environment";
 import { revokeGrant } from "../../ipc/grants";
+import { useT } from "../../i18n/useLocale";
 import {
   createZshEditorController,
   type ZshEditorController,
@@ -27,6 +28,7 @@ export function useZshEditor(onSaved: (target: ZshEditTarget) => void): {
   state: ZshEditorState;
   check: ZshDraftCheck | undefined;
 } {
+  const t = useT();
   const [controller] = useState(() =>
     createZshEditorController({
       load: readZshEditState,
@@ -36,6 +38,8 @@ export function useZshEditor(onSaved: (target: ZshEditTarget) => void): {
       execute: (target, operationId) => executeZshEdit({ operationId, target }),
     }),
   );
+  // Idempotent: keeps the drafts check and new notices in the current language.
+  controller.setTranslate(t);
   useEffect(() => {
     controller.setOnSaved(onSaved);
     return () => controller.setOnSaved(undefined);

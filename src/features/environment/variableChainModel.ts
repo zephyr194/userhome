@@ -8,6 +8,8 @@ import type {
   ZshValueState,
 } from "../../ipc/environment";
 import { resolveZshNames, zshRowKey, type ZshNameResolution } from "./zshModel";
+import { zhTranslate } from "./zhTranslate";
+import type { TranslateFunction } from "../../i18n";
 
 /** What a variable's value looks like to the reader; secrets never carry text. */
 export type ChainValue =
@@ -33,14 +35,17 @@ export interface ChainStep {
 
 export interface VariableChainRow {
   readonly name: string;
+  /**
+   * The value that takes effect. A row merged across files (`definedIn`) has no
+   * final value; `final` then only stands for its first file and is never shown as final.
+   */
   readonly final: ChainStep;
-  /** Every earlier assignment, in reading order. */
+  /** Every earlier assignment, in reading order; for a merged row, one per file. */
   readonly chain: readonly ChainStep[];
   readonly note?: string;
+  /** Set when several files define the same name. Nothing is ranked, so no final is shown. */
+  readonly definedIn?: number;
 }
-
-export const LAUNCHCTL_SOURCE = "登录会话（launchctl）";
-export const OVERRIDDEN_NOTE = "可能被后面的文件覆盖";
 
 const SCOPE_ORDER: readonly ZshAppliesTo[] = ["ALL", "LOGIN", "INTERACTIVE"];
 
@@ -97,6 +102,7 @@ function zshNameRows(
   name: string,
   items: readonly ZshItem[],
   resolution: ZshNameResolution,
+  overriddenNote: string,
 ): VariableChainRow[] {
   const visible = items.filter((item) => !resolution.hidden.has(item.key));
   const finals = SCOPE_ORDER.flatMap((scope) => {
@@ -117,7 +123,7 @@ function zshNameRows(
     : finals;
 
   return outcomes.map((final) => {
-    const note = resolution.notes.get(final.key)?.kind === "unread" ? OVERRIDDEN_NOTE : undefined;
+    const note = resolution.notes.get(final.key)?.kind === "unread" ? overriddenNote : undefined;
     const earlier = items.slice(0, items.indexOf(final));
     return {
       name,
@@ -134,7 +140,10 @@ function zshNameRows(
  * Occurrences that a later plain assignment hides are kept in the chain, so the
  * chain is every earlier assignment in reading order.
  */
-export function zshVariableRows(overview: ZshOverview): VariableChainRow[] {
+export function zshVariableRows(
+  overview: ZshOverview,
+  t: TranslateFunction = zhTranslate,
+): VariableChainRow[] {
   const resolution = resolveZshNames(overview);
   const files = [...overview.files].sort((left, right) => left.position - right.position);
   const items: ZshItem[] = [];
@@ -153,12 +162,15 @@ export function zshVariableRows(overview: ZshOverview): VariableChainRow[] {
   }
   const rows: VariableChainRow[] = [];
   for (const [name, group] of groupByName(items)) {
-    rows.push(...zshNameRows(name, group, resolution));
+    rows.push(...zshNameRows(name, group, resolution, t("env.chain.overridden")));
   }
   return rows.sort(compareVariableNames);
 }
 
-export function launchctlVariableRows(entries: readonly LaunchctlEntry[]): VariableChainRow[] {
+export function launchctlVariableRows(
+  entries: readonly LaunchctlEntry[],
+  sourceLabel: string,
+): VariableChainRow[] {
   return entries
     .map((entry): VariableChainRow => ({
       name: entry.key,
@@ -168,7 +180,7 @@ export function launchctlVariableRows(entries: readonly LaunchctlEntry[]): Varia
           : entry.value === null || entry.value === ""
             ? { kind: "empty" }
             : { kind: "text", text: entry.value },
-        source: { file: LAUNCHCTL_SOURCE },
+        source: { file: sourceLabel },
       },
       chain: [],
     }))
@@ -182,11 +194,15 @@ function dotenvValue(row: Extract<EnvRow, { kind: "ENTRY" }>): ChainValue {
   return { kind: "text", text: row.value };
 }
 
-/** Inside one file the last occurrence of a key is the one that takes effect. */
-export function dotenvVariableRows(view: {
-  readonly relativePath: string;
-  readonly rows: readonly EnvRow[];
-}): VariableChainRow[] {
+/**
+ * Inside one file the last occurrence of a key is the one that takes effect. A
+ * file cut short by the row limit may repeat a key past the cut, so its names
+ * carry a note saying a later line may set them again.
+ */
+export function dotenvVariableRows(
+  view: DotenvFileRows,
+  t: TranslateFunction = zhTranslate,
+): VariableChainRow[] {
   const entries = view.rows.flatMap((row) => (row.kind === "ENTRY" ? [row] : []));
   return [...groupByName(entries.map((row) => ({ name: row.key, row })))]
     .map(([name, group]): VariableChainRow => {
@@ -197,7 +213,39 @@ export function dotenvVariableRows(view: {
         }),
       );
       const final = steps[steps.length - 1] as ChainStep;
-      return { name, final, chain: steps.slice(0, -1) };
+      const note = view.truncated ? t("env.chain.truncated") : undefined;
+      return { name, final, chain: steps.slice(0, -1), ...(note === undefined ? {} : { note }) };
+    })
+    .sort(compareVariableNames);
+}
+
+export interface DotenvFileRows {
+  readonly relativePath: string;
+  readonly rows: readonly EnvRow[];
+  /** The file had more lines than were read; only the rows above are known. */
+  readonly truncated?: boolean;
+}
+
+/**
+ * Names defined in one file keep their own final value. A name defined in several
+ * files is listed once without a final: which file wins depends on the tool that
+ * reads them, so every file's value is shown side by side in reading order.
+ */
+export function dotenvChainRows(
+  files: readonly DotenvFileRows[],
+  t: TranslateFunction = zhTranslate,
+): VariableChainRow[] {
+  const perFile = files.flatMap((file) => dotenvVariableRows(file, t));
+  return [...groupByName(perFile)]
+    .map(([name, group]): VariableChainRow => {
+      if (group.length === 1) return group[0] as VariableChainRow;
+      const perFileFinals = group.map((row) => row.final);
+      return {
+        name,
+        final: perFileFinals[0] as ChainStep,
+        chain: perFileFinals,
+        definedIn: group.length,
+      };
     })
     .sort(compareVariableNames);
 }

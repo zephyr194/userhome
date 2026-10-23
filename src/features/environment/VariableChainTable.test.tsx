@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { VariableChainTable } from "./VariableChainTable";
+import { VariableChainList, VariableChainTable } from "./VariableChainTable";
 import type { VariableChainRow } from "./variableChainModel";
+import { forgetQueries } from "./variableSearch";
 
 afterEach(() => cleanup());
 
@@ -47,7 +48,7 @@ function renderTable(overrides: { onEdit?: (row: VariableChainRow) => void } = {
 
 function rowNames(): string[] {
   return within(screen.getByRole("table", { name: "变量" }))
-    .getAllByRole("row")
+    .queryAllByRole("row")
     .slice(1)
     .map((row) => row.querySelector("code")?.textContent ?? "");
 }
@@ -148,3 +149,127 @@ describe("editing", () => {
     expect(screen.queryByRole("button", { name: /修改/ })).toBeNull();
   });
 });
+
+const SEARCH_ROWS: VariableChainRow[] = [
+  {
+    name: "EDITOR",
+    final: {
+      value: { kind: "text", text: "code" },
+      source: { file: ".zlogin", line: 3 },
+      scope: "LOGIN",
+    },
+    chain: [
+      { value: { kind: "text", text: "vim" }, source: { file: ".zprofile", line: 1 }, scope: "ALL" },
+    ],
+  },
+  {
+    name: "PATH",
+    final: { value: { kind: "text", text: "/usr/bin" }, source: { file: ".zshenv", line: 2 } },
+    chain: [
+      { value: { kind: "text", text: "/opt/tools" }, source: { file: ".zshrc", line: 7 } },
+    ],
+  },
+  {
+    name: "GITHUB_TOKEN",
+    final: { value: { kind: "masked" }, source: { file: ".zshrc", line: 5 } },
+    chain: [],
+  },
+];
+
+const MERGED_ROW: VariableChainRow = {
+  name: "API_URL",
+  final: { value: { kind: "text", text: "a" }, source: { file: "a.env", line: 1 } },
+  chain: [
+    { value: { kind: "text", text: "a" }, source: { file: "a.env", line: 1 } },
+    { value: { kind: "text", text: "b" }, source: { file: "b.env", line: 2 } },
+  ],
+  definedIn: 2,
+};
+
+function renderList(rows: VariableChainRow[] = SEARCH_ROWS) {
+  render(
+    <VariableChainList
+      label="变量"
+      onRevealFinal={() => Promise.resolve("x")}
+      rows={rows}
+      searchKey="test"
+    />,
+  );
+  return screen.getByLabelText("搜索变量") as HTMLInputElement;
+}
+
+describe("variable search list", () => {
+  afterEach(() => forgetQueries());
+
+  it("shows the total and no clear control before a search", () => {
+    renderList();
+    expect(screen.getByText("共 3 项")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "清空" })).toBeNull();
+  });
+
+  it("filters the rows and counts the matches politely", () => {
+    const input = renderList();
+    fireEvent.change(input, { target: { value: "path" } });
+    expect(screen.getByText("匹配 1 / 共 3 项").getAttribute("aria-live")).toBe("polite");
+    expect(rowNames()).toEqual(["PATH"]);
+  });
+
+  it("states that nothing matches", () => {
+    const input = renderList();
+    fireEvent.change(input, { target: { value: "nothing-like-this" } });
+    expect(screen.getByText("没有匹配的变量。")).toBeTruthy();
+    expect(screen.queryByRole("table", { name: "变量" })).toBeNull();
+  });
+
+  it("clears the search with Escape and with the clear control", () => {
+    const input = renderList();
+    fireEvent.change(input, { target: { value: "path" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(input.value).toBe("");
+    expect(rowNames()).toEqual(["EDITOR", "GITHUB_TOKEN", "PATH"]);
+
+    fireEvent.change(input, { target: { value: "path" } });
+    fireEvent.click(screen.getByRole("button", { name: "清空" }));
+    expect(input.value).toBe("");
+  });
+
+  it("highlights the matched words in the name with a mark", () => {
+    const input = renderList();
+    fireEvent.change(input, { target: { value: "path" } });
+    const mark = screen.getByText("PATH", { selector: "mark" });
+    expect(mark.className).toContain("config-search-mark");
+  });
+
+  it("opens the process values of a row when one of them matches, and marks that step", () => {
+    const input = renderList();
+    fireEvent.change(input, { target: { value: "opt" } });
+    const step = document.querySelector('li[data-hit="true"]');
+    expect(step?.textContent).toContain("/opt/tools");
+    expect(screen.getByRole("button", { name: "过程值 1" }).getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("does not show secret values to a search", () => {
+    const input = renderList();
+    fireEvent.change(input, { target: { value: "secret" } });
+    expect(screen.getByText("没有匹配的变量。")).toBeTruthy();
+  });
+
+  it("remembers the query of a list while the page is open", () => {
+    const first = renderList();
+    fireEvent.change(first, { target: { value: "path" } });
+    cleanup();
+    const second = renderList();
+    expect(second.value).toBe("path");
+  });
+
+  it("explains a merged row as defined in several files, with no final value", () => {
+    renderList([MERGED_ROW]);
+    expect(screen.getByText("在 2 个文件中定义")).toBeTruthy();
+    expect(screen.queryByText("最终")).toBeNull();
+    expect(screen.getByText("多个文件")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "修改 API_URL" })).toBeNull();
+    expect(screen.getByRole("button", { name: "各文件的值 2" })).toBeTruthy();
+  });
+});
+
+

@@ -427,7 +427,19 @@ describe("zsh view is read only and accessible", () => {
     for (const word of ["编辑", "保存", "新建", "删除", "写入", "添加变量"]) {
       expect(markup).not.toContain(word);
     }
-    expect(markup).not.toMatch(/<(input|textarea|select)\b/);
+    // The only field is the read-only search box of the variable list.
+    const fields = markup.match(/<(input|textarea|select)\b[^>]*>/g) ?? [];
+    expect(fields.every((tag) => tag.includes('type="search"'))).toBe(true);
+    expect(markup).not.toMatch(/<(textarea|select)\b/);
+  });
+
+  it("puts the variable table first and keeps the reading order in a collapsed section below it", () => {
+    const table = markup.indexOf('aria-labelledby="zsh-variables-heading"');
+    const details = markup.indexOf("<details");
+    expect(table).toBeGreaterThan(-1);
+    expect(table).toBeLessThan(details);
+    expect(markup.slice(details, details + 200)).toContain("读取顺序与启动文件");
+    expect(markup.slice(details, details + 40)).not.toContain(" open");
   });
 
   it("uses labelled regions, native buttons and a focusable scroll list", () => {

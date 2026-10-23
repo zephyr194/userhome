@@ -9,6 +9,7 @@ import {
 import { Button } from "../../components/ui";
 import { SecretValue } from "../../components/ui/SecretValue";
 import { SECRET_MASK } from "../../components/ui/secretMask";
+import { useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import {
   INITIAL_LAZY_VALUE,
@@ -107,6 +108,7 @@ export function LazySecretValueBody({
   state: LazyValueState;
   wrapper?: Ref<HTMLSpanElement>;
 }) {
+  const t = useT();
   if (state.status === "ready") {
     return (
       <span
@@ -122,19 +124,19 @@ export function LazySecretValueBody({
     <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-ui-8">
       <code className="rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux text-foreground">
         <span aria-hidden="true">{SECRET_MASK}</span>
-        <span className="sr-only">已隐藏，值尚未载入</span>
+        <span className="sr-only">{t("env.model.lazy.hidden")}</span>
       </code>
       <Button
-        aria-label={`载入 ${label} 的值`}
+        aria-label={t("env.model.lazy.fetchLabel", { label })}
         disabled={state.status === "loading"}
         onClick={onFetch}
         size="sm"
         variant="ghost"
       >
-        {state.status === "loading" ? "载入中…" : "载入值"}
+        {state.status === "loading" ? t("env.model.lazy.loading") : t("env.model.lazy.fetch")}
       </Button>
       <span className="text-aux text-danger" role="status">
-        {state.status === "failed" ? `载入失败：${state.message}` : ""}
+        {state.status === "failed" ? t("env.model.lazy.failed", { message: state.message }) : ""}
       </span>
     </span>
   );

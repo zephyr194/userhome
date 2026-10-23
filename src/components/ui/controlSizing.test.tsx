@@ -140,12 +140,14 @@ const FORM_TAG =
   /<(TextField|SelectField|TextAreaField|SecretReplacementField|CheckboxField|SwitchField|RadioCardGroup|input|select|textarea)\b/;
 
 // 人工复核过的“页面内既有 size=\"sm\" 按钮又有表单控件”的文件（同排只检出 3 处混档并已改为 md）
+// VariableChainTable：搜索框（md）旁的“清空”已改为 md；表格行内的 sm 按钮与搜索框不同排
 // AppConfigEditor：sm 按钮只与文字同排（返回查看、撤销、移除），表单控件各自独占一行，无 sm 与 md 控件同排
 const REVIEWED_SM_WITH_FORMS = [
   "features/app-config/AppConfigEditor.tsx",
   "features/caddy/CaddyRulesEditor.tsx",
   "features/environment/DotenvEditor.tsx",
   "features/environment/EnvironmentView.tsx",
+  "features/environment/VariableChainTable.tsx",
   "features/environment/ZshEditor.tsx",
   "features/services/CreateServiceDialog.tsx",
   "features/services/EditServiceDialog.tsx",
@@ -158,9 +160,9 @@ const REVIEWED_SM_WITH_FORMS = [
 
 // 静态检测无法可靠判断“同一行”，故对已知的同排位置逐个断言为 md
 const KNOWN_SAME_ROW_POSITIONS: ReadonlyArray<readonly [string, string]> = [
-  ["features/environment/DotenvEditor.tsx", "`删除 ${row.key}`}"],
-  ["features/environment/ZshEditor.tsx", "`删除 ${variable.name}`}"],
-  ["features/environment/ZshEditor.tsx", "`移除新增第 ${index + 1} 行`}"],
+  ["features/environment/DotenvEditor.tsx", "\"env.editor.dotenv.entry.removeAria\""],
+  ["features/environment/ZshEditor.tsx", "\"env.editor.zsh.var.removeAria\""],
+  ["features/environment/ZshEditor.tsx", "\"env.editor.zsh.var.removeRowAria\""],
 ];
 
 function sizeAfter(source: string, marker: string): string | undefined {

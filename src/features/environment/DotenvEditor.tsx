@@ -10,6 +10,9 @@ import {
 } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import { SECRET_MASK } from "../../components/ui/secretMask";
+import type { MessageKey } from "../../i18n";
+import { formatDateTime } from "../../i18n/format";
+import { useLocale, useT } from "../../i18n/useLocale";
 import type { EnvChange, EnvEditPreview } from "../../ipc/environment";
 import type { DotenvEditorController, EditorState } from "./dotenvEditorController";
 import {
@@ -51,6 +54,13 @@ export interface DotenvEditorProps {
 }
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
+const CHIP_CLASSES = "rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux";
+
+const CHANGE_KEYS: Record<EnvChange["change"], MessageKey> = {
+  ADD: "env.editor.dotenv.change.ADD",
+  MODIFY: "env.editor.dotenv.change.MODIFY",
+  REMOVE: "env.editor.dotenv.change.REMOVE",
+};
 
 /**
  * Key-level editor for one dotenv file, or for a new file. Only the values
@@ -60,6 +70,7 @@ const WRAP = "break-words [overflow-wrap:anywhere]";
  * preview dialog is confirmed.
  */
 export function DotenvEditor({ actions, check, focus, state }: DotenvEditorProps) {
+  const t = useT();
   const focusRef = useFocusRequest<HTMLInputElement>(focus);
   const { target } = state;
   if (target === undefined) return null;
@@ -82,25 +93,24 @@ export function DotenvEditor({ actions, check, focus, state }: DotenvEditorProps
       <div className="grid gap-ui-4 text-xs leading-relaxed text-muted-foreground">
         {target.kind === "new" ? (
           <p>
-            新文件：<code className={classNames("font-mono", WRAP)}>{target.displayPath}</code>
-            。这是你在“选择保存位置”里指定的目标与名称；预览会标明它将被创建，且没有恢复点。
+            {t("env.editor.dotenv.newFile.before")}
+            <code className={classNames("font-mono", WRAP)}>{target.displayPath}</code>
+            {t("env.editor.dotenv.newFile.after")}
           </p>
         ) : (
           <p>
-            编辑 <code className={classNames("font-mono", WRAP)}>{target.path}</code>
-            ：只发送你改动过的键；注释、空行、未识别行和未改动的键保持原样。
+            {t("env.editor.dotenv.editFile.before")}
+            <code className={classNames("font-mono", WRAP)}>{target.path}</code>
+            {t("env.editor.dotenv.editFile.after")}
           </p>
         )}
-        <p>
-          值按字面量写入：含空格、#、引号、$ 或 Unicode 的值会加上能被读回的引号；含换行、
-          控制字符或无法安全引用的值会被拒绝，不会变成插值、命令替换或多行值。保存前先预览，写入前先备份。
-        </p>
+        <p>{t("env.editor.dotenv.literalNote")}</p>
       </div>
 
       {state.notice ? <Notice notice={state.notice} /> : null}
       {state.phase === "previewing" ? (
         <p className="text-xs text-muted-foreground" role="status">
-          正在生成预览…
+          {t("env.editor.dotenv.previewing")}
         </p>
       ) : null}
 
@@ -134,16 +144,18 @@ export function DotenvEditor({ actions, check, focus, state }: DotenvEditorProps
               onClick={() => void actions.requestPreview()}
               variant="primary"
             >
-              {state.phase === "previewing" ? "生成预览中…" : "预览改动"}
+              {state.phase === "previewing"
+                ? t("env.editor.dotenv.action.previewBusy")
+                : t("env.editor.dotenv.action.preview")}
             </Button>
             <Button disabled={busy} onClick={actions.close}>
-              取消编辑
+              {t("env.editor.dotenv.action.cancel")}
             </Button>
             {!check.ready && state.phase === "editing" ? (
               <span className="text-xs text-muted-foreground">
                 {check.edits.length === 0 && noProblems(check)
-                  ? "还没有改动。"
-                  : "请先修正标红的字段。"}
+                  ? t("env.editor.dotenv.action.noChanges")
+                  : t("env.editor.dotenv.action.fixFields")}
               </span>
             ) : null}
           </ActionRow>
@@ -207,13 +219,14 @@ function EntryList({
   rows: EntryRow[];
   state: EditorState;
 }) {
+  const t = useT();
   if (rows.length === 0) {
-    return <p className="text-xs text-muted-foreground">文件里还没有键值项。</p>;
+    return <p className="text-xs text-muted-foreground">{t("env.editor.dotenv.entries.empty")}</p>;
   }
   return (
-    <ul aria-label="已有的键" className="grid gap-ui-8">
+    <ul aria-label={t("env.editor.dotenv.entries.listLabel")} className="grid gap-ui-8">
       {rows.map((row) => {
-        const editability = entryEditability(row);
+        const editability = entryEditability(row, t);
         const draft = state.entryEdits[row.key];
         const removing = draft?.mode === "remove";
         const problem = check.problems.entries[row.key];
@@ -231,20 +244,26 @@ function EntryList({
                 {row.key}
               </code>
               {row.exported ? <StatusBadge>export</StatusBadge> : null}
-              {row.secret ? <StatusBadge tone="danger">秘密</StatusBadge> : null}
-              {removing ? <StatusBadge tone="warning">将删除</StatusBadge> : null}
-              <span className="text-meta text-muted-foreground">第 {row.line} 行</span>
+              {row.secret ? (
+                <StatusBadge tone="danger">{t("env.editor.dotenv.entry.secret")}</StatusBadge>
+              ) : null}
+              {removing ? (
+                <StatusBadge tone="warning">{t("env.editor.dotenv.entry.removing")}</StatusBadge>
+              ) : null}
+              <span className="text-meta text-muted-foreground">
+                {t("env.editor.dotenv.entry.line", { line: row.line })}
+              </span>
             </div>
             {editability.ok ? (
               <div className="flex min-w-0 flex-wrap items-end gap-ui-8">
                 {row.secret ? (
                   <SecretReplacementField
                     className="min-w-0 flex-1"
-                    description="秘密不会显示。输入新值以替换；留空表示不修改。"
+                    description={t("env.editor.dotenv.entry.secretDescription")}
                     disabled={disabled || removing}
                     error={problem}
                     inputRef={inputRef}
-                    label={`${row.key} 的新值`}
+                    label={t("env.editor.dotenv.entry.newValueLabel", { key: row.key })}
                     onValueChange={(value) => onValue(row.key, value)}
                     value={draft?.mode === "set" ? draft.value : ""}
                   />
@@ -255,27 +274,33 @@ function EntryList({
                     disabled={disabled || removing}
                     error={problem}
                     inputRef={inputRef}
-                    label={`${row.key} 的值`}
+                    label={t("env.editor.dotenv.entry.valueLabel", { key: row.key })}
                     onValueChange={(value) => onValue(row.key, value)}
                     spellCheck={false}
                     value={draft?.mode === "set" ? draft.value : (row.value ?? "")}
                   />
                 )}
                 <Button
-                  aria-label={removing ? `撤销删除 ${row.key}` : `删除 ${row.key}`}
+                  aria-label={
+                    removing
+                      ? t("env.editor.dotenv.entry.undoRemoveAria", { key: row.key })
+                      : t("env.editor.dotenv.entry.removeAria", { key: row.key })
+                  }
                   aria-pressed={removing}
                   disabled={disabled}
                   onClick={() => onMode(row.key, removing ? "keep" : "remove")}
                   size="md"
                   variant={removing ? "secondary" : "ghost"}
                 >
-                  {removing ? "撤销删除" : "删除"}
+                  {removing
+                    ? t("env.editor.dotenv.entry.undoRemove")
+                    : t("env.editor.dotenv.entry.remove")}
                 </Button>
               </div>
             ) : (
               <p className="text-xs leading-relaxed text-warning" role="note">
                 <StatusBadge className="mr-ui-8" tone="warning">
-                  不可修改
+                  {t("env.editor.dotenv.entry.notEditable")}
                 </StatusBadge>
                 {editability.reason}
               </p>
@@ -304,31 +329,32 @@ function AdditionList({
   focusRef: Ref<HTMLInputElement>;
   state: EditorState;
 }) {
+  const t = useT();
   return (
     <section aria-labelledby="dotenv-additions-heading" className="grid gap-ui-8">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
         <h3 className="text-sm font-semibold" id="dotenv-additions-heading">
-          新增键
+          {t("env.editor.dotenv.additions.heading")}
         </h3>
         <Button disabled={disabled} onClick={actions.addRow} size="sm">
-          新增一行
+          {t("env.editor.dotenv.additions.addRow")}
         </Button>
       </div>
       {state.additions.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           {state.target?.kind === "new"
-            ? "新文件至少需要一个键。点击“新增一行”。"
-            : "没有新增的键。新键会追加到文件末尾。"}
+            ? t("env.editor.dotenv.additions.emptyNew")
+            : t("env.editor.dotenv.additions.emptyExisting")}
         </p>
       ) : (
-        <ul aria-label="新增的键" className="grid gap-ui-8">
+        <ul aria-label={t("env.editor.dotenv.additions.listLabel")} className="grid gap-ui-8">
           {state.additions.map((row, index) => {
             const problem = check.problems.additions[row.id];
             const secret = looksLikeSecretName(row.key);
             const valueProps = {
               className: "min-w-0 flex-1",
               disabled,
-              label: `第 ${index + 1} 行的值`,
+              label: t("env.editor.dotenv.additions.valueRowLabel", { n: index + 1 }),
               onValueChange: (value: string) => actions.updateRow(row.id, { value }),
               value: row.value,
             };
@@ -345,7 +371,7 @@ function AdditionList({
                     disabled={disabled}
                     error={problem}
                     inputRef={row.id === focusId ? focusRef : undefined}
-                    label={`第 ${index + 1} 行的键名`}
+                    label={t("env.editor.dotenv.additions.keyRowLabel", { n: index + 1 })}
                     onValueChange={(key) => actions.updateRow(row.id, { key })}
                     spellCheck={false}
                     value={row.key}
@@ -353,7 +379,7 @@ function AdditionList({
                   {secret ? (
                     <SecretReplacementField
                       {...valueProps}
-                      description="键名像秘密，输入已遮盖。"
+                      description={t("env.editor.dotenv.additions.keyLooksSecret")}
                     />
                   ) : (
                     <TextField {...valueProps} autoComplete="off" spellCheck={false} />
@@ -363,17 +389,17 @@ function AdditionList({
                   <CheckboxField
                     checked={row.exported}
                     disabled={disabled}
-                    label="写成 export KEY=…"
+                    label={t("env.editor.dotenv.additions.exportLabel")}
                     onCheckedChange={(exported) => actions.updateRow(row.id, { exported })}
                   />
                   <Button
-                    aria-label={`移除第 ${index + 1} 行`}
+                    aria-label={t("env.editor.dotenv.additions.removeAria", { n: index + 1 })}
                     disabled={disabled}
                     onClick={() => actions.removeRow(row.id)}
                     size="sm"
                     variant="ghost"
                   >
-                    移除该行
+                    {t("env.editor.dotenv.additions.removeRow")}
                   </Button>
                 </div>
               </li>
@@ -387,37 +413,32 @@ function AdditionList({
 
 // ---- preview --------------------------------------------------------------------
 
-const CHANGE_LABEL: Record<EnvChange["change"], string> = {
-  ADD: "新增",
-  MODIFY: "修改",
-  REMOVE: "删除",
-};
-
 function ChangeValue({ change }: { change: EnvChange }) {
+  const t = useT();
   if (change.secret) {
     return (
       <span className="text-xs text-muted-foreground">
-        <code className="rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux">
+        <code className={CHIP_CLASSES}>
           <span aria-hidden="true">{SECRET_MASK}</span>
-          <span className="sr-only">值已遮盖</span>
+          <span className="sr-only">{t("env.editor.dotenv.value.masked")}</span>
         </code>{" "}
-        秘密值不在预览中显示
+        {t("env.editor.dotenv.value.secretNotShown")}
       </span>
     );
   }
   if (change.omitted) {
-    return <span className="text-xs text-muted-foreground">（值过长，未显示）</span>;
+    return <span className="text-xs text-muted-foreground">{t("env.editor.dotenv.value.omitted")}</span>;
   }
   const shown = (text: string) => (
-    <code className={classNames("rounded-control bg-surface px-ui-8 py-ui-2 font-mono text-aux", WRAP)}>
-      {text === "" ? "（空值）" : text}
+    <code className={classNames(CHIP_CLASSES, WRAP)}>
+      {text === "" ? t("env.editor.dotenv.value.empty") : text}
     </code>
   );
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-ui-8">
       {change.before !== undefined ? shown(change.before) : null}
       {change.before !== undefined && change.after !== undefined ? (
-        <span aria-label="改为">→</span>
+        <span aria-label={t("env.editor.dotenv.value.changedTo")}>→</span>
       ) : null}
       {change.after !== undefined ? shown(change.after) : null}
     </span>
@@ -433,6 +454,8 @@ function PreviewDialog({
   busy: boolean;
   preview: EnvEditPreview;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const created = preview.kind === "CREATE";
   return (
     <ConfirmDialog
@@ -444,85 +467,92 @@ function PreviewDialog({
       <div className="flex flex-wrap items-start justify-between gap-ui-12">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-            待确认写入
+            {t("env.editor.dotenv.preview.eyebrow")}
           </p>
           <h3 className={WRAP} id="dotenv-preview-heading">
-            {previewHeadline(preview)}
+            {previewHeadline(preview, t)}
           </h3>
         </div>
         <StatusBadge tone={created ? "success" : "warning"}>
-          {created ? "创建" : "修改"}
+          {created
+            ? t("env.editor.dotenv.preview.badgeCreate")
+            : t("env.editor.dotenv.preview.badgeModify")}
         </StatusBadge>
       </div>
 
       <p className="text-sm">
-        目标：<code className={classNames("font-mono", WRAP)}>{preview.target}</code>
+        {t("env.editor.dotenv.preview.target")}
+        <code className={classNames("font-mono", WRAP)}>{preview.target}</code>
         {preview.fileKind === "TEMPLATE" ? (
           <StatusBadge className="ml-ui-8" tone="warning">
-            模板文件
+            {t("env.editor.dotenv.preview.template")}
           </StatusBadge>
         ) : null}
       </p>
       {preview.fileKind === "TEMPLATE" ? (
         <p className="text-xs leading-relaxed text-warning">
-          文件名是模板（如 .env.example）：模板只描述变量，不会与真实环境文件合并成运行时值。
+          {t("env.editor.dotenv.preview.templateNote")}
         </p>
       ) : null}
       {created && !preview.matchesDefaultPatterns ? (
         <p className="text-xs leading-relaxed text-warning">
-          该文件名不在默认 pattern（.env、.env.*、*.env）之内：可以创建，但默认扫描不会列出它。
+          {t("env.editor.dotenv.preview.defaultPattern")}
         </p>
       ) : null}
 
       <section aria-labelledby="dotenv-changes-heading">
         <h4 className="text-sm font-semibold" id="dotenv-changes-heading">
-          改动（{preview.changes.length} 项）
+          {t("env.editor.dotenv.preview.changes", { count: preview.changes.length })}
         </h4>
-        <ul aria-label="本次改动" className="mt-ui-8 grid gap-ui-8">
+        <ul aria-label={t("env.editor.dotenv.preview.changesLabel")} className="mt-ui-8 grid gap-ui-8">
           {preview.changes.map((change) => (
             <li
               className="flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control bg-surface-muted px-ui-8 py-ui-8"
               key={change.key}
             >
               <StatusBadge tone={change.change === "REMOVE" ? "danger" : "neutral"}>
-                {CHANGE_LABEL[change.change]}
+                {t(CHANGE_KEYS[change.change])}
               </StatusBadge>
               <code className={classNames("font-mono text-aux font-semibold", WRAP)}>
                 {change.key}
               </code>
-              {change.secret ? <StatusBadge tone="danger">秘密</StatusBadge> : null}
+              {change.secret ? (
+                <StatusBadge tone="danger">{t("env.editor.dotenv.entry.secret")}</StatusBadge>
+              ) : null}
               <ChangeValue change={change} />
             </li>
           ))}
         </ul>
         <p className="mt-ui-8 text-xs text-muted-foreground">
-          其余内容（注释、空行、未识别行和未改动的键）保持原样；完整文本差异不显示，以免暴露秘密值。
+          {t("env.editor.dotenv.preview.restNote")}
         </p>
       </section>
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        {recoveryText(preview.kind, preview.recoveryPoint)}
-        写入后会重新读取并校验改动的键与其余行；校验失败会恢复并如实报告。
+        {t("env.editor.dotenv.preview.recoveryLine", {
+          recovery: recoveryText(preview.kind, preview.recoveryPoint, t),
+          check: t("env.editor.dotenv.preview.afterWriteCheck"),
+        })}
       </p>
       <p className="text-xs text-muted-foreground">
-        到期时间：
-        <time dateTime={preview.expiresAt}>
-          {new Date(preview.expiresAt).toLocaleString("zh-CN")}
-        </time>
-        。文件在预览后被修改、授权失效或目标被替换时，会拒绝写入并要求重新预览。
+        {t("env.editor.dotenv.preview.expiresBefore")}
+        <time dateTime={preview.expiresAt}>{formatDateTime(preview.expiresAt, locale)}</time>
+        {t("env.editor.dotenv.preview.expiresAfter")}
       </p>
 
       {busy ? (
         <p className="text-sm text-warning" role="status" aria-live="polite">
-          正在写入并校验…
+          {t("env.editor.dotenv.preview.busy")}
         </p>
       ) : null}
       <ActionRow align="end">
         <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview}>
-          返回修改
+          {t("env.editor.dotenv.preview.back")}
         </Button>
         <Button disabled={busy} onClick={() => void actions.confirm()} variant="primary">
-          {created ? "确认创建" : "确认写入"}
+          {created
+            ? t("env.editor.dotenv.preview.confirmCreate")
+            : t("env.editor.dotenv.preview.confirmWrite")}
         </Button>
       </ActionRow>
     </ConfirmDialog>
@@ -538,7 +568,8 @@ function ResultPanel({
   actions: DotenvEditorActions;
   result: SaveResult;
 }) {
-  const text = saveResultText(result);
+  const t = useT();
+  const text = saveResultText(result, t);
   return (
     <section
       aria-labelledby="dotenv-result-heading"
@@ -552,20 +583,24 @@ function ResultPanel({
       role={text.tone === "success" ? "status" : "alert"}
     >
       <h3 className="m-0 text-sm font-semibold" id="dotenv-result-heading">
-        {result.status === "SUCCEEDED" ? "保存结果" : "保存未完成"}
+        {result.status === "SUCCEEDED"
+          ? t("env.editor.dotenv.result.heading")
+          : t("env.editor.dotenv.result.unfinished")}
       </h3>
       <p className="m-0">{text.headline}</p>
       {text.detail ? <p className="m-0 text-xs">{text.detail}</p> : null}
       {result.recoveryPoint === "BACKUP" && result.backupId ? (
-        <p className="m-0 text-xs">备份编号：{result.backupId}</p>
+        <p className="m-0 text-xs">{t("env.editor.dotenv.result.backupId", { id: result.backupId })}</p>
       ) : null}
-      {result.errorMessage ? <p className="m-0 text-xs">原因：{result.errorMessage}</p> : null}
+      {result.errorMessage ? (
+        <p className="m-0 text-xs">{t("env.editor.dotenv.result.reason", { message: result.errorMessage })}</p>
+      ) : null}
       <ActionRow>
         <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
-          完成
+          {t("env.editor.dotenv.result.done")}
         </Button>
         {result.status === "FAILED" && canResumeEditing(result) ? (
-          <Button onClick={actions.resumeEditing}>返回继续编辑</Button>
+          <Button onClick={actions.resumeEditing}>{t("env.editor.dotenv.result.resume")}</Button>
         ) : null}
       </ActionRow>
     </section>

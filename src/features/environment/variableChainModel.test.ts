@@ -9,7 +9,9 @@ import type {
   ZshOverview,
   ZshRow,
 } from "../../ipc/environment";
+import type { TranslateFunction } from "../../i18n";
 import {
+  dotenvChainRows,
   dotenvVariableRows,
   launchctlVariableRows,
   zshVariableRows,
@@ -241,7 +243,7 @@ describe("login session chain", () => {
       { key: "PATH", value: "/usr/bin", secret: false },
       { key: "API_KEY", value: null, secret: true },
     ];
-    const rows = launchctlVariableRows(entries);
+    const rows = launchctlVariableRows(entries, "登录会话（launchctl）");
     expect(rows.map((row) => row.name)).toEqual(["API_KEY", "PATH"]);
     expect(rows.every((row) => row.chain.length === 0)).toBe(true);
     expect(rows[1]?.final.source).toEqual({ file: "登录会话（launchctl）" });
@@ -250,10 +252,13 @@ describe("login session chain", () => {
   });
 
   it("shows an empty login session value as empty, not as an empty text", () => {
-    const rows = launchctlVariableRows([
-      { key: "EMPTY_ONE", value: "", secret: false },
-      { key: "UNSET_ONE", value: null, secret: false },
-    ]);
+    const rows = launchctlVariableRows(
+      [
+        { key: "EMPTY_ONE", value: "", secret: false },
+        { key: "UNSET_ONE", value: null, secret: false },
+      ],
+      "登录会话（launchctl）",
+    );
     expect(rows.map((row) => row.final.value)).toEqual([{ kind: "empty" }, { kind: "empty" }]);
   });
 });
@@ -293,5 +298,104 @@ describe("dotenv chain within one file", () => {
     });
     expect(rows[0]?.final.value).toEqual({ kind: "masked" });
     expect(rows[0]?.chain[0]?.value).toEqual({ kind: "masked" });
+  });
+});
+
+describe("dotenv chain across files", () => {
+  const line = (lineNo: number, key: string, value: string): EnvRow => ({
+    kind: "ENTRY",
+    line: lineNo,
+    endLine: lineNo,
+    key,
+    exported: false,
+    secret: false,
+    hasValue: true,
+    valueLength: value.length,
+    value,
+    quote: "NONE",
+    flags: [],
+  });
+  const keyTranslator: TranslateFunction = (key) => key;
+  const TRUNCATED_ZH = "文件行数过多，只读取了前面的行，后面可能还有同名变量。";
+
+  it("keeps the last occurrence of a repeated key as the final value of its file", () => {
+    const rows = dotenvChainRows([
+      { relativePath: ".env", rows: [line(1, "PORT", "3000"), line(2, "PORT", "4000")] },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.definedIn).toBeUndefined();
+    expect(rows[0]?.final.value).toEqual({ kind: "text", text: "4000" });
+    expect(rows[0]?.chain).toEqual([
+      { value: { kind: "text", text: "3000" }, source: { file: ".env", line: 1 } },
+    ]);
+  });
+
+  it("merges a name defined in several files into one row without a final, one step per file", () => {
+    const rows = dotenvChainRows([
+      { relativePath: ".env", rows: [line(1, "PORT", "3000")] },
+      { relativePath: "app/.env.local", rows: [line(4, "PORT", "5000")] },
+    ]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.definedIn).toBe(2);
+    expect(rows[0]?.note).toBeUndefined();
+    expect(rows[0]?.chain).toEqual([
+      { value: { kind: "text", text: "3000" }, source: { file: ".env", line: 1 } },
+      { value: { kind: "text", text: "5000" }, source: { file: "app/.env.local", line: 4 } },
+    ]);
+  });
+
+  it("keeps a name defined in one file unmerged even when other files define other names", () => {
+    const rows = dotenvChainRows([
+      { relativePath: ".env", rows: [line(1, "PORT", "3000"), line(2, "HOST", "local")] },
+      { relativePath: ".env.local", rows: [line(1, "PORT", "9000")] },
+    ]);
+    const host = rows.find((row) => row.name === "HOST");
+    expect(host?.definedIn).toBeUndefined();
+    expect(host?.final.source).toEqual({ file: ".env", line: 2 });
+  });
+
+  it("keeps the last occurrence within each file in the merged chain", () => {
+    const rows = dotenvChainRows([
+      { relativePath: ".env", rows: [line(1, "PORT", "3000"), line(2, "PORT", "4000")] },
+      { relativePath: ".env.local", rows: [line(5, "PORT", "5000")] },
+    ]);
+    expect(rows[0]?.definedIn).toBe(2);
+    expect(rows[0]?.chain.map((step) => step.source)).toEqual([
+      { file: ".env", line: 2 },
+      { file: ".env.local", line: 5 },
+    ]);
+  });
+
+  it("sorts merged and single-file names alphabetically", () => {
+    const rows = dotenvChainRows([
+      { relativePath: ".env", rows: [line(1, "ZETA", "z"), line(2, "PORT", "3000")] },
+      { relativePath: ".env.local", rows: [line(3, "PORT", "9000"), line(4, "ALPHA", "a")] },
+    ]);
+    expect(rows.map((row) => row.name)).toEqual(["ALPHA", "PORT", "ZETA"]);
+  });
+
+  it("notes every name of a file that was cut short, and only that file", () => {
+    const rows = dotenvChainRows([
+      { relativePath: ".env", rows: [line(1, "PORT", "3000")], truncated: true },
+      { relativePath: ".env.local", rows: [line(1, "HOST", "local")] },
+    ]);
+    expect(rows.find((row) => row.name === "PORT")?.note).toBe(TRUNCATED_ZH);
+    expect(rows.find((row) => row.name === "HOST")?.note).toBeUndefined();
+  });
+
+  it("uses the translator for the truncated note", () => {
+    const rows = dotenvChainRows(
+      [{ relativePath: ".env", rows: [line(1, "PORT", "3000")], truncated: true }],
+      keyTranslator,
+    );
+    expect(rows[0]?.note).toBe("env.chain.truncated");
+  });
+
+  it("uses the translator for the single-file dotenv rows as well", () => {
+    const rows = dotenvVariableRows(
+      { relativePath: ".env", rows: [line(1, "PORT", "3000")], truncated: true },
+      keyTranslator,
+    );
+    expect(rows[0]?.note).toBe("env.chain.truncated");
   });
 });

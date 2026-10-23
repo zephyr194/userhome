@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Button, StatusBadge } from "../../components/ui";
+import { Fragment, useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
+import { AsyncState } from "../../components/AsyncState";
+import { Button, StatusBadge, TextField } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import { SECRET_MASK } from "../../components/ui/secretMask";
 import { useT } from "../../i18n/useLocale";
@@ -10,6 +11,15 @@ import {
   type ChainValue,
   type VariableChainRow,
 } from "./variableChainModel";
+import {
+  MAX_QUERY_LENGTH,
+  chainHitsFor,
+  filterVariables,
+  highlightParts,
+  queryTerms,
+  recalledQuery,
+  rememberQuery,
+} from "./variableSearch";
 import { LazySecretValue } from "./LazySecretValue";
 import { appliesToText, valueStateText } from "./zshModel";
 
@@ -17,12 +27,25 @@ export interface VariableChainTableProps {
   /** Accessible name of the table. */
   label: string;
   rows: readonly VariableChainRow[];
+  /** Search words to highlight and to open process values for. */
+  terms?: readonly string[];
   /** Fetches the final value of a secret or long value; process values never reveal. */
   onRevealFinal: (row: VariableChainRow) => Promise<string>;
   /** Opens the assignment the final value comes from. Absent means read only. */
   onEdit?: (row: VariableChainRow) => void;
   /** Removes the assignment the final value comes from. Absent hides the action. */
   onRemove?: (row: VariableChainRow) => void;
+}
+
+export interface VariableChainListProps
+  extends Omit<VariableChainTableProps, "rows" | "terms"> {
+  rows: readonly VariableChainRow[];
+  /** Keys the search words in page memory, so they survive switching tabs. */
+  searchKey: string;
+  /** Controls shown next to the search field, such as the file filter. */
+  filter?: ReactNode;
+  /** Shown instead of the list when there are no variables at all. */
+  emptyState?: ReactNode;
 }
 
 const CELL = "min-w-0 px-ui-8 py-ui-4 align-top";
@@ -36,7 +59,88 @@ function rowKey(row: VariableChainRow): string {
   return `${sourceText(row.final.source)}#${row.name}`;
 }
 
-export function VariableChainTable({ label, onEdit, onRemove, onRevealFinal, rows }: VariableChainTableProps) {
+function Highlighted({ terms, text }: { terms: readonly string[]; text: string }) {
+  return (
+    <>
+      {highlightParts(text, terms).map((part, index) => (
+        <Fragment key={index}>
+          {part.marked ? <mark className="config-search-mark">{part.text}</mark> : part.text}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/** Search field, count and table of one list. Matching is case-insensitive and never reaches secret values. */
+export function VariableChainList({
+  emptyState,
+  filter,
+  rows,
+  searchKey,
+  ...tableProps
+}: VariableChainListProps) {
+  const t = useT();
+  const [query, setQuery] = useState(() => recalledQuery(searchKey));
+  useEffect(() => {
+    rememberQuery(searchKey, query);
+  }, [searchKey, query]);
+
+  const terms = queryTerms(query);
+  const matched = filterVariables(rows, query);
+  const hasQuery = terms.length > 0;
+  const countText = hasQuery
+    ? t("env.search.count", { matched: matched.length, total: rows.length })
+    : t("env.search.total", { total: rows.length });
+
+  if (rows.length === 0) return <>{emptyState ?? null}</>;
+
+  return (
+    <div className="grid min-w-0 gap-ui-8">
+      <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
+        <TextField
+          className="env-search min-w-0 w-64 max-w-full"
+          label={t("env.search.label")}
+          inputClassName="h-control-md"
+          maxLength={MAX_QUERY_LENGTH}
+          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === "Escape" && query !== "") {
+              event.preventDefault();
+              setQuery("");
+            }
+          }}
+          onValueChange={setQuery}
+          placeholder={t("env.search.placeholder")}
+          spellCheck={false}
+          type="search"
+          value={query}
+        />
+        {hasQuery ? (
+          <Button onClick={() => setQuery("")} size="md" variant="ghost">
+            {t("env.search.clear")}
+          </Button>
+        ) : null}
+        <p aria-live="polite" className="text-aux text-muted-foreground">
+          {countText}
+        </p>
+        {filter ? <div className="ml-auto flex min-w-0 flex-wrap items-center gap-ui-8">{filter}</div> : null}
+      </div>
+      {matched.length === 0 ? (
+        <AsyncState kind="empty">{t("env.search.empty")}</AsyncState>
+      ) : (
+        <VariableChainTable {...tableProps} rows={matched} terms={terms} />
+      )}
+    </div>
+  );
+}
+
+export function VariableChainTable({
+  label,
+  onEdit,
+  onRemove,
+  onRevealFinal,
+  rows,
+  terms = [],
+}: VariableChainTableProps) {
   const t = useT();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -71,10 +175,11 @@ export function VariableChainTable({ label, onEdit, onRemove, onRevealFinal, row
         <tbody>
           {[...rows].sort(compareVariableNames).map((row) => {
             const key = rowKey(row);
-            const isOpen = expanded.has(key);
+            const hits = chainHitsFor(row, terms);
             return (
               <Row
-                isOpen={isOpen}
+                isOpen={expanded.has(key) || hits.length > 0}
+                hits={hits}
                 key={key}
                 onEdit={onEdit}
                 onRemove={onRemove}
@@ -82,6 +187,7 @@ export function VariableChainTable({ label, onEdit, onRemove, onRevealFinal, row
                 onToggle={() => toggle(key)}
                 row={row}
                 rowId={key}
+                terms={terms}
               />
             );
           })}
@@ -92,6 +198,7 @@ export function VariableChainTable({ label, onEdit, onRemove, onRevealFinal, row
 }
 
 function Row({
+  hits,
   isOpen,
   onEdit,
   onRemove,
@@ -99,7 +206,9 @@ function Row({
   onToggle,
   row,
   rowId,
+  terms,
 }: {
+  hits: readonly number[];
   isOpen: boolean;
   onEdit?: VariableChainTableProps["onEdit"];
   onRemove?: VariableChainTableProps["onRemove"];
@@ -107,27 +216,32 @@ function Row({
   onToggle: () => void;
   row: VariableChainRow;
   rowId: string;
+  terms: readonly string[];
 }) {
   const t = useT();
   const { final } = row;
+  const merged = row.definedIn !== undefined;
   const count = row.chain.length;
   const detailId = `env-chain-${rowId.replace(/[^\w-]/g, "-")}`;
+  const editable = !merged;
   return (
     <>
       <tr className="border-t border-line">
         <td className={CELL}>
           <span className="flex min-w-0 flex-wrap items-center gap-ui-4">
-            <code className="break-all font-mono text-aux font-semibold">{row.name}</code>
-            {final.scope ? (
+            <code className="break-all font-mono text-aux font-semibold">
+              <Highlighted terms={terms} text={row.name} />
+            </code>
+            {!merged && final.scope ? (
               <StatusBadge title={appliesToText(final.scope).detail}>
                 {appliesToText(final.scope).label}
               </StatusBadge>
             ) : null}
-            {final.value.kind === "masked" ? (
+            {!merged && final.value.kind === "masked" ? (
               <StatusBadge tone="danger">{t("env.chain.badge.secret")}</StatusBadge>
             ) : null}
-            {final.append ? <StatusBadge>{t("env.chain.badge.append")}</StatusBadge> : null}
-            {onEdit ? (
+            {!merged && final.append ? <StatusBadge>{t("env.chain.badge.append")}</StatusBadge> : null}
+            {onEdit && editable ? (
               <Button
                 aria-label={t("env.chain.edit", { name: row.name })}
                 onClick={() => onEdit(row)}
@@ -150,20 +264,33 @@ function Row({
           </span>
         </td>
         <td className={CELL}>
-          <ValueView
-            label={row.name}
-            load={() => onRevealFinal(row)}
-            resetKey={rowId}
-            state={final.state}
-            value={final.value}
-          />
-          {row.note ? (
-            <span className="mt-ui-4 flex">
-              <StatusBadge tone="warning">{t("env.chain.overridden")}</StatusBadge>
-            </span>
-          ) : null}
+          {merged ? (
+            <StatusBadge>{t("env.chain.definedIn", { count: row.definedIn ?? 0 })}</StatusBadge>
+          ) : (
+            <>
+              <ValueView
+                label={row.name}
+                load={() => onRevealFinal(row)}
+                resetKey={rowId}
+                state={final.state}
+                terms={terms}
+                value={final.value}
+              />
+              {row.note ? (
+                <span className="mt-ui-4 flex">
+                  <StatusBadge tone="warning">{row.note}</StatusBadge>
+                </span>
+              ) : null}
+            </>
+          )}
         </td>
-        <td className={classNames(CELL, MONO, "text-muted-foreground")}>{sourceText(final.source)}</td>
+        <td className={classNames(CELL, MONO, "text-muted-foreground")}>
+          {merged ? (
+            t("env.chain.severalFiles")
+          ) : (
+            <Highlighted terms={terms} text={sourceText(final.source)} />
+          )}
+        </td>
         <td className={CELL}>
           {count > 0 ? (
             <Button
@@ -173,7 +300,9 @@ function Row({
               size="sm"
               variant="ghost"
             >
-              {t("env.chain.expand", { count })}
+              {merged
+                ? t("env.chain.expandDefined", { count })
+                : t("env.chain.expand", { count })}
             </Button>
           ) : null}
         </td>
@@ -181,11 +310,23 @@ function Row({
       {isOpen && count > 0 ? (
         <tr>
           <td className="px-ui-8 pb-ui-8" colSpan={4} id={detailId}>
-            <ol aria-label={t("env.chain.steps", { name: row.name })} className="grid gap-ui-4">
+            <ol
+              aria-label={
+                merged
+                  ? t("env.chain.definedSteps", { name: row.name })
+                  : t("env.chain.steps", { name: row.name })
+              }
+              className="grid gap-ui-4"
+            >
               {row.chain.map((step, index) => (
-                <StepView key={index} step={step} />
+                <StepView
+                  hit={hits.includes(index)}
+                  key={index}
+                  step={step}
+                  terms={terms}
+                />
               ))}
-              <StepView final step={final} />
+              {merged ? null : <StepView final hit={false} step={final} terms={terms} />}
             </ol>
           </td>
         </tr>
@@ -194,20 +335,34 @@ function Row({
   );
 }
 
-function StepView({ final = false, step }: { final?: boolean; step: ChainStep }) {
+function StepView({
+  final = false,
+  hit,
+  step,
+  terms,
+}: {
+  final?: boolean;
+  hit: boolean;
+  step: ChainStep;
+  terms: readonly string[];
+}) {
   const t = useT();
   return (
     <li
       className={classNames(
         "flex min-w-0 flex-wrap items-center gap-ui-8 px-ui-8 py-ui-4",
         final && "border-l-2 border-primary",
+        hit && "bg-surface-muted",
       )}
+      data-hit={hit ? "true" : undefined}
     >
       {final ? <StatusBadge>{t("env.chain.badge.final")}</StatusBadge> : null}
       <span className="min-w-0 max-w-full">
-        <ValueView final={final} state={step.state} value={step.value} />
+        <ValueView final={final} state={step.state} terms={terms} value={step.value} />
       </span>
-      <span className={classNames(MONO, "text-muted-foreground")}>{sourceText(step.source)}</span>
+      <span className={classNames(MONO, "text-muted-foreground")}>
+        <Highlighted terms={terms} text={sourceText(step.source)} />
+      </span>
       {step.scope ? (
         <StatusBadge title={appliesToText(step.scope).detail}>
           {appliesToText(step.scope).label}
@@ -224,6 +379,7 @@ function ValueView({
   load,
   resetKey,
   state,
+  terms,
   value,
 }: {
   final?: boolean;
@@ -231,6 +387,7 @@ function ValueView({
   load?: () => Promise<string>;
   resetKey?: string;
   state?: ChainStep["state"];
+  terms: readonly string[];
   value: ChainValue;
 }) {
   const t = useT();
@@ -241,7 +398,9 @@ function ValueView({
   if (value.kind === "text") {
     return (
       <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
-        <code className={classNames(MONO)}>{value.text}</code>
+        <code className={classNames(MONO)}>
+          <Highlighted terms={terms} text={value.text} />
+        </code>
         {stateInfo ? <StatusBadge title={stateInfo.hint}>{stateInfo.label}</StatusBadge> : null}
       </span>
     );

@@ -8,13 +8,15 @@ import type {
   ZshEditState,
   ZshEditTarget,
 } from "../../ipc/environment";
+import type { TranslateFunction } from "../../i18n";
 import {
-  PREVIEW_EXPIRED_NOTICE,
   canResumeEditing,
   failureNotice,
+  previewExpiredNotice,
   type EditorNotice,
   type SaveResult,
 } from "./dotenvEditorModel";
+import { zhTranslate } from "./zhTranslate";
 import {
   EMPTY_DRAFTS,
   checkDrafts,
@@ -74,6 +76,7 @@ export interface ZshEditorDeps {
   execute: (target: ZshEditTarget, operationId: string) => Promise<ZshEditExecution>;
   /** Called after a transaction ran, so the page can reload the overview. */
   onSaved?: (target: ZshEditTarget) => void;
+  t?: TranslateFunction;
 }
 
 export interface ZshEditorController {
@@ -105,6 +108,7 @@ export interface ZshEditorController {
   checkExpiry: (nowMs: number) => void;
   /** Replaces the callback run after a transaction ran. */
   setOnSaved: (onSaved: ((target: ZshEditTarget) => void) | undefined) => void;
+  setTranslate: (next: TranslateFunction) => void;
 }
 
 /**
@@ -118,6 +122,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
   let state: ZshEditorState = CLOSED;
   let ticket = 0;
   let onSaved = deps.onSaved;
+  let t: TranslateFunction = deps.t ?? zhTranslate;
   const listeners = new Set<() => void>();
 
   function notify() {
@@ -138,7 +143,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
     state.phase === "saving";
 
   function check(): ZshDraftCheck | undefined {
-    return state.loaded === undefined ? undefined : checkDrafts(state.loaded, state.drafts);
+    return state.loaded === undefined ? undefined : checkDrafts(state.loaded, state.drafts, t);
   }
 
   function problemOf(outcome: Exclude<ZshEditOutcome, { status: "READY" }>): LoadProblem {
@@ -204,7 +209,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
         ? {
             notice: {
               tone: "warning" as const,
-              text: "文件在你查看之后发生了变化，已重新读取并放弃未保存的改动。",
+              text: t("env.zshEdit.notice.reloaded"),
             },
           }
         : {}),
@@ -234,7 +239,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
       await deps.enable(target);
     } catch (error) {
       if (mine === ticket && phaseIs("enabling")) {
-        update({ phase: "editing", notice: failureNotice(decodeAppError(error)) });
+        update({ phase: "editing", notice: failureNotice(decodeAppError(error), t) });
       }
       return;
     }
@@ -252,7 +257,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
       await deps.revoke(grantId);
     } catch (error) {
       if (mine === ticket && phaseIs("enabling")) {
-        update({ phase: "editing", notice: failureNotice(decodeAppError(error)) });
+        update({ phase: "editing", notice: failureNotice(decodeAppError(error), t) });
       }
       return;
     }
@@ -388,7 +393,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
       }
     } catch (error) {
       if (mine === ticket && phaseIs("previewing")) {
-        update({ phase: "editing", notice: failureNotice(decodeAppError(error)) });
+        update({ phase: "editing", notice: failureNotice(decodeAppError(error), t) });
       }
     }
   }
@@ -414,7 +419,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
         update({
           phase: "editing",
           preview: undefined,
-          notice: failureNotice(decodeAppError(error)),
+          notice: failureNotice(decodeAppError(error), t),
         });
       }
       return;
@@ -464,7 +469,7 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
     const deadline = Date.parse(state.preview.expiresAt);
     if (Number.isFinite(deadline) && nowMs >= deadline) {
       ticket += 1;
-      update({ phase: "editing", preview: undefined, notice: PREVIEW_EXPIRED_NOTICE });
+      update({ phase: "editing", preview: undefined, notice: previewExpiredNotice(t) });
     }
   }
 
@@ -498,6 +503,9 @@ export function createZshEditorController(deps: ZshEditorDeps): ZshEditorControl
     checkExpiry,
     setOnSaved(next) {
       onSaved = next;
+    },
+    setTranslate(next) {
+      t = next;
     },
   };
 }

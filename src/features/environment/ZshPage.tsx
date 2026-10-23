@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { localizeAppError } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import {
   readZshStartupFiles,
@@ -28,6 +30,8 @@ type Notice = ZshViewProps["notice"];
  * while it is open); there is no new navigation entry.
  */
 export function ZshPage() {
+  const t = useT();
+  const locale = useLocale();
   const [state, dispatch] = useReducer(zshReducer, INITIAL_ZSH_STATE);
   const [choosing, setChoosing] = useState(false);
   const [notice, setNotice] = useState<Notice>();
@@ -97,17 +101,17 @@ export function ZshPage() {
     try {
       const result = await selectDirectoryGrant();
       if (result.status === "CANCELLED") {
-        setNotice({ tone: "info", text: "已取消，没有选择目录。" });
+        setNotice({ tone: "info", text: t("env.zsh.zdotdir.cancelled") });
       } else {
         dispatch({ type: "directoryChosen", grantId: result.grant.id });
         load(result.grant.id);
       }
     } catch (error) {
-      setNotice({ tone: "error", text: decodeAppError(error).message });
+      setNotice({ tone: "error", text: localizeAppError(decodeAppError(error), t, locale) });
     } finally {
       setChoosing(false);
     }
-  }, [load]);
+  }, [load, locale, t]);
 
   const clearDirectory = useCallback(() => {
     setNotice(undefined);

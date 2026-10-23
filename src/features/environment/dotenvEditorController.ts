@@ -1,12 +1,13 @@
 import { decodeAppError } from "../../ipc/core";
 import type { EnvEditPreview, EnvKeyEdit } from "../../ipc/environment";
 import type { ResourceWriteExecution } from "../../ipc/resources";
+import type { TranslateFunction } from "../../i18n";
 import {
   EMPTY_DRAFTS,
-  PREVIEW_EXPIRED_NOTICE,
   canResumeEditing,
   checkDrafts,
   failureNotice,
+  previewExpiredNotice,
   type Addition,
   type DraftCheck,
   type EditorNotice,
@@ -17,6 +18,7 @@ import {
   type NewTarget,
   type SaveResult,
 } from "./dotenvEditorModel";
+import { zhTranslate } from "./zhTranslate";
 
 export type EditorPhase =
   | "closed"
@@ -54,6 +56,7 @@ export interface DotenvEditorDeps {
   ) => Promise<ResourceWriteExecution>;
   /** Called after a transaction ran, so the page can reload the file. */
   onSaved?: (target: EditorTarget) => void;
+  t?: TranslateFunction;
 }
 
 export interface DotenvEditorController {
@@ -77,6 +80,7 @@ export interface DotenvEditorController {
   checkExpiry: (nowMs: number) => void;
   /** Replaces the callback run after a transaction ran. */
   setOnSaved: (onSaved: ((target: EditorTarget) => void) | undefined) => void;
+  setTranslate: (next: TranslateFunction) => void;
 }
 
 /**
@@ -92,6 +96,7 @@ export function createDotenvEditorController(
   let state: EditorState = CLOSED;
   let ticket = 0;
   let onSaved = deps.onSaved;
+  let t: TranslateFunction = deps.t ?? zhTranslate;
   const listeners = new Set<() => void>();
 
   function notify() {
@@ -116,10 +121,14 @@ export function createDotenvEditorController(
   function check(): DraftCheck | undefined {
     return state.target === undefined
       ? undefined
-      : checkDrafts(state.target, {
-          entryEdits: state.entryEdits,
-          additions: state.additions,
-        });
+      : checkDrafts(
+          state.target,
+          {
+            entryEdits: state.entryEdits,
+            additions: state.additions,
+          },
+          t,
+        );
   }
 
   function prefill(key: string): string {
@@ -197,7 +206,7 @@ export function createDotenvEditorController(
       }
     } catch (error) {
       if (mine === ticket && phaseIs("previewing")) {
-        update({ phase: "editing", notice: failureNotice(decodeAppError(error)) });
+        update({ phase: "editing", notice: failureNotice(decodeAppError(error), t) });
       }
     }
   }
@@ -225,7 +234,7 @@ export function createDotenvEditorController(
         update({
           phase: "editing",
           preview: undefined,
-          notice: failureNotice(decodeAppError(error)),
+          notice: failureNotice(decodeAppError(error), t),
         });
       }
       return;
@@ -278,7 +287,7 @@ export function createDotenvEditorController(
       update({
         phase: "editing",
         preview: undefined,
-        notice: PREVIEW_EXPIRED_NOTICE,
+        notice: previewExpiredNotice(t),
       });
     }
   }
@@ -307,6 +316,9 @@ export function createDotenvEditorController(
     checkExpiry,
     setOnSaved(next) {
       onSaved = next;
+    },
+    setTranslate(next) {
+      t = next;
     },
   };
 }

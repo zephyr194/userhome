@@ -3,10 +3,10 @@ import type { ZshEditWarning } from "../../ipc/environment";
 import { emptyStateOf, stateOf } from "./zshEditorFixtures";
 import {
   EMPTY_DRAFTS,
-  NOT_ENABLED_TEXT,
-  PATH_FORM_NOTE,
-  VALUE_FORM_NOTE,
-  ZSH_EFFECT_NOTE,
+  notEnabledText,
+  pathFormNote,
+  valueFormNote,
+  zshEffectNote,
   checkDrafts,
   draftsFor,
   editAvailability,
@@ -347,7 +347,7 @@ describe("outside conflicts and wording", () => {
       { kind: "BLOCK_APPENDED" },
       { kind: "FILE_CREATED" },
     ];
-    const texts = warnings.map(warningText);
+    const texts = warnings.map((warning) => warningText(warning));
     expect(new Set(texts).size).toBe(warnings.length);
     expect(texts[1]).toContain("覆盖专用块里的值");
     expect(texts[4]).toContain("不展开、不改写");
@@ -356,15 +356,15 @@ describe("outside conflicts and wording", () => {
   });
 
   it("keeps the effect wording to new shells only", () => {
-    expect(ZSH_EFFECT_NOTE).toContain("新开的终端");
-    expect(ZSH_EFFECT_NOTE).toContain("不会 source");
-    expect(ZSH_EFFECT_NOTE).toContain("不影响正在运行的进程");
-    for (const text of [ZSH_EFFECT_NOTE, NOT_ENABLED_TEXT, PATH_FORM_NOTE, VALUE_FORM_NOTE]) {
+    expect(zshEffectNote()).toContain("新开的终端");
+    expect(zshEffectNote()).toContain("不会 source");
+    expect(zshEffectNote()).toContain("不影响正在运行的进程");
+    for (const text of [zshEffectNote(), notEnabledText(), pathFormNote(), valueFormNote()]) {
       expect(text).not.toMatch(/立即生效|已生效|当前会话已|自动 source/);
     }
-    expect(PATH_FORM_NOTE).toContain("原有 PATH 完整保留");
-    expect(PATH_FORM_NOTE).toContain("空项");
-    expect(VALUE_FORM_NOTE).toContain("'\\''");
+    expect(pathFormNote()).toContain("原有 PATH 完整保留");
+    expect(pathFormNote()).toContain("空项");
+    expect(valueFormNote()).toContain("'\\''");
   });
 
   it("titles the preview by what will happen to the file", () => {

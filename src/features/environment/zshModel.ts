@@ -13,7 +13,9 @@ import type {
   ZshValueState,
   ZshZdotdir,
 } from "../../ipc/environment";
+import type { MessageKey, TranslateFunction } from "../../i18n";
 import { failureText } from "./environmentModel";
+import { zhTranslate } from "./zhTranslate";
 
 // ---- page state ----------------------------------------------------------
 
@@ -108,88 +110,99 @@ export function zshReducer(state: ZshState, action: ZshAction): ZshState {
 
 // ---- wording -------------------------------------------------------------
 
-export const SOURCE_LABEL = "官方文档";
+export function sourceLabel(t: TranslateFunction = zhTranslate): string {
+  return t("env.model.zsh.sourceLabel");
+}
 
-const APPLIES_TO_TEXT: Record<ZshAppliesTo, { label: string; detail: string }> = {
-  ALL: {
-    label: "所有 zsh",
-    detail: "每次启动 zsh 都会读取，包括登录、交互和非交互（脚本）。",
-  },
-  LOGIN: {
-    label: "仅登录 shell",
-    detail: "只在登录 shell 中读取，普通的交互终端标签通常不是登录 shell。",
-  },
+const APPLIES_TO_KEYS: Record<ZshAppliesTo, { label: MessageKey; detail: MessageKey }> = {
+  ALL: { label: "env.model.zsh.appliesTo.ALL.label", detail: "env.model.zsh.appliesTo.ALL.detail" },
+  LOGIN: { label: "env.model.zsh.appliesTo.LOGIN.label", detail: "env.model.zsh.appliesTo.LOGIN.detail" },
   INTERACTIVE: {
-    label: "仅交互 shell",
-    detail: "只在交互式 shell 中读取，不会在运行脚本时读取。",
+    label: "env.model.zsh.appliesTo.INTERACTIVE.label",
+    detail: "env.model.zsh.appliesTo.INTERACTIVE.detail",
   },
 };
 
-export function appliesToText(appliesTo: ZshAppliesTo) {
-  return APPLIES_TO_TEXT[appliesTo];
+export function appliesToText(appliesTo: ZshAppliesTo, t: TranslateFunction = zhTranslate) {
+  const keys = APPLIES_TO_KEYS[appliesTo];
+  return { label: t(keys.label), detail: t(keys.detail) };
 }
 
-const VALUE_STATE_TEXT: Record<ZshValueState, { label: string; hint: string }> = {
+const VALUE_STATE_KEYS: Record<ZshValueState, { label: MessageKey; hint: MessageKey }> = {
   STATIC: {
-    label: "字面量",
-    hint: "值就是写在文件里的文本；这不代表它最终生效。",
+    label: "env.model.zsh.valueState.STATIC.label",
+    hint: "env.model.zsh.valueState.STATIC.hint",
   },
   REFERENCE: {
-    label: "含引用（未解析）",
-    hint: "含 $HOME、$PATH 或 ~ 引用，按原文显示，没有展开。",
+    label: "env.model.zsh.valueState.REFERENCE.label",
+    hint: "env.model.zsh.valueState.REFERENCE.hint",
   },
   DYNAMIC: {
-    label: "动态／未解析",
-    hint: "需要执行或求值才能知道结果，按原文显示，不推断有效值。",
+    label: "env.model.zsh.valueState.DYNAMIC.label",
+    hint: "env.model.zsh.valueState.DYNAMIC.hint",
   },
 };
 
-export function valueStateText(state: ZshValueState) {
-  return VALUE_STATE_TEXT[state];
+export function valueStateText(state: ZshValueState, t: TranslateFunction = zhTranslate) {
+  const keys = VALUE_STATE_KEYS[state];
+  return { label: t(keys.label), hint: t(keys.hint) };
 }
 
-const REASON_TEXT: Record<ZshDynamicReason, { label: string; hint: string }> = {
-  COMMAND_SUBSTITUTION: { label: "命令替换", hint: "含 $(…) 或反引号，没有执行。" },
-  ARITHMETIC: { label: "算术展开", hint: "含 $((…)) 或 ((…))，没有求值。" },
+const REASON_KEYS: Record<ZshDynamicReason, { label: MessageKey; hint: MessageKey }> = {
+  COMMAND_SUBSTITUTION: {
+    label: "env.model.zsh.reason.COMMAND_SUBSTITUTION.label",
+    hint: "env.model.zsh.reason.COMMAND_SUBSTITUTION.hint",
+  },
+  ARITHMETIC: { label: "env.model.zsh.reason.ARITHMETIC.label", hint: "env.model.zsh.reason.ARITHMETIC.hint" },
   UNRESOLVED_REFERENCE: {
-    label: "未解析的变量引用",
-    hint: "引用了 $HOME、$PATH 之外的变量，没有展开。",
+    label: "env.model.zsh.reason.UNRESOLVED_REFERENCE.label",
+    hint: "env.model.zsh.reason.UNRESOLVED_REFERENCE.hint",
   },
-  CONDITIONAL: { label: "条件语句", hint: "if、case、循环或 [[ ]] 条件，是否执行取决于运行时。" },
-  BLOCK: { label: "位于块内", hint: "在 if/case/循环/函数/分组之内，是否执行取决于运行时。" },
-  SOURCE: { label: "source 其他文件", hint: "source 或 . 会读入另一个文件，没有跟随。" },
-  EVAL: { label: "eval", hint: "eval 会把文本当作命令执行，没有执行。" },
-  FUNCTION_DEFINITION: { label: "函数定义", hint: "函数体只在被调用时运行，没有分析。" },
-  ALIAS: { label: "别名", hint: "别名定义，没有展开。" },
-  COMPOUND: { label: "复合命令", hint: "一行含多个命令、管道或重定向，没有拆解。" },
-  LINE_CONTINUATION: { label: "行续接", hint: "反斜杠续行的语句，保守地不识别。" },
-  HERE_DOC: { label: "here-doc", hint: "含 here-doc 正文，保守地不识别。" },
-  MULTILINE_QUOTE: { label: "多行引号", hint: "引号跨越多行，保守地不识别。" },
-  EXPANSION: { label: "其他展开", hint: "含 $'…' 等未解码的写法，保守地不识别。" },
+  CONDITIONAL: { label: "env.model.zsh.reason.CONDITIONAL.label", hint: "env.model.zsh.reason.CONDITIONAL.hint" },
+  BLOCK: { label: "env.model.zsh.reason.BLOCK.label", hint: "env.model.zsh.reason.BLOCK.hint" },
+  SOURCE: { label: "env.model.zsh.reason.SOURCE.label", hint: "env.model.zsh.reason.SOURCE.hint" },
+  EVAL: { label: "env.model.zsh.reason.EVAL.label", hint: "env.model.zsh.reason.EVAL.hint" },
+  FUNCTION_DEFINITION: {
+    label: "env.model.zsh.reason.FUNCTION_DEFINITION.label",
+    hint: "env.model.zsh.reason.FUNCTION_DEFINITION.hint",
+  },
+  ALIAS: { label: "env.model.zsh.reason.ALIAS.label", hint: "env.model.zsh.reason.ALIAS.hint" },
+  COMPOUND: { label: "env.model.zsh.reason.COMPOUND.label", hint: "env.model.zsh.reason.COMPOUND.hint" },
+  LINE_CONTINUATION: {
+    label: "env.model.zsh.reason.LINE_CONTINUATION.label",
+    hint: "env.model.zsh.reason.LINE_CONTINUATION.hint",
+  },
+  HERE_DOC: { label: "env.model.zsh.reason.HERE_DOC.label", hint: "env.model.zsh.reason.HERE_DOC.hint" },
+  MULTILINE_QUOTE: {
+    label: "env.model.zsh.reason.MULTILINE_QUOTE.label",
+    hint: "env.model.zsh.reason.MULTILINE_QUOTE.hint",
+  },
+  EXPANSION: { label: "env.model.zsh.reason.EXPANSION.label", hint: "env.model.zsh.reason.EXPANSION.hint" },
 };
 
-export function reasonText(reason: ZshDynamicReason) {
-  return REASON_TEXT[reason];
+export function reasonText(reason: ZshDynamicReason, t: TranslateFunction = zhTranslate) {
+  const keys = REASON_KEYS[reason];
+  return { label: t(keys.label), hint: t(keys.hint) };
 }
 
-const UNDETERMINED_TEXT: Record<ZshUndeterminedReason, string> = {
-  DYNAMIC:
-    "~/.zshenv 里对 ZDOTDIR 的设置是动态、条件或变量引用写法，无法静态确定。",
-  MULTIPLE: "~/.zshenv 里多次设置了 ZDOTDIR，无法静态确定哪一次生效。",
-  UNSUPPORTED_FORM:
-    "~/.zshenv 里的 ZDOTDIR 写法不受支持（相对路径、空值、追加等），无法静态确定。",
-  ZSHENV_NOT_READ: "~/.zshenv 无法读取，因此不知道 ZDOTDIR 是否被设置。",
-  PARENT_SEGMENT:
-    "~/.zshenv 里的 ZDOTDIR 路径含有 .. 段，不做字面折算，无法静态确定它指向哪里。",
+const UNDETERMINED_KEYS: Record<ZshUndeterminedReason, MessageKey> = {
+  DYNAMIC: "env.model.zsh.undetermined.DYNAMIC",
+  MULTIPLE: "env.model.zsh.undetermined.MULTIPLE",
+  UNSUPPORTED_FORM: "env.model.zsh.undetermined.UNSUPPORTED_FORM",
+  ZSHENV_NOT_READ: "env.model.zsh.undetermined.ZSHENV_NOT_READ",
+  PARENT_SEGMENT: "env.model.zsh.undetermined.PARENT_SEGMENT",
 };
 
-export function undeterminedText(reason: ZshUndeterminedReason): string {
-  return UNDETERMINED_TEXT[reason];
+export function undeterminedText(
+  reason: ZshUndeterminedReason,
+  t: TranslateFunction = zhTranslate,
+): string {
+  return t(UNDETERMINED_KEYS[reason]);
 }
 
 /** PATH items may be empty; an empty item means the current directory. */
-export function pathSegmentText(text: string): string {
-  return text === "" ? "（空项，表示当前目录）" : text;
+export function pathSegmentText(text: string, t: TranslateFunction = zhTranslate): string {
+  return text === "" ? t("env.model.zsh.pathSegment.empty") : text;
 }
 
 export type SummaryTone = "neutral" | "success" | "warning" | "danger";
@@ -206,45 +219,52 @@ export interface ZdotdirSummary {
   readonly problem?: string;
 }
 
-export function zdotdirSummary(zdotdir: ZshZdotdir): ZdotdirSummary {
+export function zdotdirSummary(zdotdir: ZshZdotdir, t: TranslateFunction = zhTranslate): ZdotdirSummary {
   switch (zdotdir.status) {
     case "DEFAULT":
       return {
-        title: "ZDOTDIR：未设置，使用 $HOME",
-        detail:
-          "~/.zshenv 没有静态的 ZDOTDIR 设置，其余启动文件从 $HOME（主目录）读取。",
+        title: t("env.model.zsh.zdotdir.DEFAULT.title"),
+        detail: t("env.model.zsh.zdotdir.DEFAULT.detail"),
         tone: "neutral",
         needsChoice: false,
         selected: false,
       };
     case "STATIC":
       return {
-        title: "ZDOTDIR：已确定",
-        detail: `~/.zshenv 第 ${zdotdir.line} 行把 ZDOTDIR 设为 ${zdotdir.displayPath}，.zprofile、.zshrc、.zlogin 从该目录读取。`,
+        title: t("env.model.zsh.zdotdir.STATIC.title"),
+        detail: t("env.model.zsh.zdotdir.STATIC.detail", {
+          line: zdotdir.line,
+          path: zdotdir.displayPath,
+        }),
         tone: "success",
         needsChoice: false,
         selected: false,
       };
     case "OUTSIDE":
       return {
-        title: "ZDOTDIR：越界，未读取",
-        detail: `~/.zshenv 第 ${zdotdir.line} 行把 ZDOTDIR 设为 ${zdotdir.displayPath}，它不在主目录之下，UserHome 不读取该目录。`,
+        title: t("env.model.zsh.zdotdir.OUTSIDE.title"),
+        detail: t("env.model.zsh.zdotdir.OUTSIDE.detail", {
+          line: zdotdir.line,
+          path: zdotdir.displayPath,
+        }),
         tone: "danger",
         needsChoice: false,
         selected: false,
       };
     case "SELECTED":
       return {
-        title: "ZDOTDIR：由你选择",
-        detail: `ZDOTDIR 无法静态确定，已按你选择的目录 ${zdotdir.displayPath} 读取 .zprofile、.zshrc、.zlogin。这是你的选择，不代表 zsh 实际使用该目录。`,
+        title: t("env.model.zsh.zdotdir.SELECTED.title"),
+        detail: t("env.model.zsh.zdotdir.SELECTED.detail", { path: zdotdir.displayPath }),
         tone: "warning",
         needsChoice: false,
         selected: true,
       };
     case "UNDETERMINED":
       return {
-        title: "ZDOTDIR：未确定",
-        detail: `${undeterminedText(zdotdir.reason)}请选择 .zprofile、.zshrc、.zlogin 所在的目录（只能选择主目录之下的目录），否则这三个文件不会被读取。`,
+        title: t("env.model.zsh.zdotdir.UNDETERMINED.title"),
+        detail: t("env.model.zsh.zdotdir.UNDETERMINED.detail", {
+          reason: undeterminedText(zdotdir.reason, t),
+        }),
         tone: "warning",
         needsChoice: true,
         selected: false,
@@ -255,23 +275,34 @@ export function zdotdirSummary(zdotdir: ZshZdotdir): ZdotdirSummary {
   }
 }
 
-export function stepStatus(step: Pick<ZshOrderStep, "scope">): string | undefined {
-  return step.scope === "SYSTEM" ? "系统级，未读取" : undefined;
+export function stepStatus(
+  step: Pick<ZshOrderStep, "scope">,
+  t: TranslateFunction = zhTranslate,
+): string | undefined {
+  return step.scope === "SYSTEM" ? t("env.model.zsh.stepStatus.system") : undefined;
 }
 
-export function fileStatus(file: ZshFile): { label: string; tone: SummaryTone } {
+export function fileStatus(
+  file: ZshFile,
+  t: TranslateFunction = zhTranslate,
+): { label: string; tone: SummaryTone } {
   const { outcome } = file;
   switch (outcome.status) {
     case "READY":
-      return { label: "已读取", tone: "success" };
+      return { label: t("env.model.zsh.file.ready"), tone: "success" };
     case "UNAVAILABLE":
       return outcome.reason === "NOT_FOUND"
-        ? { label: "不存在", tone: "neutral" }
-        : { label: `无法读取：${failureText(outcome.reason)}`, tone: "danger" };
+        ? { label: t("env.model.zsh.file.notFound"), tone: "neutral" }
+        : {
+            label: t("env.model.zsh.file.unreadable", {
+              reason: failureText(outcome.reason, t),
+            }),
+            tone: "danger",
+          };
     case "OUTSIDE_HOME":
-      return { label: "越界，未读取", tone: "danger" };
+      return { label: t("env.model.zsh.file.outsideHome"), tone: "danger" };
     case "NOT_LOCATED":
-      return { label: "位置未确定，未读取", tone: "warning" };
+      return { label: t("env.model.zsh.file.notLocated"), tone: "warning" };
   }
 }
 
@@ -290,11 +321,13 @@ function isUnreadable(file: ZshFile): boolean {
   return file.outcome.status !== "READY" && !isAbsent(file);
 }
 
-export function summarize(overview: ZshOverview): ZshSummary {
+export function summarize(overview: ZshOverview, t: TranslateFunction = zhTranslate): ZshSummary {
   if (overview.files.every(isAbsent)) return { kind: "empty", problems: [] };
   const problems = overview.files
     .filter((file) => file.outcome.status !== "READY" && !isAbsent(file))
-    .map((file) => `${file.name}：${fileStatus(file).label}`);
+    .map((file) =>
+      t("env.model.zsh.problem", { name: file.name, status: fileStatus(file, t).label }),
+    );
   return { kind: problems.length > 0 ? "partial" : "ok", problems };
 }
 

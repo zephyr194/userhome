@@ -14,7 +14,9 @@ import type {
   WriteKind,
   WriteStatus,
 } from "../../ipc/resources";
+import type { MessageKey, TranslateFunction } from "../../i18n";
 import { flagText } from "./environmentModel";
+import { zhTranslate } from "./zhTranslate";
 
 // The backend decides what can be written; everything here only mirrors its
 // rules for early, per-field feedback. Secret values live in this state only
@@ -46,22 +48,16 @@ const KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]{0,254}$/;
 // eslint-disable-next-line no-control-regex
 const FORBIDDEN_CHARACTERS = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/u;
 
-export function keyProblem(key: string): string | undefined {
-  return KEY_PATTERN.test(key)
-    ? undefined
-    : "键名必须匹配 [A-Za-z_][A-Za-z0-9_]*，且不超过 255 个字符。";
+export function keyProblem(key: string, t: TranslateFunction = zhTranslate): string | undefined {
+  return KEY_PATTERN.test(key) ? undefined : t("env.dotEdit.key.pattern");
 }
 
-export function valueProblem(value: string): string | undefined {
-  if (FORBIDDEN_CHARACTERS.test(value)) {
-    return "值含换行、制表符或其他控制 / 不可见方向字符，不能安全写成单行值。";
-  }
+export function valueProblem(value: string, t: TranslateFunction = zhTranslate): string | undefined {
+  if (FORBIDDEN_CHARACTERS.test(value)) return t("env.dotEdit.value.forbidden");
   if ([...value].length > MAX_EDIT_VALUE_CHARS) {
-    return `值超过 ${MAX_EDIT_VALUE_CHARS} 个字符。`;
+    return t("env.dotEdit.value.tooLong", { max: MAX_EDIT_VALUE_CHARS });
   }
-  if (value.includes("'") && /["\\$`]/.test(value)) {
-    return "值同时含单引号与 $、反引号、反斜杠或双引号，无法在不引入转义或插值的前提下写入。";
-  }
+  if (value.includes("'") && /["\\$`]/.test(value)) return t("env.dotEdit.value.quoteConflict");
   return undefined;
 }
 
@@ -70,22 +66,21 @@ export type Editability =
   | { readonly ok: false; readonly reason: string };
 
 /** Entries the tool does not rewrite keep their bytes; this says why. */
-export function entryEditability(row: EntryRow): Editability {
+export function entryEditability(row: EntryRow, t: TranslateFunction = zhTranslate): Editability {
   if (row.flags.length > 0) {
-    const reasons = row.flags.map((flag: EntryFlag) => flagText(flag).label);
+    const reasons = row.flags.map((flag: EntryFlag) => flagText(flag, t).label);
     return {
       ok: false,
-      reason: `${reasons.join("、")}：保持原样，不在此修改或删除；请在编辑器中手动处理。`,
+      reason: t("env.dotEdit.entry.flagged", {
+        flags: reasons.join(t("env.dotEdit.listSeparator")),
+      }),
     };
   }
   if (row.quote === "DOUBLE" && row.value !== undefined && row.value.includes("\\")) {
-    return {
-      ok: false,
-      reason: "双引号值含反斜杠转义：本工具不解码转义，为避免改变含义，不在此修改。",
-    };
+    return { ok: false, reason: t("env.dotEdit.entry.backslash") };
   }
   if (!row.secret && row.hasValue && row.value === undefined) {
-    return { ok: false, reason: "值过长（超过 4096 个字符），不在此修改。" };
+    return { ok: false, reason: t("env.dotEdit.entry.tooLong", { max: 4096 }) };
   }
   return { ok: true };
 }
@@ -148,7 +143,11 @@ function entryRows(target: EditorTarget): EntryRow[] {
     : [];
 }
 
-export function checkDrafts(target: EditorTarget, drafts: Drafts): DraftCheck {
+export function checkDrafts(
+  target: EditorTarget,
+  drafts: Drafts,
+  t: TranslateFunction = zhTranslate,
+): DraftCheck {
   const rows = entryRows(target);
   const edits: EnvKeyEdit[] = [];
   const entries: Record<string, string> = {};
@@ -158,10 +157,10 @@ export function checkDrafts(target: EditorTarget, drafts: Drafts): DraftCheck {
     if (draft.mode === "keep") continue;
     const row = rows.find((candidate) => candidate.key === key);
     if (row === undefined) {
-      entries[key] = "文件中没有这个键，请重新加载文件。";
+      entries[key] = t("env.dotEdit.draft.keyMissing");
       continue;
     }
-    const editability = entryEditability(row);
+    const editability = entryEditability(row, t);
     if (!editability.ok) {
       entries[key] = editability.reason;
       continue;
@@ -172,7 +171,7 @@ export function checkDrafts(target: EditorTarget, drafts: Drafts): DraftCheck {
     }
     // A secret is replacement-only: an empty field leaves it as it is.
     if (row.secret ? draft.value === "" : draft.value === row.value) continue;
-    const problem = valueProblem(draft.value);
+    const problem = valueProblem(draft.value, t);
     if (problem !== undefined) {
       entries[key] = problem;
       continue;
@@ -188,13 +187,13 @@ export function checkDrafts(target: EditorTarget, drafts: Drafts): DraftCheck {
   for (const addition of drafts.additions) {
     const problem =
       addition.key === ""
-        ? "请填写键名。"
-        : (keyProblem(addition.key) ??
+        ? t("env.dotEdit.draft.keyEmpty")
+        : (keyProblem(addition.key, t) ??
           (taken.has(addition.key)
-            ? "该键已存在，请直接修改它。"
+            ? t("env.dotEdit.draft.keyExists")
             : (counts.get(addition.key) ?? 0) > 1
-              ? "键名重复，一次保存里同一个键只能出现一次。"
-              : valueProblem(addition.value)));
+              ? t("env.dotEdit.draft.duplicateKey")
+              : valueProblem(addition.value, t)));
     if (problem !== undefined) {
       additions[addition.id] = problem;
       continue;
@@ -219,18 +218,23 @@ export function checkDrafts(target: EditorTarget, drafts: Drafts): DraftCheck {
 
 // ---- wording -------------------------------------------------------------------
 
-export function previewHeadline(preview: Pick<EnvEditPreview, "kind">): string {
-  return preview.kind === "CREATE" ? "将创建新文件" : "将修改现有文件";
+export function previewHeadline(
+  preview: Pick<EnvEditPreview, "kind">,
+  t: TranslateFunction = zhTranslate,
+): string {
+  return preview.kind === "CREATE" ? t("env.dotEdit.preview.create") : t("env.dotEdit.preview.modify");
 }
 
-export function recoveryText(kind: WriteKind, recovery: RecoveryPointKind): string {
-  if (recovery === "BACKUP") return "写入前会先备份当前内容，校验失败时自动恢复。";
+export function recoveryText(
+  kind: WriteKind,
+  recovery: RecoveryPointKind,
+  t: TranslateFunction = zhTranslate,
+): string {
+  if (recovery === "BACKUP") return t("env.dotEdit.recovery.backup");
   if (recovery === "NONE_CREATED") {
-    return kind === "CREATE"
-      ? "新文件没有恢复点：此前没有内容可备份，也不会伪造备份。校验失败时会移除该新文件。"
-      : "没有恢复点。";
+    return kind === "CREATE" ? t("env.dotEdit.recovery.createdNone") : t("env.dotEdit.recovery.none");
   }
-  return "无法建立备份，因此不会写入。";
+  return t("env.dotEdit.recovery.unavailable");
 }
 
 export interface SaveResult {
@@ -248,38 +252,33 @@ export interface ResultText {
   readonly detail?: string;
 }
 
-export function saveResultText(result: Omit<SaveResult, "errorMessage" | "backupId">): ResultText {
+export function saveResultText(
+  result: Omit<SaveResult, "errorMessage" | "backupId">,
+  t: TranslateFunction = zhTranslate,
+): ResultText {
   const created = result.kind === "CREATE";
   switch (result.fileState) {
     case "WRITTEN":
       return {
         tone: "success",
-        headline: created
-          ? "已创建并通过读回校验（新文件，无恢复点）。"
-          : "已保存并通过读回校验；原内容保存在备份中。",
+        headline: created ? t("env.dotEdit.result.createdWritten") : t("env.dotEdit.result.written"),
       };
     case "UNCHANGED":
-      return { tone: "danger", headline: "保存失败，文件未改动。" };
+      return { tone: "danger", headline: t("env.dotEdit.result.unchanged") };
     case "RESTORED":
-      return {
-        tone: "danger",
-        headline: "写入后的读回校验未通过，已恢复为原内容并核对。",
-      };
+      return { tone: "danger", headline: t("env.dotEdit.result.restored") };
     case "RESTORE_FAILED":
       return {
         tone: "danger",
-        headline: "读回校验未通过，且未能确认已恢复；文件可能含有新内容。",
-        detail: "请先查看文件；备份仍保存着写入前的内容。",
+        headline: t("env.dotEdit.result.restoreFailed"),
+        detail: t("env.dotEdit.result.restoreFailedDetail"),
       };
     case "CREATED_REMOVED":
-      return { tone: "danger", headline: "新文件未通过读回校验，已移除。" };
+      return { tone: "danger", headline: t("env.dotEdit.result.createdRemoved") };
     case "CREATED_REMOVE_FAILED":
-      return {
-        tone: "danger",
-        headline: "新文件未通过读回校验，且未能移除；它可能仍存在。",
-      };
+      return { tone: "danger", headline: t("env.dotEdit.result.createdRemoveFailed") };
     case "UNKNOWN":
-      return { tone: "warning", headline: "无法确认文件的当前内容，请重新加载后查看。" };
+      return { tone: "warning", headline: t("env.dotEdit.result.unknown") };
   }
 }
 
@@ -299,24 +298,27 @@ export interface EditorNotice {
   readonly detail?: string;
 }
 
-const FAILURE_TEXT: Partial<Record<AppError["code"], string>> = {
-  TIMEOUT: "预览已过期，没有写入任何内容。请重新预览。",
-  CONFLICT: "文件、授权或预览已变化，没有写入任何内容。请重新加载文件后再预览。",
-  NOT_FOUND: "文件或授权已不存在，没有写入任何内容。",
-  PERMISSION_DENIED: "没有权限，或授权已失效，没有写入任何内容。",
-  VALIDATION_FAILED: "这次改动无法安全保存，没有写入任何内容。",
-  INVALID_INPUT: "输入不符合要求，没有写入任何内容。",
+const FAILURE_KEYS: Partial<Record<AppError["code"], MessageKey>> = {
+  TIMEOUT: "env.dotEdit.failure.TIMEOUT",
+  CONFLICT: "env.dotEdit.failure.CONFLICT",
+  NOT_FOUND: "env.dotEdit.failure.NOT_FOUND",
+  PERMISSION_DENIED: "env.dotEdit.failure.PERMISSION_DENIED",
+  VALIDATION_FAILED: "env.dotEdit.failure.VALIDATION_FAILED",
+  INVALID_INPUT: "env.dotEdit.failure.INVALID_INPUT",
 };
 
-export function failureNotice(error: AppError): EditorNotice {
+export function failureNotice(error: AppError, t: TranslateFunction = zhTranslate): EditorNotice {
+  const key = FAILURE_KEYS[error.code] ?? "env.dotEdit.failure.default";
   return {
     tone: "error",
-    text: FAILURE_TEXT[error.code] ?? "保存未完成，没有确认写入任何内容。",
+    text: t(key),
     detail: error.message,
   };
 }
 
-export const PREVIEW_EXPIRED_NOTICE: EditorNotice = {
-  tone: "warning",
-  text: "预览已过期，没有写入任何内容。请重新预览。",
-};
+export function previewExpiredNotice(t: TranslateFunction = zhTranslate): EditorNotice {
+  return {
+    tone: "warning",
+    text: t("env.dotEdit.failure.TIMEOUT"),
+  };
+}
