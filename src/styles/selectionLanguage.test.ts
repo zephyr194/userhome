@@ -78,9 +78,7 @@ describe("选中语言：滑动指示器", () => {
       "translate(var(--slide-x), var(--slide-y))",
     );
     expect(lastDeclaredIn(section, INDICATOR, "background")).toBe("var(--app-selection-secondary)");
-    expect(lastDeclaredIn(section, INDICATOR, "box-shadow")).toBe(
-      "inset 0 0 0 1px var(--app-selection-secondary-border)",
-    );
+    expect(lastDeclaredIn(section, INDICATOR, "box-shadow")).toBe("none");
     expect(lastDeclaredIn(section, INDICATOR, "pointer-events")).toBe("none");
     expect(
       lastDeclaredIn(section, '.slide-list[data-slide-axis="x"][data-slide-ready]::before', "box-shadow"),
@@ -156,11 +154,9 @@ describe("选中语言：滑动指示器", () => {
     expect(lastDeclaredIn(section, SELECTED_ITEM, "color")).toBe("var(--app-foreground)");
   });
 
-  it("渐进增强：未就绪时选中项自己绘制中性灰底与整块选中框；就绪后清除，由指示器承担", () => {
+  it("渐进增强：未就绪时选中项自己绘制二级实心底色（无描边）；就绪后清除，由指示器承担", () => {
     expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "background")).toBe("var(--app-selection-secondary)");
-    expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "box-shadow")).toBe(
-      "inset 0 0 0 1px var(--app-selection-secondary-border)",
-    );
+    expect(declaredIn(section, PROGRESSIVE_ITEM, "box-shadow")).toEqual([]);
     expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "background")).toBe("transparent");
     expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "box-shadow")).toBe("none");
   });

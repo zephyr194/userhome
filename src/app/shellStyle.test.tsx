@@ -68,15 +68,13 @@ describe("导航当前页", () => {
     expect(current[0]).toContain(`href="#${APP_ROUTES[0].id}"`);
   });
 
-  it("当前态由 .slide-list 滑动指示器承担：默认二级中性灰底，旧的 a[aria-current] 单独绘制都不再存在", () => {
+  it("当前态由 .slide-list 滑动指示器承担：默认二级实心底色、无描边，旧的 a[aria-current] 单独绘制都不再存在", () => {
     expect(rulesFor('.navigation-rail a[aria-current="page"]')).toEqual([]);
     expect(rulesFor('.navigation-rail a[aria-current="page"]::before')).toEqual([]);
     expect(lastDeclared(".slide-list[data-slide-ready]::before", "background")).toBe(
       "var(--app-selection-secondary)",
     );
-    expect(lastDeclared(".slide-list[data-slide-ready]::before", "box-shadow")).toBe(
-      "inset 0 0 0 1px var(--app-selection-secondary-border)",
-    );
+    expect(lastDeclared(".slide-list[data-slide-ready]::before", "box-shadow")).toBe("none");
     expect(css).toMatch(
       /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection-secondary\)/,
     );
