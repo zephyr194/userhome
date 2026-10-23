@@ -1,4 +1,4 @@
-import { Panel } from "../../components/ui";
+import { CodeViewer, Panel } from "../../components/ui";
 import type { CaddyExposure, CaddyExposureReason, CaddyIssue } from "../../ipc/caddy";
 import {
   diffMarker,
@@ -146,12 +146,13 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
       </ol>
       <div className="grid gap-ui-4">
         <h3 className="m-0 text-sm font-semibold">生成的 Caddyfile</h3>
-        <pre
-          aria-label="生成的 Caddyfile"
-          className="m-0 max-h-72 overflow-auto rounded-control bg-surface-muted p-ui-8 font-mono text-aux"
-        >
-          {result.generatedText}
-        </pre>
+        <CodeViewer
+          label="生成的 Caddyfile"
+          language="caddyfile"
+          scrollClassName="max-h-72 overflow-y-auto"
+          text={result.generatedText ?? ""}
+          title="Caddyfile"
+        />
       </div>
     </div>
   );
