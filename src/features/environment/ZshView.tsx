@@ -7,30 +7,24 @@ import type {
   ZshFileKey,
   ZshOrderStep,
   ZshOverview,
-  ZshPathSegment,
   ZshRow,
 } from "../../ipc/environment";
+import { useT } from "../../i18n/useLocale";
 import { formatBytes } from "./environmentModel";
-import { LazySecretValue } from "./LazySecretValue";
-import { SameNameHint } from "./SameNameHint";
+import { VariableChainTable } from "./VariableChainTable";
+import { zshVariableRows, type VariableChainRow } from "./variableChainModel";
 import {
   SOURCE_LABEL,
   appliesToText,
   fileStatus,
-  needsFetch,
-  pathSegmentText,
   reasonText,
   resolveZshNames,
   stepStatus,
   summarize,
-  valueStateText,
   zdotdirSummary,
   zshFileDisplay,
-  zshRowKey,
   type SummaryTone,
   type ZshEditIntent,
-  type ZshLocation,
-  type ZshNameNote,
   type ZshNameResolution,
   type ZshState,
 } from "./zshModel";
@@ -60,10 +54,8 @@ const CARD_CLASSES = "min-w-0 overflow-hidden";
 const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
 
 /**
- * 只读视图：四个 zsh 启动文件的适用 shell 类型、读取顺序、ZDOTDIR 判断和静态
- * 识别出的条目。按原文显示，不展开变量、不执行命令。同名变量只隐藏被所有适用
- * shell 都覆盖的位置；只覆盖部分 shell 的、后面文件无法读取的、以及追加或动态写法
- * 的同名项都保留，并在行内说明。
+ * 只读视图：四个 zsh 启动文件的适用 shell 类型、读取顺序、ZDOTDIR 判断。变量
+ * 集中在一张读取链表中（最终值与过程值），其余行按原文显示，不执行命令。
  * 默认没有任何编辑入口；只有页面传入 onEditFile 时，位置已确定的文件才出现入口
  * （编辑器本身不在这个视图里）。
  */
@@ -181,13 +173,17 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
       ) : null}
       <ReadingOrder overview={overview} />
       <ZdotdirPanel {...props} overview={overview} />
+      <VariablesSection
+        onEditFile={props.onEditFile}
+        onLoadValue={props.onLoadValue}
+        overview={overview}
+      />
       <div className="grid gap-ui-8">
         {overview.files.map((file) => (
           <FileCard
             file={file}
             key={file.file}
             onEditFile={props.onEditFile}
-            onLoadValue={props.onLoadValue}
             resolution={resolution}
           />
         ))}
@@ -340,12 +336,10 @@ function ZdotdirPanel({
 function FileCard({
   file,
   onEditFile,
-  onLoadValue,
   resolution,
 }: {
   file: ZshFile;
   onEditFile?: ZshViewProps["onEditFile"];
-  onLoadValue: ZshViewProps["onLoadValue"];
   resolution: ZshNameResolution;
 }) {
   const applies = appliesToText(file.appliesTo);
@@ -389,13 +383,7 @@ function FileCard({
           </p>
         ) : null}
         {outcome.status === "READY" ? (
-          <ReadyFile
-            edit={onEditFile && canEdit(outcome) ? onEditFile : undefined}
-            file={file}
-            onLoadValue={onLoadValue}
-            outcome={outcome}
-            resolution={resolution}
-          />
+          <ReadyFile file={file} outcome={outcome} resolution={resolution} />
         ) : (
           <FileProblem outcome={outcome} />
         )}
@@ -433,19 +421,16 @@ function FileProblem({ outcome }: { outcome: Exclude<ZshFile["outcome"], { statu
 }
 
 function ReadyFile({
-  edit,
   file,
-  onLoadValue,
   outcome,
   resolution,
 }: {
-  edit?: NonNullable<ZshViewProps["onEditFile"]>;
   file: ZshFile;
-  onLoadValue: ZshViewProps["onLoadValue"];
   outcome: Extract<ZshFile["outcome"], { status: "READY" }>;
   resolution: ZshNameResolution;
 }) {
   const display = zshFileDisplay(file.file, outcome, resolution);
+  const lines = outcome.rows.filter(isLineRow);
   return (
     <>
       <div className="mt-ui-8 flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
@@ -465,34 +450,30 @@ function ReadyFile({
           文件行数过多，只显示前 {outcome.rows.length} 行（共 {outcome.lineCount} 行）。
         </AsyncState>
       ) : null}
-      {display.rows.length === 0 ? (
-        <AsyncState kind="empty">文件是空的。</AsyncState>
-      ) : (
+      {outcome.rows.length === 0 ? <AsyncState kind="empty">文件是空的。</AsyncState> : null}
+      {lines.length > 0 ? (
         <ol
           aria-label={`${file.name} 的内容`}
           className="mt-ui-8 grid max-h-96 gap-ui-4 overflow-y-auto"
           // The list scrolls, so keyboard users must be able to focus it.
           tabIndex={0}
         >
-          {display.rows.map((row) => (
-            <li key={`${row.line}:${row.kind}:${row.kind === "ENTRY" ? row.name : ""}`}>
-              <RowView
-                edit={
-                  edit && row.kind === "ENTRY"
-                    ? () => edit(file.file, { kind: "variable", name: row.name, line: row.line })
-                    : undefined
-                }
-                file={file.file}
-                note={resolution.notes.get(zshRowKey(file.file, row.line))}
-                onLoadValue={onLoadValue}
-                row={row}
-              />
+          {lines.map((row) => (
+            <li key={`${row.line}:${row.kind}`}>
+              <RowView row={row} />
             </li>
           ))}
         </ol>
-      )}
+      ) : null}
     </>
   );
+}
+
+/** Variables are listed in the chain table; the file list keeps everything else as written. */
+type LineRow = Exclude<ZshRow, ZshEntryRow>;
+
+function isLineRow(row: ZshRow): row is LineRow {
+  return row.kind !== "ENTRY";
 }
 
 function LineNumber({ line }: { line: number }) {
@@ -508,19 +489,7 @@ function LineNumber({ line }: { line: number }) {
 
 const ROW_BASE = "flex min-w-0 items-start gap-ui-8 rounded-control px-ui-8 py-ui-4";
 
-function RowView({
-  edit,
-  file,
-  note,
-  onLoadValue,
-  row,
-}: {
-  edit?: () => void;
-  file: ZshFileKey;
-  note?: ZshNameNote;
-  onLoadValue: ZshViewProps["onLoadValue"];
-  row: ZshRow;
-}) {
+function RowView({ row }: { row: LineRow }) {
   switch (row.kind) {
     case "BLANK":
       return (
@@ -572,8 +541,6 @@ function RowView({
           </div>
         </div>
       );
-    case "ENTRY":
-      return <EntryRowView edit={edit} file={file} note={note} onLoadValue={onLoadValue} row={row} />;
   }
 }
 
@@ -604,175 +571,56 @@ function RowText({
   );
 }
 
-function EntryRowView({
-  edit,
-  file,
-  note,
+function VariablesSection({
+  onEditFile,
   onLoadValue,
-  row,
+  overview,
 }: {
-  edit?: () => void;
-  file: ZshFileKey;
-  note?: ZshNameNote;
+  onEditFile?: ZshViewProps["onEditFile"];
   onLoadValue: ZshViewProps["onLoadValue"];
-  row: ZshEntryRow;
+  overview: ZshOverview;
 }) {
-  const state = valueStateText(row.state);
-  const reason = row.reason ? reasonText(row.reason) : undefined;
+  const t = useT();
+  const rows = zshVariableRows(overview);
+  if (rows.length === 0) return null;
+  const keyByName = new Map(overview.files.map((file) => [file.name, file.file]));
+
+  const edit = (row: VariableChainRow) => {
+    const key = keyByName.get(row.final.source.file);
+    const line = row.final.source.line;
+    if (!onEditFile || key === undefined || line === undefined) return;
+    onEditFile(key, { kind: "variable", name: row.name, line });
+  };
+
+  const reveal = (row: VariableChainRow): Promise<string> => {
+    const file = overview.files.find((item) => item.name === row.final.source.file);
+    const line = row.final.source.line;
+    const entry =
+      file?.outcome.status === "READY"
+        ? file.outcome.rows.find(
+            (item): item is ZshEntryRow => item.kind === "ENTRY" && item.line === line,
+          )
+        : undefined;
+    if (!file || !entry) return Promise.reject(new Error(t("env.chain.notFound")));
+    return onLoadValue(file.file, entry);
+  };
+
   return (
-    <div className={classNames(ROW_BASE, "bg-surface")}>
-      <LineNumber line={row.line} />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
-          <code className="break-all font-mono text-aux font-semibold">{row.name}</code>
-          {row.exported ? <StatusBadge>export</StatusBadge> : null}
-          {row.operation === "APPEND" ? <StatusBadge>追加</StatusBadge> : null}
-          {row.secret ? <StatusBadge tone="danger">秘密</StatusBadge> : null}
-          <StatusBadge
-            title={state.hint}
-            tone={row.state === "DYNAMIC" ? "warning" : row.state === "REFERENCE" ? "neutral" : "success"}
-          >
-            {state.label}
-          </StatusBadge>
-          {reason ? <span className="text-meta">{reason.label}</span> : null}
-          <EndLine line={row.line} endLine={row.endLine} />
-          {note ? <NameNote name={row.name} note={note} /> : null}
-          {edit ? (
-            <Button aria-label={`修改 ${row.name}`} onClick={edit} size="sm" variant="ghost">
-              修改
-            </Button>
-          ) : null}
-        </div>
-        <span className="sr-only">{state.hint}</span>
-        <div className="mt-ui-4 min-w-0">
-          <EntryValue file={file} onLoadValue={onLoadValue} row={row} />
-        </div>
-        {row.pathSegments && !row.secret ? (
-          <PathSegments segments={row.pathSegments} />
-        ) : null}
+    <section aria-labelledby="zsh-variables-heading" className={classNames(CARD_CLASSES, "px-ui-12 py-ui-8")}>
+      <h3 className="text-sm font-semibold" id="zsh-variables-heading">
+        变量
+      </h3>
+      <p className={classNames("mt-ui-4", NOTE_CLASSES)}>
+        每个变量显示最终值和来源。过程值是读取顺序中前面的每次赋值。同名变量按 shell 类型分行，各行的值相同则合并。秘密值默认遮盖，只能在最终值处载入。
+      </p>
+      <div className="mt-ui-8 min-w-0">
+        <VariableChainTable
+          label="zsh 变量的最终值与过程值"
+          onEdit={onEditFile ? edit : undefined}
+          onRevealFinal={reveal}
+          rows={rows}
+        />
       </div>
-    </div>
+    </section>
   );
 }
-
-function EntryValue({
-  file,
-  onLoadValue,
-  row,
-}: {
-  file: ZshFileKey;
-  onLoadValue: ZshViewProps["onLoadValue"];
-  row: ZshEntryRow;
-}) {
-  if (!row.hasValue) {
-    return <span className="text-xs text-muted-foreground">（空值）</span>;
-  }
-  if (needsFetch(row)) {
-    return (
-      <LazySecretValue
-        label={row.name}
-        load={() => onLoadValue(file, row)}
-        resetKey={`${file}:${row.line}:${row.name}`}
-      />
-    );
-  }
-  return (
-    <code className="break-all rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux">
-      {row.value}
-    </code>
-  );
-}
-
-function PathSegments({ segments }: { segments: readonly ZshPathSegment[] }) {
-  if (segments.length === 0) {
-    return <p className={classNames("mt-ui-4", NOTE_CLASSES)}>（没有 PATH 项）</p>;
-  }
-  return (
-    <ol aria-label="PATH 项（按书写顺序）" className="mt-ui-8 grid gap-ui-2">
-      {segments.map((segment, index) => {
-        const state = valueStateText(segment.state);
-        return (
-          <li className="flex min-w-0 flex-wrap items-center gap-ui-8" key={`${index}:${segment.text}`}>
-            <span className="w-6 shrink-0 text-right text-meta text-muted-foreground">
-              {index + 1}
-            </span>
-            <code className="break-all font-mono text-aux">{pathSegmentText(segment.text)}</code>
-            {segment.state === "STATIC" ? null : (
-              <StatusBadge
-                title={state.hint}
-                tone={segment.state === "DYNAMIC" ? "warning" : "neutral"}
-              >
-                {state.label}
-              </StatusBadge>
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-// ---- same names across files ---------------------------------------------------
-
-function NameNote({ name, note }: { name: string; note: ZshNameNote }) {
-  const place = (item: ZshLocation) => `${item.fileName} 第 ${item.line} 行`;
-  const scope = (
-    <StatusBadge title={appliesToText(note.appliesTo).detail}>
-      {appliesToText(note.appliesTo).label}
-    </StatusBadge>
-  );
-  switch (note.kind) {
-    case "replaces":
-      return (
-        <>
-          {scope}
-          <SameNameHint
-            description={`被覆盖的位置：${note.replaced.map(place).join("、")}。在同一范围内，按读取顺序靠后的设置生效。这里不显示被覆盖的值。`}
-            label={`覆盖了前面 ${note.replaced.length} 处`}
-            title={`${name} 的覆盖位置`}
-          />
-        </>
-      );
-    case "narrower": {
-      const others =
-        note.appliesTo === "ALL"
-          ? "非交互 zsh 仍使用前面的值。"
-          : "这里的值仍在其它 shell 中生效。";
-      return (
-        <>
-          {scope}
-          <SameNameHint
-            description={`后面的位置：${note.narrower
-              .map((item) => `${place(item)}（${appliesToText(item.appliesTo).label}）`)
-              .join("、")}。它们只在各自范围的 shell 中覆盖这个值；${others}`}
-            label="部分范围被覆盖"
-            title={`${name} 的范围覆盖`}
-          />
-        </>
-      );
-    }
-    case "unread":
-      return (
-        <>
-          {scope}
-          <SameNameHint
-            description={`后面的 ${note.unreadFiles.join("、")} 无法读取，它可能再次设置这个变量，所以这里的值不一定是最终值。`}
-            label="可能被后面的文件覆盖"
-            title={`${name} 可能被覆盖`}
-          />
-        </>
-      );
-    case "shared":
-      return (
-        <>
-          {scope}
-          <SameNameHint
-            description={`其他位置：${note.others.map(place).join("、")}。含追加或动态写法，无法确定最终值，全部保留。`}
-            label={`同名 ${note.others.length + 1} 处，未合并`}
-            title={`${name} 的同名位置`}
-          />
-        </>
-      );
-  }
-}
-

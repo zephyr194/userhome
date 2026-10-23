@@ -243,7 +243,8 @@ describe("zsh view order and applicability", () => {
 
   it("aligns the reading order as a table with four fixed columns", () => {
     expect(markup).toContain('<table aria-label="zsh 启动文件读取顺序"');
-    expect(markup.match(/<col[\s/>]/g)).toHaveLength(4);
+    const order = markup.slice(markup.indexOf('<table aria-label="zsh 启动文件读取顺序"'));
+    expect(order.slice(0, order.indexOf("</table>")).match(/<col[\s/>]/g)).toHaveLength(4);
     for (const label of ["步骤", "路径", "范围", "状态"]) {
       expect(markup).toContain(`>${label}</th>`);
     }
@@ -338,23 +339,18 @@ describe("zsh view ZDOTDIR", () => {
 describe("zsh view entries", () => {
   const markup = render(readyState(FULL));
 
-  it("shows literals, references and dynamic values with their state", () => {
-    expect(markup).toContain("字面量");
+  it("shows references and dynamic values with their state in the variable table", () => {
     expect(markup).toContain("含引用（未解析）");
     expect(markup).toContain("动态／未解析");
-    expect(markup).toContain("命令替换");
     expect(markup).toContain("$HOME/work");
     expect(markup).toContain("nano");
     expect(markup).toContain(">vim<");
     expect(markup).toContain("可能被后面的文件覆盖");
   });
 
-  it("lists PATH items in order, flags unresolved ones and keeps an empty item visible", () => {
-    expect(markup).toContain('aria-label="PATH 项（按书写顺序）"');
-    expect(markup).toContain("/opt/bin");
-    expect(markup).toContain("$PATH");
-    expect(markup).toContain("（空项，表示当前目录）");
-    expect(markup).toContain("$(brew --prefix)/bin");
+  it("keeps PATH as written in the table and flags it as dynamic", () => {
+    expect(markup).toContain("/opt/bin:$PATH::$(brew --prefix)/bin");
+    expect(markup).not.toContain('aria-label="PATH 项（按书写顺序）"');
   });
 
   it("marks dynamic statements and keeps unrecognized lines as written", () => {
@@ -442,7 +438,7 @@ describe("zsh view is read only and accessible", () => {
     expect(markup).toContain('aria-label=".zshrc 的内容"');
     expect(markup).toMatch(/aria-label="\.zshrc 的内容"[^>]*tabindex="0"|tabindex="0"[^>]*aria-label="\.zshrc 的内容"/);
     expect(markup).toContain("<button");
-    expect(markup).toContain('aria-label="第 3 行"');
+    expect(markup).toContain('aria-label="第 1 行"');
   });
 
   it("styles with theme tokens only, so light and dark both work", () => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   ZshEntryRow,
@@ -95,44 +95,57 @@ function renderView(state: ZshState, overrides: Partial<ZshViewProps> = {}) {
   );
 }
 
+function variableTable(): HTMLElement {
+  return screen.getByRole("table", { name: "zsh 变量的最终值与过程值" });
+}
+
 describe("zsh view: a name assigned in more than one file", () => {
-  it("shows each assignment that takes effect, with the shells it applies to", () => {
+  it("shows one row per scope when the final values differ, each with its shells", () => {
     renderView(stateOf(FILES));
-    expect(screen.getAllByText("EDITOR")).toHaveLength(2);
-    expect(screen.getByText("vim")).toBeTruthy();
-    expect(screen.getByText("code")).toBeTruthy();
-    expect(screen.getByText("部分范围被覆盖")).toBeTruthy();
+    const table = within(variableTable());
+    expect(table.getAllByText("EDITOR")).toHaveLength(2);
+    expect(table.getByText("vim")).toBeTruthy();
+    expect(table.getByText("code")).toBeTruthy();
+    expect(table.getByText("所有 zsh")).toBeTruthy();
+    expect(table.getByText("仅交互 shell")).toBeTruthy();
   });
 
-  it("says which shells the later assignment overrides, and that non-interactive zsh keeps the earlier value", () => {
-    const { container } = renderView(stateOf(FILES));
-    expect(container.textContent).toContain(".zshrc 第 3 行（仅交互 shell）");
-    expect(container.textContent).toContain("非交互 zsh 仍使用前面的值。");
+  it("keeps the earlier value of the narrower row as a process value, opened by 过程值 N", () => {
+    renderView(stateOf(FILES));
+    fireEvent.click(screen.getByRole("button", { name: "过程值 1" }));
+    const detail = within(screen.getByRole("list", { name: "EDITOR 的读取顺序" }));
+    expect(detail.getByText(".zshenv:1")).toBeTruthy();
+    expect(detail.getByText("最终")).toBeTruthy();
+    expect(detail.getByText(".zshrc:3")).toBeTruthy();
   });
 
-  it("renders a same-shell replacement once, and says how many earlier assignments it replaces", () => {
-    const { container } = renderView(
+  it("gives a same-scope replacement one row, with the earlier value as its process value", () => {
+    renderView(
       stateOf([
         file("ZPROFILE", ready([entry({ line: 1, name: "EDITOR", value: "vim" })])),
         file("ZLOGIN", ready([entry({ line: 3, name: "EDITOR", value: "code" })])),
       ]),
     );
-    expect(screen.getByText("覆盖了前面 1 处")).toBeTruthy();
-    expect(container.textContent).toContain(".zprofile 第 1 行");
-    expect(container.textContent).not.toContain("vim");
+    const table = within(variableTable());
+    expect(table.getAllByText("EDITOR")).toHaveLength(1);
+    expect(table.queryByText("vim")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "过程值 1" }));
+    expect(screen.getByText(".zprofile:1")).toBeTruthy();
+    expect(screen.getByText("vim")).toBeTruthy();
   });
 
-  it("keeps every occurrence and says so when the last one appends", () => {
-    const { container } = renderView(
+  it("keeps both rows when the last one appends, and marks the append", () => {
+    renderView(
       stateOf([
         file("ZSHENV", ready([entry({ line: 1, name: "PATH", value: "/usr/bin" })])),
         file("ZSHRC", ready([entry({ line: 2, name: "PATH", operation: "APPEND", value: "/opt/bin" })])),
       ]),
     );
-    expect(screen.getAllByText("同名 2 处，未合并")).toHaveLength(2);
-    expect(screen.getByText("/usr/bin")).toBeTruthy();
-    expect(screen.getByText("/opt/bin")).toBeTruthy();
-    expect(container.textContent).not.toContain("覆盖了前面");
+    const table = within(variableTable());
+    expect(table.getAllByText("PATH")).toHaveLength(2);
+    expect(table.getByText("追加")).toBeTruthy();
+    expect(table.getByText("/usr/bin")).toBeTruthy();
+    expect(table.getByText("/opt/bin")).toBeTruthy();
   });
 
   it("no longer shows the separate same-name section", () => {
