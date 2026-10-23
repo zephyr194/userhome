@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import type { ConnectionState } from "../app/shellState";
 import {
   groupNavigationRoutes,
@@ -33,7 +32,7 @@ export function NavigationRail({
   routes,
 }: NavigationRailProps) {
   const status = connectionDetails(connection);
-  const railRef = useSlideIndicator(activeRouteId);
+  const railRef = useSlideIndicator(activeRouteId, "y", "primary");
   return (
     <nav aria-label="主导航" className="navigation-rail slide-list" ref={railRef}>
       <div className="navigation-rail__brand">
@@ -44,7 +43,7 @@ export function NavigationRail({
         </span>
       </div>
       {groupNavigationRoutes(routes).map(({ group, routes: groupRoutes }) => (
-        <Fragment key={group.id}>
+        <div className={`navigation-rail__group navigation-rail__group--${group.id}`} key={group.id}>
           <p className="navigation-rail__section-label" id={`nav-group-${group.id}`}>
             {group.label}
           </p>
@@ -69,7 +68,7 @@ export function NavigationRail({
               </li>
             ))}
           </ul>
-        </Fragment>
+        </div>
       ))}
       <div className={`navigation-rail__status navigation-rail__status--${status.tone}`}>
         <span aria-hidden="true" />

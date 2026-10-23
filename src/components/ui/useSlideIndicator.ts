@@ -1,6 +1,7 @@
 import { useLayoutEffect, useState } from "react";
 
 export type SlideAxis = "x" | "y";
+export type SlideLevel = "primary" | "secondary";
 
 const SELECTED_ITEM = [
   ".slide-item[aria-current=\"true\"]",
@@ -19,15 +20,21 @@ const SELECTED_ITEM = [
  * Once measured, the container keeps its last position: losing the selection
  * only hides the indicator, so the next selection slides from where it was.
  * A subtree that is not laid out (hidden) keeps the previous position and is
- * measured again when the container resizes.
+ * measured again when the container resizes. The level sets how strong the
+ * selection reads: primary (orange, navigation) or secondary (neutral, lists).
  */
-export function useSlideIndicator(selectedKey: unknown, axis: SlideAxis = "y") {
+export function useSlideIndicator(
+  selectedKey: unknown,
+  axis: SlideAxis = "y",
+  level: SlideLevel = "secondary",
+) {
   const [container, setContainer] = useState<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
     if (!container) return;
     const list = container;
     list.setAttribute("data-slide-axis", axis);
+    list.setAttribute("data-slide-level", level);
 
     let watched: HTMLElement | null = null;
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
@@ -64,7 +71,7 @@ export function useSlideIndicator(selectedKey: unknown, axis: SlideAxis = "y") {
       active = false;
       observer?.disconnect();
     };
-  }, [container, selectedKey, axis]);
+  }, [container, selectedKey, axis, level]);
 
   return setContainer;
 }

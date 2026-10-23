@@ -46,6 +46,22 @@ describe("NavigationRail", () => {
     }
   });
 
+  it("wraps each group in its own block and places the support group last, above the footer", () => {
+    const markup = renderRail("dashboard");
+    for (const id of ["system-tools", "toolset", "support"]) {
+      expect(markup, id).toContain(`navigation-rail__group--${id}`);
+    }
+    const support = markup.indexOf("navigation-rail__group--support");
+    const toolset = markup.indexOf("navigation-rail__group--toolset");
+    const footer = markup.indexOf("navigation-rail__status");
+    expect(support).toBeGreaterThan(toolset);
+    expect(support).toBeLessThan(footer);
+    const supportBlock = markup.slice(support, footer);
+    expect(supportBlock).toContain('id="nav-group-support"');
+    expect(supportBlock).toContain('href="#dashboard"');
+    expect(supportBlock).toContain('href="#settings"');
+  });
+
   it("lists the entries in the fixed order across the groups", () => {
     const markup = renderRail("dashboard");
     const hrefs = [...markup.matchAll(/<a href="#([A-Za-z]+)"/g)].map((match) => match[1]);

@@ -88,8 +88,16 @@ describe("侧栏选中框：单一选中标记与滑动", () => {
     );
     expect(container.querySelectorAll(".slide-list ul")).toHaveLength(3);
     for (const list of container.querySelectorAll(".slide-list ul")) {
-      expect(list.parentElement).toBe(container.querySelector(".slide-list"));
+      expect(list.closest(".slide-list")).toBe(container.querySelector(".slide-list"));
     }
+  });
+
+  it("侧栏选中框是一级级别：容器带 data-slide-level=primary", () => {
+    stubLayout();
+    render(<Harness initial="dashboard" />);
+    expect(document.querySelector("nav.navigation-rail")?.getAttribute("data-slide-level")).toBe(
+      "primary",
+    );
   });
 
   it("跨组切换：选中框移动到另一分组的项上，且只有一个选中标记", () => {

@@ -77,9 +77,9 @@ describe("选中语言：滑动指示器", () => {
     expect(lastDeclaredIn(section, INDICATOR, "transform")).toBe(
       "translate(var(--slide-x), var(--slide-y))",
     );
-    expect(lastDeclaredIn(section, INDICATOR, "background")).toBe("var(--app-selection)");
+    expect(lastDeclaredIn(section, INDICATOR, "background")).toBe("var(--app-selection-secondary)");
     expect(lastDeclaredIn(section, INDICATOR, "box-shadow")).toBe(
-      "inset 0 0 0 1px var(--app-selection-border)",
+      "inset 0 0 0 1px var(--app-selection-secondary-border)",
     );
     expect(lastDeclaredIn(section, INDICATOR, "pointer-events")).toBe("none");
     expect(
@@ -156,10 +156,10 @@ describe("选中语言：滑动指示器", () => {
     expect(lastDeclaredIn(section, SELECTED_ITEM, "color")).toBe("var(--app-foreground)");
   });
 
-  it("渐进增强：未就绪时选中项自己绘制浅橙底与整块选中框；就绪后清除，由指示器承担", () => {
-    expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "background")).toBe("var(--app-selection)");
+  it("渐进增强：未就绪时选中项自己绘制中性灰底与整块选中框；就绪后清除，由指示器承担", () => {
+    expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "background")).toBe("var(--app-selection-secondary)");
     expect(lastDeclaredIn(section, PROGRESSIVE_ITEM, "box-shadow")).toBe(
-      "inset 0 0 0 1px var(--app-selection-border)",
+      "inset 0 0 0 1px var(--app-selection-secondary-border)",
     );
     expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "background")).toBe("transparent");
     expect(lastDeclaredIn(section, READY_CLEARED_ITEM, "box-shadow")).toBe("none");
@@ -240,7 +240,7 @@ describe("选中语言：导航与列表接入", () => {
 
   it("导航当前项在 SSR 中不含 data-slide-ready，渐进增强规则仍覆盖其底色与色条", () => {
     expect(css).toMatch(
-      /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection\)/,
+      /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection-secondary\)/,
     );
   });
 });

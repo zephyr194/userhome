@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { useSlideIndicator, type SlideAxis } from "./useSlideIndicator";
+import { useSlideIndicator, type SlideAxis, type SlideLevel } from "./useSlideIndicator";
 
 const OFFSETS = ["offsetLeft", "offsetTop", "offsetWidth", "offsetHeight"] as const;
 const originalOffsets = OFFSETS.map((name) =>
@@ -38,8 +38,16 @@ class FakeResizeObserver {
   }
 }
 
-function Harness({ selected, axis = "y" }: { selected: string; axis?: SlideAxis }) {
-  const ref = useSlideIndicator(selected, axis);
+function Harness({
+  selected,
+  axis = "y",
+  level,
+}: {
+  selected: string;
+  axis?: SlideAxis;
+  level?: SlideLevel;
+}) {
+  const ref = useSlideIndicator(selected, axis, level);
   return (
     <ul ref={ref} className="slide-list">
       {[
@@ -163,6 +171,18 @@ describe("useSlideIndicator", () => {
     expect(list?.getAttribute("data-slide-axis")).toBe("x");
     expect(list?.style.getPropertyValue("--slide-x")).toBe("24px");
     expect(list?.style.getPropertyValue("--slide-w")).toBe("96px");
+  });
+
+  it("默认是二级级别，level 为 primary 时写入 data-slide-level 并随变化更新", () => {
+    stubLayout();
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const { container, rerender } = render(<Harness selected="first" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    expect(list?.getAttribute("data-slide-level")).toBe("secondary");
+    rerender(<Harness selected="first" level="primary" />);
+    expect(list?.getAttribute("data-slide-level")).toBe("primary");
+    rerender(<Harness selected="first" level="secondary" />);
+    expect(list?.getAttribute("data-slide-level")).toBe("secondary");
   });
 
   it("卸载时断开 ResizeObserver", () => {
