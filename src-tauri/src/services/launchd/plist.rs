@@ -3,6 +3,7 @@
 //! Environment variable values are never returned, only names; secret-looking
 //! argument values are masked.
 
+use std::ops::RangeInclusive;
 use std::path::Path;
 
 use serde::Serialize;
@@ -16,6 +17,8 @@ pub const MAX_ARGUMENTS: usize = 128;
 pub const MAX_ENVIRONMENT_KEYS: usize = 128;
 const MAX_TEXT_BYTES: usize = 1024;
 const MAX_CONDITIONS: usize = 16;
+const MAX_CALENDAR_SLOTS: usize = 24;
+const MAX_SOCKET_NAMES: usize = 16;
 pub const REDACTED: &str = "[REDACTED]";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,6 +52,18 @@ pub struct KeepAlive {
     pub conditions: Vec<String>,
 }
 
+/// One `StartCalendarInterval` entry. A field that is absent, of the wrong type,
+/// or out of range is `None`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarSlot {
+    pub minute: Option<u8>,
+    pub hour: Option<u8>,
+    pub day: Option<u8>,
+    pub weekday: Option<u8>,
+    pub month: Option<u8>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlistDetails {
@@ -72,6 +87,16 @@ pub struct PlistDetails {
     pub declared_standard_error: Option<String>,
     pub disabled: Option<bool>,
     pub user_name: Option<String>,
+    /// Seconds between runs (`StartInterval`).
+    pub start_interval: Option<u64>,
+    pub start_calendar: Vec<CalendarSlot>,
+    pub start_calendar_truncated: bool,
+    /// Counts only: the paths themselves are never returned.
+    pub watch_paths_count: u32,
+    pub queue_directories_count: u32,
+    /// Socket names only, never their ports or paths.
+    pub socket_names: Vec<String>,
+    pub start_on_mount: Option<bool>,
 }
 
 pub fn clip(text: &str, max_bytes: usize) -> String {
@@ -123,6 +148,64 @@ fn label_of(object: &Map<String, Value>) -> PlistLabel {
         }
         Some(_) => PlistLabel::Invalid,
     }
+}
+
+fn start_interval_of(object: &Map<String, Value>) -> Option<u64> {
+    object
+        .get("StartInterval")
+        .and_then(Value::as_u64)
+        .filter(|seconds| *seconds > 0)
+}
+
+fn calendar_field(slot: &Map<String, Value>, key: &str, range: RangeInclusive<u64>) -> Option<u8> {
+    slot.get(key)
+        .and_then(Value::as_u64)
+        .filter(|value| range.contains(value))
+        .and_then(|value| u8::try_from(value).ok())
+}
+
+fn calendar_slot_of(slot: &Map<String, Value>) -> CalendarSlot {
+    CalendarSlot {
+        minute: calendar_field(slot, "Minute", 0..=59),
+        hour: calendar_field(slot, "Hour", 0..=23),
+        day: calendar_field(slot, "Day", 1..=31),
+        weekday: calendar_field(slot, "Weekday", 0..=7),
+        month: calendar_field(slot, "Month", 1..=12),
+    }
+}
+
+fn start_calendar_of(object: &Map<String, Value>) -> (Vec<CalendarSlot>, bool) {
+    match object.get("StartCalendarInterval") {
+        Some(Value::Object(slot)) => (vec![calendar_slot_of(slot)], false),
+        Some(Value::Array(items)) => {
+            let slots = items
+                .iter()
+                .take(MAX_CALENDAR_SLOTS)
+                .filter_map(Value::as_object)
+                .map(calendar_slot_of)
+                .collect();
+            (slots, items.len() > MAX_CALENDAR_SLOTS)
+        }
+        _ => (Vec::new(), false),
+    }
+}
+
+fn entry_count_of(object: &Map<String, Value>, key: &str) -> u32 {
+    object
+        .get(key)
+        .and_then(Value::as_array)
+        .map_or(0, |items| u32::try_from(items.len()).unwrap_or(u32::MAX))
+}
+
+fn socket_names_of(object: &Map<String, Value>) -> Vec<String> {
+    let mut names: Vec<String> = object
+        .get("Sockets")
+        .and_then(Value::as_object)
+        .map(|sockets| sockets.keys().map(|name| clip(name, 128)).collect())
+        .unwrap_or_default();
+    names.sort();
+    names.truncate(MAX_SOCKET_NAMES);
+    names
 }
 
 fn keep_alive_of(object: &Map<String, Value>) -> Option<KeepAlive> {
@@ -190,7 +273,16 @@ pub fn parse_plist_json(json: &str, home: Option<&Path>) -> Result<PlistDetails,
     environment_keys.sort();
     environment_keys.truncate(MAX_ENVIRONMENT_KEYS);
 
+    let (start_calendar, start_calendar_truncated) = start_calendar_of(&object);
+
     Ok(PlistDetails {
+        start_interval: start_interval_of(&object),
+        start_calendar,
+        start_calendar_truncated,
+        watch_paths_count: entry_count_of(&object, "WatchPaths"),
+        queue_directories_count: entry_count_of(&object, "QueueDirectories"),
+        socket_names: socket_names_of(&object),
+        start_on_mount: bool_of(&object, "StartOnMount"),
         label: label_of(&object),
         program: text_of(&object, "Program"),
         program_arguments,
@@ -523,5 +615,196 @@ mod tests {
             details.program_arguments,
             strings(&["/bin/x", "--token", "[REDACTED]", "API_KEY=[REDACTED]"])
         );
+    }
+
+    #[test]
+    fn start_interval_is_a_positive_number_of_seconds() {
+        assert_eq!(
+            parse(r#"{"Label":"a","StartInterval":300}"#).start_interval,
+            Some(300)
+        );
+        for json in [
+            r#"{"Label":"a","StartInterval":0}"#,
+            r#"{"Label":"a","StartInterval":-5}"#,
+            r#"{"Label":"a","StartInterval":1.5}"#,
+            r#"{"Label":"a","StartInterval":"300"}"#,
+        ] {
+            assert_eq!(parse(json).start_interval, None, "{json}");
+        }
+    }
+
+    #[test]
+    fn start_calendar_reads_a_dictionary_or_an_array_of_dictionaries() {
+        let single = parse(r#"{"Label":"a","StartCalendarInterval":{"Hour":3,"Minute":0}}"#);
+        assert_eq!(
+            single.start_calendar,
+            vec![CalendarSlot {
+                minute: Some(0),
+                hour: Some(3),
+                day: None,
+                weekday: None,
+                month: None,
+            }]
+        );
+        assert!(!single.start_calendar_truncated);
+
+        let many = parse(
+            r#"{"Label":"a","StartCalendarInterval":[{"Weekday":1,"Hour":9,"Minute":0},{"Day":15,"Month":12}]}"#,
+        );
+        assert_eq!(
+            many.start_calendar,
+            vec![
+                CalendarSlot {
+                    minute: Some(0),
+                    hour: Some(9),
+                    day: None,
+                    weekday: Some(1),
+                    month: None,
+                },
+                CalendarSlot {
+                    minute: None,
+                    hour: None,
+                    day: Some(15),
+                    weekday: None,
+                    month: Some(12),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn start_calendar_drops_out_of_range_and_wrongly_typed_fields() {
+        let details = parse(
+            r#"{"Label":"a","StartCalendarInterval":[{"Hour":24,"Minute":"5","Day":0,"Month":13,"Weekday":8},5,{"Hour":9}]}"#,
+        );
+        assert_eq!(
+            details.start_calendar,
+            vec![
+                CalendarSlot {
+                    minute: None,
+                    hour: None,
+                    day: None,
+                    weekday: None,
+                    month: None,
+                },
+                CalendarSlot {
+                    minute: None,
+                    hour: Some(9),
+                    day: None,
+                    weekday: None,
+                    month: None,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn start_calendar_is_capped_and_says_so() {
+        let slot = r#"{"Hour":1}"#;
+        let exact: Vec<&str> = vec![slot; MAX_CALENDAR_SLOTS];
+        let at_limit = parse(&format!(
+            r#"{{"Label":"a","StartCalendarInterval":[{}]}}"#,
+            exact.join(",")
+        ));
+        assert_eq!(at_limit.start_calendar.len(), MAX_CALENDAR_SLOTS);
+        assert!(!at_limit.start_calendar_truncated);
+
+        let over: Vec<&str> = vec![slot; MAX_CALENDAR_SLOTS + 6];
+        let capped = parse(&format!(
+            r#"{{"Label":"a","StartCalendarInterval":[{}]}}"#,
+            over.join(",")
+        ));
+        assert_eq!(capped.start_calendar.len(), MAX_CALENDAR_SLOTS);
+        assert!(capped.start_calendar_truncated);
+    }
+
+    #[test]
+    fn watch_queue_and_socket_fields_expose_counts_and_names_never_paths() {
+        let details = parse(
+            r#"{
+              "Label": "a",
+              "WatchPaths": ["/Users/me/secret-a", "/tmp/b"],
+              "QueueDirectories": ["/var/spool/jobs"],
+              "Sockets": {
+                "Listeners": {"SockServiceName": "8080"},
+                "Admin": {"SockPathName": "/var/run/admin.sock"}
+              }
+            }"#,
+        );
+        assert_eq!(details.watch_paths_count, 2);
+        assert_eq!(details.queue_directories_count, 1);
+        assert_eq!(details.socket_names, strings(&["Admin", "Listeners"]));
+        let debug = format!("{details:?}");
+        let json = serde_json::to_string(&details).expect("serialize details");
+        for secret in [
+            "/Users/me",
+            "secret-a",
+            "/tmp/b",
+            "/var/spool",
+            "8080",
+            "/var/run",
+        ] {
+            assert!(
+                !debug.contains(secret) && !json.contains(secret),
+                "{secret} leaked"
+            );
+        }
+    }
+
+    #[test]
+    fn socket_names_are_sorted_and_capped() {
+        let sockets: Vec<String> = (0..20)
+            .map(|index| format!("\"S{index:02}\":{{}}"))
+            .collect();
+        let details = parse(&format!(
+            r#"{{"Label":"a","Sockets":{{{}}}}}"#,
+            sockets.join(",")
+        ));
+        assert_eq!(details.socket_names.len(), MAX_SOCKET_NAMES);
+        assert_eq!(
+            details.socket_names.first().map(String::as_str),
+            Some("S00")
+        );
+    }
+
+    #[test]
+    fn scheduling_fields_are_unset_when_absent_or_wrongly_typed() {
+        let wrong = parse(
+            r#"{"Label":"a","StartInterval":"x","StartCalendarInterval":"daily","WatchPaths":"/x","QueueDirectories":5,"Sockets":["Listeners"],"StartOnMount":"yes"}"#,
+        );
+        assert_eq!(wrong, parse(r#"{"Label":"a"}"#));
+        assert_eq!(wrong.start_on_mount, None);
+        assert_eq!(wrong.watch_paths_count, 0);
+    }
+
+    #[test]
+    fn start_on_mount_is_a_boolean_flag() {
+        assert_eq!(
+            parse(r#"{"Label":"a","StartOnMount":true}"#).start_on_mount,
+            Some(true)
+        );
+        assert_eq!(
+            parse(r#"{"Label":"a","StartOnMount":false}"#).start_on_mount,
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn scheduling_fields_serialize_under_the_names_the_frontend_decodes() {
+        let json = serde_json::to_string(&parse(
+            r#"{"Label":"a","StartInterval":60,"StartCalendarInterval":{"Hour":3}}"#,
+        ))
+        .expect("serialize details");
+        for fragment in [
+            r#""startInterval":60"#,
+            r#""startCalendar":[{"minute":null,"hour":3,"day":null,"weekday":null,"month":null}]"#,
+            r#""startCalendarTruncated":false"#,
+            r#""watchPathsCount":0"#,
+            r#""queueDirectoriesCount":0"#,
+            r#""socketNames":[]"#,
+            r#""startOnMount":null"#,
+        ] {
+            assert!(json.contains(fragment), "{fragment} missing from {json}");
+        }
     }
 }
