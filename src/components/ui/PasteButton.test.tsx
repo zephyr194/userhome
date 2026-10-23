@@ -112,6 +112,51 @@ describe("PasteButton", () => {
     expect(onPaste).toHaveBeenCalledWith("abc");
   });
 
+  it("starts only one read while the first is still running", async () => {
+    let resolveRead: (text: string) => void = () => {};
+    const readText = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+    stubClipboard(readText);
+    const onPaste = vi.fn();
+    render(<PasteButton onPaste={onPaste} />);
+    const button = screen.getByRole("button", { name: "读取粘贴板" });
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+    expect(readText).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveRead("abc");
+    });
+    expect(onPaste).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops a read that finishes after unmounting, without a state update", async () => {
+    let resolveRead: (text: string) => void = () => {};
+    stubClipboard(
+      () =>
+        new Promise<string>((resolve) => {
+          resolveRead = resolve;
+        }),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const onPaste = vi.fn();
+    const { unmount } = render(<PasteButton onPaste={onPaste} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "读取粘贴板" }));
+    unmount();
+    await act(async () => {
+      resolveRead("abc");
+    });
+
+    expect(onPaste).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
   it("clears an earlier notice once a later read succeeds", async () => {
     const readText = vi
       .fn<() => Promise<string>>()

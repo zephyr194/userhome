@@ -19,6 +19,7 @@ export function PasteButton({
   const [reading, setReading] = useState(false);
   const [notice, setNotice] = useState("");
   const mounted = useRef(false);
+  const inFlight = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -28,6 +29,8 @@ export function PasteButton({
   }, []);
 
   async function paste() {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setReading(true);
     setNotice("");
     let text: string | undefined;
@@ -35,6 +38,8 @@ export function PasteButton({
       text = await navigator.clipboard.readText();
     } catch {
       text = undefined;
+    } finally {
+      inFlight.current = false;
     }
     if (!mounted.current) return;
     setReading(false);
