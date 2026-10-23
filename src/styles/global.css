@@ -2707,3 +2707,67 @@ button[class*="border-border"],
   padding: var(--app-space-16) var(--app-space-12) var(--app-space-12);
 }
 /* /r7-menu */
+/* r7-caddy */
+.r7-caddy-examples {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 90vw);
+  height: 80vh;
+  max-width: none;
+  overflow: hidden;
+}
+
+.r7-caddy-examples__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.r7-caddy-examples__main {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: var(--app-space-16);
+  min-height: 0;
+}
+
+.r7-caddy-examples__list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.r7-caddy-examples__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+  min-width: 0;
+  min-height: 0;
+}
+
+.r7-caddy-examples__detail > :last-child {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.r7-caddy-examples__code {
+  min-height: 0;
+  overflow: auto;
+}
+
+@media (max-width: 759px) {
+  .r7-caddy-examples__main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .r7-caddy-examples__list {
+    max-height: 30vh;
+  }
+
+  .r7-caddy-examples__list .vertical-menu {
+    max-width: none;
+  }
+}
+/* /r7-caddy */

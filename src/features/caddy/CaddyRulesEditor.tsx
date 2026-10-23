@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ActionRow,
   Button,
@@ -8,6 +9,7 @@ import {
   type SelectOption,
 } from "../../components/ui";
 import type { CaddyTlsSiteStatus, CaddyUpstreamScheme } from "../../ipc/caddy";
+import { CaddyExamplesDialog } from "./CaddyExamplesDialog";
 import {
   ACCESS_LOG_PRIVACY_NOTICE,
   MAX_DRAFT_SITES,
@@ -68,6 +70,7 @@ export function CaddyRulesEditor({
   onChange,
   onPickTlsFile = () => undefined,
 }: CaddyRulesEditorProps) {
+  const [examplesOpen, setExamplesOpen] = useState(false);
   const feedback = (key: string) => feedbackForField(key, mapped, localErrors);
 
   function replaceSite(index: number, next: SiteDraft) {
@@ -80,15 +83,21 @@ export function CaddyRulesEditor({
         <h2 id="caddy-rules-heading" className="text-sm font-semibold">
           代理规则
         </h2>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={sites.length >= MAX_DRAFT_SITES}
-          onClick={() => onChange([...sites, newSiteDraft(ids)])}
-        >
-          新增站点
-        </Button>
+        <div className="flex flex-wrap items-center gap-ui-8">
+          <Button size="sm" variant="secondary" onClick={() => setExamplesOpen(true)}>
+            配置示例
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={sites.length >= MAX_DRAFT_SITES}
+            onClick={() => onChange([...sites, newSiteDraft(ids)])}
+          >
+            新增站点
+          </Button>
+        </div>
       </div>
+      <CaddyExamplesDialog open={examplesOpen} onClose={() => setExamplesOpen(false)} />
       {mapped.general.map((issue) => (
         <p key={`${issue.code}:${issue.message}`} role="alert" className="m-0 text-aux text-danger">
           {issue.message}
