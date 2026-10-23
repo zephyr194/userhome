@@ -190,14 +190,20 @@ describe("选中级别样式", () => {
     expect(declaredValues(".slide-list[data-slide-ready]::before", "background")).toEqual([
       "var(--app-selection-secondary)",
     ]);
-    expect(declaredValues('.slide-list[data-slide-level="primary"][data-slide-ready]::before', "background")).toEqual([
+    expect(declaredValues('.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before', "background")).toEqual([
       "var(--app-selection-primary)",
     ]);
-    expect(declaredValues('.slide-list[data-slide-level="primary"][data-slide-ready]::before', "box-shadow")).toEqual([
+    expect(declaredValues('.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before', "box-shadow")).toEqual([
       "inset 0 0 0 1px var(--app-selection-primary-border)",
     ]);
     expect(css).toMatch(
-      /\.slide-list\[data-slide-level="primary"\]:not\(\[data-slide-ready\]\)[^{]*\{[^}]*background:\s*var\(--app-selection-primary\)/,
+      /\.slide-list\[data-slide-level="primary"\]:not\(\[data-slide-axis="x"\]\):not\(\[data-slide-ready\]\)[^{]*\{[^}]*background:\s*var\(--app-selection-primary\)/,
+    );
+  });
+
+  it("forced-colors 下一级选中用 Highlight 边框代替被系统忽略的底色与阴影", () => {
+    expect(r7Block).toMatch(
+      /@media \(forced-colors: active\)\s*\{[\s\S]*?\.slide-list\[data-slide-level="primary"\]:not\(\[data-slide-axis="x"\]\)\[data-slide-ready\]::before\s*\{\s*border:\s*1px solid Highlight;/,
     );
   });
 
@@ -214,7 +220,7 @@ describe("选中级别样式", () => {
   });
 
   it("选择器选项的选中底色使用二级令牌", () => {
-    expect(lastOf(declaredValues('[role="option"][aria-selected="true"]', "background"))).toBe(
+    expect(lastOf(declaredValues('[role="listbox"] [role="option"][aria-selected="true"]', "background"))).toBe(
       "var(--app-selection-secondary)",
     );
   });

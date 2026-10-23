@@ -238,7 +238,7 @@ describe("选中语言：导航与列表接入", () => {
     expect(markup).not.toContain("data-slide-ready");
   });
 
-  it("导航当前项在 SSR 中不含 data-slide-ready，渐进增强规则仍覆盖其底色与色条", () => {
+  it("导航当前项在 SSR 中不含 data-slide-ready，渐进增强规则仍给出二级底色", () => {
     expect(css).toMatch(
       /\.slide-list:not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\)\s*\{[^}]*background:\s*var\(--app-selection-secondary\)/,
     );

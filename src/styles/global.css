@@ -2514,23 +2514,27 @@ button[class*="border-border"],
   --app-selection-secondary-border: #7F8B99;
 }
 
-.slide-list[data-slide-level="primary"][data-slide-ready]::before {
+.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before {
   background: var(--app-selection-primary);
   box-shadow: inset 0 0 0 1px var(--app-selection-primary-border);
 }
 
-.slide-list[data-slide-level="primary"]:not([data-slide-ready]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
+.slide-list[data-slide-level="primary"]:not([data-slide-axis="x"]):not([data-slide-ready]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
   background: var(--app-selection-primary);
   box-shadow: inset 0 0 0 1px var(--app-selection-primary-border);
 }
 
-[role="option"][aria-selected="true"] {
+[role="listbox"] [role="option"][aria-selected="true"] {
   background: var(--app-selection-secondary);
 }
 
 @media (forced-colors: active) {
+  .slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before {
+    border: 1px solid Highlight;
+  }
+
   .slide-list[data-slide-level="primary"]:not([data-slide-axis="x"]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
-    border-width: 2px;
+    border: 2px solid Highlight;
   }
 }
 
