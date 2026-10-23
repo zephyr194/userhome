@@ -3204,3 +3204,12 @@ code {
   visibility: hidden;
 }
 /* /r12-settings-env */
+/* r12-btn ----------------------------------------------------------------- */
+/* 系统配色下背景被覆盖，实心按钮需要可见的外框，否则与 ghost 文字无法区分 */
+@media (forced-colors: active) {
+  .r12-btn--primary,
+  .r12-btn--danger {
+    border-color: ButtonText;
+  }
+}
+/* /r12-btn */
