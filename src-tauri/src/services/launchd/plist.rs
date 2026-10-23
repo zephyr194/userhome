@@ -150,11 +150,14 @@ fn label_of(object: &Map<String, Value>) -> PlistLabel {
     }
 }
 
+/// Intervals longer than ten years are treated as unset.
+const MAX_START_INTERVAL_SECONDS: u64 = 10 * 365 * 24 * 60 * 60;
+
 fn start_interval_of(object: &Map<String, Value>) -> Option<u64> {
     object
         .get("StartInterval")
         .and_then(Value::as_u64)
-        .filter(|seconds| *seconds > 0)
+        .filter(|seconds| (1..=MAX_START_INTERVAL_SECONDS).contains(seconds))
 }
 
 fn calendar_field(slot: &Map<String, Value>, key: &str, range: RangeInclusive<u64>) -> Option<u8> {
@@ -631,6 +634,24 @@ mod tests {
         ] {
             assert_eq!(parse(json).start_interval, None, "{json}");
         }
+    }
+
+    #[test]
+    fn start_interval_longer_than_ten_years_is_treated_as_unset() {
+        let at_limit = format!(r#"{{"Label":"a","StartInterval":{MAX_START_INTERVAL_SECONDS}}}"#);
+        assert_eq!(
+            parse(&at_limit).start_interval,
+            Some(MAX_START_INTERVAL_SECONDS)
+        );
+        let over = format!(
+            r#"{{"Label":"a","StartInterval":{}}}"#,
+            MAX_START_INTERVAL_SECONDS + 1
+        );
+        assert_eq!(parse(&over).start_interval, None);
+        assert_eq!(
+            parse(r#"{"Label":"a","StartInterval":18446744073709551615}"#).start_interval,
+            None
+        );
     }
 
     #[test]
