@@ -10,6 +10,7 @@ import {
 } from "./launchdFixtures";
 import { EMPTY_FILTER, type DiscoveryState } from "./launchdModel";
 import { ServicesView, type ServicesViewProps } from "./ServicesView";
+import { ServiceLogs } from "./ServiceLogs";
 import { ServiceSummaryPanel } from "./ServiceSummaryPanel";
 
 const CJK_PATTERN = /[㐀-鿿豈-﫿]/;
@@ -158,6 +159,22 @@ describe("service summary panel", () => {
     fireEvent.click(screen.getByRole("button", { name: "查看日志" }));
     expect(screen.getByText("日志内容")).toBeTruthy();
     expect(screen.getByRole("button", { name: "收起日志" })).toBeTruthy();
+  });
+});
+
+describe("the log block behind 查看日志", () => {
+  it("offers only read-only log controls for a read-only job", () => {
+    render(
+      <ServiceSummaryPanel
+        service={launchdService()}
+        renderLogs={(service) => <ServiceLogs service={service} />}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "查看日志" }));
+    expect(screen.getByRole("button", { name: "授权读取日志…" })).toBeTruthy();
+    for (const word of ["启动", "停止", "重启", "卸载", "删除"]) {
+      expect(screen.queryByRole("button", { name: new RegExp(word) })).toBeNull();
+    }
   });
 });
 
