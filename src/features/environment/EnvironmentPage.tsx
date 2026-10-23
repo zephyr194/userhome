@@ -29,7 +29,7 @@ import { ZshPage } from "./ZshPage";
 type GrantNotice = EnvironmentViewProps["grantNotice"];
 
 const DOMAINS: readonly VerticalMenuItem[] = [
-  { id: "dotenv", label: "项目 dotenv", description: "授权目录中的 .env 文件" },
+  { id: "dotenv", label: "项目 dotenv", description: ".env 文件" },
   { id: "zsh", label: "用户 zsh", description: "启动文件与读取顺序" },
   { id: "launchctl", label: "登录会话", description: "GUI 应用看到的变量" },
 ];

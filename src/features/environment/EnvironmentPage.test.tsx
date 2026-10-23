@@ -20,7 +20,7 @@ describe("environment page domains (markup)", () => {
     expect(markup).toContain("项目 dotenv");
     expect(markup).toContain("用户 zsh");
     expect(markup).toContain("登录会话");
-    expect(markup).toContain("授权目录中的 .env 文件");
+    expect(markup).toContain(".env 文件");
     expect(markup).toContain("GUI 应用看到的变量");
   });
 

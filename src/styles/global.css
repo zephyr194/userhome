@@ -2149,7 +2149,7 @@ button[class*="border-border"],
   align-content: start;
 }
 
-.system-tool-card {
+.system-tools-grid .system-tool-card {
   display: grid;
   justify-items: start;
   align-content: start;

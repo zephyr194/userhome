@@ -248,7 +248,7 @@ describe("DashboardPage fact ledger", () => {
   it("counts services from the discovery refresh and shows the service page on click", async () => {
     const navigate = vi.fn<(intent: NavigationIntent) => void>();
     rtl.render(<DashboardPage onNavigate={navigate} state={READY_STATE} />);
-    await rtl.screen.findByText("运行中 0 个");
+    await rtl.screen.findByText("UserHome 管理的任务，运行中 0 个");
     expect(listServiceCalls).toBe(1);
     rtl.fireEvent.click(rtl.screen.getByRole("button", { name: /^服务/ }));
     expect(navigate).toHaveBeenCalledWith({ routeId: "services" });

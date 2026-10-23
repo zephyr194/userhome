@@ -249,7 +249,7 @@ function serviceModel(
   const running = services.filter((service) => service.state === "STARTED").length;
   const failed = services.some((service) => service.state === "ERROR");
   return {
-    description: `运行中 ${running} 个`,
+    description: `UserHome 管理的任务，运行中 ${running} 个`,
     figure: String(services.length),
     freshnessAt: overview.loadedAt,
     status: failed ? { tone: "warning", label: "需留意" } : { tone: "success", label: "正常" },
