@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button, Modal } from "../../components/ui";
-import { decodeAppError } from "../../ipc/core";
+import { localizeErrorMessage } from "../../i18n/errors";
+import { useLocale } from "../../i18n/useLocale";
+import { decodeAppError, type AppError } from "../../ipc/core";
 import {
   listSupportedAppConfigEntries,
   type AppConfigListItem,
@@ -14,10 +16,9 @@ import {
   type ToolDiscovery,
 } from "./appConfigCatalog";
 import { AppToolIcon } from "./AppToolIcon";
-import type { ProbeTone } from "./appConfigModel";
+import { appConfigCopy, type ProbeTone } from "./appConfigModel";
 
 const TITLE_ID = "app-config-supported-title";
-const SCOPE = "这里列出 UserHome 支持查看的应用配置；本机没有的不会出现在左侧列表。";
 
 const TONE_CLASS: Record<ProbeTone, string> = {
   neutral: "text-muted-foreground",
@@ -28,7 +29,7 @@ const TONE_CLASS: Record<ProbeTone, string> = {
 
 type SupportedState =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; error: AppError }
   | { status: "ready"; entries: AppConfigSupportedEntry[] };
 
 interface SupportedConfigsDialogProps {
@@ -40,22 +41,23 @@ interface SupportedConfigsDialogProps {
 
 /** Read-only sheet of supported tools. It is not a picker: rows are plain list items. */
 export function SupportedConfigsDialog({ open, onClose, items }: SupportedConfigsDialogProps) {
+  const copy = appConfigCopy(useLocale());
   return (
     <Modal
       bodyClassName="r8-appcfg-tools__body"
       className="r8-appcfg-tools"
       footer={
         <Button data-modal-cancel onClick={onClose} size="sm">
-          关闭
+          {copy.t("common.close")}
         </Button>
       }
       onClose={onClose}
       open={open}
-      title={<span id={TITLE_ID}>支持的配置</span>}
+      title={<span id={TITLE_ID}>{copy.t("appConfig.supported.title")}</span>}
       titleId={TITLE_ID}
     >
       <div className="grid gap-ui-12">
-        <p className="m-0 text-body">{SCOPE}</p>
+        <p className="m-0 text-body">{copy.t("appConfig.supported.scope")}</p>
         {open ? <SupportedToolsContent items={items} /> : null}
       </div>
     </Modal>
@@ -64,6 +66,7 @@ export function SupportedConfigsDialog({ open, onClose, items }: SupportedConfig
 
 // Mounted only while the sheet is open, so each open reads the supported list again.
 function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] | undefined }) {
+  const copy = appConfigCopy(useLocale());
   const [state, setState] = useState<SupportedState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
@@ -74,7 +77,7 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
         if (current) setState({ status: "ready", entries });
       },
       (error: unknown) => {
-        if (current) setState({ status: "error", message: decodeAppError(error).message });
+        if (current) setState({ status: "error", error: decodeAppError(error) });
       },
     );
     return () => {
@@ -85,15 +88,15 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
   if (state.status === "loading") {
     return (
       <p className="m-0 text-body text-muted-foreground" role="status">
-        正在读取支持的配置……
+        {copy.t("appConfig.supported.loading")}
       </p>
     );
   }
   if (state.status === "error") {
     return (
       <div className="grid gap-ui-8" role="alert">
-        <p className="m-0 font-semibold text-danger">无法读取支持的配置列表</p>
-        <p className="m-0">{state.message}</p>
+        <p className="m-0 font-semibold text-danger">{copy.t("appConfig.supported.loadFailed")}</p>
+        <p className="m-0">{localizeErrorMessage(state.error, copy.t)}</p>
         <div>
           <Button
             onClick={() => {
@@ -102,7 +105,7 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
             }}
             size="sm"
           >
-            重试
+            {copy.t("common.retry")}
           </Button>
         </div>
       </div>
@@ -120,7 +123,8 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
 }
 
 function ToolRow({ tool, discovery }: { tool: AppTool; discovery: ToolDiscovery }) {
-  const badge = describeToolDiscovery(discovery);
+  const copy = appConfigCopy(useLocale());
+  const badge = describeToolDiscovery(discovery, copy);
   return (
     <li className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-ui-12 py-ui-8">
       <span className="pt-ui-2 text-muted-foreground">
@@ -128,7 +132,7 @@ function ToolRow({ tool, discovery }: { tool: AppTool; discovery: ToolDiscovery 
       </span>
       <span className="grid min-w-0 gap-ui-2">
         <span className="text-body font-semibold">{tool.name}</span>
-        <span className="text-aux text-muted-foreground">{tool.summary}</span>
+        <span className="text-aux text-muted-foreground">{copy.t(tool.summaryKey)}</span>
       </span>
       <span className={`pt-ui-2 text-aux ${TONE_CLASS[badge.tone]}`}>
         <span aria-hidden="true">{badge.symbol} </span>

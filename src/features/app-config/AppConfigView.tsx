@@ -1,12 +1,16 @@
 import { Button as HeadlessButton } from "@headlessui/react";
 import { ActionRow, Button, CodeViewer, PageShell, Panel } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
-import type { AppConfigListItem, AppConfigProbeStatus, AppConfigReadResult } from "../../ipc/appConfig";
+import { localizeErrorMessage } from "../../i18n/errors";
+import { useLocale } from "../../i18n/useLocale";
+import type { AppConfigEntrySummary, AppConfigListItem, AppConfigProbeStatus, AppConfigReadResult } from "../../ipc/appConfig";
 import {
   CAPABILITY_LABELS,
+  appConfigCopy,
   codeLanguageFor,
   describeEntryDetail,
   describeProbe,
+  entryName,
   fileNameOf,
   groupByCategory,
   type EntryDetailView,
@@ -72,22 +76,23 @@ export function AppConfigView({ list, detail, onReload, onSelect, edit }: AppCon
 }
 
 function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () => void }) {
+  const copy = appConfigCopy(useLocale());
   switch (list.status) {
     case "loading":
       return (
         <p role="status" className="m-0 text-body text-muted-foreground">
-          正在检查默认位置……
+          {copy.t("appConfig.list.checking")}
         </p>
       );
     case "empty":
       return (
         <div className="grid gap-ui-8">
           <p role="status" className="m-0 text-body text-muted-foreground">
-            本机没有发现受支持的应用配置。
+            {copy.t("appConfig.list.empty")}
           </p>
           <ActionRow>
             <Button size="sm" onClick={onReload}>
-              刷新
+              {copy.t("common.refresh")}
             </Button>
             <SupportedConfigsAction items={[]} />
           </ActionRow>
@@ -96,17 +101,19 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
     case "partial":
       return (
         <p role="status" className="m-0 text-body">
-          有 {list.failedCount} 个条目无法检查，其余条目不受影响。
+          {copy.t("appConfig.list.partial", { count: list.failedCount })}
         </p>
       );
     case "error":
       return (
         <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-          <p className="m-0 text-body font-semibold text-danger">无法读取应用配置列表</p>
-          <p className="m-0 text-body">{list.error.message}</p>
+          <p className="m-0 text-body font-semibold text-danger">
+            {copy.t("appConfig.list.loadFailed")}
+          </p>
+          <p className="m-0 text-body">{localizeErrorMessage(list.error, copy.t)}</p>
           <div>
             <Button size="sm" onClick={onReload}>
-              重试
+              {copy.t("common.retry")}
             </Button>
           </div>
         </Panel>
@@ -127,14 +134,15 @@ function EntryList({
   selectedId: string | undefined;
   onSelect: (id: string) => void;
 }) {
+  const copy = appConfigCopy(useLocale());
   const listRef = useSlideIndicator(selectedId);
   return (
     <Panel aria-labelledby="app-config-list-title" className="grid content-start gap-ui-8 p-ui-8">
       <h2 id="app-config-list-title" className="m-0 text-group font-semibold">
-        条目
+        {copy.t("appConfig.list.heading")}
       </h2>
       <div ref={listRef} className="slide-list grid gap-ui-4">
-        {groupByCategory(items).map((group) => (
+        {groupByCategory(items, copy).map((group) => (
           <div key={group.category} className="grid gap-ui-4">
             <h3 className="m-0 flex h-control-md items-center text-aux font-normal text-muted-foreground">
               {group.label}
@@ -154,9 +162,7 @@ function EntryList({
         ))}
       </div>
       <p className="m-0 text-aux text-muted-foreground">
-        {locked
-          ? "编辑中不能切换条目，请先返回查看。"
-          : "仅显示默认位置。查看不修改任何文件，也不检查未登记的文件。"}
+        {locked ? copy.t("appConfig.list.locked") : copy.t("appConfig.list.hint")}
       </p>
     </Panel>
   );
@@ -173,6 +179,7 @@ function EntryRow({
   selected: boolean;
   onSelect: (id: string) => void;
 }) {
+  const copy = appConfigCopy(useLocale());
   const { summary, probe } = item;
   return (
     <li>
@@ -183,7 +190,7 @@ function EntryRow({
         onClick={() => onSelect(summary.id)}
       >
         <span className="flex min-w-0 items-baseline justify-between gap-ui-8">
-          <span className="min-w-0 truncate text-body font-semibold">{summary.name}</span>
+          <span className="min-w-0 truncate text-body font-semibold">{entryName(summary, copy)}</span>
           <ProbeStatus probe={probe} />
         </span>
         <span
@@ -198,7 +205,8 @@ function EntryRow({
 }
 
 function ProbeStatus({ probe }: { probe: AppConfigProbeStatus }) {
-  const badge = describeProbe(probe);
+  const copy = appConfigCopy(useLocale());
+  const badge = describeProbe(probe, copy);
   return (
     <span className={`shrink-0 text-meta ${PROBE_TEXT_CLASS[badge.tone]}`}>
       <span aria-hidden="true">{badge.symbol} </span>
@@ -217,6 +225,7 @@ function EntryDetail({
   detail: DetailState;
   edit: AppConfigEditControls | undefined;
 }) {
+  const copy = appConfigCopy(useLocale());
   const headingId = "app-config-detail-title";
   const selected = detail.status === "idle" ? undefined : items.find((item) => item.summary.id === detail.id);
   const editing = Boolean(selected && edit && edit.editingId === selected.summary.id);
@@ -231,7 +240,7 @@ function EntryDetail({
       className="grid content-start gap-ui-8 p-ui-8"
     >
       <h2 id={headingId} className="m-0 text-group font-semibold">
-        {selected ? selected.summary.name : "详情"}
+        {selected ? entryName(selected.summary, copy) : copy.t("appConfig.detail.heading")}
       </h2>
       {selected ? (
         <EntryHeader
@@ -260,12 +269,13 @@ function EntryDetail({
 }
 
 function EntryHeader({ item, onEdit }: { item: AppConfigListItem; onEdit?: () => void }) {
+  const copy = appConfigCopy(useLocale());
   return (
     <div className="flex flex-wrap items-center justify-between gap-ui-8">
       <ProbeStatus probe={item.probe} />
       {onEdit ? (
         <Button size="sm" variant="secondary" onClick={onEdit}>
-          编辑
+          {copy.t("common.edit")}
         </Button>
       ) : null}
     </div>
@@ -273,21 +283,25 @@ function EntryHeader({ item, onEdit }: { item: AppConfigListItem; onEdit?: () =>
 }
 
 function EntryFacts({ item }: { item: AppConfigListItem }) {
+  const copy = appConfigCopy(useLocale());
   const { summary } = item;
   return (
     <dl className="m-0 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-ui-8 gap-y-ui-4 text-body">
-      <dt className="text-muted-foreground">位置</dt>
+      <dt className="text-muted-foreground">{copy.t("appConfig.facts.location")}</dt>
       <dd className="m-0 break-all">
         {summary.displayPath}
-        {isFixedLocation(summary) ? "（系统文件）" : null}
+        {isFixedLocation(summary) ? copy.t("appConfig.facts.systemFile") : null}
       </dd>
-      <dt className="text-muted-foreground">格式</dt>
+      <dt className="text-muted-foreground">{copy.t("appConfig.facts.format")}</dt>
       <dd className="m-0">{summary.format}</dd>
-      <dt className="text-muted-foreground">能力</dt>
-      <dd className="m-0">{CAPABILITY_LABELS[summary.capability]}</dd>
-      <dt className="text-muted-foreground">来源</dt>
+      <dt className="text-muted-foreground">{copy.t("appConfig.facts.capability")}</dt>
+      <dd className="m-0">{copy.t(CAPABILITY_LABELS[summary.capability])}</dd>
+      <dt className="text-muted-foreground">{copy.t("appConfig.facts.source")}</dt>
       <dd className="m-0 break-all">
-        {summary.sourceUrl}（核实于 {summary.verifiedOn}）
+        {copy.t("appConfig.facts.sourceVerified", {
+          source: summary.sourceUrl,
+          date: summary.verifiedOn,
+        })}
       </dd>
     </dl>
   );
@@ -300,42 +314,50 @@ function EntryBody({
   items: AppConfigListItem[];
   detail: DetailState;
 }) {
+  const copy = appConfigCopy(useLocale());
   if (detail.status === "idle") {
-    return <p className="m-0 text-body text-muted-foreground">选择左侧条目，查看其只读内容。</p>;
+    return (
+      <p className="m-0 text-body text-muted-foreground">{copy.t("appConfig.detail.select")}</p>
+    );
   }
   if (detail.status === "loading") {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        正在读取……
+        {copy.t("appConfig.loading")}
       </p>
     );
   }
   if (detail.status === "failed") {
     return (
       <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-        <p className="m-0 text-body font-semibold text-danger">无法读取该条目</p>
-        <p className="m-0 text-body">{detail.error.message}</p>
+        <p className="m-0 text-body font-semibold text-danger">
+          {copy.t("appConfig.detail.loadFailed")}
+        </p>
+        <p className="m-0 text-body">{localizeErrorMessage(detail.error, copy.t)}</p>
       </Panel>
     );
   }
   const item = items.find((candidate) => candidate.summary.id === detail.id);
   if (!item) {
-    return <p className="m-0 text-body text-muted-foreground">该条目已不在列表中。</p>;
+    return (
+      <p className="m-0 text-body text-muted-foreground">{copy.t("appConfig.detail.missing")}</p>
+    );
   }
-  return <ReadResultBody item={item} result={detail.result} />;
+  return <ReadResultBody summary={item.summary} result={detail.result} />;
 }
 
 function ReadResultBody({
-  item,
+  summary,
   result,
 }: {
-  item: AppConfigListItem;
+  summary: AppConfigEntrySummary;
   result: AppConfigReadResult;
 }) {
-  const view = describeEntryDetail(item.summary, result);
+  const copy = appConfigCopy(useLocale());
+  const view = describeEntryDetail(summary, result, copy);
   switch (view.kind) {
     case "content":
-      return <ContentBody item={item} view={view} />;
+      return <ContentBody summary={summary} view={view} />;
     case "metadata":
       return (
         <div className="grid gap-ui-8">
@@ -358,41 +380,42 @@ function ReadResultBody({
 }
 
 function ContentBody({
-  item,
+  summary,
   view,
 }: {
-  item: AppConfigListItem;
+  summary: AppConfigEntrySummary;
   view: Extract<EntryDetailView, { kind: "content" }>;
 }) {
+  const copy = appConfigCopy(useLocale());
   const notice = view.redacted ? (
-    <p className="m-0">敏感值已遮盖（显示为 [REDACTED]）。</p>
+    <p className="m-0">{copy.t("appConfig.content.redacted")}</p>
   ) : undefined;
   return (
     <div className="grid min-w-0 gap-ui-8">
       {view.text ? (
         <CodeViewer
-          label="解析后的内容"
-          language={codeLanguageFor(item.summary)}
+          label={copy.t("appConfig.content.label")}
+          language={codeLanguageFor(summary)}
           notice={notice}
           text={view.text}
-          title={fileNameOf(item.summary.displayPath)}
+          title={fileNameOf(summary.displayPath)}
         />
       ) : (
         <>
           {notice}
-          <p className="m-0 text-aux text-muted-foreground">（文件没有可显示的内容）</p>
+          <p className="m-0 text-aux text-muted-foreground">{copy.t("appConfig.content.empty")}</p>
         </>
       )}
       {view.withheldLines > 0 ? (
         <p className="m-0 text-aux text-muted-foreground">
-          有 {view.withheldLines} 行（注释或无法识别的行）未显示。
+          {copy.t("appConfig.content.withheld", { count: view.withheldLines })}
         </p>
       ) : null}
       {view.warnings.length > 0 ? (
         <ul className="m-0 grid list-none gap-ui-4 p-0 text-aux">
           {view.warnings.map((warning) => (
             <li key={`${warning.line}-${warning.message}`}>
-              第 {warning.line} 行：{warning.message}
+              {copy.t("appConfig.line", { line: warning.line, message: warning.message })}
             </li>
           ))}
         </ul>
@@ -400,4 +423,3 @@ function ContentBody({
     </div>
   );
 }
-

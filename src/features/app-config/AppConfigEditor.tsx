@@ -16,6 +16,8 @@ import {
   TextAreaField,
   TextField,
 } from "../../components/ui/forms";
+import { localizeErrorMessage } from "../../i18n/errors";
+import { useLocale } from "../../i18n/useLocale";
 import {
   confirmAppConfigEdit,
   getAppConfigSchema,
@@ -30,6 +32,11 @@ import {
   type AppConfigSchema,
 } from "../../ipc/appConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import {
+  appConfigCopy,
+  definitionText,
+  type AppConfigCopy,
+} from "./appConfigModel";
 import {
   checkFieldDraft,
   collectChanges,
@@ -79,11 +86,10 @@ const FIX_FIRST: AppError = {
   retryable: false,
 };
 
-const CONFLICT_MESSAGE = "文件已被其他程序修改，请重新读取后再编辑。";
-
 const LOADING: LoadState = { status: "loading" };
 
 export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps) {
+  const copy = appConfigCopy(useLocale());
   const { summary, probe } = item;
   const created = probe.status === "notFound";
   const [loaded, setLoaded] = useState<{ key: number; state: LoadState } | null>(null);
@@ -169,7 +175,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
     const expectedHash = data.read.hash;
     let input: AppConfigPreviewInput;
     if (activeMode === "fields") {
-      const collected = collectChanges(data.schema.fields, drafts);
+      const collected = collectChanges(data.schema.fields, drafts, copy);
       if (!collected.ok) {
         setPhase({ status: "failed", error: FIX_FIRST });
         return;
@@ -216,48 +222,50 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
   );
 
   return (
-    <section aria-label="编辑应用配置" className="grid min-w-0 content-start gap-ui-12">
+    <section aria-label={copy.t("appConfig.edit.region")} className="grid min-w-0 content-start gap-ui-12">
       <div className="flex flex-wrap items-center justify-between gap-ui-8">
         <p className="m-0 min-w-0 break-all text-aux text-muted-foreground">
-          正在编辑 {summary.displayPath}
+          {copy.t("appConfig.edit.editing", { path: summary.displayPath })}
         </p>
         <Button size="sm" disabled={busy} onClick={requestExit}>
-          返回查看
+          {copy.t("appConfig.edit.backToView")}
         </Button>
       </div>
 
       {load.status === "loading" ? (
         <p role="status" className="m-0 text-body text-muted-foreground">
-          正在读取……
+          {copy.t("appConfig.loading")}
         </p>
       ) : null}
 
       {load.status === "failed" ? (
         <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-          <p className="m-0 text-body font-semibold text-danger">无法读取该文件，未进入编辑</p>
-          <p className="m-0 text-body">{load.error.message}</p>
+          <p className="m-0 text-body font-semibold text-danger">
+            {copy.t("appConfig.edit.loadFailed")}
+          </p>
+          <p className="m-0 text-body">{localizeErrorMessage(load.error, copy.t)}</p>
           <div>
             <Button size="sm" onClick={() => setLoadKey((key) => key + 1)}>
-              重试
+              {copy.t("common.retry")}
             </Button>
           </div>
         </Panel>
       ) : null}
 
       {data && probe.status === "notFound" ? (
-        <p className="m-0 text-aux text-muted-foreground">文件还不存在，保存时会创建它。</p>
+        <p className="m-0 text-aux text-muted-foreground">{copy.t("appConfig.edit.willCreate")}</p>
       ) : null}
 
       {data && modes && modes.tabs.length === 0 ? (
-        <p className="m-0 text-body">此条目暂不支持编辑。</p>
+        <p className="m-0 text-body">{copy.t("appConfig.edit.unsupported")}</p>
       ) : null}
 
       {data && modes && modes.tabs.length === 2 ? (
         <SectionTabs
-          label="编辑方式"
+          label={copy.t("appConfig.edit.modeLabel")}
           sections={[
-            { id: "fields", label: "可视化" },
-            { id: "raw", label: "高级" },
+            { id: "fields", label: copy.t("appConfig.edit.modeFields") },
+            { id: "raw", label: copy.t("appConfig.edit.modeRaw") },
           ]}
           selected={activeMode ?? "fields"}
           onSelect={(section) => requestSwitch(section as EditTab)}
@@ -282,7 +290,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
           </p>
         ) : (
           <TextAreaField
-            label="原始内容"
+            label={copy.t("appConfig.edit.rawLabel")}
             value={rawDraft}
             spellCheck={false}
             rows={16}
@@ -293,7 +301,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
                 <ul className="m-0 grid list-none gap-ui-4 p-0">
                   {serverRaw.map((issue) => (
                     <li key={`${issue.line}-${issue.message}`}>
-                      第 {issue.line} 行：{issue.message}
+                      {copy.t("appConfig.line", { line: issue.line, message: issue.message })}
                     </li>
                   ))}
                 </ul>
@@ -312,7 +320,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
         </ul>
       ) : null}
 
-      <PhaseNotice phase={phase} onReload={() => setLoadKey((key) => key + 1)} />
+      <PhaseNotice phase={phase} onReload={() => setLoadKey((key) => key + 1)} copy={copy} />
 
       {data && activeMode !== null && !(activeMode === "raw" && data.read.rawBlockedReason !== null) ? (
         <ActionRow>
@@ -321,7 +329,9 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
             disabled={busy}
             onClick={runPreview}
           >
-            {phase.status === "previewing" ? "正在生成预览…" : "预览更改"}
+            {phase.status === "previewing"
+              ? copy.t("appConfig.edit.previewing")
+              : copy.t("common.previewChanges")}
           </Button>
         </ActionRow>
       ) : null}
@@ -354,14 +364,14 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
           onCancel={() => setPendingTab(null)}
         >
           <h3 id="app-config-tab-switch" className="m-0 text-group font-semibold">
-            切换会放弃当前模式未保存的修改
+            {copy.t("appConfig.edit.discardSwitchTitle")}
           </h3>
           <ActionRow align="end">
             <Button variant="ghost" onClick={() => setPendingTab(null)}>
-              留在当前模式
+              {copy.t("appConfig.edit.stay")}
             </Button>
             <Button variant="danger" onClick={() => discardAndSwitch(pendingTab)}>
-              放弃修改并切换
+              {copy.t("appConfig.edit.discardAndSwitch")}
             </Button>
           </ActionRow>
         </ConfirmDialog>
@@ -374,14 +384,14 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
           onCancel={() => setConfirmExit(false)}
         >
           <h3 id="app-config-exit" className="m-0 text-group font-semibold">
-            返回查看会放弃未保存的修改
+            {copy.t("appConfig.edit.discardExitTitle")}
           </h3>
           <ActionRow align="end">
             <Button variant="ghost" onClick={() => setConfirmExit(false)}>
-              继续编辑
+              {copy.t("appConfig.edit.keepEditing")}
             </Button>
             <Button variant="danger" onClick={onExit}>
-              放弃修改并返回
+              {copy.t("appConfig.edit.discardAndExit")}
             </Button>
           </ActionRow>
         </ConfirmDialog>
@@ -390,15 +400,23 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
   );
 }
 
-function PhaseNotice({ phase, onReload }: { phase: Phase; onReload: () => void }) {
+function PhaseNotice({
+  phase,
+  onReload,
+  copy,
+}: {
+  phase: Phase;
+  onReload: () => void;
+  copy: AppConfigCopy;
+}) {
   switch (phase.status) {
     case "conflict":
       return (
         <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-          <p className="m-0 text-body font-semibold text-danger">{CONFLICT_MESSAGE}</p>
+          <p className="m-0 text-body font-semibold text-danger">{copy.t("appConfig.edit.conflict")}</p>
           <div>
             <Button size="sm" onClick={onReload}>
-              重新读取
+              {copy.t("appConfig.edit.reread")}
             </Button>
           </div>
         </Panel>
@@ -406,7 +424,7 @@ function PhaseNotice({ phase, onReload }: { phase: Phase; onReload: () => void }
     case "failed":
       return (
         <p role="alert" className="m-0 text-aux text-danger">
-          {phase.error.message}
+          {localizeErrorMessage(phase.error, copy.t)}
         </p>
       );
     case "idle":
@@ -432,6 +450,7 @@ function PreviewModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const copy = appConfigCopy(useLocale());
   const empty = result.diff.trim().length === 0;
   return (
     <Modal
@@ -439,25 +458,25 @@ function PreviewModal({
       footer={
         <>
           <Button variant="ghost" disabled={busy} onClick={onCancel}>
-            取消
+            {copy.t("common.cancel")}
           </Button>
           <Button
             variant="primary"
             disabled={busy || empty || result.previewToken === null}
             onClick={onConfirm}
           >
-            {busy ? "正在写入…" : "确认写入"}
+            {busy ? copy.t("appConfig.edit.writing") : copy.t("appConfig.edit.confirmWrite")}
           </Button>
         </>
       }
       open
-      title="预览更改"
+      title={copy.t("common.previewChanges")}
       onClose={onCancel}
     >
       <div className="grid min-w-0 gap-ui-8">
-        <p className="m-0 break-all text-aux">保存到 {displayPath}。</p>
+        <p className="m-0 break-all text-aux">{copy.t("appConfig.edit.saveTo", { path: displayPath })}</p>
         <p className="m-0 text-aux">
-          {created ? "文件还不存在，保存时会创建它，不需要备份。" : "保存前会备份原文件。"}
+          {created ? copy.t("appConfig.edit.createdNoBackup") : copy.t("appConfig.edit.backupFirst")}
         </p>
         {result.warnings.map((warning) => (
           <p key={warning} className="m-0 text-aux text-warning">
@@ -465,18 +484,16 @@ function PreviewModal({
           </p>
         ))}
         {empty ? (
-          <p className="m-0 text-aux text-muted-foreground">没有实际改动，无需保存。</p>
+          <p className="m-0 text-aux text-muted-foreground">{copy.t("appConfig.edit.noActualChange")}</p>
         ) : (
           <>
-            <p className="m-0 text-aux text-muted-foreground">
-              以 - 开头的行会被删除，以 + 开头的行会被新增。
-            </p>
+            <p className="m-0 text-aux text-muted-foreground">{copy.t("appConfig.edit.diffHelp")}</p>
             <CodeViewer
               allowWindow={false}
-              label="差异内容"
+              label={copy.t("appConfig.edit.diffLabel")}
               language="plain"
               text={result.diff}
-              title="差异"
+              title={copy.t("appConfig.edit.diffTitle")}
             />
           </>
         )}
@@ -500,12 +517,13 @@ function FieldsForm({
   disabled: boolean;
   onChange: (path: string, draft: FieldDraft | undefined) => void;
 }) {
+  const copy = appConfigCopy(useLocale());
   return (
-    <ul aria-label="设置项" className="m-0 grid list-none gap-ui-12 p-0">
+    <ul aria-label={copy.t("appConfig.edit.fieldsLabel")} className="m-0 grid list-none gap-ui-12 p-0">
       {fields.map((spec) => {
         const readout = readouts.find((candidate) => candidate.path === spec.path);
         const draft = drafts[spec.path];
-        const clientError = draft ? clientMessage(spec, draft) : undefined;
+        const clientError = draft ? clientMessage(spec, draft, copy) : undefined;
         return (
           <FieldRow
             key={spec.path}
@@ -522,16 +540,22 @@ function FieldsForm({
   );
 }
 
-function clientMessage(spec: AppConfigFieldSpec, draft: FieldDraft): string | undefined {
-  const checked = checkFieldDraft(spec, draft);
+function clientMessage(
+  spec: AppConfigFieldSpec,
+  draft: FieldDraft,
+  copy: AppConfigCopy,
+): string | undefined {
+  const checked = checkFieldDraft(spec, draft, copy);
   return checked.ok ? undefined : checked.message;
 }
 
-function rangeHint(spec: AppConfigFieldSpec): string | null {
+function rangeHint(spec: AppConfigFieldSpec, copy: AppConfigCopy): string | null {
   if (spec.kind !== "integer" && spec.kind !== "number") return null;
-  if (spec.min !== null && spec.max !== null) return `允许范围：${spec.min} 到 ${spec.max}`;
-  if (spec.min !== null) return `不小于 ${spec.min}`;
-  if (spec.max !== null) return `不大于 ${spec.max}`;
+  if (spec.min !== null && spec.max !== null) {
+    return copy.t("appConfig.range.between", { min: spec.min, max: spec.max });
+  }
+  if (spec.min !== null) return copy.t("appConfig.range.atLeast", { min: spec.min });
+  if (spec.max !== null) return copy.t("appConfig.range.atMost", { max: spec.max });
   return null;
 }
 
@@ -550,17 +574,20 @@ function FieldRow({
   error: string | undefined;
   onChange: (next: FieldDraft | undefined) => void;
 }) {
-  const status = fieldStatus(spec, readout, draft);
-  const tip: ReactNode = <InfoTip title={spec.label} description={spec.description} />;
+  const copy = appConfigCopy(useLocale());
+  const label = definitionText(copy, `field.${spec.path}`, spec.label);
+  const description = definitionText(copy, `field.${spec.path}.description`, spec.description);
+  const status = fieldStatus(spec, readout, draft, copy);
+  const tip: ReactNode = <InfoTip title={label} description={description} />;
   const text = draft?.kind === "text" ? draft.text : initialTextFor(spec, readout);
   const removable = Boolean(readout?.present) && draft?.kind !== "remove";
-  const hint = rangeHint(spec);
+  const hint = rangeHint(spec, copy);
 
   return (
     <li className="grid min-w-0 gap-ui-4 border-t border-line pt-ui-12">
       {spec.kind === "bool" ? (
         <SwitchField
-          label={spec.label}
+          label={label}
           tip={tip}
           checked={draft?.kind === "bool" ? draft.value : readout?.value === true}
           disabled={disabled}
@@ -570,13 +597,13 @@ function FieldRow({
       ) : null}
       {spec.kind === "enum" ? (
         <SelectField<string>
-          label={spec.label}
+          label={label}
           tip={tip}
           value={text}
           disabled={disabled}
           error={error}
           options={[
-            { value: "", label: "请选择" },
+            { value: "", label: copy.t("appConfig.edit.selectPlaceholder") },
             ...spec.enumValues.map((value) => ({ value, label: value })),
           ]}
           onValueChange={(value) => onChange({ kind: "text", text: value })}
@@ -584,10 +611,14 @@ function FieldRow({
       ) : null}
       {spec.kind === "string" && spec.sensitive ? (
         <SecretReplacementField
-          label={spec.label}
+          label={label}
           tip={tip}
           value={text}
-          placeholder={readout?.present ? "已设置，输入新值即可替换" : "未设置"}
+          placeholder={
+            readout?.present
+              ? copy.t("appConfig.field.secretPlaceholder")
+              : copy.t("appConfig.field.status.unset")
+          }
           disabled={disabled}
           error={error}
           onValueChange={(value) => onChange({ kind: "text", text: value })}
@@ -595,7 +626,7 @@ function FieldRow({
       ) : null}
       {spec.kind === "string" && !spec.sensitive ? (
         <TextField
-          label={spec.label}
+          label={label}
           tip={tip}
           value={text}
           maxLength={256}
@@ -606,7 +637,7 @@ function FieldRow({
       ) : null}
       {spec.kind === "integer" || spec.kind === "number" ? (
         <TextField
-          label={spec.label}
+          label={label}
           tip={tip}
           value={text}
           inputMode={spec.kind === "integer" ? "numeric" : "decimal"}
@@ -624,7 +655,7 @@ function FieldRow({
         <div className="flex flex-wrap items-center gap-ui-4">
           {draft ? (
             <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange(undefined)}>
-              撤销
+              {copy.t("appConfig.edit.undo")}
             </Button>
           ) : null}
           {removable ? (
@@ -634,7 +665,9 @@ function FieldRow({
               disabled={disabled}
               onClick={() => onChange({ kind: "remove" })}
             >
-              {spec.default !== null ? "恢复默认" : "移除"}
+              {spec.default !== null
+                ? copy.t("appConfig.edit.restoreDefault")
+                : copy.t("appConfig.edit.remove")}
             </Button>
           ) : null}
         </div>

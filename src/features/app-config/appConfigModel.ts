@@ -1,4 +1,12 @@
 import type { CodeLanguage } from "../../components/ui/codeTokens";
+import {
+  translate,
+  type Locale,
+  type MessageKey,
+  type TranslateFunction,
+} from "../../i18n";
+import { formatByteSize, formatDateTime } from "../../i18n/format";
+import { appConfigDefinitionEn } from "../../i18n/messages/appConfig";
 import type { AppError } from "../../ipc/core";
 import {
   isAppConfigId,
@@ -8,8 +16,30 @@ import {
   type AppConfigFileMeta,
   type AppConfigListItem,
   type AppConfigProbeStatus,
+  type AppConfigReadFailure,
   type AppConfigReadResult,
 } from "../../ipc/appConfig";
+
+export interface AppConfigCopy {
+  locale: Locale;
+  t: TranslateFunction;
+}
+
+export function appConfigCopy(locale: Locale): AppConfigCopy {
+  return { locale, t: (key, params) => translate(locale, key, params) };
+}
+
+/** Default for callers without a locale; keeps the zh-CN text the backend and tests expect. */
+export const ZH_COPY: AppConfigCopy = appConfigCopy("zh-CN");
+
+/** Backend-defined names and descriptions are translated only when the English table has them. */
+export function definitionText(copy: AppConfigCopy, key: string, original: string): string {
+  return copy.locale === "en" ? (appConfigDefinitionEn[key] ?? original) : original;
+}
+
+export function entryName(summary: AppConfigEntrySummary, copy: AppConfigCopy = ZH_COPY): string {
+  return definitionText(copy, `entry.${summary.id}`, summary.name);
+}
 
 export type ListState =
   | { status: "loading" }
@@ -134,11 +164,11 @@ export const CATEGORY_ORDER: readonly AppConfigCategory[] = [
   "system",
 ];
 
-export const CATEGORY_LABELS: Record<AppConfigCategory, string> = {
-  editor: "编辑器",
-  terminal: "终端",
-  developerTool: "开发工具",
-  system: "系统",
+export const CATEGORY_LABELS: Record<AppConfigCategory, MessageKey> = {
+  editor: "appConfig.category.editor",
+  terminal: "appConfig.category.terminal",
+  developerTool: "appConfig.category.developerTool",
+  system: "appConfig.category.system",
 };
 
 export interface AppConfigGroup {
@@ -148,12 +178,15 @@ export interface AppConfigGroup {
 }
 
 /** Groups keep registry order inside each category and skip empty categories. */
-export function groupByCategory(items: readonly AppConfigListItem[]): AppConfigGroup[] {
+export function groupByCategory(
+  items: readonly AppConfigListItem[],
+  copy: AppConfigCopy = ZH_COPY,
+): AppConfigGroup[] {
   return CATEGORY_ORDER.flatMap((category) => {
     const members = items.filter((item) => item.summary.category === category);
     return members.length === 0
       ? []
-      : [{ category, label: CATEGORY_LABELS[category], items: members }];
+      : [{ category, label: copy.t(CATEGORY_LABELS[category]), items: members }];
   });
 }
 
@@ -167,10 +200,10 @@ export function defaultEntryId(state: AppConfigState): string | undefined {
   return groupByCategory(items)[0]?.items[0]?.summary.id;
 }
 
-export const CAPABILITY_LABELS: Record<AppConfigCapability, string> = {
-  discoverOnly: "仅探测存在",
-  readOnly: "只读",
-  writable: "可编辑",
+export const CAPABILITY_LABELS: Record<AppConfigCapability, MessageKey> = {
+  discoverOnly: "appConfig.capability.discoverOnly",
+  readOnly: "appConfig.capability.readOnly",
+  writable: "appConfig.capability.writable",
 };
 
 export type ProbeTone = "neutral" | "success" | "warning" | "danger";
@@ -182,17 +215,17 @@ export interface ProbeBadge {
 }
 
 /** Each state carries a text label and a symbol, so colour is never the only cue. */
-export function describeProbe(probe: AppConfigProbeStatus): ProbeBadge {
+export function describeProbe(probe: AppConfigProbeStatus, copy: AppConfigCopy = ZH_COPY): ProbeBadge {
   switch (probe.status) {
     case "found":
-      return { symbol: "✓", label: "已发现", tone: "success" };
+      return { symbol: "✓", label: copy.t("appConfig.status.found"), tone: "success" };
     case "notFound":
-      return { symbol: "○", label: "未发现", tone: "neutral" };
+      return { symbol: "○", label: copy.t("appConfig.status.notFound"), tone: "neutral" };
     case "symlinkOrNonRegular":
-      return { symbol: "⚠", label: "符号链接或非常规文件", tone: "warning" };
+      return { symbol: "⚠", label: copy.t("appConfig.status.linkOrSpecial"), tone: "warning" };
     case "inaccessible":
     case "outOfBounds":
-      return { symbol: "⊘", label: "无法检查", tone: "warning" };
+      return { symbol: "⊘", label: copy.t("appConfig.status.cannotCheck"), tone: "warning" };
   }
 }
 
@@ -244,38 +277,37 @@ function languageFromFileName(name: string): CodeLanguage {
   return "plain";
 }
 
-export function formatBytes(size: number): string {
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+export function formatBytes(size: number, locale: Locale = "zh-CN"): string {
+  return formatByteSize(size, locale);
 }
 
-export function formatModifiedTime(unixMillis: number): string {
-  return new Date(unixMillis).toLocaleString("zh-CN", { hour12: false });
+export function formatModifiedTime(unixMillis: number, locale: Locale = "zh-CN"): string {
+  return formatDateTime(unixMillis, locale);
 }
 
-export function metaRows(meta: AppConfigFileMeta): Array<[string, string]> {
+export function metaRows(meta: AppConfigFileMeta, copy: AppConfigCopy = ZH_COPY): Array<[string, string]> {
   return [
-    ["大小", formatBytes(meta.size)],
-    ["修改时间", formatModifiedTime(meta.modifiedUnixMillis)],
+    [copy.t("appConfig.meta.size"), formatBytes(meta.size, copy.locale)],
+    [copy.t("appConfig.meta.modified"), formatModifiedTime(meta.modifiedUnixMillis, copy.locale)],
   ];
 }
 
-const FAILURE_MESSAGES = {
-  tooLarge: "文件超过读取上限，未读取内容。",
-  parseError: "无法按该格式解析，未显示内容。",
-  unreadable: "文件无法读取，未显示内容。",
-} as const;
+const FAILURE_MESSAGES: Record<AppConfigReadFailure, MessageKey> = {
+  tooLarge: "appConfig.read.tooLarge",
+  parseError: "appConfig.read.parseError",
+  unreadable: "appConfig.read.unreadable",
+};
 
 const UNAVAILABLE_MESSAGES: Record<
   Exclude<AppConfigProbeStatus["status"], "found">,
-  string
+  MessageKey
 > = {
-  notFound: "该默认位置没有文件。",
-  symlinkOrNonRegular: "该位置是符号链接或非常规文件，未读取。",
-  inaccessible: "没有权限访问该位置，未读取。",
-  outOfBounds: "该位置解析后超出允许范围，未读取。",
+  notFound: "appConfig.read.notFound",
+  symlinkOrNonRegular: "appConfig.read.linkOrSpecial",
+  inaccessible: "appConfig.read.inaccessible",
+  outOfBounds: "appConfig.read.outOfBounds",
 };
+
 
 export type EntryDetailView =
   | {
@@ -296,6 +328,7 @@ export type EntryDetailView =
 export function describeEntryDetail(
   summary: AppConfigEntrySummary,
   result: AppConfigReadResult,
+  copy: AppConfigCopy = ZH_COPY,
 ): EntryDetailView {
   switch (result.outcome) {
     case "content":
@@ -309,22 +342,22 @@ export function describeEntryDetail(
     case "metadataOnly":
       return {
         kind: "metadata",
-        note: metadataNote(summary),
-        rows: metaRows(result.meta),
+        note: metadataNote(summary, copy),
+        rows: metaRows(result.meta, copy),
       };
     case "unavailable":
-      return { kind: "unavailable", message: UNAVAILABLE_MESSAGES[result.status.status] };
+      return { kind: "unavailable", message: copy.t(UNAVAILABLE_MESSAGES[result.status.status]) };
     case "failed":
-      return { kind: "failed", message: FAILURE_MESSAGES[result.kind] };
+      return { kind: "failed", message: copy.t(FAILURE_MESSAGES[result.kind]) };
   }
 }
 
-function metadataNote(summary: AppConfigEntrySummary): string {
+function metadataNote(summary: AppConfigEntrySummary, copy: AppConfigCopy): string {
   if (summary.sensitivity === "credentials") {
-    return "凭据类文件：仅确认存在，不读取内容。";
+    return copy.t("appConfig.meta.credentials");
   }
   if (summary.format === "plist" || summary.format === "dotenv") {
-    return "此格式暂不解析：仅显示已发现、大小与修改时间，不读取内容。";
+    return copy.t("appConfig.meta.unsupportedFormat");
   }
-  return "仅显示已发现、大小与修改时间，不读取内容。";
+  return copy.t("appConfig.meta.metadataOnly");
 }

@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { translate } from "../../i18n";
 import type { AppConfigListItem, AppConfigProbeStatus } from "../../ipc/appConfig";
 import {
   APP_TOOLS,
@@ -68,6 +69,10 @@ function toolNamed(name: string): AppTool {
   return tool;
 }
 
+function zhSummary(tool: AppTool): string {
+  return translate("zh-CN", tool.summaryKey);
+}
+
 describe("白名单工具目录与注册表一致", () => {
   it("注册表里每个非 AI 条目都恰好被一个工具覆盖", () => {
     for (const id of NON_AI_IDS) {
@@ -113,14 +118,15 @@ describe("白名单工具目录内容", () => {
 
   it("每个工具有一句话作用说明，且只占一行", () => {
     for (const tool of APP_TOOLS) {
-      expect(tool.summary.trim(), tool.name).not.toBe("");
-      expect(tool.summary, tool.name).not.toContain("\n");
-      expect(tool.summary.endsWith("。"), tool.name).toBe(true);
+      const summary = zhSummary(tool);
+      expect(summary.trim(), tool.name).not.toBe("");
+      expect(summary, tool.name).not.toContain("\n");
+      expect(summary.endsWith("。"), tool.name).toBe(true);
     }
   });
 
   it("Git 的作用说明与设计稿一致", () => {
-    expect(toolNamed("Git").summary).toBe("全局身份、默认分支与行为设置。");
+    expect(zhSummary(toolNamed("Git"))).toBe("全局身份、默认分支与行为设置。");
   });
 
   it("每个图标键都在允许的线条图标集合里，同一工具只有一个图标", () => {

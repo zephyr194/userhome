@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useLocale } from "../../i18n/useLocale";
 import { readAppConfigEntry, listAppConfigEntries } from "../../ipc/appConfig";
 import { decodeAppError } from "../../ipc/core";
 import {
   INITIAL_APP_CONFIG_STATE,
+  appConfigCopy,
   appConfigReducer,
   defaultEntryId,
   isKnownEntry,
@@ -10,8 +12,6 @@ import {
 } from "./appConfigModel";
 import { AppConfigView, type AppConfigEditControls } from "./AppConfigView";
 
-const SAVED_NOTICE = "已保存，并备份了原文件。";
-const CREATED_NOTICE = "已保存，并创建了该文件。";
 
 /**
  * Connects the listing and the per-entry views to the backend. The frontend only
@@ -20,6 +20,7 @@ const CREATED_NOTICE = "已保存，并创建了该文件。";
  * replace a newer selection. Nothing is written to browser storage.
  */
 export function AppConfigPage({ refreshId }: { refreshId?: string }) {
+  const copy = appConfigCopy(useLocale());
   const [state, dispatch] = useReducer(appConfigReducer, INITIAL_APP_CONFIG_STATE);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -88,7 +89,7 @@ export function AppConfigPage({ refreshId }: { refreshId?: string }) {
     onSaved: (created) => {
       if (editing !== null) selectEntry(editing);
       setEditingId(null);
-      setNotice(created ? CREATED_NOTICE : SAVED_NOTICE);
+      setNotice(created ? copy.t("appConfig.notice.created") : copy.t("appConfig.notice.saved"));
     },
   };
 

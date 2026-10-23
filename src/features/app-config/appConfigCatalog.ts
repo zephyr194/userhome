@@ -1,5 +1,6 @@
+import type { MessageKey } from "../../i18n";
 import type { AppConfigListItem, AppConfigSupportedEntry } from "../../ipc/appConfig";
-import type { ProbeTone } from "./appConfigModel";
+import { ZH_COPY, type AppConfigCopy, type ProbeTone } from "./appConfigModel";
 
 export const APP_TOOL_ICON_KEYS = ["branch", "package", "container", "editor", "terminal", "key"] as const;
 export type AppToolIconKey = (typeof APP_TOOL_ICON_KEYS)[number];
@@ -8,7 +9,7 @@ export type AppToolIconKey = (typeof APP_TOOL_ICON_KEYS)[number];
 export interface AppTool {
   id: string;
   name: string;
-  summary: string;
+  summaryKey: MessageKey;
   icon: AppToolIconKey;
   entryIds: readonly string[];
 }
@@ -17,70 +18,70 @@ export const APP_TOOLS: readonly AppTool[] = [
   {
     id: "git",
     name: "Git",
-    summary: "全局身份、默认分支与行为设置。",
+    summaryKey: "appConfig.tool.git.summary",
     icon: "branch",
     entryIds: ["git-config-home", "git-config-xdg", "git-credentials"],
   },
   {
     id: "npm",
     name: "npm",
-    summary: "包仓库地址与用户级的安装设置。",
+    summaryKey: "appConfig.tool.npm.summary",
     icon: "package",
     entryIds: ["npmrc"],
   },
   {
     id: "pnpm",
     name: "pnpm",
-    summary: "包仓库地址与认证信息。",
+    summaryKey: "appConfig.tool.pnpm.summary",
     icon: "package",
     entryIds: ["pnpm-auth-ini"],
   },
   {
     id: "docker",
     name: "Docker",
-    summary: "镜像仓库的登录信息与 CLI 默认行为。",
+    summaryKey: "appConfig.tool.docker.summary",
     icon: "container",
     entryIds: ["docker-config"],
   },
   {
     id: "zed",
     name: "Zed",
-    summary: "编辑器的外观、字体与行为设置。",
+    summaryKey: "appConfig.tool.zed.summary",
     icon: "editor",
     entryIds: ["zed-settings"],
   },
   {
     id: "neovim",
     name: "Neovim",
-    summary: "启动时加载的初始化脚本。",
+    summaryKey: "appConfig.tool.neovim.summary",
     icon: "editor",
     entryIds: ["neovim-init"],
   },
   {
     id: "ghostty",
     name: "Ghostty",
-    summary: "终端的字体、配色与按键设置。",
+    summaryKey: "appConfig.tool.ghostty.summary",
     icon: "terminal",
     entryIds: ["ghostty-config"],
   },
   {
     id: "alacritty",
     name: "Alacritty",
-    summary: "终端的窗口、字体与颜色设置。",
+    summaryKey: "appConfig.tool.alacritty.summary",
     icon: "terminal",
     entryIds: ["alacritty-config"],
   },
   {
     id: "tmux",
     name: "tmux",
-    summary: "会话的按键绑定、状态栏与窗口行为。",
+    summaryKey: "appConfig.tool.tmux.summary",
     icon: "terminal",
     entryIds: ["tmux-conf", "tmux-config-xdg"],
   },
   {
     id: "ssh",
     name: "SSH",
-    summary: "系统范围的 SSH 客户端默认选项。",
+    summaryKey: "appConfig.tool.ssh.summary",
     icon: "key",
     entryIds: ["ssh-system-config"],
   },
@@ -114,16 +115,19 @@ export interface ToolDiscoveryBadge {
 }
 
 /** Each state carries a text label and a symbol, so colour is never the only cue. */
-export function describeToolDiscovery(state: ToolDiscovery): ToolDiscoveryBadge {
+export function describeToolDiscovery(
+  state: ToolDiscovery,
+  copy: AppConfigCopy = ZH_COPY,
+): ToolDiscoveryBadge {
   switch (state) {
     case "discovered":
-      return { symbol: "✓", label: "已发现", tone: "success" };
+      return { symbol: "✓", label: copy.t("appConfig.status.found"), tone: "success" };
     case "absent":
-      return { symbol: "○", label: "未发现", tone: "neutral" };
+      return { symbol: "○", label: copy.t("appConfig.status.notFound"), tone: "neutral" };
     case "unverified":
-      return { symbol: "⊘", label: "无法检查", tone: "warning" };
+      return { symbol: "⊘", label: copy.t("appConfig.status.cannotCheck"), tone: "warning" };
     case "unchecked":
-      return { symbol: "…", label: "未检查", tone: "neutral" };
+      return { symbol: "…", label: copy.t("appConfig.status.unchecked"), tone: "neutral" };
   }
 }
 

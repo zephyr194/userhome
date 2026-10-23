@@ -5,6 +5,7 @@ import type {
   AppConfigFieldValue,
   AppConfigPreviewIssue,
 } from "../../ipc/appConfig";
+import { ZH_COPY, type AppConfigCopy } from "./appConfigModel";
 
 export type EditTab = "fields" | "raw";
 
@@ -58,42 +59,47 @@ export function fieldStatus(
   spec: AppConfigFieldSpec,
   readout: AppConfigFieldReadout | undefined,
   draft: FieldDraft | undefined,
+  copy: AppConfigCopy = ZH_COPY,
 ): { label: string; changed: boolean } {
-  if (draft?.kind === "remove") return { label: "将移除", changed: true };
-  if (draft) return { label: "已修改", changed: true };
-  if (!readout?.present) return { label: "未设置", changed: false };
-  if (spec.sensitive) return { label: "已设置（值已隐藏）", changed: false };
-  return { label: "已设置", changed: false };
+  if (draft?.kind === "remove") return { label: copy.t("appConfig.field.status.remove"), changed: true };
+  if (draft) return { label: copy.t("appConfig.field.status.modified"), changed: true };
+  if (!readout?.present) return { label: copy.t("appConfig.field.status.unset"), changed: false };
+  if (spec.sensitive) return { label: copy.t("appConfig.field.status.hidden"), changed: false };
+  return { label: copy.t("appConfig.field.status.set"), changed: false };
 }
 
-export function checkFieldDraft(spec: AppConfigFieldSpec, draft: FieldDraft): FieldCheck {
+export function checkFieldDraft(
+  spec: AppConfigFieldSpec,
+  draft: FieldDraft,
+  copy: AppConfigCopy = ZH_COPY,
+): FieldCheck {
   if (draft.kind === "remove") return { ok: true, value: null };
   if (draft.kind === "bool") return { ok: true, value: draft.value };
   switch (spec.kind) {
     case "string":
-      return checkString(spec, draft.text);
+      return checkString(spec, draft.text, copy);
     case "integer":
-      return checkNumber(spec, draft.text, true);
+      return checkNumber(spec, draft.text, true, copy);
     case "number":
-      return checkNumber(spec, draft.text, false);
+      return checkNumber(spec, draft.text, false, copy);
     case "enum":
       return spec.enumValues.includes(draft.text)
         ? { ok: true, value: draft.text }
-        : { ok: false, message: "请选择列表中的一个值。" };
+        : { ok: false, message: copy.t("appConfig.validate.chooseOption") };
     case "bool":
-      return { ok: false, message: "请用开关设置该项。" };
+      return { ok: false, message: copy.t("appConfig.validate.useSwitch") };
   }
 }
 
-function checkString(spec: AppConfigFieldSpec, text: string): FieldCheck {
+function checkString(spec: AppConfigFieldSpec, text: string, copy: AppConfigCopy): FieldCheck {
   if (text.trim().length === 0) {
-    return { ok: false, message: "请输入内容；如需删除该项，点击“移除”。" };
+    return { ok: false, message: copy.t("appConfig.validate.emptyText") };
   }
   if (text.length > MAX_TEXT_CHARS) {
-    return { ok: false, message: `不能超过 ${MAX_TEXT_CHARS} 个字符。` };
+    return { ok: false, message: copy.t("appConfig.validate.tooLong", { max: MAX_TEXT_CHARS }) };
   }
   if (hasControlCharacter(text)) {
-    return { ok: false, message: "不能包含控制字符。" };
+    return { ok: false, message: copy.t("appConfig.validate.controlChars") };
   }
   const pattern = spec.pattern;
   if (pattern?.kind === "containsSeparator") {
@@ -108,38 +114,44 @@ function checkString(spec: AppConfigFieldSpec, text: string): FieldCheck {
     if (!valid) {
       return {
         ok: false,
-        message: `格式不正确，需要包含一个 ${separator}，前后都有内容，且中间不能有空格。`,
+        message: copy.t("appConfig.validate.separator", { separator }),
       };
     }
   }
   if (pattern?.kind === "charset") {
     const allowed = pattern.allowed;
     if (![...text].every((character) => allowed.includes(character))) {
-      return { ok: false, message: "包含不允许的字符，请只使用字母、数字和 . _ / - 。" };
+      return { ok: false, message: copy.t("appConfig.validate.charset") };
     }
   }
   return { ok: true, value: text };
 }
 
-function checkNumber(spec: AppConfigFieldSpec, text: string, integer: boolean): FieldCheck {
+function checkNumber(
+  spec: AppConfigFieldSpec,
+  text: string,
+  integer: boolean,
+  copy: AppConfigCopy,
+): FieldCheck {
   const trimmed = text.trim();
   const shape = integer ? INTEGER_TEXT : DECIMAL_TEXT;
+  const notANumber = copy.t(integer ? "appConfig.validate.integer" : "appConfig.validate.number");
   if (!shape.test(trimmed)) {
-    return {
-      ok: false,
-      message: integer ? "请输入整数。" : "请输入数字。",
-    };
+    return { ok: false, message: notANumber };
   }
   const value = Number(trimmed);
   if (!Number.isFinite(value) || (integer && !Number.isSafeInteger(value))) {
-    return { ok: false, message: integer ? "请输入整数。" : "请输入数字。" };
+    return { ok: false, message: notANumber };
   }
   const below = spec.min !== null && value < spec.min;
   const above = spec.max !== null && value > spec.max;
   if (below || above) {
     return {
       ok: false,
-      message: `超出允许范围（${rangeText(spec.min, "无下限")} 到 ${rangeText(spec.max, "无上限")}）。`,
+      message: copy.t("appConfig.range.outside", {
+        min: rangeText(spec.min, copy.t("appConfig.range.noMin")),
+        max: rangeText(spec.max, copy.t("appConfig.range.noMax")),
+      }),
     };
   }
   return { ok: true, value };
@@ -152,13 +164,14 @@ function rangeText(bound: number | null, fallback: string): string {
 export function collectChanges(
   fields: readonly AppConfigFieldSpec[],
   drafts: FieldDrafts,
+  copy: AppConfigCopy = ZH_COPY,
 ): CollectResult {
   const changes: AppConfigFieldChange[] = [];
   const errors: Record<string, string> = {};
   for (const spec of fields) {
     const draft = drafts[spec.path];
     if (!draft) continue;
-    const checked = checkFieldDraft(spec, draft);
+    const checked = checkFieldDraft(spec, draft, copy);
     if (checked.ok) {
       changes.push({ path: spec.path, value: checked.value });
     } else {
