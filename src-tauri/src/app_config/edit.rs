@@ -192,6 +192,7 @@ pub fn resolve_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<T
     }
     match locate(entry, home, fs) {
         Located::Found { path, .. } => Ok(Target { path, exists: true }),
+        // The list only includes existing entries; this branch is kept for later.
         Located::Unavailable(ProbeStatus::NotFound) => creatable_target(entry, home, fs),
         Located::Unavailable(ProbeStatus::OutOfBounds) => Err(AppError::permission_denied(OUTSIDE_HOME)),
         Located::Unavailable(ProbeStatus::SymlinkOrNonRegular) => Err(AppError::permission_denied(

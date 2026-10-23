@@ -91,6 +91,7 @@ const LOADING: LoadState = { status: "loading" };
 export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps) {
   const copy = appConfigCopy(useLocale());
   const { summary, probe } = item;
+  // The list only includes existing entries; the created branch is kept for later.
   const created = probe.status === "notFound";
   const [loaded, setLoaded] = useState<{ key: number; state: LoadState } | null>(null);
   const [loadKey, setLoadKey] = useState(0);
