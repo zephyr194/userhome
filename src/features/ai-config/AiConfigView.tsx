@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { Button, PageShell, Panel, StatusBadge } from "../../components/ui";
+import { Button, InfoTip, PageShell, Panel, StatusBadge } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import type { AppError } from "../../ipc/core";
+import { BrewUpdate } from "./BrewUpdate";
 import { ToolReference } from "./ToolReference";
 import {
   CONFIG_LABELS,
@@ -94,7 +95,7 @@ export function AiConfigView({
           aria-label="所选工具"
           className="r4-fe4-scroll grid min-h-0 min-w-0 content-start gap-ui-12 overflow-y-auto overscroll-contain p-ui-12"
         >
-          {selected ? <ToolCard tool={selected} /> : null}
+          {selected ? <ToolCard key={selected.id} tool={selected} onRefresh={onRefresh} /> : null}
           {selected && !showClaudePanel ? (
             <ToolReference key={selected.id} toolId={selected.id} />
           ) : null}
@@ -218,7 +219,7 @@ function ToolRow({
   );
 }
 
-function ToolCard({ tool }: { tool: AiToolReport }) {
+function ToolCard({ tool, onRefresh }: { tool: AiToolReport; onRefresh: () => void }) {
   const headingId = `ai-tool-${tool.id}`;
   const install = INSTALL_LABELS[tool.installStatus];
   const config = CONFIG_LABELS[tool.configPresence];
@@ -238,6 +239,36 @@ function ToolCard({ tool }: { tool: AiToolReport }) {
             <span className="text-aux">{INVALID_REASON_TEXT[tool.invalidReason]}</span>
           ) : null}
         </dd>
+        {tool.installSource ? (
+          <>
+            <dt className="text-muted-foreground">安装方式</dt>
+            <dd className="m-0 grid min-w-0 justify-items-start gap-ui-8">
+              {tool.installSource.type === "homebrew" ? (
+                <>
+                  <span className="break-all">
+                    Homebrew（
+                    {tool.installSource.kind === "CASK" ? "cask" : "formula"}{" "}
+                    {tool.installSource.package}）
+                  </span>
+                  <BrewUpdate
+                    toolId={tool.id}
+                    displayName={tool.displayName}
+                    packageName={tool.installSource.package}
+                    onRefreshed={onRefresh}
+                  />
+                </>
+              ) : (
+                <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
+                  <span>直接安装</span>
+                  <InfoTip
+                    title="安装方式说明"
+                    description="直接安装的工具请用它自带的更新方式。"
+                  />
+                </span>
+              )}
+            </dd>
+          </>
+        ) : null}
         <dt className="text-muted-foreground">可执行文件</dt>
         <dd className="m-0 break-all font-mono text-aux">
           {tool.displayPath ?? NO_EXECUTABLE_TEXT}

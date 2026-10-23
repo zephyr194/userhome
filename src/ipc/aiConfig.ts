@@ -39,10 +39,15 @@ export const AI_CONFIG_PRESENCES = [
 ] as const;
 export type AiConfigPresence = (typeof AI_CONFIG_PRESENCES)[number];
 
+export type AiInstallSource =
+  | { type: "homebrew"; kind: "FORMULA" | "CASK"; package: string }
+  | { type: "direct" };
+
 const TOOL_REPORT_KEYS = [
   "id",
   "displayName",
   "installStatus",
+  "installSource",
   "displayPath",
   "invalidReason",
   "version",
@@ -56,11 +61,13 @@ const MAX_VERSION_LENGTH = 120;
 const MAX_DISPLAY_NAME_LENGTH = 64;
 const MAX_VERIFICATION_NOTE_LENGTH = 200;
 const MAX_CONFIG_DISPLAY_PATH_LENGTH = 512;
+const BREW_PACKAGE_PATTERN = /^[A-Za-z0-9@+._][A-Za-z0-9@+._-]*$/;
 
 export interface AiToolReport {
   id: AiToolId;
   displayName: string;
   installStatus: AiInstallStatus;
+  installSource: AiInstallSource | null;
   displayPath: string | null;
   invalidReason: AiInvalidReason | null;
   version: string | null;
@@ -116,6 +123,20 @@ function nullableText(value: unknown, maxLength: number): string | null {
   return value === null ? null : requireText(value, maxLength);
 }
 
+/** An unknown or malformed source reads as "not known" rather than failing the whole report. */
+function decodeInstallSource(value: unknown): AiInstallSource | null {
+  if (!isRecord(value)) return null;
+  if (value.type === "direct") {
+    return Object.keys(value).length === 1 ? { type: "direct" } : null;
+  }
+  if (value.type !== "homebrew" || Object.keys(value).length !== 3) return null;
+  const { kind, package: packageName } = value;
+  if (kind !== "FORMULA" && kind !== "CASK") return null;
+  if (typeof packageName !== "string" || packageName.length > 128) return null;
+  if (!BREW_PACKAGE_PATTERN.test(packageName)) return null;
+  return { type: "homebrew", kind, package: packageName };
+}
+
 function decodeToolReport(value: unknown, expectedId: AiToolId): AiToolReport {
   const record = requireRecord(value);
   requireExactKeys(record, TOOL_REPORT_KEYS);
@@ -148,6 +169,7 @@ function decodeToolReport(value: unknown, expectedId: AiToolId): AiToolReport {
     id,
     displayName: requireText(record.displayName, MAX_DISPLAY_NAME_LENGTH),
     installStatus,
+    installSource: decodeInstallSource(record.installSource),
     displayPath,
     invalidReason,
     version,
@@ -197,6 +219,49 @@ export function detectAiConfig(): Promise<AiConfigReport> {
 /** The report from the last successful detection in this session, without running a new one. */
 export function lastAiConfigReport(): AiConfigReport | undefined {
   return lastReport;
+}
+
+export const AI_BREW_UPGRADE_STATUSES = ["UPGRADED", "ALREADY_CURRENT", "FAILED"] as const;
+export type AiBrewUpgradeStatus = (typeof AI_BREW_UPGRADE_STATUSES)[number];
+
+export interface AiBrewUpgradeOutcome {
+  status: AiBrewUpgradeStatus;
+  message: string;
+  newVersion: string | null;
+}
+
+const MAX_BREW_MESSAGE_LENGTH = 4096;
+
+// Line feeds stay: the failure message carries the tail of the command output.
+function hasNonLineControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if ((code <= 31 && code !== 10) || code === 127) return true;
+  }
+  return false;
+}
+
+export function decodeAiBrewUpgradeOutcome(value: unknown): AiBrewUpgradeOutcome {
+  const record = requireRecord(value);
+  requireExactKeys(record, ["status", "message", "newVersion"]);
+  const status = requireOneOf(AI_BREW_UPGRADE_STATUSES, record.status);
+  const { message } = record;
+  if (
+    typeof message !== "string" ||
+    message.trim().length === 0 ||
+    message.length > MAX_BREW_MESSAGE_LENGTH ||
+    hasNonLineControlCharacter(message)
+  ) {
+    throw decodeFailure();
+  }
+  const newVersion = nullableText(record.newVersion, MAX_VERSION_LENGTH);
+  if ((status === "FAILED") !== (newVersion === null)) throw decodeFailure();
+  return { status, message, newVersion };
+}
+
+/** Upgrades a tool installed through Homebrew. The backend re-checks the install source itself. */
+export function aiConfigBrewUpgrade(toolId: AiToolId): Promise<AiBrewUpgradeOutcome> {
+  return invokeCommand("ai_config_brew_upgrade", decodeAiBrewUpgradeOutcome, { toolId });
 }
 
 // Claude Code settings read. Mirrors ai_config/read.rs; the view carries masked

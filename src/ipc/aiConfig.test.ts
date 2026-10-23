@@ -14,6 +14,7 @@ function toolWire(
     id,
     displayName: "Claude Code",
     installStatus: "missing",
+    installSource: null,
     displayPath: null,
     invalidReason: null,
     version: null,

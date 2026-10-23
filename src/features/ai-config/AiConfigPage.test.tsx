@@ -18,6 +18,7 @@ function reportWire(): Record<string, unknown> {
       id,
       displayName,
       installStatus: "missing",
+      installSource: null,
       displayPath: null,
       invalidReason: null,
       version: null,

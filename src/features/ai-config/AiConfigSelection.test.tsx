@@ -12,6 +12,7 @@ function tool(id: AiToolReport["id"], displayName: string): AiToolReport {
     id,
     displayName,
     installStatus: "missing",
+    installSource: null,
     displayPath: null,
     invalidReason: null,
     version: null,

@@ -18,6 +18,7 @@ function tool(overrides: Partial<AiToolReport> = {}): AiToolReport {
     id: "claude-code",
     displayName: "Claude Code",
     installStatus: "missing",
+    installSource: null,
     displayPath: null,
     invalidReason: null,
     version: null,
