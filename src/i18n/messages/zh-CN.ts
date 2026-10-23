@@ -1,6 +1,7 @@
 import { commonZh } from "./common";
 import { environmentZh } from "./environment";
 import { dashboardZh } from "./dashboard";
+import { servicesZh } from "./services";
 import { settingsZh } from "./settings";
 import { shellZh } from "./shell";
 import { systemToolsZh } from "./systemTools";
@@ -10,6 +11,7 @@ export const zhCN = {
   ...settingsZh,
   ...dashboardZh,
   ...systemToolsZh,
+  ...servicesZh,
   ...commonZh,
   ...environmentZh,
 } as const;
