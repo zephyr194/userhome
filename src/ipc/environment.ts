@@ -1849,9 +1849,11 @@ export function executeZshEdit(input: {
   });
 }
 
-// The macOS login session environment (`launchctl`) is read-only here. The
-// list carries names and, for non-secret values, the text; a secret value is
-// `null` until the explicit `revealLaunchctlValue` call returns it.
+// The macOS login session environment (`launchctl`). The list carries names
+// and, for non-secret values, the text; a secret value is `null` until the
+// explicit `revealLaunchctlValue` call returns it. Setting or removing a value
+// goes through a preview first; the digest it returns lets the execute step
+// refuse a value that changed in between.
 
 export interface LaunchctlEntry {
   key: string;
@@ -1867,6 +1869,9 @@ export interface LaunchctlEnvironment {
 
 const MAX_LAUNCHCTL_ENTRIES = 2000;
 const MAX_READ_AT_LENGTH = 64;
+const MAX_LAUNCHCTL_NOTE_LENGTH = 200;
+const LAUNCHCTL_SET_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
+const LAUNCHCTL_MAX_VALUE_BYTES = 4096;
 
 function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]) {
   return (
@@ -1909,4 +1914,83 @@ export function readLaunchctlEnvironment(): Promise<LaunchctlEnvironment> {
 export function revealLaunchctlValue(key: string): Promise<string> {
   if (!KEY_PATTERN.test(key)) return invalidInput("Variable name is invalid.");
   return invokeCommand("reveal_launchctl_value", decodeRevealedValue, { key });
+}
+
+export interface LaunchctlSetPreview {
+  key: string;
+  currentExists: boolean;
+  currentSecret: boolean;
+  /** Digest of the current value; `null` when the variable is not set. */
+  expectedCurrent: string | null;
+}
+
+export interface LaunchctlChange extends LaunchctlEnvironment {
+  note: string;
+}
+
+export function decodeLaunchctlSetPreview(value: unknown): LaunchctlSetPreview {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, ["key", "currentExists", "currentSecret", "expectedCurrent"])
+  ) {
+    return fail();
+  }
+  if (typeof value.key !== "string" || !KEY_PATTERN.test(value.key)) return fail();
+  const currentExists = flag(value.currentExists);
+  const currentSecret = flag(value.currentSecret);
+  const digest = value.expectedCurrent;
+  if (!currentExists) {
+    if (currentSecret || digest !== null) return fail();
+    return { key: value.key, currentExists, currentSecret, expectedCurrent: null };
+  }
+  if (typeof digest !== "string" || !HASH_PATTERN.test(digest)) return fail();
+  return { key: value.key, currentExists, currentSecret, expectedCurrent: digest };
+}
+
+export function decodeLaunchctlChange(value: unknown): LaunchctlChange {
+  if (!isRecord(value) || !hasExactKeys(value, ["entries", "readAt", "partial", "note"])) {
+    return fail();
+  }
+  const { note, ...environment } = value;
+  return {
+    ...decodeLaunchctlEnvironment(environment),
+    note: boundedText(note, MAX_LAUNCHCTL_NOTE_LENGTH),
+  };
+}
+
+function launchctlSetProblem(key: string, value: string): string | null {
+  if (!LAUNCHCTL_SET_KEY_PATTERN.test(key)) return "Variable name is invalid.";
+  if (value.includes("\0")) return "Variable value contains a NUL character.";
+  if (new TextEncoder().encode(value).length > LAUNCHCTL_MAX_VALUE_BYTES) {
+    return "Variable value is too long.";
+  }
+  return null;
+}
+
+export function previewLaunchctlSet(key: string, value: string): Promise<LaunchctlSetPreview> {
+  const problem = launchctlSetProblem(key, value);
+  if (problem !== null) return invalidInput(problem);
+  return invokeCommand("preview_launchctl_set", decodeLaunchctlSetPreview, { key, value });
+}
+
+export function setLaunchctlValue(input: {
+  key: string;
+  value: string;
+  expectedCurrent: string | null;
+}): Promise<LaunchctlChange> {
+  const problem = launchctlSetProblem(input.key, input.value);
+  if (problem !== null) return invalidInput(problem);
+  if (input.expectedCurrent !== null && !HASH_PATTERN.test(input.expectedCurrent)) {
+    return invalidInput("Preview digest is invalid.");
+  }
+  return invokeCommand("execute_launchctl_set", decodeLaunchctlChange, {
+    key: input.key,
+    value: input.value,
+    expectedCurrent: input.expectedCurrent,
+  });
+}
+
+export function unsetLaunchctlValue(key: string): Promise<LaunchctlChange> {
+  if (!LAUNCHCTL_SET_KEY_PATTERN.test(key)) return invalidInput("Variable name is invalid.");
+  return invokeCommand("execute_launchctl_unset", decodeLaunchctlChange, { key });
 }
