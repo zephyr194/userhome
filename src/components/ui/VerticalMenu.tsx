@@ -16,8 +16,8 @@ export interface VerticalMenuProps {
 
 /**
  * Second-level menu for a page that has several domains. One selection box
- * slides between the items; the description sits beside the label and wraps
- * under it when the column is narrow.
+ * slides between the items; the label sits on the left, the description on the
+ * right, and the description wraps under the label when the column is narrow.
  */
 export function VerticalMenu({ label, items, selected, onSelect }: VerticalMenuProps) {
   const selectedIndex = Math.max(0, items.findIndex((item) => item.id === selected));
@@ -41,7 +41,7 @@ export function VerticalMenu({ label, items, selected, onSelect }: VerticalMenuP
           return (
             <Tab
               aria-current={isSelected ? "true" : undefined}
-              className="slide-item vertical-menu__item flex min-w-0 flex-wrap items-baseline gap-x-ui-8 gap-y-ui-2 px-ui-12 py-ui-8 text-left text-foreground"
+              className="slide-item vertical-menu__item flex min-w-0 flex-wrap items-baseline justify-between gap-x-ui-8 gap-y-ui-2 px-ui-12 py-ui-8 text-left text-foreground"
               data-section-id={item.id}
               key={item.id}
             >

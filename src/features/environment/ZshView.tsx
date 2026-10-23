@@ -48,8 +48,8 @@ export interface ZshViewProps {
 }
 
 const HEADER_CLASSES =
-  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8";
-const CARD_CLASSES = "overflow-hidden rounded-control bg-surface-muted";
+  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 px-ui-12 pt-ui-16 pb-ui-12";
+const CARD_CLASSES = "min-w-0 overflow-hidden";
 const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
 
 /**
@@ -201,7 +201,7 @@ function ReadingOrder({ overview }: { overview: ZshOverview }) {
             <col className="w-40" />
           </colgroup>
           <thead>
-            <tr className="border-b border-border text-left text-meta text-muted-foreground">
+            <tr className="border-b border-line text-left text-meta text-muted-foreground">
               <th className="px-ui-8 py-ui-4 font-medium" scope="col">步骤</th>
               <th className="px-ui-8 py-ui-4 font-medium" scope="col">路径</th>
               <th className="px-ui-8 py-ui-4 font-medium" scope="col">范围</th>
@@ -230,7 +230,7 @@ function OrderRow({ file, step }: { file?: ZshFile; step: ZshOrderStep }) {
   return (
     <tr
       className={classNames(
-        "min-h-control-md border-t border-border align-middle",
+        "min-h-control-md border-t border-line align-middle",
         step.scope === "SYSTEM" && "text-muted-foreground",
       )}
     >

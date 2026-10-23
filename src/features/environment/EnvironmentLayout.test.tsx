@@ -26,6 +26,18 @@ describe("environment page layout (UIB-4e)", () => {
     expect(hidden).toHaveLength(2);
   });
 
+  it("keeps 8px inside the domain menu column on both sides, away from the divider", () => {
+    const menu = renderPage().match(/<div class="([^"]*environment-page__menu[^"]*)"/)?.[1] ?? "";
+    expect(menu.split(/\s+/)).toContain("px-ui-8");
+  });
+
+  it("draws no outer frame or header band around the domain content", () => {
+    const markup = renderPage();
+    expect(markup).toMatch(/class="[^"]*\bborderless-pane\b/);
+    expect(markup).not.toMatch(/class="[^"]*\bborder-b border-border\b/);
+    expect(markup).not.toMatch(/<header class="[^"]*bg-surface-muted/);
+  });
+
   it("leaves the page heading to the app shell", () => {
     expect(renderPage()).not.toContain("<h1");
   });

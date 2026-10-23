@@ -450,7 +450,8 @@ describe("zsh view is read only and accessible", () => {
   it("styles with theme tokens only, so light and dark both work", () => {
     expect(markup).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     expect(markup).not.toMatch(/\b(bg|text|border)-(white|black|gray|slate|zinc|red|green|blue|yellow)-\d/);
-    expect(markup).toContain("bg-surface-muted");
+    expect(markup).not.toMatch(/<section[^>]*class="[^"]*bg-surface-muted/);
+    expect(markup).not.toMatch(/class="[^"]*\bborder-b border-border/);
     expect(markup).toContain("text-muted-foreground");
   });
 });

@@ -41,7 +41,7 @@ export function SettingsPage({
   return (
     <TabGroup
       as="div"
-      className="settings-pane h-full min-h-0 min-w-0"
+      className="settings-pane borderless-pane h-full min-h-0 min-w-0"
       role="region"
       aria-label="设置"
       selectedIndex={selectedIndex}
@@ -49,7 +49,7 @@ export function SettingsPage({
       vertical
     >
       <PageShell layout="master-detail">
-        <section className="settings-pane__groups flex min-h-0 min-w-0 flex-col overflow-hidden bg-surface-muted">
+        <section className="settings-pane__groups flex min-h-0 min-w-0 flex-col overflow-hidden">
           <SettingsSidebar selectedGroup={SETTINGS_GROUPS[selectedIndex].id} />
         </section>
 
@@ -65,7 +65,7 @@ export function SettingsPage({
               >
                 {index === selectedIndex ? (
                   <>
-                    <header className="settings-pane__detail-header flex min-w-0 flex-none flex-wrap items-start justify-between gap-ui-12 border-b border-border">
+                    <header className="settings-pane__detail-header flex min-w-0 flex-none flex-wrap items-start justify-between gap-ui-12">
                       <div className="min-w-0">
                         <h2
                           className="m-0 break-words text-xl font-semibold"

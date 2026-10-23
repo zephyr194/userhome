@@ -149,6 +149,13 @@ describe("环境变量页样式审计（UI-3c）", () => {
     expect(ticked.length).toBeLessThanOrEqual(MAX_TICKED_PANELS);
   });
 
+  it("环境页不画外边框：生产代码里没有 border-b border-border 分隔线", () => {
+    const offenders = files.filter((file) =>
+      /\bborder-b border-border\b/.test(readFileSync(file, "utf8")),
+    );
+    expect(offenders.map(rel)).toEqual([]);
+  });
+
   it("间距类不再使用旧令牌名（xxs…3xl），只用新档位 2/4/8/12/16/24", () => {
     const violations: string[] = [];
     for (const file of files) {

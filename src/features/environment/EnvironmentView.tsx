@@ -77,9 +77,9 @@ function SectionHeader({
 }) {
   const Heading = level;
   return (
-    <header className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
+    <header className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8 px-ui-12 pt-ui-16 pb-ui-12">
       <div className="flex min-h-control-md min-w-0 flex-col justify-center">
-        <Heading className="text-sm font-semibold" id={headingId}>
+        <Heading className="text-group font-semibold" id={headingId}>
           {title}
         </Heading>
         {description ? (
@@ -99,7 +99,7 @@ export function EnvironmentView(props: EnvironmentViewProps) {
       <PageRegion>
         <section
           aria-labelledby="environment-heading"
-          className="flex min-w-0 flex-col"
+          className="flex min-w-0 flex-col gap-ui-8"
         >
           <SectionHeader
             action={
@@ -145,7 +145,7 @@ function GrantsSection({
   const { grants } = state;
   const grantListRef = useSlideIndicator(state.selectedGrantId);
   return (
-    <div className="border-b border-border">
+    <div className="min-w-0">
       <SectionHeader
         action={
           <Button disabled={addingGrant} onClick={onAddGrant} size="sm" variant="primary">
@@ -259,7 +259,7 @@ function SettingsSection(props: EnvironmentViewProps) {
           ? "关闭正在编辑的文件后再扫描。"
           : undefined;
   return (
-    <div className="border-b border-border">
+    <div className="min-w-0">
       <SectionHeader headingId="environment-settings-heading" title="扫描设置" />
       <div className="grid gap-ui-8 px-ui-12 py-ui-8">
         <TextAreaField

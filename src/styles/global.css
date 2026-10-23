@@ -2080,10 +2080,6 @@ button[class*="border-border"],
   min-height: 40px;
 }
 
-.settings-pane__tab-desc::before {
-  content: "— ";
-}
-
 .info-tip {
   position: relative;
   display: inline-flex;
@@ -2698,3 +2694,16 @@ button[class*="border-border"],
 }
 
 /* /r6-code */
+
+/* r7-menu ---------------------------------------------------------------- */
+/* 环境变量与设置去掉外框与标题底边；选中框与分割线不在此区块 */
+.borderless-pane .rounded-panel {
+  box-shadow: none;
+}
+
+.borderless-pane .settings-pane__detail-header {
+  background: transparent;
+  border-bottom: 0;
+  padding: var(--app-space-16) var(--app-space-12) var(--app-space-12);
+}
+/* /r7-menu */

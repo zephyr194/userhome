@@ -430,9 +430,14 @@ describe("environment feature sources", () => {
 });
 
 describe("分区头与扫描原因（r4-fe5）", () => {
-  it("uses one header band for the page and every section", () => {
+  it("uses borderless headings for the page and every section, with no header band", () => {
     const markup = render(stateOf());
-    expect(markup.match(/<header class="[^"]*bg-surface-muted/g)).toHaveLength(5);
+    const headers = markup.match(/<header class="[^"]*"/g) ?? [];
+    expect(headers).toHaveLength(5);
+    for (const header of headers) {
+      expect(header).not.toContain("bg-surface-muted");
+      expect(header).not.toContain("border-b");
+    }
   });
 
   it("names the reason scanning is blocked and links it to the button", () => {

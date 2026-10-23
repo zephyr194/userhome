@@ -30,7 +30,7 @@ export function LaunchctlView({ state, onReveal, onRetry }: LaunchctlViewProps) 
       aria-labelledby={headingId}
       className="launchctl-view flex min-w-0 flex-col gap-ui-12"
     >
-      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12 border-b border-line pb-ui-12">
+      <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12 pt-ui-16 pb-ui-12">
         <div className="flex min-w-0 flex-col gap-ui-4">
           <div className="flex min-w-0 items-center gap-ui-4">
             <h2 className="text-group font-semibold text-foreground" id={headingId}>

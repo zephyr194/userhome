@@ -56,9 +56,9 @@ export function EnvironmentPage() {
     if (detailRef.current) detailRef.current.scrollTop = scrollMemory.switchTo(section);
   }, [section, scrollMemory]);
   return (
-    <div className="environment-page h-full min-h-0 min-w-0">
+    <div className="environment-page borderless-pane h-full min-h-0 min-w-0">
       <PageShell layout="master-detail" scrollKey={section}>
-        <div className="environment-page__menu min-w-0">
+        <div className="environment-page__menu min-w-0 px-ui-8">
           <VerticalMenu
             items={DOMAINS}
             label="环境变量域"

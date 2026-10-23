@@ -7,14 +7,14 @@ export function SettingsSidebar({ selectedGroup }: { selectedGroup: SettingsGrou
   return (
     <TabList
       ref={listRef}
-      className="slide-list settings-pane__tabs m-0 grid min-h-0 min-w-0 flex-1 list-none content-start gap-0 overflow-x-hidden overflow-y-auto p-0 [overscroll-behavior:contain] [scrollbar-gutter:stable]"
+      className="slide-list settings-pane__tabs m-0 grid min-h-0 min-w-0 flex-1 list-none content-start gap-0 overflow-x-hidden overflow-y-auto px-ui-8 [overscroll-behavior:contain] [scrollbar-gutter:stable]"
       aria-label="设置分组"
     >
       {SETTINGS_GROUPS.map((group) => (
         <Tab
           key={group.id}
           aria-current={group.id === selectedGroup ? "true" : undefined}
-          className="settings-pane__tab slide-item flex w-full min-w-0 flex-wrap items-baseline gap-x-ui-4 gap-y-ui-2 px-ui-12 py-ui-8 text-left text-foreground"
+          className="settings-pane__tab slide-item flex w-full min-w-0 flex-wrap items-baseline justify-between gap-x-ui-8 gap-y-ui-2 px-ui-12 py-ui-8 text-left text-foreground"
           data-group-id={group.id}
           id={`settings-group-${group.id}`}
         >

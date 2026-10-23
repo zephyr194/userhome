@@ -50,6 +50,14 @@ function render(group: SettingsGroupId): string {
   );
 }
 
+function tokensForClass(markup: string, token: string): string[] {
+  for (const [, value] of markup.matchAll(/class="([^"]*)"/g)) {
+    const tokens = value.split(/\s+/).filter(Boolean);
+    if (tokens.includes(token)) return tokens;
+  }
+  throw new Error(`No element carries the class "${token}".`);
+}
+
 describe("设置页布局（UIB-4f）", () => {
   it("使用 PageShell 的 master-detail 布局，且不再有第二个舱头", () => {
     const markup = render("appearance");
@@ -81,6 +89,25 @@ describe("设置页布局（UIB-4f）", () => {
     for (const tab of tabs) {
       expect(tab).toContain("slide-item");
     }
+  });
+
+  it("列表容器左右内边距对称，行不带额外外边距，选中框因此水平居中", () => {
+    const markup = render("refresh");
+    const list = tokensForClass(markup, "settings-pane__tabs");
+    const paddingX = list.filter((token) => /^-?p[xlr]?-/.test(token));
+    expect(paddingX).toEqual(["px-ui-8"]);
+
+    const tabs = Array.from(markup.matchAll(/<button[^>]*data-group-id="[^"]*"[^>]*>/g), (match) => match[0]);
+    for (const tab of tabs) {
+      const classes = tab.match(/class="([^"]*)"/)?.[1].split(/\s+/) ?? [];
+      expect(classes.filter((token) => /^-?m[lrx]?-/.test(token))).toEqual([]);
+    }
+  });
+
+  it("设置详情标题不再画底边分隔线，也没有外框", () => {
+    const markup = render("refresh");
+    expect(tokensForClass(markup, "settings-pane__detail-header")).not.toContain("border-b");
+    expect(tokensForClass(markup, "settings-pane")).toContain("borderless-pane");
   });
 
   it("分组列表是无编号、无标题栏的 title - description 平铺行", () => {

@@ -54,6 +54,21 @@ describe("VerticalMenu", () => {
     expect(description.className).not.toContain("truncate");
   });
 
+  it("puts the label on the left and the description on the right of one row", () => {
+    render(
+      <VerticalMenu
+        items={ITEMS}
+        label="环境变量域"
+        onSelect={() => {}}
+        selected="dotenv"
+      />,
+    );
+
+    const tab = screen.getByRole("tab", { name: /项目 dotenv/ });
+    expect(tab.className).toContain("justify-between");
+    expect(tab.className).not.toContain("justify-start");
+  });
+
   it("selects an item on click", () => {
     const onSelect = vi.fn();
     render(

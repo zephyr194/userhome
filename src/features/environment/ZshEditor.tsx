@@ -71,9 +71,9 @@ export interface ZshEditorProps {
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
 const NOTE_CLASSES = "text-xs leading-relaxed text-muted-foreground";
-const CARD_CLASSES = "grid gap-ui-8 rounded-control bg-surface-muted px-ui-12 py-ui-8";
+const CARD_CLASSES = "grid gap-ui-8 px-ui-12 py-ui-8";
 const HEADER_CLASSES =
-  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8";
+  "flex min-w-0 flex-wrap items-start justify-between gap-ui-8 px-ui-12 pt-ui-16 pb-ui-12";
 
 /**
  * Editor for the UserHome managed block of one zsh startup file: variables as
