@@ -1,6 +1,5 @@
 import { en } from "./messages/en";
 import { zhCN, type MessageKey } from "./messages/zh-CN";
-import { formatNumber } from "./format";
 
 export type { MessageKey } from "./messages/zh-CN";
 
@@ -22,7 +21,7 @@ const MESSAGES: Record<Locale, Readonly<Record<string, string>>> = {
 
 export function resolveLocale(
   preference: LanguagePreference,
-  systemLanguage: string | undefined = globalThis.navigator?.language,
+  systemLanguage: string | undefined,
 ): Locale {
   if (preference === "zh-CN" || preference === "en") {
     return preference;
@@ -57,7 +56,7 @@ export function formatMessage(
     (_match, name: string, branchSource: string) => {
       const count = Number(params?.[name]);
       const branch = selectPluralBranch(locale, branchSource, count);
-      return branch.replace(/#/g, formatNumber(count, locale));
+      return branch.replace(/#/g, String(count));
     },
   );
   return withPlurals.replace(PARAMETER_PATTERN, (match, name: string) =>

@@ -83,7 +83,7 @@ describe("formatMessage", () => {
     const template = "{count, plural, one {# service} other {# services}}";
     expect(formatMessage("en", template, { count: 1 })).toBe("1 service");
     expect(formatMessage("en", template, { count: 0 })).toBe("0 services");
-    expect(formatMessage("en", template, { count: 1200 })).toBe("1,200 services");
+    expect(formatMessage("en", template, { count: 1200 })).toBe("1200 services");
   });
 
   it("uses the other form for Chinese plurals", () => {

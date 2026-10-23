@@ -9,7 +9,7 @@ export function LocaleProvider({
   children: ReactNode;
   preference: LanguagePreference;
 }) {
-  const locale = resolveLocale(preference);
+  const locale = resolveLocale(preference, globalThis.navigator?.language);
   const value = useMemo(() => createLocaleValue(locale), [locale]);
 
   useEffect(() => {
