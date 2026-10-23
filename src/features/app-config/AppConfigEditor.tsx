@@ -1,0 +1,638 @@
+import { useEffect, useState, type ReactNode } from "react";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import {
+  ActionRow,
+  Button,
+  CodeViewer,
+  InfoTip,
+  Modal,
+  Panel,
+  SectionTabs,
+} from "../../components/ui";
+import {
+  SecretReplacementField,
+  SelectField,
+  SwitchField,
+  TextAreaField,
+  TextField,
+} from "../../components/ui/forms";
+import {
+  confirmAppConfigEdit,
+  getAppConfigSchema,
+  previewAppConfigEdit,
+  readAppConfigForEdit,
+  type AppConfigEditRead,
+  type AppConfigFieldReadout,
+  type AppConfigFieldSpec,
+  type AppConfigListItem,
+  type AppConfigPreviewInput,
+  type AppConfigPreviewResult,
+  type AppConfigSchema,
+} from "../../ipc/appConfig";
+import { decodeAppError, type AppError } from "../../ipc/core";
+import {
+  checkFieldDraft,
+  collectChanges,
+  editModes,
+  fieldStatus,
+  initialTextFor,
+  issuesByPath,
+  rawIssues,
+  type EditTab,
+  type FieldDraft,
+  type FieldDrafts,
+} from "./appConfigEditModel";
+
+export interface AppConfigEditorProps {
+  item: AppConfigListItem;
+  onExit: () => void;
+  onSaved: () => void;
+}
+
+interface LoadedEdit {
+  schema: AppConfigSchema;
+  read: AppConfigEditRead;
+}
+
+type LoadState =
+  | { status: "loading" }
+  | { status: "failed"; error: AppError }
+  | { status: "ready"; data: LoadedEdit };
+
+type Phase =
+  | { status: "idle" }
+  | { status: "previewing" }
+  | { status: "previewed"; result: AppConfigPreviewResult }
+  | { status: "confirming"; result: AppConfigPreviewResult }
+  | { status: "conflict" }
+  | { status: "failed"; error: AppError };
+
+const NO_CHANGES: AppError = {
+  code: "INVALID_INPUT",
+  message: "没有需要保存的修改。",
+  retryable: false,
+};
+
+const FIX_FIRST: AppError = {
+  code: "INVALID_INPUT",
+  message: "请先修正标出的设置，再预览更改。",
+  retryable: false,
+};
+
+const CONFLICT_MESSAGE = "文件已被其他程序修改，请重新读取后再编辑。";
+
+const LOADING: LoadState = { status: "loading" };
+
+export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps) {
+  const { summary, probe } = item;
+  const [loaded, setLoaded] = useState<{ key: number; state: LoadState } | null>(null);
+  const [loadKey, setLoadKey] = useState(0);
+  const load = loaded?.key === loadKey ? loaded.state : LOADING;
+  const [mode, setMode] = useState<EditTab | null>(null);
+  const [drafts, setDrafts] = useState<FieldDrafts>({});
+  const [rawDraft, setRawDraft] = useState("");
+  const [phase, setPhase] = useState<Phase>({ status: "idle" });
+  const [pendingTab, setPendingTab] = useState<EditTab | null>(null);
+  const [confirmExit, setConfirmExit] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([getAppConfigSchema(summary.id), readAppConfigForEdit(summary.id)]).then(
+      ([schema, read]) => {
+        if (!active) return;
+        setLoaded({ key: loadKey, state: { status: "ready", data: { schema, read } } });
+        setDrafts({});
+        setRawDraft(read.rawText ?? "");
+        setPhase({ status: "idle" });
+      },
+      (error: unknown) => {
+        if (active) setLoaded({ key: loadKey, state: { status: "failed", error: decodeAppError(error) } });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [summary.id, loadKey]);
+
+  const data = load.status === "ready" ? load.data : null;
+  const modes = data ? editModes(data.schema) : null;
+  const activeMode: EditTab | null =
+    modes === null ? null : mode !== null && modes.tabs.includes(mode) ? mode : modes.initial;
+  const rawBase = data?.read.rawText ?? "";
+  const fieldsDirty = Object.keys(drafts).length > 0;
+  const rawDirty = data !== null && rawDraft !== rawBase;
+  const busy = phase.status === "previewing" || phase.status === "confirming";
+
+  const isDirty = (tab: EditTab | null) =>
+    tab === "fields" ? fieldsDirty : tab === "raw" ? rawDirty : false;
+
+  const requestSwitch = (next: EditTab) => {
+    if (next === activeMode) return;
+    if (isDirty(activeMode)) {
+      setPendingTab(next);
+      return;
+    }
+    setMode(next);
+  };
+
+  const discardAndSwitch = (next: EditTab) => {
+    if (activeMode === "fields") setDrafts({});
+    if (activeMode === "raw") setRawDraft(rawBase);
+    setPhase({ status: "idle" });
+    setMode(next);
+    setPendingTab(null);
+  };
+
+  const setDraft = (path: string, draft: FieldDraft | undefined) => {
+    setDrafts((current) => {
+      const next = { ...current };
+      if (draft === undefined) delete next[path];
+      else next[path] = draft;
+      return next;
+    });
+    setPhase({ status: "idle" });
+  };
+
+  const setRaw = (text: string) => {
+    setRawDraft(text);
+    setPhase({ status: "idle" });
+  };
+
+  const requestExit = () => {
+    if (fieldsDirty || rawDirty) setConfirmExit(true);
+    else onExit();
+  };
+
+  const runPreview = () => {
+    if (!data || activeMode === null) return;
+    const expectedHash = data.read.hash;
+    let input: AppConfigPreviewInput;
+    if (activeMode === "fields") {
+      const collected = collectChanges(data.schema.fields, drafts);
+      if (!collected.ok) {
+        setPhase({ status: "failed", error: FIX_FIRST });
+        return;
+      }
+      if (collected.changes.length === 0) {
+        setPhase({ status: "failed", error: NO_CHANGES });
+        return;
+      }
+      input = { id: summary.id, mode: "fields", changes: collected.changes, rawText: null, expectedHash };
+    } else {
+      if (rawDraft === rawBase) {
+        setPhase({ status: "failed", error: NO_CHANGES });
+        return;
+      }
+      input = { id: summary.id, mode: "raw", changes: [], rawText: rawDraft, expectedHash };
+    }
+    setPhase({ status: "previewing" });
+    previewAppConfigEdit(input).then(
+      (result) => setPhase({ status: "previewed", result }),
+      (error: unknown) => setPhase({ status: "failed", error: decodeAppError(error) }),
+    );
+  };
+
+  const runConfirm = (result: AppConfigPreviewResult) => {
+    if (result.previewToken === null) return;
+    setPhase({ status: "confirming", result });
+    confirmAppConfigEdit(result.previewToken).then(
+      () => onSaved(),
+      (error: unknown) => {
+        const decoded = decodeAppError(error);
+        setPhase(decoded.code === "CONFLICT" ? { status: "conflict" } : { status: "failed", error: decoded });
+      },
+    );
+  };
+
+  const serverMessages =
+    phase.status === "previewed" && !phase.result.ok ? phase.result.errors : [];
+  const serverByPath = issuesByPath(serverMessages);
+  const serverRaw = rawIssues(serverMessages);
+  const knownPaths = new Set(data?.schema.fields.map((field) => field.path) ?? []);
+  const unplaced = serverMessages.filter(
+    (issue) =>
+      issue.line === undefined && (issue.path === undefined || !knownPaths.has(issue.path)),
+  );
+
+  return (
+    <section aria-label="编辑应用配置" className="grid min-w-0 content-start gap-ui-12">
+      <div className="flex flex-wrap items-center justify-between gap-ui-8">
+        <p className="m-0 min-w-0 break-all text-aux text-muted-foreground">
+          正在编辑 {summary.displayPath}
+        </p>
+        <Button size="sm" disabled={busy} onClick={requestExit}>
+          返回查看
+        </Button>
+      </div>
+
+      {load.status === "loading" ? (
+        <p role="status" className="m-0 text-body text-muted-foreground">
+          正在读取……
+        </p>
+      ) : null}
+
+      {load.status === "failed" ? (
+        <Panel role="alert" className="grid gap-ui-8 p-ui-8">
+          <p className="m-0 text-body font-semibold text-danger">无法读取该文件，未进入编辑</p>
+          <p className="m-0 text-body">{load.error.message}</p>
+          <div>
+            <Button size="sm" onClick={() => setLoadKey((key) => key + 1)}>
+              重试
+            </Button>
+          </div>
+        </Panel>
+      ) : null}
+
+      {data && probe.status === "notFound" ? (
+        <p className="m-0 text-aux text-muted-foreground">文件还不存在，保存时会创建它。</p>
+      ) : null}
+
+      {data && modes && modes.tabs.length === 0 ? (
+        <p className="m-0 text-body">此条目暂不支持编辑。</p>
+      ) : null}
+
+      {data && modes && modes.tabs.length === 2 ? (
+        <SectionTabs
+          label="编辑方式"
+          sections={[
+            { id: "fields", label: "可视化" },
+            { id: "raw", label: "高级" },
+          ]}
+          selected={activeMode ?? "fields"}
+          onSelect={(section) => requestSwitch(section as EditTab)}
+        />
+      ) : null}
+
+      {data && activeMode === "fields" ? (
+        <FieldsForm
+          fields={data.schema.fields}
+          readouts={data.read.fields}
+          drafts={drafts}
+          serverByPath={serverByPath}
+          disabled={busy}
+          onChange={setDraft}
+        />
+      ) : null}
+
+      {data && activeMode === "raw" ? (
+        data.read.rawBlockedReason !== null ? (
+          <p role="status" className="m-0 text-body">
+            {data.read.rawBlockedReason}
+          </p>
+        ) : (
+          <TextAreaField
+            label="原始内容"
+            value={rawDraft}
+            spellCheck={false}
+            rows={16}
+            inputClassName="font-mono text-aux"
+            disabled={busy}
+            error={
+              serverRaw.length > 0 ? (
+                <ul className="m-0 grid list-none gap-ui-4 p-0">
+                  {serverRaw.map((issue) => (
+                    <li key={`${issue.line}-${issue.message}`}>
+                      第 {issue.line} 行：{issue.message}
+                    </li>
+                  ))}
+                </ul>
+              ) : undefined
+            }
+            onValueChange={setRaw}
+          />
+        )
+      ) : null}
+
+      {unplaced.length > 0 ? (
+        <ul className="m-0 grid list-none gap-ui-4 p-0 text-aux text-danger" role="alert">
+          {unplaced.map((issue) => (
+            <li key={issue.message}>{issue.message}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      <PhaseNotice phase={phase} onReload={() => setLoadKey((key) => key + 1)} />
+
+      {data && activeMode !== null && !(activeMode === "raw" && data.read.rawBlockedReason !== null) ? (
+        <ActionRow>
+          <Button
+            variant="primary"
+            disabled={busy}
+            onClick={runPreview}
+          >
+            {phase.status === "previewing" ? "正在生成预览…" : "预览更改"}
+          </Button>
+        </ActionRow>
+      ) : null}
+
+      {phase.status === "previewed" && phase.result.ok ? (
+        <PreviewModal
+          result={phase.result}
+          displayPath={summary.displayPath}
+          busy={false}
+          onCancel={() => setPhase({ status: "idle" })}
+          onConfirm={() => runConfirm(phase.result)}
+        />
+      ) : null}
+      {phase.status === "confirming" ? (
+        <PreviewModal
+          result={phase.result}
+          displayPath={summary.displayPath}
+          busy
+          onCancel={() => undefined}
+          onConfirm={() => undefined}
+        />
+      ) : null}
+
+      {pendingTab !== null ? (
+        <ConfirmDialog
+          className="grid gap-ui-12"
+          titleId="app-config-tab-switch"
+          onCancel={() => setPendingTab(null)}
+        >
+          <h3 id="app-config-tab-switch" className="m-0 text-group font-semibold">
+            切换会放弃当前模式未保存的修改
+          </h3>
+          <ActionRow align="end">
+            <Button variant="ghost" onClick={() => setPendingTab(null)}>
+              留在当前模式
+            </Button>
+            <Button variant="danger" onClick={() => discardAndSwitch(pendingTab)}>
+              放弃修改并切换
+            </Button>
+          </ActionRow>
+        </ConfirmDialog>
+      ) : null}
+
+      {confirmExit ? (
+        <ConfirmDialog
+          className="grid gap-ui-12"
+          titleId="app-config-exit"
+          onCancel={() => setConfirmExit(false)}
+        >
+          <h3 id="app-config-exit" className="m-0 text-group font-semibold">
+            返回查看会放弃未保存的修改
+          </h3>
+          <ActionRow align="end">
+            <Button variant="ghost" onClick={() => setConfirmExit(false)}>
+              继续编辑
+            </Button>
+            <Button variant="danger" onClick={onExit}>
+              放弃修改并返回
+            </Button>
+          </ActionRow>
+        </ConfirmDialog>
+      ) : null}
+    </section>
+  );
+}
+
+function PhaseNotice({ phase, onReload }: { phase: Phase; onReload: () => void }) {
+  switch (phase.status) {
+    case "conflict":
+      return (
+        <Panel role="alert" className="grid gap-ui-8 p-ui-8">
+          <p className="m-0 text-body font-semibold text-danger">{CONFLICT_MESSAGE}</p>
+          <div>
+            <Button size="sm" onClick={onReload}>
+              重新读取
+            </Button>
+          </div>
+        </Panel>
+      );
+    case "failed":
+      return (
+        <p role="alert" className="m-0 text-aux text-danger">
+          {phase.error.message}
+        </p>
+      );
+    case "idle":
+    case "previewing":
+    case "previewed":
+    case "confirming":
+      return null;
+  }
+}
+
+function PreviewModal({
+  result,
+  displayPath,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  result: AppConfigPreviewResult;
+  displayPath: string;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const empty = result.diff.trim().length === 0;
+  return (
+    <Modal
+      busy={busy}
+      footer={
+        <>
+          <Button variant="ghost" disabled={busy} onClick={onCancel}>
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            disabled={busy || empty || result.previewToken === null}
+            onClick={onConfirm}
+          >
+            {busy ? "正在写入…" : "确认写入"}
+          </Button>
+        </>
+      }
+      open
+      title="预览更改"
+      onClose={onCancel}
+    >
+      <div className="grid min-w-0 gap-ui-8">
+        <p className="m-0 break-all text-aux">
+          保存到 {displayPath}。保存前会备份原文件。
+        </p>
+        {result.warnings.map((warning) => (
+          <p key={warning} className="m-0 text-aux text-warning">
+            {warning}
+          </p>
+        ))}
+        {empty ? (
+          <p className="m-0 text-aux text-muted-foreground">没有实际改动，无需保存。</p>
+        ) : (
+          <>
+            <p className="m-0 text-aux text-muted-foreground">
+              以 - 开头的行会被删除，以 + 开头的行会被新增。
+            </p>
+            <CodeViewer
+              allowWindow={false}
+              label="差异内容"
+              language="plain"
+              text={result.diff}
+              title="差异"
+            />
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+function FieldsForm({
+  fields,
+  readouts,
+  drafts,
+  serverByPath,
+  disabled,
+  onChange,
+}: {
+  fields: readonly AppConfigFieldSpec[];
+  readouts: readonly AppConfigFieldReadout[];
+  drafts: FieldDrafts;
+  serverByPath: Record<string, string>;
+  disabled: boolean;
+  onChange: (path: string, draft: FieldDraft | undefined) => void;
+}) {
+  return (
+    <ul aria-label="设置项" className="m-0 grid list-none gap-ui-12 p-0">
+      {fields.map((spec) => {
+        const readout = readouts.find((candidate) => candidate.path === spec.path);
+        const draft = drafts[spec.path];
+        const clientError = draft ? clientMessage(spec, draft) : undefined;
+        return (
+          <FieldRow
+            key={spec.path}
+            spec={spec}
+            readout={readout}
+            draft={draft}
+            disabled={disabled}
+            error={clientError ?? serverByPath[spec.path]}
+            onChange={(next) => onChange(spec.path, next)}
+          />
+        );
+      })}
+    </ul>
+  );
+}
+
+function clientMessage(spec: AppConfigFieldSpec, draft: FieldDraft): string | undefined {
+  const checked = checkFieldDraft(spec, draft);
+  return checked.ok ? undefined : checked.message;
+}
+
+function rangeHint(spec: AppConfigFieldSpec): string | null {
+  if (spec.kind !== "integer" && spec.kind !== "number") return null;
+  if (spec.min !== null && spec.max !== null) return `允许范围：${spec.min} 到 ${spec.max}`;
+  if (spec.min !== null) return `不小于 ${spec.min}`;
+  if (spec.max !== null) return `不大于 ${spec.max}`;
+  return null;
+}
+
+function FieldRow({
+  spec,
+  readout,
+  draft,
+  disabled,
+  error,
+  onChange,
+}: {
+  spec: AppConfigFieldSpec;
+  readout: AppConfigFieldReadout | undefined;
+  draft: FieldDraft | undefined;
+  disabled: boolean;
+  error: string | undefined;
+  onChange: (next: FieldDraft | undefined) => void;
+}) {
+  const status = fieldStatus(spec, readout, draft);
+  const tip: ReactNode = <InfoTip title={spec.label} description={spec.description} />;
+  const text = draft?.kind === "text" ? draft.text : initialTextFor(spec, readout);
+  const removable = Boolean(readout?.present) && draft?.kind !== "remove";
+  const hint = rangeHint(spec);
+
+  return (
+    <li className="grid min-w-0 gap-ui-4 border-t border-line pt-ui-12">
+      {spec.kind === "bool" ? (
+        <SwitchField
+          label={spec.label}
+          tip={tip}
+          checked={draft?.kind === "bool" ? draft.value : readout?.value === true}
+          disabled={disabled}
+          error={error}
+          onCheckedChange={(value) => onChange({ kind: "bool", value })}
+        />
+      ) : null}
+      {spec.kind === "enum" ? (
+        <SelectField<string>
+          label={spec.label}
+          tip={tip}
+          value={text}
+          disabled={disabled}
+          error={error}
+          options={[
+            { value: "", label: "请选择" },
+            ...spec.enumValues.map((value) => ({ value, label: value })),
+          ]}
+          onValueChange={(value) => onChange({ kind: "text", text: value })}
+        />
+      ) : null}
+      {spec.kind === "string" && spec.sensitive ? (
+        <SecretReplacementField
+          label={spec.label}
+          tip={tip}
+          value={text}
+          placeholder={readout?.present ? "已设置，输入新值即可替换" : "未设置"}
+          disabled={disabled}
+          error={error}
+          onValueChange={(value) => onChange({ kind: "text", text: value })}
+        />
+      ) : null}
+      {spec.kind === "string" && !spec.sensitive ? (
+        <TextField
+          label={spec.label}
+          tip={tip}
+          value={text}
+          maxLength={256}
+          disabled={disabled}
+          error={error}
+          onValueChange={(value) => onChange({ kind: "text", text: value })}
+        />
+      ) : null}
+      {spec.kind === "integer" || spec.kind === "number" ? (
+        <TextField
+          label={spec.label}
+          tip={tip}
+          value={text}
+          inputMode={spec.kind === "integer" ? "numeric" : "decimal"}
+          disabled={disabled}
+          error={error}
+          onValueChange={(value) => onChange({ kind: "text", text: value })}
+        />
+      ) : null}
+
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-ui-8">
+        <p className="m-0 flex flex-wrap gap-x-ui-12 text-aux text-muted-foreground">
+          <span className={status.changed ? "text-foreground" : undefined}>{status.label}</span>
+          {hint ? <span>{hint}</span> : null}
+        </p>
+        <div className="flex flex-wrap items-center gap-ui-4">
+          {draft ? (
+            <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange(undefined)}>
+              撤销
+            </Button>
+          ) : null}
+          {removable ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={disabled}
+              onClick={() => onChange({ kind: "remove" })}
+            >
+              {spec.default !== null ? "恢复默认" : "移除"}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  );
+}

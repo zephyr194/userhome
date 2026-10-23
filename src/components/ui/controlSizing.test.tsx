@@ -141,7 +141,9 @@ const FORM_TAG =
   /<(TextField|SelectField|TextAreaField|SecretReplacementField|CheckboxField|SwitchField|RadioCardGroup|input|select|textarea)\b/;
 
 // 人工复核过的“页面内既有 size=\"sm\" 按钮又有表单控件”的文件（同排只检出 3 处混档并已改为 md）
+// AppConfigEditor：sm 按钮只与文字同排（返回查看、撤销、移除），表单控件各自独占一行，无 sm 与 md 控件同排
 const REVIEWED_SM_WITH_FORMS = [
+  "features/app-config/AppConfigEditor.tsx",
   "features/caddy/CaddyRulesEditor.tsx",
   "features/environment/DotenvEditor.tsx",
   "features/environment/EnvironmentView.tsx",
