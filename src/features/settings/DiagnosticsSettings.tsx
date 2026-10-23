@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { Button, Panel, StatusBadge } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import { formatNumber } from "../../i18n/format";
+import type { MessageKey } from "../../i18n";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   exportDiagnosticsReport,
   getDiagnosticsReport,
@@ -22,18 +25,18 @@ type ReportState =
   | { status: "ready"; report: DiagnosticsReport }
   | { status: "error"; error: AppError };
 
-const PROVIDER_LABELS = {
-  system: "系统",
-  homebrew: "Homebrew",
-  candidates: "候选发现",
-} as const;
+const PROVIDER_LABEL_KEYS = {
+  system: "settings.diagnostics.provider.system",
+  homebrew: "settings.diagnostics.provider.homebrew",
+  candidates: "settings.diagnostics.provider.candidates",
+} as const satisfies Record<DiagnosticsReport["providers"][number]["id"], MessageKey>;
 
-const PROVIDER_STATE_LABELS: Record<DiagnosticProviderState, string> = {
-  LOADING: "加载中",
-  HEALTHY: "正常",
-  PARTIAL: "部分可用",
-  UNAVAILABLE: "不可用",
-  ERROR: "错误",
+const PROVIDER_STATE_LABEL_KEYS: Record<DiagnosticProviderState, MessageKey> = {
+  LOADING: "common.loading",
+  HEALTHY: "settings.diagnostics.state.healthy",
+  PARTIAL: "settings.diagnostics.state.partial",
+  UNAVAILABLE: "settings.diagnostics.state.unavailable",
+  ERROR: "settings.diagnostics.state.error",
 };
 
 function providerTone(
@@ -46,6 +49,8 @@ function providerTone(
 }
 
 export function DiagnosticsSettings() {
+  const t = useT();
+  const locale = useLocale();
   const [state, setState] = useState<ReportState>({ status: "loading" });
   const [busyAction, setBusyAction] = useState<"copy" | "export">();
   const [message, setMessage] = useState<string>();
@@ -88,9 +93,9 @@ export function DiagnosticsSettings() {
         throw new Error("Clipboard API unavailable");
       }
       await navigator.clipboard.writeText(report.reportText);
-      setMessage("净化诊断报告已复制到剪贴板。");
+      setMessage(t("settings.diagnostics.copied"));
     } catch {
-      setActionError("无法复制诊断报告。请检查系统剪贴板权限后重试。");
+      setActionError(t("settings.diagnostics.copyFailed"));
     } finally {
       setBusyAction(undefined);
     }
@@ -103,7 +108,7 @@ export function DiagnosticsSettings() {
     setActionError(undefined);
     try {
       const exported = await exportDiagnosticsReport();
-      setMessage(`净化诊断报告已导出到 ${exported.displayLocation}。`);
+      setMessage(t("settings.diagnostics.exported", { location: exported.displayLocation }));
     } catch (caught) {
       setActionError(decodeAppError(caught).message);
     } finally {
@@ -112,7 +117,7 @@ export function DiagnosticsSettings() {
   }
 
   if (state.status === "loading") {
-    return <AsyncState kind="loading">正在生成净化诊断报告…</AsyncState>;
+    return <AsyncState kind="loading">{t("settings.diagnostics.generating")}</AsyncState>;
   }
 
   if (state.status === "error") {
@@ -121,7 +126,7 @@ export function DiagnosticsSettings() {
         <AsyncState kind="error">{state.error.message}</AsyncState>
         <SettingsActions className="border-0 pt-0">
           <Button size="sm" onClick={() => void loadReport()}>
-            重新生成
+            {t("settings.diagnostics.regenerate")}
           </Button>
         </SettingsActions>
       </SettingsForm>
@@ -134,19 +139,23 @@ export function DiagnosticsSettings() {
     <SettingsForm busy={busyAction !== undefined}>
       <SettingsFieldList>
         <SettingsValueField
-          label="应用与系统"
+          label={t("settings.diagnostics.appSystem.label")}
           description={
-            <>
-              UserHome {report.application.version} · macOS{" "}
-              {report.system.macosVersion ?? "未知"}
-            </>
+            t("settings.diagnostics.appSystem.description", {
+              version: report.application.version,
+              macos: report.system.macosVersion ?? t("settings.diagnostics.unknown"),
+            })
           }
         >
           {report.system.architecture}
         </SettingsValueField>
         <SettingsValueField
           label="Catalog"
-          description={`${report.catalog.applicationCount} 个应用 · ${report.catalog.managedDocumentCount} 个受管文档 · ${report.catalog.serviceCount} 个服务`}
+          description={t("settings.diagnostics.catalog.description", {
+            applications: formatNumber(report.catalog.applicationCount, locale),
+            documents: formatNumber(report.catalog.managedDocumentCount, locale),
+            services: formatNumber(report.catalog.serviceCount, locale),
+          })}
         >
           <StatusBadge tone="success">
             schema {report.catalog.schemaVersion}
@@ -160,8 +169,8 @@ export function DiagnosticsSettings() {
       >
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12">
           <SettingsSection
-            title="提供程序健康"
-            description="仅显示固定提供程序和枚举状态，不包含错误详情或候选路径。"
+            title={t("settings.diagnostics.providers.title")}
+            description={t("settings.diagnostics.providers.description")}
             headingId="diagnostics-provider-heading"
           />
           <Button
@@ -169,7 +178,7 @@ export function DiagnosticsSettings() {
             disabled={busyAction !== undefined}
             onClick={() => void loadReport()}
           >
-            重新生成
+            {t("settings.diagnostics.regenerate")}
           </Button>
         </div>
         <div className="mt-ui-12 flex flex-wrap gap-ui-8">
@@ -178,16 +187,18 @@ export function DiagnosticsSettings() {
               key={provider.id}
               tone={providerTone(provider.state)}
             >
-              {PROVIDER_LABELS[provider.id]}：
-              {PROVIDER_STATE_LABELS[provider.state]}
+              {t("settings.diagnostics.providerStatus", {
+                provider: t(PROVIDER_LABEL_KEYS[provider.id]),
+                state: t(PROVIDER_STATE_LABEL_KEYS[provider.state]),
+              })}
             </StatusBadge>
           ))}
         </div>
       </Panel>
 
       <SettingsSection
-        title="净化报告"
-        description="不包含配置内容、密钥、用户名、绝对主目录、环境变量或授权材料。"
+        title={t("settings.diagnostics.report.title")}
+        description={t("settings.diagnostics.report.description")}
         headingId="diagnostics-report-heading"
       >
         <div className="flex min-w-0 flex-wrap justify-end gap-ui-8">
@@ -196,14 +207,14 @@ export function DiagnosticsSettings() {
             disabled={busyAction !== undefined}
             onClick={() => void copyReport(report)}
           >
-            {busyAction === "copy" ? "正在复制…" : "复制"}
+            {busyAction === "copy" ? t("settings.diagnostics.copying") : t("common.copy")}
           </Button>
           <Button
             size="sm"
             disabled={busyAction !== undefined}
             onClick={() => void exportReport()}
           >
-            {busyAction === "export" ? "正在导出…" : "导出…"}
+            {busyAction === "export" ? t("settings.diagnostics.exporting") : t("settings.diagnostics.export")}
           </Button>
         </div>
         <pre

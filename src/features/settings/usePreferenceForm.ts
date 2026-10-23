@@ -4,11 +4,13 @@ import type {
   UpdatePreferencesRequest,
   UserPreferences,
 } from "../../ipc/settings";
+import { useT } from "../../i18n/useLocale";
 
 export function usePreferenceForm(
   preferences: UserPreferences,
   onChange: (patch: UpdatePreferencesRequest) => Promise<void>,
 ) {
+  const t = useT();
   const inFlight = useRef(false);
   const [pending, setPending] = useState<UpdatePreferencesRequest>();
   const [status, setStatus] = useState<string>();
@@ -26,7 +28,7 @@ export function usePreferenceForm(
     setError(undefined);
     try {
       await onChange(patch);
-      setStatus(`${label}已保存。`);
+      setStatus(t("settings.form.saved", { label }));
       return true;
     } catch (caught) {
       setError(decodeAppError(caught).message);

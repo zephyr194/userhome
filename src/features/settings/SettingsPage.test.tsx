@@ -1,9 +1,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { PreferencesState } from "../../app/shellState";
+import { translate } from "../../i18n";
 import type { UserPreferences } from "../../ipc/settings";
 import { SETTINGS_GROUPS, type SettingsGroupId } from "./settingsGroups";
 import { SettingsPage } from "./SettingsPage";
+
+const groupLabel = (group: (typeof SETTINGS_GROUPS)[number]) =>
+  translate("zh-CN", group.labelKey);
 
 const preferences: UserPreferences = {
   schemaVersion: 1,
@@ -62,7 +66,7 @@ describe("settings page list/detail reference layout", () => {
     expect(SETTINGS_GROUPS).toHaveLength(7);
     expect(markup.match(/role="tab"/g) ?? []).toHaveLength(7);
     for (const group of SETTINGS_GROUPS) {
-      expect(markup).toContain(group.label);
+      expect(markup).toContain(groupLabel(group));
     }
 
     // Selection is restored purely from the selectedGroup prop.
@@ -87,7 +91,7 @@ describe("settings page list/detail reference layout", () => {
       // One heading only: the selected detail group heading.
       expect(markup.match(/<h2/g) ?? []).toHaveLength(1);
       expect(markup).toContain(`id="settings-${group.id}-heading"`);
-      expect(markup).toContain(`>${group.label}</h2>`);
+      expect(markup).toContain(`>${groupLabel(group)}</h2>`);
       // The old in-page "设置" page title and brand kicker are gone.
       expect(markup).not.toMatch(/<h2[^>]*>设置<\/h2>/);
       expect(markup).not.toContain("UserHome 偏好");
@@ -97,13 +101,14 @@ describe("settings page list/detail reference layout", () => {
 
   it("offers the appearance group as a three-way choice", () => {
     const markup = render("appearance");
+    const appearanceMode = markup.split('role="radiogroup"')[1].split('role="radiogroup"')[0];
 
     expect(markup).toContain('role="radiogroup"');
-    expect(markup.match(/role="radio"/g) ?? []).toHaveLength(3);
+    expect(appearanceMode.match(/role="radio"/g) ?? []).toHaveLength(3);
     expect(markup).toContain("系统");
     expect(markup).toContain("浅色");
     expect(markup).toContain("深色");
-    expect(markup.match(/aria-checked="true"/g) ?? []).toHaveLength(1);
+    expect(appearanceMode.match(/aria-checked="true"/g) ?? []).toHaveLength(1);
   });
 
   it("keeps the dangerous reset action reachable", () => {

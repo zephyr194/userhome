@@ -2,6 +2,7 @@ import { TabGroup, TabPanel, TabPanels } from "@headlessui/react";
 import { AsyncState } from "../../components/AsyncState";
 import { PageShell, StatusBadge } from "../../components/ui";
 import type { PreferencesState } from "../../app/shellState";
+import { useT } from "../../i18n/useLocale";
 import type {
   Appearance,
   UpdatePreferencesRequest,
@@ -33,6 +34,7 @@ export function SettingsPage({
   preferences: PreferencesState;
   selectedGroup: SettingsGroupId;
 }) {
+  const t = useT();
   const selectedIndex = Math.max(
     0,
     SETTINGS_GROUPS.findIndex((candidate) => candidate.id === selectedGroup),
@@ -43,7 +45,7 @@ export function SettingsPage({
       as="div"
       className="settings-pane borderless-pane h-full min-h-0 min-w-0"
       role="region"
-      aria-label="设置"
+      aria-label={t("settings.page.label")}
       selectedIndex={selectedIndex}
       onChange={(index) => onSelectedGroupChange(SETTINGS_GROUPS[index].id)}
       vertical
@@ -71,10 +73,10 @@ export function SettingsPage({
                           className="m-0 break-words text-xl font-semibold"
                           id={headingId}
                         >
-                          {group.label}
+                          {t(group.labelKey)}
                         </h2>
                         <p className="mt-ui-4 mb-0 break-words text-xs leading-relaxed text-muted-foreground">
-                          {group.summary}
+                          {t(group.summaryKey)}
                         </p>
                       </div>
                       <StatusBadge
@@ -86,10 +88,10 @@ export function SettingsPage({
                         }
                       >
                         {preferences.status === "loading"
-                          ? "加载中"
+                          ? t("common.loading")
                           : preferences.status === "safe-default"
-                            ? "安全默认值"
-                            : "已加载"}
+                            ? t("settings.status.safeDefault")
+                            : t("settings.status.loaded")}
                       </StatusBadge>
                     </header>
 
@@ -99,17 +101,18 @@ export function SettingsPage({
                           className="m-0 mb-ui-12 rounded-control bg-warning-soft px-ui-12 py-ui-8 text-xs leading-relaxed text-warning"
                           role="status"
                         >
-                          正在使用安全默认值：{preferences.diagnostic.message}
+                          {t("settings.page.safeDefaultNotice", { message: preferences.diagnostic.message })}
                         </p>
                       ) : null}
                       {preferences.status === "loading" ? (
                         <AsyncState kind="loading">
-                          正在加载本机偏好设置…
+                          {t("settings.page.loadingPreferences")}
                         </AsyncState>
                       ) : group.id === "appearance" ? (
                         <AppearanceSettings
-                          appearance={preferences.preferences.appearance}
-                          onChange={onAppearanceChange}
+                          onAppearanceChange={onAppearanceChange}
+                          onPreferencesChange={onPreferencesChange}
+                          preferences={preferences.preferences}
                         />
                       ) : group.id === "general" ? (
                         <GeneralSettings

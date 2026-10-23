@@ -2,6 +2,7 @@ import { useId, type HTMLAttributes, type ReactNode } from "react";
 import { Button, InfoTip, Modal, StatusBadge } from "../../components/ui";
 import type { StatusBadgeProps } from "../../components/ui/StatusBadge";
 import { classNames } from "../../components/ui/classNames";
+import { useT } from "../../i18n/useLocale";
 
 export function SettingsForm({
   busy = false,
@@ -229,7 +230,7 @@ export function SettingsConfirmationDialog({
   cancelLabel,
   children,
   error,
-  errorStatus = "操作失败",
+  errorStatus,
   eyebrow,
   onCancel,
   status,
@@ -250,6 +251,7 @@ export function SettingsConfirmationDialog({
   title: string;
   titleId: string;
 }) {
+  const t = useT();
   return (
     <Modal
       busy={busy}
@@ -282,7 +284,7 @@ export function SettingsConfirmationDialog({
             </h3>
           </div>
           <StatusBadge tone={error ? "danger" : statusTone}>
-            {error ? errorStatus : status}
+            {error ? (errorStatus ?? t("settings.feedback.actionFailed")) : status}
           </StatusBadge>
         </div>
       }

@@ -1,10 +1,30 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { UserPreferences } from "../../ipc/settings";
 import { AppearanceSettings } from "./AppearanceSettings";
+
+const preferences: UserPreferences = {
+  schemaVersion: 1,
+  appearance: "SYSTEM",
+  openWindowOnLaunch: true,
+  closeBehavior: "KEEP_RUNNING_IN_TRAY",
+  restoreSelection: true,
+  refreshOnLaunch: true,
+  refreshOnReopen: true,
+  providerTimeoutPreset: "STANDARD",
+  preferredEditorMode: "STRUCTURED",
+  backupRetention: 20,
+  optionalDiscoveryRoots: ["HOME"],
+  language: "system",
+};
 
 describe("外观主题卡片（r4-fe5）", () => {
   const html = renderToStaticMarkup(
-    <AppearanceSettings appearance="SYSTEM" onChange={() => Promise.resolve()} />,
+    <AppearanceSettings
+      onAppearanceChange={() => Promise.resolve()}
+      onPreferencesChange={() => Promise.resolve()}
+      preferences={preferences}
+    />,
   );
 
   it("三个主题卡片排成三列，窄窗口退为一列", () => {

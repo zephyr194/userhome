@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Panel, StatusBadge } from "../../components/ui";
 import { decodeAppError, type AppError } from "../../ipc/core";
+import { useT } from "../../i18n/useLocale";
 import {
   SettingsConfirmationDialog,
   SettingsDangerZone,
@@ -21,6 +22,7 @@ function ResetConfirmation({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useT();
   return (
     <SettingsConfirmationDialog
       action={
@@ -31,18 +33,18 @@ function ResetConfirmation({
             disabled={busy}
             onClick={onConfirm}
           >
-            {busy ? "正在重置…" : "确认重置偏好"}
+            {busy ? t("settings.reset.confirming") : t("settings.reset.confirm")}
           </Button>
         ) : undefined
       }
       busy={busy}
-      cancelLabel={error ? "关闭" : "取消"}
+      cancelLabel={error ? t("common.close") : t("common.cancel")}
       error={error?.message}
-      errorStatus="重置失败"
-      eyebrow="待确认偏好重置"
+      errorStatus={t("settings.reset.failed")}
+      eyebrow={t("settings.reset.eyebrow")}
       onCancel={onCancel}
-      status={busy ? "正在重置" : "等待确认"}
-      title="恢复 UserHome 安全默认值？"
+      status={busy ? t("settings.reset.statusBusy") : t("settings.reset.statusWaiting")}
+      title={t("settings.reset.title")}
       titleId="preferences-reset-heading"
     >
       <Panel
@@ -53,12 +55,12 @@ function ResetConfirmation({
           className="text-xs font-semibold"
           id="preferences-reset-effects-heading"
         >
-          本次操作影响
+          {t("settings.reset.effects.heading")}
         </h4>
         <ul className="mt-ui-8 mb-0 list-disc space-y-ui-4 pl-ui-16 text-muted-foreground">
-          <li>外观、生命周期、刷新、编辑器和发现根偏好恢复默认。</li>
-          <li>所有 UserHome 配置备份保持不变。</li>
-          <li>所有受管应用配置文件和服务保持不变。</li>
+          <li>{t("settings.reset.effects.preferences")}</li>
+          <li>{t("settings.reset.effects.backups")}</li>
+          <li>{t("settings.reset.effects.managed")}</li>
         </ul>
       </Panel>
     </SettingsConfirmationDialog>
@@ -72,6 +74,7 @@ export function ResetSettings({
   onDiscoveryRefresh: () => void;
   onReset: () => Promise<void>;
 }) {
+  const t = useT();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<AppError>();
@@ -84,7 +87,7 @@ export function ResetSettings({
     try {
       await onReset();
       setDialogOpen(false);
-      setStatus("偏好已恢复安全默认值；备份和受管配置保持不变。");
+      setStatus(t("settings.reset.done"));
       onDiscoveryRefresh();
     } catch (caught) {
       setError(decodeAppError(caught));
@@ -97,28 +100,28 @@ export function ResetSettings({
     <SettingsForm busy={busy}>
       <SettingsFieldList>
         <SettingsValueField
-          label="偏好设置"
-          description="恢复版本化、经过验证的 UserHome 默认值。"
+          label={t("settings.reset.prefs.label")}
+          description={t("settings.reset.prefs.description")}
         >
-          恢复默认
+          {t("settings.reset.prefs.value")}
         </SettingsValueField>
         <SettingsValueField
-          label="配置备份"
-          description="不会删除；清理备份始终使用单独的预览和确认流程。"
+          label={t("settings.reset.backups.label")}
+          description={t("settings.reset.backups.description")}
         >
-          <StatusBadge tone="success">保留</StatusBadge>
+          <StatusBadge tone="success">{t("settings.reset.kept")}</StatusBadge>
         </SettingsValueField>
         <SettingsValueField
-          label="受管配置"
-          description="不会修改应用配置文件、服务或 catalog 授权。"
+          label={t("settings.reset.managed.label")}
+          description={t("settings.reset.managed.description")}
         >
-          <StatusBadge tone="success">保留</StatusBadge>
+          <StatusBadge tone="success">{t("settings.reset.kept")}</StatusBadge>
         </SettingsValueField>
       </SettingsFieldList>
 
       <SettingsDangerZone
-        title="重置偏好"
-        description="此操作会立即更新当前外观和发现设置，并在下次启动继续使用默认值；不会删除备份或修改受管配置。"
+        title={t("settings.reset.dangerTitle")}
+        description={t("settings.reset.dangerDescription")}
       >
         <Button
           size="sm"
@@ -130,7 +133,7 @@ export function ResetSettings({
             setDialogOpen(true);
           }}
         >
-          重置偏好…
+          {t("settings.reset.open")}
         </Button>
       </SettingsDangerZone>
 

@@ -1,8 +1,16 @@
 import { useRef, useState } from "react";
 import { decodeAppError } from "../../ipc/core";
-import type { Appearance } from "../../ipc/settings";
+import type {
+  Appearance,
+  LanguagePreference,
+  UpdatePreferencesRequest,
+  UserPreferences,
+} from "../../ipc/settings";
 import { InfoTip, RadioCardGroup } from "../../components/ui";
+import { LANGUAGE_NAMES } from "../../i18n/messages/languageNames";
+import { useT } from "../../i18n/useLocale";
 import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsValueField } from "./SettingsPrimitives";
+import { usePreferenceForm } from "./usePreferenceForm";
 
 interface AppearanceOption {
   description: string;
@@ -10,36 +18,65 @@ interface AppearanceOption {
   value: Appearance;
 }
 
-const APPEARANCE_OPTIONS: readonly AppearanceOption[] = [
-  {
-    value: "SYSTEM",
-    label: "系统",
-    description: "自动跟随 macOS 外观。",
-  },
-  {
-    value: "LIGHT",
-    label: "浅色",
-    description: "始终使用浅色语义颜色。",
-  },
-  {
-    value: "DARK",
-    label: "深色",
-    description: "始终使用深色语义颜色。",
-  },
-];
+interface LanguageOption {
+  description: string;
+  label: string;
+  value: LanguagePreference;
+}
 
 export function AppearanceSettings({
-  appearance,
-  onChange,
+  onAppearanceChange,
+  onPreferencesChange,
+  preferences,
 }: {
-  appearance: Appearance;
-  onChange: (appearance: Appearance) => Promise<void>;
+  onAppearanceChange: (appearance: Appearance) => Promise<void>;
+  onPreferencesChange: (patch: UpdatePreferencesRequest) => Promise<void>;
+  preferences: UserPreferences;
 }) {
+  const t = useT();
+  const appearance = preferences.appearance;
   const [pendingAppearance, setPendingAppearance] = useState<Appearance>();
   const [saving, setSaving] = useState(false);
   const [savedAppearance, setSavedAppearance] = useState<Appearance>();
   const [error, setError] = useState<string>();
   const updateInFlight = useRef(false);
+  const language = usePreferenceForm(preferences, onPreferencesChange);
+
+  const appearanceOptions: readonly AppearanceOption[] = [
+    {
+      value: "SYSTEM",
+      label: t("settings.appearance.option.system"),
+      description: t("settings.appearance.option.systemDescription"),
+    },
+    {
+      value: "LIGHT",
+      label: t("settings.appearance.option.light"),
+      description: t("settings.appearance.option.lightDescription"),
+    },
+    {
+      value: "DARK",
+      label: t("settings.appearance.option.dark"),
+      description: t("settings.appearance.option.darkDescription"),
+    },
+  ];
+
+  const languageOptions: readonly LanguageOption[] = [
+    {
+      value: "system",
+      label: LANGUAGE_NAMES.system,
+      description: t("settings.language.option.systemDescription"),
+    },
+    {
+      value: "zh-CN",
+      label: LANGUAGE_NAMES["zh-CN"],
+      description: t("settings.language.option.zhCNDescription"),
+    },
+    {
+      value: "en",
+      label: LANGUAGE_NAMES.en,
+      description: t("settings.language.option.enDescription"),
+    },
+  ];
 
   async function selectAppearance(nextAppearance: Appearance) {
     if (
@@ -56,7 +93,7 @@ export function AppearanceSettings({
     setSaving(true);
 
     try {
-      await onChange(nextAppearance);
+      await onAppearanceChange(nextAppearance);
       setSavedAppearance(nextAppearance);
     } catch (updateError) {
       setError(decodeAppError(updateError).message);
@@ -69,51 +106,68 @@ export function AppearanceSettings({
 
   const selectedAppearance = pendingAppearance ?? appearance;
   const selectedLabel =
-    APPEARANCE_OPTIONS.find(
+    appearanceOptions.find(
       (option) => option.value === selectedAppearance,
-    )?.label ?? "系统";
+    )?.label ?? appearanceOptions[0].label;
   const savedLabel = savedAppearance
-    ? APPEARANCE_OPTIONS.find((option) => option.value === savedAppearance)
+    ? appearanceOptions.find((option) => option.value === savedAppearance)
         ?.label
     : undefined;
 
   return (
-    <SettingsForm busy={saving}>
+    <SettingsForm busy={saving || language.saving}>
       <RadioCardGroup
-        tip={<InfoTip description="选择系统、浅色或深色语义颜色；保存后立即应用。" title="外观模式" />}
+        tip={<InfoTip description={t("settings.appearance.mode.tip")} title={t("settings.appearance.mode.label")} />}
         columns={3}
-        label="外观模式"
+        label={t("settings.appearance.mode.label")}
         name="appearance"
         value={selectedAppearance}
         disabled={saving}
-        options={APPEARANCE_OPTIONS}
+        options={appearanceOptions}
         onValueChange={(value) => void selectAppearance(value)}
       />
 
       <SettingsFeedback
-        error={error ? `无法保存外观：${error}` : undefined}
+        error={error ? t("settings.appearance.saveError", { message: error }) : undefined}
         statusTone={savedLabel ? "success" : "neutral"}
         status={
           saving
-            ? `正在保存${selectedLabel}外观…`
+            ? t("settings.appearance.saving", { label: selectedLabel })
             : savedLabel
-              ? `已保存${savedLabel}外观。`
-              : `当前使用${selectedLabel}外观。`
+              ? t("settings.appearance.saved", { label: savedLabel })
+              : t("settings.appearance.current", { label: selectedLabel })
         }
       />
 
+      <RadioCardGroup
+        tip={<InfoTip description={t("settings.language.tip")} title={t("settings.language.label")} />}
+        columns={3}
+        label={t("settings.language.label")}
+        name="language"
+        value={language.values.language}
+        disabled={language.saving}
+        options={languageOptions}
+        onValueChange={(value) =>
+          void language.update(t("settings.saveLabel.language"), {
+            language: value as LanguagePreference,
+          })
+        }
+      />
+
+      <SettingsFeedback error={language.error} status={language.status} />
+
       <SettingsFieldList>
         <SettingsValueField
-          label="界面密度"
-          description="固定窗口内保持桌面工具的信息密度。"
+          label={t("settings.appearance.density.label")}
+          description={t("settings.appearance.density.description")}
         >
-          紧凑
+          {t("settings.appearance.density.value")}
         </SettingsValueField>
         <SettingsValueField
-          label="动态效果"
-          description="尊重 macOS 的“减少动态效果”设置。"
+          label={t("settings.appearance.motion.label")}
+          description={t("settings.appearance.motion.description")}
         >
-          跟随系统
+          {t("settings.appearance.motion.value")}
         </SettingsValueField>
       </SettingsFieldList>
     </SettingsForm>

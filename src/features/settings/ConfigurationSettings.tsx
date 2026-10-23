@@ -5,6 +5,7 @@ import type {
 } from "../../ipc/settings";
 import { BackupSettings } from "./BackupSettings";
 import { InfoTip, RadioCardGroup } from "../../components/ui";
+import { useT } from "../../i18n/useLocale";
 import { SettingsFeedback, SettingsForm } from "./SettingsPrimitives";
 import { usePreferenceForm } from "./usePreferenceForm";
 
@@ -15,21 +16,22 @@ export function ConfigurationSettings({
   onChange: (patch: UpdatePreferencesRequest) => Promise<void>;
   preferences: UserPreferences;
 }) {
+  const t = useT();
   const form = usePreferenceForm(preferences, onChange);
 
   return (
     <SettingsForm busy={form.saving}>
       <RadioCardGroup
-        tip={<InfoTip description="仅当该配置的授权允许时显示编辑器；此偏好不会授予新的配置写入权限。" title="首选编辑器模式" />}
-        label="首选编辑器模式"
+        tip={<InfoTip description={t("settings.configuration.editorMode.tip")} title={t("settings.configuration.editorMode.label")} />}
+        label={t("settings.configuration.editorMode.label")}
         name="preferred-editor-mode"
         value={form.values.preferredEditorMode}
         disabled={form.saving}
         options={[
-          { value: "STRUCTURED", label: "结构化", description: "优先使用受约束字段编辑器，必要时回退到 raw。" },
-          { value: "RAW", label: "Raw", description: "显式选择文本编辑器；仍保留预览、确认与写入策略。" },
+          { value: "STRUCTURED", label: t("settings.configuration.editorMode.structured"), description: t("settings.configuration.editorMode.structuredDesc") },
+          { value: "RAW", label: "Raw", description: t("settings.configuration.editorMode.rawDesc") },
         ]}
-        onValueChange={(preferredEditorMode) => void form.update("首选编辑器模式", { preferredEditorMode: preferredEditorMode as PreferredEditorMode })}
+        onValueChange={(preferredEditorMode) => void form.update(t("settings.saveLabel.editorMode"), { preferredEditorMode: preferredEditorMode as PreferredEditorMode })}
       />
 
       <BackupSettings

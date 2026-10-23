@@ -14,6 +14,9 @@ import {
   type UpdatePreferencesRequest,
   type UserPreferences,
 } from "../../ipc/settings";
+import { formatByteSize } from "../../i18n/format";
+import type { MessageKey } from "../../i18n";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   SettingsActions,
   SettingsConfirmationDialog,
@@ -27,16 +30,10 @@ type StorageState =
   | { status: "error"; error: AppError };
 
 const RETENTION_OPTIONS = [
-  [5, "5 份", "适合较小的本机存储预算。"],
-  [10, "10 份", "平衡回滚历史和磁盘占用。"],
-  [20, "20 份", "保留最长的受管配置历史。"],
-] as const satisfies readonly [BackupRetention, string, string][];
-
-function formatBytes(value: number): string {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-}
+  [5, "settings.backup.retention.desc5"],
+  [10, "settings.backup.retention.desc10"],
+  [20, "settings.backup.retention.desc20"],
+] as const satisfies readonly [BackupRetention, MessageKey][];
 
 function BackupClearDialog({
   busy,
@@ -53,6 +50,7 @@ function BackupClearDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useT();
   const finished = operation?.status === "SUCCEEDED";
 
   return (
@@ -65,17 +63,17 @@ function BackupClearDialog({
             disabled={busy}
             onClick={onConfirm}
           >
-            {busy ? "正在清理…" : "确认清理"}
+            {busy ? t("settings.backup.clearing") : t("settings.backup.confirmClear")}
           </Button>
         ) : undefined
       }
       busy={busy}
-      cancelLabel={finished || error ? "关闭" : "取消"}
+      cancelLabel={finished || error ? t("common.close") : t("common.cancel")}
       error={error?.message}
-      errorStatus="清理失败"
-      eyebrow="待确认备份清理"
+      errorStatus={t("settings.backup.clearFailed")}
+      eyebrow={t("settings.backup.clearEyebrow")}
       onCancel={onCancel}
-      status={finished ? "已完成" : busy ? "正在清理" : "等待确认"}
+      status={finished ? t("settings.backup.statusDone") : busy ? t("settings.backup.statusBusy") : t("settings.backup.statusWaiting")}
       statusTone={finished ? "success" : "warning"}
       title={preview.summary}
       titleId="backup-clear-heading"
@@ -85,7 +83,7 @@ function BackupClearDialog({
         aria-labelledby="backup-clear-effects-heading"
       >
         <h4 className="text-xs font-semibold" id="backup-clear-effects-heading">
-          本次操作影响
+          {t("settings.backup.effectsHeading")}
         </h4>
         <ul className="mt-ui-8 mb-0 list-disc space-y-ui-4 pl-ui-16 text-muted-foreground">
           {preview.effects.map((effect) => (
@@ -95,7 +93,7 @@ function BackupClearDialog({
       </Panel>
 
       <p className="m-0 break-words text-xs leading-relaxed text-muted-foreground">
-        确认仅适用于此预览中的 UserHome 备份集合；备份变化后必须重新预览。
+        {t("settings.backup.clearScopeNote")}
       </p>
     </SettingsConfirmationDialog>
   );
@@ -108,6 +106,8 @@ export function BackupSettings({
   onChange: (patch: UpdatePreferencesRequest) => Promise<void>;
   preferences: UserPreferences;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [storage, setStorage] = useState<StorageState>({ status: "loading" });
   const [pendingRetention, setPendingRetention] = useState<BackupRetention>();
   const [status, setStatus] = useState<string>();
@@ -150,7 +150,7 @@ export function BackupSettings({
     try {
       await onChange({ backupRetention: retention });
       await reloadStorage();
-      setStatus(`已保留每个配置最新的 ${retention} 份备份。`);
+      setStatus(t("settings.backup.retentionSaved", { count: retention }));
     } catch (caught) {
       setError(decodeAppError(caught));
     } finally {
@@ -182,7 +182,7 @@ export function BackupSettings({
       const completed = await executeClearBackups(preview.operationId);
       setOperation(completed);
       await reloadStorage();
-      setStatus("UserHome 备份已清理，受管配置和偏好保持不变。");
+      setStatus(t("settings.backup.cleared"));
     } catch (caught) {
       setDialogError(decodeAppError(caught));
     } finally {
@@ -201,18 +201,22 @@ export function BackupSettings({
       aria-labelledby="backup-heading"
     >
       <SettingsSection
-        title="配置备份"
-        description="保留策略和清理只作用于 UserHome 创建的备份，不会修改受管配置或偏好。"
+        title={t("settings.backup.title")}
+        description={t("settings.backup.description")}
         headingId="backup-heading"
       />
 
       <RadioCardGroup
-        tip={<InfoTip description="降低数量后会立即移除超出上限的最旧备份。" title="每个配置保留" />}
-        label="每个配置保留"
+        tip={<InfoTip description={t("settings.backup.retention.tip")} title={t("settings.backup.retention.label")} />}
+        label={t("settings.backup.retention.label")}
         name="backup-retention"
         value={String(selectedRetention)}
         disabled={busy || previewing || pendingRetention !== undefined}
-        options={RETENTION_OPTIONS.map(([value, label, description]) => ({ value: String(value), label, description }))}
+        options={RETENTION_OPTIONS.map(([value, descriptionKey]) => ({
+          value: String(value),
+          label: t("settings.backup.retention.count", { count: value }),
+          description: t(descriptionKey),
+        }))}
         onValueChange={(value) => void changeRetention(Number(value) as BackupRetention)}
       />
 
@@ -223,11 +227,11 @@ export function BackupSettings({
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12">
           <div className="min-w-0">
             <h4 className="text-sm font-semibold" id="backup-storage-heading">
-              本机备份存储
+              {t("settings.backup.storage.heading")}
             </h4>
             {storage.status === "loading" ? (
               <p className="mt-ui-4 mb-0 text-xs text-muted-foreground" role="status">
-                正在统计 UserHome 备份…
+                {t("settings.backup.storage.loading")}
               </p>
             ) : storage.status === "error" ? (
               <p className="mt-ui-4 mb-0 text-xs text-danger" role="alert">
@@ -241,7 +245,10 @@ export function BackupSettings({
           </div>
           {summary ? (
             <StatusBadge tone={summary.backupCount > 0 ? "neutral" : "success"}>
-              {summary.backupCount} 份 · {formatBytes(summary.sizeBytes)}
+              {t("settings.backup.storage.summary", {
+                count: summary.backupCount,
+                size: formatByteSize(summary.sizeBytes, locale),
+              })}
             </StatusBadge>
           ) : null}
         </div>
@@ -258,7 +265,7 @@ export function BackupSettings({
             }
             onClick={() => void openClearPreview()}
           >
-            {previewing ? "正在准备预览…" : "清理所有备份…"}
+            {previewing ? t("settings.backup.preparing") : t("settings.backup.clearAll")}
           </Button>
         </SettingsActions>
       </Panel>
