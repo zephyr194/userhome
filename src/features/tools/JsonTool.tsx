@@ -3,6 +3,7 @@ import {
   ActionRow,
   Button,
   Panel,
+  PasteButton,
   SelectField,
   StatusBadge,
   TextAreaField,
@@ -99,6 +100,7 @@ export function JsonTool() {
         label="输入"
         expandTitle="JSON · 输入"
         description="上限 1 MiB（UTF-8 字节）。超过上限时不会发送。"
+        action={<PasteButton onPaste={changeInput} />}
         value={input}
         onValueChange={changeInput}
         expandable

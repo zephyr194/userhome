@@ -3,6 +3,7 @@ import {
   ActionRow,
   Button,
   Panel,
+  PasteButton,
   SelectField,
   StatusBadge,
   TextAreaField,
@@ -266,6 +267,12 @@ export function QrTool() {
         label="文本或 URL"
         expandTitle="二维码 · 文本或 URL"
         description={`UTF-8，上限 ${QR_MAX_BYTES[shownLevel]} 字节（当前纠错等级）。`}
+        action={
+          <PasteButton
+            disabled={inputLocked}
+            onPaste={(next) => change({ text: next })}
+          />
+        }
         value={text}
         onValueChange={(next) => change({ text: next })}
         expandable
