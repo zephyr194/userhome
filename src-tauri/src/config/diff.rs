@@ -31,6 +31,42 @@ impl ConfigDiff {
     }
 }
 
+/// Minimal unified diff: only the changed block between the common first and
+/// last lines, with no context lines. A one-line edit yields one `-` and one `+`.
+pub fn unified_text(before: &str, after: &str) -> String {
+    let old: Vec<&str> = before.lines().collect();
+    let new: Vec<&str> = after.lines().collect();
+    if old == new {
+        return String::new();
+    }
+    let prefix = old.iter().zip(&new).take_while(|(a, b)| a == b).count();
+    let shared = old.len().min(new.len()) - prefix;
+    let suffix = old
+        .iter()
+        .rev()
+        .zip(new.iter().rev())
+        .take(shared)
+        .take_while(|(a, b)| a == b)
+        .count();
+    let removed = &old[prefix..old.len() - suffix];
+    let added = &new[prefix..new.len() - suffix];
+    let mut output = String::from("--- 当前\n+++ 保存后\n");
+    output.push_str(&format!(
+        "@@ -{},{} +{},{} @@\n",
+        prefix + 1,
+        removed.len(),
+        prefix + 1,
+        added.len()
+    ));
+    for line in removed {
+        output.push_str(&format!("-{line}\n"));
+    }
+    for line in added {
+        output.push_str(&format!("+{line}\n"));
+    }
+    output
+}
+
 pub fn build_diff(before: &str, after: &str, sensitivity: &str) -> ConfigDiff {
     if sensitivity != "STANDARD" {
         return ConfigDiff {

@@ -60,15 +60,16 @@ pub enum ReadResult {
     Failed { kind: ReadFailure },
 }
 
-/// Reads a registered entry. Only a `ReadOnly`, non-credential, non-metadata
-/// entry whose format this module parses has its content read; everything
-/// else returns its discovered metadata, or the probe status when not found.
+/// Reads a registered entry. Only a `ReadOnly` or `Writable`, non-credential,
+/// non-metadata entry whose format this module parses has its content read;
+/// everything else returns its discovered metadata, or the probe status when
+/// not found.
 pub fn read_entry(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> ReadResult {
     let (path, meta) = match locate(entry, home, fs) {
         Located::Found { path, meta } => (path, meta),
         Located::Unavailable(status) => return ReadResult::Unavailable { status },
     };
-    if entry.capability != Capability::ReadOnly
+    if entry.capability == Capability::DiscoverOnly
         || entry.sensitivity == Sensitivity::Credentials
         || entry.metadata_only
         || matches!(entry.format, Format::Plist | Format::Dotenv)

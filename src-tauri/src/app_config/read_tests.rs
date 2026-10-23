@@ -355,7 +355,7 @@ fn metadata_only_entries_return_discovered_size_and_mtime_without_content() {
 }
 
 #[test]
-fn unsupported_formats_and_non_read_only_capabilities_return_metadata_only() {
+fn unsupported_formats_and_discover_only_capabilities_return_metadata_only() {
     let fs = FakeFs::new()
         .dir(HOME)
         .file("/Users/example/.claude/settings.json", "token=x\n")
@@ -366,16 +366,29 @@ fn unsupported_formats_and_non_read_only_capabilities_return_metadata_only() {
         format: Format::Plist,
         ..claude
     };
-    let writable = Entry {
-        capability: Capability::Writable,
+    let discover_only = Entry {
+        capability: Capability::DiscoverOnly,
         ..claude
     };
 
     assert!(matches!(read(&plist, &fs), ReadResult::MetadataOnly { .. }));
     assert!(matches!(
-        read(&writable, &fs),
+        read(&discover_only, &fs),
         ReadResult::MetadataOnly { .. }
     ));
+}
+
+#[test]
+fn writable_entries_are_read_as_masked_content() {
+    let fs = FakeFs::new()
+        .dir(HOME)
+        .file("/Users/example/.claude/settings.json", "{\"theme\":\"dark\"}\n");
+    let writable = Entry {
+        capability: Capability::Writable,
+        ..builtin("claude-code-settings")
+    };
+
+    assert!(matches!(read(&writable, &fs), ReadResult::Content { .. }));
 }
 
 #[test]

@@ -44,6 +44,7 @@ pub fn run() {
         .manage(lifecycle::LifecycleCoordinator::default())
         .manage(grants::ResourceWriteCoordinator::default())
         .manage(commands::ai_config::ClaudeEditState::default())
+        .manage(app_config::pending::AppConfigEditState::default())
         .manage(commands::qr::QrIconStore::default())
         .manage(caddy::validate::ValidationRuns::default())
         .manage(caddy::session::CaddyRunCoordinator::default())
@@ -129,6 +130,10 @@ pub fn run() {
             commands::application_config::read_configuration_resource,
             commands::app_config::app_config_list,
             commands::app_config::app_config_read,
+            commands::app_config::app_config_schema,
+            commands::app_config::app_config_read_for_edit,
+            commands::app_config::app_config_preview_edit,
+            commands::app_config::app_config_confirm_edit,
             commands::ai_config::ai_config_detect,
             commands::ai_config::ai_config_claude_snapshot,
             commands::ai_config::ai_config_claude_read,

@@ -496,7 +496,7 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
             "git-config-home",
             "~/.gitconfig",
             Format::Ini,
-            Capability::ReadOnly,
+            Capability::Writable,
             Sensitivity::SensitiveKeys,
             false,
             GIT_CONFIG_URL,
@@ -505,7 +505,7 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
             "git-config-xdg",
             "~/.config/git/config",
             Format::Ini,
-            Capability::ReadOnly,
+            Capability::Writable,
             Sensitivity::SensitiveKeys,
             false,
             GIT_CONFIG_URL,
@@ -541,7 +541,7 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
             "zed-settings",
             "~/.config/zed/settings.json",
             Format::Jsonc,
-            Capability::ReadOnly,
+            Capability::Writable,
             Sensitivity::SensitiveKeys,
             false,
             "https://raw.githubusercontent.com/zed-industries/zed/main/docs/src/configuring-zed.md",
@@ -559,7 +559,7 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
             "alacritty-config",
             "~/.config/alacritty/alacritty.toml",
             Format::Toml,
-            Capability::ReadOnly,
+            Capability::Writable,
             Sensitivity::SensitiveKeys,
             false,
             "https://alacritty.org/config-alacritty.html",
@@ -652,14 +652,24 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
 }
 
 #[test]
-fn registry_builtin_has_no_writable_entries() {
+fn registry_builtin_writable_entries_are_exactly_the_reviewed_pilot_set() {
     let registry = Registry::builtin().expect("builtin registry is valid");
 
-    assert!(
-        registry
-            .entries()
-            .iter()
-            .all(|entry| entry.capability != Capability::Writable)
+    let writable: Vec<&str> = registry
+        .entries()
+        .iter()
+        .filter(|entry| entry.capability == Capability::Writable)
+        .map(|entry| entry.id)
+        .collect();
+
+    assert_eq!(
+        writable,
+        [
+            "git-config-home",
+            "git-config-xdg",
+            "alacritty-config",
+            "zed-settings"
+        ]
     );
 }
 

@@ -311,7 +311,7 @@ pub const BUILTIN_ENTRIES: &[Entry] = &[
         category: Category::DeveloperTool,
         location: Location::Home(".gitconfig"),
         format: Format::Ini,
-        capability: Capability::ReadOnly,
+        capability: Capability::Writable,
         sensitivity: Sensitivity::SensitiveKeys,
         metadata_only: false,
         source: Source {
@@ -325,7 +325,7 @@ pub const BUILTIN_ENTRIES: &[Entry] = &[
         category: Category::DeveloperTool,
         location: Location::Home(".config/git/config"),
         format: Format::Ini,
-        capability: Capability::ReadOnly,
+        capability: Capability::Writable,
         sensitivity: Sensitivity::SensitiveKeys,
         metadata_only: false,
         source: Source {
@@ -381,7 +381,7 @@ pub const BUILTIN_ENTRIES: &[Entry] = &[
         category: Category::Editor,
         location: Location::Home(".config/zed/settings.json"),
         format: Format::Jsonc,
-        capability: Capability::ReadOnly,
+        capability: Capability::Writable,
         sensitivity: Sensitivity::SensitiveKeys,
         metadata_only: false,
         source: Source {
@@ -409,7 +409,7 @@ pub const BUILTIN_ENTRIES: &[Entry] = &[
         category: Category::Terminal,
         location: Location::Home(".config/alacritty/alacritty.toml"),
         format: Format::Toml,
-        capability: Capability::ReadOnly,
+        capability: Capability::Writable,
         sensitivity: Sensitivity::SensitiveKeys,
         metadata_only: false,
         source: Source {

@@ -5,15 +5,24 @@
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
+use tauri::{AppHandle, Manager};
 
 use crate::{
     app_config::{
         discover::{ConfigFs, ProbeStatus, StdFs, probe},
+        edit::{
+            ConfirmInput, EditRead, PreviewInput, PreviewResult, confirm, ensure_writable, preview,
+            read_for_edit,
+        },
+        pending::AppConfigEditState,
         read::{ReadResult, read_entry},
-        registry::{Category, EntrySummary, Registry},
+        registry::{Category, Entry, EntrySummary, Registry},
+        schema::{EditSchema, schema_for},
     },
     commands::grants::canonical_home,
+    config::ConfigCoordinator,
     error::AppError,
+    settings::SettingsCoordinator,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -70,6 +79,93 @@ fn builtin_registry() -> Result<Registry, AppError> {
 
 fn home_directory() -> Result<PathBuf, AppError> {
     canonical_home().ok_or_else(|| AppError::not_found("无法确定主目录，应用配置不可用。"))
+}
+
+#[tauri::command]
+pub async fn app_config_schema(id: String) -> Result<EditSchema, AppError> {
+    run_blocking(move || {
+        let registry = builtin_registry()?;
+        let entry = entry_by_id(&registry, &id)?;
+        ensure_writable(entry)?;
+        schema_for(entry.id, entry.format)
+            .ok_or_else(|| AppError::not_supported("该应用配置暂不支持在应用内编辑。"))
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn app_config_read_for_edit(id: String) -> Result<EditRead, AppError> {
+    run_blocking(move || {
+        let registry = builtin_registry()?;
+        let entry = entry_by_id(&registry, &id)?;
+        let home = home_directory()?;
+        read_for_edit(entry, &home, &StdFs)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn app_config_preview_edit(
+    app: AppHandle,
+    input: PreviewInput,
+) -> Result<PreviewResult, AppError> {
+    let context = app.clone();
+    run_blocking(move || {
+        let registry = builtin_registry()?;
+        let entry = entry_by_id(&registry, &input.id)?;
+        let home = home_directory()?;
+        preview(
+            entry,
+            &home,
+            &StdFs,
+            &context.state::<AppConfigEditState>(),
+            &input,
+        )
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn app_config_confirm_edit(
+    app: AppHandle,
+    input: ConfirmInput,
+) -> Result<ReadResult, AppError> {
+    let context = app.clone();
+    run_blocking(move || {
+        let registry = builtin_registry()?;
+        let home = home_directory()?;
+        let config = context.state::<ConfigCoordinator>();
+        let environment = config.environment()?;
+        let retention = context
+            .state::<SettingsCoordinator>()
+            .get()?
+            .preferences()
+            .backup_retention();
+        confirm(
+            &registry,
+            &home,
+            &StdFs,
+            &context.state::<AppConfigEditState>(),
+            environment,
+            retention,
+            &input.preview_token,
+        )
+    })
+    .await
+}
+
+async fn run_blocking<T: Send + 'static>(
+    work: impl FnOnce() -> Result<T, AppError> + Send + 'static,
+) -> Result<T, AppError> {
+    tauri::async_runtime::spawn_blocking(work)
+        .await
+        .map_err(|_| AppError::internal())?
+}
+
+fn entry_by_id<'a>(registry: &'a Registry, id: &str) -> Result<&'a Entry, AppError> {
+    registry
+        .get(id)
+        .map_err(|_| AppError::not_found("未知的应用配置条目。"))
 }
 
 #[cfg(test)]
