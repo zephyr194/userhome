@@ -9,6 +9,7 @@ pub mod caddy;
 pub mod catalog;
 pub mod commands;
 pub mod config;
+pub mod deep_link;
 pub mod discovery;
 pub mod environment;
 pub mod error;
@@ -54,6 +55,7 @@ pub fn run() {
         .manage(services::lifecycle::LaunchdActionCoordinator::default())
         .manage(services::logs::LogSessions::default())
         .manage(services::adopt::flow::AdoptCoordinator::default())
+        .manage(deep_link::PendingDeepLink::default())
         .setup(|app| {
             let settings_directory = app.path().app_config_dir()?;
             if let Ok(app_data) = app.path().app_data_dir() {
@@ -242,7 +244,8 @@ pub fn run() {
             commands::caddy::caddy_workdir_use_default,
             commands::caddy::caddy_workdir_revoke,
             commands::lifecycle::confirm_quit,
-            commands::lifecycle::cancel_quit
+            commands::lifecycle::cancel_quit,
+            commands::deep_link::take_pending_deep_link
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -250,6 +253,10 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 commands::services::release_log_grants(app);
                 commands::caddy::shutdown_on_exit(app);
+            }
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &event {
+                deep_link::handle_opened(app, urls.iter().map(|url| url.as_str()));
             }
             // A quit nobody routed through the lifecycle entry (a system quit, for
             // example) is held back and sent through it. Programmatic exits carry
