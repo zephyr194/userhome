@@ -47,7 +47,7 @@ export function SupportedConfigsDialog({ open, onClose, items }: SupportedConfig
       bodyClassName="r8-appcfg-tools__body"
       className="r8-appcfg-tools"
       footer={
-        <Button data-modal-cancel onClick={onClose} size="sm">
+        <Button data-modal-cancel onClick={onClose} size="sm" variant="secondary">
           {copy.t("common.close")}
         </Button>
       }
@@ -104,6 +104,7 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
               setAttempt((count) => count + 1);
             }}
             size="sm"
+            variant="secondary"
           >
             {copy.t("common.retry")}
           </Button>

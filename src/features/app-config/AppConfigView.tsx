@@ -87,7 +87,7 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
             {copy.t("appConfig.list.empty")}
           </p>
           <ActionRow>
-            <Button size="sm" onClick={onReload}>
+            <Button size="sm" variant="secondary" onClick={onReload}>
               {copy.t("common.refresh")}
             </Button>
             <SupportedConfigsAction items={[]} />
@@ -108,7 +108,7 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
           </p>
           <p className="m-0 text-body">{localizeError(list.error, copy.locale)}</p>
           <ActionRow>
-            <Button size="sm" onClick={onReload}>
+            <Button size="sm" variant="secondary" onClick={onReload}>
               {copy.t("common.retry")}
             </Button>
             <SupportedConfigsAction items={undefined} />

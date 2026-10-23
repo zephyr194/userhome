@@ -232,7 +232,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
         <p className="m-0 min-w-0 break-all text-aux text-muted-foreground">
           {copy.t("appConfig.edit.editing", { path: summary.displayPath })}
         </p>
-        <Button size="sm" disabled={busy} onClick={requestExit}>
+        <Button size="sm" variant="secondary" disabled={busy} onClick={requestExit}>
           {copy.t("appConfig.edit.backToView")}
         </Button>
       </div>
@@ -250,7 +250,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
           </p>
           <p className="m-0 text-body">{localizeError(load.error, copy.locale)}</p>
           <div>
-            <Button size="sm" onClick={() => setLoadKey((key) => key + 1)}>
+            <Button size="sm" variant="secondary" onClick={() => setLoadKey((key) => key + 1)}>
               {copy.t("common.retry")}
             </Button>
           </div>
@@ -372,7 +372,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
             {copy.t("appConfig.edit.discardSwitchTitle")}
           </h3>
           <ActionRow align="end">
-            <Button variant="ghost" onClick={() => setPendingTab(null)}>
+            <Button variant="secondary" onClick={() => setPendingTab(null)}>
               {copy.t("appConfig.edit.stay")}
             </Button>
             <Button variant="danger" onClick={() => discardAndSwitch(pendingTab)}>
@@ -392,7 +392,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
             {copy.t("appConfig.edit.discardExitTitle")}
           </h3>
           <ActionRow align="end">
-            <Button variant="ghost" onClick={() => setConfirmExit(false)}>
+            <Button variant="secondary" onClick={() => setConfirmExit(false)}>
               {copy.t("appConfig.edit.keepEditing")}
             </Button>
             <Button variant="danger" onClick={onExit}>
@@ -420,7 +420,7 @@ function PhaseNotice({
         <Panel role="alert" className="grid gap-ui-8 p-ui-8">
           <p className="m-0 text-body font-semibold text-danger">{copy.t("appConfig.edit.conflict")}</p>
           <div>
-            <Button size="sm" onClick={onReload}>
+            <Button size="sm" variant="secondary" onClick={onReload}>
               {copy.t("appConfig.edit.reread")}
             </Button>
           </div>
@@ -462,7 +462,7 @@ function PreviewModal({
       busy={busy}
       footer={
         <>
-          <Button variant="ghost" disabled={busy} onClick={onCancel}>
+          <Button variant="secondary" disabled={busy} onClick={onCancel}>
             {copy.t("common.cancel")}
           </Button>
           <Button
