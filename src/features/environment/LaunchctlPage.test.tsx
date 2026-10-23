@@ -22,7 +22,7 @@ describe("LaunchctlPage", () => {
 
     render(<LaunchctlPage />);
 
-    expect(await screen.findByRole("rowheader", { name: "PATH" })).toBeTruthy();
+    expect(await screen.findByText("PATH")).toBeTruthy();
     expect(screen.getByText("/usr/bin:/bin")).toBeTruthy();
   });
 
@@ -63,7 +63,7 @@ describe("LaunchctlPage", () => {
     });
 
     render(<LaunchctlPage />);
-    await screen.findByRole("rowheader", { name: "PATH" });
+    await screen.findByText("PATH");
 
     fireEvent.click(screen.getByRole("button", { name: "设置变量" }));
     const dialog = screen.getByRole("dialog");
@@ -72,7 +72,7 @@ describe("LaunchctlPage", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "预览设置" }));
     fireEvent.click(await screen.findByRole("button", { name: "确认设置" }));
 
-    expect(await screen.findByRole("rowheader", { name: "EDITOR" })).toBeTruthy();
+    expect(await screen.findByText("EDITOR")).toBeTruthy();
     expect(screen.queryByText("正在读取登录会话的环境变量…")).toBeNull();
     expect(screen.getByText(/已设置 EDITOR。此设置只影响之后启动的应用/)).toBeTruthy();
     await waitFor(() => expect(commands[commands.length - 1]).toBe("execute_launchctl_set"));

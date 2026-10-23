@@ -11,7 +11,8 @@ import {
   LaunchctlSetDialog,
   type LaunchctlSetInput,
 } from "./LaunchctlDialogs";
-import { LazySecretValue } from "./LazySecretValue";
+import { VariableChainTable } from "./VariableChainTable";
+import { launchctlVariableRows } from "./variableChainModel";
 
 export type LaunchctlState =
   | { status: "loading" }
@@ -144,75 +145,19 @@ export function LaunchctlView({
       ) : null}
 
       {environment && environment.entries.length > 0 ? (
-        <div className="min-w-0 overflow-x-auto">
-          <table className="w-full min-w-0 table-fixed border-collapse text-left">
-            <caption className="sr-only">登录会话的环境变量</caption>
-            <thead>
-              <tr className="border-b border-line">
-                <th className="w-[38%] py-ui-8 pr-ui-12 text-aux font-normal text-muted-foreground" scope="col">
-                  变量名
-                </th>
-                <th className="py-ui-8 text-aux font-normal text-muted-foreground" scope="col">
-                  值
-                </th>
-                <th className="w-px whitespace-nowrap py-ui-8 pl-ui-12 text-right text-aux font-normal text-muted-foreground" scope="col">
-                  操作
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {environment.entries.map((entry) => (
-                <tr className="border-b border-line align-top" key={entry.key}>
-                  <th
-                    className="break-all py-ui-8 pr-ui-12 font-mono text-aux font-normal text-foreground"
-                    scope="row"
-                  >
-                    {entry.key}
-                  </th>
-                  <td className="min-w-0 py-ui-8">
-                    {entry.secret ? (
-                      <LazySecretValue
-                        label={entry.key}
-                        load={() => onReveal(entry.key)}
-                        resetKey={`${entry.key}:${environment.readAt}:${revision}`}
-                      />
-                    ) : (
-                      <code className="block break-all rounded-control bg-surface-muted px-ui-8 py-ui-2 font-mono text-aux text-foreground">
-                        {entry.value === "" ? (
-                          <span className="font-sans text-muted-foreground">（空值）</span>
-                        ) : (
-                          entry.value
-                        )}
-                      </code>
-                    )}
-                  </td>
-                  <td className="w-px whitespace-nowrap py-ui-8 pl-ui-12">
-                    <ActionRow align="end">
-                      <Button
-                        aria-label={`修改 ${entry.key}`}
-                        disabled={loading}
-                        onClick={() => setDialog({ kind: "set", entry })}
-                        size="sm"
-                        variant="secondary"
-                      >
-                        修改
-                      </Button>
-                      <Button
-                        aria-label={`移除 ${entry.key}`}
-                        disabled={loading}
-                        onClick={() => setDialog({ kind: "remove", key: entry.key })}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        移除
-                      </Button>
-                    </ActionRow>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <VariableChainTable
+          key={`${environment.readAt}:${revision}`}
+          label="登录会话的环境变量"
+          onEdit={(row) =>
+            setDialog({
+              kind: "set",
+              entry: environment.entries.find((entry) => entry.key === row.name),
+            })
+          }
+          onRemove={(row) => setDialog({ kind: "remove", key: row.name })}
+          onRevealFinal={(row) => onReveal(row.name)}
+          rows={launchctlVariableRows(environment.entries)}
+        />
       ) : null}
 
       {dialog?.kind === "set" ? (

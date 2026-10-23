@@ -121,15 +121,53 @@ describe("LaunchctlView", () => {
   it("shows plain values as text and marks an empty value", () => {
     renderView({ status: "ready", environment: ENVIRONMENT });
 
-    expect(screen.getByRole("rowheader", { name: "PATH" })).toBeTruthy();
+    expect(screen.getByText("PATH")).toBeTruthy();
     expect(screen.getByText("/usr/bin:/bin")).toBeTruthy();
     expect(screen.getByText("（空值）")).toBeTruthy();
+  });
+
+  it("lists one row per variable, sorted by name, with the login session as its source", () => {
+    renderView({ status: "ready", environment: ENVIRONMENT });
+
+    const table = screen.getByRole("table", { name: "登录会话的环境变量" });
+    const names = within(table)
+      .getAllByRole("row")
+      .slice(1)
+      .map((row) => row.querySelector("code")?.textContent);
+    expect(names).toEqual(["API_TOKEN", "EMPTY_ONE", "PATH"]);
+    expect(within(table).getAllByText("登录会话（launchctl）")).toHaveLength(3);
+  });
+
+  it("masks a revealed secret again after the list is re-read", async () => {
+    const props = {
+      onReveal: vi.fn(async () => "s3cret"),
+      onRetry: vi.fn(),
+      onPreview: vi.fn(async (key: string) => ({ ...ABSENT, key })),
+      onSet: vi.fn(async () => change()),
+      onUnset: vi.fn(async () => change()),
+    };
+    const { rerender } = render(
+      <LaunchctlView state={{ status: "ready", environment: ENVIRONMENT }} {...props} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "载入 API_TOKEN 的值" }));
+    fireEvent.click(await screen.findByRole("button", { name: "显示 API_TOKEN 的值" }));
+    expect(await screen.findByText("s3cret")).toBeTruthy();
+
+    rerender(
+      <LaunchctlView
+        state={{ status: "ready", environment: { ...ENVIRONMENT, readAt: "2026-10-22T10:00:00+08:00" } }}
+        {...props}
+      />,
+    );
+    expect(screen.queryByText("s3cret")).toBeNull();
+    expect(screen.getByRole("button", { name: "载入 API_TOKEN 的值" })).toBeTruthy();
   });
 
   it("keeps a secret masked until its value is loaded and shown on request", async () => {
     const { onReveal } = renderView({ status: "ready", environment: ENVIRONMENT });
 
-    const row = screen.getByRole("rowheader", { name: "API_TOKEN" }).closest("tr");
+    const row = screen.getByText("API_TOKEN").closest("tr");
     expect(row?.textContent).toContain("已隐藏，值尚未载入");
     expect(screen.queryByText("s3cret")).toBeNull();
 

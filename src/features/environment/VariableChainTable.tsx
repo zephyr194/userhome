@@ -21,6 +21,8 @@ export interface VariableChainTableProps {
   onRevealFinal: (row: VariableChainRow) => Promise<string>;
   /** Opens the assignment the final value comes from. Absent means read only. */
   onEdit?: (row: VariableChainRow) => void;
+  /** Removes the assignment the final value comes from. Absent hides the action. */
+  onRemove?: (row: VariableChainRow) => void;
 }
 
 const CELL = "min-w-0 px-ui-8 py-ui-4 align-top";
@@ -34,7 +36,7 @@ function rowKey(row: VariableChainRow): string {
   return `${sourceText(row.final.source)}#${row.name}`;
 }
 
-export function VariableChainTable({ label, onEdit, onRevealFinal, rows }: VariableChainTableProps) {
+export function VariableChainTable({ label, onEdit, onRemove, onRevealFinal, rows }: VariableChainTableProps) {
   const t = useT();
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
 
@@ -75,6 +77,7 @@ export function VariableChainTable({ label, onEdit, onRevealFinal, rows }: Varia
                 isOpen={isOpen}
                 key={key}
                 onEdit={onEdit}
+                onRemove={onRemove}
                 onRevealFinal={onRevealFinal}
                 onToggle={() => toggle(key)}
                 row={row}
@@ -91,6 +94,7 @@ export function VariableChainTable({ label, onEdit, onRevealFinal, rows }: Varia
 function Row({
   isOpen,
   onEdit,
+  onRemove,
   onRevealFinal,
   onToggle,
   row,
@@ -98,6 +102,7 @@ function Row({
 }: {
   isOpen: boolean;
   onEdit?: VariableChainTableProps["onEdit"];
+  onRemove?: VariableChainTableProps["onRemove"];
   onRevealFinal: VariableChainTableProps["onRevealFinal"];
   onToggle: () => void;
   row: VariableChainRow;
@@ -130,6 +135,16 @@ function Row({
                 variant="ghost"
               >
                 {t("env.chain.editButton")}
+              </Button>
+            ) : null}
+            {onRemove ? (
+              <Button
+                aria-label={t("env.chain.remove", { name: row.name })}
+                onClick={() => onRemove(row)}
+                size="sm"
+                variant="ghost"
+              >
+                {t("env.chain.removeButton")}
               </Button>
             ) : null}
           </span>
