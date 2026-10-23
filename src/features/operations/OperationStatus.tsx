@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import type { RecentOperationState } from "../../app/shellState";
 import { StatusBadge } from "../../components/ui";
+import type { MessageKey } from "../../i18n";
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import type {
   OperationDetails,
   OperationEvent,
@@ -14,17 +17,17 @@ function latestEvent(operation: OperationDetails): OperationEvent | undefined {
 const STATUS_DETAILS: Record<
   OperationStatusValue,
   {
-    label: string;
+    labelKey: MessageKey;
     tone: "neutral" | "success" | "warning" | "danger";
   }
 > = {
-  PREVIEWED: { label: "等待确认", tone: "warning" },
-  RUNNING: { label: "进行中", tone: "warning" },
-  CANCELLING: { label: "终止中", tone: "warning" },
-  SUCCEEDED: { label: "已完成", tone: "success" },
-  FAILED: { label: "失败", tone: "danger" },
-  CANCELLED: { label: "已终止", tone: "neutral" },
-  EXPIRED: { label: "已过期", tone: "neutral" },
+  PREVIEWED: { labelKey: "operations.recent.status.PREVIEWED", tone: "warning" },
+  RUNNING: { labelKey: "operations.recent.status.RUNNING", tone: "warning" },
+  CANCELLING: { labelKey: "operations.recent.status.CANCELLING", tone: "warning" },
+  SUCCEEDED: { labelKey: "operations.recent.status.SUCCEEDED", tone: "success" },
+  FAILED: { labelKey: "operations.recent.status.FAILED", tone: "danger" },
+  CANCELLED: { labelKey: "operations.recent.status.CANCELLED", tone: "neutral" },
+  EXPIRED: { labelKey: "operations.recent.status.EXPIRED", tone: "neutral" },
 };
 
 function OperationIcon({
@@ -113,6 +116,7 @@ function OperationRow({
   status: string;
   tone?: "neutral" | "success" | "warning" | "danger";
 }) {
+  const t = useT();
   return (
     <section
       className="dashboard-status-row"
@@ -123,7 +127,7 @@ function OperationRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-ui-12">
           <h4 id="operations-heading" className="text-xs font-semibold">
-            最近操作
+            {t("operations.recent.heading")}
           </h4>
           <StatusBadge tone={tone}>{status}</StatusBadge>
         </div>
@@ -134,14 +138,21 @@ function OperationRow({
 }
 
 export function OperationStatus({ state }: { state: RecentOperationState }) {
+  const t = useT();
+  const locale = useLocale();
   if (state.status === "loading") {
     return (
-      <OperationRow busy kind="loading" status="读取中" tone="warning">
+      <OperationRow
+        busy
+        kind="loading"
+        status={t("operations.recent.loading")}
+        tone="warning"
+      >
         <p
           className="mt-ui-4 text-xs leading-relaxed text-muted-foreground"
           role="status"
         >
-          正在读取操作记录…
+          {t("operations.recent.loadingText")}
         </p>
       </OperationRow>
     );
@@ -149,9 +160,13 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
 
   if (state.status === "error") {
     return (
-      <OperationRow kind="error" status="读取失败" tone="danger">
+      <OperationRow
+        kind="error"
+        status={t("operations.recent.loadFailed")}
+        tone="danger"
+      >
         <p className="mt-ui-4 text-xs leading-relaxed text-danger" role="alert">
-          {state.error.message}
+          {localizeAppErrorMessage(state.error, locale)}
         </p>
       </OperationRow>
     );
@@ -159,9 +174,9 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
 
   if (state.status === "empty") {
     return (
-      <OperationRow kind="empty" status="空闲">
+      <OperationRow kind="empty" status={t("operations.recent.idle")}>
         <p className="mt-ui-4 text-xs leading-relaxed text-muted-foreground">
-          暂无操作记录。
+          {t("operations.recent.empty")}
         </p>
       </OperationRow>
     );
@@ -170,6 +185,7 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
   const { operation } = state;
   const event = latestEvent(operation);
   const status = STATUS_DETAILS[operation.status];
+  const statusLabel = t(status.labelKey);
   const message =
     event?.type === "progress"
       ? event.message
@@ -181,17 +197,17 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
 
   const truncation = [
     operation.droppedEvents
-      ? `较早的 ${operation.droppedEvents} 条事件已被丢弃`
+      ? t("operations.recent.droppedEvents", { count: operation.droppedEvents })
       : undefined,
     operation.droppedRecords
-      ? `较早的 ${operation.droppedRecords} 条操作记录已被丢弃`
+      ? t("operations.recent.droppedRecords", { count: operation.droppedRecords })
       : undefined,
   ].filter((note): note is string => note !== undefined);
 
   return (
     <OperationRow
       kind={operation.status === "FAILED" ? "error" : "operation"}
-      status={status.label}
+      status={statusLabel}
       tone={status.tone}
     >
       <p className="mt-ui-4 text-xs font-medium leading-relaxed">
@@ -202,7 +218,7 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
           className="mt-ui-4 text-xs leading-relaxed text-muted-foreground"
           role="status"
         >
-          正在等待进程确认退出，确认前不会显示为已终止。
+          {t("operations.recent.cancelling")}
         </p>
       ) : null}
       {message ? (
@@ -212,7 +228,9 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
       ) : null}
       {truncation.length > 0 ? (
         <p className="mt-ui-4 text-xs leading-relaxed text-muted-foreground">
-          {truncation.join("；")}。
+          {t("operations.recent.notes", {
+            notes: truncation.join(t("operations.recent.noteSeparator")),
+          })}
         </p>
       ) : null}
     </OperationRow>

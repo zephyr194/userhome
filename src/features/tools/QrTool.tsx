@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   ActionRow,
   Button,
@@ -21,20 +23,20 @@ import {
   type QrIconSummary,
 } from "../../ipc/qr";
 import {
-  DISCARD_FAILED_MESSAGE,
-  ICON_RULES_TEXT,
-  LEVEL_OPTIONS,
   QR_MAX_BYTES,
   SIZE_OPTIONS,
   canStartExport,
   describeIcon,
   describePrepared,
+  discardFailedMessage,
   discardTarget,
   effectiveLevel,
   exportOutcomeView,
   iconLevelNotice,
+  iconRulesText,
   inputProblem,
   isExportBusy,
+  levelOptions,
   toPixelSize,
   type QrExportView,
   type QrPreviewView,
@@ -44,6 +46,8 @@ import {
 import { createRequestTracker } from "./toolRequestState";
 
 export function QrTool() {
+  const t = useT();
+  const locale = useLocale();
   const [text, setText] = useState("");
   const [level, setLevel] = useState<QrErrorCorrection>("M");
   const [size, setSize] = useState<SizeChoice>("512");
@@ -70,7 +74,7 @@ export function QrTool() {
   const inputLocked = busy || iconBusy;
   const iconId = icon?.iconId;
   const shownLevel = effectiveLevel(level, iconId);
-  const problem = inputProblem(text, shownLevel);
+  const problem = inputProblem(text, shownLevel, locale);
 
   function generate(next: QrSnapshot) {
     const requestId = previewTracker.issue();
@@ -81,6 +85,7 @@ export function QrTool() {
     const limitMessage = inputProblem(
       next.text,
       effectiveLevel(next.level, next.iconId),
+      locale,
     );
     if (limitMessage) {
       setPreview({ status: "error", message: limitMessage });
@@ -100,7 +105,7 @@ export function QrTool() {
       },
       (error: AppError) => {
         if (previewTracker.isCurrent(requestId)) {
-          setPreview({ status: "error", message: error.message });
+          setPreview({ status: "error", message: localizeAppErrorMessage(error, locale) });
         }
       },
     );
@@ -112,7 +117,7 @@ export function QrTool() {
       operationId: prepared.operationId,
     }).then(
       () => undefined,
-      () => setDiscardNotice(DISCARD_FAILED_MESSAGE),
+      () => setDiscardNotice(discardFailedMessage(locale)),
     );
   }
 
@@ -167,7 +172,7 @@ export function QrTool() {
       },
       (error: AppError) => {
         setIconBusy(false);
-        setIconError(error.message);
+        setIconError(localizeAppErrorMessage(error, locale));
       },
     );
   }
@@ -182,7 +187,7 @@ export function QrTool() {
       },
       (error: AppError) => {
         setIconBusy(false);
-        setIconError(error.message);
+        setIconError(localizeAppErrorMessage(error, locale));
       },
     );
   }
@@ -215,7 +220,10 @@ export function QrTool() {
       },
       (error: AppError) => {
         if (exportTracker.isCurrent(requestId)) {
-          setExportView({ status: "failed", message: error.message });
+          setExportView({
+            status: "failed",
+            message: localizeAppErrorMessage(error, locale),
+          });
         }
       },
     );
@@ -232,12 +240,15 @@ export function QrTool() {
     }).then(
       (outcome) => {
         if (exportTracker.isCurrent(requestId)) {
-          setExportView(exportOutcomeView(prepared.target, outcome));
+          setExportView(exportOutcomeView(prepared.target, outcome, locale));
         }
       },
       (error: AppError) => {
         if (exportTracker.isCurrent(requestId)) {
-          setExportView({ status: "failed", message: error.message });
+          setExportView({
+            status: "failed",
+            message: localizeAppErrorMessage(error, locale),
+          });
         }
       },
     );
@@ -256,17 +267,17 @@ export function QrTool() {
     >
       <div className="grid gap-ui-4">
         <h2 id="qr-tool-heading" className="text-body font-semibold">
-          二维码生成
+          {t("tools.qr.title")}
         </h2>
         <p className="text-xs text-muted-foreground">
-          文本只用于生成图片，不会访问链接、缩短或添加参数。二维码固定黑白，不随页面主题变化；输入不会保存。
+          {t("tools.qr.description")}
         </p>
       </div>
 
       <TextAreaField
-        label="文本或 URL"
-        expandTitle="二维码 · 文本或 URL"
-        description={`UTF-8，上限 ${QR_MAX_BYTES[shownLevel]} 字节（当前纠错等级）。`}
+        label={t("tools.qr.inputLabel")}
+        expandTitle={t("tools.qr.inputExpandTitle")}
+        description={t("tools.qr.inputLimit", { bytes: QR_MAX_BYTES[shownLevel] })}
         action={
           <PasteButton
             disabled={inputLocked}
@@ -285,14 +296,14 @@ export function QrTool() {
 
       <ActionRow alignItems="end">
         <SelectField
-          label="纠错等级"
+          label={t("tools.qr.levelLabel")}
           value={level}
           onValueChange={(next) => change({ level: next })}
-          options={LEVEL_OPTIONS}
+          options={levelOptions(locale)}
           disabled={inputLocked}
         />
         <SelectField
-          label="尺寸"
+          label={t("tools.qr.sizeLabel")}
           value={size}
           onValueChange={(next) => change({ size: next })}
           options={SIZE_OPTIONS}
@@ -302,16 +313,16 @@ export function QrTool() {
 
       <section aria-labelledby="qr-icon-heading" className="grid gap-ui-8">
         <h3 id="qr-icon-heading" className="text-body font-semibold">
-          中心图标（可选）
+          {t("tools.qr.iconHeading")}
         </h3>
-        <p className="m-0 text-xs text-muted-foreground">{ICON_RULES_TEXT}</p>
+        <p className="m-0 text-xs text-muted-foreground">{iconRulesText(locale)}</p>
 
         {icon ? (
           <ActionRow>
             {/* Fixed white substrate, like the preview: the thumbnail is the backend's PNG. */}
             <div className="grid w-fit rounded-control bg-qr-substrate p-ui-8">
               <img
-                alt="图标缩略图"
+                alt={t("tools.qr.iconThumbnail")}
                 src={`data:image/png;base64,${icon.thumbnailPngBase64}`}
                 style={{ width: 64, height: 64, objectFit: "contain" }}
               />
@@ -320,23 +331,23 @@ export function QrTool() {
               {describeIcon(icon)}
             </p>
             <Button onClick={chooseIcon} disabled={inputLocked}>
-              更换图标…
+              {t("tools.qr.iconReplace")}
             </Button>
             <Button variant="ghost" onClick={removeIcon} disabled={inputLocked}>
-              移除图标
+              {t("tools.qr.iconRemove")}
             </Button>
           </ActionRow>
         ) : (
           <div className="flex flex-wrap items-center gap-ui-8">
             <Button onClick={chooseIcon} disabled={inputLocked}>
-              选择图标…
+              {t("tools.qr.iconChoose")}
             </Button>
           </div>
         )}
 
-        {iconLevelNotice(level, iconId) ? (
+        {iconLevelNotice(level, iconId, locale) ? (
           <p role="status" className="m-0 text-xs text-muted-foreground">
-            {iconLevelNotice(level, iconId)}
+            {iconLevelNotice(level, iconId, locale)}
           </p>
         ) : null}
 
@@ -346,7 +357,7 @@ export function QrTool() {
             className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
-              图标不可用
+              {t("tools.qr.iconUnavailable")}
             </StatusBadge>
             <p className="m-0 break-words">{iconError}</p>
           </div>
@@ -355,18 +366,18 @@ export function QrTool() {
 
       <section aria-labelledby="qr-preview-heading" className="grid gap-ui-8">
         <h3 id="qr-preview-heading" className="text-body font-semibold">
-          预览
+          {t("tools.qr.previewHeading")}
         </h3>
 
         {preview.status === "idle" ? (
           <p className="text-xs text-muted-foreground">
-            输入内容后会在这里生成二维码。
+            {t("tools.qr.previewIdle")}
           </p>
         ) : null}
 
         {preview.status === "pending" ? (
           <p role="status" className="text-xs text-muted-foreground">
-            正在生成…
+            {t("tools.qr.generating")}
           </p>
         ) : null}
 
@@ -376,7 +387,7 @@ export function QrTool() {
             className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
-              无法生成
+              {t("tools.qr.generateFailed")}
             </StatusBadge>
             <p className="m-0 break-words">{preview.message}</p>
           </div>
@@ -387,7 +398,7 @@ export function QrTool() {
             {/* Fixed white substrate: contrast must not follow the theme. */}
             <div className="grid w-fit gap-ui-4 rounded-control bg-qr-substrate p-ui-8">
               <img
-                alt="二维码预览"
+                alt={t("tools.qr.previewAlt")}
                 src={`data:image/png;base64,${preview.preview.pngBase64}`}
                 style={{
                   width: "min(100%, 320px)",
@@ -397,7 +408,13 @@ export function QrTool() {
               />
             </div>
             <p className="m-0 text-xs text-muted-foreground">
-              {`${preview.preview.moduleCount} × ${preview.preview.moduleCount} 模块 · 每模块 ${preview.preview.modulePx} px · 图像 ${preview.preview.imagePx} × ${preview.preview.imagePx} px · 纠错 ${effectiveLevel(preview.snapshot.level, preview.snapshot.iconId)}${preview.snapshot.iconId ? " · 含中心图标" : ""}`}
+              {t("tools.qr.previewMeta", {
+                modules: preview.preview.moduleCount,
+                modulePx: preview.preview.modulePx,
+                imagePx: preview.preview.imagePx,
+                level: effectiveLevel(preview.snapshot.level, preview.snapshot.iconId),
+              })}
+              {preview.snapshot.iconId ? t("tools.qr.previewWithIcon") : ""}
             </p>
           </>
         ) : null}
@@ -405,7 +422,7 @@ export function QrTool() {
 
       <section aria-labelledby="qr-export-heading" className="grid gap-ui-8">
         <h3 id="qr-export-heading" className="text-body font-semibold">
-          导出 PNG
+          {t("tools.qr.exportHeading")}
         </h3>
 
         {exportView.status !== "awaiting" && !busy ? (
@@ -415,39 +432,39 @@ export function QrTool() {
               onClick={startExport}
               disabled={!canStartExport(preview, exportView)}
             >
-              导出 PNG…
+              {t("tools.qr.exportAction")}
             </Button>
           </div>
         ) : null}
 
         {exportView.status === "cancelled" ? (
           <p role="status" className="m-0 text-xs text-muted-foreground">
-            已取消，未导出。
+            {t("tools.qr.cancelled")}
           </p>
         ) : null}
 
         {exportView.status === "preparing" ? (
           <p role="status" className="m-0 text-xs text-muted-foreground">
-            正在打开保存面板…
+            {t("tools.qr.preparing")}
           </p>
         ) : null}
 
         {exportView.status === "awaiting" ? (
           <div className="grid gap-ui-8 rounded-control bg-surface-muted p-ui-8">
             <p className="m-0 break-all text-body font-semibold">
-              {describePrepared(exportView.prepared).title}
+              {describePrepared(exportView.prepared, locale).title}
             </p>
             <ul className="m-0 grid gap-ui-2 pl-ui-12 text-xs text-muted-foreground">
-              {describePrepared(exportView.prepared).notes.map((note) => (
+              {describePrepared(exportView.prepared, locale).notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}
             </ul>
             <ActionRow>
               <Button variant="primary" onClick={confirmExport}>
-                确认写入
+                {t("tools.qr.confirmWrite")}
               </Button>
               <Button variant="ghost" onClick={discardExport}>
-                取消
+                {t("common.cancel")}
               </Button>
             </ActionRow>
           </div>
@@ -455,7 +472,7 @@ export function QrTool() {
 
         {exportView.status === "writing" ? (
           <p role="status" className="m-0 text-xs text-muted-foreground">
-            正在写入并回读校验…
+            {t("tools.qr.writing")}
           </p>
         ) : null}
 
@@ -465,7 +482,7 @@ export function QrTool() {
             className="grid gap-ui-4 rounded-control bg-surface-muted p-ui-8 text-xs"
           >
             <StatusBadge className="justify-self-start" tone="success">
-              已导出
+              {t("tools.qr.exported")}
             </StatusBadge>
             <p className="m-0 break-all">{exportView.target}</p>
             <p className="m-0 text-muted-foreground">{exportView.message}</p>
@@ -481,7 +498,7 @@ export function QrTool() {
             className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
-              导出失败
+              {t("tools.qr.exportFailed")}
             </StatusBadge>
             <p className="m-0 break-words">{exportView.message}</p>
             {exportView.warning ? (

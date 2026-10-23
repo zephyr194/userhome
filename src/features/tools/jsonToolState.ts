@@ -1,3 +1,5 @@
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { translate, type Locale } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import type { FormattedJson, JsonFormatMode } from "../../ipc/textTools";
 
@@ -20,14 +22,14 @@ export function successView(
   return { status: "success", output, mode };
 }
 
-export function failureView(error: AppError): JsonView {
+export function failureView(error: AppError, locale: Locale = "zh-CN"): JsonView {
   const { line, column } = error.details ?? {};
   if (typeof line === "number" && typeof column === "number") {
-    return { status: "error", message: error.message, line, column };
+    return { status: "error", message: localizeAppErrorMessage(error, locale), line, column };
   }
-  return { status: "error", message: error.message };
+  return { status: "error", message: localizeAppErrorMessage(error, locale) };
 }
 
-export function oversizedView(): JsonView {
-  return { status: "error", message: "输入超过 1 MiB 上限，未发送。" };
+export function oversizedView(locale: Locale = "zh-CN"): JsonView {
+  return { status: "error", message: translate(locale, "tools.input.oversized") };
 }

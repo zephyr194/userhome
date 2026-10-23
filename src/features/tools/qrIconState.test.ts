@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ICON_RULES_TEXT,
+  iconRulesText,
   describeIcon,
   effectiveLevel,
   iconLevelNotice,
@@ -46,8 +46,8 @@ describe("icon display text", () => {
   });
 
   it("states the level H rule and the 15 percent limit", () => {
-    expect(ICON_RULES_TEXT).toContain("H");
-    expect(ICON_RULES_TEXT).toContain("15%");
+    expect(iconRulesText()).toContain("H");
+    expect(iconRulesText()).toContain("15%");
   });
 });
 

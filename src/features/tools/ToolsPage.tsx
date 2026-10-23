@@ -2,6 +2,7 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useState, type ComponentType } from "react";
 import { PageShell } from "../../components/ui";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
+import { useT } from "../../i18n/useLocale";
 import { CodecTool } from "./CodecTool";
 import { JsonTool } from "./JsonTool";
 import { QrTool } from "./QrTool";
@@ -12,10 +13,10 @@ import { XmlTool } from "./XmlTool";
  * `TOOL_PANELS` key; the `Record` makes a missing panel a type error.
  */
 const TOOL_ENTRIES = [
-  { id: "json", label: "JSON" },
-  { id: "xml", label: "XML" },
-  { id: "codec", label: "编解码" },
-  { id: "qr", label: "二维码" },
+  { id: "json" },
+  { id: "xml" },
+  { id: "codec" },
+  { id: "qr" },
 ] as const;
 
 type ToolId = (typeof TOOL_ENTRIES)[number]["id"];
@@ -28,7 +29,14 @@ const TOOL_PANELS: Record<ToolId, ComponentType> = {
 };
 
 export function ToolsPage() {
+  const t = useT();
   const [activeTool, setActiveTool] = useState<ToolId>("json");
+  const toolLabels: Record<ToolId, string> = {
+    json: "JSON",
+    xml: "XML",
+    codec: t("tools.tabs.codec"),
+    qr: t("tools.tabs.qr"),
+  };
   const activeIndex = Math.max(
     0,
     TOOL_ENTRIES.findIndex((tool) => tool.id === activeTool),
@@ -45,7 +53,7 @@ export function ToolsPage() {
       <PageShell layout="strip">
         <TabList
           ref={tabsRef}
-          aria-label="工具"
+          aria-label={t("tools.tabs.label")}
           className="slide-list flex flex-wrap items-end gap-ui-8"
           data-slide-axis="x"
         >
@@ -58,7 +66,7 @@ export function ToolsPage() {
                   : "slide-item inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-muted-foreground hover:text-foreground"
               }
             >
-              {tool.label}
+              {toolLabels[tool.id]}
             </Tab>
           ))}
         </TabList>

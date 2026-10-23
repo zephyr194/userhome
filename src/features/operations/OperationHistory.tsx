@@ -4,19 +4,21 @@ import {
   StatusBadge,
   type StatusBadgeProps,
 } from "../../components/ui";
+import type { MessageKey } from "../../i18n";
+import { useT } from "../../i18n/useLocale";
 import type {
   OperationStatus,
   OperationSummary,
 } from "../../ipc/operations";
 
-const STATUS_LABELS: Record<OperationSummary["status"], string> = {
-  PREVIEWED: "等待确认",
-  RUNNING: "进行中",
-  CANCELLING: "正在取消",
-  SUCCEEDED: "已完成",
-  FAILED: "失败",
-  CANCELLED: "已取消",
-  EXPIRED: "已过期",
+const STATUS_LABEL_KEYS: Record<OperationSummary["status"], MessageKey> = {
+  PREVIEWED: "operations.history.status.PREVIEWED",
+  RUNNING: "operations.history.status.RUNNING",
+  CANCELLING: "operations.history.status.CANCELLING",
+  SUCCEEDED: "operations.history.status.SUCCEEDED",
+  FAILED: "operations.history.status.FAILED",
+  CANCELLED: "operations.history.status.CANCELLED",
+  EXPIRED: "operations.history.status.EXPIRED",
 };
 
 const STATUS_TONES: Record<OperationStatus, StatusBadgeProps["tone"]> = {
@@ -30,34 +32,39 @@ const STATUS_TONES: Record<OperationStatus, StatusBadgeProps["tone"]> = {
 };
 
 export function OperationHistory({
-  emptyMessage = "暂无配置操作。",
+  emptyMessage,
   operations,
-  title = "配置历史",
+  title,
 }: {
   emptyMessage?: string;
   operations: readonly OperationSummary[];
   title?: string;
 }) {
+  const t = useT();
   return (
     <Panel
       className="min-h-0 p-ui-16"
       aria-labelledby="operation-history-heading"
     >
       <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-        操作记录
+        {t("operations.history.eyebrow")}
       </p>
       <div className="mt-ui-4 flex items-center justify-between gap-ui-12">
         <h3 id="operation-history-heading" className="text-lg font-semibold">
-          {title}
+          {title ?? t("operations.history.title")}
         </h3>
-        <StatusBadge>{operations.length} 项</StatusBadge>
+        <StatusBadge>
+          {t("operations.history.count", { count: operations.length })}
+        </StatusBadge>
       </div>
       {operations.length === 0 ? (
-        <AsyncState kind="empty">{emptyMessage}</AsyncState>
+        <AsyncState kind="empty">
+          {emptyMessage ?? t("operations.history.empty")}
+        </AsyncState>
       ) : (
         <div
           className="mt-ui-16 max-h-64 overflow-y-auto overscroll-contain rounded-control"
-          aria-label="配置操作历史，可滚动"
+          aria-label={t("operations.history.listLabel")}
           tabIndex={0}
         >
           <ul className="divide-y divide-border">
@@ -73,7 +80,7 @@ export function OperationHistory({
                   className="shrink-0"
                   tone={STATUS_TONES[operation.status]}
                 >
-                  {STATUS_LABELS[operation.status]}
+                  {t(STATUS_LABEL_KEYS[operation.status])}
                 </StatusBadge>
               </li>
             ))}

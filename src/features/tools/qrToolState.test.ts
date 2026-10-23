@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  LEVEL_OPTIONS,
+  levelOptions,
   QR_MAX_BYTES,
   SIZE_OPTIONS,
-  GRANT_NOT_REVOKED_MESSAGE,
+  grantNotRevokedMessage,
   canStartExport,
   describePrepared,
   discardTarget,
@@ -63,7 +63,7 @@ describe("QR input limits", () => {
 
 describe("QR options", () => {
   it("offers the four levels and three sizes with string values", () => {
-    expect(LEVEL_OPTIONS.map((option) => option.value)).toEqual([
+    expect(levelOptions().map((option) => option.value)).toEqual([
       "L",
       "M",
       "Q",
@@ -263,7 +263,7 @@ describe("grant release warnings", () => {
       status: "written",
       target: "~/qr.png",
       message: "导出完成，已写入并回读校验。",
-      warning: GRANT_NOT_REVOKED_MESSAGE,
+      warning: grantNotRevokedMessage(),
     });
   });
 
@@ -277,7 +277,7 @@ describe("grant release warnings", () => {
     expect(view).toEqual({
       status: "failed",
       message: "导出失败，文件未改动。",
-      warning: GRANT_NOT_REVOKED_MESSAGE,
+      warning: grantNotRevokedMessage(),
     });
   });
 

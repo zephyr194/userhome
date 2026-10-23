@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   ActionRow,
   Button,
@@ -25,12 +26,13 @@ import {
 } from "./xmlToolState";
 import { useRevealResult } from "./useRevealResult";
 
-const MODE_OPTIONS: readonly SelectOption<XmlFormatMode>[] = [
-  { value: "INDENT2", label: "缩进 2 空格" },
-  { value: "INDENT4", label: "缩进 4 空格" },
-];
-
 export function XmlTool() {
+  const t = useT();
+  const locale = useLocale();
+  const modeOptions: readonly SelectOption<XmlFormatMode>[] = [
+    { value: "INDENT2", label: t("tools.format.indent2") },
+    { value: "INDENT4", label: t("tools.format.indent4") },
+  ];
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<XmlFormatMode>("INDENT2");
   const [view, setView] = useState<XmlView>({ status: "idle" });
@@ -56,7 +58,7 @@ export function XmlTool() {
   function submit() {
     if (exceedsInputLimit(input)) {
       tracker.invalidate();
-      setView(oversizedView());
+      setView(oversizedView(locale));
       return;
     }
     const requestId = tracker.issue();
@@ -67,7 +69,7 @@ export function XmlTool() {
         if (tracker.isCurrent(requestId)) setView(successView(output));
       },
       (error: AppError) => {
-        if (tracker.isCurrent(requestId)) setView(failureView(error));
+        if (tracker.isCurrent(requestId)) setView(failureView(error, locale));
       },
     );
   }
@@ -75,9 +77,9 @@ export function XmlTool() {
   async function copyResult(text: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setCopyNotice("已复制结果。");
+      setCopyNotice(t("tools.result.copied"));
     } catch {
-      setCopyNotice("复制失败，请手动选择结果文本。");
+      setCopyNotice(t("tools.result.copyFailed"));
     }
   }
 
@@ -88,21 +90,21 @@ export function XmlTool() {
     >
       <div className="grid gap-ui-4">
         <h2 id="xml-tool-heading" className="text-body font-semibold">
-          XML 格式化
+          {t("tools.xml.title")}
         </h2>
         <p className="text-xs text-muted-foreground">
-          良构校验与缩进；保留声明、命名空间、属性、注释、CDATA 与处理指令。
-          mixed content 与 xml:space="preserve" 中的空白保持原样。
+          {t("tools.xml.descriptionFormat")}{" "}
+          {t("tools.xml.descriptionWhitespace")}
         </p>
         <p className="text-xs text-muted-foreground">
-          不解析 DTD、外部实体与 XInclude，遇到时直接拒绝；XML 仅作为文本显示。
+          {t("tools.xml.descriptionLimits")}
         </p>
       </div>
 
       <TextAreaField
-        label="输入"
-        expandTitle="XML · 输入"
-        description="上限 1 MiB（UTF-8 字节）。超过上限时不会发送。"
+        label={t("tools.input.label")}
+        expandTitle={t("tools.xml.inputExpandTitle")}
+        description={t("tools.input.limit")}
         action={<PasteButton onPaste={changeInput} />}
         value={input}
         onValueChange={changeInput}
@@ -115,20 +117,20 @@ export function XmlTool() {
 
       <ActionRow alignItems="end">
         <SelectField
-          label="输出格式"
+          label={t("tools.format.outputLabel")}
           value={mode}
           onValueChange={setMode}
-          options={MODE_OPTIONS}
+          options={modeOptions}
         />
         <Button
           variant="primary"
           onClick={submit}
           disabled={view.status === "pending"}
         >
-          格式化
+          {t("tools.action.format")}
         </Button>
         <Button variant="ghost" onClick={() => changeInput("")}>
-          清空
+          {t("tools.action.clear")}
         </Button>
       </ActionRow>
 
@@ -144,22 +146,22 @@ export function XmlTool() {
             ref={resultTitleRef}
             tabIndex={-1}
           >
-            结果
+            {t("tools.result.heading")}
           </h3>
           {view.status === "success" ? (
             <Button size="sm" onClick={() => copyResult(view.output.text)}>
-              复制结果
+              {t("tools.result.copy")}
             </Button>
           ) : null}
         </div>
 
         {view.status === "idle" ? (
-          <p className="text-xs text-muted-foreground">结果会显示在这里。</p>
+          <p className="text-xs text-muted-foreground">{t("tools.result.placeholder")}</p>
         ) : null}
 
         {view.status === "pending" ? (
           <p role="status" className="text-xs text-muted-foreground">
-            正在格式化…
+            {t("tools.format.pending")}
           </p>
         ) : null}
 
@@ -169,12 +171,12 @@ export function XmlTool() {
             className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
-              无法格式化
+              {t("tools.format.failed")}
             </StatusBadge>
             <p className="m-0 break-words">{view.message}</p>
             {view.line !== undefined && view.column !== undefined ? (
               <p className="m-0">
-                第 {view.line} 行，第 {view.column} 列
+                {t("tools.format.position", { line: view.line, column: view.column })}
               </p>
             ) : null}
           </div>
@@ -183,7 +185,7 @@ export function XmlTool() {
         {view.status === "success" ? (
           <pre
             tabIndex={0}
-            aria-label="格式化结果"
+            aria-label={t("tools.format.resultLabel")}
             className="m-0 max-h-80 overflow-auto whitespace-pre rounded-control bg-surface-muted p-ui-8 font-mono text-xs"
           >
             {view.output.text}

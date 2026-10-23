@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   ActionRow,
   Button,
@@ -25,13 +26,14 @@ import {
 } from "./jsonToolState";
 import { useRevealResult } from "./useRevealResult";
 
-const MODE_OPTIONS: readonly SelectOption<JsonFormatMode>[] = [
-  { value: "INDENT2", label: "缩进 2 空格" },
-  { value: "INDENT4", label: "缩进 4 空格" },
-  { value: "MINIFY", label: "压缩" },
-];
-
 export function JsonTool() {
+  const t = useT();
+  const locale = useLocale();
+  const modeOptions: readonly SelectOption<JsonFormatMode>[] = [
+    { value: "INDENT2", label: t("tools.format.indent2") },
+    { value: "INDENT4", label: t("tools.format.indent4") },
+    { value: "MINIFY", label: t("tools.format.minify") },
+  ];
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<JsonFormatMode>("INDENT2");
   const [view, setView] = useState<JsonView>({ status: "idle" });
@@ -57,7 +59,7 @@ export function JsonTool() {
   function submit() {
     if (exceedsInputLimit(input)) {
       tracker.invalidate();
-      setView(oversizedView());
+      setView(oversizedView(locale));
       return;
     }
     const requestId = tracker.issue();
@@ -68,7 +70,7 @@ export function JsonTool() {
         if (tracker.isCurrent(requestId)) setView(successView(output, mode));
       },
       (error: AppError) => {
-        if (tracker.isCurrent(requestId)) setView(failureView(error));
+        if (tracker.isCurrent(requestId)) setView(failureView(error, locale));
       },
     );
   }
@@ -76,9 +78,9 @@ export function JsonTool() {
   async function copyResult(text: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setCopyNotice("已复制结果。");
+      setCopyNotice(t("tools.result.copied"));
     } catch {
-      setCopyNotice("复制失败，请手动选择结果文本。");
+      setCopyNotice(t("tools.result.copyFailed"));
     }
   }
 
@@ -89,17 +91,17 @@ export function JsonTool() {
     >
       <div className="grid gap-ui-4">
         <h2 id="json-tool-heading" className="text-body font-semibold">
-          JSON 格式化
+          {t("tools.json.title")}
         </h2>
         <p className="text-xs text-muted-foreground">
-          严格 JSON 校验；数字、字符串与重复键保留原文，只调整空白。
+          {t("tools.json.description")}
         </p>
       </div>
 
       <TextAreaField
-        label="输入"
-        expandTitle="JSON · 输入"
-        description="上限 1 MiB（UTF-8 字节）。超过上限时不会发送。"
+        label={t("tools.input.label")}
+        expandTitle={t("tools.json.inputExpandTitle")}
+        description={t("tools.input.limit")}
         action={<PasteButton onPaste={changeInput} />}
         value={input}
         onValueChange={changeInput}
@@ -112,20 +114,20 @@ export function JsonTool() {
 
       <ActionRow alignItems="end">
         <SelectField
-          label="输出格式"
+          label={t("tools.format.outputLabel")}
           value={mode}
           onValueChange={setMode}
-          options={MODE_OPTIONS}
+          options={modeOptions}
         />
         <Button
           variant="primary"
           onClick={submit}
           disabled={view.status === "pending"}
         >
-          格式化
+          {t("tools.action.format")}
         </Button>
         <Button variant="ghost" onClick={() => changeInput("")}>
-          清空
+          {t("tools.action.clear")}
         </Button>
       </ActionRow>
 
@@ -141,25 +143,25 @@ export function JsonTool() {
             ref={resultTitleRef}
             tabIndex={-1}
           >
-            结果
+            {t("tools.result.heading")}
           </h3>
           {view.status === "success" ? (
             <Button
               size="sm"
               onClick={() => copyResult(view.output.text)}
             >
-              复制结果
+              {t("tools.result.copy")}
             </Button>
           ) : null}
         </div>
 
         {view.status === "idle" ? (
-          <p className="text-xs text-muted-foreground">结果会显示在这里。</p>
+          <p className="text-xs text-muted-foreground">{t("tools.result.placeholder")}</p>
         ) : null}
 
         {view.status === "pending" ? (
           <p role="status" className="text-xs text-muted-foreground">
-            正在格式化…
+            {t("tools.format.pending")}
           </p>
         ) : null}
 
@@ -169,12 +171,12 @@ export function JsonTool() {
             className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
-              无法格式化
+              {t("tools.format.failed")}
             </StatusBadge>
             <p className="m-0 break-words">{view.message}</p>
             {view.line !== undefined && view.column !== undefined ? (
               <p className="m-0">
-                第 {view.line} 行，第 {view.column} 列
+                {t("tools.format.position", { line: view.line, column: view.column })}
               </p>
             ) : null}
           </div>
@@ -185,28 +187,28 @@ export function JsonTool() {
             {view.output.warnings.length > 0 || view.output.omittedWarnings > 0 ? (
               <div className="grid gap-ui-4 rounded-control bg-warning-soft p-ui-8 text-xs text-warning">
                 <StatusBadge className="justify-self-start" tone="warning">
-                  重复键
+                  {t("tools.json.duplicateBadge")}
                 </StatusBadge>
                 <p className="m-0">
-                  输入中存在重复键，已按原样保留，未合并或删除。
+                  {t("tools.json.duplicateNote")}
                 </p>
                 <ul className="m-0 grid gap-ui-2 pl-ui-12">
                   {view.output.warnings.map((warning, index) => (
                     <li key={`${warning.line}:${warning.column}:${index}`}>
-                      键 “{warning.key}”：第 {warning.line} 行，第 {warning.column} 列
+                      {t("tools.json.duplicateKey", { key: warning.key, line: warning.line, column: warning.column })}
                     </li>
                   ))}
                 </ul>
                 {view.output.omittedWarnings > 0 ? (
                   <p className="m-0">
-                    另有 {view.output.omittedWarnings} 条警告未列出。
+                    {t("tools.json.moreWarnings", { count: view.output.omittedWarnings })}
                   </p>
                 ) : null}
               </div>
             ) : null}
             <pre
               tabIndex={0}
-              aria-label="格式化结果"
+              aria-label={t("tools.format.resultLabel")}
               className="m-0 max-h-80 overflow-auto whitespace-pre rounded-control bg-surface-muted p-ui-8 font-mono text-xs"
             >
               {view.output.text}

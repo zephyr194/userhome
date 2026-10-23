@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   ActionRow,
   Button,
@@ -16,11 +17,12 @@ import {
   type TransformedText,
 } from "../../ipc/textTools";
 import {
-  ALGORITHM_OPTIONS,
-  DIRECTION_OPTIONS,
   algorithmNote,
+  algorithmOptions,
   conversionLabel,
+  directionOptions,
   failureView,
+  noticeText,
   oversizedView,
   successView,
   type CodecView,
@@ -31,6 +33,8 @@ import {
 } from "./toolRequestState";
 
 export function CodecTool() {
+  const t = useT();
+  const locale = useLocale();
   const [input, setInput] = useState("");
   const [algorithm, setAlgorithm] = useState<CodecAlgorithm>("BASE64");
   const [direction, setDirection] = useState<CodecDirection>("ENCODE");
@@ -64,7 +68,7 @@ export function CodecTool() {
   function submit() {
     if (exceedsInputLimit(input)) {
       tracker.invalidate();
-      setView(oversizedView());
+      setView(oversizedView(locale));
       return;
     }
     const requestId = tracker.issue();
@@ -77,7 +81,7 @@ export function CodecTool() {
         }
       },
       (error: AppError) => {
-        if (tracker.isCurrent(requestId)) setView(failureView(error));
+        if (tracker.isCurrent(requestId)) setView(failureView(error, locale));
       },
     );
   }
@@ -85,9 +89,9 @@ export function CodecTool() {
   async function copyResult(text: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setCopyNotice("已复制结果。");
+      setCopyNotice(t("tools.result.copied"));
     } catch {
-      setCopyNotice("复制失败，请手动选择结果文本。");
+      setCopyNotice(t("tools.result.copyFailed"));
     }
   }
 
@@ -98,38 +102,38 @@ export function CodecTool() {
     >
       <div className="grid gap-ui-4">
         <h2 id="codec-tool-heading" className="text-body font-semibold">
-          文本编解码
+          {t("tools.codec.title")}
         </h2>
         <p className="text-xs text-muted-foreground">
-          单次转换，不递归解码；结果只作为文本显示，不会渲染、打开或执行。
+          {t("tools.codec.description")}
         </p>
       </div>
 
       <ActionRow alignItems="end">
         <SelectField
-          label="算法"
+          label={t("tools.codec.algorithm")}
           value={algorithm}
           onValueChange={changeAlgorithm}
-          options={ALGORITHM_OPTIONS}
+          options={algorithmOptions(locale)}
         />
         <SelectField
-          label="方向"
+          label={t("tools.codec.direction")}
           value={direction}
           onValueChange={changeDirection}
-          options={DIRECTION_OPTIONS}
+          options={directionOptions(locale)}
         />
       </ActionRow>
 
-      {algorithmNote(algorithm) ? (
+      {algorithmNote(algorithm, locale) ? (
         <p className="m-0 text-xs text-muted-foreground">
-          {algorithmNote(algorithm)}
+          {algorithmNote(algorithm, locale)}
         </p>
       ) : null}
 
       <TextAreaField
-        label="输入"
-        expandTitle="编解码 · 输入"
-        description="上限 1 MiB（UTF-8 字节）。超过上限时不会发送。"
+        label={t("tools.input.label")}
+        expandTitle={t("tools.codec.inputExpandTitle")}
+        description={t("tools.input.limit")}
         action={<PasteButton onPaste={changeInput} />}
         value={input}
         onValueChange={changeInput}
@@ -146,32 +150,32 @@ export function CodecTool() {
           onClick={submit}
           disabled={view.status === "pending"}
         >
-          转换
+          {t("tools.action.convert")}
         </Button>
         <Button variant="ghost" onClick={() => changeInput("")}>
-          清空输入
+          {t("tools.action.clearInput")}
         </Button>
       </ActionRow>
 
       <section aria-labelledby="codec-result-heading" className="grid gap-ui-8">
         <div className="flex flex-wrap items-center justify-between gap-ui-8">
           <h3 id="codec-result-heading" className="text-body font-semibold">
-            结果
+            {t("tools.result.heading")}
           </h3>
           {view.status === "success" ? (
             <Button size="sm" onClick={() => copyResult(view.output.text)}>
-              复制结果
+              {t("tools.result.copy")}
             </Button>
           ) : null}
         </div>
 
         {view.status === "idle" ? (
-          <p className="text-xs text-muted-foreground">结果会显示在这里。</p>
+          <p className="text-xs text-muted-foreground">{t("tools.result.placeholder")}</p>
         ) : null}
 
         {view.status === "pending" ? (
           <p role="status" className="text-xs text-muted-foreground">
-            正在转换…
+            {t("tools.codec.converting")}
           </p>
         ) : null}
 
@@ -181,7 +185,7 @@ export function CodecTool() {
             className="grid gap-ui-4 rounded-control bg-danger-soft p-ui-8 text-xs text-danger"
           >
             <StatusBadge className="justify-self-start" tone="danger">
-              无法转换
+              {t("tools.codec.failed")}
             </StatusBadge>
             <p className="m-0 break-words">{view.message}</p>
           </div>
@@ -190,22 +194,22 @@ export function CodecTool() {
         {view.status === "success" ? (
           <>
             <p className="m-0 text-xs text-muted-foreground">
-              {conversionLabel(view.algorithm, view.direction)}
+              {conversionLabel(view.algorithm, view.direction, locale)}
             </p>
             {view.output.notices.length > 0 ? (
               <div className="grid gap-ui-4 rounded-control bg-warning-soft p-ui-8 text-xs text-warning">
                 <StatusBadge className="justify-self-start" tone="warning">
-                  提示
+                  {t("tools.codec.hint")}
                 </StatusBadge>
                 <ul className="m-0 grid gap-ui-2 pl-ui-12">
                   {view.output.notices.map((notice) => (
-                    <li key={notice}>{notice}</li>
+                    <li key={notice}>{noticeText(notice, locale)}</li>
                   ))}
                 </ul>
               </div>
             ) : null}
             <TextAreaField
-              label="输出"
+              label={t("tools.codec.output")}
               readOnly
               value={view.output.text}
               rows={8}

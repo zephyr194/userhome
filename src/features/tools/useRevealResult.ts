@@ -1,8 +1,8 @@
 import { useEffect, type RefObject } from "react";
 
 /**
- * 结果出现后把结果区滚入可视范围，并把焦点移到结果标题。result 为 undefined
- * 表示还没有结果可显示，此时什么也不做。
+ * Scrolls the result into view and moves focus to its heading once a result
+ * appears. An undefined result means there is nothing to show yet, so it does nothing.
  */
 export function useRevealResult(
   result: unknown,

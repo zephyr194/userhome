@@ -1,4 +1,5 @@
 import type { SelectOption } from "../../components/ui";
+import { translate, type Locale, type MessageKey } from "../../i18n";
 import type {
   PreparedQrExport,
   QrErrorCorrection,
@@ -26,12 +27,14 @@ export const QR_MAX_BYTES: Record<QrErrorCorrection, number> = {
   H: 1273,
 };
 
-export const LEVEL_OPTIONS: readonly SelectOption<QrErrorCorrection>[] = [
-  { value: "L", label: "L · 约 7%" },
-  { value: "M", label: "M · 约 15%" },
-  { value: "Q", label: "Q · 约 25%" },
-  { value: "H", label: "H · 约 30%" },
-];
+export function levelOptions(
+  locale: Locale = "zh-CN",
+): readonly SelectOption<QrErrorCorrection>[] {
+  return (["L", "M", "Q", "H"] as const).map((value) => ({
+    value,
+    label: translate(locale, `tools.qr.level.${value}`),
+  }));
+}
 
 export const SIZE_OPTIONS: readonly SelectOption<SizeChoice>[] = [
   { value: "256", label: "256 px" },
@@ -50,8 +53,9 @@ export interface QrSnapshot {
   iconId?: string;
 }
 
-export const ICON_RULES_TEXT =
-  "图标居中并加白色底衬，外接框不超过符号宽度的 15%。加图标时纠错固定为 H。无法可靠放置时会拒绝导出，不生成损坏图片。";
+export function iconRulesText(locale: Locale = "zh-CN"): string {
+  return translate(locale, "tools.qr.iconRules");
+}
 
 /** A centred icon always uses level H, whatever level the user picked. */
 export function effectiveLevel(
@@ -64,9 +68,10 @@ export function effectiveLevel(
 export function iconLevelNotice(
   level: QrErrorCorrection,
   iconId: string | undefined,
+  locale: Locale = "zh-CN",
 ): string | undefined {
   if (iconId === undefined || level === "H") return undefined;
-  return "加中心图标时纠错等级已自动提升为 H。";
+  return translate(locale, "tools.qr.iconLevelNotice");
 }
 
 export function describeIcon(icon: QrIconSummary): string {
@@ -81,11 +86,12 @@ export function utf8ByteLength(text: string): number {
 export function inputProblem(
   text: string,
   level: QrErrorCorrection,
+  locale: Locale = "zh-CN",
 ): string | undefined {
   if (text.length === 0) return undefined;
   const max = QR_MAX_BYTES[level];
   if (utf8ByteLength(text) > max) {
-    return `输入超过 ${level} 级纠错的 ${max} 字节上限，未生成。请缩短内容或选择更低纠错等级。`;
+    return translate(locale, "tools.qr.inputOverLimit", { level, max });
   }
   return undefined;
 }
@@ -114,64 +120,74 @@ export type QrExportView =
   | { status: "written"; target: string; message: string; warning?: string }
   | { status: "failed"; message: string; warning?: string };
 
-export const GRANT_NOT_REVOKED_MESSAGE =
-  "未能撤销该文件的保存授权，请到授权列表中手动撤销。";
+export function grantNotRevokedMessage(locale: Locale = "zh-CN"): string {
+  return translate(locale, "tools.qr.grantNotRevoked");
+}
 
-export const DISCARD_FAILED_MESSAGE =
-  "未能撤销已放弃导出的文件授权，请到授权列表中手动撤销。";
+export function discardFailedMessage(locale: Locale = "zh-CN"): string {
+  return translate(locale, "tools.qr.discardFailed");
+}
 
-export function describePrepared(prepared: PreparedQrExport): {
+export function describePrepared(
+  prepared: PreparedQrExport,
+  locale: Locale = "zh-CN",
+): {
   title: string;
   notes: string[];
 } {
   if (prepared.kind === "REPLACE") {
     return {
-      title: `将覆盖已有文件：${prepared.target}`,
+      title: translate(locale, "tools.qr.prepared.replaceTitle", {
+        target: prepared.target,
+      }),
       notes: [
-        "覆盖前会把原文件保存为备份；写入后会回读校验。",
-        "确认前请核对文件路径。",
+        translate(locale, "tools.qr.prepared.replaceBackup"),
+        translate(locale, "tools.qr.prepared.replaceCheckPath"),
       ],
     };
   }
   return {
-    title: `将创建新文件：${prepared.target}`,
-    notes: ["新文件没有恢复点；写入后会回读校验。"],
+    title: translate(locale, "tools.qr.prepared.createTitle", {
+      target: prepared.target,
+    }),
+    notes: [translate(locale, "tools.qr.prepared.createNote")],
   };
 }
 
-const FILE_STATE_MESSAGES: Record<QrFileState, string> = {
-  WRITTEN: "文件已写入。",
-  UNCHANGED: "导出失败，文件未改动。",
-  RESTORED: "写入校验失败，已恢复原内容并校验。文件未保留新二维码。",
-  RESTORE_FAILED:
-    "写入校验失败，且无法确认已恢复原内容。文件可能包含新内容；备份仍保留原内容。",
-  CREATED_REMOVED: "新文件校验失败，已删除。未生成文件。",
-  CREATED_REMOVE_FAILED:
-    "新文件校验失败且无法删除，文件可能仍存在。请手动检查。",
-  UNKNOWN: "无法确定文件的最终状态，请手动检查该文件。",
+const FILE_STATE_KEYS: Record<QrFileState, MessageKey> = {
+  WRITTEN: "tools.qr.fileState.WRITTEN",
+  UNCHANGED: "tools.qr.fileState.UNCHANGED",
+  RESTORED: "tools.qr.fileState.RESTORED",
+  RESTORE_FAILED: "tools.qr.fileState.RESTORE_FAILED",
+  CREATED_REMOVED: "tools.qr.fileState.CREATED_REMOVED",
+  CREATED_REMOVE_FAILED: "tools.qr.fileState.CREATED_REMOVE_FAILED",
+  UNKNOWN: "tools.qr.fileState.UNKNOWN",
 };
 
 export function exportOutcomeView(
   target: string,
   outcome: QrExportOutcome,
+  locale: Locale = "zh-CN",
 ): QrExportView {
   const warning = outcome.grantReleaseError
-    ? { warning: GRANT_NOT_REVOKED_MESSAGE }
+    ? { warning: grantNotRevokedMessage(locale) }
     : {};
   if (outcome.status === "FAILED") {
     return {
       status: "failed",
-      message: FILE_STATE_MESSAGES[outcome.fileState],
+      message: translate(locale, FILE_STATE_KEYS[outcome.fileState]),
       ...warning,
     };
   }
   return {
     status: "written",
     target,
-    message:
+    message: translate(
+      locale,
       outcome.recoveryPoint === "BACKUP"
-        ? "覆盖完成，原文件已备份，并已回读校验。"
-        : "导出完成，已写入并回读校验。",
+        ? "tools.qr.outcome.backedUp"
+        : "tools.qr.outcome.written",
+    ),
     ...warning,
   };
 }

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { AppError } from "../../ipc/core";
 import type { TransformedText } from "../../ipc/textTools";
 import {
-  ALGORITHM_OPTIONS,
-  DIRECTION_OPTIONS,
+  algorithmOptions,
+  directionOptions,
   algorithmNote,
   conversionLabel,
   failureView,
@@ -15,7 +15,7 @@ const OUTPUT: TransformedText = { text: "5Lit", notices: [] };
 
 describe("codec option lists", () => {
   it("offers every algorithm and both directions with stable values", () => {
-    expect(ALGORITHM_OPTIONS.map((option) => option.value)).toEqual([
+    expect(algorithmOptions().map((option) => option.value)).toEqual([
       "BASE64",
       "BASE64_URL_SAFE",
       "URL_COMPONENT",
@@ -23,7 +23,7 @@ describe("codec option lists", () => {
       "UNICODE_ESCAPES",
       "UTF8_HEX",
     ]);
-    expect(DIRECTION_OPTIONS.map((option) => option.value)).toEqual([
+    expect(directionOptions().map((option) => option.value)).toEqual([
       "ENCODE",
       "DECODE",
     ]);
@@ -39,7 +39,7 @@ describe("codec option lists", () => {
       "Base64（URL-safe） · 编码",
     );
     expect(
-      ALGORITHM_OPTIONS.find((option) => option.value === "BASE64_URL_SAFE")
+      algorithmOptions().find((option) => option.value === "BASE64_URL_SAFE")
         ?.label,
     ).toBe("Base64（URL-safe）");
   });

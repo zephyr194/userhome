@@ -1,6 +1,9 @@
 import { useEffect, useRef, type ReactNode, type Ref } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Button, StatusBadge } from "../../components/ui";
+import type { Locale, MessageKey, TranslateFunction } from "../../i18n";
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import type { AppErrorCode } from "../../ipc/core";
 import type { GrantStoreProblem } from "../../ipc/grants";
 import {
@@ -13,32 +16,34 @@ import { restoreFocus } from "./restoreFocus";
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
 
-const PROBLEM_COPY: Record<GrantStoreProblem, string> = {
-  CORRUPT: "授权文件已损坏，授权相关操作暂时不可用。",
-  NEWER_VERSION:
-    "授权文件由较新版本的 UserHome 写入，当前版本无法读取，授权相关操作暂时不可用。重置会使新版本的授权失效。",
-  NOT_REGULAR_FILE:
-    "授权存储位置不是常规文件（例如目录或链接），UserHome 不会改动它。请手动处理后点击“重新检测”。",
-  IO: "无法访问授权文件（权限或读写错误），重置无法解决此问题，需要手动处理（检查文件权限等），然后点击“重新检测”。",
+const PROBLEM_KEYS: Record<GrantStoreProblem, MessageKey> = {
+  CORRUPT: "grants.problem.CORRUPT",
+  NEWER_VERSION: "grants.problem.NEWER_VERSION",
+  NOT_REGULAR_FILE: "grants.problem.NOT_REGULAR_FILE",
+  IO: "grants.problem.IO",
 };
 
-const FAILURE_HEADLINE: Partial<Record<AppErrorCode, string>> = {
-  CONFLICT: "授权存储当前无需重置，未做任何更改。",
-  NOT_SUPPORTED: "授权存储不是常规文件，需要手动处理，未做任何更改。",
-  PERMISSION_DENIED: "无法隔离授权存储，已回滚，未做任何更改。",
-  PARTIAL_FAILURE:
-    "原文件已改名保留，但未能建立新的授权库；当前没有授权库文件。关闭后可重新检测。",
-  INTERNAL: "无法确认重置结果。请关闭后重新检测授权存储状态。",
+const FAILURE_HEADLINE_KEYS: Partial<Record<AppErrorCode, MessageKey>> = {
+  CONFLICT: "grants.failure.CONFLICT",
+  NOT_SUPPORTED: "grants.failure.NOT_SUPPORTED",
+  PERMISSION_DENIED: "grants.failure.PERMISSION_DENIED",
+  PARTIAL_FAILURE: "grants.failure.PARTIAL_FAILURE",
+  INTERNAL: "grants.failure.INTERNAL",
 };
 
-function failureText(failure: ResetFailure): {
+function failureText(
+  failure: ResetFailure,
+  t: TranslateFunction,
+  locale: Locale,
+): {
   headline: string;
   detail?: string;
 } {
-  const headline = FAILURE_HEADLINE[failure.code] ?? "授权存储未能重置。";
+  const headlineKey = FAILURE_HEADLINE_KEYS[failure.code] ?? "grants.failure.default";
+  const headline = t(headlineKey);
   return failure.code === "INTERNAL"
     ? { headline }
-    : { headline, detail: failure.message };
+    : { headline, detail: localizeAppErrorMessage(failure, locale) };
 }
 
 function NoticeRow({
@@ -92,9 +97,12 @@ function ResetDialog({
   reason: GrantStoreProblem | undefined;
   state: GrantStoreNoticeState;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const { dialog } = state;
   const busy = dialog.phase === "resetting";
-  const failure = dialog.phase === "failed" ? failureText(dialog.failure) : null;
+  const failure =
+    dialog.phase === "failed" ? failureText(dialog.failure, t, locale) : null;
   return (
     <ConfirmDialog
       busy={busy}
@@ -103,15 +111,14 @@ function ResetDialog({
       titleId="grant-store-reset-heading"
     >
       <h3 className={WRAP} id="grant-store-reset-heading">
-        隔离并重置授权存储？
+        {t("grants.reset.title")}
       </h3>
       <p className="text-sm leading-relaxed text-muted-foreground">
-        UserHome 会把无法使用的授权文件改名后留在原目录，并建立一个空的授权存储。
-        所有授权需重新选择；原文件会改名保留，不会被删除。“取消”不会改变任何内容。
+        {t("grants.reset.description")}
       </p>
       {reason === "NEWER_VERSION" ? (
         <p className="text-sm leading-relaxed text-warning">
-          该文件由较新版本的 UserHome 写入，重置会使新版本的授权失效。
+          {t("grants.reset.newerNote")}
         </p>
       ) : null}
       {busy ? (
@@ -120,7 +127,7 @@ function ResetDialog({
           role="status"
           aria-live="polite"
         >
-          正在隔离并重置授权存储…
+          {t("grants.reset.running")}
         </p>
       ) : null}
       {failure ? (
@@ -128,7 +135,9 @@ function ResetDialog({
           className={`rounded-control border border-danger-border bg-danger-soft px-ui-12 py-ui-12 text-sm text-danger ${WRAP}`}
           role="alert"
         >
-          <p className="m-0 font-medium">重置未完成：{failure.headline}</p>
+          <p className="m-0 font-medium">
+            {t("grants.failure.headline", { headline: failure.headline })}
+          </p>
           {failure.detail ? (
             <p className="m-0 mt-ui-4">{failure.detail}</p>
           ) : null}
@@ -136,10 +145,12 @@ function ResetDialog({
       ) : null}
       <div className="flex flex-wrap justify-end gap-ui-8">
         <Button data-dialog-cancel disabled={busy} onClick={onCancel}>
-          取消
+          {t("common.cancel")}
         </Button>
         <Button variant="danger" disabled={busy} onClick={onConfirm}>
-          {dialog.phase === "failed" ? "重试隔离并重置" : "隔离并重置"}
+          {dialog.phase === "failed"
+            ? t("grants.reset.retry")
+            : t("grants.reset.confirm")}
         </Button>
       </div>
     </ConfirmDialog>
@@ -163,6 +174,7 @@ export function GrantStoreNoticeView({
   resetButtonRef?: Ref<HTMLButtonElement>;
   state: GrantStoreNoticeState;
 }) {
+  const t = useT();
   const { check, completed, dialog } = state;
   const recheck = (
     <Button
@@ -171,7 +183,9 @@ export function GrantStoreNoticeView({
       onClick={onRecheck}
       size="sm"
     >
-      {state.rechecking ? "检测中…" : "重新检测"}
+      {state.rechecking
+        ? t("grants.recheck.busy")
+        : t("grants.recheck.label")}
     </Button>
   );
   const reason = check.phase === "unavailable" ? check.reason : undefined;
@@ -191,50 +205,49 @@ export function GrantStoreNoticeView({
                   size="sm"
                   variant="danger"
                 >
-                  隔离并重置
+                  {t("grants.reset.confirm")}
                 </Button>
               ) : null}
               {recheck}
             </>
           }
-          badge="授权存储不可用"
+          badge={t("grants.notice.unavailable")}
           busy={state.rechecking}
           role="alert"
           tone="danger"
         >
-          {PROBLEM_COPY[check.reason]}
-          {isResettable(check.reason)
-            ? "重置后所有授权需重新选择，原文件会改名保留，不会被删除。"
-            : ""}
+          {t(PROBLEM_KEYS[check.reason])}
+          {isResettable(check.reason) ? t("grants.notice.resettable") : ""}
         </NoticeRow>
       ) : null}
       {check.phase === "check-failed" ? (
         <NoticeRow
           actions={recheck}
-          badge="授权状态未知"
+          badge={t("grants.notice.unknown")}
           busy={state.rechecking}
           role="alert"
           tone="warning"
         >
-          无法检测授权存储状态，授权相关操作可能不可用。
+          {t("grants.recheck.unknownStatus")}
         </NoticeRow>
       ) : null}
       {completed ? (
         <NoticeRow
           actions={
             <Button className="shrink-0" onClick={onDismissCompleted} size="sm">
-              知道了
+              {t("grants.notice.gotIt")}
             </Button>
           }
-          badge="授权存储已重置"
+          badge={t("grants.notice.reset")}
           role="status"
           tone="success"
         >
-          原文件已改名保留为 {completed.quarantineFileName}，不会被删除。所有授权需重新选择
-          {completed.previousReason === "NEWER_VERSION"
-            ? "；此前由较新版本写入的授权已失效"
-            : ""}
-          。
+          {t(
+            completed.previousReason === "NEWER_VERSION"
+              ? "grants.notice.completedNewer"
+              : "grants.notice.completed",
+            { file: completed.quarantineFileName },
+          )}
         </NoticeRow>
       ) : null}
       {dialog.phase !== "closed" ? (

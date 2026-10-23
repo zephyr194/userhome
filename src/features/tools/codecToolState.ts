@@ -5,24 +5,29 @@ import type {
   TransformedText,
 } from "../../ipc/textTools";
 import type { SelectOption } from "../../components/ui";
+import { translate, type Locale, type MessageKey } from "../../i18n";
+import { localizeAppErrorMessage } from "../../i18n/errors";
 
-const ALGORITHM_LABELS: Record<CodecAlgorithm, string> = {
-  BASE64: "Base64（UTF-8）",
-  BASE64_URL_SAFE: "Base64（URL-safe）",
-  URL_COMPONENT: "URL component",
-  HTML_ENTITIES: "HTML 实体",
-  UNICODE_ESCAPES: "Unicode 转义",
-  UTF8_HEX: "UTF-8 Hex",
+const ALGORITHM_LABEL_KEYS: Record<CodecAlgorithm, MessageKey> = {
+  BASE64: "tools.codec.algorithm.base64",
+  BASE64_URL_SAFE: "tools.codec.algorithm.base64UrlSafe",
+  URL_COMPONENT: "tools.codec.algorithm.urlComponent",
+  HTML_ENTITIES: "tools.codec.algorithm.htmlEntities",
+  UNICODE_ESCAPES: "tools.codec.algorithm.unicodeEscapes",
+  UTF8_HEX: "tools.codec.algorithm.utf8Hex",
 };
 
-const ALGORITHM_NOTES: Partial<Record<CodecAlgorithm, string>> = {
-  BASE64_URL_SAFE:
-    "URL-safe：字母表使用 - 和 _ 代替 + 和 /；编码结果不带 = 填充。解码接受带或不带填充的输入，但拒绝 + 和 /，此时请改用标准 Base64。",
+const ALGORITHM_NOTE_KEYS: Partial<Record<CodecAlgorithm, MessageKey>> = {
+  BASE64_URL_SAFE: "tools.codec.note.base64UrlSafe",
 };
 
-const DIRECTION_LABELS: Record<CodecDirection, string> = {
-  ENCODE: "编码",
-  DECODE: "解码",
+const DIRECTION_LABEL_KEYS: Record<CodecDirection, MessageKey> = {
+  ENCODE: "tools.codec.direction.encode",
+  DECODE: "tools.codec.direction.decode",
+};
+
+const NOTICE_KEYS: Readonly<Record<string, MessageKey>> = {
+  "未识别的实体已保留。": "tools.codec.notice.unknownEntities",
 };
 
 const ALGORITHM_ORDER: readonly CodecAlgorithm[] = [
@@ -36,11 +41,48 @@ const ALGORITHM_ORDER: readonly CodecAlgorithm[] = [
 
 const DIRECTION_ORDER: readonly CodecDirection[] = ["ENCODE", "DECODE"];
 
-export const ALGORITHM_OPTIONS: readonly SelectOption<CodecAlgorithm>[] =
-  ALGORITHM_ORDER.map((value) => ({ value, label: ALGORITHM_LABELS[value] }));
+export function algorithmOptions(
+  locale: Locale = "zh-CN",
+): readonly SelectOption<CodecAlgorithm>[] {
+  return ALGORITHM_ORDER.map((value) => ({
+    value,
+    label: translate(locale, ALGORITHM_LABEL_KEYS[value]),
+  }));
+}
 
-export const DIRECTION_OPTIONS: readonly SelectOption<CodecDirection>[] =
-  DIRECTION_ORDER.map((value) => ({ value, label: DIRECTION_LABELS[value] }));
+export function directionOptions(
+  locale: Locale = "zh-CN",
+): readonly SelectOption<CodecDirection>[] {
+  return DIRECTION_ORDER.map((value) => ({
+    value,
+    label: translate(locale, DIRECTION_LABEL_KEYS[value]),
+  }));
+}
+
+export function algorithmNote(
+  algorithm: CodecAlgorithm,
+  locale: Locale = "zh-CN",
+): string | undefined {
+  const key = ALGORITHM_NOTE_KEYS[algorithm];
+  return key === undefined ? undefined : translate(locale, key);
+}
+
+export function conversionLabel(
+  algorithm: CodecAlgorithm,
+  direction: CodecDirection,
+  locale: Locale = "zh-CN",
+): string {
+  return translate(locale, "tools.codec.conversion", {
+    algorithm: translate(locale, ALGORITHM_LABEL_KEYS[algorithm]),
+    direction: translate(locale, DIRECTION_LABEL_KEYS[direction]),
+  });
+}
+
+/** Known backend notices are matched by their zh-CN text and shown in the active language. */
+export function noticeText(notice: string, locale: Locale = "zh-CN"): string {
+  const key = NOTICE_KEYS[notice];
+  return key === undefined ? notice : translate(locale, key);
+}
 
 export type CodecView =
   | { status: "idle" }
@@ -53,17 +95,6 @@ export type CodecView =
     }
   | { status: "error"; message: string };
 
-export function algorithmNote(algorithm: CodecAlgorithm): string | undefined {
-  return ALGORITHM_NOTES[algorithm];
-}
-
-export function conversionLabel(
-  algorithm: CodecAlgorithm,
-  direction: CodecDirection,
-): string {
-  return `${ALGORITHM_LABELS[algorithm]} · ${DIRECTION_LABELS[direction]}`;
-}
-
 export function successView(
   output: TransformedText,
   algorithm: CodecAlgorithm,
@@ -72,10 +103,10 @@ export function successView(
   return { status: "success", output, algorithm, direction };
 }
 
-export function failureView(error: AppError): CodecView {
-  return { status: "error", message: error.message };
+export function failureView(error: AppError, locale: Locale = "zh-CN"): CodecView {
+  return { status: "error", message: localizeAppErrorMessage(error, locale) };
 }
 
-export function oversizedView(): CodecView {
-  return { status: "error", message: "输入超过 1 MiB 上限，未发送。" };
+export function oversizedView(locale: Locale = "zh-CN"): CodecView {
+  return { status: "error", message: translate(locale, "tools.input.oversized") };
 }
