@@ -209,14 +209,16 @@ describe("launchctl environment IPC", () => {
     ).resolves.toMatchObject({ note: NOTE });
   });
 
-  it("removes a variable by name only and decodes the change", async () => {
+  it("removes a variable with the digest from its preview and decodes the change", async () => {
     mockIPC((command, payload) => {
       expect(command).toBe("execute_launchctl_unset");
-      expect(payload).toEqual({ key: "EDITOR" });
+      expect(payload).toEqual({ key: "EDITOR", expectedCurrent: DIGEST });
       return { ...wireEnvironment(), note: "移除只影响之后启动的应用，已经运行的应用不受影响。" };
     });
 
-    await expect(unsetLaunchctlValue("EDITOR")).resolves.toMatchObject({ partial: false });
+    await expect(
+      unsetLaunchctlValue({ key: "EDITOR", expectedCurrent: DIGEST }),
+    ).resolves.toMatchObject({ partial: false });
   });
 
   it("refuses an invalid name, value or digest without calling the backend", async () => {
@@ -228,11 +230,20 @@ describe("launchctl environment IPC", () => {
 
     for (const key of badName) {
       await expect(previewLaunchctlSet(key, "x")).rejects.toMatchObject({ code: "INVALID_INPUT" });
-      await expect(unsetLaunchctlValue(key)).rejects.toMatchObject({ code: "INVALID_INPUT" });
+      await expect(
+        unsetLaunchctlValue({ key, expectedCurrent: null }),
+      ).rejects.toMatchObject({ code: "INVALID_INPUT" });
       await expect(
         setLaunchctlValue({ key, value: "x", expectedCurrent: null }),
       ).rejects.toMatchObject({ code: "INVALID_INPUT" });
     }
+    await expect(
+      unsetLaunchctlValue({ key: "EDITOR", expectedCurrent: "NOT-A-DIGEST" }),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    await expect(previewLaunchctlSet("EDITOR", "-x")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    await expect(
+      setLaunchctlValue({ key: "EDITOR", value: "-x", expectedCurrent: null }),
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
     await expect(previewLaunchctlSet("EDITOR", "a\0b")).rejects.toMatchObject({ code: "INVALID_INPUT" });
     await expect(previewLaunchctlSet("EDITOR", "é".repeat(2049))).rejects.toMatchObject({
       code: "INVALID_INPUT",

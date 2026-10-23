@@ -24,7 +24,7 @@ export interface LaunchctlViewProps {
   onRetry: () => void;
   onPreview: (key: string, value: string) => Promise<LaunchctlSetPreview>;
   onSet: (input: LaunchctlSetInput) => Promise<LaunchctlChange>;
-  onUnset: (key: string) => Promise<LaunchctlChange>;
+  onUnset: (key: string, expectedCurrent: string | null) => Promise<LaunchctlChange>;
 }
 
 type LaunchctlDialog =
@@ -229,6 +229,7 @@ export function LaunchctlView({
           entryKey={dialog.key}
           onCancel={() => setDialog(null)}
           onDone={(change, key) => completeChange(change, "已移除", key)}
+          onPreview={(key) => onPreview(key, "")}
           onRemove={onUnset}
         />
       ) : null}

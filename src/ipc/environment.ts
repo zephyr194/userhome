@@ -1961,6 +1961,7 @@ export function decodeLaunchctlChange(value: unknown): LaunchctlChange {
 function launchctlSetProblem(key: string, value: string): string | null {
   if (!LAUNCHCTL_SET_KEY_PATTERN.test(key)) return "Variable name is invalid.";
   if (value.includes("\0")) return "Variable value contains a NUL character.";
+  if (value.startsWith("-")) return "Variable value cannot start with a hyphen.";
   if (new TextEncoder().encode(value).length > LAUNCHCTL_MAX_VALUE_BYTES) {
     return "Variable value is too long.";
   }
@@ -1990,7 +1991,16 @@ export function setLaunchctlValue(input: {
   });
 }
 
-export function unsetLaunchctlValue(key: string): Promise<LaunchctlChange> {
-  if (!LAUNCHCTL_SET_KEY_PATTERN.test(key)) return invalidInput("Variable name is invalid.");
-  return invokeCommand("execute_launchctl_unset", decodeLaunchctlChange, { key });
+export function unsetLaunchctlValue(input: {
+  key: string;
+  expectedCurrent: string | null;
+}): Promise<LaunchctlChange> {
+  if (!LAUNCHCTL_SET_KEY_PATTERN.test(input.key)) return invalidInput("Variable name is invalid.");
+  if (input.expectedCurrent !== null && !HASH_PATTERN.test(input.expectedCurrent)) {
+    return invalidInput("Preview digest is invalid.");
+  }
+  return invokeCommand("execute_launchctl_unset", decodeLaunchctlChange, {
+    key: input.key,
+    expectedCurrent: input.expectedCurrent,
+  });
 }

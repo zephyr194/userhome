@@ -68,8 +68,8 @@ export function LaunchctlPage() {
     [applyChange],
   );
   const unset = useCallback(
-    async (key: string) => {
-      const change = await unsetLaunchctlValue(key);
+    async (key: string, expectedCurrent: string | null) => {
+      const change = await unsetLaunchctlValue({ key, expectedCurrent });
       applyChange(change);
       return change;
     },

@@ -327,6 +327,12 @@ pub fn validate_set_value(value: &str) -> Result<(), AppError> {
     if value.contains('\0') {
         return Err(AppError::invalid_input("值不能包含空字符。"));
     }
+    // launchctl's `--` handling is unverified, so a leading hyphen is refused rather than passed through.
+    if value.starts_with('-') {
+        return Err(AppError::invalid_input(
+            "值不能以 - 开头，launchctl 可能把它当作选项。请换一个值。",
+        ));
+    }
     Ok(())
 }
 
@@ -462,9 +468,12 @@ pub fn set_value(
     finish_write(SET_NOTE)
 }
 
-pub fn unset_value(key: &str) -> Result<LaunchctlChange, AppError> {
+pub fn unset_value(key: &str, expected: Option<&str>) -> Result<LaunchctlChange, AppError> {
     validate_set_name(key)?;
+    validate_expected(expected)?;
     let _guard = write_guard();
+    let (text, cut) = read_print_output()?;
+    check_expected(&parse_print_output(&text, cut), key, expected)?;
     run_write(&unsetenv_args(key))?;
     finish_write(UNSET_NOTE)
 }

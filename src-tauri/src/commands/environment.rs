@@ -207,10 +207,15 @@ pub async fn execute_launchctl_set(
 }
 
 #[tauri::command]
-pub async fn execute_launchctl_unset(key: String) -> Result<LaunchctlChange, AppError> {
-    tauri::async_runtime::spawn_blocking(move || launchctl::unset_value(&key))
-        .await
-        .map_err(|_| AppError::internal())?
+pub async fn execute_launchctl_unset(
+    key: String,
+    expected_current: Option<String>,
+) -> Result<LaunchctlChange, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        launchctl::unset_value(&key, expected_current.as_deref())
+    })
+    .await
+    .map_err(|_| AppError::internal())?
 }
 
 // ---- zsh startup files (read-only) ------------------------------------------

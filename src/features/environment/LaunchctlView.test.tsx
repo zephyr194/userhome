@@ -305,9 +305,25 @@ describe("LaunchctlView", () => {
     fireEvent.click(screen.getByRole("button", { name: "移除 PATH" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "移除变量" }));
 
-    await waitFor(() => expect(props.onUnset).toHaveBeenCalledWith("PATH"));
+    await waitFor(() => expect(props.onUnset).toHaveBeenCalledWith("PATH", null));
     expect(await screen.findByText(/已移除 PATH。/)).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("removes with the digest from a preview taken when the removal is confirmed", async () => {
+    const onPreview = vi.fn(async (key: string) => ({
+      key,
+      currentExists: true,
+      currentSecret: false,
+      expectedCurrent: DIGEST,
+    }));
+    const props = renderView({ status: "ready", environment: ENVIRONMENT }, { onPreview });
+
+    fireEvent.click(screen.getByRole("button", { name: "移除 PATH" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "移除变量" }));
+
+    await waitFor(() => expect(props.onUnset).toHaveBeenCalledWith("PATH", DIGEST));
+    expect(onPreview).toHaveBeenCalledWith("PATH", "");
   });
 
   it("removes a secret variable without needing its value", async () => {
@@ -316,7 +332,7 @@ describe("LaunchctlView", () => {
     fireEvent.click(screen.getByRole("button", { name: "移除 API_TOKEN" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "移除变量" }));
 
-    await waitFor(() => expect(props.onUnset).toHaveBeenCalledWith("API_TOKEN"));
+    await waitFor(() => expect(props.onUnset).toHaveBeenCalledWith("API_TOKEN", null));
   });
 
   it("keeps the removal dialog open with the reason when removing fails", async () => {

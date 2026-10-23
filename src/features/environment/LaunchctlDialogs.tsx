@@ -29,6 +29,7 @@ function nameProblem(name: string): string | null {
 function valueProblem(value: string): string | null {
   if (value.length === 0) return "请输入值。要删除这个变量，请使用“移除”。";
   if (value.includes("\0")) return "值不能包含空字符。";
+  if (value.startsWith("-")) return "值不能以 - 开头。请换一个值。";
   if (new TextEncoder().encode(value).length > MAX_VALUE_BYTES) {
     return "值不能超过 4096 字节。";
   }
@@ -188,12 +189,14 @@ export function LaunchctlRemoveDialog({
   entryKey,
   onCancel,
   onDone,
+  onPreview,
   onRemove,
 }: {
   entryKey: string;
   onCancel: () => void;
   onDone: (change: LaunchctlChange, key: string) => void;
-  onRemove: (key: string) => Promise<LaunchctlChange>;
+  onPreview: (key: string) => Promise<LaunchctlSetPreview>;
+  onRemove: (key: string, expectedCurrent: string | null) => Promise<LaunchctlChange>;
 }) {
   const titleId = useId();
   const [busy, setBusy] = useState(false);
@@ -203,7 +206,8 @@ export function LaunchctlRemoveDialog({
     setError(null);
     setBusy(true);
     try {
-      onDone(await onRemove(entryKey), entryKey);
+      const preview = await onPreview(entryKey);
+      onDone(await onRemove(entryKey, preview.expectedCurrent), entryKey);
     } catch (failure) {
       setError(decodeAppError(failure).message);
     } finally {

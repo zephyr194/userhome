@@ -233,6 +233,19 @@ fn set_values_are_capped_and_may_not_contain_nul() {
 }
 
 #[test]
+fn values_starting_with_a_hyphen_are_refused_so_launchctl_never_reads_them_as_options() {
+    for value in ["-", "-x", "--", "-rf $HOME"] {
+        assert_eq!(
+            validate_set_value(value).unwrap_err().code(),
+            AppErrorCode::InvalidInput,
+            "{value:?}"
+        );
+    }
+    assert!(validate_set_value("x-").is_ok());
+    assert!(validate_set_value(" -x").is_ok());
+}
+
+#[test]
 fn expected_digest_must_be_absent_or_lowercase_sha256_hex() {
     let upper = "A".repeat(64);
     let not_hex = "g".repeat(64);
