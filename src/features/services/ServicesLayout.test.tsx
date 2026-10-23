@@ -37,7 +37,7 @@ describe("services page layout (UIB-4b)", () => {
     expect(markup).toContain("服务清单");
     expect(markup).toContain('aria-label="任务详情"');
     expect(markup).toContain("管理占位");
-    expect(markup).toContain("日志占位");
+    expect(markup).toContain("查看日志");
   });
 
   it("leaves the page heading to the app shell", () => {

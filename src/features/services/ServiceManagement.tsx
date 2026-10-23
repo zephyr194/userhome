@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Button, Modal, Panel } from "../../components/ui";
+import { localizedErrorMessage } from "../../i18n/errors";
+import { useT } from "../../i18n/useLocale";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
   releaseAdoption,
@@ -37,6 +39,7 @@ function ReleaseAdoptionDialog({
   onClose: () => void;
   onReleased: (outcome: ReleaseOutcome) => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<AppError | undefined>();
 
@@ -59,10 +62,10 @@ function ReleaseAdoptionDialog({
       footer={
         <>
           <Button data-modal-cancel disabled={busy} onClick={onClose}>
-            取消
+            {t("common.cancel")}
           </Button>
           <Button disabled={busy} onClick={confirm} variant="danger">
-            确认取消接管
+            {t("services.management.releaseConfirm")}
           </Button>
         </>
       }
@@ -72,18 +75,18 @@ function ReleaseAdoptionDialog({
     >
       <div className="min-w-0">
         <h3 className="break-words [overflow-wrap:anywhere]" id="release-adoption-heading">
-          取消接管 {label}
+          {t("services.management.releaseTitle", { label })}
         </h3>
       </div>
       <p className="text-sm">
-        只删除 UserHome 的接管记录。不修改 plist 文件，也不停止或卸载任务。
+        {t("services.management.releaseScope")}
       </p>
       <p className="text-sm text-muted-foreground">
-        取消后，该任务重新只是当前用户的任务，不能再通过 UserHome 编辑。
+        {t("services.management.releaseEffect")}
       </p>
       {error ? (
         <p className="break-words text-sm text-danger" role="alert">
-          {error.message}
+          {localizedErrorMessage(error, t)}
         </p>
       ) : null}
     </Modal>
@@ -103,9 +106,10 @@ export function ServiceManagement({
   onChanged: () => void;
   service: LaunchdService;
 }) {
+  const t = useT();
   const [open, setOpen] = useState<OpenDialog>(undefined);
   const [notice, setNotice] = useState<string | undefined>(undefined);
-  const view = managementOf(service);
+  const view = managementOf(service, t);
   if (view.kind === "none") return null;
 
   const close = () => setOpen(undefined);
@@ -114,18 +118,18 @@ export function ServiceManagement({
     <Panel aria-labelledby="service-management-heading" className="min-w-0">
       <header className="border-b border-border px-ui-16 py-ui-12">
         <h3 className="text-sm font-semibold" id="service-management-heading">
-          接管与编辑
+          {t("services.management.heading")}
         </h3>
       </header>
       <div className="grid gap-ui-8 px-ui-16 py-ui-12">
         {view.kind === "adopt" ? (
           <>
             <p className="text-sm">
-              这是当前用户自己的任务，尚未被 UserHome 接管。接管只记录所有权，不修改 plist，也不加载或重启任务。
+              {t("services.management.adoptIntro")}
             </p>
             <div>
               <Button onClick={() => setOpen("adopt")} variant="primary">
-                接管
+                {t("services.management.adopt")}
               </Button>
             </div>
           </>
@@ -133,31 +137,33 @@ export function ServiceManagement({
 
         {view.kind === "adoptBlocked" ? (
           <>
-            <p className="text-sm">这个任务不能接管：</p>
+            <p className="text-sm">{t("services.management.adoptBlocked")}</p>
             <ReasonList reasons={view.reasons} />
           </>
         ) : null}
 
         {view.kind === "adopted" ? (
           <>
-            <p className="text-sm">已由 UserHome 接管。</p>
+            <p className="text-sm">{t("services.management.adopted")}</p>
             {view.editBlockers.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                编辑会先预览再保存，保存后需重新加载任务才生效。
+                {t("services.management.editHint")}
               </p>
             ) : (
               <>
-                <p className="text-sm">这个任务当前不能编辑：</p>
+                <p className="text-sm">{t("services.management.editBlocked")}</p>
                 <ReasonList reasons={view.editBlockers} />
               </>
             )}
             <div className="flex flex-wrap gap-ui-8">
               {view.editBlockers.length === 0 ? (
                 <Button onClick={() => setOpen("edit")} variant="primary">
-                  编辑
+                  {t("services.management.edit")}
                 </Button>
               ) : null}
-              <Button onClick={() => setOpen("release")}>取消接管</Button>
+              <Button onClick={() => setOpen("release")}>
+                {t("services.management.release")}
+              </Button>
             </div>
           </>
         ) : null}
@@ -173,7 +179,7 @@ export function ServiceManagement({
         <AdoptServiceDialog
           label={service.label}
           onAdopted={(execution) => {
-            setNotice(describeAdoptSuccess(execution).title);
+            setNotice(describeAdoptSuccess(execution, t).title);
             onChanged();
           }}
           onClose={close}
@@ -183,7 +189,7 @@ export function ServiceManagement({
         <EditServiceDialog
           onClose={close}
           onSaved={(execution) => {
-            if (wasSaved(execution)) setNotice(describeEditOutcome(execution).title);
+            if (wasSaved(execution)) setNotice(describeEditOutcome(execution, t).title);
             onChanged();
           }}
           service={service}
@@ -197,8 +203,8 @@ export function ServiceManagement({
             setOpen(undefined);
             setNotice(
               outcome.released
-                ? `已取消接管 ${outcome.label}：接管记录已删除，plist 与任务未改动。`
-                : "没有找到接管记录，未做任何改动。",
+                ? t("services.management.releasedNotice", { label: outcome.label })
+                : t("services.management.releaseMissing"),
             );
             onChanged();
           }}

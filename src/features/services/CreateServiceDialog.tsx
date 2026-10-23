@@ -10,6 +10,8 @@ import {
   type CreateServicePreview,
 } from "../../ipc/services";
 import { ActionRow, Button, Modal, SwitchField, TextField } from "../../components/ui";
+import { formatDateTime } from "../../i18n/format";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   ENVIRONMENT_NOTE,
   INITIAL_CREATE_DIALOG,
@@ -79,31 +81,32 @@ function FormBody({
   showErrors: boolean;
   disabled: boolean;
 }) {
-  const errors = useMemo(() => validateCreateForm(form), [form]);
+  const t = useT();
+  const errors = useMemo(() => validateCreateForm(form, t), [form, t]);
   const shown = showErrors ? errors : undefined;
   const label = fullLabel(form.labelSuffix);
 
   return (
     <div className="grid gap-ui-16">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        仅创建配置文件，不会加载或启动任务。文件固定为 ~/Library/LaunchAgents/
-        &lt;label&gt;.plist，label 固定在 {CREATE_SERVICE_NAMESPACE} 之下；程序直接运行，不经 shell。
+        {t("services.dialog.create.intro", { namespace: CREATE_SERVICE_NAMESPACE })}
       </p>
 
       <TextField
         autoComplete="off"
         description={
           label === undefined ? (
-            "只填后缀，或填写命名空间内的完整 label。"
+            t("services.dialog.create.labelHint")
           ) : (
             <>
-              实际 label：<Mono>{label}</Mono>
+              {t("services.dialog.create.actualLabel")}
+              <Mono>{label}</Mono>
             </>
           )
         }
         disabled={disabled}
         error={shown?.label}
-        label="任务名称"
+        label={t("services.dialog.create.taskName")}
         onValueChange={(value) => onFormChange(setFormField(form, "labelSuffix", value))}
         required
         spellCheck={false}
@@ -111,19 +114,19 @@ function FormBody({
       />
       <TextField
         autoComplete="off"
-        description="绝对路径；shell 与 env、sudo 等包装器会被拒绝。"
+        description={t("services.dialog.field.executableHint")}
         disabled={disabled}
         error={shown?.executable}
-        label="可执行文件路径"
+        label={t("services.dialog.field.executable")}
         onValueChange={(value) => onFormChange(setFormField(form, "executable", value))}
         required
         spellCheck={false}
         value={form.executable}
       />
 
-      <Section title="参数">
+      <Section title={t("services.dialog.create.argumentsSection")}>
         <p className="text-xs text-muted-foreground">
-          每一项是独立的一个参数，不会拼接成命令行，也不会被 shell 再次解析（最多 {CREATE_SERVICE_LIMITS.arguments} 项）。
+          {t("services.dialog.create.argumentsNote", { limit: CREATE_SERVICE_LIMITS.arguments })}
         </p>
         {form.arguments.map((row, index) => (
           <div className="grid gap-ui-8" key={row.id}>
@@ -131,7 +134,7 @@ function FormBody({
               autoComplete="off"
               disabled={disabled}
               error={shown?.arguments[row.id]}
-              label={`参数 ${index + 1}`}
+              label={t("services.dialog.create.argumentLabel", { index: index + 1 })}
               onValueChange={(value) =>
                 onFormChange(updateArgument(form, row.id, value))
               }
@@ -144,14 +147,14 @@ function FormBody({
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
                 size="sm"
               >
-                上移
+                {t("services.dialog.common.moveUp")}
               </Button>
               <Button
                 disabled={disabled || index === form.arguments.length - 1}
                 onClick={() => onFormChange(moveArgument(form, row.id, 1))}
                 size="sm"
               >
-                下移
+                {t("services.dialog.common.moveDown")}
               </Button>
               <Button
                 disabled={disabled}
@@ -159,7 +162,7 @@ function FormBody({
                 size="sm"
                 variant="ghost"
               >
-                删除参数
+                {t("services.dialog.create.removeArgument")}
               </Button>
             </ActionRow>
           </div>
@@ -170,17 +173,17 @@ function FormBody({
             onClick={() => onFormChange(addArgument(form))}
             size="sm"
           >
-            添加参数
+            {t("services.dialog.create.addArgument")}
           </Button>
         </div>
       </Section>
 
       <TextField
         autoComplete="off"
-        description="可选；绝对路径，目录必须已存在。"
+        description={t("services.dialog.create.workingDirectoryHint")}
         disabled={disabled}
         error={shown?.workingDirectory}
-        label="工作目录"
+        label={t("services.dialog.field.workingDirectory")}
         onValueChange={(value) =>
           onFormChange(setFormField(form, "workingDirectory", value))
         }
@@ -188,8 +191,8 @@ function FormBody({
         value={form.workingDirectory}
       />
 
-      <Section title="环境变量">
-        <p className="text-xs text-muted-foreground">{ENVIRONMENT_NOTE}</p>
+      <Section title={t("services.dialog.common.environment")}>
+        <p className="text-xs text-muted-foreground">{t(ENVIRONMENT_NOTE)}</p>
         {form.environment.map((row, index) => (
           <div className="grid gap-ui-8" key={row.id}>
             <div className="grid gap-ui-8 sm:grid-cols-2">
@@ -197,7 +200,7 @@ function FormBody({
                 autoComplete="off"
                 disabled={disabled}
                 error={shown?.environment[row.id]?.key}
-                label={`变量名 ${index + 1}`}
+                label={t("services.dialog.create.envKeyLabel", { index: index + 1 })}
                 onValueChange={(value) =>
                   onFormChange(updateEnvironmentKey(form, row.id, value))
                 }
@@ -206,10 +209,10 @@ function FormBody({
               />
               <TextField
                 autoComplete="off"
-                description="可能包含密钥，输入已隐藏。"
+                description={t("services.dialog.field.secretHint")}
                 disabled={disabled}
                 error={shown?.environment[row.id]?.value}
-                label={`变量值 ${index + 1}`}
+                label={t("services.dialog.create.envValueLabel", { index: index + 1 })}
                 onValueChange={(value) =>
                   onFormChange(updateEnvironmentValue(form, row.id, value))
                 }
@@ -225,7 +228,7 @@ function FormBody({
                 size="sm"
                 variant="ghost"
               >
-                删除环境变量
+                {t("services.dialog.create.removeEnvironment")}
               </Button>
             </div>
           </div>
@@ -238,7 +241,7 @@ function FormBody({
             onClick={() => onFormChange(addEnvironment(form))}
             size="sm"
           >
-            添加环境变量
+            {t("services.dialog.common.addEnvironment")}
           </Button>
         </div>
       </Section>
@@ -246,41 +249,41 @@ function FormBody({
       <div className="grid gap-ui-12 sm:grid-cols-2">
         <TextField
           autoComplete="off"
-          description="可选；绝对路径，所在目录必须已存在。"
+          description={t("services.dialog.create.stdoutHint")}
           disabled={disabled}
           error={shown?.stdoutPath}
-          label="标准输出日志路径"
+          label={t("services.dialog.field.stdoutPath")}
           onValueChange={(value) => onFormChange(setFormField(form, "stdoutPath", value))}
           spellCheck={false}
           value={form.stdoutPath}
         />
         <TextField
           autoComplete="off"
-          description="可选；可与标准输出相同。"
+          description={t("services.dialog.create.stderrHint")}
           disabled={disabled}
           error={shown?.stderrPath}
-          label="标准错误日志路径"
+          label={t("services.dialog.field.stderrPath")}
           onValueChange={(value) => onFormChange(setFormField(form, "stderrPath", value))}
           spellCheck={false}
           value={form.stderrPath}
         />
       </div>
 
-      <Section title="持久化选项（默认关闭）">
+      <Section title={t("services.dialog.create.persistenceSection")}>
         <SwitchField
           checked={form.runAtLoad}
-          description={RUN_AT_LOAD_IMPACT}
+          description={t(RUN_AT_LOAD_IMPACT)}
           disabled={disabled}
-          label="登录后自动启动"
+          label={t("services.dialog.field.runAtLoad")}
           onCheckedChange={(checked) =>
             onFormChange(setFormField(form, "runAtLoad", checked))
           }
         />
         <SwitchField
           checked={form.keepAlive}
-          description={KEEP_ALIVE_IMPACT}
+          description={t(KEEP_ALIVE_IMPACT)}
           disabled={disabled}
-          label="退出后自动重启"
+          label={t("services.dialog.field.keepAlive")}
           onCheckedChange={(checked) =>
             onFormChange(setFormField(form, "keepAlive", checked))
           }
@@ -293,23 +296,26 @@ function FormBody({
 }
 
 function PreviewBody({ preview }: { preview: CreateServicePreview }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <div className="grid gap-ui-16">
-      <Section title="将创建的文件">
+      <Section title={t("services.dialog.create.previewFileSection")}>
         <p className="text-sm">
           <Mono>{preview.filePath}</Mono>
         </p>
         <p className="text-xs text-muted-foreground">
-          label：<Mono>{preview.label}</Mono>
+          {t("services.dialog.create.labelLine")}
+          <Mono>{preview.label}</Mono>
         </p>
       </Section>
 
-      <Section title="实际执行目标">
+      <Section title={t("services.dialog.create.targetSection")}>
         <p className="text-xs text-muted-foreground">
-          程序与参数逐项如下，不经 shell；
+          {t("services.dialog.create.targetNote")}
           {preview.argumentsRedacted
-            ? "敏感参数已隐藏，但会按原值写入配置文件。"
-            : "没有识别到敏感参数。"}
+            ? t("services.dialog.create.argumentsRedacted")
+            : t("services.dialog.create.argumentsClear")}
         </p>
         <ol className="grid gap-ui-4 text-sm">
           <li>
@@ -318,24 +324,29 @@ function PreviewBody({ preview }: { preview: CreateServicePreview }) {
           {preview.arguments.map((argument, index) => (
             // The list is a fixed snapshot, so position is a stable key.
             <li key={index}>
-              <Mono>{argument.length === 0 ? "（空参数）" : argument}</Mono>
+              <Mono>
+                {argument.length === 0 ? t("services.dialog.create.emptyArgument") : argument}
+              </Mono>
             </li>
           ))}
         </ol>
         {preview.workingDirectory ? (
           <p className="text-xs text-muted-foreground">
-            工作目录：<Mono>{preview.workingDirectory}</Mono>
+            {t("services.dialog.create.workingDirectoryLine")}
+            <Mono>{preview.workingDirectory}</Mono>
           </p>
         ) : null}
       </Section>
 
-      <Section title="环境变量">
+      <Section title={t("services.dialog.common.environment")}>
         {preview.environmentKeys.length === 0 ? (
-          <p className="text-sm text-muted-foreground">没有设置环境变量。</p>
+          <p className="text-sm text-muted-foreground">
+            {t("services.dialog.create.noEnvironment")}
+          </p>
         ) : (
           <>
             <p className="text-xs text-muted-foreground">
-              只显示变量名，值不会显示，仅写入这个任务自己的配置文件。
+              {t("services.dialog.create.envNamesOnly")}
             </p>
             <ul className="flex flex-wrap gap-ui-8">
               {preview.environmentKeys.map((key) => (
@@ -348,16 +359,18 @@ function PreviewBody({ preview }: { preview: CreateServicePreview }) {
         )}
       </Section>
 
-      <Section title="日志">
+      <Section title={t("services.dialog.common.logs")}>
         <p className="text-xs text-muted-foreground">
-          标准输出：<Mono>{preview.stdoutPath ?? "未设置"}</Mono>
+          {t("services.dialog.create.stdoutLine")}
+          <Mono>{preview.stdoutPath ?? t("services.dialog.common.notSet")}</Mono>
         </p>
         <p className="text-xs text-muted-foreground">
-          标准错误：<Mono>{preview.stderrPath ?? "未设置"}</Mono>
+          {t("services.dialog.create.stderrLine")}
+          <Mono>{preview.stderrPath ?? t("services.dialog.common.notSet")}</Mono>
         </p>
       </Section>
 
-      <Section title="持久化影响">
+      <Section title={t("services.dialog.create.impactSection")}>
         <ul className="grid gap-ui-8 text-sm text-muted-foreground">
           {preview.persistenceNotes.map((note) => (
             <li className="flex gap-ui-8" key={note}>
@@ -374,9 +387,9 @@ function PreviewBody({ preview }: { preview: CreateServicePreview }) {
         {preview.effectNote}
       </p>
       <p className="break-words text-xs text-muted-foreground">
-        预览到期：
+        {t("services.dialog.common.previewExpires")}
         <time dateTime={preview.expiresAt}>
-          {new Date(preview.expiresAt).toLocaleString("zh-CN")}
+          {formatDateTime(preview.expiresAt, locale)}
         </time>
       </p>
     </div>
@@ -390,20 +403,21 @@ function ResultBody({
   dialog: Extract<CreateDialogState, { phase: "done" | "failed" }>;
   form: CreateFormState;
 }) {
+  const t = useT();
   if (dialog.phase === "done") {
-    const outcome = describeCreateOutcome(dialog.execution);
+    const outcome = describeCreateOutcome(dialog.execution, t);
     return (
       <div className="grid gap-ui-8" role="status" aria-live="polite">
         <p className="text-sm font-semibold text-success">{outcome.title}</p>
         <p className="text-sm text-muted-foreground">{outcome.detail}</p>
         <p className="text-xs text-muted-foreground">
-          新任务尚未加载：列表中会显示这个任务，但需要另外确认才能加载或启动。
+          {t("services.dialog.create.doneNote")}
         </p>
       </div>
     );
   }
   if (dialog.execution) {
-    const outcome = describeCreateOutcome(dialog.execution);
+    const outcome = describeCreateOutcome(dialog.execution, t);
     return (
       <div className="grid gap-ui-8" role="alert">
         <p className="text-sm font-semibold text-danger">{outcome.title}</p>
@@ -413,9 +427,11 @@ function ResultBody({
   }
   return (
     <div className="grid gap-ui-8" role="alert">
-      <p className="text-sm font-semibold text-danger">创建被拒绝，没有写入任何文件。</p>
+      <p className="text-sm font-semibold text-danger">
+        {t("services.dialog.create.rejectedTitle")}
+      </p>
       <p className="break-words text-sm text-muted-foreground">
-        {scrubSecrets(dialog.error?.message ?? "操作被拒绝。", form)}
+        {scrubSecrets(dialog.error?.message ?? t("services.dialog.common.refused"), form, t)}
       </p>
     </div>
   );
@@ -444,6 +460,7 @@ export function CreateServiceDialogView({
   onPreview: () => void;
   showErrors: boolean;
 }) {
+  const t = useT();
   const busy = dialog.phase === "previewing" || dialog.phase === "creating";
   let body: ReactNode;
   let footer: ReactNode;
@@ -454,11 +471,11 @@ export function CreateServiceDialogView({
       body = (
         <>
           {dialog.phase === "editing" && dialog.error ? (
-            <ErrorText>{scrubSecrets(dialog.error.message, form)}</ErrorText>
+            <ErrorText>{scrubSecrets(dialog.error.message, form, t)}</ErrorText>
           ) : null}
           {dialog.phase === "previewing" ? (
             <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-              正在生成预览…
+              {t("services.dialog.common.previewing")}
             </p>
           ) : null}
           <FormBody
@@ -472,10 +489,10 @@ export function CreateServiceDialogView({
       footer = (
         <>
           <Button data-modal-cancel disabled={busy} onClick={onClose}>
-            取消
+            {t("services.dialog.common.cancel")}
           </Button>
           <Button disabled={busy} onClick={onPreview} variant="primary">
-            预览
+            {t("services.dialog.common.preview")}
           </Button>
         </>
       );
@@ -487,7 +504,7 @@ export function CreateServiceDialogView({
           <PreviewBody preview={dialog.preview} />
           {dialog.phase === "creating" ? (
             <p className="text-sm text-warning" role="status" aria-live="polite">
-              正在创建配置文件，窗口会在完成后显示结果。
+              {t("services.dialog.create.creatingNote")}
             </p>
           ) : null}
         </>
@@ -499,14 +516,14 @@ export function CreateServiceDialogView({
             disabled={dialog.phase === "creating"}
             onClick={onEdit}
           >
-            返回修改
+            {t("services.dialog.common.backToEdit")}
           </Button>
           <Button
             disabled={dialog.phase === "creating"}
             onClick={onConfirm}
             variant="primary"
           >
-            确认创建
+            {t("services.dialog.create.confirm")}
           </Button>
         </>
       );
@@ -515,7 +532,7 @@ export function CreateServiceDialogView({
       body = <ResultBody dialog={dialog} form={form} />;
       footer = (
         <Button data-modal-cancel onClick={onClose} variant="primary">
-          完成
+          {t("services.dialog.common.done")}
         </Button>
       );
       break;
@@ -524,10 +541,10 @@ export function CreateServiceDialogView({
       footer = (
         <>
           <Button data-modal-cancel onClick={onClose}>
-            关闭
+            {t("services.dialog.common.close")}
           </Button>
           <Button onClick={onEdit} variant="primary">
-            返回修改
+            {t("services.dialog.common.backToEdit")}
           </Button>
         </>
       );
@@ -546,10 +563,10 @@ export function CreateServiceDialogView({
     >
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-          UserHome 自建任务
+          {t("services.dialog.create.eyebrow")}
         </p>
         <h3 className="break-words [overflow-wrap:anywhere]" id={TITLE_ID}>
-          创建 UserHome 自建任务
+          {t("services.dialog.create.title")}
         </h3>
       </div>
       {body}
@@ -572,10 +589,11 @@ export function CreateServiceDialog({
   const [form, setForm] = useState<CreateFormState>(INITIAL_CREATE_FORM);
   const [dialog, dispatch] = useReducer(createDialogReducer, INITIAL_CREATE_DIALOG);
   const [showErrors, setShowErrors] = useState(false);
+  const t = useT();
 
   const preview = useCallback(() => {
     setShowErrors(true);
-    const built = buildCreateRequest(form);
+    const built = buildCreateRequest(form, t);
     if (!built.ok) return;
     dispatch({ type: "previewRequested" });
     void previewCreateLaunchdService(built.request)
@@ -583,7 +601,7 @@ export function CreateServiceDialog({
       .catch((error: unknown) =>
         dispatch({ type: "previewFailed", error: decodeAppError(error) as AppError }),
       );
-  }, [form]);
+  }, [form, t]);
 
   const confirm = useCallback(() => {
     if (dialog.phase !== "preview") return;

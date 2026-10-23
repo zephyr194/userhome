@@ -3086,3 +3086,51 @@ code {
   }
 }
 /* /r9-services */
+
+/* r10-services ------------------------------------------------------------ */
+.services-details {
+  min-width: 0;
+}
+
+.services-details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  min-height: var(--app-control-height-sm);
+  text-decoration: none;
+  font-weight: 500;
+  color: var(--app-foreground);
+}
+
+.services-details > summary::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--app-motion-state) linear;
+}
+
+.services-details[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.services-details > summary:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .services-details > summary::before {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .services-details > summary::before {
+    border-color: CanvasText;
+  }
+}
+/* /r10-services */

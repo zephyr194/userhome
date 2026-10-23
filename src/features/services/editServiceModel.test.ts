@@ -6,12 +6,9 @@ import { configFile, launchdService } from "./launchdFixtures";
 import {
   KEEP_ALIVE_CONDITIONAL_NOTE,
   INITIAL_EDIT_DIALOG,
-  buildEditRequest,
   discardTarget,
-  describeEditOutcome,
   editDialogReducer,
   editOriginalOf,
-  grantNotice,
   initialEditForm,
   toggleEnvironmentRemoval,
   wasSaved,
@@ -19,6 +16,12 @@ import {
   type EditFormState,
   type EditOriginal,
 } from "./editServiceModel";
+import * as editModel from "./editServiceModel";
+import { tZh, withZh } from "./testTranslators";
+
+const buildEditRequest = withZh(editModel.buildEditRequest);
+const describeEditOutcome = withZh(editModel.describeEditOutcome);
+const grantNotice = withZh(editModel.grantNotice);
 import { addEnvironment, updateEnvironmentKey, updateEnvironmentValue } from "./createServiceModel";
 
 const LABEL = "com.vendor.backup";
@@ -170,7 +173,7 @@ describe("edit request", () => {
     const result = buildEditRequest(base, formOf({ keepAlive: true }, base));
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.errors.general).toBe(KEEP_ALIVE_CONDITIONAL_NOTE);
+    expect(result.errors.general).toBe(tZh(KEEP_ALIVE_CONDITIONAL_NOTE));
   });
 
   it("removes a path only when it is cleared, and leaves an absent path absent", () => {

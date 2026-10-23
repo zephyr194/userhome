@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, LogViewer } from "../../components/ui";
+import { localizedErrorMessage } from "../../i18n/errors";
+import type { MessageKey, TranslateFunction } from "../../i18n";
+import { useT } from "../../i18n/useLocale";
 import { isRecord } from "../../ipc/core";
 import {
   LOG_STREAMS,
@@ -28,9 +31,9 @@ import {
   type LogTail,
 } from "./logTailModel";
 
-const STREAM_LABELS: Record<LogStream, string> = {
-  STDOUT: "标准输出",
-  STDERR: "标准错误",
+const STREAM_LABEL_KEYS: Record<LogStream, MessageKey> = {
+  STDOUT: "services.logs.stream.STDOUT",
+  STDERR: "services.logs.stream.STDERR",
 };
 
 type Status = "idle" | "authorizing" | "tracking" | "paused";
@@ -40,10 +43,17 @@ type ExportState =
   | { stage: "confirm" }
   | { stage: "preview"; preview: LogExportPreview };
 
-function errorMessage(error: unknown): string {
-  return isRecord(error) && typeof error.message === "string"
-    ? error.message
-    : "操作失败，请稍后重试。";
+function errorMessage(error: unknown, t: TranslateFunction): string {
+  if (!isRecord(error) || typeof error.message !== "string") {
+    return t("services.logs.genericError");
+  }
+  return localizedErrorMessage(
+    {
+      code: typeof error.code === "string" ? error.code : "",
+      message: error.message,
+    },
+    t,
+  );
 }
 
 function isBusy(error: unknown): boolean {
@@ -69,6 +79,7 @@ function declaredPath(service: LaunchdService, stream: LogStream): string {
 }
 
 export function ServiceLogs({ service }: { service: LaunchdService }) {
+  const t = useT();
   const declared = declaredStreams(service);
   const [stream, setStream] = useState<LogStream>(declared[0] ?? "STDOUT");
   const target = useMemo<LogTarget>(
@@ -99,9 +110,9 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
     setGrant(null);
     if (grantId === null) return;
     revokeLaunchdLog(grantId).catch(() => {
-      setMessage("撤销读取授权失败：请在授权列表中手动撤销。");
+      setMessage(t("services.logs.revokeFailed"));
     });
-  }, [setGrant, setMessage]);
+  }, [setGrant, setMessage, t]);
 
   const stopTracking = useCallback(
     (nextMessage: string | null) => {
@@ -120,8 +131,8 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
     releaseGrant();
     setExportState({ stage: "closed" });
     setStatus("paused");
-    setMessage("已暂停：读取授权已撤销，不再读取磁盘。继续时需要重新选择该文件。");
-  }, [releaseGrant, setExportState, setMessage, setStatus]);
+    setMessage(t("services.logs.paused"));
+  }, [releaseGrant, setExportState, setMessage, setStatus, t]);
 
   const begin = useCallback(
     async (resume: boolean) => {
@@ -137,7 +148,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       } catch (error) {
         if (session !== sessionRef.current) return;
         setStatus(resume ? "paused" : "idle");
-        setMessage(errorMessage(error));
+        setMessage(errorMessage(error, t));
         return;
       }
       if (session !== sessionRef.current) {
@@ -149,7 +160,9 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       if (summary === null) {
         setStatus(resume ? "paused" : "idle");
         setMessage(
-          resume ? "未选择文件，仍处于暂停状态。" : "已取消，未读取日志。",
+          resume
+            ? t("services.logs.resumeNoFile")
+            : t("services.logs.cancelledNoRead"),
         );
         return;
       }
@@ -162,17 +175,19 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
           : await readLaunchdLogTail(target, summary.grantId);
         if (session !== sessionRef.current) return;
         setTail(
-          cursor ? advanceTail(tailRef.current, snapshot) : tailFromSnapshot(snapshot),
+          cursor
+            ? advanceTail(tailRef.current, snapshot, t)
+            : tailFromSnapshot(snapshot, t),
         );
         setStatus("tracking");
       } catch (error) {
         if (session !== sessionRef.current) return;
         releaseGrant();
         setStatus("idle");
-        setMessage(errorMessage(error));
+        setMessage(errorMessage(error, t));
       }
     },
-    [releaseGrant, setTail, target, setExportState, setMessage, setStatus],
+    [releaseGrant, setTail, target, setExportState, setMessage, setStatus, t],
   );
 
   const activeGrant = grant?.grantId ?? null;
@@ -191,13 +206,13 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
         if (stopped || session !== sessionRef.current) return;
         setTail(
           cursor === null
-            ? tailFromSnapshot(snapshot)
-            : advanceTail(tailRef.current, snapshot),
+            ? tailFromSnapshot(snapshot, t)
+            : advanceTail(tailRef.current, snapshot, t),
         );
       } catch (error) {
         if (stopped || session !== sessionRef.current) return;
         if (!isBusy(error)) {
-          stopTracking(errorMessage(error));
+          stopTracking(errorMessage(error, t));
           return;
         }
       }
@@ -213,7 +228,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       stopped = true;
       window.clearTimeout(timer);
     };
-  }, [status, activeGrant, target, setTail, stopTracking]);
+  }, [status, activeGrant, target, setTail, stopTracking, t]);
 
   useEffect(
     () => () => {
@@ -258,14 +273,14 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       }
       if (preview === null) {
         setExportState({ stage: "closed" });
-        setMessage("已取消导出，未写入任何文件。");
+        setMessage(t("services.logs.exportCancelled"));
         return;
       }
       setExportState({ stage: "preview", preview });
     } catch (error) {
       if (session !== sessionRef.current) return;
       setExportState({ stage: "closed" });
-      setMessage(errorMessage(error));
+      setMessage(errorMessage(error, t));
     }
   };
 
@@ -278,11 +293,11 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       );
       setMessage(
         outcome.status === "SUCCEEDED"
-          ? `已导出到 ${preview.save.displayPath}。`
-          : `导出未完成：${outcome.summary}`,
+          ? t("services.logs.exported", { path: preview.save.displayPath })
+          : t("services.logs.exportIncomplete", { summary: outcome.summary }),
       );
     } catch (error) {
-      setMessage(errorMessage(error));
+      setMessage(errorMessage(error, t));
     }
   };
 
@@ -290,31 +305,30 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
     setExportState({ stage: "closed" });
     try {
       await discardLaunchdLogExport(preview.operationId, preview.save.grantId);
-      setMessage("已放弃导出，未写入任何文件。");
+      setMessage(t("services.logs.exportDiscarded"));
     } catch (error) {
-      setMessage(errorMessage(error));
+      setMessage(errorMessage(error, t));
     }
   };
 
   if (declared.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        无可用文件日志：该任务的 plist 没有声明 StandardOutPath 或
-        StandardErrorPath。
+        {t("services.logs.noneDeclared")}
       </p>
     );
   }
 
   const hasContent = lines.length > 0;
+  const streamLabel = (option: LogStream) => t(STREAM_LABEL_KEYS[option]);
 
   return (
     <div className="grid min-w-0 gap-ui-8">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        日志路径来自该任务的 plist 声明。读取前需要你在原生选择器中选中该文件；
-        暂停、停止、重新选择或离开页面都会撤销读取授权。
+        {t("services.logs.intro")}
       </p>
       <div
-        aria-label="输出流"
+        aria-label={t("services.logs.streams")}
         className="flex min-w-0 flex-wrap gap-ui-8"
         role="group"
       >
@@ -329,38 +343,40 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
               size="sm"
               variant={stream === option ? "primary" : "secondary"}
             >
-              {STREAM_LABELS[option]}
-              {available ? "" : "（未声明）"}
+              {streamLabel(option)}
+              {available ? "" : t("services.logs.undeclared")}
             </Button>
           );
         })}
       </div>
       <p className="break-all font-mono text-xs text-muted-foreground">
-        输出路径：{declaredPath(service, stream)}
+        {t("services.logs.outputPath", { path: declaredPath(service, stream) })}
       </p>
 
       {status === "idle" ? (
         <div>
           <Button onClick={() => void begin(false)} variant="primary">
-            授权读取日志…
+            {t("services.logs.authorize")}
           </Button>
         </div>
       ) : null}
 
       {status === "authorizing" ? (
         <p className="text-sm text-muted-foreground" role="status">
-          正在等待选择文件…
+          {t("services.logs.awaitingFile")}
         </p>
       ) : null}
 
       {status === "tracking" && grant !== null ? (
         <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
-          <span className="break-all">已授权读取：{grant.displayPath}</span>
+          <span className="break-all">
+            {t("services.logs.authorized", { path: grant.displayPath })}
+          </span>
           <Button onClick={() => stopTracking(null)} size="sm" variant="ghost">
-            停止追踪
+            {t("services.logs.stop")}
           </Button>
           <Button onClick={() => void begin(false)} size="sm" variant="ghost">
-            重新选择
+            {t("services.logs.reselect")}
           </Button>
           <Button
             disabled={!hasContent}
@@ -368,7 +384,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
             size="sm"
             variant="ghost"
           >
-            导出日志…
+            {t("services.logs.export")}
           </Button>
         </div>
       ) : null}
@@ -376,19 +392,19 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       {status === "paused" ? (
         <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
           <Button onClick={() => stopTracking(null)} size="sm" variant="ghost">
-            停止追踪
+            {t("services.logs.stop")}
           </Button>
         </div>
       ) : null}
 
       {tail.missing ? (
         <p className="text-sm text-warning" role="status">
-          日志文件不存在（可能已删除或尚未生成），仍会继续等待它出现。
+          {t("services.logs.missingFile")}
         </p>
       ) : null}
 
       {tail.notices.length > 0 ? (
-        <ul aria-label="读取提示" className="m-0 grid list-none gap-ui-4 p-0 text-xs text-warning">
+        <ul aria-label={t("services.logs.notices")} className="m-0 grid list-none gap-ui-4 p-0 text-xs text-warning">
           {tail.notices.map((notice) => (
             <li key={notice}>{notice}</li>
           ))}
@@ -396,33 +412,32 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       ) : null}
 
       {exportState.stage === "confirm" ? (
-        <section aria-label="导出日志" className="grid gap-ui-8 rounded-control border border-warning-border bg-warning-soft px-ui-8 py-ui-8 text-xs text-warning">
-          <p>
-            导出会把当前读取的日志尾部写入你选择的文件。日志可能包含令牌、密码等敏感信息，请确认保存位置与用途。
-          </p>
+        <section aria-label={t("services.logs.exportSection")} className="grid gap-ui-8 rounded-control border border-warning-border bg-warning-soft px-ui-8 py-ui-8 text-xs text-warning">
+          <p>{t("services.logs.exportWarning")}</p>
           <div className="flex flex-wrap gap-ui-8">
             <Button onClick={() => void chooseSaveLocation()} size="sm" variant="primary">
-              选择保存位置…
+              {t("services.logs.chooseSave")}
             </Button>
             <Button
               onClick={() => setExportState({ stage: "closed" })}
               size="sm"
               variant="ghost"
             >
-              取消
+              {t("common.cancel")}
             </Button>
           </div>
         </section>
       ) : null}
 
       {exportState.stage === "preview" ? (
-        <section aria-label="导出预览" className="grid gap-ui-8 rounded-control border border-warning-border bg-warning-soft px-ui-8 py-ui-8 text-xs text-warning">
+        <section aria-label={t("services.logs.exportPreview")} className="grid gap-ui-8 rounded-control border border-warning-border bg-warning-soft px-ui-8 py-ui-8 text-xs text-warning">
           <p>
-            将写入 {exportState.preview.save.displayPath}
-            {exportState.preview.replaces
-              ? "（该文件已存在，将先备份再覆盖）"
-              : "（新文件）"}
-            。日志可能包含敏感信息。
+            {t("services.logs.exportWillWrite", {
+              path: exportState.preview.save.displayPath,
+              mode: exportState.preview.replaces
+                ? t("services.logs.replacesFile")
+                : t("services.logs.newFile"),
+            })}
           </p>
           <div className="flex flex-wrap gap-ui-8">
             <Button
@@ -430,14 +445,14 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
               size="sm"
               variant="danger"
             >
-              确认写入
+              {t("services.logs.confirmWrite")}
             </Button>
             <Button
               onClick={() => void discardExport(exportState.preview)}
               size="sm"
               variant="ghost"
             >
-              放弃
+              {t("services.logs.discard")}
             </Button>
           </div>
         </section>
@@ -452,8 +467,15 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       {status === "tracking" || status === "paused" ? (
         <LogViewer
           droppedCount={tail.droppedCount}
-          emptyText={tail.missing ? "日志文件不存在" : "暂无日志内容"}
-          label={`${service.label} ${STREAM_LABELS[stream]}`}
+          emptyText={
+            tail.missing
+              ? t("services.logs.viewerMissing")
+              : t("services.logs.viewerEmpty")
+          }
+          label={t("services.logs.viewerLabel", {
+            label: service.label,
+            stream: streamLabel(stream),
+          })}
           lines={lines}
           maxLines={LOG_MAX_LINES}
           onPauseChange={handlePauseChange}

@@ -1,3 +1,4 @@
+import type { MessageKey, TranslateFunction } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import type {
   EditChangeKey,
@@ -23,22 +24,21 @@ import type { NoticeText } from "./adoptServiceModel";
  * drift apart.
  */
 
-const CHANGE_LABELS: Record<EditChangeKey, string> = {
-  ProgramArguments: "程序与参数",
-  WorkingDirectory: "工作目录",
-  StandardOutPath: "标准输出日志",
-  StandardErrorPath: "标准错误日志",
-  EnvironmentVariables: "环境变量",
-  RunAtLoad: "登录后自动启动",
-  KeepAlive: "退出后自动重启",
+const CHANGE_LABELS: Record<EditChangeKey, MessageKey> = {
+  ProgramArguments: "services.dialog.change.programArguments",
+  WorkingDirectory: "services.dialog.change.workingDirectory",
+  StandardOutPath: "services.dialog.change.stdoutPath",
+  StandardErrorPath: "services.dialog.change.stderrPath",
+  EnvironmentVariables: "services.dialog.change.environment",
+  RunAtLoad: "services.dialog.change.runAtLoad",
+  KeepAlive: "services.dialog.change.keepAlive",
 };
 
-export function changeLabel(change: EditChangeKey): string {
-  return CHANGE_LABELS[change];
+export function changeLabel(change: EditChangeKey, t: TranslateFunction): string {
+  return t(CHANGE_LABELS[change]);
 }
 
-export const KEEP_ALIVE_CONDITIONAL_NOTE =
-  "KeepAlive 是按条件设置的字典，本表单只能开启或关闭布尔值，不会改写它。";
+export const KEEP_ALIVE_CONDITIONAL_NOTE = "services.dialog.note.keepAliveConditional" satisfies MessageKey;
 
 /** What the job's plist says now, as far as discovery shows it. Values of environment variables are never known here. */
 export interface EditOriginal {
@@ -151,16 +151,20 @@ function pathChange(value: string, original: string | undefined): string | undef
  * as it was read. Boolean switches go out only when flipped, because an absent
  * key and a `false` key are different to launchd.
  */
-export function buildEditRequest(original: EditOriginal, state: EditFormState): EditBuildResult {
+export function buildEditRequest(
+  original: EditOriginal,
+  state: EditFormState,
+  t: TranslateFunction,
+): EditBuildResult {
   const workingDirectory = state.clearWorkingDirectory ? "" : state.workingDirectory;
   const errors = checkedChanges(
-    validateEditableFields({ ...state, workingDirectory }),
+    validateEditableFields({ ...state, workingDirectory }, t),
     state,
     original,
   );
   const keepAliveChanged = state.keepAlive !== original.keepAlive;
   if (keepAliveChanged && original.keepAliveLocked) {
-    errors.general = errors.general ?? KEEP_ALIVE_CONDITIONAL_NOTE;
+    errors.general = errors.general ?? t(KEEP_ALIVE_CONDITIONAL_NOTE);
   }
   if (hasErrors(errors)) return { ok: false, errors };
 
@@ -207,7 +211,7 @@ export function buildEditRequest(original: EditOriginal, state: EditFormState): 
     Object.keys(environmentSet).length > 0 ||
     environmentRemove.length > 0;
   if (!changes) {
-    return { ok: false, errors: { ...errors, general: "没有需要修改的字段。" } };
+    return { ok: false, errors: { ...errors, general: t("services.dialog.edit.noChanges") } };
   }
   return { ok: true, request };
 }
@@ -288,45 +292,46 @@ export function discardTarget(state: EditDialogState): string | undefined {
   return undefined;
 }
 
-const FILE_STATE_TEXT: Record<string, string> = {
-  RESTORED: "写入没有通过校验，已恢复原内容。",
-  RESTORE_FAILED:
-    "写入没有通过校验，且恢复原内容失败：请检查 ~/Library/LaunchAgents 中该文件的内容。",
-  UNCHANGED: "文件没有被改动。",
-  UNKNOWN: "无法确认文件的当前状态，请检查该文件后再决定下一步。",
+const FILE_STATE_TEXT: Record<string, MessageKey> = {
+  RESTORED: "services.dialog.edit.fileState.restored",
+  RESTORE_FAILED: "services.dialog.edit.fileState.restoreFailed",
+  UNCHANGED: "services.dialog.edit.fileState.unchanged",
+  UNKNOWN: "services.dialog.edit.fileState.unknown",
 };
 
-export function describeEditFailure(error: AppError): NoticeText {
+export function describeEditFailure(error: AppError, t: TranslateFunction): NoticeText {
   if (error.code === "CONFLICT") {
     return {
-      title: "配置在预览后已被外部修改，没有保存",
-      detail: "请重新预览后再保存。",
+      title: t("services.dialog.edit.conflict.title"),
+      detail: t("services.dialog.edit.conflict.detail"),
     };
   }
-  return { title: "编辑被拒绝，没有写入任何文件", detail: error.message };
+  return { title: t("services.dialog.edit.failure.title"), detail: error.message };
 }
 
-export function describeEditOutcome(execution: EditExecution): NoticeText {
+export function describeEditOutcome(execution: EditExecution, t: TranslateFunction): NoticeText {
   if (wasSaved(execution)) {
     return {
-      title: `已保存配置 ${execution.filePath}`,
+      title: t("services.dialog.edit.saved.title", { path: execution.filePath }),
       detail: execution.reloadNote,
     };
   }
   if (execution.outcome.error?.code === "CONFLICT") {
     return {
-      title: "配置在预览后已被外部修改，没有保存",
-      detail: "请重新预览后再保存。",
+      title: t("services.dialog.edit.conflict.title"),
+      detail: t("services.dialog.edit.conflict.detail"),
     };
   }
   return {
-    title: "保存未完成",
-    detail: FILE_STATE_TEXT[execution.outcome.fileState] ?? "写入没有完成，请检查该文件。",
+    title: t("services.dialog.edit.outcome.failedTitle"),
+    detail: t(FILE_STATE_TEXT[execution.outcome.fileState] ?? "services.dialog.edit.fileState.fallback"),
   };
 }
 
 /** A grant that could not be revoked is reported beside a result that stands. */
-export function grantNotice(execution: EditExecution): string | undefined {
+export function grantNotice(execution: EditExecution, t: TranslateFunction): string | undefined {
   const error = execution.grantReleaseError;
-  return error === undefined ? undefined : `临时授权未能自动撤销：${error.message}`;
+  return error === undefined
+    ? undefined
+    : t("services.dialog.edit.grantRevokeFailed", { message: error.message });
 }

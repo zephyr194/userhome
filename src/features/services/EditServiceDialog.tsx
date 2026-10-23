@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ActionRow, Button, Modal, SwitchField, TextField } from "../../components/ui";
+import { formatDateTime } from "../../i18n/format";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import {
   discardEditLaunchdService,
@@ -84,19 +86,20 @@ function FormBody({
   onFormChange: (next: EditFormState) => void;
   original: EditOriginal;
 }) {
+  const t = useT();
   return (
     <div className="grid gap-ui-16">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        只修改下列字段，其余内容保持原样。保存只改写这个任务的配置文件，编辑后需重新加载任务才生效；本页不会加载或重启任务。
+        {t("services.dialog.edit.intro")}
       </p>
 
-      <Section title="程序与参数">
+      <Section title={t("services.dialog.edit.programSection")}>
         <TextField
           autoComplete="off"
-          description="绝对路径；shell 与 env、sudo 等包装器会被拒绝。"
+          description={t("services.dialog.field.executableHint")}
           disabled={disabled}
           error={errors?.executable}
-          label="可执行文件路径"
+          label={t("services.dialog.field.executable")}
           onValueChange={(value) => onFormChange({ ...form, executable: value })}
           spellCheck={false}
           value={form.executable}
@@ -107,7 +110,7 @@ function FormBody({
               autoComplete="off"
               disabled={disabled}
               error={errors?.arguments[row.id]}
-              label={`参数 ${index + 1}`}
+              label={t("services.dialog.create.argumentLabel", { index: index + 1 })}
               onValueChange={(value) => onFormChange(updateArgument(form, row.id, value))}
               spellCheck={false}
               value={row.value}
@@ -118,14 +121,14 @@ function FormBody({
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
                 size="sm"
               >
-                上移
+                {t("services.dialog.common.moveUp")}
               </Button>
               <Button
                 disabled={disabled || index === form.arguments.length - 1}
                 onClick={() => onFormChange(moveArgument(form, row.id, 1))}
                 size="sm"
               >
-                下移
+                {t("services.dialog.common.moveDown")}
               </Button>
               <Button
                 disabled={disabled}
@@ -133,7 +136,7 @@ function FormBody({
                 size="sm"
                 variant="ghost"
               >
-                删除参数
+                {t("services.dialog.create.removeArgument")}
               </Button>
             </ActionRow>
           </div>
@@ -144,40 +147,40 @@ function FormBody({
             onClick={() => onFormChange(addArgument(form))}
             size="sm"
           >
-            添加参数
+            {t("services.dialog.create.addArgument")}
           </Button>
         </div>
       </Section>
 
-      <Section title="工作目录">
+      <Section title={t("services.dialog.edit.workingDirectorySection")}>
         <p className="text-xs text-muted-foreground">
-          当前工作目录不在这里显示；留空表示不修改。要移除它，请勾选下方的清除选项。
+          {t("services.dialog.edit.workingDirectoryNote")}
         </p>
         <TextField
           autoComplete="off"
-          description="可选；绝对路径，目录必须已存在。"
+          description={t("services.dialog.create.workingDirectoryHint")}
           disabled={disabled || form.clearWorkingDirectory}
           error={errors?.workingDirectory}
-          label="新的工作目录"
+          label={t("services.dialog.edit.newWorkingDirectory")}
           onValueChange={(value) => onFormChange({ ...form, workingDirectory: value })}
           spellCheck={false}
           value={form.workingDirectory}
         />
         <SwitchField
           checked={form.clearWorkingDirectory}
-          description="勾选后，保存时会从配置中移除工作目录。"
+          description={t("services.dialog.edit.clearWorkingDirectoryHint")}
           disabled={disabled}
-          label="清除工作目录"
+          label={t("services.dialog.edit.clearWorkingDirectory")}
           onCheckedChange={(checked) =>
             onFormChange({ ...form, clearWorkingDirectory: checked })
           }
         />
       </Section>
 
-      <Section title="环境变量">
-        <p className="text-xs text-muted-foreground">{ENVIRONMENT_NOTE}</p>
+      <Section title={t("services.dialog.common.environment")}>
+        <p className="text-xs text-muted-foreground">{t(ENVIRONMENT_NOTE)}</p>
         <p className="text-xs text-muted-foreground">
-          已有的变量只显示名称，它们的值无法在这里看到。输入同名变量会覆盖其值。
+          {t("services.dialog.edit.existingNote")}
         </p>
         {original.environmentKeys.length === 0 ? null : (
           <ul className="grid gap-ui-8">
@@ -192,10 +195,14 @@ function FormBody({
                     size="sm"
                     variant="ghost"
                   >
-                    {removed ? "撤销移除" : "移除"}
+                    {removed
+                      ? t("services.dialog.edit.undoRemove")
+                      : t("services.dialog.edit.remove")}
                   </Button>
                   {removed ? (
-                    <span className="text-xs text-warning">保存时将被移除</span>
+                    <span className="text-xs text-warning">
+                      {t("services.dialog.edit.removedOnSave")}
+                    </span>
                   ) : null}
                 </li>
               );
@@ -209,17 +216,17 @@ function FormBody({
                 autoComplete="off"
                 disabled={disabled}
                 error={errors?.environment[row.id]?.key}
-                label={`变量名 ${index + 1}`}
+                label={t("services.dialog.create.envKeyLabel", { index: index + 1 })}
                 onValueChange={(value) => onFormChange(updateEnvironmentKey(form, row.id, value))}
                 spellCheck={false}
                 value={row.key}
               />
               <TextField
                 autoComplete="off"
-                description="可能包含密钥，输入已隐藏。"
+                description={t("services.dialog.field.secretHint")}
                 disabled={disabled}
                 error={errors?.environment[row.id]?.value}
-                label={`变量值 ${index + 1}`}
+                label={t("services.dialog.create.envValueLabel", { index: index + 1 })}
                 onValueChange={(value) => onFormChange(updateEnvironmentValue(form, row.id, value))}
                 spellCheck={false}
                 type="password"
@@ -233,7 +240,7 @@ function FormBody({
                 size="sm"
                 variant="ghost"
               >
-                删除此行
+                {t("services.dialog.edit.removeRow")}
               </Button>
             </div>
           </div>
@@ -244,7 +251,7 @@ function FormBody({
             onClick={() => onFormChange(addEnvironment(form))}
             size="sm"
           >
-            添加环境变量
+            {t("services.dialog.common.addEnvironment")}
           </Button>
         </div>
       </Section>
@@ -252,41 +259,41 @@ function FormBody({
       <div className="grid gap-ui-12 sm:grid-cols-2">
         <TextField
           autoComplete="off"
-          description="留空表示不修改；清空已有的值会移除该项。"
+          description={t("services.dialog.edit.pathHint")}
           disabled={disabled}
           error={errors?.stdoutPath}
-          label="标准输出日志路径"
+          label={t("services.dialog.field.stdoutPath")}
           onValueChange={(value) => onFormChange({ ...form, stdoutPath: value })}
           spellCheck={false}
           value={form.stdoutPath}
         />
         <TextField
           autoComplete="off"
-          description="留空表示不修改；清空已有的值会移除该项。"
+          description={t("services.dialog.edit.pathHint")}
           disabled={disabled}
           error={errors?.stderrPath}
-          label="标准错误日志路径"
+          label={t("services.dialog.field.stderrPath")}
           onValueChange={(value) => onFormChange({ ...form, stderrPath: value })}
           spellCheck={false}
           value={form.stderrPath}
         />
       </div>
 
-      <Section title="持久化选项">
+      <Section title={t("services.dialog.edit.persistenceSection")}>
         <SwitchField
           checked={form.runAtLoad}
-          description={RUN_AT_LOAD_IMPACT}
+          description={t(RUN_AT_LOAD_IMPACT)}
           disabled={disabled}
-          label="登录后自动启动"
+          label={t("services.dialog.field.runAtLoad")}
           onCheckedChange={(checked) => onFormChange({ ...form, runAtLoad: checked })}
         />
         <SwitchField
           checked={form.keepAlive}
-          description={
-            original.keepAliveLocked ? KEEP_ALIVE_CONDITIONAL_NOTE : KEEP_ALIVE_IMPACT
-          }
+          description={t(
+            original.keepAliveLocked ? KEEP_ALIVE_CONDITIONAL_NOTE : KEEP_ALIVE_IMPACT,
+          )}
           disabled={disabled || original.keepAliveLocked}
-          label="退出后自动重启"
+          label={t("services.dialog.field.keepAlive")}
           onCheckedChange={(checked) => onFormChange({ ...form, keepAlive: checked })}
         />
       </Section>
@@ -297,26 +304,28 @@ function FormBody({
 }
 
 function PreviewBody({ preview }: { preview: EditPreview }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <div className="grid gap-ui-16">
-      <Section title="将保存的文件">
+      <Section title={t("services.dialog.edit.previewFileSection")}>
         <p className="text-sm">
           <Mono>{preview.filePath}</Mono>
         </p>
       </Section>
 
-      <Section title="变更字段">
+      <Section title={t("services.dialog.edit.changesSection")}>
         <ul className="flex flex-wrap gap-ui-8 text-sm">
           {preview.changes.map((change) => (
-            <li key={change}>{changeLabel(change)}</li>
+            <li key={change}>{changeLabel(change, t)}</li>
           ))}
         </ul>
       </Section>
 
       {preview.executable === undefined ? null : (
-        <Section title="实际执行目标">
+        <Section title={t("services.dialog.create.targetSection")}>
           <p className="text-xs text-muted-foreground">
-            程序与参数逐项如下，不经 shell；敏感参数已隐藏。
+            {t("services.dialog.edit.targetNote")}
           </p>
           <ol className="grid gap-ui-4 text-sm">
             <li>
@@ -324,7 +333,9 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
             </li>
             {(preview.arguments ?? []).map((argument, index) => (
               <li key={index}>
-                <Mono>{argument.length === 0 ? "（空参数）" : argument}</Mono>
+                <Mono>
+                  {argument.length === 0 ? t("services.dialog.create.emptyArgument") : argument}
+                </Mono>
               </li>
             ))}
           </ol>
@@ -332,11 +343,11 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
       )}
 
       {preview.environmentSet.length + preview.environmentRemoved.length === 0 ? null : (
-        <Section title="环境变量">
-          <p className="text-xs text-muted-foreground">只显示变量名，值不会显示。</p>
+        <Section title={t("services.dialog.common.environment")}>
+          <p className="text-xs text-muted-foreground">{t("services.dialog.edit.envNamesOnly")}</p>
           {preview.environmentSet.length === 0 ? null : (
             <p className="text-sm">
-              设置：
+              {t("services.dialog.edit.setLine")}
               {preview.environmentSet.map((name) => (
                 <span className="mr-ui-8" key={name}>
                   <Mono>{name}</Mono>
@@ -346,7 +357,7 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
           )}
           {preview.environmentRemoved.length === 0 ? null : (
             <p className="text-sm">
-              移除：
+              {t("services.dialog.edit.removeLine")}
               {preview.environmentRemoved.map((name) => (
                 <span className="mr-ui-8" key={name}>
                   <Mono>{name}</Mono>
@@ -357,7 +368,7 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
         </Section>
       )}
 
-      <Section title="备份">
+      <Section title={t("services.dialog.common.backup")}>
         <p className="text-sm text-muted-foreground">{preview.backup}</p>
       </Section>
 
@@ -365,9 +376,9 @@ function PreviewBody({ preview }: { preview: EditPreview }) {
         {preview.reloadNote}
       </p>
       <p className="break-words text-xs text-muted-foreground">
-        预览到期：
+        {t("services.dialog.common.previewExpires")}
         <time dateTime={preview.expiresAt}>
-          {new Date(preview.expiresAt).toLocaleString("zh-CN")}
+          {formatDateTime(preview.expiresAt, locale)}
         </time>
       </p>
     </div>
@@ -381,9 +392,10 @@ function ResultBody({
   dialog: Extract<EditDialogState, { phase: "done" | "failed" }>;
   form: EditFormState;
 }) {
+  const t = useT();
   if (dialog.phase === "done") {
-    const outcome = describeEditOutcome(dialog.execution);
-    const grant = grantNotice(dialog.execution);
+    const outcome = describeEditOutcome(dialog.execution, t);
+    const grant = grantNotice(dialog.execution, t);
     return (
       <div className="grid gap-ui-8" role="status" aria-live="polite">
         <p className="text-sm font-semibold text-success">{outcome.title}</p>
@@ -393,7 +405,7 @@ function ResultBody({
     );
   }
   if (dialog.execution) {
-    const outcome = describeEditOutcome(dialog.execution);
+    const outcome = describeEditOutcome(dialog.execution, t);
     return (
       <div className="grid gap-ui-8" role="alert">
         <p className="text-sm font-semibold text-danger">{outcome.title}</p>
@@ -402,13 +414,16 @@ function ResultBody({
     );
   }
   const notice = dialog.error
-    ? describeEditFailure(dialog.error)
-    : { title: "编辑未完成", detail: "请重新预览后再保存。" };
+    ? describeEditFailure(dialog.error, t)
+    : {
+        title: t("services.dialog.edit.incomplete.title"),
+        detail: t("services.dialog.edit.conflict.detail"),
+      };
   return (
     <div className="grid gap-ui-8" role="alert">
       <p className="text-sm font-semibold text-danger">{notice.title}</p>
       <p className="break-words text-sm text-muted-foreground">
-        {scrubSecrets(notice.detail, form)}
+        {scrubSecrets(notice.detail, form, t)}
       </p>
     </div>
   );
@@ -439,6 +454,7 @@ export function EditServiceDialogView({
   onPreview: () => void;
   original: EditOriginal;
 }) {
+  const t = useT();
   const busy = dialog.phase === "previewing" || dialog.phase === "saving";
   let body: ReactNode;
   let footer: ReactNode;
@@ -449,11 +465,11 @@ export function EditServiceDialogView({
       body = (
         <>
           {dialog.phase === "editing" && dialog.error ? (
-            <ErrorText>{scrubSecrets(dialog.error.message, form)}</ErrorText>
+            <ErrorText>{scrubSecrets(dialog.error.message, form, t)}</ErrorText>
           ) : null}
           {dialog.phase === "previewing" ? (
             <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-              正在生成预览…
+              {t("services.dialog.common.previewing")}
             </p>
           ) : null}
           <FormBody
@@ -468,10 +484,10 @@ export function EditServiceDialogView({
       footer = (
         <>
           <Button data-modal-cancel disabled={busy} onClick={onClose}>
-            取消
+            {t("services.dialog.common.cancel")}
           </Button>
           <Button disabled={busy} onClick={onPreview} variant="primary">
-            预览
+            {t("services.dialog.common.preview")}
           </Button>
         </>
       );
@@ -483,7 +499,7 @@ export function EditServiceDialogView({
           <PreviewBody preview={dialog.preview} />
           {dialog.phase === "saving" ? (
             <p className="text-sm text-warning" role="status" aria-live="polite">
-              正在保存配置文件，完成后显示结果。
+              {t("services.dialog.edit.savingNote")}
             </p>
           ) : null}
         </>
@@ -491,10 +507,10 @@ export function EditServiceDialogView({
       footer = (
         <>
           <Button data-modal-cancel disabled={dialog.phase === "saving"} onClick={onEdit}>
-            返回修改
+            {t("services.dialog.common.backToEdit")}
           </Button>
           <Button disabled={dialog.phase === "saving"} onClick={onConfirm} variant="primary">
-            确认保存
+            {t("services.dialog.edit.confirm")}
           </Button>
         </>
       );
@@ -503,7 +519,7 @@ export function EditServiceDialogView({
       body = <ResultBody dialog={dialog} form={form} />;
       footer = (
         <Button data-modal-cancel onClick={onClose} variant="primary">
-          完成
+          {t("services.dialog.common.done")}
         </Button>
       );
       break;
@@ -512,10 +528,10 @@ export function EditServiceDialogView({
       footer = (
         <>
           <Button data-modal-cancel onClick={onClose}>
-            关闭
+            {t("services.dialog.common.close")}
           </Button>
           <Button onClick={onEdit} variant="primary">
-            返回修改
+            {t("services.dialog.common.backToEdit")}
           </Button>
         </>
       );
@@ -534,10 +550,10 @@ export function EditServiceDialogView({
     >
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-          UserHome 已接管的任务
+          {t("services.dialog.edit.eyebrow")}
         </p>
         <h3 className="break-words [overflow-wrap:anywhere]" id={TITLE_ID}>
-          编辑任务配置
+          {t("services.dialog.edit.title")}
         </h3>
       </div>
       {body}
@@ -561,6 +577,7 @@ export function EditServiceDialog({
   service: LaunchdService;
 }) {
   const original = useMemo(() => editOriginalOf(service), [service]);
+  const t = useT();
   const [form, setForm] = useState<EditFormState>(() => initialEditForm(original));
   const [dialog, dispatch] = useReducer(editDialogReducer, INITIAL_EDIT_DIALOG);
   const [showErrors, setShowErrors] = useState(false);
@@ -585,8 +602,8 @@ export function EditServiceDialog({
   }, [discardPending, gate]);
 
   const checked = useMemo(
-    () => buildEditRequest(original, form),
-    [original, form],
+    () => buildEditRequest(original, form, t),
+    [original, form, t],
   );
   const errors = showErrors && !checked.ok ? checked.errors : undefined;
 

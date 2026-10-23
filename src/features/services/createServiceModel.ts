@@ -1,3 +1,4 @@
+import type { MessageKey, TranslateFunction } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import {
   CREATE_SERVICE_LIMITS,
@@ -15,17 +16,13 @@ import {
  * the DOM, and no environment value is ever put into an error or a message.
  */
 
-export const RUN_AT_LOAD_IMPACT =
-  "登录后自动启动。开启后：配置被加载（登录时 launchd 会自动加载 ~/Library/LaunchAgents 中的配置）就会立即启动任务，之后每次登录都会如此，直到配置被卸载或删除。";
-export const KEEP_ALIVE_IMPACT =
-  "退出后自动重启。开启后：任务无论正常退出还是崩溃，launchd 都会立即重新启动它；要让它真正停下，需要卸载或禁用该任务。";
-export const ENVIRONMENT_NOTE =
-  "环境变量值可能包含密钥：此处输入已隐藏，只会写入这个任务自己的配置文件，不会影响其他任务；预览与操作记录中只显示变量名。";
+export const RUN_AT_LOAD_IMPACT = "services.dialog.note.runAtLoad" satisfies MessageKey;
+export const KEEP_ALIVE_IMPACT = "services.dialog.note.keepAlive" satisfies MessageKey;
+export const ENVIRONMENT_NOTE = "services.dialog.note.environment" satisfies MessageKey;
 
 const SHELLS = ["sh", "bash", "zsh", "dash", "ksh", "csh", "tcsh", "fish", "rbash", "ash"];
 const WRAPPERS = ["env", "xargs", "nohup", "sudo", "su", "doas", "exec", "command"];
-const SHELL_REASON =
-  "不能把 shell 或 env、sudo 等包装器作为程序：任务必须直接运行目标程序，不经 shell。";
+const SHELL_REASON = "services.dialog.error.shellProgram" satisfies MessageKey;
 const ENV_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const LABEL_SUFFIX_PATTERN = /^[A-Za-z0-9._-]+$/;
 const MIN_SCRUBBED_VALUE_LENGTH = 2;
@@ -223,11 +220,13 @@ function isCommandFlag(argument: string): boolean {
   return /^-[A-Za-z]*c$/.test(argument);
 }
 
-function labelError(input: string): string | undefined {
+function labelError(input: string, t: TranslateFunction): string | undefined {
   const suffix = labelSuffixOf(input);
-  if (suffix.length === 0) return "请输入任务名称（label 后缀）。";
+  if (suffix.length === 0) return t("services.dialog.error.labelRequired");
   if (byteLength(suffix) > CREATE_SERVICE_LIMITS.labelSuffixBytes) {
-    return `名称不能超过 ${CREATE_SERVICE_LIMITS.labelSuffixBytes} 字节。`;
+    return t("services.dialog.error.labelTooLong", {
+      limit: CREATE_SERVICE_LIMITS.labelSuffixBytes,
+    });
   }
   if (
     !LABEL_SUFFIX_PATTERN.test(suffix) ||
@@ -236,53 +235,58 @@ function labelError(input: string): string | undefined {
     suffix.endsWith(".") ||
     suffix.includes("..")
   ) {
-    return "名称只能包含字母、数字、点、连字符和下划线，不能以点或连字符开头、以点结尾，也不能含连续的点。";
+    return t("services.dialog.error.labelPattern");
   }
   return undefined;
 }
 
-/** An absolute path without `.`, `..`, doubled or trailing separators. */
-function pathError(path: string, what: string): string | undefined {
-  if (path.length === 0) return `${what}不能为空。`;
+/** An absolute path without `.`, `..`, doubled or trailing separators. `what` is the field's name, already translated. */
+function pathError(path: string, what: string, t: TranslateFunction): string | undefined {
+  if (path.length === 0) return t("services.dialog.error.pathEmpty", { what });
   if (byteLength(path) > CREATE_SERVICE_LIMITS.pathBytes) {
-    return `${what}不能超过 ${CREATE_SERVICE_LIMITS.pathBytes} 字节。`;
+    return t("services.dialog.error.pathTooLong", { what, limit: CREATE_SERVICE_LIMITS.pathBytes });
   }
-  if (hasForbiddenTextCharacters(path)) return `${what}含有换行或其他控制字符。`;
-  if (!path.startsWith("/")) return `${what}必须是以 / 开头的绝对路径（不展开 ~）。`;
+  if (hasForbiddenTextCharacters(path)) return t("services.dialog.error.pathControl", { what });
+  if (!path.startsWith("/")) return t("services.dialog.error.pathNotAbsolute", { what });
   const parts = path.slice(1).split("/");
   if (
     path.length === 1 ||
     path.endsWith("/") ||
     parts.some((part) => part === "" || part === "." || part === "..")
   ) {
-    return `${what}必须是规范路径（不含 . 、.. 、连续或结尾的 /）。`;
+    return t("services.dialog.error.pathNotCanonical", { what });
   }
   return undefined;
 }
 
-function executableError(executable: string): string | undefined {
-  const problem = pathError(executable, "可执行文件路径");
+function executableError(executable: string, t: TranslateFunction): string | undefined {
+  const problem = pathError(executable, t("services.dialog.field.executable"), t);
   if (problem !== undefined) return problem;
-  return isShellOrWrapper(baseName(executable)) ? SHELL_REASON : undefined;
+  return isShellOrWrapper(baseName(executable)) ? t(SHELL_REASON) : undefined;
 }
 
-function argumentErrors(rows: readonly ArgumentRow[]): Record<number, string> {
+function argumentErrors(
+  rows: readonly ArgumentRow[],
+  t: TranslateFunction,
+): Record<number, string> {
   const errors: Record<number, string> = {};
   const lookslikeShellCommand =
     rows.some((row) => isCommandFlag(row.value)) &&
     rows.some((row) => isShellOrWrapper(baseName(row.value)));
   rows.forEach((row, index) => {
     if (row.value.length === 0) {
-      errors[row.id] = "参数不能为空；不需要的话请删除这一行。";
+      errors[row.id] = t("services.dialog.error.argumentEmpty");
     } else if (byteLength(row.value) > CREATE_SERVICE_LIMITS.argumentBytes) {
-      errors[row.id] = `参数不能超过 ${CREATE_SERVICE_LIMITS.argumentBytes} 字节。`;
+      errors[row.id] = t("services.dialog.error.argumentTooLong", {
+        limit: CREATE_SERVICE_LIMITS.argumentBytes,
+      });
     } else if (hasForbiddenTextCharacters(row.value)) {
-      errors[row.id] = "参数含有换行、NUL 或其他控制字符。";
+      errors[row.id] = t("services.dialog.error.argumentControl");
     } else if (
       (index === 0 && isShellOrWrapper(baseName(row.value))) ||
       (lookslikeShellCommand && isShellOrWrapper(baseName(row.value)))
     ) {
-      errors[row.id] = "参数在借用 shell 或包装器运行命令（如 bash -c …），已拒绝；请直接指定目标程序。";
+      errors[row.id] = t("services.dialog.error.argumentShell");
     }
   });
   return errors;
@@ -294,6 +298,7 @@ export function isBlankEnvironmentRow(row: EnvironmentRow): boolean {
 
 function environmentErrors(
   rows: readonly EnvironmentRow[],
+  t: TranslateFunction,
 ): Record<number, { key?: string; value?: string }> {
   const errors: Record<number, { key?: string; value?: string }> = {};
   const seen = new Set<string>();
@@ -302,22 +307,26 @@ function environmentErrors(
     const key = row.key.trim();
     const problem: { key?: string; value?: string } = {};
     if (key.length === 0) {
-      problem.key = "请填写变量名。";
+      problem.key = t("services.dialog.error.envKeyRequired");
     } else if (byteLength(key) > CREATE_SERVICE_LIMITS.environmentKeyBytes) {
-      problem.key = `变量名不能超过 ${CREATE_SERVICE_LIMITS.environmentKeyBytes} 字节。`;
+      problem.key = t("services.dialog.error.envKeyTooLong", {
+        limit: CREATE_SERVICE_LIMITS.environmentKeyBytes,
+      });
     } else if (!ENV_KEY_PATTERN.test(key)) {
-      problem.key = "变量名只能包含字母、数字和下划线，且不能以数字开头。";
+      problem.key = t("services.dialog.error.envKeyPattern");
     } else if (key.startsWith("DYLD_") || key.startsWith("LD_")) {
-      problem.key = "DYLD_ / LD_ 开头的是动态加载器保留变量，不允许设置。";
+      problem.key = t("services.dialog.error.envKeyReserved");
     } else if (seen.has(key)) {
-      problem.key = "变量名重复。";
+      problem.key = t("services.dialog.error.envKeyDuplicate");
     }
     seen.add(key);
     // Messages about a value never repeat the value itself.
     if (byteLength(row.value) > CREATE_SERVICE_LIMITS.environmentValueBytes) {
-      problem.value = `变量值不能超过 ${CREATE_SERVICE_LIMITS.environmentValueBytes} 字节。`;
+      problem.value = t("services.dialog.error.envValueTooLong", {
+        limit: CREATE_SERVICE_LIMITS.environmentValueBytes,
+      });
     } else if (hasForbiddenTextCharacters(row.value)) {
-      problem.value = "变量值含有换行、NUL 或其他控制字符。";
+      problem.value = t("services.dialog.error.envValueControl");
     }
     if (problem.key !== undefined || problem.value !== undefined) {
       errors[row.id] = problem;
@@ -326,9 +335,13 @@ function environmentErrors(
   return errors;
 }
 
-function optionalPathError(path: string, what: string): string | undefined {
+function optionalPathError(
+  path: string,
+  what: string,
+  t: TranslateFunction,
+): string | undefined {
   const trimmed = path.trim();
-  return trimmed.length === 0 ? undefined : pathError(trimmed, what);
+  return trimmed.length === 0 ? undefined : pathError(trimmed, what, t);
 }
 
 export interface EditableFormFields extends EditableListFields {
@@ -339,34 +352,41 @@ export interface EditableFormFields extends EditableListFields {
 }
 
 /** Every rule except the label, which only a new job has. */
-export function validateEditableFields(state: EditableFormFields): FormErrors {
+export function validateEditableFields(
+  state: EditableFormFields,
+  t: TranslateFunction,
+): FormErrors {
   const errors: FormErrors = { arguments: {}, environment: {} };
-  const executable = executableError(state.executable.trim());
+  const executable = executableError(state.executable.trim(), t);
   if (executable !== undefined) errors.executable = executable;
-  errors.arguments = argumentErrors(state.arguments);
-  errors.environment = environmentErrors(state.environment);
+  errors.arguments = argumentErrors(state.arguments, t);
+  errors.environment = environmentErrors(state.environment, t);
   for (const [field, what] of [
-    ["workingDirectory", "工作目录"],
-    ["stdoutPath", "标准输出日志路径"],
-    ["stderrPath", "标准错误日志路径"],
+    ["workingDirectory", t("services.dialog.field.workingDirectory")],
+    ["stdoutPath", t("services.dialog.field.stdoutPath")],
+    ["stderrPath", t("services.dialog.field.stderrPath")],
   ] as const) {
-    const problem = optionalPathError(state[field], what);
+    const problem = optionalPathError(state[field], what, t);
     if (problem !== undefined) errors[field] = problem;
   }
   if (state.arguments.length > CREATE_SERVICE_LIMITS.arguments) {
-    errors.general = `参数最多 ${CREATE_SERVICE_LIMITS.arguments} 项。`;
+    errors.general = t("services.dialog.error.argumentsLimit", {
+      limit: CREATE_SERVICE_LIMITS.arguments,
+    });
   } else if (
     state.environment.filter((row) => !isBlankEnvironmentRow(row)).length >
     CREATE_SERVICE_LIMITS.environmentEntries
   ) {
-    errors.general = `环境变量最多 ${CREATE_SERVICE_LIMITS.environmentEntries} 项。`;
+    errors.general = t("services.dialog.error.environmentLimit", {
+      limit: CREATE_SERVICE_LIMITS.environmentEntries,
+    });
   }
   return errors;
 }
 
-export function validateCreateForm(state: CreateFormState): FormErrors {
-  const errors = validateEditableFields(state);
-  const label = labelError(state.labelSuffix);
+export function validateCreateForm(state: CreateFormState, t: TranslateFunction): FormErrors {
+  const errors = validateEditableFields(state, t);
+  const label = labelError(state.labelSuffix, t);
   if (label !== undefined) errors.label = label;
   return errors;
 }
@@ -381,8 +401,8 @@ function optionalPath(value: string): string | undefined {
 }
 
 /** The typed request for a valid form; arguments and values are kept as typed. */
-export function buildCreateRequest(state: CreateFormState): BuildResult {
-  const errors = validateCreateForm(state);
+export function buildCreateRequest(state: CreateFormState, t: TranslateFunction): BuildResult {
+  const errors = validateCreateForm(state, t);
   if (hasErrors(errors)) return { ok: false, errors };
   const workingDirectory = optionalPath(state.workingDirectory);
   const stdoutPath = optionalPath(state.stdoutPath);
@@ -408,7 +428,11 @@ export function buildCreateRequest(state: CreateFormState): BuildResult {
 }
 
 /** Hides every environment value of the form wherever it shows up in `text`. */
-export function scrubSecrets(text: string, state: Pick<CreateFormState, "environment">): string {
+export function scrubSecrets(
+  text: string,
+  state: Pick<CreateFormState, "environment">,
+  t: TranslateFunction,
+): string {
   const values = [
     ...new Set(
       state.environment
@@ -416,7 +440,8 @@ export function scrubSecrets(text: string, state: Pick<CreateFormState, "environ
         .filter((value) => value.length >= MIN_SCRUBBED_VALUE_LENGTH),
     ),
   ].sort((left, right) => right.length - left.length);
-  return values.reduce((result, value) => result.split(value).join("[已隐藏]"), text);
+  const redacted = t("services.dialog.redacted");
+  return values.reduce((result, value) => result.split(value).join(redacted), text);
 }
 
 // --------------------------------------------------------------- the flow
@@ -496,26 +521,26 @@ export interface OutcomeText {
   readonly detail: string;
 }
 
-const FILE_STATE_DETAIL: Record<string, string> = {
-  CREATED_REMOVED: "写入后校验未通过，新建的文件已删除，没有留下任何变更。",
-  CREATED_REMOVE_FAILED:
-    "写入后校验未通过，且新建的文件无法删除：它仍可能存在，请检查 ~/Library/LaunchAgents。",
-  UNKNOWN: "无法确认文件的当前状态，请检查 ~/Library/LaunchAgents 后再决定下一步。",
+const FILE_STATE_DETAIL: Record<string, MessageKey> = {
+  CREATED_REMOVED: "services.dialog.outcome.createdRemoved",
+  CREATED_REMOVE_FAILED: "services.dialog.outcome.createdRemoveFailed",
+  UNKNOWN: "services.dialog.outcome.unknownState",
 };
 
-export function describeCreateOutcome(execution: CreateServiceExecution): OutcomeText {
+export function describeCreateOutcome(
+  execution: CreateServiceExecution,
+  t: TranslateFunction,
+): OutcomeText {
   if (wasWritten(execution)) {
     return {
       tone: "success",
-      title: `已创建配置文件 ${execution.filePath}`,
-      detail: "新任务尚未加载，也未启动；加载与启动需要另外确认。",
+      title: t("services.dialog.outcome.createdTitle", { path: execution.filePath }),
+      detail: t("services.dialog.outcome.createdDetail"),
     };
   }
   return {
     tone: "danger",
-    title: "创建未完成",
-    detail:
-      FILE_STATE_DETAIL[execution.outcome.fileState] ??
-      "写入没有完成；请检查 ~/Library/LaunchAgents 中是否留有该文件。",
+    title: t("services.dialog.outcome.createFailedTitle"),
+    detail: t(FILE_STATE_DETAIL[execution.outcome.fileState] ?? "services.dialog.outcome.createNotWritten"),
   };
 }

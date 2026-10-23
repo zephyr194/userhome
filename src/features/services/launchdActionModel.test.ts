@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { translate, type TranslateFunction } from "../../i18n";
 import {
   LAUNCHD_ACTIONS,
   type LaunchdAction,
@@ -9,18 +10,18 @@ import {
   type LaunchdService,
 } from "../../ipc/services";
 import {
-  ACTION_HINTS,
-  ACTION_LABELS,
-  actionLabel,
+  ACTION_HINT_KEYS,
+  ACTION_LABEL_KEYS,
+  actionLabel as actionLabelText,
   actionPanelReducer,
   availableActions,
   findCreatedService,
   findServiceByFocus,
   INITIAL_ACTION_PANEL_STATE,
   isActionable,
-  noActionsReason,
-  observedLines,
-  presentOutcome,
+  noActionsReason as noActionsReasonText,
+  observedLines as observedLinesText,
+  presentOutcome as presentOutcomeText,
   type ActionPanelState,
 } from "./launchdActionModel";
 import {
@@ -30,6 +31,15 @@ import {
   createdService,
   launchdService,
 } from "./launchdFixtures";
+
+const zh: TranslateFunction = (key, params) => translate("zh-CN", key, params);
+const en: TranslateFunction = (key, params) => translate("en", key, params);
+const actionLabel = (action: LaunchdAction) => actionLabelText(action, zh);
+const noActionsReason = (service: LaunchdService) => noActionsReasonText(service, zh);
+const observedLines = (observed: Parameters<typeof observedLinesText>[0]) =>
+  observedLinesText(observed, zh);
+const presentOutcome = (outcome: Parameters<typeof presentOutcomeText>[0]) =>
+  presentOutcomeText(outcome, zh);
 
 function created(overrides: Partial<LaunchdService> = {}): LaunchdService {
   return { ...createdService(), ...overrides };
@@ -88,8 +98,8 @@ describe("available actions", () => {
     expect([...LAUNCHD_ACTIONS].sort()).toEqual(
       ["DISABLE", "ENABLE", "LOAD", "RESTART", "START", "STOP", "UNLOAD"],
     );
-    expect(Object.keys(ACTION_LABELS).sort()).toEqual([...LAUNCHD_ACTIONS].sort());
-    expect(Object.keys(ACTION_HINTS).sort()).toEqual([...LAUNCHD_ACTIONS].sort());
+    expect(Object.keys(ACTION_LABEL_KEYS).sort()).toEqual([...LAUNCHD_ACTIONS].sort());
+    expect(Object.keys(ACTION_HINT_KEYS).sort()).toEqual([...LAUNCHD_ACTIONS].sort());
     for (const loadState of ["LOADED", "NOT_LOADED"] as const) {
       for (const action of availableActions(created({ loadState }))) {
         expect(LAUNCHD_ACTIONS).toContain(action);
@@ -290,5 +300,30 @@ describe("action panel sources stay inside the allow list", () => {
     expect(panel).toMatch(/previewLaunchdAction\(/);
     expect(panel).toMatch(/executeLaunchdAction\(/);
     expect(panel).not.toMatch(/plist|uid|launchctl\s+-|argv|invoke\(/i);
+  });
+});
+
+describe("english wording", () => {
+  const cjk = /[㐀-鿿豈-﫿]/;
+
+  it("words actions, outcomes and read-back states in English", () => {
+    expect(actionLabelText("DISABLE", en)).toBe("Disable auto-start");
+    expect(observedLinesText({}, en)).toEqual([
+      "Load state: Unknown",
+      "Process: Unknown",
+      "Auto-start at login: Unknown",
+    ]);
+    expect(presentOutcomeText("PARTIAL", en).label).toBe("Partly completed");
+  });
+
+  it("keeps Chinese out of every English line the panel's models produce", () => {
+    const lines = [
+      ...observedLinesText({}, en),
+      ...observedLinesText({ loaded: true, running: true, pid: 42, disabled: false }, en),
+      ...LAUNCHD_ACTIONS.map((action) => actionLabelText(action, en)),
+      presentOutcomeText("FAILED", en).label,
+      noActionsReasonText(created({ loadState: "UNKNOWN" }), en) ?? "",
+    ];
+    for (const line of lines) expect(line, line).not.toMatch(cjk);
   });
 });

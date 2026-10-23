@@ -37,6 +37,7 @@ const PHASE_ONE_FILES = [
   "features/dashboard/DashboardPage.tsx",
   "features/system-tools/toolCards.ts",
   "features/system-tools/SystemToolsPage.tsx",
+<<<<<<< HEAD
   "App.tsx",
   "app/appearance.ts",
   "app/brewDiscoverySelector.ts",
@@ -136,6 +137,30 @@ const PHASE_ONE_FILES = [
   "features/app-config/SupportedConfigsDialog.tsx",
   "ipc/aiConfig.ts",
   "ipc/appConfig.ts",
+=======
+  "features/services/AdoptServiceDialog.tsx",
+  "features/services/CreateServiceDialog.tsx",
+  "features/services/EditServiceDialog.tsx",
+  "features/services/LaunchdActionPanel.tsx",
+  "features/services/LaunchdServiceDetails.tsx",
+  "features/services/ServiceGroups.tsx",
+  "features/services/ServiceLogs.tsx",
+  "features/services/ServiceManagement.tsx",
+  "features/services/ServiceSummaryPanel.tsx",
+  "features/services/ServicesPage.tsx",
+  "features/services/ServicesView.tsx",
+  "features/services/adoptServiceModel.ts",
+  "features/services/createServiceModel.ts",
+  "features/services/editServiceModel.ts",
+  "features/services/launchdActionModel.ts",
+  "features/services/launchdFixtures.ts",
+  "features/services/launchdModel.ts",
+  "features/services/logTailModel.ts",
+  "features/services/sequenceGate.ts",
+  "features/services/serviceDictionary.ts",
+  "features/services/serviceProfile.ts",
+  "features/services/testTranslators.ts",
+>>>>>>> 95ccfa1 (feat(services): 服务详情改为四区块并英文化)
 ];
 
 // Exact source lines that legitimately keep Chinese: they match backend-produced Chinese text, not UI copy.

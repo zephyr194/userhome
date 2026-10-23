@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { translate, type TranslateFunction } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import {
   LAUNCHD_EVIDENCE,
@@ -66,6 +67,8 @@ function ids(filter: Partial<ServiceFilter>) {
   );
 }
 
+const zh: TranslateFunction = (key, params) => translate("zh-CN", key, params);
+
 describe("status presentation", () => {
   it("separates running, idle, not loaded and unknown", () => {
     const [running, idle, notLoaded, , , unmatched] = sampleServices();
@@ -86,63 +89,65 @@ describe("status presentation", () => {
       pid: undefined,
       lastExit: { kind: "CODE", value: 78 },
     });
-    const presentation = statusPresentation(idle);
+    const presentation = statusPresentation(idle, zh);
     expect(presentation.label).toBe("已加载，未运行");
     expect(presentation.tone).toBe("neutral");
-    expect(exitText(idle.lastExit)).toBe("退出码 78");
+    expect(exitText(idle.lastExit, zh)).toBe("退出码 78");
     expect(presentation.label).not.toMatch(/错误|失败|异常/);
     expect(presentation.detail).toContain("不是错误");
   });
 
   it("says a PID only means a process exists, not that it is healthy", () => {
-    const presentation = statusPresentation(launchdService());
+    const presentation = statusPresentation(launchdService(), zh);
     expect(presentation.label).toBe("运行中");
     expect(presentation.detail).toContain("不代表");
     expect(presentation.detail).toContain("健康");
   });
 
   it("describes signals and missing exits", () => {
-    expect(exitText({ kind: "SIGNAL", value: 9 })).toBe("信号 9");
-    expect(exitText(undefined)).toBe("无记录");
+    expect(exitText({ kind: "SIGNAL", value: 9 }, zh)).toBe("信号 9");
+    expect(exitText(undefined, zh)).toBe("无记录");
   });
 
   it("distinguishes file-without-load, load-without-file and unmatched files", () => {
     const [, , fileOnly, , loadedOnly, unmatched] = sampleServices();
-    expect(statusPresentation(fileOnly).label).toBe("未加载");
-    expect(correlationText(fileOnly)).toContain("有配置文件，当前未加载");
-    expect(correlationText(loadedOnly)).toContain("已加载，未在扫描位置找到配置文件");
-    expect(correlationText(unmatched)).toContain("无法对应到任务");
-    expect(correlationText(unmatched)).toContain("符号链接");
+    expect(statusPresentation(fileOnly, zh).label).toBe("未加载");
+    expect(correlationText(fileOnly, zh)).toContain("有配置文件，当前未加载");
+    expect(correlationText(loadedOnly, zh)).toContain("已加载，未在扫描位置找到配置文件");
+    expect(correlationText(unmatched, zh)).toContain("无法对应到任务");
+    expect(correlationText(unmatched, zh)).toContain("符号链接");
     // A load-only job with an unknown presence must not claim absence.
     expect(
       correlationText(
         launchdService({ correlation: "LOADED_ONLY", configPresence: "UNKNOWN", configFiles: [] }),
-      ),
+      zh,
+    ),
     ).toContain("无法确认");
   });
 
   it("gives list rows a short line only for non-matched entries", () => {
     const [running, , fileOnly, , loadedOnly, unmatched] = sampleServices();
-    expect(correlationBrief(running)).toBeUndefined();
-    expect(correlationBrief(fileOnly)).toBe("有配置文件，当前未加载");
-    expect(correlationBrief(loadedOnly)).toBe("已加载，未找到配置文件");
-    expect(correlationBrief(unmatched)).toBe("配置文件无法对应到任务");
+    expect(correlationBrief(running, zh)).toBeUndefined();
+    expect(correlationBrief(fileOnly, zh)).toBe("有配置文件，当前未加载");
+    expect(correlationBrief(loadedOnly, zh)).toBe("已加载，未找到配置文件");
+    expect(correlationBrief(unmatched, zh)).toBe("配置文件无法对应到任务");
     expect(
       correlationBrief(
         launchdService({ correlation: "LOADED_ONLY", configPresence: "UNKNOWN", configFiles: [] }),
-      ),
+      zh,
+    ),
     ).toContain("无法确认");
   });
 
   it("labels scope by directory without claiming ownership", () => {
-    expect(scopeLabel("USER_AGENT")).toBe("用户代理");
-    expect(scopeLabel("GLOBAL_AGENT")).toBe("全局代理");
-    expect(scopeLabel("SYSTEM_DAEMON")).toBe("系统 daemon");
-    expect(scopeLabel("APPLE_AGENT")).toContain("Apple");
-    expect(scopeLabel("APPLE_DAEMON")).toContain("Apple");
-    expect(scopeLabel("UNATTRIBUTED")).toContain("未找到配置文件");
-    expect(domainLabel("GUI")).toBe("用户会话");
-    expect(domainLabel("SYSTEM")).toBe("系统");
+    expect(scopeLabel("USER_AGENT", zh)).toBe("用户代理");
+    expect(scopeLabel("GLOBAL_AGENT", zh)).toBe("全局代理");
+    expect(scopeLabel("SYSTEM_DAEMON", zh)).toBe("系统 daemon");
+    expect(scopeLabel("APPLE_AGENT", zh)).toContain("Apple");
+    expect(scopeLabel("APPLE_DAEMON", zh)).toContain("Apple");
+    expect(scopeLabel("UNATTRIBUTED", zh)).toContain("未找到配置文件");
+    expect(domainLabel("GUI", zh)).toBe("用户会话");
+    expect(domainLabel("SYSTEM", zh)).toBe("系统");
   });
 });
 
@@ -300,8 +305,8 @@ describe("keyboard navigation", () => {
 
 describe("partial results", () => {
   it("lists only sources that failed or lost files", () => {
-    expect(problemSources(sampleDiscovery())).toEqual([]);
-    const problems = problemSources(partialDiscovery());
+    expect(problemSources(sampleDiscovery(), zh)).toEqual([]);
+    const problems = problemSources(partialDiscovery(), zh);
     expect(problems).toHaveLength(1);
     expect(problems[0]).toMatchObject({
       source: "LAUNCHCTL_PRINT_SYSTEM",
@@ -313,17 +318,19 @@ describe("partial results", () => {
           complete: false,
           sources: [sourceReport({ source: "USER_LAUNCH_AGENTS", status: "COMPLETE", failedFiles: 2 })],
         }),
+        zh,
       )[0].reason,
     ).toContain("2 个文件");
   });
 
   it("treats a missing directory as normal, not a failure", () => {
-    expect(sourceReasonText("DIRECTORY_MISSING")).toContain("不存在");
+    expect(sourceReasonText("DIRECTORY_MISSING", zh)).toContain("不存在");
     expect(
       problemSources(
         sampleDiscovery({
           sources: [sourceReport({ source: "GLOBAL_LAUNCH_AGENTS", reason: "DIRECTORY_MISSING" })],
         }),
+        zh,
       ),
     ).toEqual([]);
   });
@@ -409,14 +416,14 @@ describe("discovery error copy", () => {
       code: "CONFLICT",
       message: "launchd discovery is already running. Retry when it finishes.",
       retryable: false,
-    });
+    }, zh);
     expect(text).toContain("正在被另一处读取");
     expect(text).toContain("重试");
     expect(text).not.toContain("already running");
   });
 
   it("keeps the message of any other error", () => {
-    expect(discoveryErrorText(ERROR)).toBe(ERROR.message);
+    expect(discoveryErrorText(ERROR, zh)).toBe(ERROR.message);
   });
 });
 
@@ -440,37 +447,37 @@ describe("refresh throttle", () => {
 
 describe("ownership presentation", () => {
   it("names every ownership class distinctly and in Chinese", () => {
-    const labels = LAUNCHD_OWNERSHIPS.map(ownershipLabel);
+    const labels = LAUNCHD_OWNERSHIPS.map((kind) => ownershipLabel(kind, zh));
     expect(new Set(labels).size).toBe(LAUNCHD_OWNERSHIPS.length);
     for (const label of labels) expect(label).toMatch(/[\u4e00-\u9fff]/);
-    expect(ownershipLabel("APPLE_MANAGED")).toContain("Apple");
-    expect(ownershipLabel("USERHOME_CREATED")).toContain("UserHome");
+    expect(ownershipLabel("APPLE_MANAGED", zh)).toContain("Apple");
+    expect(ownershipLabel("USERHOME_CREATED", zh)).toContain("UserHome");
     for (const kind of LAUNCHD_OWNERSHIPS) {
-      expect(ownershipDescription(kind).length).toBeGreaterThan(8);
+      expect(ownershipDescription(kind, zh).length).toBeGreaterThan(8);
     }
   });
 
   it("explains every read-only reason and every piece of evidence", () => {
     for (const reason of LAUNCHD_READ_ONLY_REASONS) {
-      const text = readOnlyReasonText(reason);
+      const text = readOnlyReasonText(reason, zh);
       expect(text, reason).toMatch(/[\u4e00-\u9fff]/);
       expect(text, reason).not.toMatch(/[A-Z]{3,}_[A-Z]/);
     }
     for (const evidence of LAUNCHD_EVIDENCE) {
-      const text = evidenceText(evidence);
+      const text = evidenceText(evidence, zh);
       expect(text, evidence).toMatch(/[\u4e00-\u9fff]/);
       expect(text, evidence).not.toMatch(/[A-Z]{3,}_[A-Z]/);
     }
   });
 
   it("summarizes read-only and modifiable verdicts without promising an action", () => {
-    const readOnly = ownershipSummary(launchdService());
+    const readOnly = ownershipSummary(launchdService(), zh);
     expect(readOnly.modifiable).toBe(false);
     expect(readOnly.badge).toBe("只读");
     expect(readOnly.reasons.length).toBeGreaterThan(0);
     expect(readOnly.reasons.join("")).toContain("接管");
 
-    const created = ownershipSummary(createdService());
+    const created = ownershipSummary(createdService(), zh);
     expect(created.modifiable).toBe(true);
     expect(created.badge).toBe("可修改");
     expect(created.reasons).toEqual([]);

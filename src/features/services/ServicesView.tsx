@@ -2,12 +2,12 @@ import type { ReactNode } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
-  Panel,
   PageShell,
   SelectField,
   TextField,
 } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
+import type { TranslateFunction } from "../../i18n";
 import { useT } from "../../i18n/useLocale";
 import {
   LAUNCHD_DOMAINS,
@@ -16,21 +16,22 @@ import {
   type LaunchdService,
 } from "../../ipc/services";
 import { LaunchdServiceDetails } from "./LaunchdServiceDetails";
+import { ServiceSummaryPanel } from "./ServiceSummaryPanel";
 import {
   EMPTY_FILTER,
   STATUS_CATEGORIES,
-  STATUS_CATEGORY_LABELS,
   discoveryErrorText,
+  domainLabel,
   filterServices,
   isFilterActive,
   isSystemService,
   ownershipLabel,
   resolveSelection,
-  domainLabel,
   scopeLabel,
   sourceLabel,
   sourceProblems,
   sourceStatusLabel,
+  statusCategoryLabel,
   type DiscoveryState,
   type EvidenceState,
   type ServiceFilter,
@@ -58,39 +59,48 @@ export interface ServicesViewProps {
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
 
-const SCOPE_OPTIONS = [
-  { value: "ALL", label: "全部来源" },
-  ...LAUNCHD_SCOPES.map((scope) => ({
-    value: scope,
-    label: scopeLabel(scope),
-  })),
-] as const;
+function scopeOptions(t: TranslateFunction) {
+  return [
+    { value: "ALL", label: t("services.filter.allScopes") },
+    ...LAUNCHD_SCOPES.map((scope) => ({
+      value: scope,
+      label: scopeLabel(scope, t),
+    })),
+  ] as const;
+}
 
-const OWNERSHIP_OPTIONS = [
-  { value: "ALL", label: "全部归属" },
-  ...LAUNCHD_OWNERSHIPS.map((ownership) => ({
-    value: ownership,
-    label: ownershipLabel(ownership),
-  })),
-] as const;
+function ownershipOptions(t: TranslateFunction) {
+  return [
+    { value: "ALL", label: t("services.filter.allOwnerships") },
+    ...LAUNCHD_OWNERSHIPS.map((ownership) => ({
+      value: ownership,
+      label: ownershipLabel(ownership, t),
+    })),
+  ] as const;
+}
 
-const DOMAIN_OPTIONS = [
-  { value: "ALL", label: "全部作用域" },
-  ...LAUNCHD_DOMAINS.map((domain) => ({
-    value: domain,
-    label: domainLabel(domain),
-  })),
-] as const;
+function domainOptions(t: TranslateFunction) {
+  return [
+    { value: "ALL", label: t("services.filter.allDomains") },
+    ...LAUNCHD_DOMAINS.map((domain) => ({
+      value: domain,
+      label: domainLabel(domain, t),
+    })),
+  ] as const;
+}
 
-const STATUS_OPTIONS = [
-  { value: "ALL", label: "全部状态" },
-  ...STATUS_CATEGORIES.map((category) => ({
-    value: category,
-    label: STATUS_CATEGORY_LABELS[category],
-  })),
-] as const;
+function statusOptions(t: TranslateFunction) {
+  return [
+    { value: "ALL", label: t("services.filter.allStatuses") },
+    ...STATUS_CATEGORIES.map((category) => ({
+      value: category,
+      label: statusCategoryLabel(category, t),
+    })),
+  ] as const;
+}
 
 export function ServicesView(props: ServicesViewProps) {
+  const t = useT();
   const { state } = props;
   const services =
     state.status === "ready" ? state.discovery.services : undefined;
@@ -109,10 +119,10 @@ export function ServicesView(props: ServicesViewProps) {
           <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold" id="services-heading">
-                服务清单
+                {t("services.list.heading")}
               </h2>
               <p className="mt-ui-4 text-xs text-muted-foreground">
-                launchd 常驻任务，只读查看
+                {t("services.list.subtitle")}
               </p>
             </div>
             <div className="flex min-w-0 flex-wrap items-start gap-ui-8">
@@ -122,7 +132,7 @@ export function ServicesView(props: ServicesViewProps) {
                 disabled={props.refreshDisabled}
                 onClick={props.onRefresh}
               >
-                刷新
+                {t("services.list.refresh")}
               </Button>
             </div>
           </header>
@@ -148,7 +158,7 @@ export function ServicesView(props: ServicesViewProps) {
       <PageRegion>
         <section
           className="min-h-0 min-w-0 overflow-x-hidden overflow-y-auto p-ui-12 overscroll-contain"
-          aria-label="任务详情"
+          aria-label={t("services.detail.region")}
         >
           <DetailsPane {...props} visible={visible} />
         </section>
@@ -170,6 +180,7 @@ function FilterBar({
   state: DiscoveryState;
   total: number | undefined;
 }) {
+  const t = useT();
   const pickedCount = [filter.scope, filter.ownership, filter.domain, filter.status].filter(
     (value) => value !== "ALL",
   ).length;
@@ -177,29 +188,31 @@ function FilterBar({
   return (
     <div className="grid min-w-0 gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
       <TextField
-        label="搜索任务"
+        label={t("services.filter.search")}
         type="search"
         maxLength={128}
-        placeholder="按 label、名称或路径搜索"
+        placeholder={t("services.filter.searchPlaceholder")}
         value={filter.query}
         onValueChange={(query) => onFilterChange({ ...filter, query })}
       />
       <details className="services-disclosure">
         <summary>
-          {pickedCount > 0 ? `更多筛选（已选 ${pickedCount} 项）` : "更多筛选"}
+          {pickedCount > 0
+            ? t("services.filter.moreWithCount", { count: pickedCount })
+            : t("services.filter.more")}
         </summary>
         <div className="grid min-w-0 grid-cols-2 gap-ui-8 pt-ui-8">
           <SelectField
             className="min-w-0"
-            label="来源"
-            options={SCOPE_OPTIONS}
+            label={t("services.filter.source")}
+            options={scopeOptions(t)}
             value={filter.scope}
             onValueChange={(scope) => onFilterChange({ ...filter, scope })}
           />
           <SelectField
             className="min-w-0"
-            label="归属"
-            options={OWNERSHIP_OPTIONS}
+            label={t("services.filter.ownership")}
+            options={ownershipOptions(t)}
             value={filter.ownership}
             onValueChange={(ownership) =>
               onFilterChange({ ...filter, ownership })
@@ -207,29 +220,29 @@ function FilterBar({
           />
           <SelectField
             className="min-w-0"
-            label="作用域"
-            options={DOMAIN_OPTIONS}
+            label={t("services.filter.domain")}
+            options={domainOptions(t)}
             value={filter.domain}
             onValueChange={(domain) => onFilterChange({ ...filter, domain })}
           />
           <SelectField
             className="min-w-0"
-            label="状态"
-            options={STATUS_OPTIONS}
+            label={t("services.filter.status")}
+            options={statusOptions(t)}
             value={filter.status}
             onValueChange={(status) => onFilterChange({ ...filter, status })}
           />
         </div>
         <p className="text-aux leading-relaxed text-muted-foreground">
-          来源按所在目录归类，只是位置信息；归属由后端按所有者、位置与文件类型判定，两者不同。
+          {t("services.filter.sourceNote")}
         </p>
       </details>
       <div className="flex h-control-sm min-w-0 items-center justify-between gap-ui-8">
         <span className="min-w-0 text-aux text-muted-foreground" role="status">
           {shown === undefined || total === undefined
-            ? "正在读取本机状态…"
-            : `显示 ${shown} / ${total} 项`}
-          {refreshing ? " · 正在刷新…" : ""}
+            ? t("services.list.reading")
+            : t("services.list.shown", { shown, total })}
+          {refreshing ? t("services.list.refreshingSuffix") : ""}
         </span>
         {isFilterActive(filter) ? (
           <Button
@@ -239,14 +252,13 @@ function FilterBar({
               onFilterChange({ ...EMPTY_FILTER, showSystem: filter.showSystem })
             }
           >
-            清除筛选
+            {t("services.filter.clear")}
           </Button>
         ) : null}
       </div>
     </div>
   );
 }
-
 
 function ListBody({
   filter,
@@ -262,6 +274,7 @@ function ListBody({
   services: readonly LaunchdService[] | undefined;
   visible: readonly LaunchdService[];
 }) {
+  const t = useT();
   if (state.status === "loading") {
     return <div aria-busy="true" />;
   }
@@ -269,11 +282,11 @@ function ListBody({
     return (
       <div className="p-ui-12">
         <AsyncState kind="error">
-          <span className={WRAP}>{discoveryErrorText(state.error)}</span>
+          <span className={WRAP}>{discoveryErrorText(state.error, t)}</span>
         </AsyncState>
         <div className="mt-ui-8">
           <Button size="sm" disabled={refreshDisabled} onClick={onRefresh}>
-            重试
+            {t("services.list.retry")}
           </Button>
         </div>
       </div>
@@ -281,14 +294,16 @@ function ListBody({
   }
 
   const { discovery } = state;
-  const problems = sourceProblems(discovery.sources);
+  const problems = sourceProblems(discovery.sources, t);
   return (
     <>
       {state.refreshError ? (
         <div className="px-ui-12">
           <AsyncState kind="error">
             <span className={WRAP}>
-              刷新失败：{discoveryErrorText(state.refreshError)}以下为上次读取的结果。
+              {t("services.list.refreshFailed", {
+                error: discoveryErrorText(state.refreshError, t),
+              })}
             </span>
           </AsyncState>
         </div>
@@ -298,25 +313,24 @@ function ListBody({
           <AsyncState kind="partial">
             {problems.length > 0 ? (
               <>
-                <span className="block">
-                  部分来源未能读取，结果可能不完整，下列来源的信息缺失：
-                </span>
+                <span className="block">{t("services.list.partialSources")}</span>
                 <ul className="mt-ui-4 grid gap-ui-4 text-xs">
                   {problems.map((problem) => (
                     <li className={WRAP} key={problem.source}>
                       <span className="font-mono">
-                        {sourceLabel(problem.source)}
+                        {sourceLabel(problem.source, t)}
                       </span>
-                      （{sourceStatusLabel(problem.status)}）{problem.reason}
+                      {t("services.list.problemStatus", {
+                        status: sourceStatusLabel(problem.status, t),
+                      })}
+                      {problem.reason}
                     </li>
                   ))}
                 </ul>
               </>
             ) : null}
             {discovery.truncated ? (
-              <span className="block">
-                任务数量超过上限，结果已截断，结果可能不完整。
-              </span>
+              <span className="block">{t("services.list.truncated")}</span>
             ) : null}
           </AsyncState>
         </div>
@@ -325,8 +339,8 @@ function ListBody({
         <div className="px-ui-12">
           <AsyncState kind="empty">
             {discovery.complete
-              ? "没有发现常驻任务。"
-              : "未读取到任何常驻任务，但部分来源未能读取，不能据此认为没有常驻任务。"}
+              ? t("services.list.none")
+              : t("services.list.noneIncomplete")}
           </AsyncState>
         </div>
       ) : (
@@ -358,9 +372,7 @@ function DetailsPane({
   const t = useT();
   if (selectedId === undefined) {
     return (
-      <AsyncState kind="empty">
-        从清单中选择一项任务，查看它的来源、配置文件与状态。
-      </AsyncState>
+      <AsyncState kind="empty">{t("services.detail.empty")}</AsyncState>
     );
   }
   if (state.status === "loading") {
@@ -368,7 +380,7 @@ function DetailsPane({
   }
   if (state.status === "error") {
     return (
-      <AsyncState kind="empty">读取失败，暂时无法显示所选任务的详情。</AsyncState>
+      <AsyncState kind="empty">{t("services.detail.readFailed")}</AsyncState>
     );
   }
   const resolved = resolveSelection(state.discovery.services, selectedId);
@@ -376,8 +388,9 @@ function DetailsPane({
     return (
       <AsyncState kind="partial">
         <span className={WRAP}>
-          所选任务（<span className="font-mono">{selectedId}</span>
-          ）已不存在，可能已卸载或配置已被移除。请从清单中重新选择。
+          {t("services.detail.goneBefore")}
+          <span className="font-mono">{selectedId}</span>
+          {t("services.detail.goneAfter")}
         </span>
       </AsyncState>
     );
@@ -387,33 +400,29 @@ function DetailsPane({
     notShown && !filter.showSystem && isSystemService(resolved.service);
   const hidden = notShown && isFilterActive(filter);
   return (
-    <div className="grid min-w-0 gap-ui-12">
+    <div className="grid min-w-0 gap-ui-16">
       {systemHidden ? (
         <AsyncState kind="partial">{t("services.selectedSystemHidden")}</AsyncState>
       ) : hidden ? (
-        <AsyncState kind="partial">
-          所选任务被当前筛选条件隐藏，清单中不显示它；清除筛选后可在清单中看到。
-        </AsyncState>
+        <AsyncState kind="partial">{t("services.selectedFilteredOut")}</AsyncState>
       ) : null}
-      <LaunchdServiceDetails
-        evidence={evidence}
-        onChanged={onActionSettled}
+      <ServiceSummaryPanel
+        key={resolved.service.id}
         service={resolved.service}
-        sources={state.discovery.sources}
+        onChanged={onActionSettled}
+        renderLogs={renderLogs}
+        renderManagement={renderManagement}
       />
-      {renderManagement ? renderManagement(resolved.service) : null}
-      {renderLogs ? (
-        <Panel aria-labelledby="service-logs-heading" className="min-w-0">
-          <header className="border-b border-border px-ui-16 py-ui-12">
-            <h3 className="text-sm font-semibold" id="service-logs-heading">
-              任务日志
-            </h3>
-          </header>
-          <div className="px-ui-16 py-ui-12">
-            {renderLogs(resolved.service)}
-          </div>
-        </Panel>
-      ) : null}
+      <details className="services-disclosure services-details">
+        <summary>{t("services.details.disclosure")}</summary>
+        <div className="pt-ui-8">
+          <LaunchdServiceDetails
+            evidence={evidence}
+            service={resolved.service}
+            sources={state.discovery.sources}
+          />
+        </div>
+      </details>
     </div>
   );
 }

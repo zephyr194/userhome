@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { Button } from "../../components/ui";
+import { useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import type { ServiceFocus } from "../../app/routeDefinitions";
 import {
@@ -42,6 +43,7 @@ export function ServicesPage({
   onSelectedServiceChange?: (serviceId?: string) => void;
   refreshId?: string;
 }) {
+  const t = useT();
   const [state, dispatch] = useReducer(
     discoveryReducer,
     INITIAL_DISCOVERY_STATE,
@@ -53,7 +55,6 @@ export function ServicesPage({
   const [selectedId, setSelectedId] = useState(initialSelectedServiceId);
   const [cooling, setCooling] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [createdNotice, setCreatedNotice] = useState<string | undefined>();
   // The job just created, waiting to be found in the refreshed list so the
   // notice can take the user to its load action.
   const [createdLabel, setCreatedLabel] = useState<string | undefined>();
@@ -178,9 +179,6 @@ export function ServicesPage({
   // (not throttled); the notice stays until the user dismisses it.
   const created = useCallback(
     (execution: CreateServiceExecution) => {
-      setCreatedNotice(
-        `已创建 ${execution.label}：新任务尚未加载，也未启动。`,
-      );
       setCreatedLabel(execution.label);
       load();
     },
@@ -229,38 +227,36 @@ export function ServicesPage({
               size="sm"
               variant="primary"
               onClick={() => {
-                setCreatedNotice(undefined);
                 setCreatedLabel(undefined);
                 followLabelRef.current = undefined;
                 setCreateOpen(true);
               }}
             >
-              创建自建任务
+              {t("services.page.createTask")}
             </Button>
-            {createdNotice ? (
+            {createdLabel !== undefined ? (
               <p
                 className="max-w-xs break-words text-right text-xs text-success [overflow-wrap:anywhere]"
                 role="status"
                 aria-live="polite"
               >
-                {createdNotice}{" "}
+                {t("services.page.created", { label: createdLabel })}{" "}
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={goToCreated}
                 >
-                  去加载
+                  {t("services.page.goLoad")}
                 </Button>{" "}
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => {
-                    setCreatedNotice(undefined);
                     setCreatedLabel(undefined);
                     followLabelRef.current = undefined;
                   }}
                 >
-                  知道了
+                  {t("services.page.gotIt")}
                 </Button>
               </p>
             ) : null}

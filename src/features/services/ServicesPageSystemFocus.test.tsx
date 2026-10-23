@@ -38,7 +38,7 @@ describe("services page focus", () => {
     expect(screen.getByRole("checkbox", { name: "显示系统服务" }).getAttribute("aria-checked")).toBe(
       "true",
     );
-    expect(screen.getByText("vendor.daemon")).toBeTruthy();
+    expect(screen.getAllByText("vendor.daemon").length).toBeGreaterThan(0);
   });
 
   it("leaves the toggle off when the focused job is an ordinary job", async () => {

@@ -1,3 +1,4 @@
+import type { TranslateFunction } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import type { AdoptExecution, AdoptPreview } from "../../ipc/servicesAdopt";
 import type { LaunchdService } from "../../ipc/services";
@@ -16,55 +17,55 @@ export type ManagementView =
   | { readonly kind: "adopted"; readonly editBlockers: readonly string[] };
 
 /** Why the job cannot be adopted; empty when the job may be offered for adoption. */
-export function adoptionBlockers(service: LaunchdService): string[] {
+export function adoptionBlockers(service: LaunchdService, t: TranslateFunction): string[] {
   const reasons: string[] = [];
   if (service.domain !== "GUI") {
-    reasons.push("只能接管当前用户会话域中的任务。");
+    reasons.push(t("services.dialog.adopt.blocker.domain"));
   }
   if (service.configFiles.length !== 1) {
-    reasons.push("任务没有配置文件或有多个配置文件，无法确定接管哪一个。");
+    reasons.push(t("services.dialog.adopt.blocker.configFiles"));
   }
   for (const reason of service.ownership.readOnlyReasons) {
-    if (reason !== "NOT_ADOPTED") reasons.push(readOnlyReasonText(reason));
+    if (reason !== "NOT_ADOPTED") reasons.push(readOnlyReasonText(reason, t));
   }
   return reasons;
 }
 
 /** Why an adopted job cannot be edited; empty when a structured edit may be offered. */
-export function editBlockers(service: LaunchdService): string[] {
+export function editBlockers(service: LaunchdService, t: TranslateFunction): string[] {
   const reasons: string[] = [];
   if (!service.ownership.modifiable) {
-    reasons.push(...service.ownership.readOnlyReasons.map(readOnlyReasonText));
+    reasons.push(...service.ownership.readOnlyReasons.map((reason) => readOnlyReasonText(reason, t)));
   }
   if (service.domain !== "GUI") {
-    reasons.push("只能编辑当前用户会话域中的任务。");
+    reasons.push(t("services.dialog.edit.blocker.domain"));
   }
   const [file, ...others] = service.configFiles;
   if (file === undefined || others.length > 0) {
-    reasons.push("任务没有配置文件或有多个配置文件，无法编辑。");
+    reasons.push(t("services.dialog.edit.blocker.configFiles"));
   } else if (file.details === undefined) {
-    reasons.push("无法读取配置内容，不能编辑。");
+    reasons.push(t("services.dialog.edit.blocker.unreadable"));
   } else {
     if (file.details.program !== undefined) {
-      reasons.push("配置使用 Program 键指定程序，结构化编辑不支持。");
+      reasons.push(t("services.dialog.edit.blocker.programKey"));
     }
     if (file.details.argumentsTruncated) {
-      reasons.push("参数列表过长，结构化编辑不支持。");
+      reasons.push(t("services.dialog.edit.blocker.argumentsTruncated"));
     }
   }
   return reasons;
 }
 
-export function managementOf(service: LaunchdService): ManagementView {
+export function managementOf(service: LaunchdService, t: TranslateFunction): ManagementView {
   switch (service.ownership.kind) {
     case "CURRENT_USER_AGENT": {
-      const reasons = adoptionBlockers(service);
+      const reasons = adoptionBlockers(service, t);
       return reasons.length === 0
         ? { kind: "adopt" }
         : { kind: "adoptBlocked", reasons };
     }
     case "USERHOME_ADOPTED":
-      return { kind: "adopted", editBlockers: editBlockers(service) };
+      return { kind: "adopted", editBlockers: editBlockers(service, t) };
     default:
       return { kind: "none" };
   }
@@ -137,36 +138,42 @@ export interface NoticeText {
  * carries the backend's own per-reason text, since that is the one place the
  * refusal categories are named.
  */
-export function describeAdoptFailure(error: AppError): NoticeText {
+export function describeAdoptFailure(error: AppError, t: TranslateFunction): NoticeText {
   switch (error.code) {
     case "NOT_FOUND":
       return {
-        title: "任务已不存在，没有接管",
-        detail: "请刷新清单后重新选择任务。",
+        title: t("services.dialog.adopt.failure.notFound.title"),
+        detail: t("services.dialog.adopt.failure.notFound.detail"),
       };
     case "CONFLICT":
       return {
-        title: "任务或 plist 在预览后已变化，没有接管",
+        title: t("services.dialog.adopt.failure.conflict.title"),
         detail: error.message,
       };
     case "PERMISSION_DENIED":
       return {
-        title: "接管被拒绝，没有写入任何记录",
+        title: t("services.dialog.adopt.failure.permission.title"),
         detail: error.message,
       };
     case "VALIDATION_FAILED":
       return {
-        title: "接管未完成，没有保留接管记录",
+        title: t("services.dialog.adopt.failure.validation.title"),
         detail: error.message,
       };
     default:
-      return { title: "接管被拒绝", detail: error.message };
+      return { title: t("services.dialog.adopt.failure.default.title"), detail: error.message };
   }
 }
 
-export function describeAdoptSuccess(execution: AdoptExecution): NoticeText {
+export function describeAdoptSuccess(
+  execution: AdoptExecution,
+  t: TranslateFunction,
+): NoticeText {
   return {
-    title: `已接管 ${execution.label}`,
-    detail: `原始 plist 已备份为 ${execution.backupId}，接管记录已回读确认。${execution.effectNote}`,
+    title: t("services.dialog.adopt.success.title", { label: execution.label }),
+    detail: t("services.dialog.adopt.success.detail", {
+      backupId: execution.backupId,
+      effectNote: execution.effectNote,
+    }),
   };
 }

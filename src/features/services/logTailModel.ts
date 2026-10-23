@@ -1,3 +1,4 @@
+import type { TranslateFunction } from "../../i18n";
 import type { LogCursor, LogReset, LogSnapshot } from "../../ipc/services";
 
 export const LOG_POLL_INTERVAL_MS = 2000;
@@ -65,20 +66,21 @@ export function boundLogLines(
   };
 }
 
-export function resetNotice(reset: LogReset): string {
+export function resetNotice(reset: LogReset, t: TranslateFunction): string {
   return reset === "REPLACED"
-    ? "日志文件已轮转（路径指向了新文件），已从新文件尾部重新读取。"
-    : "日志文件被截断（变小），已从头重新读取其尾部。";
+    ? t("services.logs.resetReplaced")
+    : t("services.logs.resetTruncated");
 }
 
-function skippedNotice(bytes: number, incremental: boolean): string {
+function skippedNotice(
+  bytes: number,
+  incremental: boolean,
+  t: TranslateFunction,
+): string {
   return incremental
-    ? `已跳过 ${bytes} 字节：新增内容超过单次读取上限，仅显示最近部分。`
-    : `文件较大：已省略开头 ${bytes} 字节，仅显示尾部。`;
+    ? t("services.logs.skippedIncremental", { bytes })
+    : t("services.logs.skippedHead", { bytes });
 }
-
-const HEAD_TRIMMED_NOTICE = "已省略读取起点处不完整的一行。";
-const LOSSY_NOTICE = "部分字节不是有效的 UTF-8，已用替换字符显示。";
 
 function appendNotice(notices: readonly string[], notice: string): string[] {
   if (notices.includes(notice)) return [...notices];
@@ -98,28 +100,32 @@ function noticesOf(
   snapshot: LogSnapshot,
   incremental: boolean,
   base: readonly string[],
+  t: TranslateFunction,
 ): string[] {
   let notices = [...base];
   if (snapshot.reset !== null) {
-    notices = appendNotice(notices, resetNotice(snapshot.reset));
+    notices = appendNotice(notices, resetNotice(snapshot.reset, t));
   }
   if (snapshot.skippedBytes > 0) {
     notices = appendNotice(
       notices,
-      skippedNotice(snapshot.skippedBytes, incremental),
+      skippedNotice(snapshot.skippedBytes, incremental, t),
     );
   }
   if (snapshot.headTrimmed) {
-    notices = appendNotice(notices, HEAD_TRIMMED_NOTICE);
+    notices = appendNotice(notices, t("services.logs.headTrimmed"));
   }
   if (snapshot.lossy) {
-    notices = appendNotice(notices, LOSSY_NOTICE);
+    notices = appendNotice(notices, t("services.logs.lossy"));
   }
   return notices;
 }
 
 /** The view after a tail read: the newest text of the file, from scratch. */
-export function tailFromSnapshot(snapshot: LogSnapshot): LogTail {
+export function tailFromSnapshot(
+  snapshot: LogSnapshot,
+  t: TranslateFunction,
+): LogTail {
   if (snapshot.state === "MISSING") {
     return { ...EMPTY_LOG_TAIL, missing: true };
   }
@@ -130,7 +136,7 @@ export function tailFromSnapshot(snapshot: LogSnapshot): LogTail {
     partial,
     droppedCount: bounded.droppedCount,
     cursor: cursorOf(snapshot),
-    notices: noticesOf(snapshot, false, []),
+    notices: noticesOf(snapshot, false, [], t),
     missing: false,
   };
 }
@@ -139,16 +145,20 @@ export function tailFromSnapshot(snapshot: LogSnapshot): LogTail {
  * Applies an incremental read. A reset (rotation or truncation) starts the view
  * again from the new file's tail; a missing file keeps what was shown.
  */
-export function advanceTail(tail: LogTail, snapshot: LogSnapshot): LogTail {
+export function advanceTail(
+  tail: LogTail,
+  snapshot: LogSnapshot,
+  t: TranslateFunction,
+): LogTail {
   if (snapshot.state === "MISSING") {
     return { ...tail, missing: true };
   }
   if (snapshot.reset !== null) {
-    return tailFromSnapshot(snapshot);
+    return tailFromSnapshot(snapshot, t);
   }
   let lines = tail.lines;
   let carry = tail.partial;
-  const notices = noticesOf(snapshot, true, tail.notices);
+  const notices = noticesOf(snapshot, true, tail.notices, t);
   if (snapshot.skippedBytes > 0) {
     if (carry !== "") lines = [...lines, carry];
     carry = "";

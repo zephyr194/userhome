@@ -18,6 +18,15 @@ export const INJECTOR_ORDER = [
 ] as const;
 export type Injector = (typeof INJECTOR_ORDER)[number];
 
+export const INJECTOR_TITLE_KEYS: Record<Injector, MessageKey> = {
+  USERHOME: "services.group.userhome",
+  HOMEBREW: "services.group.homebrew",
+  APP: "services.group.app",
+  USER: "services.group.user",
+  THIRD_PARTY: "services.group.thirdParty",
+  SYSTEM: "services.group.system",
+};
+
 export interface ServiceGroup {
   injector: Injector;
   services: LaunchdService[];
@@ -314,6 +323,26 @@ export function triggerOf(service: LaunchdService, t: TranslateFunction): Servic
     badge: badges.length > BADGE_LIMIT ? `${shown}…` : shown,
     sentence: `${sentence}${t("services.trigger.end")}`,
   };
+}
+
+/** The reason a job is listed under its group, in one short phrase. */
+export function injectorBasisOf(service: LaunchdService, t: TranslateFunction): string {
+  switch (injectorOf(service)) {
+    case "USERHOME":
+      return service.ownership.kind === "USERHOME_ADOPTED"
+        ? t("services.basis.userhomeAdopted")
+        : t("services.basis.userhomeCreated");
+    case "HOMEBREW":
+      return t("services.basis.homebrew");
+    case "APP":
+      return t("services.basis.app", { app: appBundleOf(service) ?? "" });
+    case "USER":
+      return t("services.basis.userAgents");
+    case "THIRD_PARTY":
+      return t("services.basis.thirdParty");
+    case "SYSTEM":
+      return t("services.basis.system");
+  }
 }
 
 export function groupServices(services: readonly LaunchdService[]): ServiceGroup[] {

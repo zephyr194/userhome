@@ -1,6 +1,7 @@
 // Pure logic of the lifecycle action panel: which actions a job offers, how an
 // outcome is worded, and the panel's state machine. No component, no IPC.
 
+import type { MessageKey, TranslateFunction } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import type {
   LaunchdAction,
@@ -12,25 +13,25 @@ import type {
   LaunchdService,
 } from "../../ipc/services";
 
-export const ACTION_LABELS: Readonly<Record<LaunchdAction, string>> = {
-  LOAD: "加载",
-  START: "启动",
-  STOP: "停止",
-  RESTART: "重启",
-  DISABLE: "禁用自启",
-  ENABLE: "启用自启",
-  UNLOAD: "卸载",
+export const ACTION_LABEL_KEYS: Readonly<Record<LaunchdAction, MessageKey>> = {
+  LOAD: "services.action.label.LOAD",
+  START: "services.action.label.START",
+  STOP: "services.action.label.STOP",
+  RESTART: "services.action.label.RESTART",
+  DISABLE: "services.action.label.DISABLE",
+  ENABLE: "services.action.label.ENABLE",
+  UNLOAD: "services.action.label.UNLOAD",
 };
 
 /** One line on what the action is, shown next to its button. */
-export const ACTION_HINTS: Readonly<Record<LaunchdAction, string>> = {
-  LOAD: "把配置文件交给 launchd 加载（不删除、不修改文件）",
-  START: "启动已加载的任务（不会隐式加载）",
-  STOP: "停止进程；带 KeepAlive 的任务会被卸载以防被自动拉起",
-  RESTART: "结束并重新启动正在运行的实例",
-  DISABLE: "禁用登录自动启动（不会停止当前进程）",
-  ENABLE: "恢复登录自动启动（不会加载或启动）",
-  UNLOAD: "从 launchd 卸载（配置文件保留）",
+export const ACTION_HINT_KEYS: Readonly<Record<LaunchdAction, MessageKey>> = {
+  LOAD: "services.action.hint.LOAD",
+  START: "services.action.hint.START",
+  STOP: "services.action.hint.STOP",
+  RESTART: "services.action.hint.RESTART",
+  DISABLE: "services.action.hint.DISABLE",
+  ENABLE: "services.action.hint.ENABLE",
+  UNLOAD: "services.action.hint.UNLOAD",
 };
 
 const ACTIONABLE_OWNERSHIPS: readonly LaunchdOwnershipKind[] = [
@@ -74,17 +75,24 @@ export function availableActions(service: LaunchdService): LaunchdAction[] {
 }
 
 /** Why a modifiable job shows no action, when that is the case. */
-export function noActionsReason(service: LaunchdService): string | undefined {
+export function noActionsReason(
+  service: LaunchdService,
+  t: TranslateFunction,
+): string | undefined {
   if (!isActionable(service) || availableActions(service).length > 0) {
     return undefined;
   }
-  return "加载状态未知或无法访问，暂不提供动作。请先刷新，确认状态后再操作。";
+  return t("services.action.noneReason");
 }
 
 // ---- wording ------------------------------------------------------------
 
-export function actionLabel(action: LaunchdAction): string {
-  return ACTION_LABELS[action];
+export function actionLabel(action: LaunchdAction, t: TranslateFunction): string {
+  return t(ACTION_LABEL_KEYS[action]);
+}
+
+export function actionHint(action: LaunchdAction, t: TranslateFunction): string {
+  return t(ACTION_HINT_KEYS[action]);
 }
 
 export type ResultTone = "success" | "warning" | "danger" | "neutral";
@@ -98,57 +106,70 @@ export interface ResultPresentation {
 
 export function presentOutcome(
   outcome: LaunchdActionOutcome,
+  t: TranslateFunction,
 ): ResultPresentation {
   switch (outcome) {
     case "SUCCEEDED":
-      return { label: "成功", tone: "success", needsRefresh: false };
+      return { label: t("services.outcome.succeeded"), tone: "success", needsRefresh: false };
     case "NO_CHANGE":
-      return { label: "无需变更", tone: "neutral", needsRefresh: false };
+      return { label: t("services.outcome.noChange"), tone: "neutral", needsRefresh: false };
     case "PARTIAL":
-      return { label: "部分完成", tone: "warning", needsRefresh: true };
+      return { label: t("services.outcome.partial"), tone: "warning", needsRefresh: true };
     case "FAILED":
-      return { label: "失败", tone: "danger", needsRefresh: true };
+      return { label: t("services.outcome.failed"), tone: "danger", needsRefresh: true };
     case "UNKNOWN":
-      return { label: "未知", tone: "warning", needsRefresh: true };
+      return { label: t("services.outcome.unknown"), tone: "warning", needsRefresh: true };
     case "CANCELLED":
-      return { label: "已取消", tone: "neutral", needsRefresh: false };
+      return { label: t("services.outcome.cancelled"), tone: "neutral", needsRefresh: false };
   }
 }
 
-function flag(
-  value: boolean | undefined,
-  yes: string,
-  no: string,
-): string {
-  if (value === undefined) return "未知";
-  return value ? yes : no;
-}
-
 /** The state as read back; a part that could not be read says "未知". */
-export function observedLines(observed: LaunchdObservedState): string[] {
+export function observedLines(
+  observed: LaunchdObservedState,
+  t: TranslateFunction,
+): string[] {
+  const unknown = t("services.observed.unknown");
+  const loaded =
+    observed.loaded === undefined
+      ? unknown
+      : observed.loaded
+        ? t("services.observed.loaded")
+        : t("services.observed.notLoaded");
   const running =
     observed.running === true && observed.pid !== undefined
-      ? `有运行中的进程（PID ${observed.pid}）`
-      : flag(observed.running, "有运行中的进程", "没有运行中的进程");
+      ? t("services.observed.runningPid", { pid: observed.pid })
+      : observed.running === undefined
+        ? unknown
+        : observed.running
+          ? t("services.observed.running")
+          : t("services.observed.notRunning");
+  const loginEnabled =
+    observed.disabled === undefined
+      ? unknown
+      : !observed.disabled
+        ? t("services.observed.enabled")
+        : t("services.observed.disabled");
   return [
-    `加载：${flag(observed.loaded, "已加载", "未加载")}`,
-    `进程：${running}`,
-    `登录自动启动：${flag(observed.disabled === undefined ? undefined : !observed.disabled, "已启用", "已禁用")}`,
+    t("services.observed.loadedLine", { value: loaded }),
+    t("services.observed.processLine", { value: running }),
+    t("services.observed.loginLine", { value: loginEnabled }),
   ];
 }
 
 export function stepStatusText(
   status: LaunchdActionExecution["steps"][number]["status"],
+  t: TranslateFunction,
 ): string {
   switch (status) {
     case "SUCCEEDED":
-      return "已执行";
+      return t("services.step.succeeded");
     case "FAILED":
-      return "失败";
+      return t("services.step.failed");
     case "TIMED_OUT":
-      return "超时";
+      return t("services.step.timedOut");
     case "NOT_RUN":
-      return "未执行";
+      return t("services.step.notRun");
   }
 }
 

@@ -1,19 +1,28 @@
 import { describe, expect, it } from "vitest";
-import type { LogSnapshot } from "../../ipc/services";
+import { translate, type TranslateFunction } from "../../i18n";
+import type { LogReset, LogSnapshot } from "../../ipc/services";
 import {
   EMPTY_LOG_TAIL,
   LOG_MAX_CHARS,
   LOG_MAX_LINES,
   LOG_MIN_POLL_INTERVAL_MS,
   LOG_POLL_INTERVAL_MS,
-  advanceTail,
+  advanceTail as advanceTailText,
   boundLogLines,
   clampPollInterval,
   displayLines,
-  resetNotice,
+  resetNotice as resetNoticeText,
   splitLogChunk,
-  tailFromSnapshot,
+  tailFromSnapshot as tailFromSnapshotText,
+  type LogTail,
 } from "./logTailModel";
+
+const zh: TranslateFunction = (key, params) => translate("zh-CN", key, params);
+const en: TranslateFunction = (key, params) => translate("en", key, params);
+const advanceTail = (tail: LogTail, snapshot: LogSnapshot) =>
+  advanceTailText(tail, snapshot, zh);
+const tailFromSnapshot = (snapshot: LogSnapshot) => tailFromSnapshotText(snapshot, zh);
+const resetNotice = (reset: LogReset) => resetNoticeText(reset, zh);
 
 const IDENTITY = { device: 16777230, inode: 4242 };
 
@@ -217,5 +226,17 @@ describe("displayLines", () => {
     expect(displayLines({ ...EMPTY_LOG_TAIL, lines: ["a"], partial: "b" })).toEqual(
       ["a", "b"],
     );
+  });
+});
+
+describe("english notices", () => {
+  it("words each notice in English without Chinese", () => {
+    const notices = [
+      resetNoticeText("REPLACED", en),
+      resetNoticeText("TRUNCATED", en),
+      ...tailFromSnapshotText(content("x\n", { skippedBytes: 12, headTrimmed: true, lossy: true }), en).notices,
+    ];
+    for (const notice of notices) expect(notice, notice).not.toMatch(/[㐀-鿿豈-﫿]/);
+    expect(resetNoticeText("REPLACED", en)).toContain("rotated");
   });
 });

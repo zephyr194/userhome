@@ -3,11 +3,11 @@ import { AsyncState } from "../../components/AsyncState";
 import { Button, CheckboxField } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
-import type { MessageKey } from "../../i18n";
 import { useT } from "../../i18n/useLocale";
 import type { LaunchdService } from "../../ipc/services";
 import { moveIndex, scopeLabel, statusPresentation } from "./launchdModel";
 import {
+  INJECTOR_TITLE_KEYS,
   displayNameOf,
   groupServices,
   programFileName,
@@ -16,15 +16,6 @@ import {
   triggerOf,
   type Injector,
 } from "./serviceProfile";
-
-const GROUP_TITLE_KEYS: Record<Injector, MessageKey> = {
-  USERHOME: "services.group.userhome",
-  HOMEBREW: "services.group.homebrew",
-  APP: "services.group.app",
-  USER: "services.group.user",
-  THIRD_PARTY: "services.group.thirdParty",
-  SYSTEM: "services.group.system",
-};
 
 export interface ServiceGroupsProps {
   /** Every discovered job; used for the hidden-system count. */
@@ -109,7 +100,7 @@ export function ServiceGroups({
       {visible.length === 0 ? (
         <div className="px-ui-12">
           <AsyncState kind="empty">
-            没有符合筛选条件的任务。
+            {t("services.list.emptyFiltered")}
             {systemCount > 0 && !showSystem ? (
               <span className="block">
                 {t("services.emptyHiddenSystem", { count: systemCount })}
@@ -121,7 +112,7 @@ export function ServiceGroups({
         <div ref={listRef} className="slide-list services-groups__body">
           {groups.map((group) => {
             const open = !collapsed.has(group.injector);
-            const title = t(GROUP_TITLE_KEYS[group.injector]);
+            const title = t(INJECTOR_TITLE_KEYS[group.injector]);
             return (
               <details
                 className="services-group"
@@ -138,7 +129,10 @@ export function ServiceGroups({
                 {open ? (
                   <ul
                     className="services-group__list"
-                    aria-label={`${title}，${group.services.length} 项`}
+                    aria-label={t("services.group.ariaLabel", {
+                      title,
+                      count: group.services.length,
+                    })}
                   >
                     {group.services.map((service) => {
                       const index = indexById.get(service.id) ?? -1;
@@ -187,7 +181,7 @@ function ServiceRow({
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
 }) {
   const t = useT();
-  const status = statusPresentation(service);
+  const status = statusPresentation(service, t);
   const purpose = purposeOf(service, t);
   const program = programFileName(service);
   const name = displayNameOf(service);
@@ -201,7 +195,12 @@ function ServiceRow({
           "slide-item services-inventory-row",
           isSelected && "services-inventory-row--selected",
         )}
-        aria-label={`${service.label}，${scopeLabel(service.scope)}，${status.label}，${trigger.badge}`}
+        aria-label={t("services.row.ariaLabel", {
+          label: service.label,
+          scope: scopeLabel(service.scope, t),
+          status: status.label,
+          trigger: trigger.badge,
+        })}
         aria-current={isSelected ? "true" : undefined}
         tabIndex={isTabStop ? 0 : -1}
         onClick={onSelect}

@@ -26,6 +26,7 @@ import {
   sourceReport,
 } from "./launchdFixtures";
 import { LaunchdServiceDetails } from "./LaunchdServiceDetails";
+import { ServiceSummaryPanel } from "./ServiceSummaryPanel";
 import {
   EMPTY_FILTER,
   type DiscoveryState,
@@ -608,10 +609,13 @@ describe("ownership in the details", () => {
     const markup = details(createdService());
     expect(markup).toContain("UserHome 自建");
     expect(markup).toContain("可修改");
-    expect(markup).toContain("先预览再确认");
+    const summary = renderToStaticMarkup(
+      <ServiceSummaryPanel service={createdService()} />,
+    );
+    expect(summary).toContain("先预览再确认");
     // A loaded, running job: only the actions that make sense, never delete,
-    // take over or create.
-    expect(buttonLabels(markup)).toEqual([
+    // take over or create. Copy-path buttons are not lifecycle actions.
+    expect(buttonLabels(summary).filter((label) => label !== "复制路径")).toEqual([
       "重启",
       "停止",
       "卸载",
@@ -619,7 +623,7 @@ describe("ownership in the details", () => {
       "启用自启",
     ]);
     for (const word of ["删除", "接管", "创建", "加载", "启动"]) {
-      expect(markup).not.toContain(`>${word}<`);
+      expect(summary).not.toContain(`>${word}<`);
     }
   });
 
@@ -637,7 +641,8 @@ describe("ownership in the details", () => {
       const markup = view({ state, selectedId: service.id });
       const buttons = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
         .filter((match) => !match[1].includes("services-inventory-row"))
-        .map((match) => match[2].replace(/<[^>]+>/g, ""));
+        .map((match) => match[2].replace(/<[^>]+>/g, ""))
+        .filter((label) => label !== "复制路径");
       expect(buttons, service.label).toEqual([
         "刷新",
         "全部来源",
@@ -659,7 +664,8 @@ describe("ownership in the details", () => {
       ),
     ]
       .filter((match) => !match[1].includes("services-inventory-row"))
-      .map((match) => match[2].replace(/<[^>]+>/g, ""));
+      .map((match) => match[2].replace(/<[^>]+>/g, ""))
+      .filter((label) => label !== "复制路径");
     expect(buttons).toEqual([
       "刷新",
       "全部来源",

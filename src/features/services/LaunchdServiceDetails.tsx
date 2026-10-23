@@ -1,19 +1,19 @@
 import type { ReactNode } from "react";
 import { Panel, StatusBadge } from "../../components/ui";
+import type { MessageKey, TranslateFunction } from "../../i18n";
+import { useT } from "../../i18n/useLocale";
 import type {
   LaunchdConfigFile,
   LaunchdService,
   LaunchdSourceReport,
 } from "../../ipc/services";
-import { LaunchdActionPanel } from "./LaunchdActionPanel";
-import { isActionable } from "./launchdActionModel";
+import { isHomebrewLabel } from "./launchdModel";
 import {
   correlationText,
   domainLabel,
   evidenceFor,
   exitText,
   fileKindText,
-  isHomebrewLabel,
   issueText,
   keepAliveText,
   linkStateText,
@@ -30,10 +30,10 @@ import {
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
 
-const LABEL_SOURCE_TEXTS: Record<LaunchdService["labelSource"], string> = {
-  LAUNCHCTL: "launchctl（已加载任务）",
-  PLIST: "配置文件中的 Label",
-  FILE_NAME: "文件名（配置文件没有可用的 Label）",
+const LABEL_SOURCE_KEYS: Record<LaunchdService["labelSource"], MessageKey> = {
+  LAUNCHCTL: "services.labelSource.launchctl",
+  PLIST: "services.labelSource.plist",
+  FILE_NAME: "services.labelSource.fileName",
 };
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
@@ -64,12 +64,13 @@ function Mono({ children }: { children: ReactNode }) {
   return <span className={`font-mono text-xs ${WRAP}`}>{children}</span>;
 }
 
-function yesNo(value: boolean | undefined): string {
-  if (value === undefined) return "未设置";
-  return value ? "是" : "否";
+function yesNo(value: boolean | undefined, t: TranslateFunction): string {
+  if (value === undefined) return t("services.details.notSet");
+  return value ? t("services.details.yes") : t("services.details.no");
 }
 
 function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
+  const t = useT();
   const plist = file.details;
   const [first, ...rest] = plist?.programArguments ?? [];
   return (
@@ -78,39 +79,41 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
         <Mono>{file.path}</Mono>
       </p>
       <dl className="mt-ui-8 grid min-w-0 gap-ui-8 text-xs">
-        <Row label="所在目录">{sourceLabel(file.directory)}</Row>
-        <Row label="按目录归类">
-          {scopeLabel(file.scope)}
-          {file.isApplePath ? "（Apple 系统路径）" : ""}
+        <Row label={t("services.details.directory")}>{sourceLabel(file.directory, t)}</Row>
+        <Row label={t("services.details.scopeByDirectory")}>
+          {scopeLabel(file.scope, t)}
+          {file.isApplePath ? t("services.details.applePathSuffix") : ""}
         </Row>
-        <Row label="文件类型">
-          {fileKindText(file.kind)}
-          {file.ownerUid === undefined ? "" : `，所有者 UID ${file.ownerUid}`}
+        <Row label={t("services.details.fileType")}>
+          {fileKindText(file.kind, t)}
+          {file.ownerUid === undefined
+            ? ""
+            : t("services.details.ownerUid", { uid: file.ownerUid })}
         </Row>
         {file.linkTarget ? (
-          <Row label="链接目标">
-            {linkStateText(file.linkTarget.state)}
+          <Row label={t("services.details.linkTarget")}>
+            {linkStateText(file.linkTarget.state, t)}
             {file.linkTarget.display ? (
               <>
-                {"："}
+                {t("services.details.linkTargetSeparator")}
                 <Mono>{file.linkTarget.display}</Mono>
               </>
             ) : null}
           </Row>
         ) : null}
-        <Row label="内容读取">{parseStatusText(file.parseStatus)}</Row>
+        <Row label={t("services.details.contentRead")}>{parseStatusText(file.parseStatus, t)}</Row>
         {plist ? (
           <>
-            <Row label="可执行文件">
+            <Row label={t("services.details.executable")}>
               {plist.program ?? first ? (
                 <Mono>{plist.program ?? first}</Mono>
               ) : (
-                "未设置"
+                t("services.details.notSet")
               )}
             </Row>
-            <Row label="启动参数">
+            <Row label={t("services.details.arguments")}>
               {plist.programArguments.length === 0 ? (
-                "未设置"
+                t("services.details.notSet")
               ) : (
                 <ol className="grid min-w-0 gap-ui-4">
                   {(plist.program === undefined ? rest : plist.programArguments).map(
@@ -123,13 +126,13 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
                 </ol>
               )}
               <span className="mt-ui-4 block text-xs font-normal text-muted-foreground">
-                含密钥特征的参数值已由后端遮盖，此处不会还原。
-                {plist.argumentsTruncated ? "参数过多，已截断显示。" : ""}
+                {t("services.details.maskedArguments")}
+                {plist.argumentsTruncated ? t("services.details.argumentsTruncated") : ""}
               </span>
             </Row>
-            <Row label="环境变量">
+            <Row label={t("services.details.environment")}>
               {plist.environmentKeys.length === 0 ? (
-                "无"
+                t("services.details.none")
               ) : (
                 <span className="flex min-w-0 flex-wrap gap-ui-8">
                   {plist.environmentKeys.map((key) => (
@@ -140,40 +143,41 @@ function ConfigFileSection({ file }: { file: LaunchdConfigFile }) {
                 </span>
               )}
               <span className="mt-ui-4 block text-xs font-normal text-muted-foreground">
-                仅显示变量名，值不会读取或显示。
+                {t("services.details.environmentNamesOnly")}
               </span>
             </Row>
-            <Row label="RunAtLoad">{yesNo(plist.runAtLoad)}</Row>
+            <Row label="RunAtLoad">{yesNo(plist.runAtLoad, t)}</Row>
             <Row label="KeepAlive">
               {plist.keepAlive ? (
                 <>
-                  {keepAliveText(plist.keepAlive.mode)}
+                  {keepAliveText(plist.keepAlive.mode, t)}
                   {plist.keepAlive.conditions.length > 0 ? (
                     <span className="mt-ui-4 block font-mono text-xs font-normal">
-                      条件：{plist.keepAlive.conditions.join("、")}
+                      {t("services.details.conditions")}
+                      {plist.keepAlive.conditions.join(t("services.details.listJoiner"))}
                     </span>
                   ) : null}
                 </>
               ) : (
-                "未设置"
+                t("services.details.notSet")
               )}
             </Row>
-            <Row label="标准输出">
+            <Row label={t("services.details.stdout")}>
               {plist.standardOutPath ? (
                 <Mono>{plist.standardOutPath}</Mono>
               ) : (
-                "未设置"
+                t("services.details.notSet")
               )}
             </Row>
-            <Row label="标准错误">
+            <Row label={t("services.details.stderr")}>
               {plist.standardErrorPath ? (
                 <Mono>{plist.standardErrorPath}</Mono>
               ) : (
-                "未设置"
+                t("services.details.notSet")
               )}
             </Row>
-            <Row label="Disabled">{yesNo(plist.disabled)}</Row>
-            <Row label="UserName">{plist.userName ?? "未设置"}</Row>
+            <Row label="Disabled">{yesNo(plist.disabled, t)}</Row>
+            <Row label="UserName">{plist.userName ?? t("services.details.notSet")}</Row>
           </>
         ) : null}
       </dl>
@@ -186,8 +190,9 @@ function SourcesSection({
 }: {
   sources: readonly LaunchdSourceReport[];
 }) {
+  const t = useT();
   return (
-    <ul className="grid min-w-0 gap-ui-8" aria-label="发现来源">
+    <ul className="grid min-w-0 gap-ui-8" aria-label={t("services.details.sourcesList")}>
       {sources.map((report) => {
         const failed =
           report.status !== "COMPLETE" || report.failedFiles > 0;
@@ -197,22 +202,22 @@ function SourcesSection({
             key={report.source}
           >
             <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
-              <Mono>{sourceLabel(report.source)}</Mono>
+              <Mono>{sourceLabel(report.source, t)}</Mono>
               <StatusBadge tone={failed ? "warning" : "success"}>
-                {sourceStatusLabel(report.status)}
+                {sourceStatusLabel(report.status, t)}
               </StatusBadge>
               <span className="text-muted-foreground">
-                {report.items} 项
+                {t("services.details.itemCount", { count: report.items })}
               </span>
             </span>
             {report.reason ? (
               <span className={`mt-ui-4 block text-muted-foreground ${WRAP}`}>
-                {sourceReasonText(report.reason)}
+                {sourceReasonText(report.reason, t)}
               </span>
             ) : null}
             {report.failedFiles > 0 ? (
               <span className="mt-ui-4 block text-warning">
-                {report.failedFiles} 个文件未能读取。
+                {t("services.problem.failedFiles", { count: report.failedFiles })}
               </span>
             ) : null}
           </li>
@@ -224,19 +229,17 @@ function SourcesSection({
 
 export function LaunchdServiceDetails({
   evidence,
-  onChanged,
   service,
   sources,
 }: {
   evidence: EvidenceState;
-  /** Called after an action, so the list is read again. */
-  onChanged?: () => void;
   service: LaunchdService;
   sources: readonly LaunchdSourceReport[];
 }) {
-  const status = statusPresentation(service);
-  const ownership = ownershipSummary(service);
-  const problems = sourceProblems(sources);
+  const t = useT();
+  const status = statusPresentation(service, t);
+  const ownership = ownershipSummary(service, t);
+  const problems = sourceProblems(sources, t);
   const brew =
     evidence.status === "ready"
       ? evidenceFor(service, evidence.summaries)
@@ -247,7 +250,7 @@ export function LaunchdServiceDetails({
       <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12 border-b border-border px-ui-16 py-ui-12">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-            任务详情
+            {t("services.details.eyebrow")}
           </p>
           <h3
             className={`mt-ui-4 text-lg font-semibold ${WRAP}`}
@@ -260,7 +263,7 @@ export function LaunchdServiceDetails({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-ui-8">
-          <StatusBadge>{scopeLabel(service.scope)}</StatusBadge>
+          <StatusBadge>{scopeLabel(service.scope, t)}</StatusBadge>
           <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
           <StatusBadge>{ownership.label}</StatusBadge>
           <StatusBadge tone={ownership.modifiable ? "success" : "warning"}>
@@ -269,37 +272,40 @@ export function LaunchdServiceDetails({
         </div>
       </header>
 
-      <Section title="加载与运行">
+      <Section title={t("services.details.loadAndRun")}>
         <dl className="grid min-w-0 gap-px overflow-hidden rounded-control bg-border sm:grid-cols-2">
-          <Row label="状态">{status.label}</Row>
+          <Row label={t("services.details.state")}>{status.label}</Row>
           <Row label="PID">
-            {service.pid === undefined ? "无" : String(service.pid)}
+            {service.pid === undefined ? t("services.details.none") : String(service.pid)}
           </Row>
-          <Row label="上次退出">{exitText(service.lastExit)}</Row>
-          <Row label="域">
-            {domainLabel(service.domain)}（<Mono>{service.domainTarget}</Mono>）
+          <Row label={t("services.details.lastExit")}>{exitText(service.lastExit, t)}</Row>
+          <Row label={t("services.details.domain")}>
+            {domainLabel(service.domain, t)}
+            <span className="mt-ui-4 block">
+              <Mono>{service.domainTarget}</Mono>
+            </span>
           </Row>
         </dl>
         <p className="text-xs leading-relaxed text-muted-foreground" role="status">
           {status.detail}
           {service.lastExit && service.lastExit.value !== 0
-            ? "非零退出码只是 launchd 记录的上次退出状态，不是错误结论。"
+            ? t("services.details.nonZeroExitNote")
             : ""}
         </p>
       </Section>
 
-      <Section title="归属与可修改性">
+      <Section title={t("services.details.ownershipSection")}>
         <dl className="grid min-w-0 gap-px overflow-hidden rounded-control bg-border sm:grid-cols-2">
-          <Row label="归属">{ownership.label}</Row>
-          <Row label="可修改性">{ownership.badge}</Row>
+          <Row label={t("services.details.ownership")}>{ownership.label}</Row>
+          <Row label={t("services.details.modifiability")}>{ownership.badge}</Row>
         </dl>
         <p className="text-xs leading-relaxed text-muted-foreground">
           {ownership.description}
         </p>
         {ownership.reasons.length > 0 ? (
           <div className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs">
-            <p className="font-semibold">只读原因</p>
-            <ul className="mt-ui-4 grid gap-ui-4" aria-label="只读原因">
+            <p className="font-semibold">{t("services.details.readOnlyReasons")}</p>
+            <ul className="mt-ui-4 grid gap-ui-4" aria-label={t("services.details.readOnlyReasons")}>
               {ownership.reasons.map((reason) => (
                 <li className={WRAP} key={reason}>
                   {reason}
@@ -309,8 +315,8 @@ export function LaunchdServiceDetails({
           </div>
         ) : null}
         <div className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs">
-          <p className="font-semibold">判定依据</p>
-          <ul className="mt-ui-4 grid gap-ui-4" aria-label="判定依据">
+          <p className="font-semibold">{t("services.details.evidence")}</p>
+          <ul className="mt-ui-4 grid gap-ui-4" aria-label={t("services.details.evidence")}>
             {ownership.evidence.map((item) => (
               <li className={WRAP} key={item}>
                 {item}
@@ -323,66 +329,62 @@ export function LaunchdServiceDetails({
         </p>
       </Section>
 
-      {isActionable(service) ? (
-        <LaunchdActionPanel
-          key={service.id}
-          service={service}
-          onChanged={onChanged}
-        />
-      ) : null}
-
-      <Section title="来源与归属依据">
+      <Section title={t("services.details.sourcesSection")}>
         <dl className="grid min-w-0 gap-px overflow-hidden rounded-control bg-border sm:grid-cols-2">
-          <Row label="按目录归类">{scopeLabel(service.scope)}</Row>
-          <Row label="label 来源">{LABEL_SOURCE_TEXTS[service.labelSource]}</Row>
-          <Row label="配置文件状态">{correlationText(service)}</Row>
+          <Row label={t("services.details.scopeByDirectory")}>{scopeLabel(service.scope, t)}</Row>
+          <Row label={t("services.details.labelSource")}>{t(LABEL_SOURCE_KEYS[service.labelSource])}</Row>
+          <Row label={t("services.details.configState")}>{correlationText(service, t)}</Row>
         </dl>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          仅按目录归类，不是归属判定；归属与可修改性见上方「归属与可修改性」。动作入口只出现在后端判定归属于 UserHome 的任务上，且不提供删除配置文件、接管或批量操作。
+          {t("services.details.sourceNote")}
         </p>
         {service.issues.length > 0 ? (
           <ul
             className="grid gap-ui-4 rounded-control border border-warning-border bg-warning-soft px-ui-12 py-ui-8 text-xs text-warning"
-            aria-label="发现的问题"
+            aria-label={t("services.details.issues")}
           >
             {service.issues.map((issue) => (
-              <li key={issue}>{issueText(issue)}</li>
+              <li key={issue}>{issueText(issue, t)}</li>
             ))}
           </ul>
         ) : null}
         {isHomebrewLabel(service.label) ? (
           <div className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs">
-            <p className="font-semibold">Homebrew 来源证据</p>
+            <p className="font-semibold">{t("services.details.homebrewEvidence")}</p>
             {evidence.status === "loading" ? (
               <p className="mt-ui-4 text-muted-foreground">
-                正在读取 Homebrew 服务信息…
+                {t("services.details.homebrewLoading")}
               </p>
             ) : evidence.status === "unavailable" ? (
               <p className="mt-ui-4 text-warning" role="status">
-                Homebrew 证据不可用：无法读取 brew services，不影响上方的 launchd 结果。
+                {t("services.details.homebrewUnavailable")}
               </p>
             ) : brew ? (
               <p className={`mt-ui-4 text-muted-foreground ${WRAP}`}>
-                brew services 也列出了「{brew.displayName}」（状态 {brew.status}
-                {brew.user ? `，用户 ${brew.user}` : ""}
-                ）。仅作证据，不作为发现来源，也不据此判定归属。
+                {t("services.details.homebrewFound", {
+                  name: brew.displayName,
+                  status: brew.status,
+                  user: brew.user
+                    ? t("services.details.homebrewUser", { user: brew.user })
+                    : "",
+                })}
               </p>
             ) : (
               <p className="mt-ui-4 text-muted-foreground">
-                brew services 中没有对应项（仅作证据，不影响 launchd 结果）。
+                {t("services.details.homebrewMissing")}
               </p>
             )}
           </div>
         ) : null}
       </Section>
 
-      <Section title={`配置文件（${service.configFiles.length}）`}>
+      <Section title={t("services.details.configSection", { count: service.configFiles.length })}>
         {service.configFiles.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            没有找到配置文件。
+            {t("services.details.noConfigFile")}
             {service.configPresence === "UNKNOWN"
-              ? "扫描位置未能完整读取，无法确认是否存在。"
-              : "已扫描的位置中没有同 label 的 plist；其他位置（例如应用包内）也可能定义该任务。"}
+              ? t("services.details.noConfigFileUnknown")
+              : t("services.details.noConfigFileKnown")}
           </p>
         ) : (
           service.configFiles.map((file) => (
@@ -391,13 +393,13 @@ export function LaunchdServiceDetails({
         )}
       </Section>
 
-      <Section title="发现来源">
+      <Section title={t("services.details.discoverySection")}>
         {problems.length > 0 ? (
           <p
             className="rounded-control border border-warning-border bg-warning-soft px-ui-12 py-ui-8 text-xs leading-relaxed text-warning"
             role="status"
           >
-            部分来源未能完整读取，加载与运行状态可能不完整。
+            {t("services.details.partialSources")}
           </p>
         ) : null}
         <SourcesSection sources={sources} />

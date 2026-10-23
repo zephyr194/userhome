@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
 import type { ReactNode } from "react";
 import { Button, Modal } from "../../components/ui";
+import type { TranslateFunction } from "../../i18n";
+import { formatDateTime } from "../../i18n/format";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import {
   executeAdoptLaunchdService,
@@ -38,38 +41,46 @@ function Mono({ children }: { children: ReactNode }) {
 }
 
 function PreviewBody({ preview }: { preview: AdoptPreview }) {
+  const t = useT();
+  const locale = useLocale();
   return (
     <div className="grid gap-ui-16">
-      <Section title="将接管的任务">
+      <Section title={t("services.dialog.adopt.previewSection")}>
         <p className="text-sm">
-          label：<Mono>{preview.label}</Mono>
+          {t("services.dialog.common.labelLine")}
+          <Mono>{preview.label}</Mono>
         </p>
         <p className="text-xs text-muted-foreground">
-          作用域：{domainLabel(preview.domain)}
+          {t("services.dialog.adopt.scopeLine")}
+          {domainLabel(preview.domain, t)}
         </p>
-        <p className="text-xs text-muted-foreground">来源：{preview.source}</p>
         <p className="text-xs text-muted-foreground">
-          plist：<Mono>{preview.filePath}</Mono>
+          {t("services.dialog.adopt.sourceLine")}
+          {preview.source}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {t("services.dialog.adopt.plistLine")}
+          <Mono>{preview.filePath}</Mono>
         </p>
       </Section>
 
-      <Section title="备份">
+      <Section title={t("services.dialog.common.backup")}>
         <p className="text-sm text-muted-foreground">{preview.backup}</p>
       </Section>
 
-      <Section title="接管的影响">
+      <Section title={t("services.dialog.adopt.impactSection")}>
         <p className="text-sm font-medium">{preview.effectNote}</p>
-        <p className="text-sm">拟变更字段：无。</p>
+        <p className="text-sm">{t("services.dialog.adopt.noFieldChanges")}</p>
       </Section>
 
-      <Section title="外部管理器">
+      <Section title={t("services.dialog.adopt.externalManagerSection")}>
         <p className="text-sm text-warning">{preview.externalManagerNote}</p>
       </Section>
 
       <p className="break-words text-xs text-muted-foreground">
-        预览到期：
+        {t("services.dialog.common.previewExpires")}
         <time dateTime={preview.expiresAt}>
-          {new Date(preview.expiresAt).toLocaleString("zh-CN")}
+          {formatDateTime(preview.expiresAt, locale)}
         </time>
       </p>
     </div>
@@ -97,13 +108,13 @@ function Notice({
   );
 }
 
-function body(flow: AdoptFlowState): ReactNode {
+function body(flow: AdoptFlowState, t: TranslateFunction): ReactNode {
   switch (flow.phase) {
     case "idle":
     case "previewing":
       return (
         <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-          正在生成接管预览…
+          {t("services.dialog.adopt.previewing")}
         </p>
       );
     case "previewed":
@@ -113,16 +124,16 @@ function body(flow: AdoptFlowState): ReactNode {
         <>
           <PreviewBody preview={flow.preview} />
           <p className="text-sm text-warning" role="status" aria-live="polite">
-            正在备份原始 plist 并写入接管记录，完成后显示结果。
+            {t("services.dialog.adopt.executingNote")}
           </p>
         </>
       );
     case "done": {
-      const notice = describeAdoptSuccess(flow.execution);
+      const notice = describeAdoptSuccess(flow.execution, t);
       return <Notice tone="success" title={notice.title} detail={notice.detail} />;
     }
     case "failed": {
-      const notice = describeAdoptFailure(flow.error);
+      const notice = describeAdoptFailure(flow.error, t);
       return <Notice tone="danger" title={notice.title} detail={notice.detail} />;
     }
   }
@@ -140,6 +151,7 @@ export function AdoptServiceDialogView({
   onConfirm: () => void;
   onRetry: () => void;
 }) {
+  const t = useT();
   const busy = flow.phase === "previewing" || flow.phase === "executing";
   let footer: ReactNode;
   switch (flow.phase) {
@@ -148,7 +160,7 @@ export function AdoptServiceDialogView({
     case "executing":
       footer = (
         <Button data-modal-cancel disabled={busy} onClick={onClose}>
-          取消
+          {t("services.dialog.common.cancel")}
         </Button>
       );
       break;
@@ -156,10 +168,10 @@ export function AdoptServiceDialogView({
       footer = (
         <>
           <Button data-modal-cancel onClick={onClose}>
-            取消
+            {t("services.dialog.common.cancel")}
           </Button>
           <Button onClick={onConfirm} variant="primary">
-            确认接管
+            {t("services.dialog.adopt.confirm")}
           </Button>
         </>
       );
@@ -167,7 +179,7 @@ export function AdoptServiceDialogView({
     case "done":
       footer = (
         <Button data-modal-cancel onClick={onClose} variant="primary">
-          完成
+          {t("services.dialog.common.done")}
         </Button>
       );
       break;
@@ -175,10 +187,10 @@ export function AdoptServiceDialogView({
       footer = (
         <>
           <Button data-modal-cancel onClick={onClose}>
-            关闭
+            {t("services.dialog.common.close")}
           </Button>
           <Button onClick={onRetry} variant="primary">
-            重新预览
+            {t("services.dialog.adopt.repreview")}
           </Button>
         </>
       );
@@ -197,13 +209,13 @@ export function AdoptServiceDialogView({
     >
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-widest text-primary">
-          接管现有任务
+          {t("services.dialog.adopt.eyebrow")}
         </p>
         <h3 className="break-words [overflow-wrap:anywhere]" id={TITLE_ID}>
-          接管当前用户的 launchd 任务
+          {t("services.dialog.adopt.title")}
         </h3>
       </div>
-      {body(flow)}
+      {body(flow, t)}
     </Modal>
   );
 }

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Button, StatusBadge } from "../../components/ui";
+import { localizedErrorMessage } from "../../i18n/errors";
+import { useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import { cancelOperation } from "../../ipc/operations";
 import {
@@ -11,11 +13,11 @@ import {
   type LaunchdService,
 } from "../../ipc/services";
 import {
-  ACTION_HINTS,
-  INITIAL_ACTION_PANEL_STATE,
+  actionHint,
   actionLabel,
   actionPanelReducer,
   availableActions,
+  INITIAL_ACTION_PANEL_STATE,
   noActionsReason,
   observedLines,
   presentOutcome,
@@ -48,25 +50,30 @@ function PreviewCard({
   onConfirm: () => void;
   preview: LaunchdActionPreview;
 }) {
+  const t = useT();
+  const action = actionLabel(preview.action, t);
   return (
     <div
       className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs"
-      aria-label={`${actionLabel(preview.action)}预览`}
+      aria-label={t("services.action.previewLabel", { action })}
     >
       <p className="text-sm font-semibold">
-        预览：{actionLabel(preview.action)}「{preview.label}」
+        {t("services.action.previewTitle", { action, label: preview.label })}
       </p>
-      <p className="mt-ui-8 font-semibold">真实含义</p>
-      <TextList items={preview.meaning} label="真实含义" />
-      <p className="mt-ui-8 font-semibold">持久化影响</p>
-      <TextList items={preview.persistence} label="持久化影响" />
-      <p className="mt-ui-8 font-semibold">当前状态</p>
-      <TextList items={observedLines(preview.current)} label="当前状态" />
-      <p className="mt-ui-8 font-semibold">将执行的命令</p>
+      <p className="mt-ui-8 font-semibold">{t("services.action.meaning")}</p>
+      <TextList items={preview.meaning} label={t("services.action.meaning")} />
+      <p className="mt-ui-8 font-semibold">{t("services.action.persistence")}</p>
+      <TextList items={preview.persistence} label={t("services.action.persistence")} />
+      <p className="mt-ui-8 font-semibold">{t("services.action.currentState")}</p>
+      <TextList
+        items={observedLines(preview.current, t)}
+        label={t("services.action.currentState")}
+      />
+      <p className="mt-ui-8 font-semibold">{t("services.action.commands")}</p>
       {preview.commands.length === 0 ? (
-        <p className="mt-ui-4">无需执行命令。</p>
+        <p className="mt-ui-4">{t("services.action.noCommands")}</p>
       ) : (
-        <ul className="mt-ui-4 grid gap-ui-4" aria-label="将执行的命令">
+        <ul className="mt-ui-4 grid gap-ui-4" aria-label={t("services.action.commands")}>
           {preview.commands.map((command) => (
             <li className={`font-mono ${WRAP}`} key={command}>
               {command}
@@ -75,7 +82,7 @@ function PreviewCard({
         </ul>
       )}
       <p className="mt-ui-8 text-muted-foreground">
-        确认后会再次核对任务归属与当前状态，执行后读取 launchd 的真实状态来核对结果。
+        {t("services.action.verifyNote")}
       </p>
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         <Button
@@ -84,10 +91,10 @@ function PreviewCard({
           disabled={busy}
           onClick={onConfirm}
         >
-          确认{actionLabel(preview.action)}
+          {t("services.action.confirm", { action })}
         </Button>
         <Button size="sm" disabled={busy} onClick={onCancel}>
-          取消
+          {t("common.cancel")}
         </Button>
       </div>
     </div>
@@ -103,46 +110,53 @@ function ResultCard({
   onDismiss: () => void;
   onRefresh: () => void;
 }) {
-  const result = presentOutcome(execution.outcome);
+  const t = useT();
+  const result = presentOutcome(execution.outcome, t);
+  const action = actionLabel(execution.action, t);
   return (
     <div
       className="min-w-0 rounded-control bg-surface-muted px-ui-12 py-ui-8 text-xs"
       role="status"
-      aria-label={`${actionLabel(execution.action)}结果`}
+      aria-label={t("services.action.resultLabel", { action })}
     >
       <p className="flex flex-wrap items-center gap-ui-8 text-sm font-semibold">
-        {actionLabel(execution.action)}：
+        {t("services.action.resultTitle", { action })}
         <StatusBadge tone={result.tone}>{result.label}</StatusBadge>
       </p>
       <p className={`mt-ui-8 leading-relaxed ${WRAP}`}>{execution.message}</p>
       {execution.steps.length > 0 ? (
-        <ul className="mt-ui-8 grid gap-ui-4" aria-label="已执行的步骤">
+        <ul className="mt-ui-8 grid gap-ui-4" aria-label={t("services.action.steps")}>
           {execution.steps.map((step) => (
             <li className={WRAP} key={step.command}>
               <span className="font-mono">{step.command}</span>
-              {"："}
-              {stepStatusText(step.status)}
-              {step.exitCode === undefined ? "" : `（退出码 ${step.exitCode}）`}
-              {step.detail ? `，${step.detail}` : ""}
+              {t("services.step.separator")}
+              {stepStatusText(step.status, t)}
+              {step.exitCode === undefined
+                ? ""
+                : t("services.step.exitCode", { code: step.exitCode })}
+              {step.detail ? t("services.step.detail", { detail: step.detail }) : ""}
             </li>
           ))}
         </ul>
       ) : null}
-      <p className="mt-ui-8 font-semibold">回读到的状态</p>
-      <TextList items={observedLines(execution.observed)} label="回读到的状态" />
+      <p className="mt-ui-8 font-semibold">{t("services.action.readBack")}</p>
+      <TextList
+        items={observedLines(execution.observed, t)}
+        label={t("services.action.readBack")}
+      />
       {execution.cancelRequested ? (
         <p className="mt-ui-8 text-muted-foreground">
-          执行期间收到过取消请求；已开始的命令无法中途撤回。
+          {t("services.action.cancelNote")}
         </p>
       ) : null}
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {result.needsRefresh ? (
           <Button size="sm" variant="primary" onClick={onRefresh}>
-            刷新
+            {t("common.refresh")}
           </Button>
         ) : null}
         <Button size="sm" onClick={onDismiss}>
-          关闭
+          {t("common.close")}
         </Button>
       </div>
     </div>
@@ -163,6 +177,7 @@ export function LaunchdActionPanel({
   onChanged?: () => void;
   service: LaunchdService;
 }) {
+  const t = useT();
   const [state, dispatch] = useReducer(
     actionPanelReducer,
     INITIAL_ACTION_PANEL_STATE,
@@ -219,24 +234,24 @@ export function LaunchdActionPanel({
   }, []);
 
   const actions = availableActions(service);
-  const reason = noActionsReason(service);
+  const reason = noActionsReason(service, t);
   const busy = state.phase === "previewing" || state.phase === "executing";
 
   return (
     <section
       className="border-b border-border px-ui-16 py-ui-12"
-      aria-label="任务动作"
+      aria-label={t("services.action.section")}
     >
-      <h4 className="text-sm font-semibold">任务动作</h4>
+      <h4 className="text-sm font-semibold">{t("services.action.section")}</h4>
       <p className="mt-ui-4 text-xs leading-relaxed text-muted-foreground">
-        仅限加载、启动、停止、重启、禁用自启、启用自启与卸载；每个动作先预览再确认，不会删除配置文件。
+        {t("services.action.intro")}
       </p>
       {reason ? (
         <p className="mt-ui-8 text-xs text-warning" role="status">
           {reason}
         </p>
       ) : (
-        <ul className="mt-ui-8 grid gap-ui-8" aria-label="可用动作">
+        <ul className="mt-ui-8 grid gap-ui-8" aria-label={t("services.action.available")}>
           {actions.map((action) => (
             <li
               className="flex min-w-0 flex-wrap items-center gap-ui-8"
@@ -247,10 +262,10 @@ export function LaunchdActionPanel({
                 disabled={busy || state.phase === "previewed"}
                 onClick={() => preview(action)}
               >
-                {actionLabel(action)}
+                {actionLabel(action, t)}
               </Button>
               <span className="text-xs text-muted-foreground">
-                {ACTION_HINTS[action]}
+                {actionHint(action, t)}
               </span>
             </li>
           ))}
@@ -282,13 +297,14 @@ function PanelState({
   reset: () => void;
   state: ActionPanelState;
 }) {
+  const t = useT();
   switch (state.phase) {
     case "idle":
       return null;
     case "previewing":
       return (
         <p className="text-xs text-muted-foreground" role="status">
-          正在读取{actionLabel(state.action)}的预览…
+          {t("services.action.previewing", { action: actionLabel(state.action, t) })}
         </p>
       );
     case "previewed":
@@ -311,31 +327,54 @@ function PanelState({
       );
     case "error":
       return (
-        <div
-          className="min-w-0 rounded-control border border-danger-border bg-danger-soft px-ui-12 py-ui-8 text-xs text-danger"
-          role="alert"
-        >
-          <p className={`font-semibold ${WRAP}`}>
-            {state.during === "preview"
-              ? `无法预览${actionLabel(state.action)}：${state.error.message}`
-              : `${actionLabel(state.action)}的结果未知：${state.error.message}`}
-          </p>
-          {state.during === "execute" ? (
-            <p className="mt-ui-4">
-              请求没有返回可信的结果，不能确认任务是否已变化；请刷新后核对真实状态。
-            </p>
-          ) : null}
-          <div className="mt-ui-8 flex flex-wrap gap-ui-8">
-            {state.during === "execute" ? (
-              <Button size="sm" variant="primary" onClick={onChanged}>
-                刷新
-              </Button>
-            ) : null}
-            <Button size="sm" onClick={reset}>
-              关闭
-            </Button>
-          </div>
-        </div>
+        <ActionError
+          action={actionLabel(state.action, t)}
+          during={state.during}
+          message={localizedErrorMessage(state.error, t)}
+          onClose={reset}
+          onRefresh={onChanged}
+        />
       );
   }
+}
+
+function ActionError({
+  action,
+  during,
+  message,
+  onClose,
+  onRefresh,
+}: {
+  action: string;
+  during: "preview" | "execute";
+  message: string;
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  const t = useT();
+  return (
+    <div
+      className="min-w-0 rounded-control border border-danger-border bg-danger-soft px-ui-12 py-ui-8 text-xs text-danger"
+      role="alert"
+    >
+      <p className={`font-semibold ${WRAP}`}>
+        {during === "preview"
+          ? t("services.action.previewFailed", { action, message })
+          : t("services.action.resultUnknown", { action, message })}
+      </p>
+      {during === "execute" ? (
+        <p className="mt-ui-4">{t("services.action.unknownNote")}</p>
+      ) : null}
+      <div className="mt-ui-8 flex flex-wrap gap-ui-8">
+        {during === "execute" ? (
+          <Button size="sm" variant="primary" onClick={onRefresh}>
+            {t("common.refresh")}
+          </Button>
+        ) : null}
+        <Button size="sm" onClick={onClose}>
+          {t("common.close")}
+        </Button>
+      </div>
+    </div>
+  );
 }

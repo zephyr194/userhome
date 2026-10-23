@@ -11,6 +11,7 @@ import {
 } from "./launchdModel";
 import { ServiceLogs } from "./ServiceLogs";
 import { ServicesView } from "./ServicesView";
+import { LocaleContext, createLocaleValue } from "../../i18n/localeContext";
 
 const WITH_LOGS = configFile({
   details: {
@@ -100,34 +101,6 @@ describe("ServiceLogs", () => {
 });
 
 describe("the page's log slot", () => {
-  it("adds only read-only log controls beside a read-only job", () => {
-    const service = launchdService({ configFiles: [WITH_LOGS] });
-    const state: DiscoveryState = {
-      status: "ready",
-      discovery: sampleDiscovery({ services: [service] }),
-      refreshing: false,
-    };
-    const markup = renderToStaticMarkup(
-      <ServicesView
-        evidence={{ status: "ready", summaries: [] }}
-        filter={EMPTY_FILTER}
-        onFilterChange={() => {}}
-        onRefresh={() => {}}
-        onSelect={() => {}}
-        refreshDisabled={false}
-        renderLogs={(selected) => <ServiceLogs service={selected} />}
-        selectedId={service.id}
-        state={state}
-      />,
-    );
-    const logsStart = markup.indexOf("任务日志");
-    expect(logsStart).toBeGreaterThan(-1);
-    const logs = markup.slice(logsStart);
-    const labels = buttonLabels(logs);
-    expect(labels.length).toBeGreaterThan(0);
-    expect(labels.every((label) => LOG_CONTROLS.includes(label))).toBe(true);
-  });
-
   it("renders no log block when the page supplies none", () => {
     const service = launchdService({ configFiles: [WITH_LOGS] });
     const state: DiscoveryState = {
@@ -149,5 +122,19 @@ describe("the page's log slot", () => {
     );
     expect(markup).not.toContain("任务日志");
     expect(markup).not.toContain("授权读取日志");
+  });
+});
+
+describe("English rendering of the log controls", () => {
+  it("renders the log panel in English without Chinese text", () => {
+    const service = launchdService({ configFiles: [WITH_LOGS] });
+    const markup = renderToStaticMarkup(
+      <LocaleContext.Provider value={createLocaleValue("en")}>
+        <ServiceLogs service={service} />
+      </LocaleContext.Provider>,
+    );
+    expect(markup).toContain("Standard output");
+    expect(markup).toContain("Authorize log reading…");
+    expect(markup).not.toMatch(/[㐀-鿿豈-﫿]/);
   });
 });

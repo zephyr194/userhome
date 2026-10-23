@@ -14,13 +14,16 @@ import {
 import {
   INITIAL_ADOPT_FLOW,
   adoptFlowReducer,
-  adoptionBlockers,
-  describeAdoptFailure,
-  describeAdoptSuccess,
-  editBlockers,
-  managementOf,
   type AdoptFlowState,
 } from "./adoptServiceModel";
+import * as adoptModel from "./adoptServiceModel";
+import { withZh } from "./testTranslators";
+
+const adoptionBlockers = withZh(adoptModel.adoptionBlockers);
+const describeAdoptFailure = withZh(adoptModel.describeAdoptFailure);
+const describeAdoptSuccess = withZh(adoptModel.describeAdoptSuccess);
+const editBlockers = withZh(adoptModel.editBlockers);
+const managementOf = withZh(adoptModel.managementOf);
 
 const LABEL = "com.vendor.backup";
 

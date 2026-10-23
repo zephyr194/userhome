@@ -44,3 +44,14 @@ export function localizeErrorMessage(
   const key = ERROR_MESSAGE_KEYS.get(error.message);
   return key ? t(key) : error.message;
 }
+
+const SERVICE_ERROR_MESSAGE_KEYS: Readonly<Record<string, MessageKey>> = {};
+
+/** Backend messages stay in their original text unless a known code has a translation. */
+export function localizedErrorMessage(
+  error: { readonly code: string; readonly message: string },
+  t: TranslateFunction,
+): string {
+  const key = SERVICE_ERROR_MESSAGE_KEYS[error.code];
+  return key === undefined ? error.message : t(key);
+}

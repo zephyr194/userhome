@@ -11,23 +11,26 @@ import {
   RUN_AT_LOAD_IMPACT,
   addArgument,
   addEnvironment,
-  buildCreateRequest,
   createDialogReducer,
-  describeCreateOutcome,
   fullLabel,
   hasErrors,
   moveArgument,
   removeArgument,
   removeEnvironment,
-  scrubSecrets,
   setFormField,
   updateArgument,
   updateEnvironmentKey,
   updateEnvironmentValue,
-  validateCreateForm,
   type CreateDialogState,
   type CreateFormState,
 } from "./createServiceModel";
+import * as createModel from "./createServiceModel";
+import { tZh, withZh } from "./testTranslators";
+
+const buildCreateRequest = withZh(createModel.buildCreateRequest);
+const describeCreateOutcome = withZh(createModel.describeCreateOutcome);
+const scrubSecrets = withZh(createModel.scrubSecrets);
+const validateCreateForm = withZh(createModel.validateCreateForm);
 
 const NAMESPACE = "com.zephyr194.userhome.agent.";
 
@@ -89,10 +92,10 @@ describe("create form editing", () => {
   });
 
   it("explains what each persistence option does before it is turned on", () => {
-    expect(RUN_AT_LOAD_IMPACT).toContain("登录");
-    expect(RUN_AT_LOAD_IMPACT).toContain("自动启动");
-    expect(KEEP_ALIVE_IMPACT).toContain("退出");
-    expect(KEEP_ALIVE_IMPACT).toContain("自动重启");
+    expect(tZh(RUN_AT_LOAD_IMPACT)).toContain("登录");
+    expect(tZh(RUN_AT_LOAD_IMPACT)).toContain("自动启动");
+    expect(tZh(KEEP_ALIVE_IMPACT)).toContain("退出");
+    expect(tZh(KEEP_ALIVE_IMPACT)).toContain("自动重启");
   });
 });
 

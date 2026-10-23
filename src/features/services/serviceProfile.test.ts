@@ -8,6 +8,7 @@ import { SERVICE_DICTIONARY } from "./serviceDictionary";
 import {
   displayNameOf,
   groupServices,
+  injectorBasisOf,
   injectorOf,
   programFileName,
   purposeOf,
@@ -501,5 +502,36 @@ describe("service dictionary", () => {
     for (const key of ["postgres", "mysql", "redis", "nginx", "caddy", "docker", "ollama", "php-fpm"]) {
       expect(keys.has(key), key).toBe(true);
     }
+  });
+});
+
+describe("injectorBasisOf", () => {
+  it("gives the reason each group is listed under", () => {
+    expect(
+      injectorBasisOf(launchdService({ label: "homebrew.mxcl.fancytool", labelSource: "PLIST" }), zh),
+    ).toBe("Homebrew 安装");
+    expect(injectorBasisOf(launchdService({ label: CREATED_LABEL, ownership: CREATED_OWNERSHIP }), zh)).toBe(
+      "UserHome 创建的任务",
+    );
+    expect(
+      injectorBasisOf(
+        launchdService({
+          label: "com.example.docker.helper",
+          configFiles: [
+            configFile({
+              details: {
+                program: "/Applications/Docker.app/Contents/MacOS/helper",
+                programArguments: [],
+                argumentsTruncated: false,
+                environmentKeys: [],
+              },
+            }),
+          ],
+        }),
+        zh,
+      ),
+    ).toBe("应用 Docker.app 的后台组件");
+    expect(injectorBasisOf(launchdService(), zh)).toBe("位于 ~/Library/LaunchAgents");
+    expect(injectorBasisOf(launchdService({ configFiles: [] }), zh)).toBe("无法从路径或 label 判断来源");
   });
 });
