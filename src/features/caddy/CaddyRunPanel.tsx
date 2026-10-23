@@ -15,18 +15,21 @@ import {
   type CaddyStatus,
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
 import { createRequestTracker } from "./caddyPreviewFlow";
 import {
-  DOMAIN_LABELS,
-  PORT_STATE_LABELS,
-  RUN_STATE_LABELS,
-  SNAPSHOT_LABELS,
-  UPSTREAM_STATE_LABELS,
+  DOMAIN_LABEL_KEYS,
+  PORT_STATE_LABEL_KEYS,
+  RUN_STATE_LABEL_KEYS,
+  SNAPSHOT_LABEL_KEYS,
+  UPSTREAM_STATE_LABEL_KEYS,
   externalServiceTargets,
   presentVerdict,
   startGate,
   type ServiceTarget,
 } from "./caddyConflictModel";
+import type { MessageKey } from "../../i18n";
 import {
   LOG_LINE_LIMIT,
   applyFailureLabel,
@@ -45,9 +48,9 @@ import {
 const STATUS_POLL_MS = 1000;
 const LOG_POLL_MS = 1000;
 
-const SOURCE_LABELS: Record<CaddyConfigSource, string> = {
-  RULES: "表单规则（最近保存的生成文本）",
-  RAW: "原文 Caddyfile（最近保存的原文）",
+const SOURCE_LABEL_KEYS: Record<CaddyConfigSource, MessageKey> = {
+  RULES: "caddy.run.source.rules",
+  RAW: "caddy.run.source.raw",
 };
 
 // The start and stop responses carry only the run facts; the poll adds the apply facts.
@@ -271,6 +274,8 @@ export function CaddyRunView({
   onOpenService,
   workdirReason,
 }: CaddyRunViewProps) {
+  const copy = useCaddyCopy();
+  const { t } = copy;
   const state = status?.state;
   const applied = status?.applied;
   const previewEnabled = state !== undefined && canPrepare(state) && !busy && workdirReason === undefined;
@@ -283,15 +288,15 @@ export function CaddyRunView({
     workdirReason === undefined;
   const confirmVisible =
     confirmingApply && state !== undefined && canApply(state, applied, applyBlocked);
-  const presentation = state === undefined ? undefined : presentRunState(state);
+  const presentation = state === undefined ? undefined : presentRunState(state, copy);
   const appliedPresentation =
-    state === "RUNNING" && applied !== undefined ? presentApplied(applied) : undefined;
+    state === "RUNNING" && applied !== undefined ? presentApplied(applied, copy) : undefined;
 
   return (
     <Panel aria-labelledby="caddy-run-heading" className="grid min-w-0 gap-ui-8 p-ui-8">
       <div className="flex flex-wrap items-center justify-between gap-ui-8">
         <h2 id="caddy-run-heading" className="text-sm font-semibold">
-          运行（自有实例）
+          {t("caddy.run.heading")}
         </h2>
         <div className="flex flex-wrap gap-ui-4">
           {presentation !== undefined ? (
@@ -307,14 +312,14 @@ export function CaddyRunView({
         </div>
       </div>
       <p role="status" aria-live="polite" className="m-0 text-body text-muted-foreground">
-        {status === undefined ? "正在读取运行状态……" : status.message}
+        {status === undefined ? t("caddy.run.reading") : status.message}
       </p>
       <p className="m-0 text-aux text-muted-foreground">
-        {`当前来源：${SOURCE_LABELS[source]}。修改已保存的配置不会影响正在运行的实例。`}
+        {t("caddy.run.currentSource", { source: t(SOURCE_LABEL_KEYS[source]) })}
       </p>
       {error !== undefined ? (
         <p role="alert" className="m-0 text-body text-danger">
-          {error.message}
+          {localizeAppErrorMessage(error, copy.locale)}
         </p>
       ) : null}
       {status?.state === "FAILED" ? <FailureBlock status={status} /> : null}
@@ -330,30 +335,28 @@ export function CaddyRunView({
       ) : null}
       {workdirReason !== undefined ? (
         <p className="m-0 text-aux text-muted-foreground">
-          {workdirReason}后才能开启或应用配置。
+          {t("caddy.run.workdirGate", { reason: workdirReason })}
         </p>
       ) : null}
       <div className="flex flex-wrap gap-ui-8">
         <Button variant="secondary" disabled={!previewEnabled} onClick={onPrepare}>
-          开启前预览
+          {t("caddy.run.preview")}
         </Button>
         {onApply !== undefined ? (
           <Button variant="primary" disabled={!applyEnabled} onClick={onApply}>
-            应用到运行实例
+            {t("caddy.run.apply")}
           </Button>
         ) : null}
         <Button variant="danger" disabled={!stopEnabled} onClick={onStop}>
-          关闭
+          {t("caddy.run.stop")}
         </Button>
       </div>
       {onApply !== undefined ? (
-        <p className="m-0 text-aux text-muted-foreground">
-          保存不会启动或重载；只有点击“应用到运行实例”并确认后，才会重载自有实例。
-        </p>
+        <p className="m-0 text-aux text-muted-foreground">{t("caddy.run.applyNote")}</p>
       ) : null}
       {applying || status?.applying === true ? (
         <p aria-live="polite" className="m-0 text-body">
-          正在应用：重载自有实例，结果以复核为准……
+          {t("caddy.run.applying")}
         </p>
       ) : null}
       {confirmVisible ? (
@@ -361,8 +364,8 @@ export function CaddyRunView({
       ) : null}
       {applyResult !== undefined ? <ApplyResultBlock report={applyResult} /> : null}
       <LogViewer
-        label="Caddy 日志"
-        emptyText="暂无日志"
+        label={t("caddy.run.logLabel")}
+        emptyText={t("common.log.empty")}
         lines={logs.lines}
         droppedCount={logs.dropped}
         maxLines={LOG_LINE_LIMIT}
@@ -382,21 +385,20 @@ function ApplyConfirm({
   onConfirm?: () => void;
   onCancel?: () => void;
 }) {
+  const { t } = useCaddyCopy();
   return (
     <section
-      aria-label="应用确认"
+      aria-label={t("caddy.run.applyConfirmLabel")}
       className="grid gap-ui-8 rounded-panel border border-warning p-ui-8"
     >
-      <p className="m-0 text-body font-semibold">确认应用到运行中的实例？</p>
-      <p className="m-0 text-body">
-        将重载自有实例（仅通过本次运行的私有管理端点）。失败时旧配置可能仍在运行，且不会自动重试。
-      </p>
+      <p className="m-0 text-body font-semibold">{t("caddy.run.applyConfirmTitle")}</p>
+      <p className="m-0 text-body">{t("caddy.run.applyConfirmBody")}</p>
       <div className="flex flex-wrap gap-ui-8">
         <Button variant="primary" disabled={busy} onClick={onConfirm}>
-          确认应用
+          {t("caddy.run.applyConfirmAction")}
         </Button>
         <Button variant="secondary" onClick={onCancel}>
-          取消
+          {t("common.cancel")}
         </Button>
       </div>
     </section>
@@ -404,13 +406,20 @@ function ApplyConfirm({
 }
 
 function ApplyResultBlock({ report }: { report: CaddyApplyReport }) {
+  const copy = useCaddyCopy();
+  const { t } = copy;
   const failed = report.outcome === "FAILED";
   const headline = failed
-    ? `应用未成功：${report.failure !== undefined ? applyFailureLabel(report.failure) : "原因未知"}`
-    : "应用成功（已复核）";
+    ? t("caddy.run.applyFailedHeadline", {
+        reason:
+          report.failure !== undefined
+            ? applyFailureLabel(report.failure, copy)
+            : t("caddy.run.reasonUnknown"),
+      })
+    : t("caddy.run.applySucceeded");
   return (
     <section
-      aria-label="应用结果"
+      aria-label={t("caddy.run.applyResultLabel")}
       role={failed ? "alert" : undefined}
       className={`grid gap-ui-4 rounded-panel border p-ui-8 ${failed ? "border-danger" : "border-control-border"}`}
     >
@@ -420,7 +429,7 @@ function ApplyResultBlock({ report }: { report: CaddyApplyReport }) {
       <p className="m-0 text-body">{report.message}</p>
       {report.review !== undefined ? (
         <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
-          {reviewLines(report.review).map((line) => (
+          {reviewLines(report.review, copy).map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>
@@ -432,12 +441,13 @@ function ApplyResultBlock({ report }: { report: CaddyApplyReport }) {
           ))}
         </ul>
       ) : null}
-      {failed ? <p className="m-0 text-aux text-muted-foreground">未自动重试。</p> : null}
+      {failed ? <p className="m-0 text-aux text-muted-foreground">{t("caddy.run.noRetry")}</p> : null}
     </section>
   );
 }
 
 function FailureBlock({ status }: { status: CaddyRunStatus }) {
+  const { t } = useCaddyCopy();
   return (
     <div role="alert" className="grid gap-ui-4 rounded-panel border border-danger p-ui-8">
       <p className="m-0 text-body font-semibold text-danger">{status.message}</p>
@@ -446,15 +456,13 @@ function FailureBlock({ status }: { status: CaddyRunStatus }) {
           {status.diagnostics.map((diagnostic, index) => (
             <li key={`${index}-${diagnostic.message}`}>
               {diagnostic.line !== undefined
-                ? `第 ${diagnostic.line} 行：${diagnostic.message}`
+                ? t("caddy.run.diagnosticLine", { line: diagnostic.line, message: diagnostic.message })
                 : diagnostic.message}
             </li>
           ))}
         </ul>
       ) : null}
-      <p className="m-0 text-aux text-muted-foreground">
-        未自动重试。修正后可重新预览并开启。
-      </p>
+      <p className="m-0 text-aux text-muted-foreground">{t("caddy.run.failureNoRetry")}</p>
     </div>
   );
 }
@@ -472,35 +480,46 @@ function SummaryBlock({
   onCancel: () => void;
   onOpenService?: (target: ServiceTarget) => void;
 }) {
+  const copy = useCaddyCopy();
+  const { t } = copy;
   const [accepted, setAccepted] = useState(false);
-  const listen = summary.listen.length > 0 ? summary.listen.join("、") : emptyAddressText(summary);
+  const listen =
+    summary.listen.length > 0
+      ? summary.listen.join(t("caddy.preview.listSeparator"))
+      : emptyAddressText(summary, copy);
   const upstreams =
-    summary.upstreams.length > 0 ? summary.upstreams.join("、") : emptyAddressText(summary);
+    summary.upstreams.length > 0
+      ? summary.upstreams.join(t("caddy.preview.listSeparator"))
+      : emptyAddressText(summary, copy);
   const conflicts = summary.conflicts;
   const gate = startGate(summary, accepted);
   return (
-    <section aria-label="开启前摘要" className="grid gap-ui-8 rounded-panel border border-control-border p-ui-8">
-      <h3 className="m-0 text-sm font-semibold">开启前摘要</h3>
+    <section aria-label={t("caddy.run.summaryHeading")} className="grid gap-ui-8 rounded-panel border border-control-border p-ui-8">
+      <h3 className="m-0 text-sm font-semibold">{t("caddy.run.summaryHeading")}</h3>
       {summary.blocked !== undefined ? (
         <p role="alert" className="m-0 text-body text-danger">
-          {`无法开启：${summary.blocked}`}
+          {t("caddy.run.blocked", { reason: summary.blocked })}
         </p>
       ) : null}
       <dl className="m-0 grid gap-ui-4 text-body">
-        <SummaryRow label="配置来源" value={SOURCE_LABELS[summary.source]} />
+        <SummaryRow label={t("caddy.run.rowSource")} value={t(SOURCE_LABEL_KEYS[summary.source])} />
         <SummaryRow
-          label="可执行文件"
+          label={t("caddy.run.rowExecutable")}
           value={
             summary.executablePath !== undefined
-              ? `${summary.executablePath}${summary.version !== undefined ? `（${summary.version}）` : ""}`
-              : "未找到"
+              ? `${summary.executablePath}${
+                  summary.version !== undefined
+                    ? t("caddy.run.versionSuffix", { version: summary.version })
+                    : ""
+                }`
+              : t("caddy.run.executableMissing")
           }
         />
-        <SummaryRow label="运行目录" value={summary.workingDirectory} />
-        <SummaryRow label="配置指纹" value={summary.configFingerprint} />
-        <SummaryRow label="监听" value={listen} />
-        <SummaryRow label="上游" value={upstreams} />
-        <SummaryRow label="管理端点" value={summary.adminEndpoint} />
+        <SummaryRow label={t("caddy.run.rowRunFolder")} value={summary.workingDirectory} />
+        <SummaryRow label={t("caddy.run.rowFingerprint")} value={summary.configFingerprint} />
+        <SummaryRow label={t("caddy.run.rowListen")} value={listen} />
+        <SummaryRow label={t("caddy.run.rowUpstream")} value={upstreams} />
+        <SummaryRow label={t("caddy.run.rowAdmin")} value={summary.adminEndpoint} />
       </dl>
       {conflicts !== undefined ? (
         <ConflictBlock conflicts={conflicts} onOpenService={onOpenService} />
@@ -514,8 +533,8 @@ function SummaryBlock({
         <div className="grid gap-ui-8">
           {conflicts?.verdict === "UNCONFIRMED" ? (
             <CheckboxField
-              label="我已确认外部 Caddy 与端口状态，仍要开启"
-              description="不会停止、重载或接管外部实例。"
+              label={t("caddy.run.acceptUnconfirmed")}
+              description={t("caddy.run.acceptUnconfirmedHint")}
               checked={accepted}
               disabled={busy}
               onCheckedChange={setAccepted}
@@ -527,10 +546,10 @@ function SummaryBlock({
               disabled={busy || !gate.canStart}
               onClick={() => onStart({ acceptUnconfirmed: gate.acceptUnconfirmed })}
             >
-              确认开启
+              {t("caddy.run.confirmStart")}
             </Button>
             <Button variant="secondary" disabled={busy} onClick={onCancel}>
-              取消
+              {t("common.cancel")}
             </Button>
           </div>
         </div>
@@ -546,54 +565,73 @@ function ConflictBlock({
   conflicts: CaddyConflictReport;
   onOpenService?: (target: ServiceTarget) => void;
 }) {
-  const verdict = presentVerdict(conflicts.verdict);
+  const copy = useCaddyCopy();
+  const { t } = copy;
+  const verdict = presentVerdict(conflicts.verdict, copy);
   const targets = externalServiceTargets(conflicts);
   return (
-    <section aria-label="冲突检查" className="grid gap-ui-4 rounded-panel border border-control-border p-ui-8">
+    <section aria-label={t("caddy.run.conflictHeading")} className="grid gap-ui-4 rounded-panel border border-control-border p-ui-8">
       <p className="m-0 text-body font-semibold">{`${verdict.symbol} ${verdict.label}`}</p>
       <p className="m-0 text-body">{conflicts.headline}</p>
-      <h4 className="m-0 text-sm font-semibold">外部 Caddy 归属</h4>
+      <h4 className="m-0 text-sm font-semibold">{t("caddy.run.externalOwnership")}</h4>
       <p className="m-0 text-aux text-muted-foreground">
-        {`${SNAPSHOT_LABELS[conflicts.external.snapshot]}：${conflicts.external.explanation}`}
+        {t("caddy.run.snapshotLine", {
+          snapshot: t(SNAPSHOT_LABEL_KEYS[conflicts.external.snapshot]),
+          explanation: conflicts.external.explanation,
+        })}
       </p>
       {conflicts.external.instances.length > 0 ? (
         <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
           {conflicts.external.instances.map((instance) => (
             <li key={`${instance.domain}/${instance.label}`}>
-              {`${instance.label}（${DOMAIN_LABELS[instance.domain]}，${RUN_STATE_LABELS[instance.runState]}${
-                instance.pid !== undefined ? `，pid ${instance.pid}` : ""
-              }）：${instance.explanation}`}
+              {t("caddy.run.instanceLine", {
+                label: instance.label,
+                domain: t(DOMAIN_LABEL_KEYS[instance.domain]),
+                runState: t(RUN_STATE_LABEL_KEYS[instance.runState]),
+                pid: instance.pid !== undefined ? t("caddy.run.pid", { pid: instance.pid }) : "",
+                explanation: instance.explanation,
+              })}
             </li>
           ))}
         </ul>
       ) : null}
       {targets.map((target) => (
         <div key={`${target.domain}/${target.label}`} className="flex flex-wrap items-center gap-ui-8">
-          <span className="text-aux text-muted-foreground">{`仅跳转查看，不会停止或重载：${target.label}`}</span>
+          <span className="text-aux text-muted-foreground">
+            {t("caddy.run.targetOnly", { label: target.label })}
+          </span>
           <Button variant="secondary" onClick={() => onOpenService?.(target)}>
-            查看该服务
+            {t("caddy.run.openService")}
           </Button>
         </div>
       ))}
-      <h4 className="m-0 text-sm font-semibold">端口占用预检查</h4>
+      <h4 className="m-0 text-sm font-semibold">{t("caddy.run.portPrecheck")}</h4>
       {conflicts.ports.length > 0 ? (
         <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
           {conflicts.ports.map((port) => (
             <li key={`${port.host}:${port.port}`}>
-              {`${port.host}:${port.port}：${PORT_STATE_LABELS[port.state]}。${port.explanation}`}
+              {t("caddy.run.addressLine", {
+                address: `${port.host}:${port.port}`,
+                state: t(PORT_STATE_LABEL_KEYS[port.state]),
+                explanation: port.explanation,
+              })}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="m-0 text-aux text-muted-foreground">没有可检查的监听地址。</p>
+        <p className="m-0 text-aux text-muted-foreground">{t("caddy.run.noListenAddress")}</p>
       )}
       {conflicts.upstreams.length > 0 ? (
         <>
-          <h4 className="m-0 text-sm font-semibold">上游（仅提示，不阻止开启）</h4>
+          <h4 className="m-0 text-sm font-semibold">{t("caddy.run.upstreamAdvisory")}</h4>
           <ul className="m-0 grid gap-ui-2 pl-ui-8 text-body">
             {conflicts.upstreams.map((upstream) => (
               <li key={`${upstream.host}:${upstream.port}`}>
-                {`${upstream.host}:${upstream.port}：${UPSTREAM_STATE_LABELS[upstream.state]}。${upstream.explanation}`}
+                {t("caddy.run.addressLine", {
+                  address: `${upstream.host}:${upstream.port}`,
+                  state: t(UPSTREAM_STATE_LABEL_KEYS[upstream.state]),
+                  explanation: upstream.explanation,
+                })}
               </li>
             ))}
           </ul>
@@ -610,8 +648,8 @@ function ConflictBlock({
   );
 }
 
-function emptyAddressText(summary: CaddyStartSummary): string {
-  return summary.source === "RAW" ? "以原文为准" : "无启用的站点";
+function emptyAddressText(summary: CaddyStartSummary, copy: CaddyCopy): string {
+  return copy.t(summary.source === "RAW" ? "caddy.run.followsRaw" : "caddy.run.noEnabledSites");
 }
 
 function SummaryRow({ label, value }: { label: string; value: string }) {

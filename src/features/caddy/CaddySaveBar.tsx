@@ -1,5 +1,7 @@
 import { ActionRow, Button, Panel } from "../../components/ui";
+import { localizeAppErrorMessage } from "../../i18n/errors";
 import type { AppError } from "../../ipc/core";
+import { useCaddyCopy } from "./caddyCopy";
 import type { SaveGate } from "./caddyRulesModel";
 
 export type SaveState =
@@ -17,11 +19,12 @@ interface CaddySaveBarProps {
 const REASON_ID = "caddy-save-reason";
 
 export function CaddySaveBar({ gate, saveState, onSave }: CaddySaveBarProps) {
+  const { t } = useCaddyCopy();
   const saving = saveState.status === "saving";
   return (
     <Panel aria-labelledby="caddy-save-heading" className="grid gap-ui-8 p-ui-8">
       <h2 id="caddy-save-heading" className="text-sm font-semibold">
-        保存
+        {t("caddy.save.heading")}
       </h2>
       <ActionRow>
         <Button
@@ -30,7 +33,7 @@ export function CaddySaveBar({ gate, saveState, onSave }: CaddySaveBarProps) {
           aria-describedby={gate.reason ? REASON_ID : undefined}
           onClick={onSave}
         >
-          {saving ? "保存中……" : "保存规则"}
+          {saving ? t("caddy.save.saving") : t("caddy.save.rules")}
         </Button>
         {gate.reason ? (
           <p id={REASON_ID} className="m-0 text-aux text-muted-foreground">
@@ -39,7 +42,7 @@ export function CaddySaveBar({ gate, saveState, onSave }: CaddySaveBarProps) {
         ) : null}
       </ActionRow>
       <p className="m-0 text-aux text-muted-foreground">
-        保存不会启动或重载 Caddy。保存只写入 UserHome 的私有目录，不改动 Homebrew 的全局配置。
+        {t("caddy.save.note")}
       </p>
       <SaveResult state={saveState} />
     </Panel>
@@ -47,25 +50,27 @@ export function CaddySaveBar({ gate, saveState, onSave }: CaddySaveBarProps) {
 }
 
 function SaveResult({ state }: { state: SaveState }) {
+  const { t, locale } = useCaddyCopy();
   if (state.status === "saved") {
     return (
       <p role="status" className="m-0 text-body text-success">
-        已保存。
+        {t("caddy.save.saved")}
       </p>
     );
   }
   if (state.status !== "failed") return null;
+  const message = localizeAppErrorMessage(state.error, locale);
   if (state.error.code === "PARTIAL_FAILURE") {
     return (
       <p role="alert" className="m-0 text-body text-danger">
-        <strong>部分保存失败：</strong>
-        {state.error.message}
+        <strong>{t("caddy.save.partialFailed")}</strong>
+        {message}
       </p>
     );
   }
   return (
     <p role="alert" className="m-0 text-body text-danger">
-      保存失败：{state.error.message}
+      {t("caddy.save.failed", { message })}
     </p>
   );
 }

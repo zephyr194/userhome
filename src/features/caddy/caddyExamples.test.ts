@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CaddyRules, CaddySite, CaddyUpstream } from "../../ipc/caddy";
-import { CADDY_EXAMPLES, REFERENCE_NOTICE } from "./caddyExamples";
+import { CADDY_EXAMPLES, REFERENCE_NOTICE, exampleTitle, examplePurpose } from "./caddyExamples";
 import { createIdSource, rulesFromDraft, siteDraftsFromRules } from "./caddyRulesModel";
 
 // Recognizes only the subset the rules model writes: `http://host:port { ... }`
@@ -56,8 +56,8 @@ describe("CADDY_EXAMPLES", () => {
     expect(new Set(ids).size).toBe(ids.length);
     for (const example of CADDY_EXAMPLES) {
       expect(example.id.trim(), example.id).not.toBe("");
-      expect(example.title.trim(), example.id).not.toBe("");
-      expect(example.purpose.trim(), example.id).not.toBe("");
+      expect(exampleTitle(example).trim(), example.id).not.toBe("");
+      expect(examplePurpose(example).trim(), example.id).not.toBe("");
       expect(example.text.trim(), example.id).not.toBe("");
     }
   });

@@ -16,6 +16,8 @@ import {
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
 import { selectTlsMaterialGrant } from "../../ipc/grants";
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { useCaddyCopy } from "./caddyCopy";
 import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
 import { CaddyWorkdirPanel } from "./CaddyWorkdirPanel";
 import { useCaddyWorkdir } from "./useCaddyWorkdir";
@@ -49,7 +51,6 @@ import {
 const PREVIEW_DEBOUNCE_MS = 250;
 const NO_ISSUES: CaddyIssue[] = [];
 const NO_EXPOSURES: CaddyExposure[] = [];
-const CADDY_SECTIONS = routeSectionsOf("caddy");
 
 type EditorSource = "rules" | "raw";
 
@@ -75,6 +76,9 @@ function createPreviewRuntime(): PreviewRuntime {
 
 export function CaddyPage() {
   const onNavigate = useContext(RouteNavigationContext);
+  const copy = useCaddyCopy();
+  const { t } = copy;
+  const sections = useMemo(() => routeSectionsOf("caddy", copy.locale), [copy.locale]);
   const [ids] = useState<IdSource>(createIdSource);
   const [runtime] = useState(createPreviewRuntime);
   const [detect, setDetect] = useState<DetectState>({ status: "loading" });
@@ -102,7 +106,7 @@ export function CaddyPage() {
     (next: SiteDraft[]) => {
       setPreview({ status: "pending" });
       runtime.debouncer.schedule(() => {
-        const local = rulesFromDraft(next);
+        const local = rulesFromDraft(next, copy);
         if (!local.ok) {
           runtime.tracker.invalidate();
           setTlsStatuses([]);
@@ -131,7 +135,7 @@ export function CaddyPage() {
         );
       });
     },
-    [runtime],
+    [runtime, copy],
   );
 
   const runDetect = useCallback(() => {
@@ -184,11 +188,11 @@ export function CaddyPage() {
     [runtime],
   );
 
-  const localResult = useMemo(() => rulesFromDraft(sites), [sites]);
+  const localResult = useMemo(() => rulesFromDraft(sites, copy), [sites, copy]);
   const saving = saveState.status === "saving";
   const gate =
     workdirReason === undefined
-      ? saveGate({ localValid: localResult.ok, preview, saving })
+      ? saveGate({ localValid: localResult.ok, preview, saving }, copy)
       : { enabled: false, reason: workdirReason };
   const validation = useMemo(
     () => (preview.status === "ready" ? preview.preview.validation : undefined),
@@ -211,7 +215,7 @@ export function CaddyPage() {
       if (result.status !== "SELECTED") return;
       changeSites(withTlsGrant(sitesRef.current, siteIndex, slot, result.grant.id));
     } catch (error) {
-      setTlsError((error as AppError).message);
+      setTlsError(localizeAppErrorMessage(error as AppError, copy.locale));
     }
   }
 
@@ -248,13 +252,13 @@ export function CaddyPage() {
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M14.5 6 8.5 12l6 6" />
             </svg>
-            返回系统工具
+            {t("caddy.page.back")}
           </Button>
         </ActionRow>
       ) : null}
       <SectionTabs
-        label="Caddy 分区"
-        sections={CADDY_SECTIONS}
+        label={t("caddy.page.sections")}
+        sections={sections}
         selected={section}
         onSelect={setSection}
       />
@@ -279,28 +283,26 @@ export function CaddyPage() {
         <div className="grid min-w-0 gap-ui-12">
           {workdirReason !== undefined && workdir.load.status !== "loading" ? (
             <p role="status" className="m-0 text-body text-muted-foreground">
-              {workdirReason}后才能读取或保存规则。
+              {t("caddy.page.workdirGate", { reason: workdirReason })}
             </p>
           ) : null}
           {load.status === "loading" && (workdirReady || workdir.load.status === "loading") ? (
             <p role="status" className="m-0 text-body text-muted-foreground">
-              正在读取已保存的规则……
+              {t("caddy.page.loadingRules")}
             </p>
           ) : null}
           {workdirReady && load.status === "failed" ? (
             <Panel role="alert" className="grid gap-ui-8 p-ui-8">
-              <p className="m-0 text-body font-semibold text-danger">无法读取已保存的规则</p>
-              <p className="m-0 text-body">{load.error.message}</p>
-              <p className="m-0 text-aux text-muted-foreground">
-                规则未能读取，因此保存已停用，以免覆盖现有文件。
-              </p>
+              <p className="m-0 text-body font-semibold text-danger">{t("caddy.page.loadFailedTitle")}</p>
+              <p className="m-0 text-body">{localizeAppErrorMessage(load.error, copy.locale)}</p>
+              <p className="m-0 text-aux text-muted-foreground">{t("caddy.page.loadFailedNote")}</p>
             </Panel>
           ) : null}
           {workdirReady && load.status === "ready" ? (
             <>
               {load.source === "DEFAULT" ? (
                 <p role="status" className="m-0 text-body text-muted-foreground">
-                  尚未保存任何规则，下方是默认示例。保存后才会写入私有目录。
+                  {t("caddy.page.defaultRules")}
                 </p>
               ) : null}
               {tlsError ? (

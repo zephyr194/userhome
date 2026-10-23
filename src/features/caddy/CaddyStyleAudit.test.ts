@@ -193,7 +193,7 @@ describe("Caddy 页样式审计（UI-3d）", () => {
     const rules = readFileSync(join(AUDITED_DIR, "CaddyRulesEditor.tsx"), "utf8");
     const tags = Array.from(rules.matchAll(BUTTON_OPEN), (m) => m[0]);
     const sameRowButtons = tags.filter(
-      (tag) => tag.includes("onClick={onPick}") || tag.includes("删除上游"),
+      (tag) => tag.includes("onClick={onPick}") || tag.includes("caddy.rules.deleteUpstream"),
     );
     expect(sameRowButtons).toHaveLength(2);
     for (const tag of sameRowButtons) {

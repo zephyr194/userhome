@@ -1,4 +1,5 @@
 import type { NavigationIntent } from "../../app/routeDefinitions";
+import type { MessageKey } from "../../i18n";
 import type {
   CaddyConflictReport,
   CaddyConflictVerdict,
@@ -9,50 +10,55 @@ import type {
   CaddyStartSummary,
   CaddyUpstreamState,
 } from "../../ipc/caddy";
+import { ZH_COPY, type CaddyCopy } from "./caddyCopy";
 
 export interface VerdictPresentation {
   symbol: string;
   label: string;
 }
 
-const VERDICTS: Record<CaddyConflictVerdict, VerdictPresentation> = {
-  CLEAR: { symbol: "✓", label: "未发现冲突" },
-  UNCONFIRMED: { symbol: "!", label: "需要确认" },
-  BLOCKED: { symbol: "✕", label: "发现冲突" },
+const VERDICTS: Record<CaddyConflictVerdict, { symbol: string; labelKey: MessageKey }> = {
+  CLEAR: { symbol: "✓", labelKey: "caddy.conflict.verdict.clear" },
+  UNCONFIRMED: { symbol: "!", labelKey: "caddy.conflict.verdict.unconfirmed" },
+  BLOCKED: { symbol: "✕", labelKey: "caddy.conflict.verdict.blocked" },
 };
 
-export function presentVerdict(verdict: CaddyConflictVerdict): VerdictPresentation {
-  return VERDICTS[verdict];
+export function presentVerdict(
+  verdict: CaddyConflictVerdict,
+  copy: CaddyCopy = ZH_COPY,
+): VerdictPresentation {
+  const entry = VERDICTS[verdict];
+  return { symbol: entry.symbol, label: copy.t(entry.labelKey) };
 }
 
-export const SNAPSHOT_LABELS: Record<CaddySnapshotStatus, string> = {
-  COMPLETE: "快照完整",
-  INCOMPLETE: "快照不完整",
-  UNREADABLE: "快照无法读取",
+export const SNAPSHOT_LABEL_KEYS: Record<CaddySnapshotStatus, MessageKey> = {
+  COMPLETE: "caddy.conflict.snapshot.complete",
+  INCOMPLETE: "caddy.conflict.snapshot.incomplete",
+  UNREADABLE: "caddy.conflict.snapshot.unreadable",
 };
 
-export const DOMAIN_LABELS: Record<CaddyExternalDomain, string> = {
-  GUI: "用户域",
-  SYSTEM: "系统域",
+export const DOMAIN_LABEL_KEYS: Record<CaddyExternalDomain, MessageKey> = {
+  GUI: "caddy.conflict.domain.gui",
+  SYSTEM: "caddy.conflict.domain.system",
 };
 
-export const RUN_STATE_LABELS: Record<CaddyExternalRunState, string> = {
-  RUNNING: "● 运行中",
-  NOT_RUNNING: "○ 未运行",
-  UNKNOWN: "? 状态未知",
-  INACCESSIBLE: "? 无法访问",
+export const RUN_STATE_LABEL_KEYS: Record<CaddyExternalRunState, MessageKey> = {
+  RUNNING: "caddy.conflict.runState.running",
+  NOT_RUNNING: "caddy.conflict.runState.notRunning",
+  UNKNOWN: "caddy.conflict.runState.unknown",
+  INACCESSIBLE: "caddy.conflict.runState.inaccessible",
 };
 
-export const PORT_STATE_LABELS: Record<CaddyPortState, string> = {
-  FREE: "✓ 未发现占用",
-  OCCUPIED: "✕ 已占用",
-  UNCHECKED: "! 未检查",
+export const PORT_STATE_LABEL_KEYS: Record<CaddyPortState, MessageKey> = {
+  FREE: "caddy.conflict.port.free",
+  OCCUPIED: "caddy.conflict.port.occupied",
+  UNCHECKED: "caddy.conflict.port.unchecked",
 };
 
-export const UPSTREAM_STATE_LABELS: Record<CaddyUpstreamState, string> = {
-  REACHABLE: "✓ 可连接",
-  UNREACHABLE: "! 不可达（仅提示）",
-  UNCHECKED: "! 未检查（仅提示）",
+export const UPSTREAM_STATE_LABEL_KEYS: Record<CaddyUpstreamState, MessageKey> = {
+  REACHABLE: "caddy.conflict.upstream.reachable",
+  UNREACHABLE: "caddy.conflict.upstream.unreachable",
+  UNCHECKED: "caddy.conflict.upstream.unchecked",
 };
 
 export interface StartGate {

@@ -1,7 +1,7 @@
+import type { MessageKey } from "../../i18n";
+import { ZH_COPY, type CaddyCopy } from "./caddyCopy";
 import {
   MAX_DRAFT_UPSTREAMS,
-  PORT_MESSAGE,
-  TLS_MISSING_MESSAGE,
   newUpstreamDraft,
   parsePort,
   siteFieldKey,
@@ -17,13 +17,13 @@ export type DirectiveId = "listen.host" | "listen.port" | "upstream" | "tls" | "
 export type DirectiveControl = "host" | "port" | "upstream" | "file-pair" | "switch";
 
 export interface DirectiveDefinition {
-  label: string;
-  short: string;
+  label: MessageKey;
+  short: MessageKey;
   control: DirectiveControl;
   required: boolean;
-  requiredReason?: string;
+  requiredReason?: MessageKey;
   repeatable: boolean;
-  validate: (site: SiteDraft, siteIndex: number) => Record<string, string>;
+  validate: (site: SiteDraft, siteIndex: number, copy?: CaddyCopy) => Record<string, string>;
 }
 
 const NO_LOCAL_ERRORS = (): Record<string, string> => ({});
@@ -38,56 +38,58 @@ export const DIRECTIVE_IDS: readonly DirectiveId[] = [
 
 export const DIRECTIVES: Record<DirectiveId, DirectiveDefinition> = {
   "listen.host": {
-    label: "监听主机",
-    short: "监听主机",
+    label: "caddy.directive.listenHost",
+    short: "caddy.directive.listenHostShort",
     control: "host",
     required: true,
-    requiredReason: "必填指令，不能删除。",
+    requiredReason: "caddy.directive.requiredRow",
     repeatable: false,
     // Host syntax and range are judged by the backend, so the editor adds no local message.
     validate: NO_LOCAL_ERRORS,
   },
   "listen.port": {
-    label: "监听端口",
-    short: "监听端口",
+    label: "caddy.directive.listenPort",
+    short: "caddy.directive.listenPortShort",
     control: "port",
     required: true,
-    requiredReason: "必填指令，不能删除。",
+    requiredReason: "caddy.directive.requiredRow",
     repeatable: false,
-    validate: (site, siteIndex) =>
-      parsePort(site.port) === undefined ? { [siteFieldKey(siteIndex, "listen.port")]: PORT_MESSAGE } : {},
+    validate: (site, siteIndex, copy = ZH_COPY) =>
+      parsePort(site.port) === undefined
+        ? { [siteFieldKey(siteIndex, "listen.port")]: copy.t("caddy.rules.portInvalid") }
+        : {},
   },
   upstream: {
-    label: "上游（反向代理目标）",
-    short: "上游",
+    label: "caddy.directive.upstream",
+    short: "caddy.directive.upstreamShort",
     control: "upstream",
     required: true,
-    requiredReason: "至少保留一个上游。",
+    requiredReason: "caddy.directive.requiredUpstream",
     repeatable: true,
-    validate: (site, siteIndex) => {
+    validate: (site, siteIndex, copy = ZH_COPY) => {
       const errors: Record<string, string> = {};
       site.upstreams.forEach((upstream, upstreamIndex) => {
         if (parsePort(upstream.port) === undefined) {
-          errors[upstreamFieldKey(siteIndex, upstreamIndex, "port")] = PORT_MESSAGE;
+          errors[upstreamFieldKey(siteIndex, upstreamIndex, "port")] = copy.t("caddy.rules.portInvalid");
         }
       });
       return errors;
     },
   },
   tls: {
-    label: "使用 HTTPS（已有证书与私钥）",
-    short: "HTTPS",
+    label: "caddy.directive.tls",
+    short: "caddy.directive.tlsShort",
     control: "file-pair",
     required: false,
     repeatable: false,
-    validate: (site, siteIndex) =>
+    validate: (site, siteIndex, copy = ZH_COPY) =>
       site.tls !== null && tlsOf(site.tls) === undefined
-        ? { [siteTlsKey(siteIndex)]: TLS_MISSING_MESSAGE }
+        ? { [siteTlsKey(siteIndex)]: copy.t("caddy.rules.tlsMissing") }
         : {},
   },
   accessLog: {
-    label: "记录访问日志",
-    short: "访问日志",
+    label: "caddy.directive.accessLog",
+    short: "caddy.directive.accessLogShort",
     control: "switch",
     required: false,
     repeatable: false,

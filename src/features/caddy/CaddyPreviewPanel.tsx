@@ -1,5 +1,8 @@
 import { CodeViewer, Panel } from "../../components/ui";
+import type { MessageKey } from "../../i18n";
+import { localizeAppErrorMessage } from "../../i18n/errors";
 import type { CaddyExposure, CaddyExposureReason, CaddyIssue } from "../../ipc/caddy";
+import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
 import {
   diffMarker,
   externalExposures,
@@ -12,11 +15,11 @@ interface CaddyPreviewPanelProps {
   exposures: CaddyExposure[];
 }
 
-const EXPOSURE_REASON_TEXT: Record<CaddyExposureReason, string> = {
-  LOOPBACK: "回环地址",
-  ALL_INTERFACES: "所有网络接口",
-  NON_LOOPBACK_ADDRESS: "非回环地址",
-  HOST_NAME: "域名",
+const EXPOSURE_REASON_KEY: Record<CaddyExposureReason, MessageKey> = {
+  LOOPBACK: "caddy.preview.exposure.loopback",
+  ALL_INTERFACES: "caddy.preview.exposure.allInterfaces",
+  NON_LOOPBACK_ADDRESS: "caddy.preview.exposure.nonLoopback",
+  HOST_NAME: "caddy.preview.exposure.hostName",
 };
 
 const DIFF_CLASSES = {
@@ -25,43 +28,52 @@ const DIFF_CLASSES = {
   UNCHANGED: "text-muted-foreground",
 } as const;
 
-function issueLocation(issue: CaddyIssue): string {
+function issueLocation(issue: CaddyIssue, copy: CaddyCopy): string {
   const parts: string[] = [];
-  if (issue.site !== undefined) parts.push(`站点 ${issue.site + 1}`);
-  if (issue.upstream !== undefined) parts.push(`上游 ${issue.upstream + 1}`);
-  return parts.length > 0 ? parts.join(" · ") : "规则";
+  if (issue.site !== undefined) parts.push(copy.t("caddy.preview.location.site", { site: issue.site + 1 }));
+  if (issue.upstream !== undefined) {
+    parts.push(copy.t("caddy.preview.location.upstream", { upstream: issue.upstream + 1 }));
+  }
+  return parts.length > 0 ? parts.join(" · ") : copy.t("caddy.preview.location.rules");
 }
 
 export function CaddyPreviewPanel({ localValid, preview, exposures }: CaddyPreviewPanelProps) {
+  const copy = useCaddyCopy();
   return (
     <Panel aria-labelledby="caddy-preview-heading" className="grid min-w-0 gap-ui-8 p-ui-8">
       <h2 id="caddy-preview-heading" className="text-sm font-semibold">
-        预览与差异
+        {copy.t("caddy.preview.heading")}
       </h2>
-      <PreviewBody localValid={localValid} preview={preview} exposures={exposures} />
+      <PreviewBody localValid={localValid} preview={preview} exposures={exposures} copy={copy} />
     </Panel>
   );
 }
 
-function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps) {
+function PreviewBody({
+  localValid,
+  preview,
+  exposures,
+  copy,
+}: CaddyPreviewPanelProps & { copy: CaddyCopy }) {
+  const { t } = copy;
   if (!localValid) {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        请先修正表单中的输入；修正后会自动生成预览。
+        {t("caddy.preview.needsFix")}
       </p>
     );
   }
   if (preview.status === "pending") {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        正在生成预览……
+        {t("caddy.preview.pending")}
       </p>
     );
   }
   if (preview.status === "failed") {
     return (
       <p role="alert" className="m-0 text-body text-danger">
-        预览失败：{preview.error.message}
+        {t("caddy.preview.failed", { error: localizeAppErrorMessage(preview.error, copy.locale) })}
       </p>
     );
   }
@@ -70,18 +82,25 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
     return (
       <div className="grid gap-ui-8">
         <p role="alert" className="m-0 text-body font-semibold text-danger">
-          校验未通过，未生成 Caddyfile 文本。请根据表单中的提示修改。
+          {t("caddy.preview.invalid")}
         </p>
         <ul className="m-0 grid gap-ui-4 pl-ui-8 text-aux">
           {result.validation.issues.map((issue) => (
-            <li key={`${issueLocation(issue)}:${issue.code}:${issue.message}`}>
-              {issueLocation(issue)}：{issue.message}
+            <li key={`${issueLocation(issue, copy)}:${issue.code}:${issue.message}`}>
+              {t("caddy.preview.locationMessage", {
+                location: issueLocation(issue, copy),
+                message: issue.message,
+              })}
             </li>
           ))}
           {result.validation.conflicts.map((conflict) => (
             <li key={`conflict:${conflict.listen}`}>
-              冲突：{conflict.listen} 同时被{" "}
-              {conflict.sites.map((site) => `站点 ${site + 1}`).join("、")} 启用，请改为不同的监听地址。
+              {t("caddy.preview.conflict", {
+                listen: conflict.listen,
+                sites: conflict.sites
+                  .map((site) => t("caddy.preview.location.site", { site: site + 1 }))
+                  .join(t("caddy.preview.listSeparator")),
+              })}
             </li>
           ))}
         </ul>
@@ -98,38 +117,38 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
           className="grid gap-ui-4 rounded-panel bg-warning-soft p-ui-8 text-warning"
         >
           <h3 id="caddy-exposure-heading" className="m-0 text-sm font-semibold">
-            对局域网或外部可见
+            {t("caddy.preview.exposedHeading")}
           </h3>
-          <p className="m-0 text-aux">
-            以下监听地址不是本机回环地址，同一网络中的其他设备或外部可能访问到这些代理。
-          </p>
+          <p className="m-0 text-aux">{t("caddy.preview.exposedNote")}</p>
           <ul className="m-0 grid gap-ui-4 pl-ui-8 text-aux">
             {exposed.map((exposure) => (
               <li key={`${exposure.site}:${exposure.listen}`}>
-                站点 {exposure.site + 1}：监听 <span className="font-mono">{exposure.listen}</span>
-                （{EXPOSURE_REASON_TEXT[exposure.reason]}）
+                {t("caddy.preview.exposureSiteListen", { site: exposure.site + 1 })}
+                <span className="font-mono">{exposure.listen}</span>
+                {t("caddy.preview.exposureReason", { reason: t(EXPOSURE_REASON_KEY[exposure.reason]) })}
               </li>
             ))}
           </ul>
         </section>
       ) : null}
       {result.validation.issues.length > 0 ? (
-        <ul aria-label="校验提示" className="m-0 grid gap-ui-4 pl-ui-8 text-aux text-warning">
+        <ul aria-label={t("caddy.preview.issuesLabel")} className="m-0 grid gap-ui-4 pl-ui-8 text-aux text-warning">
           {result.validation.issues.map((issue) => (
-            <li key={`${issueLocation(issue)}:${issue.code}`}>
-              {issueLocation(issue)}：{issue.message}
+            <li key={`${issueLocation(issue, copy)}:${issue.code}`}>
+              {t("caddy.preview.locationMessage", {
+                location: issueLocation(issue, copy),
+                message: issue.message,
+              })}
             </li>
           ))}
         </ul>
       ) : null}
       <p className="m-0 text-aux text-muted-foreground">
-        {result.hasSavedVersion
-          ? "与已保存版本的差异如下。"
-          : "尚无已保存版本，下列内容全部为新增。"}
+        {result.hasSavedVersion ? t("caddy.preview.savedDiff") : t("caddy.preview.noSavedVersion")}
       </p>
-      <ol aria-label="Caddyfile 行级差异" className="m-0 grid min-w-0 list-none gap-0 p-0 font-mono text-aux">
+      <ol aria-label={t("caddy.preview.diffLabel")} className="m-0 grid min-w-0 list-none gap-0 p-0 font-mono text-aux">
         {(result.diff ?? []).map((line, index) => {
-          const marker = diffMarker(line.change);
+          const marker = diffMarker(line.change, copy);
           return (
             <li
               key={index}
@@ -138,16 +157,16 @@ function PreviewBody({ localValid, preview, exposures }: CaddyPreviewPanelProps)
               <span aria-hidden="true" className="inline-block w-4 shrink-0 select-none text-center">
                 {marker.symbol}
               </span>
-              <span className="sr-only">{marker.label}：</span>
+              <span className="sr-only">{t("caddy.preview.markerLabel", { label: marker.label })}</span>
               <span className="min-w-0 whitespace-pre-wrap break-all">{line.text}</span>
             </li>
           );
         })}
       </ol>
       <div className="grid gap-ui-4">
-        <h3 className="m-0 text-sm font-semibold">生成的 Caddyfile</h3>
+        <h3 className="m-0 text-sm font-semibold">{t("caddy.preview.generatedHeading")}</h3>
         <CodeViewer
-          label="生成的 Caddyfile"
+          label={t("caddy.preview.generatedHeading")}
           language="caddyfile"
           scrollClassName="max-h-72 overflow-y-auto"
           text={result.generatedText ?? ""}

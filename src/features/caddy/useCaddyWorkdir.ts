@@ -11,9 +11,11 @@ import {
   reduceWorkdirAction,
   workdirBlockReason,
   type WorkdirAction,
+  type WorkdirActionEvent,
   type WorkdirLoad,
   type WorkdirOperation,
 } from "./caddyWorkdirModel";
+import { useCaddyCopy } from "./caddyCopy";
 
 export interface CaddyWorkdirController {
   load: WorkdirLoad;
@@ -31,7 +33,11 @@ export interface CaddyWorkdirController {
 
 export function useCaddyWorkdir(): CaddyWorkdirController {
   const [load, setLoad] = useState<WorkdirLoad>({ status: "loading" });
-  const [action, dispatch] = useReducer(reduceWorkdirAction, { status: "idle" });
+  const copy = useCaddyCopy();
+  const [action, dispatch] = useReducer(
+    (state: WorkdirAction, event: WorkdirActionEvent) => reduceWorkdirAction(state, event, copy),
+    { status: "idle" },
+  );
   const [legacyDismissed, setLegacyDismissed] = useState(false);
 
   const refresh = useCallback(() => {
@@ -75,7 +81,7 @@ export function useCaddyWorkdir(): CaddyWorkdirController {
     load,
     action,
     legacyPath: legacyNoticePath(load, legacyDismissed),
-    blockReason: workdirBlockReason(load),
+    blockReason: workdirBlockReason(load, copy),
     refresh,
     select: () => chooseDirectory("select"),
     useDefault: () => chooseDirectory("default"),

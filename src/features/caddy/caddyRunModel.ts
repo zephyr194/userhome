@@ -7,6 +7,8 @@ import type {
   CaddyLogPage,
   CaddyRunState,
 } from "../../ipc/caddy";
+import type { MessageKey } from "../../i18n";
+import { ZH_COPY, type CaddyCopy } from "./caddyCopy";
 
 export const LOG_LINE_LIMIT = DEFAULT_LOG_MAX_LINES;
 
@@ -16,17 +18,24 @@ export interface RunStateView {
   tone: "neutral" | "success" | "warning" | "danger";
 }
 
-const RUN_STATE_VIEWS: Record<CaddyRunState, RunStateView> = {
-  STOPPED: { label: "已停止", symbol: "○", tone: "neutral" },
-  STARTING: { label: "开启中", symbol: "◐", tone: "warning" },
-  RUNNING: { label: "运行中", symbol: "●", tone: "success" },
-  STOPPING: { label: "停止中", symbol: "◐", tone: "warning" },
-  FAILED: { label: "失败", symbol: "▲", tone: "danger" },
-  UNKNOWN: { label: "状态未知", symbol: "◇", tone: "warning" },
+interface RunStateSpec {
+  labelKey: MessageKey;
+  symbol: string;
+  tone: RunStateView["tone"];
+}
+
+const RUN_STATE_VIEWS: Record<CaddyRunState, RunStateSpec> = {
+  STOPPED: { labelKey: "caddy.run.state.stopped", symbol: "○", tone: "neutral" },
+  STARTING: { labelKey: "caddy.run.state.starting", symbol: "◐", tone: "warning" },
+  RUNNING: { labelKey: "caddy.run.state.running", symbol: "●", tone: "success" },
+  STOPPING: { labelKey: "caddy.run.state.stopping", symbol: "◐", tone: "warning" },
+  FAILED: { labelKey: "caddy.run.state.failed", symbol: "▲", tone: "danger" },
+  UNKNOWN: { labelKey: "caddy.run.state.unknown", symbol: "◇", tone: "warning" },
 };
 
-export function presentRunState(state: CaddyRunState): RunStateView {
-  return RUN_STATE_VIEWS[state];
+export function presentRunState(state: CaddyRunState, copy: CaddyCopy = ZH_COPY): RunStateView {
+  const spec = RUN_STATE_VIEWS[state];
+  return { label: copy.t(spec.labelKey), symbol: spec.symbol, tone: spec.tone };
 }
 
 export function canPrepare(state: CaddyRunState): boolean {
@@ -41,14 +50,15 @@ export function canStop(state: CaddyRunState): boolean {
   return state === "STARTING" || state === "RUNNING";
 }
 
-const APPLIED_VIEWS: Record<CaddyAppliedState, RunStateView> = {
-  APPLIED: { label: "与运行中的配置一致", symbol: "✓", tone: "success" },
-  PENDING: { label: "未应用", symbol: "△", tone: "warning" },
-  UNKNOWN: { label: "应用状态未知", symbol: "◇", tone: "warning" },
+const APPLIED_VIEWS: Record<CaddyAppliedState, RunStateSpec> = {
+  APPLIED: { labelKey: "caddy.run.applied.applied", symbol: "✓", tone: "success" },
+  PENDING: { labelKey: "caddy.run.applied.pending", symbol: "△", tone: "warning" },
+  UNKNOWN: { labelKey: "caddy.run.applied.unknown", symbol: "◇", tone: "warning" },
 };
 
-export function presentApplied(applied: CaddyAppliedState): RunStateView {
-  return APPLIED_VIEWS[applied];
+export function presentApplied(applied: CaddyAppliedState, copy: CaddyCopy = ZH_COPY): RunStateView {
+  const spec = APPLIED_VIEWS[applied];
+  return { label: copy.t(spec.labelKey), symbol: spec.symbol, tone: spec.tone };
 }
 
 export function canApply(
@@ -59,29 +69,29 @@ export function canApply(
   return state === "RUNNING" && applied === "PENDING" && !busy;
 }
 
-const FAILURE_LABELS: Record<CaddyApplyFailure, string> = {
-  VALIDATION_FAILED: "校验失败",
-  PREPARATION_FAILED: "准备失败",
-  COMMAND_FAILED: "命令失败",
-  TIMEOUT: "超时",
-  REVIEW_FAILED: "复核失败",
+const FAILURE_LABEL_KEYS: Record<CaddyApplyFailure, MessageKey> = {
+  VALIDATION_FAILED: "caddy.run.failure.validation",
+  PREPARATION_FAILED: "caddy.run.failure.preparation",
+  COMMAND_FAILED: "caddy.run.failure.command",
+  TIMEOUT: "caddy.run.failure.timeout",
+  REVIEW_FAILED: "caddy.run.failure.review",
 };
 
-export function applyFailureLabel(failure: CaddyApplyFailure): string {
-  return FAILURE_LABELS[failure];
+export function applyFailureLabel(failure: CaddyApplyFailure, copy: CaddyCopy = ZH_COPY): string {
+  return copy.t(FAILURE_LABEL_KEYS[failure]);
 }
 
-const CONFIG_LABELS: Record<CaddyInstanceReview["config"], string> = {
-  PREVIOUS: "活动配置仍为旧版本",
-  CANDIDATE: "活动配置已记录为新版本",
-  UNKNOWN: "活动配置未知",
+const CONFIG_LABEL_KEYS: Record<CaddyInstanceReview["config"], MessageKey> = {
+  PREVIOUS: "caddy.run.review.previousConfig",
+  CANDIDATE: "caddy.run.review.candidateConfig",
+  UNKNOWN: "caddy.run.review.unknownConfig",
 };
 
-export function reviewLines(review: CaddyInstanceReview): string[] {
+export function reviewLines(review: CaddyInstanceReview, copy: CaddyCopy = ZH_COPY): string[] {
   return [
-    review.alive ? "进程存活" : "进程已不在运行",
-    review.adminReachable ? "管理端点可连接" : "管理端点不可连接",
-    CONFIG_LABELS[review.config],
+    copy.t(review.alive ? "caddy.run.review.alive" : "caddy.run.review.notAlive"),
+    copy.t(review.adminReachable ? "caddy.run.review.adminReachable" : "caddy.run.review.adminUnreachable"),
+    copy.t(CONFIG_LABEL_KEYS[review.config]),
   ];
 }
 

@@ -1,6 +1,8 @@
 import type { CaddyWorkdirStatus } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
 import type { SelectGrantResult } from "../../ipc/grants";
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { ZH_COPY, type CaddyCopy } from "./caddyCopy";
 
 export type WorkdirLoad =
   | { status: "loading" }
@@ -24,18 +26,19 @@ export type WorkdirActionEvent =
   | { type: "revoked" }
   | { type: "failed"; error: AppError };
 
-export const WORKDIR_REQUIRED_REASON = "请先选择工作目录";
-const WORKDIR_LOADING_REASON = "正在检查工作目录";
-const WORKDIR_UNREADABLE_REASON = "无法读取工作目录状态";
-
-export function workdirBlockReason(load: WorkdirLoad): string | undefined {
+export function workdirBlockReason(
+  load: WorkdirLoad,
+  copy: CaddyCopy = ZH_COPY,
+): string | undefined {
   switch (load.status) {
     case "loading":
-      return WORKDIR_LOADING_REASON;
+      return copy.t("caddy.workdir.checkingReason");
     case "failed":
-      return WORKDIR_UNREADABLE_REASON;
+      return copy.t("caddy.workdir.unreadableReason");
     case "ready":
-      return load.workdir.authorized === undefined ? WORKDIR_REQUIRED_REASON : undefined;
+      return load.workdir.authorized === undefined
+        ? copy.t("caddy.workdir.required")
+        : undefined;
   }
 }
 
@@ -50,6 +53,7 @@ export function legacyNoticePath(load: WorkdirLoad, dismissed: boolean): string 
 export function reduceWorkdirAction(
   state: WorkdirAction,
   event: WorkdirActionEvent,
+  copy: CaddyCopy = ZH_COPY,
 ): WorkdirAction {
   switch (event.type) {
     case "confirmRevoke":
@@ -63,12 +67,15 @@ export function reduceWorkdirAction(
         status: "notice",
         message:
           event.result.status === "CANCELLED"
-            ? "已取消，工作目录未更改。"
-            : `已设置工作目录：${event.result.grant.displayPath}`,
+            ? copy.t("caddy.workdir.cancelledUnchanged")
+            : copy.t("caddy.workdir.set", { path: event.result.grant.displayPath }),
       };
     case "revoked":
-      return { status: "notice", message: "已撤销工作目录授权。规则文件保留在原目录。" };
+      return { status: "notice", message: copy.t("caddy.workdir.revoked") };
     case "failed":
-      return { status: "failed", message: event.error.message };
+      return {
+        status: "failed",
+        message: localizeAppErrorMessage(event.error, copy.locale),
+      };
   }
 }

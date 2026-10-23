@@ -8,7 +8,9 @@ import {
   isWorkdirRequired,
   type CaddyRawOrigin,
 } from "../../ipc/caddy";
+import { localizeAppErrorMessage } from "../../i18n/errors";
 import type { AppError } from "../../ipc/core";
+import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
 import type { SaveState } from "./CaddySaveBar";
 import {
   isResultStale,
@@ -59,12 +61,14 @@ export function RawEditorView({
   onCancel,
   onSave,
 }: RawEditorViewProps) {
+  const copy = useCaddyCopy();
+  const { t } = copy;
   const loading = load.status === "loading";
   const blocked = blockReason !== undefined;
   const running = isRunning(validation);
   const saving = save.status === "saving";
   const saveBlocked = loading || load.status === "failed" || saving || blocked;
-  const result = resultSummary(validation);
+  const result = resultSummary(validation, copy);
   const stale = isResultStale(validation, text);
   const canAllow = result?.canAllowExternal === true && !allowedAlready(validation);
 
@@ -76,31 +80,29 @@ export function RawEditorView({
     >
       <Panel className="grid gap-ui-8 p-ui-8">
         <h2 id="raw-editor-heading" className="text-sm font-semibold">
-          原文 Caddyfile
+          {t("caddy.raw.heading")}
         </h2>
-        <p className="m-0 text-aux text-muted-foreground">
-          原文按原样保存和校验，不会被表单重写，也不会转换为表单规则。未识别的指令和注释保持原样。
-        </p>
+        <p className="m-0 text-aux text-muted-foreground">{t("caddy.raw.intro")}</p>
         <p role="note" className="m-0 text-aux text-warning">
-          校验不是纯解析：validate 会加载（provision）配置中的模块，可能占用资源并与正在运行的实例争用端口。
+          {t("caddy.raw.checkNote")}
         </p>
         {load.status === "failed" ? (
           <p role="alert" className="m-0 text-body text-danger">
-            无法读取已保存的原文：{load.error.message} 保存已停用，以免覆盖现有文件。
+            {t("caddy.raw.loadFailed", { error: localizeAppErrorMessage(load.error, copy.locale) })}
           </p>
         ) : null}
         {blockReason !== undefined ? (
           <p role="status" className="m-0 text-body text-muted-foreground">
-            {blockReason}后才能读取、校验或保存原文。
+            {t("caddy.raw.gateBlocked", { reason: blockReason })}
           </p>
         ) : null}
         {loading && !blocked ? (
           <p role="status" className="m-0 text-body text-muted-foreground">
-            正在读取已保存的原文……
+            {t("caddy.raw.loading")}
           </p>
         ) : null}
         <TextAreaField
-          label="Caddyfile 原文"
+          label={t("caddy.raw.textLabel")}
           value={text}
           rows={18}
           spellCheck={false}
@@ -114,11 +116,11 @@ export function RawEditorView({
             disabled={loading || running || blocked}
             onClick={onValidate}
           >
-            校验
+            {t("caddy.raw.check")}
           </Button>
           {running ? (
             <Button variant="secondary" onClick={onCancel}>
-              取消校验
+              {t("caddy.raw.cancelCheck")}
             </Button>
           ) : null}
           {canAllow ? (
@@ -127,14 +129,14 @@ export function RawEditorView({
               disabled={running || blocked}
               onClick={onAllowExternalAndValidate}
             >
-              允许并校验
+              {t("caddy.raw.allowAndCheck")}
             </Button>
           ) : null}
           <Button variant="secondary" disabled={saveBlocked} onClick={onSave}>
-            {saving ? "保存中……" : "保存原文"}
+            {saving ? t("caddy.save.saving") : t("caddy.raw.saveRaw")}
           </Button>
         </div>
-        <SaveResult state={save} />
+        <SaveResult state={save} copy={copy} />
       </Panel>
       <ValidationResult
         validation={validation}
@@ -145,9 +147,12 @@ export function RawEditorView({
   );
 }
 
-function resultSummary(validation: ValidationState): ValidationSummary | undefined {
-  if (validation.status === "done") return summarizeReport(validation.report);
-  if (validation.status === "failed") return summarizeFailure(validation.error);
+function resultSummary(
+  validation: ValidationState,
+  copy: CaddyCopy,
+): ValidationSummary | undefined {
+  if (validation.status === "done") return summarizeReport(validation.report, copy);
+  if (validation.status === "failed") return summarizeFailure(validation.error, copy);
   return undefined;
 }
 
@@ -167,10 +172,11 @@ function ValidationResult({
   summary: ValidationSummary | undefined;
   stale: boolean;
 }) {
+  const { t } = useCaddyCopy();
   if (validation.status === "running") {
     return (
       <Panel role="status" aria-live="polite" className="grid gap-ui-8 p-ui-8">
-        <p className="m-0 text-body">正在校验……可随时取消。</p>
+        <p className="m-0 text-body">{t("caddy.raw.checking")}</p>
       </Panel>
     );
   }
@@ -182,7 +188,7 @@ function ValidationResult({
       </h3>
       {stale ? (
         <p role="status" className="m-0 text-aux text-muted-foreground">
-          文本已修改，以下结果针对之前校验的内容。
+          {t("caddy.raw.stale")}
         </p>
       ) : null}
       {summary.details.length > 0 ? (
@@ -196,18 +202,18 @@ function ValidationResult({
   );
 }
 
-function SaveResult({ state }: { state: SaveState }) {
+function SaveResult({ state, copy }: { state: SaveState; copy: CaddyCopy }) {
   if (state.status === "saved") {
     return (
       <p role="status" className="m-0 text-body text-success">
-        原文已保存。保存不会启动或重载 Caddy。
+        {copy.t("caddy.raw.saved")}
       </p>
     );
   }
   if (state.status !== "failed") return null;
   return (
     <p role="alert" className="m-0 text-body text-danger">
-      保存失败：{state.error.message}
+      {copy.t("caddy.save.failed", { message: localizeAppErrorMessage(state.error, copy.locale) })}
     </p>
   );
 }

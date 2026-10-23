@@ -1,4 +1,3 @@
-import type { AppError } from "../../ipc/core";
 import type {
   CaddyCandidateOutcome,
   CaddyExposure,
@@ -11,18 +10,19 @@ import type {
   CaddyTlsSiteStatus,
   CaddyUpstreamScheme,
 } from "../../ipc/caddy";
+import type { AppError } from "../../ipc/core";
+import type { MessageKey } from "../../i18n";
+import { ZH_COPY, type CaddyCopy } from "./caddyCopy";
 
 export const MAX_DRAFT_SITES = 32;
 export const MAX_DRAFT_UPSTREAMS = 8;
 export const DEFAULT_LISTEN_HOST = "127.0.0.1";
 const RULES_VERSION = 1;
 const PORT_PATTERN = /^\d{1,5}$/;
-export const PORT_MESSAGE = "端口必须是 0 到 65535 之间的整数。";
-export const TLS_MISSING_MESSAGE = "请选择证书文件与私钥文件，或关闭 HTTPS。";
-export const ACCESS_LOG_PRIVACY_NOTICE =
-  "开启后会记录请求的 URL、客户端地址等信息，可能包含个人数据或凭据。日志只保留在本应用的有界缓冲中，不会自动外发。";
-export const TLS_FILES_NOTICE =
-  "应用只检查文件是否存在、是否为普通文件以及私钥权限，不读取证书或私钥内容，也未检查证书有效期与域名是否匹配。不会申请证书，也不会安装信任。";
+export const ACCESS_LOG_PRIVACY_KEY = "caddy.rules.accessLogPrivacy";
+export const TLS_FILES_NOTICE_KEY = "caddy.rules.tlsFilesNotice";
+export const ACCESS_LOG_PRIVACY_NOTICE = ZH_COPY.t(ACCESS_LOG_PRIVACY_KEY);
+export const TLS_FILES_NOTICE = ZH_COPY.t(TLS_FILES_NOTICE_KEY);
 
 export interface UpstreamDraft {
   key: number;
@@ -151,16 +151,16 @@ export type DraftResult =
 
 // Local checks cover only what the rule model cannot express (a port that is not
 // a number). Host, range and conflict checks stay with the backend.
-export function rulesFromDraft(sites: SiteDraft[]): DraftResult {
+export function rulesFromDraft(sites: SiteDraft[], copy: CaddyCopy = ZH_COPY): DraftResult {
   const errors: Record<string, string> = {};
   const built: CaddySite[] = sites.map((site, siteIndex) => {
     const listenPort = parsePort(site.port);
     if (listenPort === undefined) {
-      errors[siteFieldKey(siteIndex, "listen.port")] = PORT_MESSAGE;
+      errors[siteFieldKey(siteIndex, "listen.port")] = copy.t("caddy.rules.portInvalid");
     }
     const tls = tlsOf(site.tls);
     if (site.tls !== null && tls === undefined) {
-      errors[siteTlsKey(siteIndex)] = TLS_MISSING_MESSAGE;
+      errors[siteTlsKey(siteIndex)] = copy.t("caddy.rules.tlsMissing");
     }
     return {
       enabled: site.enabled,
@@ -168,7 +168,7 @@ export function rulesFromDraft(sites: SiteDraft[]): DraftResult {
       upstreams: site.upstreams.map((upstream, upstreamIndex) => {
         const upstreamPort = parsePort(upstream.port);
         if (upstreamPort === undefined) {
-          errors[upstreamFieldKey(siteIndex, upstreamIndex, "port")] = PORT_MESSAGE;
+          errors[upstreamFieldKey(siteIndex, upstreamIndex, "port")] = copy.t("caddy.rules.portInvalid");
         }
         return {
           scheme: upstream.scheme,
@@ -242,28 +242,35 @@ export function externalExposures(exposures: CaddyExposure[]): CaddyExposure[] {
   return exposures.filter((exposure) => exposure.visibleExternally);
 }
 
-const DIFF_MARKERS: Record<CaddyLineChange, { symbol: string; label: string }> = {
-  ADDED: { symbol: "+", label: "新增" },
-  REMOVED: { symbol: "-", label: "删除" },
-  UNCHANGED: { symbol: " ", label: "不变" },
+const DIFF_MARKERS: Record<CaddyLineChange, { symbol: string; labelKey: MessageKey }> = {
+  ADDED: { symbol: "+", labelKey: "caddy.diff.added" },
+  REMOVED: { symbol: "-", labelKey: "caddy.diff.removed" },
+  UNCHANGED: { symbol: " ", labelKey: "caddy.diff.unchanged" },
 };
 
-export function diffMarker(change: CaddyLineChange): { symbol: string; label: string } {
-  return DIFF_MARKERS[change];
+export function diffMarker(
+  change: CaddyLineChange,
+  copy: CaddyCopy = ZH_COPY,
+): { symbol: string; label: string } {
+  const marker = DIFF_MARKERS[change];
+  return { symbol: marker.symbol, label: copy.t(marker.labelKey) };
 }
 
-const CANDIDATE_OUTCOME_TEXT: Record<CaddyCandidateOutcome, string> = {
-  MISSING: "该位置没有文件",
-  UNREADABLE: "无法读取该位置",
-  OUTSIDE_ROOT: "指向安装目录之外，已拒绝",
-  NOT_REGULAR_FILE: "不是普通文件",
-  NOT_EXECUTABLE: "没有可执行权限",
-  GROUP_OR_WORLD_WRITABLE: "组或其他用户可写，已拒绝",
-  USABLE: "结构检查通过",
+const CANDIDATE_OUTCOME_KEY: Record<CaddyCandidateOutcome, MessageKey> = {
+  MISSING: "caddy.candidate.missing",
+  UNREADABLE: "caddy.candidate.unreadable",
+  OUTSIDE_ROOT: "caddy.candidate.outsideRoot",
+  NOT_REGULAR_FILE: "caddy.candidate.notRegularFile",
+  NOT_EXECUTABLE: "caddy.candidate.notExecutable",
+  GROUP_OR_WORLD_WRITABLE: "caddy.candidate.groupOrWorldWritable",
+  USABLE: "caddy.candidate.usable",
 };
 
-export function candidateOutcomeText(outcome: CaddyCandidateOutcome): string {
-  return CANDIDATE_OUTCOME_TEXT[outcome];
+export function candidateOutcomeText(
+  outcome: CaddyCandidateOutcome,
+  copy: CaddyCopy = ZH_COPY,
+): string {
+  return copy.t(CANDIDATE_OUTCOME_KEY[outcome]);
 }
 
 export type PreviewState =
@@ -276,16 +283,20 @@ export interface SaveGate {
   reason?: string;
 }
 
-export function saveGate(input: {
-  localValid: boolean;
-  preview: PreviewState;
-  saving: boolean;
-}): SaveGate {
-  if (!input.localValid) return { enabled: false, reason: "请先修正表单中的错误。" };
-  if (input.preview.status === "pending") return { enabled: false, reason: "正在校验，请稍候。" };
-  if (input.preview.status === "failed") return { enabled: false, reason: "预览失败，无法保存。" };
-  if (!input.preview.preview.valid) return { enabled: false, reason: "校验未通过，无法保存。" };
-  if (input.saving) return { enabled: false, reason: "保存中……" };
+export function saveGate(
+  input: {
+    localValid: boolean;
+    preview: PreviewState;
+    saving: boolean;
+  },
+  copy: CaddyCopy = ZH_COPY,
+): SaveGate {
+  const { t } = copy;
+  if (!input.localValid) return { enabled: false, reason: t("caddy.gate.fixForm") };
+  if (input.preview.status === "pending") return { enabled: false, reason: t("caddy.gate.validating") };
+  if (input.preview.status === "failed") return { enabled: false, reason: t("caddy.gate.previewFailed") };
+  if (!input.preview.preview.valid) return { enabled: false, reason: t("caddy.gate.invalid") };
+  if (input.saving) return { enabled: false, reason: t("caddy.gate.saving") };
   return { enabled: true };
 }
 
@@ -294,9 +305,9 @@ export interface TlsFileLine {
   text: string;
 }
 
-const TLS_SLOT_LABEL: Record<TlsSlot, string> = {
-  certificate: "证书",
-  privateKey: "私钥",
+const TLS_SLOT_KEY: Record<TlsSlot, MessageKey> = {
+  certificate: "caddy.tls.slot.certificate",
+  privateKey: "caddy.tls.slot.privateKey",
 };
 
 // Names come from the backend status only; a directory never reaches this text.
@@ -304,20 +315,25 @@ export function tlsFileLine(
   slot: TlsSlot,
   grantId: string | undefined,
   status: CaddyTlsSiteStatus | undefined,
+  copy: CaddyCopy = ZH_COPY,
 ): TlsFileLine {
-  if (grantId === undefined) return { symbol: "○", text: `未选择${TLS_SLOT_LABEL[slot]}文件` };
-  if (status === undefined) return { symbol: "…", text: "正在检查" };
-  const label = TLS_SLOT_LABEL[slot];
+  const { t } = copy;
+  const slotLabel = t(TLS_SLOT_KEY[slot]);
+  if (grantId === undefined) {
+    return { symbol: "○", text: t("caddy.tls.notChosen", { slot: slotLabel }) };
+  }
+  if (status === undefined) return { symbol: "…", text: t("caddy.tls.checking") };
   if (status.state === "BLOCKED") {
-    const message = status.message ?? "授权不可用，请重新选择文件。";
-    return message.includes(label)
+    const message = status.message ?? t("caddy.tls.unavailable");
+    // Backend messages are Chinese and name the slot in Chinese, so the match uses the zh label.
+    return message.includes(ZH_COPY.t(TLS_SLOT_KEY[slot]))
       ? { symbol: "✕", text: message }
-      : { symbol: "✕", text: `未通过检查：${message}` };
+      : { symbol: "✕", text: t("caddy.tls.failedCheck", { message }) };
   }
   const name = slot === "certificate" ? status.certificateName : status.privateKeyName;
-  if (name === undefined) return { symbol: "✕", text: "授权不可用，请重新选择文件。" };
+  if (name === undefined) return { symbol: "✕", text: t("caddy.tls.unavailable") };
   if (slot === "privateKey" && status.warnings.includes("PRIVATE_KEY_READABLE_BY_OTHERS")) {
-    return { symbol: "⚠", text: `已选择：${name}（组或其他用户可读，建议改为仅本人可读）` };
+    return { symbol: "⚠", text: t("caddy.tls.selectedWeakPermission", { name }) };
   }
-  return { symbol: "✓", text: `已选择：${name}` };
+  return { symbol: "✓", text: t("caddy.tls.selected", { name }) };
 }

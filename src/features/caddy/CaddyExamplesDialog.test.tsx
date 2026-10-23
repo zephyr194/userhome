@@ -4,7 +4,7 @@ import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CaddyExamplesDialog } from "./CaddyExamplesDialog";
 import { CaddyRulesEditor } from "./CaddyRulesEditor";
-import { CADDY_EXAMPLES, REFERENCE_NOTICE, type CaddyExample } from "./caddyExamples";
+import { CADDY_EXAMPLES, REFERENCE_NOTICE, exampleTitle, type CaddyExample } from "./caddyExamples";
 import { createIdSource } from "./caddyRulesModel";
 
 const REGION = "Caddyfile 示例";
@@ -28,7 +28,7 @@ function shown(text: string): string {
 }
 
 function tabFor(example: CaddyExample): HTMLElement {
-  return screen.getByRole("tab", { name: new RegExp(`^${example.title}`) });
+  return screen.getByRole("tab", { name: new RegExp(`^${exampleTitle(example)}`) });
 }
 
 function Harness({ onClose }: { onClose: () => void }) {

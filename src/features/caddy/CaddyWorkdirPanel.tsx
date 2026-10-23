@@ -1,4 +1,6 @@
 import { ActionRow, Button, StatusBadge } from "../../components/ui";
+import { localizeAppErrorMessage } from "../../i18n/errors";
+import { useCaddyCopy } from "./caddyCopy";
 import type { WorkdirAction, WorkdirLoad } from "./caddyWorkdirModel";
 
 interface CaddyWorkdirPanelProps {
@@ -15,25 +17,26 @@ interface CaddyWorkdirPanelProps {
 }
 
 export function CaddyWorkdirPanel(props: CaddyWorkdirPanelProps) {
+  const { t } = useCaddyCopy();
   const busy = props.action.status === "busy";
   return (
     <section aria-labelledby="caddy-workdir-heading" className="caddy-status__cell grid min-w-0 content-start gap-ui-4">
       <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
         <h2 id="caddy-workdir-heading" className="text-sm font-semibold">
-          工作目录
+          {t("caddy.workdir.heading")}
         </h2>
         <WorkdirBody {...props} busy={busy} />
       </div>
       {props.legacyPath !== undefined ? (
         <div className="grid gap-ui-4">
           <p role="status" className="m-0 text-aux">
-            旧应用私有目录中有 Caddy 数据：
+            {t("caddy.workdir.legacyIntro")}
             <span className="font-mono break-all">{props.legacyPath}</span>
-            。它们不会自动迁移到工作目录，本应用不会读取或移动这些文件。
+            {t("caddy.workdir.legacyOutro")}
           </p>
           <div>
             <Button size="sm" variant="ghost" onClick={props.onDismissLegacy}>
-              知道了
+              {t("caddy.workdir.legacyAck")}
             </Button>
           </div>
         </div>
@@ -49,10 +52,11 @@ interface WorkdirBodyProps extends CaddyWorkdirPanelProps {
 
 function WorkdirBody(props: WorkdirBodyProps) {
   const { load } = props;
+  const { t, locale } = useCaddyCopy();
   if (load.status === "loading") {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
-        正在检查工作目录……
+        {t("caddy.workdir.checking")}
       </p>
     );
   }
@@ -60,10 +64,10 @@ function WorkdirBody(props: WorkdirBodyProps) {
     return (
       <>
         <p role="alert" className="m-0 text-body text-danger">
-          无法读取工作目录状态：{load.error.message}
+          {t("caddy.workdir.loadFailed", { error: localizeAppErrorMessage(load.error, locale) })}
         </p>
         <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onRetry}>
-          重新检查
+          {t("caddy.workdir.recheck")}
         </Button>
       </>
     );
@@ -75,9 +79,10 @@ function WorkdirBody(props: WorkdirBodyProps) {
 }
 
 function UnauthorizedBody(props: WorkdirBodyProps & { defaultPath: string }) {
+  const { t } = useCaddyCopy();
   return (
     <>
-      <StatusBadge tone="warning">未选择</StatusBadge>
+      <StatusBadge tone="warning">{t("caddy.workdir.unselected")}</StatusBadge>
       <ActionRow>
         <Button
           size="sm"
@@ -86,41 +91,42 @@ function UnauthorizedBody(props: WorkdirBodyProps & { defaultPath: string }) {
           aria-describedby="caddy-workdir-default-note"
           onClick={props.onUseDefault}
         >
-          使用 {props.defaultPath}
+          {t("caddy.workdir.useDefault", { path: props.defaultPath })}
         </Button>
         <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onSelect}>
-          选择其他目录…
+          {t("caddy.workdir.chooseOther")}
         </Button>
       </ActionRow>
       <p className="m-0 basis-full text-aux text-muted-foreground">
-        Caddy 的规则、Caddyfile、检查副本、运行目录和日志都保存在工作目录中。请先选择一个工作目录，之后才能保存或开启 Caddy。
+        {t("caddy.workdir.dataNote")}
       </p>
       <p id="caddy-workdir-default-note" className="m-0 basis-full text-aux text-muted-foreground">
-        点击“使用 {props.defaultPath}”才会创建该目录，权限为 0700（仅你的账户可访问），并将它设为工作目录。
+        {t("caddy.workdir.defaultNote", { path: props.defaultPath })}
       </p>
     </>
   );
 }
 
 function AuthorizedBody(props: WorkdirBodyProps & { displayPath: string }) {
+  const { t } = useCaddyCopy();
   if (props.action.status === "confirmRevoke") {
     return (
-      <div role="group" aria-label="确认撤销" className="grid min-w-0 basis-full gap-ui-8">
+      <div role="group" aria-label={t("caddy.workdir.confirmRevokeGroup")} className="grid min-w-0 basis-full gap-ui-8">
         <dl className="m-0 flex min-w-0 items-center gap-ui-4">
-          <dt className="shrink-0 text-aux text-muted-foreground">当前目录</dt>
+          <dt className="shrink-0 text-aux text-muted-foreground">{t("caddy.workdir.currentFolder")}</dt>
           <dd className="m-0 min-w-0 truncate font-mono text-aux" title={props.displayPath}>
             {props.displayPath}
           </dd>
         </dl>
         <p className="m-0 text-aux text-muted-foreground">
-          撤销后 Caddy 功能将回到“需要先选择工作目录”。规则文件保留在原目录，不会被删除。
+          {t("caddy.workdir.revokeNote")}
         </p>
         <ActionRow>
           <Button size="sm" variant="danger" disabled={props.busy} onClick={props.onRevoke}>
-            确认撤销
+            {t("caddy.workdir.confirmRevoke")}
           </Button>
           <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onCancelRevoke}>
-            取消
+            {t("common.cancel")}
           </Button>
         </ActionRow>
       </div>
@@ -128,19 +134,19 @@ function AuthorizedBody(props: WorkdirBodyProps & { displayPath: string }) {
   }
   return (
     <>
-      <StatusBadge tone="success">已授权</StatusBadge>
+      <StatusBadge tone="success">{t("caddy.workdir.authorized")}</StatusBadge>
       <dl className="m-0 flex min-w-0 items-center gap-ui-4">
-        <dt className="shrink-0 text-aux text-muted-foreground">当前目录</dt>
+        <dt className="shrink-0 text-aux text-muted-foreground">{t("caddy.workdir.currentFolder")}</dt>
         <dd className="m-0 min-w-0 truncate font-mono text-aux" title={props.displayPath}>
           {props.displayPath}
         </dd>
       </dl>
       <ActionRow>
         <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onSelect}>
-          更改目录
+          {t("caddy.workdir.changeFolder")}
         </Button>
         <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onConfirmRevoke}>
-          撤销
+          {t("caddy.workdir.revoke")}
         </Button>
       </ActionRow>
     </>
@@ -148,10 +154,11 @@ function AuthorizedBody(props: WorkdirBodyProps & { displayPath: string }) {
 }
 
 function ActionResult({ action }: { action: WorkdirAction }) {
+  const { t } = useCaddyCopy();
   if (action.status === "busy") {
     return (
       <p role="status" className="m-0 text-aux text-muted-foreground">
-        正在处理……
+        {t("caddy.workdir.busy")}
       </p>
     );
   }

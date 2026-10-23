@@ -10,10 +10,11 @@ import {
 } from "../../components/ui";
 import type { CaddyTlsSiteStatus, CaddyUpstreamScheme } from "../../ipc/caddy";
 import { CaddyExamplesDialog } from "./CaddyExamplesDialog";
+import { useCaddyCopy } from "./caddyCopy";
 import {
-  ACCESS_LOG_PRIVACY_NOTICE,
+  ACCESS_LOG_PRIVACY_KEY,
   MAX_DRAFT_SITES,
-  TLS_FILES_NOTICE,
+  TLS_FILES_NOTICE_KEY,
   feedbackForField,
   newSiteDraft,
   siteFieldKey,
@@ -70,6 +71,7 @@ export function CaddyRulesEditor({
   onChange,
   onPickTlsFile = () => undefined,
 }: CaddyRulesEditorProps) {
+  const { t } = useCaddyCopy();
   const [examplesOpen, setExamplesOpen] = useState(false);
   const feedback = (key: string) => feedbackForField(key, mapped, localErrors);
 
@@ -81,11 +83,11 @@ export function CaddyRulesEditor({
     <section aria-labelledby="caddy-rules-heading" className="grid min-w-0 gap-ui-8">
       <div className="flex flex-wrap items-center justify-between gap-ui-8">
         <h2 id="caddy-rules-heading" className="text-sm font-semibold">
-          代理规则
+          {t("caddy.rules.heading")}
         </h2>
         <div className="flex flex-wrap items-center gap-ui-8">
           <Button size="sm" variant="secondary" onClick={() => setExamplesOpen(true)}>
-            配置示例
+            {t("caddy.rules.examples")}
           </Button>
           <Button
             size="sm"
@@ -93,7 +95,7 @@ export function CaddyRulesEditor({
             disabled={sites.length >= MAX_DRAFT_SITES}
             onClick={() => onChange([...sites, newSiteDraft(ids)])}
           >
-            新增站点
+            {t("caddy.rules.addSite")}
           </Button>
         </div>
       </div>
@@ -104,7 +106,7 @@ export function CaddyRulesEditor({
         </p>
       ))}
       {sites.length === 0 ? (
-        <p className="m-0 text-body text-muted-foreground">没有站点规则。新增站点后才能生成 Caddyfile。</p>
+        <p className="m-0 text-body text-muted-foreground">{t("caddy.rules.noSites")}</p>
       ) : null}
       {sites.map((site, siteIndex) => {
         const upstreamList = feedback(siteFieldKey(siteIndex, "upstreams"));
@@ -117,15 +119,15 @@ export function CaddyRulesEditor({
             <div className="flex flex-wrap items-center justify-between gap-ui-8">
               <div className="flex min-w-0 flex-wrap items-center gap-ui-8">
                 <h3 id={`caddy-site-${site.key}-heading`} className="text-sm font-semibold">
-                  站点 {siteIndex + 1}
+                  {t("caddy.rules.siteHeading", { index: siteIndex + 1 })}
                 </h3>
                 {exposedSites.has(siteIndex) ? (
-                  <StatusBadge tone="warning">对外可见</StatusBadge>
+                  <StatusBadge tone="warning">{t("caddy.rules.exposedBadge")}</StatusBadge>
                 ) : null}
               </div>
               <ActionRow align="end">
                 <SwitchField
-                  label="启用此站点"
+                  label={t("caddy.rules.enableSite")}
                   name={`site-${site.key}-enabled`}
                   checked={site.enabled}
                   onCheckedChange={(enabled) => replaceSite(siteIndex, { ...site, enabled })}
@@ -159,10 +161,10 @@ export function CaddyRulesEditor({
                 size="sm"
                 variant="secondary"
                 className="caddy-danger-outline"
-                aria-label={`删除站点 ${siteIndex + 1}`}
+                aria-label={t("caddy.rules.deleteSiteLabel", { site: siteIndex + 1 })}
                 onClick={() => onChange(sites.filter((_, position) => position !== siteIndex))}
               >
-                删除站点
+                {t("caddy.rules.deleteSite")}
               </Button>
             </div>
           </section>
@@ -195,12 +197,14 @@ function DirectiveRowView({
   onSite,
   onPickTlsFile,
 }: DirectiveRowViewProps) {
+  const { t } = useCaddyCopy();
   const definition = DIRECTIVES[row.id];
   const required = isRequiredRow(site, row);
   const upstreamIndex = site.upstreams.findIndex((upstream) => upstream.key === row.upstreamKey);
+  const directiveShort = t(definition.short);
   const options: SelectOption<DirectiveId>[] = rowDirectiveOptions(site, row).map((id) => ({
     value: id,
-    label: DIRECTIVES[id].label,
+    label: t(DIRECTIVES[id].label),
   }));
   const remove = () => onSite(removeDirectiveRow(site, row));
 
@@ -208,7 +212,13 @@ function DirectiveRowView({
     <li className="flex min-w-0 flex-wrap items-start gap-ui-8 rounded-control bg-surface p-ui-8">
       <div className="min-w-28">
         <SelectField
-          label={showLabel ? "指令" : <span className="text-transparent">指令</span>}
+          label={
+            showLabel ? (
+              t("caddy.rules.directiveLabel")
+            ) : (
+              <span className="text-transparent">{t("caddy.rules.directiveLabel")}</span>
+            )
+          }
           name={`site-${site.key}-${row.rowKey}-directive`}
           options={options}
           value={row.id}
@@ -232,30 +242,39 @@ function DirectiveRowView({
         {row.id === "upstream" ? (
           <Button
             variant="ghost"
-            aria-label={`删除上游 ${upstreamIndex + 1}（站点 ${siteIndex + 1}）`}
+            aria-label={t("caddy.rules.deleteUpstreamLabel", {
+              upstream: upstreamIndex + 1,
+              site: siteIndex + 1,
+            })}
             disabled={required}
-            title={required ? definition.requiredReason : undefined}
+            title={required && definition.requiredReason ? t(definition.requiredReason) : undefined}
             onClick={remove}
           >
-            删除上游
+            {t("caddy.rules.deleteUpstream")}
           </Button>
         ) : required ? (
           <Button
             variant="ghost"
             size="sm"
-            aria-label={`删除${definition.short}（站点 ${siteIndex + 1}）`}
+            aria-label={t("caddy.rules.deleteDirectiveLabel", {
+              directive: directiveShort,
+              site: siteIndex + 1,
+            })}
             disabled
-            title={definition.requiredReason}
+            title={definition.requiredReason ? t(definition.requiredReason) : undefined}
           >
             <TrashIcon />
           </Button>
         ) : (
           <Button
             variant="ghost"
-            aria-label={`删除${definition.short}（站点 ${siteIndex + 1}）`}
+            aria-label={t("caddy.rules.deleteDirectiveLabel", {
+              directive: directiveShort,
+              site: siteIndex + 1,
+            })}
             onClick={remove}
           >
-            {`删除${definition.short}`}
+            {t("caddy.rules.deleteDirective", { directive: directiveShort })}
           </Button>
         )}
       </div>
@@ -302,12 +321,14 @@ function DirectiveValue({
   onSite,
   onPickTlsFile,
 }: DirectiveValueProps) {
+  const copy = useCaddyCopy();
+  const { t } = copy;
   switch (DIRECTIVES[row.id].control) {
     case "host": {
       const listenHost = feedback(siteFieldKey(siteIndex, "listen.host"));
       return (
         <TextField
-          label="监听主机"
+          label={t("caddy.directive.listenHost")}
           name={`site-${site.key}-host`}
           value={site.host}
           error={listenHost.error}
@@ -320,7 +341,7 @@ function DirectiveValue({
       const listenPort = feedback(siteFieldKey(siteIndex, "listen.port"));
       return (
         <TextField
-          label="监听端口"
+          label={t("caddy.directive.listenPort")}
           name={`site-${site.key}-port`}
           inputMode="numeric"
           value={site.port}
@@ -343,14 +364,14 @@ function DirectiveValue({
       return (
         <div className="grid gap-ui-8 sm:grid-cols-3">
           <SelectField
-            label="上游协议"
+            label={t("caddy.rules.upstreamScheme")}
             name={`upstream-${upstream.key}-scheme`}
             options={SCHEME_OPTIONS}
             value={upstream.scheme}
             onValueChange={(scheme) => replaceUpstream({ ...upstream, scheme })}
           />
           <TextField
-            label="上游主机"
+            label={t("caddy.rules.upstreamHost")}
             name={`upstream-${upstream.key}-host`}
             value={upstream.host}
             error={upstreamHost.error}
@@ -358,7 +379,7 @@ function DirectiveValue({
             onValueChange={(host) => replaceUpstream({ ...upstream, host })}
           />
           <TextField
-            label="上游端口"
+            label={t("caddy.rules.upstreamPort")}
             name={`upstream-${upstream.key}-port`}
             inputMode="numeric"
             value={upstream.port}
@@ -375,18 +396,18 @@ function DirectiveValue({
       return (
         <div className="grid gap-ui-8">
           <FileRow
-            label="证书文件"
-            buttonLabel="选择证书文件"
-            line={tlsFileLine("certificate", site.tls.certificateGrantId, tlsStatus)}
+            label={t("caddy.rules.certificateFile")}
+            buttonLabel={t("caddy.rules.chooseCertificate")}
+            line={tlsFileLine("certificate", site.tls.certificateGrantId, tlsStatus, copy)}
             onPick={() => onPickTlsFile("certificate")}
           />
           <FileRow
-            label="私钥文件"
-            buttonLabel="选择私钥文件"
-            line={tlsFileLine("privateKey", site.tls.privateKeyGrantId, tlsStatus)}
+            label={t("caddy.rules.privateKeyFile")}
+            buttonLabel={t("caddy.rules.choosePrivateKey")}
+            line={tlsFileLine("privateKey", site.tls.privateKeyGrantId, tlsStatus, copy)}
             onPick={() => onPickTlsFile("privateKey")}
           />
-          <p className="m-0 text-aux text-muted-foreground">{TLS_FILES_NOTICE}</p>
+          <p className="m-0 text-aux text-muted-foreground">{t(TLS_FILES_NOTICE_KEY)}</p>
           {tlsError ? (
             <p role="alert" className="m-0 text-aux text-danger">
               {tlsError}
@@ -399,7 +420,7 @@ function DirectiveValue({
       return (
         <div className="grid gap-ui-8">
           <SwitchField
-            label={DIRECTIVES[row.id].label}
+            label={t(DIRECTIVES[row.id].label)}
             name={`site-${site.key}-access-log`}
             checked
             onCheckedChange={(enabled) => {
@@ -407,7 +428,7 @@ function DirectiveValue({
             }}
           />
           <p role="note" className="m-0 text-aux text-muted-foreground">
-            {ACCESS_LOG_PRIVACY_NOTICE}
+            {t(ACCESS_LOG_PRIVACY_KEY)}
           </p>
         </div>
       );
@@ -423,9 +444,10 @@ function AddDirectiveGroup({
   ids: IdSource;
   onSite: (next: SiteDraft) => void;
 }) {
+  const { t } = useCaddyCopy();
   return (
-    <div role="group" aria-label="添加指令" className="grid gap-ui-8">
-      <span className="text-sm font-medium">添加指令</span>
+    <div role="group" aria-label={t("caddy.rules.addDirective")} className="grid gap-ui-8">
+      <span className="text-sm font-medium">{t("caddy.rules.addDirective")}</span>
       <div className="flex flex-wrap gap-ui-8">
         {addableDirectives(site).map((id) => (
           <Button
@@ -435,13 +457,13 @@ function AddDirectiveGroup({
             disabled={!canAddDirective(site, id)}
             onClick={() => onSite(addDirective(site, id, ids))}
           >
-            {DIRECTIVES[id].label}
+            {t(DIRECTIVES[id].label)}
           </Button>
         ))}
       </div>
       {site.accessLog ? null : (
         <p role="note" className="m-0 text-aux text-muted-foreground">
-          {ACCESS_LOG_PRIVACY_NOTICE}
+          {t(ACCESS_LOG_PRIVACY_KEY)}
         </p>
       )}
     </div>

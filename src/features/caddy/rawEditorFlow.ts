@@ -1,9 +1,12 @@
+import type { MessageKey } from "../../i18n";
+import { localizeAppErrorMessage } from "../../i18n/errors";
 import type { AppError } from "../../ipc/core";
 import type {
   CaddyCheckStage,
   CaddyReferenceKind,
   CaddyValidationReport,
 } from "../../ipc/caddy";
+import { ZH_COPY, type CaddyCopy } from "./caddyCopy";
 
 export type ValidationState =
   | { status: "idle" }
@@ -30,91 +33,101 @@ export interface ValidationSummary {
   canAllowExternal: boolean;
 }
 
-const REFERENCE_LABELS: Record<CaddyReferenceKind, string> = {
-  IMPORT: "import 引用其他文件",
-  FILE_PLACEHOLDER: "{file.*} 会读取文件",
-  ENV_PLACEHOLDER: "{env.*} 或 {$变量} 会读取环境变量",
-  TLS_ARGUMENTS: "tls 带参数（证书文件或本地 CA）",
+const REFERENCE_LABEL_KEYS: Record<CaddyReferenceKind, MessageKey> = {
+  IMPORT: "caddy.raw.reference.import",
+  FILE_PLACEHOLDER: "caddy.raw.reference.file",
+  ENV_PLACEHOLDER: "caddy.raw.reference.env",
+  TLS_ARGUMENTS: "caddy.raw.reference.tls",
 };
 
-const STAGE_LABELS: Record<CaddyCheckStage, string> = {
-  ADAPT: "结构解析失败（adapt）",
-  VALIDATE: "模块加载失败（validate）",
+const STAGE_LABEL_KEYS: Record<CaddyCheckStage, MessageKey> = {
+  ADAPT: "caddy.raw.stage.adapt",
+  VALIDATE: "caddy.raw.stage.validate",
 };
 
-export const EXTERNAL_REFERENCE_NOTE =
-  "允许后才会执行校验。校验在私有临时目录中进行，相对引用不会指向你的其他文件。";
+export const EXTERNAL_REFERENCE_NOTE = ZH_COPY.t("caddy.raw.externalNote");
 
-export function referenceLabel(kind: CaddyReferenceKind): string {
-  return REFERENCE_LABELS[kind];
+export function referenceLabel(kind: CaddyReferenceKind, copy: CaddyCopy = ZH_COPY): string {
+  return copy.t(REFERENCE_LABEL_KEYS[kind]);
 }
 
-export function stageLabel(stage: CaddyCheckStage): string {
-  return STAGE_LABELS[stage];
+export function stageLabel(stage: CaddyCheckStage, copy: CaddyCopy = ZH_COPY): string {
+  return copy.t(STAGE_LABEL_KEYS[stage]);
 }
 
-export function summarizeReport(report: CaddyValidationReport): ValidationSummary {
+export function summarizeReport(
+  report: CaddyValidationReport,
+  copy: CaddyCopy = ZH_COPY,
+): ValidationSummary {
+  const { t } = copy;
   const messages = report.diagnostics.map((item) =>
-    item.line === undefined ? item.message : `第 ${item.line} 行：${item.message}`,
+    item.line === undefined
+      ? item.message
+      : t("caddy.run.diagnosticLine", { line: item.line, message: item.message }),
   );
   switch (report.status) {
     case "VALID":
       return {
         tone: "success",
-        title: "校验通过",
-        details: ["已依次执行 adapt 与 validate。"],
+        title: t("caddy.raw.titleValid"),
+        details: [t("caddy.raw.detailValid")],
         canAllowExternal: false,
       };
     case "INVALID":
       return {
         tone: "danger",
-        title: report.stage ? `校验未通过：${stageLabel(report.stage)}` : "校验未通过",
+        title: report.stage
+          ? t("caddy.raw.titleInvalidStage", { stage: stageLabel(report.stage, copy) })
+          : t("caddy.raw.titleInvalid"),
         details: messages,
         canAllowExternal: false,
       };
     case "EXTERNAL_REFERENCES":
       return {
         tone: "warning",
-        title: "含外部引用，需要显式允许",
+        title: t("caddy.raw.titleExternal"),
         details: [
-          ...report.externalReferences.map(
-            (reference) => `第 ${reference.line} 行：${referenceLabel(reference.kind)}`,
+          ...report.externalReferences.map((reference) =>
+            t("caddy.run.diagnosticLine", {
+              line: reference.line,
+              message: referenceLabel(reference.kind, copy),
+            }),
           ),
-          EXTERNAL_REFERENCE_NOTE,
+          t("caddy.raw.externalNote"),
         ],
         canAllowExternal: true,
       };
     case "TIMEOUT":
       return {
         tone: "danger",
-        title: "校验超时，已停止（结果未知）",
+        title: t("caddy.raw.titleTimeout"),
         details: messages,
         canAllowExternal: false,
       };
     case "CANCELLED":
-      return { tone: "muted", title: "已取消校验", details: [], canAllowExternal: false };
+      return { tone: "muted", title: t("caddy.raw.titleCancelled"), details: [], canAllowExternal: false };
     case "OUTPUT_TOO_LARGE":
       return {
         tone: "danger",
-        title: "Caddy 输出超过上限，已停止校验",
+        title: t("caddy.raw.titleOutputTooLarge"),
         details: messages,
         canAllowExternal: false,
       };
     case "UNAVAILABLE":
       return {
         tone: "danger",
-        title: "无法运行 Caddy",
+        title: t("caddy.raw.titleUnavailable"),
         details: messages,
         canAllowExternal: false,
       };
   }
 }
 
-export function summarizeFailure(error: AppError): ValidationSummary {
+export function summarizeFailure(error: AppError, copy: CaddyCopy = ZH_COPY): ValidationSummary {
   return {
     tone: "danger",
-    title: "校验请求失败",
-    details: [error.message],
+    title: copy.t("caddy.raw.titleRequestFailed"),
+    details: [localizeAppErrorMessage(error, copy.locale)],
     canAllowExternal: false,
   };
 }
