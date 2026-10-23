@@ -3181,3 +3181,26 @@ code {
   background: var(--app-surface-raised);
 }
 /* /r12-shell */
+/* r12-settings-env ------------------------------------------------------- */
+/* 复制反馈占固定宽度：已复制与复制失败叠在同一格，切换文案时不挤压行内布局 */
+.r12-copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--app-space-8);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.r12-copy-button__feedback {
+  display: inline-grid;
+  min-width: 0;
+}
+
+.r12-copy-button__feedback > * {
+  grid-area: 1 / 1;
+}
+
+.r12-copy-button__sizer {
+  visibility: hidden;
+}
+/* /r12-settings-env */

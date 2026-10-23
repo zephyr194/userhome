@@ -157,6 +157,8 @@ export function getSettingsSummaries(
           description: t("settings.summary.configuration.boundary.description"),
         },
       ];
+    case "deepLink":
+      return [];
     case "privacy":
       return [
         {

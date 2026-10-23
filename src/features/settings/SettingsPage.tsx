@@ -9,6 +9,7 @@ import type {
 } from "../../ipc/settings";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { ConfigurationSettings } from "./ConfigurationSettings";
+import { DeepLinkSettings } from "./DeepLinkSettings";
 import { DiagnosticsSettings } from "./DiagnosticsSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { PrivacySettings } from "./PrivacySettings";
@@ -129,6 +130,8 @@ export function SettingsPage({
                           onChange={onPreferencesChange}
                           preferences={preferences.preferences}
                         />
+                      ) : group.id === "deepLink" ? (
+                        <DeepLinkSettings />
                       ) : group.id === "privacy" ? (
                         <PrivacySettings
                           onChange={onPreferencesChange}

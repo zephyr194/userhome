@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   DEEP_LINK_MAX_LENGTH,
+  DEEP_LINK_ROUTE_IDS,
   buildPageDeepLink,
+  listDeepLinks,
   parseDeepLink,
   validateDeepLinkPayload,
 } from "./deepLink";
 import { APP_ROUTES, routeSectionsOf } from "./routeDefinitions";
+import { SETTINGS_GROUPS } from "../features/settings/settingsGroups";
 
 describe("parseDeepLink", () => {
   it("resolves every whitelisted route to a navigation intent from the deep-link source", () => {
@@ -191,5 +194,42 @@ describe("buildPageDeepLink", () => {
         });
       }
     }
+  });
+});
+
+describe("listDeepLinks", () => {
+  const pages = listDeepLinks();
+  const links = pages.flatMap((page) => page.rows.map((row) => row.link));
+
+  it("lists every whitelisted page in display order", () => {
+    expect(pages.map((page) => page.routeId)).toEqual(DEEP_LINK_ROUTE_IDS);
+  });
+
+  it("gives every listed link an intent that names its own page", () => {
+    for (const page of pages) {
+      for (const row of page.rows) {
+        expect(parseDeepLink(row.link), row.link).toMatchObject({ routeId: page.routeId });
+      }
+    }
+  });
+
+  it("covers every page, every declared section, and every settings group", () => {
+    for (const routeId of DEEP_LINK_ROUTE_IDS) {
+      expect(links).toContain(`userhome://open/${routeId}`);
+      for (const section of routeSectionsOf(routeId)) {
+        expect(links).toContain(`userhome://open/${routeId}?section=${section.id}`);
+      }
+    }
+    for (const group of SETTINGS_GROUPS) {
+      expect(links).toContain(`userhome://open/settings?group=${group.id}`);
+    }
+  });
+
+  it("lists each link once, with the settings groups in sidebar order", () => {
+    expect(new Set(links).size).toBe(links.length);
+    const settings = pages.find((page) => page.routeId === "settings");
+    expect(settings?.rows.slice(1).map((row) => row.link)).toEqual(
+      SETTINGS_GROUPS.map((group) => `userhome://open/settings?group=${group.id}`),
+    );
   });
 });

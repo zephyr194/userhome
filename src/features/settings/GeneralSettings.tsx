@@ -6,7 +6,6 @@ import type {
 import { InfoTip, SelectField, SwitchField } from "../../components/ui";
 import { useT } from "../../i18n/useLocale";
 import { SettingsFeedback, SettingsFieldList, SettingsForm } from "./SettingsPrimitives";
-import { DeepLinkSettings } from "./DeepLinkSettings";
 import { usePreferenceForm } from "./usePreferenceForm";
 
 export function GeneralSettings({
@@ -28,7 +27,6 @@ export function GeneralSettings({
       </SettingsFieldList>
 
       <SettingsFeedback error={form.error} status={form.status} />
-      <DeepLinkSettings />
     </SettingsForm>
   );
 }

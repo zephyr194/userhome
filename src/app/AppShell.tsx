@@ -29,8 +29,7 @@ import { LocaleProvider } from "../i18n/LocaleProvider";
 import { useT } from "../i18n/useLocale";
 import type { Appearance, UpdatePreferencesRequest } from "../ipc/settings";
 import { registerSettingsRequestListener } from "./refreshEvents";
-import { CopyPageLinkButton } from "./CopyPageLinkButton";
-import { buildPageDeepLink, validateDeepLinkPayload } from "./deepLink";
+import { validateDeepLinkPayload } from "./deepLink";
 import {
   APP_ROUTES,
   activeSectionOf,
@@ -276,11 +275,6 @@ export function ShellContent({
     Partial<Record<AppRouteId, string>>
   >({});
   const activeSectionId = activeSectionOf(activeRoute, sectionByRoute[activeRoute.id])?.id;
-  const pageLink = buildPageDeepLink(
-    activeRoute.id,
-    activeSectionId,
-    activeRoute.id === "settings" ? settingsGroup : undefined,
-  );
   const selectSection = useCallback((routeId: AppRouteId, section: string) => {
     setSectionByRoute((current) => ({ ...current, [routeId]: section }));
   }, [setSectionByRoute]);
@@ -635,7 +629,6 @@ export function ShellContent({
                 </p>
               </div>
               <ActionRow>
-                <CopyPageLinkButton key={pageLink ?? ""} link={pageLink} />
                 <Button
                   className="toolbar-refresh-button"
                   disabled={

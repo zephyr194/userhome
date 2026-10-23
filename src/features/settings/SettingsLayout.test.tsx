@@ -83,7 +83,7 @@ describe("设置页布局（UIB-4f）", () => {
     const markup = render("refresh");
     const tabs = Array.from(markup.matchAll(/<button[^>]*data-group-id="[^"]*"[^>]*>/g), (match) => match[0]);
 
-    expect(tabs).toHaveLength(7);
+    expect(tabs).toHaveLength(8);
     const current = tabs.filter((tab) => tab.includes('aria-current="true"'));
     expect(current).toHaveLength(1);
     expect(current[0]).toContain('data-group-id="refresh"');
@@ -117,7 +117,7 @@ describe("设置页布局（UIB-4f）", () => {
 
     expect(markup).not.toContain("settings-groups-heading");
     expect(markup).not.toMatch(/>分组</);
-    expect(tabs).toHaveLength(7);
+    expect(tabs).toHaveLength(8);
     for (const tab of tabs) {
       expect(tab).toContain("settings-pane__tab");
       expect(tab).not.toContain("size-control-sm");

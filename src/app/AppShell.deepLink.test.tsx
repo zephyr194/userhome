@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./AppShell";
 import type { ShellState } from "./shellState";
-import { COPY_LINK_FAILED } from "../components/ui/clipboard";
 
 const deepLinkHandlers = vi.hoisted(() => ({
   listeners: [] as Array<(payload: unknown) => void>,
@@ -96,13 +95,6 @@ function deliver(payload: unknown) {
   });
 }
 
-function stubClipboard(writeText: (text: string) => Promise<void>) {
-  Object.defineProperty(navigator, "clipboard", {
-    configurable: true,
-    value: { writeText },
-  });
-}
-
 describe("AppShell deep links", () => {
   beforeEach(() => {
     deepLinkHandlers.listeners = [];
@@ -160,52 +152,5 @@ describe("AppShell deep links", () => {
 
     expect(routePanel().dataset.route).toBe("dashboard");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("概览");
-  });
-});
-
-describe("AppShell copy page link", () => {
-  beforeEach(() => {
-    deepLinkHandlers.listeners = [];
-    deepLinkHandlers.pending = null;
-    vi.stubGlobal("localStorage", {
-      getItem: () => JSON.stringify({ routeId: "environment", settingsGroup: "appearance" }),
-      setItem: () => undefined,
-      removeItem: () => undefined,
-    });
-  });
-
-  afterEach(() => {
-    cleanup();
-    vi.unstubAllGlobals();
-    Reflect.deleteProperty(navigator, "clipboard");
-  });
-
-  it("copies the link of the current page and section", async () => {
-    const writeText = vi.fn(() => Promise.resolve());
-    stubClipboard(writeText);
-    renderShell();
-
-    fireEvent.click(screen.getByRole("button", { name: "复制链接" }));
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(writeText).toHaveBeenCalledWith("userhome://open/environment?section=dotenv");
-    expect(screen.getByText("已复制链接").getAttribute("role")).toBe("status");
-  });
-
-  it("explains a failed copy and shows the link to select by hand", async () => {
-    stubClipboard(() => Promise.reject(new Error("denied")));
-    renderShell();
-
-    fireEvent.click(screen.getByRole("button", { name: "复制链接" }));
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    const alert = screen.getByText(COPY_LINK_FAILED).closest("[role='alert']");
-    expect(alert?.textContent).toContain(COPY_LINK_FAILED);
-    expect(alert?.textContent).toContain("userhome://open/environment?section=dotenv");
   });
 });

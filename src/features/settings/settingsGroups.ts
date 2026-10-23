@@ -5,6 +5,7 @@ export type SettingsGroupId =
   | "general"
   | "refresh"
   | "configuration"
+  | "deepLink"
   | "privacy"
   | "diagnostics"
   | "reset";
@@ -35,6 +36,11 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
     id: "configuration",
     labelKey: "settings.group.configuration.label",
     summaryKey: "settings.group.configuration.summary",
+  },
+  {
+    id: "deepLink",
+    labelKey: "settings.group.deepLink.label",
+    summaryKey: "settings.group.deepLink.summary",
   },
   {
     id: "privacy",

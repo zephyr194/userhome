@@ -60,11 +60,11 @@ function tokensForClass(markup: string, token: string): string[] {
 }
 
 describe("settings page list/detail reference layout", () => {
-  it("renders all seven groups in the owned list pane", () => {
+  it("renders all eight groups in the owned list pane", () => {
     const markup = render("appearance");
 
-    expect(SETTINGS_GROUPS).toHaveLength(7);
-    expect(markup.match(/role="tab"/g) ?? []).toHaveLength(7);
+    expect(SETTINGS_GROUPS).toHaveLength(8);
+    expect(markup.match(/role="tab"/g) ?? []).toHaveLength(8);
     for (const group of SETTINGS_GROUPS) {
       expect(markup).toContain(groupLabel(group));
     }
@@ -97,6 +97,11 @@ describe("settings page list/detail reference layout", () => {
       expect(markup).not.toContain("UserHome 偏好");
       expect(markup).not.toContain("本机偏好与应用行为");
     }
+  });
+
+  it("lists the deep links only in their own group", () => {
+    expect(render("deepLink")).toContain("userhome://open/caddy?section=rules");
+    expect(render("general")).not.toContain("userhome://open/");
   });
 
   it("offers the appearance group as a three-way choice", () => {

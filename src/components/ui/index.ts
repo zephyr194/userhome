@@ -2,6 +2,7 @@ export { ActionRow } from "./ActionRow";
 export { BrandMark } from "./BrandMark";
 export { Button, type ButtonProps } from "./Button";
 export { CodeViewer, type CodeViewerProps } from "./CodeViewer";
+export { CopyButton } from "./CopyButton";
 export { InfoTip } from "./InfoTip";
 export { Modal } from "./Modal";
 export { Panel } from "./Panel";

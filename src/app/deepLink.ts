@@ -1,8 +1,10 @@
+import type { MessageKey } from "../i18n";
 import {
   SETTINGS_GROUPS,
   type SettingsGroupId,
 } from "../features/settings/settingsGroups";
 import {
+  APP_ROUTES,
   routeSectionsOf,
   type AppRouteId,
   type NavigationIntent,
@@ -11,16 +13,17 @@ import {
 export const DEEP_LINK_MAX_LENGTH = 512;
 export const DEEP_LINK_SOURCE = "deep-link";
 
-const DEEP_LINK_ROUTE_IDS = [
+/** Pages in the order the settings list shows them; caddy sits under system tools. */
+export const DEEP_LINK_ROUTE_IDS = [
   "dashboard",
   "environment",
   "appConfig",
   "aiConfig",
   "systemTools",
+  "caddy",
   "tools",
   "services",
   "settings",
-  "caddy",
 ] as const satisfies readonly AppRouteId[];
 
 type DeepLinkRouteId = (typeof DEEP_LINK_ROUTE_IDS)[number];
@@ -135,4 +138,35 @@ export function buildPageDeepLink(
   return section === undefined
     ? `userhome://open/${routeId}`
     : `userhome://open/${routeId}?section=${section}`;
+}
+
+export interface DeepLinkRow {
+  labelKey: MessageKey;
+  link: string;
+}
+
+export interface DeepLinkPage {
+  routeId: AppRouteId;
+  labelKey: MessageKey;
+  rows: readonly DeepLinkRow[];
+}
+
+/** Every link the app accepts, one page at a time; each row is built through buildPageDeepLink, so the list cannot drift from the whitelist. */
+export function listDeepLinks(): readonly DeepLinkPage[] {
+  return DEEP_LINK_ROUTE_IDS.flatMap((routeId) => {
+    const route = APP_ROUTES.find((candidate) => candidate.id === routeId);
+    if (route === undefined) return [];
+    const targets: Array<{ labelKey: MessageKey; section?: string; group?: SettingsGroupId }> = [
+      { labelKey: route.labelKey },
+      ...(route.sections ?? []).map((section) => ({ labelKey: section.labelKey, section: section.id })),
+      ...(routeId === "settings"
+        ? SETTINGS_GROUPS.map((group) => ({ labelKey: group.labelKey, group: group.id }))
+        : []),
+    ];
+    const rows = targets.flatMap(({ labelKey, section, group }) => {
+      const link = buildPageDeepLink(routeId, section, group);
+      return link === undefined ? [] : [{ labelKey, link }];
+    });
+    return [{ routeId, labelKey: route.labelKey, rows }];
+  });
 }
