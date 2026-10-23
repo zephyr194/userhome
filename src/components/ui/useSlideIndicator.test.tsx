@@ -324,4 +324,36 @@ describe("useSlideIndicator 非选中变化", () => {
       delete (document as unknown as Record<string, unknown>).fonts;
     }
   });
+
+  it("先写入坐标并强制回流，instant 只在之后的下一帧清除", () => {
+    const { container } = render(<Harness selected="second" />);
+    const list = container.querySelector<HTMLElement>(".slide-list")!;
+    const second = container.querySelector<HTMLElement>('[data-testid="second"]')!;
+    flushFrames();
+    const log: string[] = [];
+    const setProperty = list.style.setProperty.bind(list.style);
+    vi.spyOn(list.style, "setProperty").mockImplementation((name, value, priority) => {
+      if (name === "--slide-y") log.push(`write:${list.hasAttribute("data-slide-instant")}`);
+      setProperty(name, value, priority);
+    });
+    const removeAttribute = list.removeAttribute.bind(list);
+    vi.spyOn(list, "removeAttribute").mockImplementation((name) => {
+      if (name === "data-slide-instant") log.push("clear");
+      removeAttribute(name);
+    });
+    Object.defineProperty(list, "offsetHeight", {
+      configurable: true,
+      get: () => {
+        log.push("reflow");
+        return 0;
+      },
+    });
+    second.dataset.offsetTop = "48";
+    act(() => observers[observers.length - 1].callback());
+    expect(log).toEqual(["write:true", "reflow"]);
+    expect(list.hasAttribute("data-slide-instant")).toBe(true);
+    flushFrames();
+    expect(log).toEqual(["write:true", "reflow", "clear"]);
+    expect(list.hasAttribute("data-slide-instant")).toBe(false);
+  });
 });

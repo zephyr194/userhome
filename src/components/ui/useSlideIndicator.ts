@@ -101,7 +101,11 @@ export function useSlideIndicator(
       list.style.setProperty("--slide-y", `${selected.offsetTop}px`);
       list.style.setProperty("--slide-w", `${selected.offsetWidth}px`);
       list.style.setProperty("--slide-h", `${selected.offsetHeight}px`);
-      if (!animateSelection) clearing = requestAnimationFrame(clearInstant);
+      if (!animateSelection) {
+        // Commits the new box while the instant flag is set, so the next frame's removal cannot animate it.
+        void list.offsetHeight;
+        clearing = requestAnimationFrame(clearInstant);
+      }
     }
 
     const observer = typeof ResizeObserver === "undefined"
