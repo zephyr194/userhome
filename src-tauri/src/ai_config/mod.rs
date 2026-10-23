@@ -1,4 +1,5 @@
 pub mod command;
+pub mod config_view;
 pub mod detect;
 pub mod read;
 pub mod reference;

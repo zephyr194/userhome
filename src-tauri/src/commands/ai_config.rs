@@ -8,6 +8,7 @@ use std::{collections::BTreeMap, path::PathBuf, sync::Mutex};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 use crate::{
     ai_config::{
@@ -15,6 +16,7 @@ use crate::{
             BuiltCommand, CLAUDE_CODE_TOOL_ID, CommandRequest, OptionSummary, build_claude_command,
             option_summary,
         },
+        config_view::{AiConfigFileView, read_tool_config},
         detect::{
             AiConfigReport, InstallSource, ProbeEnv, SystemVersionProbe, ToolProfile, ToolReport,
             detect_all, detect_claude_version, detect_tool, fixed_locations, profile_for_tool_id,
@@ -102,6 +104,18 @@ pub fn ai_config_tool_reference(tool_id: String) -> Result<ToolReference, AppErr
         .find(|tool| tool.id == tool_id)
         .ok_or_else(|| AppError::not_found("未找到该工具的官方设置参考。"))?;
     Ok(tool_reference(tool))
+}
+
+#[tauri::command]
+pub fn ai_config_read_config(tool_id: String) -> Result<AiConfigFileView, AppError> {
+    let registry =
+        Registry::builtin().map_err(|_| AppError::validation_failed("应用配置注册表校验失败。"))?;
+    let home =
+        canonical_home().ok_or_else(|| AppError::not_found("无法确定主目录，AI 配置不可用。"))?;
+    let read_at = OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .map_err(|_| AppError::internal())?;
+    read_tool_config(&tool_id, &home, &registry, &StdFs, read_at)
 }
 
 #[tauri::command]
