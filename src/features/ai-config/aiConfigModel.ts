@@ -59,6 +59,8 @@ export const CONFIG_LABELS: Record<
   notRegistered: { text: "暂未提供配置位置", symbol: "–" },
 };
 
+export const NO_CONFIG_PATH_TEXT = "暂无";
+
 export const UNCONFIRMED_VERSION_TEXT = "版本未确认";
 export const NO_EXECUTABLE_TEXT = "未找到可执行文件";
 

@@ -26,7 +26,7 @@ use uuid::Uuid;
 use crate::{
     app_config::{
         discover::{ConfigFs, ProbeStatus, probe},
-        registry::Registry,
+        registry::{Registry, display_path},
     },
     caddy::detect::{Candidate, CandidateOutcome, ExecutableSource, inspect},
 };
@@ -89,7 +89,7 @@ pub const TOOL_PROFILES: &[ToolProfile] = &[
         executable_names: &["gemini"],
         reference_urls: &["https://geminicli.com/docs/reference/configuration"],
         verification_note: "页面含产品迁移提示，适用用户与本机版本未核实",
-        config: ConfigSource::NotRegistered,
+        config: ConfigSource::Registry("gemini-user-settings"),
     },
     ToolProfile {
         id: ToolId::CopilotCli,
@@ -163,6 +163,7 @@ pub struct ToolReport {
     pub invalid_reason: Option<InvalidReason>,
     pub version: Option<String>,
     pub config_presence: ConfigPresence,
+    pub config_display_path: Option<String>,
     pub references: Vec<&'static str>,
     pub verification_note: &'static str,
 }
@@ -236,6 +237,7 @@ pub fn detect_tool(profile: &ToolProfile, env: &ProbeEnv<'_>) -> ToolReport {
         invalid_reason,
         version,
         config_presence: config_presence(profile.config, env),
+        config_display_path: config_display_path(profile.config, env.registry),
         references: profile.reference_urls.to_vec(),
         verification_note: profile.verification_note,
     }
@@ -301,6 +303,13 @@ fn shown_path(path: &Path, home: &Path) -> String {
     match path.strip_prefix(home) {
         Ok(relative) => format!("~/{}", relative.display()),
         Err(_) => path.display().to_string(),
+    }
+}
+
+fn config_display_path(source: ConfigSource, registry: &Registry) -> Option<String> {
+    match source {
+        ConfigSource::NotRegistered => None,
+        ConfigSource::Registry(id) => registry.get(id).ok().map(display_path),
     }
 }
 

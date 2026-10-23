@@ -192,18 +192,36 @@ fn reference_urls_are_exactly_the_sources_recorded_in_the_spec() {
 }
 
 #[test]
-fn only_claude_config_is_resolved_through_the_app_config_registry() {
+fn only_claude_and_gemini_configs_are_resolved_through_the_app_config_registry() {
     let registry = Registry::builtin().expect("built-in registry is valid");
     for profile in TOOL_PROFILES {
         match profile.config {
             ConfigSource::Registry(id) => {
-                assert_eq!(profile.id, ToolId::ClaudeCode);
-                assert_eq!(id, "claude-code-settings");
+                assert!(
+                    matches!(profile.id, ToolId::ClaudeCode | ToolId::GeminiCli),
+                    "{:?}",
+                    profile.id
+                );
                 assert!(registry.get(id).is_ok());
             }
-            ConfigSource::NotRegistered => assert_ne!(profile.id, ToolId::ClaudeCode),
+            ConfigSource::NotRegistered => {
+                assert!(!matches!(profile.id, ToolId::ClaudeCode | ToolId::GeminiCli));
+            }
         }
     }
+}
+
+#[test]
+fn gemini_profile_points_at_the_registered_user_settings_entry() {
+    let profile = TOOL_PROFILES
+        .iter()
+        .find(|profile| profile.id == ToolId::GeminiCli)
+        .expect("gemini profile");
+
+    assert_eq!(
+        profile.config,
+        ConfigSource::Registry("gemini-user-settings")
+    );
 }
 
 #[test]
@@ -515,13 +533,55 @@ fn tools_without_a_registered_location_say_so_instead_of_guessing_one() {
 
     let report = run(Path::new(HOME), &[], &FakeVersion::none(), &fs);
 
-    for id in [ToolId::CodexCli, ToolId::GeminiCli, ToolId::CopilotCli] {
+    for id in [ToolId::CodexCli, ToolId::CopilotCli] {
         assert_eq!(
             tool(&report, id).config_presence,
             ConfigPresence::NotRegistered,
             "{id:?}"
         );
+        assert_eq!(tool(&report, id).config_display_path, None, "{id:?}");
     }
+}
+
+#[test]
+fn gemini_settings_presence_follows_the_registered_user_file() {
+    let fs = FakeFs::new()
+        .dir(HOME)
+        .file("/Users/example/.gemini/settings.json", "{}");
+
+    let report = run(Path::new(HOME), &[], &FakeVersion::none(), &fs);
+
+    let gemini = tool(&report, ToolId::GeminiCli);
+    assert_eq!(gemini.config_presence, ConfigPresence::Found);
+    assert_eq!(gemini.install_status, InstallStatus::Missing);
+}
+
+#[test]
+fn absent_gemini_settings_are_reported_as_not_found() {
+    let fs = FakeFs::new().dir(HOME);
+
+    let report = run(Path::new(HOME), &[], &FakeVersion::none(), &fs);
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).config_presence,
+        ConfigPresence::NotFound
+    );
+}
+
+#[test]
+fn config_display_path_is_the_home_relative_registered_location() {
+    let fs = FakeFs::new().dir(HOME);
+
+    let report = run(Path::new(HOME), &[], &FakeVersion::none(), &fs);
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).config_display_path.as_deref(),
+        Some("~/.gemini/settings.json")
+    );
+    assert_eq!(
+        tool(&report, ToolId::ClaudeCode).config_display_path.as_deref(),
+        Some("~/.claude/settings.json")
+    );
 }
 
 #[test]

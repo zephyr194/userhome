@@ -47,6 +47,7 @@ const TOOL_REPORT_KEYS = [
   "invalidReason",
   "version",
   "configPresence",
+  "configDisplayPath",
   "references",
   "verificationNote",
 ] as const;
@@ -54,6 +55,7 @@ const MAX_REFERENCES = 4;
 const MAX_VERSION_LENGTH = 120;
 const MAX_DISPLAY_NAME_LENGTH = 64;
 const MAX_VERIFICATION_NOTE_LENGTH = 200;
+const MAX_CONFIG_DISPLAY_PATH_LENGTH = 512;
 
 export interface AiToolReport {
   id: AiToolId;
@@ -63,6 +65,7 @@ export interface AiToolReport {
   invalidReason: AiInvalidReason | null;
   version: string | null;
   configPresence: AiConfigPresence;
+  configDisplayPath: string | null;
   references: string[];
   verificationNote: string;
 }
@@ -149,6 +152,7 @@ function decodeToolReport(value: unknown, expectedId: AiToolId): AiToolReport {
     invalidReason,
     version,
     configPresence: requireOneOf(AI_CONFIG_PRESENCES, record.configPresence),
+    configDisplayPath: nullableText(record.configDisplayPath, MAX_CONFIG_DISPLAY_PATH_LENGTH),
     references: record.references.map(requireHttpsUrl),
     verificationNote: requireText(record.verificationNote, MAX_VERIFICATION_NOTE_LENGTH),
   };

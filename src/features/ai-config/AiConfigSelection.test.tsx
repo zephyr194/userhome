@@ -16,6 +16,7 @@ function tool(id: AiToolReport["id"], displayName: string): AiToolReport {
     invalidReason: null,
     version: null,
     configPresence: "notRegistered",
+    configDisplayPath: null,
     references: [],
     verificationNote: "待核验",
   };

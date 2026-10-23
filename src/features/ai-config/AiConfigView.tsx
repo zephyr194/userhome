@@ -9,6 +9,7 @@ import {
   CONFIG_LABELS,
   INSTALL_LABELS,
   INVALID_REASON_TEXT,
+  NO_CONFIG_PATH_TEXT,
   NO_EXECUTABLE_TEXT,
   UNCONFIRMED_VERSION_TEXT,
   countInconclusive,
@@ -249,6 +250,10 @@ function ToolCard({ tool }: { tool: AiToolReport }) {
         <dd className="m-0">
           <span aria-hidden="true">{config.symbol} </span>
           {config.text}
+        </dd>
+        <dt className="text-muted-foreground">配置路径</dt>
+        <dd className="m-0 break-all font-mono text-aux">
+          {tool.configDisplayPath ?? NO_CONFIG_PATH_TEXT}
         </dd>
         <dt className="text-muted-foreground">官方参考</dt>
         <dd className="m-0 min-w-0">

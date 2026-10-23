@@ -18,6 +18,7 @@ function toolWire(
     invalidReason: null,
     version: null,
     configPresence: "notRegistered",
+    configDisplayPath: null,
     references: ["https://code.claude.com/docs/en/settings"],
     verificationNote: "环境变量与逐键合并规则仍待独立核验",
     ...overrides,
@@ -36,6 +37,7 @@ const FOUND_CLAUDE = {
   displayPath: "/opt/homebrew/bin/claude",
   version: "2.1.0 (Claude Code)",
   configPresence: "found",
+  configDisplayPath: "~/.claude/settings.json",
 };
 
 describe("decodeAiConfigReport", () => {
@@ -48,6 +50,7 @@ describe("decodeAiConfigReport", () => {
           displayPath: "~/.local/bin/codex",
           invalidReason: "outsideRoot",
           configPresence: "notRegistered",
+          configDisplayPath: null,
         },
       }),
     );
@@ -62,6 +65,7 @@ describe("decodeAiConfigReport", () => {
       installStatus: "found",
       version: "2.1.0 (Claude Code)",
       configPresence: "found",
+      configDisplayPath: "~/.claude/settings.json",
     });
     expect(report.tools[1]).toMatchObject({
       installStatus: "invalid",
@@ -74,6 +78,25 @@ describe("decodeAiConfigReport", () => {
     const report = decodeAiConfigReport(reportWire());
     expect(report.tools[0].installStatus).toBe("missing");
     expect(report.tools[0].references).toHaveLength(1);
+  });
+
+  it("keeps the registered config path for Gemini CLI and Claude Code", () => {
+    const report = decodeAiConfigReport(
+      reportWire({
+        0: FOUND_CLAUDE,
+        2: {
+          installStatus: "missing",
+          configPresence: "notFound",
+          configDisplayPath: "~/.gemini/settings.json",
+        },
+      }),
+    );
+
+    expect(report.tools[0].configDisplayPath).toBe("~/.claude/settings.json");
+    expect(report.tools[2]).toMatchObject({
+      configPresence: "notFound",
+      configDisplayPath: "~/.gemini/settings.json",
+    });
   });
 
   it.each([
@@ -90,6 +113,8 @@ describe("decodeAiConfigReport", () => {
     ["a missing tool that carries a version", reportWire({ 0: { version: "2.1.0" } })],
     ["a missing tool that carries a path", reportWire({ 0: { displayPath: "/x/claude" } })],
     ["an unknown config presence", reportWire({ 0: { configPresence: "exists" } })],
+    ["a config display path that is not text", reportWire({ 2: { configDisplayPath: 42 } })],
+    ["a config display path that is empty", reportWire({ 2: { configDisplayPath: "   " } })],
     ["a version containing control characters", reportWire({ 0: { ...FOUND_CLAUDE, version: "2.1\u001b[31m" } })],
     ["an empty version", reportWire({ 0: { ...FOUND_CLAUDE, version: "   " } })],
     ["a non-https reference", reportWire({ 0: { references: ["http://example.com/docs"] } })],

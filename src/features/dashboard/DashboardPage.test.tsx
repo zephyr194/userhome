@@ -38,6 +38,7 @@ function aiReportWire(): Record<string, unknown> {
       invalidReason: null,
       version: null,
       configPresence: "notRegistered",
+      configDisplayPath: null,
       references: ["https://example.com/docs"],
       verificationNote: "待核验",
     })),

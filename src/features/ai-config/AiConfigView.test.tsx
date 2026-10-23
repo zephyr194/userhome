@@ -22,6 +22,7 @@ function tool(overrides: Partial<AiToolReport> = {}): AiToolReport {
     invalidReason: null,
     version: null,
     configPresence: "found",
+    configDisplayPath: null,
     references: ["https://code.claude.com/docs/en/settings"],
     verificationNote: "环境变量与逐键合并规则仍待独立核验",
     ...overrides,
@@ -38,18 +39,21 @@ const FOUR_TOOLS: AiToolReport[] = [
     id: "codex-cli",
     displayName: "Codex CLI",
     configPresence: "notRegistered",
+    configDisplayPath: null,
     references: ["https://developers.openai.com/codex/config-basic"],
   }),
   tool({
     id: "gemini-cli",
     displayName: "Gemini CLI",
     configPresence: "notRegistered",
+    configDisplayPath: null,
     references: ["https://geminicli.com/docs/reference/configuration"],
   }),
   tool({
     id: "copilot-cli",
     displayName: "GitHub Copilot CLI",
     configPresence: "notRegistered",
+    configDisplayPath: null,
     references: [
       "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference",
     ],
@@ -186,6 +190,30 @@ describe("AiConfigView facts", () => {
 
     expect(html).toContain("2.1.0 (Claude Code)");
     expect(html).toContain("/opt/homebrew/bin/claude");
+  });
+});
+
+describe("AiConfigView config path row", () => {
+  it("shows the Gemini CLI user settings path next to its presence", () => {
+    const gemini = {
+      ...FOUR_TOOLS[2],
+      configPresence: "notFound" as const,
+      configDisplayPath: "~/.gemini/settings.json",
+    };
+    const html = render(ready([FOUR_TOOLS[0], gemini, FOUR_TOOLS[3]]), {
+      selectedToolId: "gemini-cli",
+    });
+
+    expect(html).toContain("配置路径");
+    expect(html).toContain("~/.gemini/settings.json");
+    expect(html).toContain("未发现配置文件");
+  });
+
+  it("shows a plain placeholder when a tool has no registered config path", () => {
+    const html = render(ready(), { selectedToolId: "codex-cli" });
+
+    expect(html).toContain("配置路径");
+    expect(html).toContain("暂无");
   });
 });
 
