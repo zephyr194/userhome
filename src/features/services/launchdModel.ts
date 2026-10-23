@@ -1,6 +1,6 @@
 import type { AppError } from "../../ipc/core";
-import type { MessageKey, TranslateFunction } from "../../i18n";
-import { localizedErrorMessage } from "../../i18n/errors";
+import type { Locale, MessageKey, TranslateFunction } from "../../i18n";
+import { localizeError } from "../../i18n/errors";
 import type {
   LaunchdConfigFile,
   LaunchdCorrelation,
@@ -626,11 +626,11 @@ export function discoveryReducer(
 }
 
 /** A busy read is a short wait, not a failure of the job list; the page retries once. */
-export function discoveryErrorText(error: AppError, t: TranslateFunction): string {
+export function discoveryErrorText(error: AppError, t: TranslateFunction, locale: Locale): string {
   if (error.code === "CONFLICT") {
     return t("services.discovery.conflict");
   }
-  return localizedErrorMessage(error, t);
+  return localizeError(error, locale);
 }
 
 export const DISCOVERY_CONFLICT_RETRY_DELAY_MS = 800;

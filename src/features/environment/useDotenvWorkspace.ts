@@ -14,7 +14,7 @@ import {
   selectDirectoryGrant,
   selectSaveLocationGrant,
 } from "../../ipc/grants";
-import { localizeAppError } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type { EditorTarget } from "./dotenvEditorModel";
 import { checkSettings } from "./environmentModel";
@@ -149,7 +149,7 @@ export function useDotenvWorkspace() {
         await loadGrants();
       }
     } catch (error) {
-      setGrantNotice({ tone: "error", text: localizeAppError(decodeAppError(error), t, locale) });
+      setGrantNotice({ tone: "error", text: localizeError(decodeAppError(error), locale) });
     } finally {
       setAddingGrant(false);
     }
@@ -162,7 +162,7 @@ export function useDotenvWorkspace() {
         await revokeGrant(grantId);
         setGrantNotice({ tone: "info", text: t("env.dotenv.grant.revoked") });
       } catch (error) {
-        setGrantNotice({ tone: "error", text: localizeAppError(decodeAppError(error), t, locale) });
+        setGrantNotice({ tone: "error", text: localizeError(decodeAppError(error), locale) });
       }
       await loadGrants();
     },
@@ -221,7 +221,7 @@ export function useDotenvWorkspace() {
         });
       }
     } catch (error) {
-      setGrantNotice({ tone: "error", text: localizeAppError(decodeAppError(error), t, locale) });
+      setGrantNotice({ tone: "error", text: localizeError(decodeAppError(error), locale) });
     } finally {
       setChoosingNewFile(false);
     }

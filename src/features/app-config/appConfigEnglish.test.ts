@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localizeErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { translate } from "../../i18n";
 import { appConfigDefinitionEn } from "../../i18n/messages/appConfig";
 import { APP_TOOLS, describeToolDiscovery } from "./appConfigCatalog";
@@ -105,22 +105,22 @@ describe("app config English labels", () => {
 describe("app config error messages", () => {
   it("maps frontend-generated messages to English", () => {
     const error = { code: "INVALID_INPUT", message: "未知的应用配置条目。" };
-    expect(localizeErrorMessage(error, EN.t)).toBe("Unknown app config entry.");
+    expect(localizeError(error, "en")).toBe("Unknown app config entry.");
     expect(
-      localizeErrorMessage({ code: "INVALID_INPUT", message: "预览已失效，请重新预览。" }, EN.t),
+      localizeError({ code: "INVALID_INPUT", message: "预览已失效，请重新预览。" }, "en"),
     ).toBe("The preview has expired. Preview the change again.");
     expect(
-      localizeErrorMessage({ code: "INVALID_INPUT", message: "没有需要保存的修改。" }, EN.t),
+      localizeError({ code: "INVALID_INPUT", message: "没有需要保存的修改。" }, "en"),
     ).toBe("No changes to save.");
   });
 
   it("keeps backend messages that have no English mapping in their original text", () => {
-    const backend = { code: "INTERNAL", message: "内部错误" };
-    expect(localizeErrorMessage(backend, EN.t)).toBe("内部错误");
+    const backend = { code: "UNMAPPED", message: "内部错误" };
+    expect(localizeError(backend, "en")).toBe("内部错误");
   });
 
   it("keeps the original text for zh-CN", () => {
     const error = { code: "INVALID_INPUT", message: "未知的应用配置条目。" };
-    expect(localizeErrorMessage(error, appConfigCopy("zh-CN").t)).toBe("未知的应用配置条目。");
+    expect(localizeError(error, "zh-CN")).toBe("未知的应用配置条目。");
   });
 });

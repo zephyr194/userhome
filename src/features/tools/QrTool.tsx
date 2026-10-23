@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import {
   ActionRow,
@@ -105,7 +105,7 @@ export function QrTool() {
       },
       (error: AppError) => {
         if (previewTracker.isCurrent(requestId)) {
-          setPreview({ status: "error", message: localizeAppErrorMessage(error, locale) });
+          setPreview({ status: "error", message: localizeError(error, locale) });
         }
       },
     );
@@ -172,7 +172,7 @@ export function QrTool() {
       },
       (error: AppError) => {
         setIconBusy(false);
-        setIconError(localizeAppErrorMessage(error, locale));
+        setIconError(localizeError(error, locale));
       },
     );
   }
@@ -187,7 +187,7 @@ export function QrTool() {
       },
       (error: AppError) => {
         setIconBusy(false);
-        setIconError(localizeAppErrorMessage(error, locale));
+        setIconError(localizeError(error, locale));
       },
     );
   }
@@ -222,7 +222,7 @@ export function QrTool() {
         if (exportTracker.isCurrent(requestId)) {
           setExportView({
             status: "failed",
-            message: localizeAppErrorMessage(error, locale),
+            message: localizeError(error, locale),
           });
         }
       },
@@ -247,7 +247,7 @@ export function QrTool() {
         if (exportTracker.isCurrent(requestId)) {
           setExportView({
             status: "failed",
-            message: localizeAppErrorMessage(error, locale),
+            message: localizeError(error, locale),
           });
         }
       },

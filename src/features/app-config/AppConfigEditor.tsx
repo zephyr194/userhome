@@ -16,7 +16,7 @@ import {
   TextAreaField,
   TextField,
 } from "../../components/ui/forms";
-import { localizeErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale } from "../../i18n/useLocale";
 import {
   confirmAppConfigEdit,
@@ -244,7 +244,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
           <p className="m-0 text-body font-semibold text-danger">
             {copy.t("appConfig.edit.loadFailed")}
           </p>
-          <p className="m-0 text-body">{localizeErrorMessage(load.error, copy.t)}</p>
+          <p className="m-0 text-body">{localizeError(load.error, copy.locale)}</p>
           <div>
             <Button size="sm" onClick={() => setLoadKey((key) => key + 1)}>
               {copy.t("common.retry")}
@@ -425,7 +425,7 @@ function PhaseNotice({
     case "failed":
       return (
         <p role="alert" className="m-0 text-aux text-danger">
-          {localizeErrorMessage(phase.error, copy.t)}
+          {localizeError(phase.error, copy.locale)}
         </p>
       );
     case "idle":

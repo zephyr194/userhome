@@ -1,5 +1,5 @@
 import { ActionRow, Button, StatusBadge } from "../../components/ui";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useCaddyCopy } from "./caddyCopy";
 import type { WorkdirAction, WorkdirLoad } from "./caddyWorkdirModel";
 
@@ -64,7 +64,7 @@ function WorkdirBody(props: WorkdirBodyProps) {
     return (
       <>
         <p role="alert" className="m-0 text-body text-danger">
-          {t("caddy.workdir.loadFailed", { error: localizeAppErrorMessage(load.error, locale) })}
+          {t("caddy.workdir.loadFailed", { error: localizeError(load.error, locale) })}
         </p>
         <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onRetry}>
           {t("caddy.workdir.recheck")}

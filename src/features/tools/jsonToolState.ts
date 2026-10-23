@@ -1,4 +1,4 @@
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { translate, type Locale } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import type { FormattedJson, JsonFormatMode } from "../../ipc/textTools";
@@ -25,9 +25,9 @@ export function successView(
 export function failureView(error: AppError, locale: Locale = "zh-CN"): JsonView {
   const { line, column } = error.details ?? {};
   if (typeof line === "number" && typeof column === "number") {
-    return { status: "error", message: localizeAppErrorMessage(error, locale), line, column };
+    return { status: "error", message: localizeError(error, locale), line, column };
   }
-  return { status: "error", message: localizeAppErrorMessage(error, locale) };
+  return { status: "error", message: localizeError(error, locale) };
 }
 
 export function oversizedView(locale: Locale = "zh-CN"): JsonView {

@@ -158,16 +158,6 @@ export const environmentZh = {
   "env.dotenv.exclusions": "递归时默认不进入：{list}；不跟随目录符号链接；越界的符号链接一律拒绝。本次排除了 {count} 个目录。",
   "env.dotenv.unnamed": "（名称无法显示）",
   "env.dotenv.moreSkipped": "还有 {count} 项未列出。",
-  "error.code.INVALID_INPUT": "输入不符合要求。",
-  "error.code.NOT_FOUND": "找不到这个文件或授权。",
-  "error.code.NOT_SUPPORTED": "当前不支持这个操作。",
-  "error.code.PERMISSION_DENIED": "没有权限，或授权已失效。",
-  "error.code.VALIDATION_FAILED": "这次改动无法安全保存。",
-  "error.code.CONFLICT": "文件或授权已变化，请重新读取。",
-  "error.code.PROCESS_FAILED": "外部命令执行失败。",
-  "error.code.PARTIAL_FAILURE": "只完成了一部分操作。",
-  "error.code.TIMEOUT": "操作超时。",
-  "error.code.INTERNAL": "内部错误。",
 } as const;
 
 export const environmentEn = {
@@ -330,14 +320,4 @@ export const environmentEn = {
   "env.dotenv.exclusions": "When scanning subfolders, these are skipped by default: {list}. Folder symbolic links are not followed, and links that point outside are always refused. {count} folders were excluded in this scan.",
   "env.dotenv.unnamed": "(name cannot be shown)",
   "env.dotenv.moreSkipped": "{count} more items are not listed.",
-  "error.code.INVALID_INPUT": "The input is not valid.",
-  "error.code.NOT_FOUND": "The file or authorization was not found.",
-  "error.code.NOT_SUPPORTED": "This action is not supported.",
-  "error.code.PERMISSION_DENIED": "Permission was denied, or the authorization has expired.",
-  "error.code.VALIDATION_FAILED": "This change cannot be saved safely.",
-  "error.code.CONFLICT": "The file or authorization changed. Read it again.",
-  "error.code.PROCESS_FAILED": "An external command failed.",
-  "error.code.PARTIAL_FAILURE": "Only part of the action completed.",
-  "error.code.TIMEOUT": "The action timed out.",
-  "error.code.INTERNAL": "An internal error occurred.",
 } satisfies Record<keyof typeof environmentZh, string>;

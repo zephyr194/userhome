@@ -1,7 +1,7 @@
 import { Button as HeadlessButton } from "@headlessui/react";
 import { ActionRow, Button, CodeViewer, PageShell, Panel } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
-import { localizeErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale } from "../../i18n/useLocale";
 import type { AppConfigEntrySummary, AppConfigListItem, AppConfigProbeStatus, AppConfigReadResult } from "../../ipc/appConfig";
 import {
@@ -110,7 +110,7 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
           <p className="m-0 text-body font-semibold text-danger">
             {copy.t("appConfig.list.loadFailed")}
           </p>
-          <p className="m-0 text-body">{localizeErrorMessage(list.error, copy.t)}</p>
+          <p className="m-0 text-body">{localizeError(list.error, copy.locale)}</p>
           <div>
             <Button size="sm" onClick={onReload}>
               {copy.t("common.retry")}
@@ -333,7 +333,7 @@ function EntryBody({
         <p className="m-0 text-body font-semibold text-danger">
           {copy.t("appConfig.detail.loadFailed")}
         </p>
-        <p className="m-0 text-body">{localizeErrorMessage(detail.error, copy.t)}</p>
+        <p className="m-0 text-body">{localizeError(detail.error, copy.locale)}</p>
       </Panel>
     );
   }

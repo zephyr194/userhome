@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode, type Ref } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { Button, StatusBadge } from "../../components/ui";
 import type { Locale, MessageKey, TranslateFunction } from "../../i18n";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type { AppErrorCode } from "../../ipc/core";
 import type { GrantStoreProblem } from "../../ipc/grants";
@@ -43,7 +43,7 @@ function failureText(
   const headline = t(headlineKey);
   return failure.code === "INTERNAL"
     ? { headline }
-    : { headline, detail: localizeAppErrorMessage(failure, locale) };
+    : { headline, detail: localizeError(failure, locale) };
 }
 
 function NoticeRow({

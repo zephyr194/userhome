@@ -1,7 +1,7 @@
 import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
-import { localizeAppError } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { formatByteSize } from "../../i18n/format";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type {
@@ -128,7 +128,7 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
     return (
       <AsyncState kind="error">
         <span className="break-words [overflow-wrap:anywhere]">
-          {localizeAppError(load.error, t, locale)}
+          {localizeError(load.error, locale)}
         </span>{" "}
         <Button onClick={props.onReload} size="sm">
           {t("env.zsh.retry")}

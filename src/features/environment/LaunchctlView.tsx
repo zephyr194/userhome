@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { ActionRow, Button, InfoTip } from "../../components/ui";
 import type { AppError } from "../../ipc/core";
-import { localizeAppError } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { formatDateTime } from "../../i18n/format";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type {
@@ -127,7 +127,7 @@ export function LaunchctlView({
         <div className="flex flex-col items-start gap-ui-8 px-ui-12" role="alert">
           <p className="text-body text-foreground">{t("env.launchctl.failed")}</p>
           <p className="text-aux text-muted-foreground">
-            {t("env.launchctl.reason", { message: localizeAppError(state.error, t, locale) })}
+            {t("env.launchctl.reason", { message: localizeError(state.error, locale) })}
           </p>
           <Button onClick={onRetry} size="sm" variant="secondary">
             {t("env.launchctl.retry")}

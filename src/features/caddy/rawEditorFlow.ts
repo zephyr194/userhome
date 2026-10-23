@@ -1,5 +1,5 @@
 import type { MessageKey } from "../../i18n";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import type { AppError } from "../../ipc/core";
 import type {
   CaddyCheckStage,
@@ -127,7 +127,7 @@ export function summarizeFailure(error: AppError, copy: CaddyCopy = ZH_COPY): Va
   return {
     tone: "danger",
     title: copy.t("caddy.raw.titleRequestFailed"),
-    details: [localizeAppErrorMessage(error, copy.locale)],
+    details: [localizeError(error, copy.locale)],
     canAllowExternal: false,
   };
 }

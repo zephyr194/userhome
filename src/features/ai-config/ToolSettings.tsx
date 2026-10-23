@@ -9,8 +9,8 @@ import {
   type ClaudeSnapshotSummary,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import { useT } from "../../i18n/useLocale";
-import { localizeErrorMessage } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
+import { localizeError } from "../../i18n/errors";
 import { selectDirectoryGrant, selectFileGrant } from "../../ipc/grants";
 import { HighlightText } from "./ConfigSearchControls";
 import { claudeSearchItems, matchesSearch, searchTerms, type SearchItem } from "./configSearch";
@@ -72,6 +72,7 @@ export function ClaudeSettingsView({
   query = "",
 }: ClaudeSettingsViewProps) {
   const t = useT();
+  const locale = useLocale();
   const busy = state.status === "loading" || selection.status === "selecting";
   const terms = searchTerms(query);
   return (
@@ -116,7 +117,7 @@ export function ClaudeSettingsView({
         ) : null}
         {selection.status === "failed" ? (
           <span role="alert" className="text-aux text-danger">
-            {localizeErrorMessage(selection.error, t)}
+            {localizeError(selection.error, locale)}
           </span>
         ) : null}
       </div>
@@ -129,7 +130,7 @@ export function ClaudeSettingsView({
 
       {state.status === "failed" ? (
         <div className="grid justify-items-start gap-ui-4" role="alert">
-          <p className="m-0 text-aux text-danger">{localizeErrorMessage(state.error, t)}</p>
+          <p className="m-0 text-aux text-danger">{localizeError(state.error, locale)}</p>
           <Button size="sm" variant="secondary" disabled={busy} onClick={onRetry}>
             {t("aiConfig.claude.reread")}
           </Button>

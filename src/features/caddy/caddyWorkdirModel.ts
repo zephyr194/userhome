@@ -1,7 +1,7 @@
 import type { CaddyWorkdirStatus } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
 import type { SelectGrantResult } from "../../ipc/grants";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { ZH_COPY, type CaddyCopy } from "./caddyCopy";
 
 export type WorkdirLoad =
@@ -75,7 +75,7 @@ export function reduceWorkdirAction(
     case "failed":
       return {
         status: "failed",
-        message: localizeAppErrorMessage(event.error, copy.locale),
+        message: localizeError(event.error, copy.locale),
       };
   }
 }

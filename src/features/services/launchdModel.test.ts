@@ -68,6 +68,7 @@ function ids(filter: Partial<ServiceFilter>) {
 }
 
 const zh: TranslateFunction = (key, params) => translate("zh-CN", key, params);
+const english: TranslateFunction = (key, params) => translate("en", key, params);
 
 describe("status presentation", () => {
   it("separates running, idle, not loaded and unknown", () => {
@@ -416,14 +417,30 @@ describe("discovery error copy", () => {
       code: "CONFLICT",
       message: "launchd discovery is already running. Retry when it finishes.",
       retryable: false,
-    }, zh);
+    }, zh, "zh-CN");
     expect(text).toContain("正在被另一处读取");
     expect(text).toContain("重试");
     expect(text).not.toContain("already running");
   });
 
-  it("keeps the message of any other error", () => {
-    expect(discoveryErrorText(ERROR, zh)).toBe(ERROR.message);
+  it("keeps the message of any other error in zh-CN", () => {
+    expect(discoveryErrorText(ERROR, zh, "zh-CN")).toBe(ERROR.message);
+  });
+
+  it("explains a busy read in English", () => {
+    const text = discoveryErrorText(
+      { code: "CONFLICT", message: "launchd discovery is already running.", retryable: false },
+      english,
+      "en",
+    );
+    expect(text).toBe(translate("en", "services.discovery.conflict"));
+    expect(text).not.toMatch(/[㐀-鿿豈-﫿]/);
+  });
+
+  it("maps a known code of any other error to English", () => {
+    const text = discoveryErrorText(ERROR, english, "en");
+    expect(text).toBe(translate("en", "error.code.PROCESS_FAILED"));
+    expect(text).not.toMatch(/[㐀-鿿豈-﫿]/);
   });
 });
 

@@ -11,7 +11,7 @@ import {
 } from "../../ipc/aiConfigReference";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import type { Locale } from "../../i18n";
-import { localizeErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import { definitionDescription } from "./aiConfigModel";
 import { HighlightText } from "./ConfigSearchControls";
@@ -101,6 +101,7 @@ export function ToolReferenceView({
   readonly query?: string;
 }) {
   const t = useT();
+  const locale = useLocale();
   if (state.status === "loading") {
     return (
       <p role="status" className="m-0 text-body text-muted-foreground">
@@ -112,7 +113,7 @@ export function ToolReferenceView({
     return (
       <Panel role="alert" className="grid justify-items-start gap-ui-8 p-ui-12">
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.ref.failed")}</p>
-        <p className="m-0 text-body">{localizeErrorMessage(state.error, t)}</p>
+        <p className="m-0 text-body">{localizeError(state.error, locale)}</p>
         <Button onClick={onRetry}>{t("common.retry")}</Button>
       </Panel>
     );

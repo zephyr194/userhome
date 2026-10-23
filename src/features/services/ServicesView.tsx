@@ -8,7 +8,7 @@ import {
 } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import type { TranslateFunction } from "../../i18n";
-import { useT } from "../../i18n/useLocale";
+import { useLocale, useT } from "../../i18n/useLocale";
 import {
   LAUNCHD_DOMAINS,
   LAUNCHD_OWNERSHIPS,
@@ -275,6 +275,7 @@ function ListBody({
   visible: readonly LaunchdService[];
 }) {
   const t = useT();
+  const locale = useLocale();
   if (state.status === "loading") {
     return <div aria-busy="true" />;
   }
@@ -282,7 +283,7 @@ function ListBody({
     return (
       <div className="p-ui-12">
         <AsyncState kind="error">
-          <span className={WRAP}>{discoveryErrorText(state.error, t)}</span>
+          <span className={WRAP}>{discoveryErrorText(state.error, t, locale)}</span>
         </AsyncState>
         <div className="mt-ui-8">
           <Button size="sm" disabled={refreshDisabled} onClick={onRefresh}>
@@ -302,7 +303,7 @@ function ListBody({
           <AsyncState kind="error">
             <span className={WRAP}>
               {t("services.list.refreshFailed", {
-                error: discoveryErrorText(state.refreshError, t),
+                error: discoveryErrorText(state.refreshError, t, locale),
               })}
             </span>
           </AsyncState>

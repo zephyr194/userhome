@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
 import { Button, StatusBadge } from "../../components/ui";
-import { localizedErrorMessage } from "../../i18n/errors";
-import { useT } from "../../i18n/useLocale";
+import { localizeError } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import { cancelOperation } from "../../ipc/operations";
 import {
@@ -298,6 +298,7 @@ function PanelState({
   state: ActionPanelState;
 }) {
   const t = useT();
+  const locale = useLocale();
   switch (state.phase) {
     case "idle":
       return null;
@@ -330,7 +331,7 @@ function PanelState({
         <ActionError
           action={actionLabel(state.action, t)}
           during={state.during}
-          message={localizedErrorMessage(state.error, t)}
+          message={localizeError(state.error, locale)}
           onClose={reset}
           onRefresh={onChanged}
         />

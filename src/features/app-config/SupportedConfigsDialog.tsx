@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, Modal } from "../../components/ui";
-import { localizeErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale } from "../../i18n/useLocale";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
@@ -96,7 +96,7 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
     return (
       <div className="grid gap-ui-8" role="alert">
         <p className="m-0 font-semibold text-danger">{copy.t("appConfig.supported.loadFailed")}</p>
-        <p className="m-0">{localizeErrorMessage(state.error, copy.t)}</p>
+        <p className="m-0">{localizeError(state.error, copy.locale)}</p>
         <div>
           <Button
             onClick={() => {

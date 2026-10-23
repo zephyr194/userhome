@@ -1,5 +1,5 @@
 import { ActionRow, Button, Panel } from "../../components/ui";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import type { AppError } from "../../ipc/core";
 import { useCaddyCopy } from "./caddyCopy";
 import type { SaveGate } from "./caddyRulesModel";
@@ -59,7 +59,7 @@ function SaveResult({ state }: { state: SaveState }) {
     );
   }
   if (state.status !== "failed") return null;
-  const message = localizeAppErrorMessage(state.error, locale);
+  const message = localizeError(state.error, locale);
   if (state.error.code === "PARTIAL_FAILURE") {
     return (
       <p role="alert" className="m-0 text-body text-danger">

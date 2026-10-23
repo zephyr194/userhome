@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AppErrorCode } from "../ipc/core";
-import { localizeAppError, localizeAppErrorMessage } from "./errors";
-import { translate } from "./index";
+import { localizeError } from "./errors";
+import { translate, type MessageKey } from "./index";
 
 const CJK_PATTERN = /[㐀-鿿豈-﫿]/;
 
@@ -18,39 +18,48 @@ const CODES: readonly AppErrorCode[] = [
   "INTERNAL",
 ];
 
-describe("localizeAppErrorMessage", () => {
-  it("keeps the backend message in zh-CN", () => {
-    expect(
-      localizeAppErrorMessage({ code: "CONFLICT", message: "文件已被修改。" }, "zh-CN"),
-    ).toBe("文件已被修改。");
+describe("localizeError", () => {
+  it.each(CODES)("keeps the backend message for %s in zh-CN", (code) => {
+    expect(localizeError({ code, message: "后端原文。" }, "zh-CN")).toBe("后端原文。");
   });
 
   it.each(CODES)("maps %s to an English sentence without Chinese characters", (code) => {
-    const text = localizeAppErrorMessage({ code, message: "原文" }, "en");
+    const text = localizeError({ code, message: "原文" }, "en");
     expect(text).not.toBe("原文");
     expect(text).not.toBe("");
     expect(CJK_PATTERN.test(text)).toBe(false);
   });
 
-  it("shows the backend message when the code has no mapping", () => {
-    const unknown = { code: "UNMAPPED" as AppErrorCode, message: "Backend detail" };
-    expect(localizeAppErrorMessage(unknown, "en")).toBe("Backend detail");
-  });
-});
-
-const t = (key: Parameters<typeof translate>[1], params?: Parameters<typeof translate>[2]) =>
-  translate("en", key, params);
-
-describe("localizeAppError", () => {
-  it("shows the backend message in Chinese", () => {
-    expect(
-      localizeAppError({ code: "CONFLICT", message: "文件已变化。" }, (key) => translate("zh-CN", key), "zh-CN"),
-    ).toBe("文件已变化。");
+  it.each(CODES)("has a zh-CN and an en text for %s under one key", (code) => {
+    const key = `error.code.${code}` as MessageKey;
+    expect(translate("zh-CN", key)).not.toBe(key);
+    expect(translate("en", key)).not.toBe(key);
   });
 
-  it("maps a known code to its English message", () => {
-    expect(localizeAppError({ code: "CONFLICT", message: "文件已变化。" }, t, "en")).toBe(
-      "The file or authorization changed. Read it again.",
+  it("maps a frontend-generated message to English by its exact zh-CN text", () => {
+    expect(localizeError({ code: "INVALID_INPUT", message: "未知的应用配置条目。" }, "en")).toBe(
+      "Unknown app config entry.",
     );
+  });
+
+  it("prefers a frontend-generated message over the code's own text", () => {
+    expect(localizeError({ code: "INTERNAL", message: "预览已失效，请重新预览。" }, "en")).toBe(
+      "The preview has expired. Preview the change again.",
+    );
+  });
+
+  it("keeps the original text for a zh-CN frontend-generated message", () => {
+    expect(localizeError({ code: "INVALID_INPUT", message: "没有需要保存的修改。" }, "zh-CN")).toBe(
+      "没有需要保存的修改。",
+    );
+  });
+
+  it("shows the backend message when the code is unknown", () => {
+    const unknown = { code: "UNMAPPED", message: "Backend detail" };
+    expect(localizeError(unknown, "en")).toBe("Backend detail");
+  });
+
+  it("keeps a Chinese backend message that has neither a code mapping nor a frontend match", () => {
+    expect(localizeError({ code: "", message: "内部错误" }, "en")).toBe("内部错误");
   });
 });

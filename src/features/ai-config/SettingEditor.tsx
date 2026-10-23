@@ -15,9 +15,9 @@ import {
   type ClaudeReadView,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import { localizeErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import type { MessageKey } from "../../i18n";
-import { useT } from "../../i18n/useLocale";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { HighlightText } from "./ConfigSearchControls";
 import { configSearchItem, matchesSearch, searchTerms } from "./configSearch";
 import {
@@ -295,10 +295,11 @@ function ErrorLine({
   readonly onCancel: () => void;
 }) {
   const t = useT();
+  const locale = useLocale();
   return (
     <div className="grid justify-items-start gap-ui-4">
       <p className="m-0 text-aux text-danger" role="alert">
-        {localizeErrorMessage(error, t)}
+        {localizeError(error, locale)}
       </p>
       <Button variant="ghost" onClick={onCancel}>
         {t("common.close")}
@@ -333,6 +334,7 @@ export function EditPanel({
   onSaved,
 }: EditPanelProps) {
   const t = useT();
+  const locale = useLocale();
   const [jumpKey, setJumpKey] = useState("");
   const [query, setQuery] = useState("");
   const [editableOnly, setEditableOnly] = useState(false);
@@ -385,7 +387,7 @@ export function EditPanel({
       </div>
       {chooseError ? (
         <p role="alert" className="m-0 text-aux text-danger">
-          {localizeErrorMessage(chooseError, t)}
+          {localizeError(chooseError, locale)}
         </p>
       ) : null}
       {catalog === null || groups === null ? (

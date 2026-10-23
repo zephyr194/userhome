@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, LogViewer } from "../../components/ui";
-import { localizedErrorMessage } from "../../i18n/errors";
-import type { MessageKey, TranslateFunction } from "../../i18n";
-import { useT } from "../../i18n/useLocale";
+import { localizeError } from "../../i18n/errors";
+import type { Locale, MessageKey, TranslateFunction } from "../../i18n";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { isRecord } from "../../ipc/core";
 import {
   LOG_STREAMS,
@@ -43,16 +43,16 @@ type ExportState =
   | { stage: "confirm" }
   | { stage: "preview"; preview: LogExportPreview };
 
-function errorMessage(error: unknown, t: TranslateFunction): string {
+function errorMessage(error: unknown, t: TranslateFunction, locale: Locale): string {
   if (!isRecord(error) || typeof error.message !== "string") {
     return t("services.logs.genericError");
   }
-  return localizedErrorMessage(
+  return localizeError(
     {
       code: typeof error.code === "string" ? error.code : "",
       message: error.message,
     },
-    t,
+    locale,
   );
 }
 
@@ -80,6 +80,7 @@ function declaredPath(service: LaunchdService, stream: LogStream): string {
 
 export function ServiceLogs({ service }: { service: LaunchdService }) {
   const t = useT();
+  const locale = useLocale();
   const declared = declaredStreams(service);
   const [stream, setStream] = useState<LogStream>(declared[0] ?? "STDOUT");
   const target = useMemo<LogTarget>(
@@ -148,7 +149,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       } catch (error) {
         if (session !== sessionRef.current) return;
         setStatus(resume ? "paused" : "idle");
-        setMessage(errorMessage(error, t));
+        setMessage(errorMessage(error, t, locale));
         return;
       }
       if (session !== sessionRef.current) {
@@ -184,10 +185,10 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
         if (session !== sessionRef.current) return;
         releaseGrant();
         setStatus("idle");
-        setMessage(errorMessage(error, t));
+        setMessage(errorMessage(error, t, locale));
       }
     },
-    [releaseGrant, setTail, target, setExportState, setMessage, setStatus, t],
+    [releaseGrant, setTail, target, setExportState, setMessage, setStatus, t, locale],
   );
 
   const activeGrant = grant?.grantId ?? null;
@@ -212,7 +213,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       } catch (error) {
         if (stopped || session !== sessionRef.current) return;
         if (!isBusy(error)) {
-          stopTracking(errorMessage(error, t));
+          stopTracking(errorMessage(error, t, locale));
           return;
         }
       }
@@ -228,7 +229,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       stopped = true;
       window.clearTimeout(timer);
     };
-  }, [status, activeGrant, target, setTail, stopTracking, t]);
+  }, [status, activeGrant, target, setTail, stopTracking, t, locale]);
 
   useEffect(
     () => () => {
@@ -280,7 +281,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
     } catch (error) {
       if (session !== sessionRef.current) return;
       setExportState({ stage: "closed" });
-      setMessage(errorMessage(error, t));
+      setMessage(errorMessage(error, t, locale));
     }
   };
 
@@ -297,7 +298,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
           : t("services.logs.exportIncomplete", { summary: outcome.summary }),
       );
     } catch (error) {
-      setMessage(errorMessage(error, t));
+      setMessage(errorMessage(error, t, locale));
     }
   };
 
@@ -307,7 +308,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
       await discardLaunchdLogExport(preview.operationId, preview.save.grantId);
       setMessage(t("services.logs.exportDiscarded"));
     } catch (error) {
-      setMessage(errorMessage(error, t));
+      setMessage(errorMessage(error, t, locale));
     }
   };
 

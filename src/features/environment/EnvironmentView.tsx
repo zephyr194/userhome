@@ -8,7 +8,7 @@ import {
 } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
 import { formatByteSize } from "../../i18n/format";
-import { localizeAppError } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type { EnvFileOutcome, ScanOutcome } from "../../ipc/environment";
 import { DotenvEditor, type DotenvEditorProps } from "./DotenvEditor";
@@ -93,7 +93,7 @@ function DirectoryContent(props: EnvironmentViewProps) {
     return (
       <AsyncState kind="error">
         <span className="break-words [overflow-wrap:anywhere]">
-          {localizeAppError(grants.error, t, locale)}
+          {localizeError(grants.error, locale)}
         </span>{" "}
         <Button onClick={actions.reloadGrants} size="sm">
           {t("env.dotenv.retry")}
@@ -224,7 +224,7 @@ function DirectoryStatus({ actions, directory }: { actions: EnvironmentActions; 
     return (
       <AsyncState kind="error">
         <span className="break-words [overflow-wrap:anywhere]">
-          {localizeAppError(scan.error, t, locale)}
+          {localizeError(scan.error, locale)}
         </span>
         {scan.error.retryable ? (
           <>

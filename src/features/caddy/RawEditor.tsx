@@ -8,7 +8,7 @@ import {
   isWorkdirRequired,
   type CaddyRawOrigin,
 } from "../../ipc/caddy";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import type { AppError } from "../../ipc/core";
 import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
 import type { SaveState } from "./CaddySaveBar";
@@ -88,7 +88,7 @@ export function RawEditorView({
         </p>
         {load.status === "failed" ? (
           <p role="alert" className="m-0 text-body text-danger">
-            {t("caddy.raw.loadFailed", { error: localizeAppErrorMessage(load.error, copy.locale) })}
+            {t("caddy.raw.loadFailed", { error: localizeError(load.error, copy.locale) })}
           </p>
         ) : null}
         {blockReason !== undefined ? (
@@ -213,7 +213,7 @@ function SaveResult({ state, copy }: { state: SaveState; copy: CaddyCopy }) {
   if (state.status !== "failed") return null;
   return (
     <p role="alert" className="m-0 text-body text-danger">
-      {copy.t("caddy.save.failed", { message: localizeAppErrorMessage(state.error, copy.locale) })}
+      {copy.t("caddy.save.failed", { message: localizeError(state.error, copy.locale) })}
     </p>
   );
 }

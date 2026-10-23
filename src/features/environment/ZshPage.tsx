@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { localizeAppError } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
 import {
@@ -107,7 +107,7 @@ export function ZshPage() {
         load(result.grant.id);
       }
     } catch (error) {
-      setNotice({ tone: "error", text: localizeAppError(decodeAppError(error), t, locale) });
+      setNotice({ tone: "error", text: localizeError(decodeAppError(error), locale) });
     } finally {
       setChoosing(false);
     }

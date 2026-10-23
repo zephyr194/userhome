@@ -15,7 +15,7 @@ import {
   type CaddyStatus,
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
 import { createRequestTracker } from "./caddyPreviewFlow";
 import {
@@ -319,7 +319,7 @@ export function CaddyRunView({
       </p>
       {error !== undefined ? (
         <p role="alert" className="m-0 text-body text-danger">
-          {localizeAppErrorMessage(error, copy.locale)}
+          {localizeError(error, copy.locale)}
         </p>
       ) : null}
       {status?.state === "FAILED" ? <FailureBlock status={status} /> : null}

@@ -8,8 +8,8 @@ import {
   type ClaudeOptionSummary,
 } from "../../ipc/aiConfig";
 import { decodeAppError, type AppError } from "../../ipc/core";
-import { localizeErrorMessage } from "../../i18n/errors";
-import { useT } from "../../i18n/useLocale";
+import { localizeError } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { Button, Modal } from "../../components/ui";
 import { CheckboxField, SelectField, TextField } from "../../components/ui/forms";
 import {
@@ -81,6 +81,7 @@ export function CommandBuilderView({
   onRetry,
 }: CommandBuilderViewProps) {
   const t = useT();
+  const locale = useLocale();
   return (
     <section aria-label={t("aiConfig.cmd.heading")} className="grid min-w-0 gap-ui-8">
       <h2 className="m-0 text-body font-semibold">{t("aiConfig.cmd.heading")}</h2>
@@ -91,7 +92,7 @@ export function CommandBuilderView({
       ) : null}
       {options.status === "failed" ? (
         <div role="alert" className="grid gap-ui-8">
-          <p className="m-0 text-aux">{localizeErrorMessage(options.error, t)}</p>
+          <p className="m-0 text-aux">{localizeError(options.error, locale)}</p>
           <div>
             <Button variant="ghost" onClick={onRetry}>
               {t("common.retry")}
@@ -269,6 +270,7 @@ function PreviewPanel({
   readonly onCopy: (text: string) => void;
 }) {
   const t = useT();
+  const locale = useLocale();
   if (preview.status === "idle") {
     return (
       <p role="status" className="m-0 text-aux">
@@ -286,7 +288,7 @@ function PreviewPanel({
   if (preview.status === "failed") {
     return (
       <p role="alert" className="m-0 text-aux">
-        {localizeErrorMessage(preview.error, t)}
+        {localizeError(preview.error, locale)}
       </p>
     );
   }
@@ -343,6 +345,7 @@ export function TerminalOpenControl({
   onConfirm,
 }: TerminalOpenControlProps) {
   const t = useT();
+  const locale = useLocale();
   const blockReason = terminalBlockReason(preview, t);
 
   const busy = terminal.status === "opening";
@@ -365,7 +368,7 @@ export function TerminalOpenControl({
       ) : null}
       {terminal.status === "failed" ? (
         <p role="alert" className="m-0 text-danger">
-          {localizeErrorMessage(terminal.error, t)}
+          {localizeError(terminal.error, locale)}
         </p>
       ) : null}
       {(terminal.status === "confirming" || terminal.status === "opening") &&

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Modal, Panel } from "../../components/ui";
-import { localizedErrorMessage } from "../../i18n/errors";
-import { useT } from "../../i18n/useLocale";
+import { localizeError } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
   releaseAdoption,
@@ -40,6 +40,7 @@ function ReleaseAdoptionDialog({
   onReleased: (outcome: ReleaseOutcome) => void;
 }) {
   const t = useT();
+  const locale = useLocale();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<AppError | undefined>();
 
@@ -86,7 +87,7 @@ function ReleaseAdoptionDialog({
       </p>
       {error ? (
         <p className="break-words text-sm text-danger" role="alert">
-          {localizedErrorMessage(error, t)}
+          {localizeError(error, locale)}
         </p>
       ) : null}
     </Modal>

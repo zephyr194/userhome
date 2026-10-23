@@ -16,7 +16,7 @@ import {
 } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
 import { selectTlsMaterialGrant } from "../../ipc/grants";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useCaddyCopy } from "./caddyCopy";
 import { CaddyDetectPanel, type DetectState } from "./CaddyDetectPanel";
 import { CaddyWorkdirPanel } from "./CaddyWorkdirPanel";
@@ -215,7 +215,7 @@ export function CaddyPage() {
       if (result.status !== "SELECTED") return;
       changeSites(withTlsGrant(sitesRef.current, siteIndex, slot, result.grant.id));
     } catch (error) {
-      setTlsError(localizeAppErrorMessage(error as AppError, copy.locale));
+      setTlsError(localizeError(error as AppError, copy.locale));
     }
   }
 
@@ -294,7 +294,7 @@ export function CaddyPage() {
           {workdirReady && load.status === "failed" ? (
             <Panel role="alert" className="grid gap-ui-8 p-ui-8">
               <p className="m-0 text-body font-semibold text-danger">{t("caddy.page.loadFailedTitle")}</p>
-              <p className="m-0 text-body">{localizeAppErrorMessage(load.error, copy.locale)}</p>
+              <p className="m-0 text-body">{localizeError(load.error, copy.locale)}</p>
               <p className="m-0 text-aux text-muted-foreground">{t("caddy.page.loadFailedNote")}</p>
             </Panel>
           ) : null}

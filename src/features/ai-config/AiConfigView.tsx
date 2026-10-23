@@ -4,8 +4,8 @@ import { PageRegion } from "../../components/ui/PageShell";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import type { AiToolReport } from "../../ipc/aiConfig";
 import type { AppError } from "../../ipc/core";
-import { localizeErrorMessage } from "../../i18n/errors";
-import { useT } from "../../i18n/useLocale";
+import { localizeError } from "../../i18n/errors";
+import { useLocale, useT } from "../../i18n/useLocale";
 import { BrewUpdate } from "./BrewUpdate";
 import { ConfigSearchBar } from "./ConfigSearchControls";
 import { ToolReference } from "./ToolReference";
@@ -164,11 +164,12 @@ function StateNotice({
   onRetry: () => void;
 }) {
   const t = useT();
+  const locale = useLocale();
   if (state.status === "failed") {
     return (
       <Panel role="alert" className="grid gap-ui-8 p-ui-8">
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.view.detectFailed")}</p>
-        <p className="m-0 text-body">{localizeErrorMessage(state.error, t)}</p>
+        <p className="m-0 text-body">{localizeError(state.error, locale)}</p>
         <div>
           <Button size="sm" onClick={onRetry}>
             {t("common.retry")}
@@ -188,7 +189,7 @@ function StateNotice({
     return (
       <Panel role="alert" className="grid gap-ui-8 p-ui-8">
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.view.refreshFailed")}</p>
-        <p className="m-0 text-body">{localizeErrorMessage(refreshError, t)}</p>
+        <p className="m-0 text-body">{localizeError(refreshError, locale)}</p>
         <p className="m-0 text-aux text-muted-foreground">{t("aiConfig.view.refreshFailedHint")}</p>
       </Panel>
     );

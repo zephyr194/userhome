@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { RecentOperationState } from "../../app/shellState";
 import { StatusBadge } from "../../components/ui";
 import type { MessageKey } from "../../i18n";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type {
   OperationDetails,
@@ -166,7 +166,7 @@ export function OperationStatus({ state }: { state: RecentOperationState }) {
         tone="danger"
       >
         <p className="mt-ui-4 text-xs leading-relaxed text-danger" role="alert">
-          {localizeAppErrorMessage(state.error, locale)}
+          {localizeError(state.error, locale)}
         </p>
       </OperationRow>
     );

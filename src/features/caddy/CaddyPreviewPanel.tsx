@@ -1,6 +1,6 @@
 import { CodeViewer, Panel } from "../../components/ui";
 import type { MessageKey } from "../../i18n";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import type { CaddyExposure, CaddyExposureReason, CaddyIssue } from "../../ipc/caddy";
 import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
 import {
@@ -73,7 +73,7 @@ function PreviewBody({
   if (preview.status === "failed") {
     return (
       <p role="alert" className="m-0 text-body text-danger">
-        {t("caddy.preview.failed", { error: localizeAppErrorMessage(preview.error, copy.locale) })}
+        {t("caddy.preview.failed", { error: localizeError(preview.error, copy.locale) })}
       </p>
     );
   }

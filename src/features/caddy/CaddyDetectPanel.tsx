@@ -1,7 +1,7 @@
 import { Button, StatusBadge } from "../../components/ui";
 import type { CaddyDetectReport } from "../../ipc/caddy";
 import type { AppError } from "../../ipc/core";
-import { localizeAppErrorMessage } from "../../i18n/errors";
+import { localizeError } from "../../i18n/errors";
 import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
 import { candidateOutcomeText } from "./caddyRulesModel";
 
@@ -82,7 +82,7 @@ function DetectSummary({ state }: { state: DetectState }) {
 function DetectLine({ state, copy }: { state: DetectState; copy: CaddyCopy }) {
   if (state.status === "loading") return <>{copy.t("caddy.detect.pending")}</>;
   if (state.status === "failed") {
-    return <>{localizeAppErrorMessage(state.error, copy.locale)}</>;
+    return <>{localizeError(state.error, copy.locale)}</>;
   }
   const { report } = state;
   if (report.status === "AVAILABLE") {
