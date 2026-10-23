@@ -368,7 +368,7 @@ export function failureText(kind: FailureKind): string {
 }
 
 const FLAG_TEXT: Record<EntryFlag, { label: string; hint: string }> = {
-  DUPLICATE_KEY: { label: "冲突：重复键", hint: "同一个键出现多次，工具不会判断哪一个生效。" },
+  DUPLICATE_KEY: { label: "冲突：重复键", hint: "同一个键在同一文件里出现多次，按最后一处生效（常见 dotenv 解析器的做法），前面的位置被覆盖。" },
   INTERPOLATION: { label: "动态：变量插值", hint: "值含 $VAR 或 ${VAR}，按原文显示，没有展开。" },
   COMMAND_SUBSTITUTION: { label: "动态：命令替换", hint: "值含 $(…) 或反引号，按原文显示，没有执行。" },
   MULTILINE_VALUE: { label: "不支持：多行值", hint: "引号值跨越多行，保持原样，不做规范化。" },

@@ -358,6 +358,8 @@ describe("wording", () => {
     expect(failureText("TOO_LARGE")).toContain("1 MiB");
     expect(failureText("NOT_FOUND")).not.toBe(failureText("PERMISSION_DENIED"));
     expect(flagText("DUPLICATE_KEY").label).toContain("冲突");
+    expect(flagText("DUPLICATE_KEY").hint).toContain("最后一处生效");
+    expect(flagText("DUPLICATE_KEY").hint).not.toContain("不会判断");
     expect(flagText("COMMAND_SUBSTITUTION").hint).toContain("没有执行");
     expect(flagText("INTERPOLATION").label).toContain("动态");
     expect(flagText("MULTILINE_VALUE").label).toContain("不支持");

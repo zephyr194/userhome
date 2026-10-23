@@ -693,7 +693,7 @@ function RowView({
           ) : null}
           {replaced ? (
             <SameNameHint
-              description={`被覆盖的位置：${path} 第 ${replaced.join("、")} 行。同一文件里最后一处生效；这里不显示被覆盖的值。`}
+              description={`被覆盖的位置：${path} 第 ${replaced.join("、")} 行。同一文件里按最后一处生效（常见 dotenv 解析器的做法）；这里不显示被覆盖的值。`}
               label={`覆盖了前面 ${replaced.length} 处`}
               title={`${row.key} 的覆盖位置`}
             />
