@@ -227,10 +227,34 @@ const CHINESE_EXCEPTIONS: Readonly<Record<string, string>> = {
 // Lines tagged with this marker belong to pages outside phase one (e.g. environment and Caddy tabs).
 const PHASE_TWO_MARKER = "i18n-phase-two";
 
+/** Drops comments and keeps every string, template and newline, so a `//` inside a literal never hides its text. */
 function stripComments(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+  let out = "";
+  let index = 0;
+  while (index < source.length) {
+    const char = source[index];
+    const next = source[index + 1];
+    if (char === "/" && next === "/") {
+      while (index < source.length && source[index] !== "\n") index++;
+    } else if (char === "/" && next === "*") {
+      const close = source.indexOf("*/", index + 2);
+      const stop = close === -1 ? source.length : close + 2;
+      out += source.slice(index, stop).replace(/[^\n]/g, "");
+      index = stop;
+    } else if (char === '"' || char === "'" || char === "`") {
+      let end = index + 1;
+      while (end < source.length && source[end] !== char && (char === "`" || source[end] !== "\n")) {
+        end += source[end] === "\\" ? 2 : 1;
+      }
+      const stop = Math.min(end + 1, source.length);
+      out += source.slice(index, stop);
+      index = stop;
+    } else {
+      out += char;
+      index++;
+    }
+  }
+  return out;
 }
 
 describe("phase-one hardcoded text audit", () => {
@@ -249,5 +273,47 @@ describe("phase-one hardcoded text audit", () => {
       .map((line) => line.trim())
       .filter((line) => !allowed.has(line));
     expect(offending).toEqual([]);
+  });
+});
+
+describe("comment stripping keeps string literals", () => {
+  const cjkSurvives = (source: string) => CJK_PATTERN.test(stripComments(source));
+
+  it.each([
+    ['const url = "http://x 中文";'],
+    ['const hint = "see //中文";'],
+    ["const tip = 'see // 中文';"],
+    ["const tpl = `a // 中文`;"],
+    ['const s = "a\\" // 中文";'],
+  ])("keeps Chinese inside a literal: %s", (source) => {
+    expect(cjkSurvives(source)).toBe(true);
+  });
+
+  it.each([["// 中文注释"], ["const a = 1; // 中文"], ["const a = 1; /* 中文 */"]])(
+    "removes Chinese inside a comment: %s",
+    (source) => {
+      expect(cjkSurvives(source)).toBe(false);
+    },
+  );
+
+  it("keeps the code in front of a trailing comment", () => {
+    expect(stripComments("const a = 1; // 注释").trim()).toBe("const a = 1;");
+  });
+});
+
+describe("exception lists", () => {
+  const sourceOf = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+
+  it.each(Object.keys(CHINESE_EXCEPTIONS))("%s exists and holds Chinese text", (file) => {
+    expect(CJK_PATTERN.test(sourceOf(file))).toBe(true);
+  });
+
+  it.each(
+    Object.entries(ALLOWED_CJK_LINES).flatMap(([file, lines]) =>
+      lines.map((line): [string, string] => [file, line]),
+    ),
+  )("%s exists and still contains the allowed line %s", (file, line) => {
+    const lines = sourceOf(file).split("\n").map((text) => text.trim());
+    expect(lines).toContain(line);
   });
 });
