@@ -10,9 +10,14 @@ import {
   recalledQuery,
   rememberQuery,
 } from "./variableSearch";
-import type { VariableChainRow } from "./variableChainModel";
+import type { ChainValue, VariableChainRow } from "./variableChainModel";
+import { SECRET_MASK } from "../../components/ui/secretMask";
 
 afterEach(() => forgetQueries());
+
+// The real secret rides along in the fixture, as a leak would carry it; the list only ever shows the mask.
+const SECRET_FINAL = { kind: "masked", text: "hunter2" } as ChainValue;
+const SECRET_STEP = { kind: "masked", text: "hunter2" } as ChainValue;
 
 const ROWS: VariableChainRow[] = [
   {
@@ -22,8 +27,8 @@ const ROWS: VariableChainRow[] = [
   },
   {
     name: "GITHUB_TOKEN",
-    final: { value: { kind: "masked" }, source: { file: ".zshrc", line: 5 } },
-    chain: [{ value: { kind: "masked" }, source: { file: ".zprofile", line: 4 } }],
+    final: { value: SECRET_FINAL, source: { file: ".zshrc", line: 5 } },
+    chain: [{ value: SECRET_STEP, source: { file: ".zprofile", line: 4 } }],
   },
   {
     name: "PATH",
@@ -87,7 +92,10 @@ describe("filterVariables", () => {
   it("never matches secret values, so a search cannot reveal them", () => {
     expect(names(filterVariables(ROWS, "github"))).toEqual(["GITHUB_TOKEN"]);
     expect(names(filterVariables(ROWS, "masked"))).toEqual([]);
+    expect(names(filterVariables(ROWS, "hunter2"))).toEqual([]);
+    expect(names(filterVariables(ROWS, SECRET_MASK))).toEqual([]);
     expect(matchesVariable(ROWS[1] as VariableChainRow, ["secret"])).toBe(false);
+    expect(matchesVariable(ROWS[1] as VariableChainRow, ["hunter2"])).toBe(false);
   });
 
   it("treats special characters as plain text, never as a pattern", () => {
