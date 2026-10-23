@@ -214,7 +214,7 @@ export function isRestorableRoute(value: unknown): value is AppRouteId {
   );
 }
 
-export type NavigationSource = "primary-nav" | "content" | "menu" | "tray";
+export type NavigationSource = "primary-nav" | "content" | "menu" | "tray" | "deep-link";
 
 /** Navigation only: names a task to select on the services page, never an action on it. */
 export interface ServiceFocus {
@@ -229,4 +229,5 @@ export type NavigationIntent = (
   | { routeId: "caddy" | "environment" | "appConfig"; section?: string }
   | { routeId: "aiConfig" }
   | { routeId: "systemTools" }
+  | { routeId: "tools" }
 ) & { source?: NavigationSource };
