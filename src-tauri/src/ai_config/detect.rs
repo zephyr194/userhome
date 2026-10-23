@@ -1,9 +1,10 @@
 //! Detection of the four supported AI command-line tools.
 //!
 //! Executables are looked up only in fixed directories: the two Homebrew-style
-//! prefixes and `~/.local/bin`. `PATH` is not searched, because a `PATH` entry
-//! can be relative or user-writable. The version is read with the single fixed
-//! argument `--version`, from a private empty directory, with a minimal
+//! prefixes, `~/.local/bin`, and the bin directories of known Node version
+//! managers and global npm prefixes. `PATH` is not searched, because a `PATH`
+//! entry can be relative or user-writable. The version is read with the single
+//! fixed argument `--version`, from a private empty directory, with a minimal
 //! environment and no credentials. Configuration presence comes only from the
 //! app-config registry, and an existing configuration file never counts as an
 //! installed tool.
@@ -121,27 +122,198 @@ pub const TOOL_PROFILES: &[ToolProfile] = &[
     },
 ];
 
+const MAX_VERSION_DIRS_PER_MANAGER: usize = 50;
+const MAX_ALIAS_BYTES: u64 = 256;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FixedLocation {
     pub bin_dir: PathBuf,
     pub root: PathBuf,
+    /// Node toolchain bin directories whose scripts start with `#!/usr/bin/env node`.
+    /// Probing prepends them to `PATH` so `env` resolves the same Node version.
+    pub node_bin: bool,
+}
+
+impl FixedLocation {
+    fn system(bin_dir: PathBuf, root: PathBuf) -> Self {
+        Self {
+            bin_dir,
+            root,
+            node_bin: false,
+        }
+    }
+
+    fn node(bin_dir: PathBuf, root: PathBuf) -> Self {
+        Self {
+            bin_dir,
+            root,
+            node_bin: true,
+        }
+    }
 }
 
 pub fn fixed_locations(home: &Path) -> Vec<FixedLocation> {
-    vec![
-        FixedLocation {
-            bin_dir: PathBuf::from("/opt/homebrew/bin"),
-            root: PathBuf::from("/opt/homebrew"),
-        },
-        FixedLocation {
-            bin_dir: PathBuf::from("/usr/local/bin"),
-            root: PathBuf::from("/usr/local"),
-        },
-        FixedLocation {
-            bin_dir: home.join(".local/bin"),
-            root: home.join(".local"),
-        },
-    ]
+    let mut locations = vec![
+        FixedLocation::system(
+            PathBuf::from("/opt/homebrew/bin"),
+            PathBuf::from("/opt/homebrew"),
+        ),
+        FixedLocation::system(PathBuf::from("/usr/local/bin"), PathBuf::from("/usr/local")),
+        FixedLocation::system(home.join(".local/bin"), home.join(".local")),
+    ];
+    locations.extend(node_locations(home));
+    locations
+}
+
+fn node_locations(home: &Path) -> Vec<FixedLocation> {
+    let mut locations = nvm_locations(home);
+    for root in [
+        home.join(".local/share/fnm/node-versions"),
+        home.join("Library/Application Support/fnm/node-versions"),
+    ] {
+        locations.extend(versioned_locations(
+            &root,
+            &["installation", "bin"],
+            true,
+            None,
+        ));
+    }
+    locations.push(FixedLocation::node(
+        home.join(".volta/bin"),
+        home.join(".volta"),
+    ));
+    locations.push(FixedLocation::node(
+        home.join("Library/pnpm"),
+        home.join("Library/pnpm"),
+    ));
+    locations.push(FixedLocation::node(
+        home.join(".npm-global/bin"),
+        home.join(".npm-global"),
+    ));
+    locations.extend(versioned_locations(
+        &home.join(".local/share/mise/installs/node"),
+        &["bin"],
+        false,
+        None,
+    ));
+    locations.extend(versioned_locations(
+        &home.join(".asdf/installs/nodejs"),
+        &["bin"],
+        false,
+        None,
+    ));
+    locations
+}
+
+fn nvm_locations(home: &Path) -> Vec<FixedLocation> {
+    let root = home.join(".nvm/versions/node");
+    let preferred =
+        read_small_text(&home.join(".nvm/alias/default")).and_then(|text| alias_prefix(&text));
+    versioned_locations(&root, &["bin"], true, preferred)
+}
+
+fn versioned_locations(
+    root: &Path,
+    suffix: &[&str],
+    require_v: bool,
+    preferred: Option<Vec<u64>>,
+) -> Vec<FixedLocation> {
+    let mut versions = installed_versions(root, require_v);
+    let preferred_index =
+        preferred.and_then(|prefix| versions.iter().position(|version| version.matches(&prefix)));
+    if let Some(index) = preferred_index {
+        let first = versions.remove(index);
+        versions.insert(0, first);
+    }
+    versions.truncate(MAX_VERSION_DIRS_PER_MANAGER);
+    versions
+        .into_iter()
+        .filter_map(|version| {
+            let bin_dir = suffix
+                .iter()
+                .fold(root.join(&version.name), |dir, part| dir.join(part));
+            contained_dir(&bin_dir, root)
+                .map(|bin_dir| FixedLocation::node(bin_dir, root.to_path_buf()))
+        })
+        .collect()
+}
+
+#[derive(Debug)]
+struct InstalledVersion {
+    name: String,
+    key: [u64; 3],
+}
+
+impl InstalledVersion {
+    fn matches(&self, prefix: &[u64]) -> bool {
+        self.key[..].starts_with(prefix)
+    }
+}
+
+/// Newest first; ties break on name so the order never depends on `read_dir`.
+fn installed_versions(root: &Path, require_v: bool) -> Vec<InstalledVersion> {
+    let Ok(entries) = fs::read_dir(root) else {
+        return Vec::new();
+    };
+    let mut versions: Vec<InstalledVersion> = entries
+        .filter_map(Result::ok)
+        .filter_map(|entry| {
+            let name = entry.file_name().into_string().ok()?;
+            let key = parse_version_dir(&name, require_v)?;
+            Some(InstalledVersion { name, key })
+        })
+        .collect();
+    versions.sort_by(|a, b| b.key.cmp(&a.key).then_with(|| a.name.cmp(&b.name)));
+    versions
+}
+
+fn parse_version_dir(name: &str, require_v: bool) -> Option<[u64; 3]> {
+    let digits = match name.strip_prefix('v') {
+        Some(rest) => rest,
+        None if require_v => return None,
+        None => name,
+    };
+    match parse_numeric_parts(digits)?[..] {
+        [major, minor, patch] => Some([major, minor, patch]),
+        _ => None,
+    }
+}
+
+/// Accepts only a numeric prefix (`22`, `22.23`) or a full version (`v22.23.2`).
+/// Aliases such as `lts/*` or `node` are not version prefixes and are ignored.
+fn alias_prefix(text: &str) -> Option<Vec<u64>> {
+    let trimmed = text.trim();
+    let digits = trimmed.strip_prefix('v').unwrap_or(trimmed);
+    let parts = parse_numeric_parts(digits)?;
+    (1..=3).contains(&parts.len()).then_some(parts)
+}
+
+fn parse_numeric_parts(text: &str) -> Option<Vec<u64>> {
+    text.split('.')
+        .map(|part| {
+            (!part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+                .then(|| part.parse().ok())
+                .flatten()
+        })
+        .collect()
+}
+
+fn read_small_text(path: &Path) -> Option<String> {
+    let mut text = String::new();
+    fs::File::open(path)
+        .ok()?
+        .take(MAX_ALIAS_BYTES)
+        .read_to_string(&mut text)
+        .ok()?;
+    Some(text)
+}
+
+/// Each level of the path is checked through the canonical form, so a version
+/// directory or bin directory that is a symlink out of `root` is not used.
+fn contained_dir(dir: &Path, root: &Path) -> Option<PathBuf> {
+    let real_dir = fs::canonicalize(dir).ok()?;
+    let real_root = fs::canonicalize(root).ok()?;
+    (real_dir.is_dir() && real_dir.starts_with(real_root)).then(|| dir.to_path_buf())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -249,17 +421,30 @@ pub struct AiConfigReport {
 }
 
 pub trait VersionProbe {
-    fn version(&self, executable: &Path) -> Option<String>;
+    fn version(&self, executable: &Path, launch_dir: Option<&Path>) -> Option<String>;
 }
 
 pub struct SystemVersionProbe;
 
 impl VersionProbe for SystemVersionProbe {
-    fn version(&self, executable: &Path) -> Option<String> {
+    fn version(&self, executable: &Path, launch_dir: Option<&Path>) -> Option<String> {
         let work = PrivateWorkDir::create().ok()?;
-        let mut command = version_command(executable, work.path());
+        let mut command = version_command(executable, work.path(), &probe_path(launch_dir));
         let bytes = run_bounded(&mut command, VERSION_TIMEOUT, MAX_VERSION_OUTPUT_BYTES)?;
         sanitize_version(&bytes)
+    }
+}
+
+/// Node-manager launches put their own bin directory first, so `#!/usr/bin/env node`
+/// finds the Node version next to the executable. Any other directory keeps the
+/// fixed probe `PATH`, and a directory containing `:` is never added because it would
+/// split into several entries.
+pub fn probe_path(launch_dir: Option<&Path>) -> String {
+    match launch_dir.and_then(Path::to_str) {
+        Some(dir) if dir.starts_with('/') && !dir.contains(':') => {
+            format!("{dir}:{PROBE_PATH}")
+        }
+        _ => PROBE_PATH.to_owned(),
     }
 }
 
@@ -293,12 +478,13 @@ pub fn detect_tool(profile: &ToolProfile, env: &ProbeEnv<'_>) -> ToolReport {
             Located::Found {
                 display,
                 executable,
+                launch_dir,
             } => (
                 InstallStatus::Found,
                 Some(install_source_of(&executable)),
                 Some(display),
                 None,
-                env.version.version(&executable),
+                env.version.version(&executable, launch_dir.as_deref()),
             ),
             Located::Invalid { display, reason } => (
                 InstallStatus::Invalid,
@@ -328,6 +514,7 @@ enum Located {
     Found {
         display: String,
         executable: PathBuf,
+        launch_dir: Option<PathBuf>,
     },
     Invalid {
         display: String,
@@ -338,35 +525,30 @@ enum Located {
 
 fn locate(profile: &ToolProfile, env: &ProbeEnv<'_>) -> Located {
     let mut rejected: Option<Located> = None;
-    for candidate in candidates(profile, env.locations) {
-        let (outcome, usable) = inspect(&candidate);
-        if let Some(executable) = usable {
-            return Located::Found {
-                display: shown_path(&candidate.path, env.home),
-                executable,
-            };
-        }
-        rejected = rejected.or_else(|| {
-            invalid_reason(outcome).map(|reason| Located::Invalid {
-                display: shown_path(&candidate.path, env.home),
-                reason,
-            })
-        });
-    }
-    rejected.unwrap_or(Located::Missing)
-}
-
-fn candidates(profile: &ToolProfile, locations: &[FixedLocation]) -> Vec<Candidate> {
-    locations
-        .iter()
-        .flat_map(|location| {
-            profile.executable_names.iter().map(move |name| Candidate {
+    for location in env.locations {
+        for name in profile.executable_names {
+            let candidate = Candidate {
                 source: ExecutableSource::Fixed,
                 path: location.bin_dir.join(name),
                 root: Some(location.root.clone()),
-            })
-        })
-        .collect()
+            };
+            let (outcome, usable) = inspect(&candidate);
+            if let Some(executable) = usable {
+                return Located::Found {
+                    display: shown_path(&candidate.path, env.home),
+                    executable,
+                    launch_dir: location.node_bin.then(|| location.bin_dir.clone()),
+                };
+            }
+            rejected = rejected.or_else(|| {
+                invalid_reason(outcome).map(|reason| Located::Invalid {
+                    display: shown_path(&candidate.path, env.home),
+                    reason,
+                })
+            });
+        }
+    }
+    rejected.unwrap_or(Located::Missing)
 }
 
 fn invalid_reason(outcome: CandidateOutcome) -> Option<InvalidReason> {
@@ -410,12 +592,12 @@ fn config_presence(source: ConfigSource, env: &ProbeEnv<'_>) -> ConfigPresence {
     }
 }
 
-pub fn version_command(executable: &Path, work_dir: &Path) -> Command {
+pub fn version_command(executable: &Path, work_dir: &Path, path: &str) -> Command {
     let mut command = Command::new(executable);
     command
         .arg(VERSION_ARGUMENT)
         .env_clear()
-        .env("PATH", PROBE_PATH)
+        .env("PATH", path)
         .env("HOME", work_dir)
         .env("TMPDIR", work_dir)
         .current_dir(work_dir)

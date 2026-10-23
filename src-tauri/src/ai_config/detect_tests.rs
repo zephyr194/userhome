@@ -21,7 +21,7 @@ const HOME: &str = "/Users/example";
 struct FakeVersion {
     by_name: BTreeMap<String, String>,
     fallback: Option<String>,
-    calls: RefCell<Vec<PathBuf>>,
+    calls: RefCell<Vec<(PathBuf, Option<PathBuf>)>>,
 }
 
 impl FakeVersion {
@@ -53,13 +53,27 @@ impl FakeVersion {
     }
 
     fn calls(&self) -> Vec<PathBuf> {
-        self.calls.borrow().clone()
+        self.calls
+            .borrow()
+            .iter()
+            .map(|(executable, _)| executable.clone())
+            .collect()
+    }
+
+    fn launch_dirs(&self) -> Vec<Option<PathBuf>> {
+        self.calls
+            .borrow()
+            .iter()
+            .map(|(_, launch_dir)| launch_dir.clone())
+            .collect()
     }
 }
 
 impl VersionProbe for FakeVersion {
-    fn version(&self, executable: &Path) -> Option<String> {
-        self.calls.borrow_mut().push(executable.to_path_buf());
+    fn version(&self, executable: &Path, launch_dir: Option<&Path>) -> Option<String> {
+        self.calls
+            .borrow_mut()
+            .push((executable.to_path_buf(), launch_dir.map(Path::to_path_buf)));
         let name = executable.file_name()?.to_str()?;
         self.by_name
             .get(name)
@@ -89,18 +103,9 @@ impl TempRoot {
 
     fn locations(&self) -> Vec<FixedLocation> {
         vec![
-            FixedLocation {
-                bin_dir: self.path("opt/homebrew/bin"),
-                root: self.path("opt/homebrew"),
-            },
-            FixedLocation {
-                bin_dir: self.path("usr/local/bin"),
-                root: self.path("usr/local"),
-            },
-            FixedLocation {
-                bin_dir: self.path("home/.local/bin"),
-                root: self.path("home/.local"),
-            },
+            FixedLocation::system(self.path("opt/homebrew/bin"), self.path("opt/homebrew")),
+            FixedLocation::system(self.path("usr/local/bin"), self.path("usr/local")),
+            FixedLocation::system(self.path("home/.local/bin"), self.path("home/.local")),
         ]
     }
 
@@ -228,20 +233,28 @@ fn gemini_profile_points_at_the_registered_user_settings_entry() {
 }
 
 #[test]
-fn fixed_locations_are_the_homebrew_prefixes_and_home_local_bin_only() {
-    let bins: Vec<PathBuf> = fixed_locations(Path::new(HOME))
-        .into_iter()
-        .map(|location| location.bin_dir)
-        .collect();
+fn fixed_locations_are_the_system_bins_then_the_node_bins_in_priority_order() {
+    let root = TempRoot::new();
 
+    let locations = fixed_locations(&root.home());
+
+    let bins: Vec<PathBuf> = locations
+        .iter()
+        .map(|location| location.bin_dir.clone())
+        .collect();
     assert_eq!(
         bins,
         vec![
             PathBuf::from("/opt/homebrew/bin"),
             PathBuf::from("/usr/local/bin"),
-            PathBuf::from("/Users/example/.local/bin"),
+            root.path("home/.local/bin"),
+            root.path("home/.volta/bin"),
+            root.path("home/Library/pnpm"),
+            root.path("home/.npm-global/bin"),
         ]
     );
+    let node_flags: Vec<bool> = locations.iter().map(|location| location.node_bin).collect();
+    assert_eq!(node_flags, [false, false, false, true, true, true]);
 }
 
 #[test]
@@ -612,7 +625,7 @@ fn unreadable_claude_settings_do_not_change_its_install_status() {
 fn version_command_uses_only_the_fixed_argument_private_cwd_and_minimal_env() {
     let work = Path::new("/tmp/userhome-ai-probe-fixture");
 
-    let command = version_command(Path::new("/opt/homebrew/bin/claude"), work);
+    let command = version_command(Path::new("/opt/homebrew/bin/claude"), work, PROBE_PATH);
 
     let args: Vec<&OsStr> = command.get_args().collect();
     assert_eq!(args, vec![OsStr::new("--version")]);
@@ -818,6 +831,356 @@ fn install_source_rejects_relative_segments_as_package_names() {
 fn install_source_of_an_unresolvable_path_is_direct() {
     let missing = Path::new("/nonexistent-userhome-probe/claude");
     assert_eq!(install_source_of(missing), InstallSource::Direct);
+}
+
+#[test]
+fn a_tool_installed_under_nvm_is_found_and_probed_with_its_own_bin_directory_first() {
+    let root = TempRoot::new();
+    root.executable("home/.nvm/versions/node/v22.23.2/bin/gemini", 0o755);
+    root.executable("home/.local/bin/claude", 0o755);
+    let version = FakeVersion::answering_everything("1.0.0");
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &version,
+        &FakeFs::new(),
+    );
+
+    let gemini = tool(&report, ToolId::GeminiCli);
+    assert_eq!(gemini.install_status, InstallStatus::Found);
+    assert_eq!(
+        gemini.display_path.as_deref(),
+        Some("~/.nvm/versions/node/v22.23.2/bin/gemini")
+    );
+    assert_eq!(gemini.install_source, Some(InstallSource::Direct));
+    assert_eq!(gemini.version.as_deref(), Some("1.0.0"));
+    assert_eq!(
+        version.launch_dirs(),
+        vec![
+            None,
+            Some(root.path("home/.nvm/versions/node/v22.23.2/bin")),
+        ]
+    );
+}
+
+#[test]
+fn a_node_manager_copy_never_outranks_a_system_install() {
+    let root = TempRoot::new();
+    root.executable("home/.local/bin/gemini", 0o755);
+    root.executable("home/.nvm/versions/node/v24.1.0/bin/gemini", 0o755);
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &FakeVersion::answering_everything("1.0.0"),
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).display_path.as_deref(),
+        Some("~/.local/bin/gemini")
+    );
+}
+
+#[test]
+fn nvm_default_alias_prefix_picks_the_highest_matching_installed_version() {
+    let root = TempRoot::new();
+    for version in ["v22.23.2", "v22.23.4", "v24.1.0"] {
+        root.executable(
+            &format!("home/.nvm/versions/node/{version}/bin/gemini"),
+            0o755,
+        );
+    }
+    write_nvm_alias(&root, "22\n");
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &FakeVersion::answering_everything("0.1.0"),
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).display_path.as_deref(),
+        Some("~/.nvm/versions/node/v22.23.4/bin/gemini")
+    );
+}
+
+#[test]
+fn nvm_aliases_that_are_not_numeric_prefixes_fall_back_to_the_highest_version() {
+    for alias in ["lts/*", "node", "stable", "", "22.x", "v"] {
+        let root = TempRoot::new();
+        root.executable("home/.nvm/versions/node/v22.23.4/bin/gemini", 0o755);
+        root.executable("home/.nvm/versions/node/v24.1.0/bin/gemini", 0o755);
+        write_nvm_alias(&root, alias);
+
+        let report = run(
+            &root.home(),
+            &locations_with_node(&root),
+            &FakeVersion::answering_everything("0.1.0"),
+            &FakeFs::new(),
+        );
+
+        assert_eq!(
+            tool(&report, ToolId::GeminiCli).display_path.as_deref(),
+            Some("~/.nvm/versions/node/v24.1.0/bin/gemini"),
+            "alias {alias:?}"
+        );
+    }
+}
+
+#[test]
+fn when_the_preferred_nvm_version_lacks_the_tool_the_next_newest_version_with_it_is_used() {
+    let root = TempRoot::new();
+    fs::create_dir_all(root.path("home/.nvm/versions/node/v22.23.4/bin")).expect("empty bin");
+    root.executable("home/.nvm/versions/node/v22.23.2/bin/gemini", 0o755);
+    root.executable("home/.nvm/versions/node/v20.0.0/bin/gemini", 0o755);
+    write_nvm_alias(&root, "22");
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &FakeVersion::answering_everything("0.1.0"),
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).display_path.as_deref(),
+        Some("~/.nvm/versions/node/v22.23.2/bin/gemini")
+    );
+}
+
+#[test]
+fn without_an_alias_the_newest_nvm_version_that_has_the_tool_is_used() {
+    let root = TempRoot::new();
+    fs::create_dir_all(root.path("home/.nvm/versions/node/v24.1.0/bin")).expect("empty bin");
+    root.executable("home/.nvm/versions/node/v22.23.2/bin/gemini", 0o755);
+    root.executable("home/.nvm/versions/node/v20.0.0/bin/gemini", 0o755);
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &FakeVersion::answering_everything("0.1.0"),
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).display_path.as_deref(),
+        Some("~/.nvm/versions/node/v22.23.2/bin/gemini")
+    );
+}
+
+#[test]
+fn nvm_directory_names_outside_the_strict_version_pattern_are_ignored() {
+    let root = TempRoot::new();
+    for name in [
+        "v22",
+        "22.23.2",
+        "v22.23.2-beta",
+        "latest",
+        "v22.23.2.1",
+        "v22.x.0",
+    ] {
+        root.executable(&format!("home/.nvm/versions/node/{name}/bin/gemini"), 0o755);
+    }
+    let version = FakeVersion::answering_everything("0.1.0");
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &version,
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).install_status,
+        InstallStatus::Missing
+    );
+    assert!(version.calls().is_empty());
+}
+
+#[test]
+fn nvm_version_directory_symlinked_out_of_its_root_is_not_used() {
+    let root = TempRoot::new();
+    root.executable("elsewhere/v22.23.2/bin/gemini", 0o755);
+    fs::create_dir_all(root.path("home/.nvm/versions/node")).expect("nvm root");
+    symlink(
+        root.path("elsewhere/v22.23.2"),
+        root.path("home/.nvm/versions/node/v22.23.2"),
+    )
+    .expect("symlink");
+    let version = FakeVersion::answering_everything("0.1.0");
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &version,
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::GeminiCli).install_status,
+        InstallStatus::Missing
+    );
+    assert!(version.calls().is_empty());
+}
+
+#[test]
+fn nvm_bin_entry_symlinked_out_of_its_root_is_invalid_and_never_run() {
+    let root = TempRoot::new();
+    let outside = root.executable("elsewhere/gemini", 0o755);
+    fs::create_dir_all(root.path("home/.nvm/versions/node/v22.23.2/bin")).expect("bin");
+    symlink(
+        &outside,
+        root.path("home/.nvm/versions/node/v22.23.2/bin/gemini"),
+    )
+    .expect("symlink");
+    let version = FakeVersion::answering_everything("0.1.0");
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &version,
+        &FakeFs::new(),
+    );
+
+    let gemini = tool(&report, ToolId::GeminiCli);
+    assert_eq!(gemini.install_status, InstallStatus::Invalid);
+    assert_eq!(gemini.invalid_reason, Some(InvalidReason::OutsideRoot));
+    assert!(version.calls().is_empty());
+}
+
+#[test]
+fn a_file_where_a_version_bin_directory_should_be_is_not_listed() {
+    let root = TempRoot::new();
+    root.executable("home/.nvm/versions/node/v22.23.2/bin", 0o755);
+
+    let locations = node_locations(&root.home());
+
+    assert!(
+        locations
+            .iter()
+            .all(|location| !location.bin_dir.starts_with(root.path("home/.nvm"))),
+        "{locations:?}"
+    );
+}
+
+#[test]
+fn nvm_version_directories_are_capped_at_fifty_newest_first() {
+    let root = TempRoot::new();
+    for minor in 0..60 {
+        root.executable(
+            &format!("home/.nvm/versions/node/v1.0.{minor}/bin/gemini"),
+            0o755,
+        );
+    }
+    let nvm_bin = root.path("home/.nvm/versions/node");
+
+    let bins: Vec<PathBuf> = node_locations(&root.home())
+        .into_iter()
+        .map(|location| location.bin_dir)
+        .filter(|bin| bin.starts_with(&nvm_bin))
+        .collect();
+
+    assert_eq!(bins.len(), MAX_VERSION_DIRS_PER_MANAGER);
+    assert_eq!(bins.first(), Some(&nvm_bin.join("v1.0.59/bin")));
+    assert_eq!(bins.last(), Some(&nvm_bin.join("v1.0.10/bin")));
+}
+
+#[test]
+fn fnm_installs_under_application_support_are_found() {
+    let root = TempRoot::new();
+    root.executable(
+        "home/Library/Application Support/fnm/node-versions/v22.0.0/installation/bin/codex",
+        0o755,
+    );
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &FakeVersion::answering_everything("0.9.0"),
+        &FakeFs::new(),
+    );
+
+    let codex = tool(&report, ToolId::CodexCli);
+    assert_eq!(codex.install_status, InstallStatus::Found);
+    assert_eq!(
+        codex.display_path.as_deref(),
+        Some("~/Library/Application Support/fnm/node-versions/v22.0.0/installation/bin/codex")
+    );
+}
+
+#[test]
+fn volta_shims_and_mise_node_installs_are_found() {
+    let root = TempRoot::new();
+    root.executable("home/.volta/bin/claude", 0o755);
+    root.executable(
+        "home/.local/share/mise/installs/node/22.23.2/bin/codex",
+        0o755,
+    );
+
+    let report = run(
+        &root.home(),
+        &locations_with_node(&root),
+        &FakeVersion::answering_everything("1.0.0"),
+        &FakeFs::new(),
+    );
+
+    assert_eq!(
+        tool(&report, ToolId::ClaudeCode).display_path.as_deref(),
+        Some("~/.volta/bin/claude")
+    );
+    assert_eq!(
+        tool(&report, ToolId::CodexCli).display_path.as_deref(),
+        Some("~/.local/share/mise/installs/node/22.23.2/bin/codex")
+    );
+}
+
+#[test]
+fn probe_path_puts_only_a_node_manager_bin_directory_in_front() {
+    assert_eq!(probe_path(None), PROBE_PATH);
+    assert_eq!(
+        probe_path(Some(Path::new(
+            "/Users/example/.nvm/versions/node/v22.23.2/bin"
+        ))),
+        "/Users/example/.nvm/versions/node/v22.23.2/bin:/usr/bin:/bin"
+    );
+    assert_eq!(probe_path(Some(Path::new("relative/bin"))), PROBE_PATH);
+    assert_eq!(probe_path(Some(Path::new("/tmp/a:b/bin"))), PROBE_PATH);
+}
+
+#[test]
+fn version_probe_launch_directory_is_none_outside_the_node_bins() {
+    let root = TempRoot::new();
+    root.executable("opt/homebrew/bin/claude", 0o755);
+    let version = FakeVersion::answering_everything("2.1.0");
+
+    run(&root.home(), &root.locations(), &version, &FakeFs::new());
+
+    assert_eq!(version.launch_dirs(), vec![None]);
+}
+
+#[test]
+fn alias_prefix_accepts_only_numeric_prefixes_and_full_versions() {
+    assert_eq!(alias_prefix("22\n"), Some(vec![22]));
+    assert_eq!(alias_prefix("v22.23"), Some(vec![22, 23]));
+    assert_eq!(alias_prefix("22.23.2"), Some(vec![22, 23, 2]));
+    for text in ["lts/*", "node", "22.x", "", "v", "1.2.3.4"] {
+        assert_eq!(alias_prefix(text), None, "{text:?}");
+    }
+}
+
+fn write_nvm_alias(root: &TempRoot, text: &str) {
+    let path = root.path("home/.nvm/alias/default");
+    fs::create_dir_all(path.parent().expect("parent")).expect("alias directory");
+    fs::write(path, text).expect("alias file");
+}
+
+fn locations_with_node(root: &TempRoot) -> Vec<FixedLocation> {
+    let mut locations = root.locations();
+    locations.extend(node_locations(&root.home()));
+    locations
 }
 
 #[test]
