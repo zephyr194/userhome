@@ -7,6 +7,7 @@ import {
   type Ref,
 } from "react";
 import { Button } from "../../components/ui";
+import { CopyButton } from "../../components/ui/CopyButton";
 import { SecretValue } from "../../components/ui/SecretValue";
 import { SECRET_MASK } from "../../components/ui/secretMask";
 import { useT } from "../../i18n/useLocale";
@@ -22,14 +23,15 @@ export interface LazySecretValueProps {
   label: string;
   /** 取回明文；只在用户点击“载入”后调用，结果不得被缓存。 */
   load: () => Promise<string>;
+  /** 默认按秘密处理：载入后仍遮盖，需再次显示才能复制；为 false 的长值载入后直接可选中、可复制。 */
+  secret?: boolean;
   /** 改变它会丢弃已取回的明文（切换文件或条目）。 */
   resetKey: string;
 }
 
 /**
- * 列表不携带秘密值：用户先显式“载入”，明文才从后端取回并交给共享
- * SecretValue（默认遮盖，再显式显示/复制）。焦点离开、页面隐藏、切换条目或
- * 卸载时明文随组件状态一并丢弃，不写入任何浏览器存储。
+ * 列表不携带长值与秘密值：用户先显式“载入”，明文才从后端取回。焦点离开、
+ * 页面隐藏、切换条目或卸载时明文随组件状态一并丢弃，不写入任何浏览器存储。
  */
 export function LazySecretValue({ resetKey, ...props }: LazySecretValueProps) {
   return <LazySecretValueView key={resetKey} {...props} />;
@@ -38,6 +40,7 @@ export function LazySecretValue({ resetKey, ...props }: LazySecretValueProps) {
 function LazySecretValueView({
   label,
   load,
+  secret,
 }: Omit<LazySecretValueProps, "resetKey">) {
   const [state, dispatch] = useReducer(lazyValueReducer, INITIAL_LAZY_VALUE);
   const wrapper = useRef<HTMLSpanElement>(null);
@@ -86,9 +89,10 @@ function LazySecretValueView({
 
   return (
     <LazySecretValueBody
+      label={label}
       onBlur={discardWhenFocusLeaves}
       onFetch={() => void fetchValue()}
-      label={label}
+      secret={secret}
       state={state}
       wrapper={wrapper}
     />
@@ -99,12 +103,14 @@ export function LazySecretValueBody({
   label,
   onBlur,
   onFetch,
+  secret = true,
   state,
   wrapper,
 }: {
   label: string;
   onBlur?: (event: FocusEvent<HTMLElement>) => void;
   onFetch: () => void;
+  secret?: boolean;
   state: LazyValueState;
   wrapper?: Ref<HTMLSpanElement>;
 }) {
@@ -116,7 +122,11 @@ export function LazySecretValueBody({
         onBlur={onBlur}
         ref={wrapper}
       >
-        <SecretValue label={label} value={state.value} />
+        {secret ? (
+          <SecretValue label={label} value={state.value} />
+        ) : (
+          <PlainValue label={label} value={state.value} />
+        )}
       </span>
     );
   }
@@ -138,6 +148,20 @@ export function LazySecretValueBody({
       <span className="text-aux text-danger" role="status">
         {state.status === "failed" ? t("env.model.lazy.failed", { message: state.message }) : ""}
       </span>
+    </span>
+  );
+}
+
+function PlainValue({ label, value }: { label: string; value: string }) {
+  const t = useT();
+  return (
+    <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-ui-8">
+      <code className="min-w-0 break-all font-mono text-aux text-foreground">{value}</code>
+      <CopyButton
+        ariaLabel={t("common.value.copyOf", { label })}
+        label={t("common.value.copy")}
+        value={value}
+      />
     </span>
   );
 }

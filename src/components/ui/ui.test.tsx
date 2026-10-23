@@ -143,9 +143,8 @@ describe("SecretValue initial render", () => {
     expect(markup).not.toContain(SECRET);
     expect(markup).not.toContain("sk-live");
     expect(markup).toContain('aria-label="显示 OPENAI_API_KEY 的值"');
-    expect(markup).toContain('aria-label="复制 OPENAI_API_KEY 的值"');
+    expect(markup).not.toContain('aria-label="复制 OPENAI_API_KEY 的值"');
     expect(markup).not.toContain("shadow-focus");
-    expect(markup).toContain('role="status"');
   });
 
   it("masks values of any length with the same fixed mask", () => {

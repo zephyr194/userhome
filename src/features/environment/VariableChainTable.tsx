@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState, type KeyboardEvent, type ReactNode } fro
 import { AsyncState } from "../../components/AsyncState";
 import { Button, StatusBadge, TextField } from "../../components/ui";
 import { classNames } from "../../components/ui/classNames";
+import { CopyButton } from "../../components/ui/CopyButton";
 import { SECRET_MASK } from "../../components/ui/secretMask";
 import { useT } from "../../i18n/useLocale";
 import {
@@ -330,11 +331,14 @@ function Row({
                 <StepView
                   hit={hits.includes(index)}
                   key={index}
+                  name={row.name}
                   step={step}
                   terms={terms}
                 />
               ))}
-              {merged ? null : <StepView final hit={false} step={final} terms={terms} />}
+              {merged ? null : (
+                <StepView final hit={false} name={row.name} step={final} terms={terms} />
+              )}
             </ol>
           </td>
         </tr>
@@ -346,11 +350,13 @@ function Row({
 function StepView({
   final = false,
   hit,
+  name,
   step,
   terms,
 }: {
   final?: boolean;
   hit: boolean;
+  name: string;
   step: ChainStep;
   terms: readonly string[];
 }) {
@@ -366,7 +372,13 @@ function StepView({
     >
       {final ? <StatusBadge>{t("env.chain.badge.final")}</StatusBadge> : null}
       <span className="min-w-0 max-w-full">
-        <ValueView final={final} state={step.state} terms={terms} value={step.value} />
+        <ValueView
+          final={final}
+          label={name}
+          state={step.state}
+          terms={terms}
+          value={step.value}
+        />
       </span>
       <span className={classNames(MONO, "text-muted-foreground")}>
         <Highlighted terms={terms} text={sourceText(step.source)} />
@@ -380,7 +392,7 @@ function StepView({
   );
 }
 
-/** Plain text is shown; secrets and long values stay masked unless the caller reveals them. */
+/** Plain text is shown and copyable; secrets and long values stay withheld unless the caller loads them. */
 function ValueView({
   final = false,
   label,
@@ -391,7 +403,7 @@ function ValueView({
   value,
 }: {
   final?: boolean;
-  label?: string;
+  label: string;
   load?: () => Promise<string>;
   resetKey?: string;
   state?: ChainStep["state"];
@@ -410,12 +422,24 @@ function ValueView({
           <Highlighted terms={terms} text={value.text} />
         </code>
         {stateInfo ? <StatusBadge title={stateInfo.hint}>{stateInfo.label}</StatusBadge> : null}
+        <CopyButton
+          ariaLabel={t("common.value.copyOf", { label })}
+          label={t("common.value.copy")}
+          value={value.text}
+        />
       </span>
     );
   }
   if (value.kind === "withheld" || value.kind === "masked") {
-    if (load && label !== undefined && resetKey !== undefined) {
-      return <LazySecretValue label={label} load={load} resetKey={resetKey} />;
+    if (load && resetKey !== undefined) {
+      return (
+        <LazySecretValue
+          label={label}
+          load={load}
+          resetKey={resetKey}
+          secret={value.kind === "masked"}
+        />
+      );
     }
     const note =
       value.kind === "withheld"

@@ -9,6 +9,7 @@ import {
 import { useT } from "../../i18n/useLocale";
 import { Button } from "./Button";
 import { classNames } from "./classNames";
+import { CopyButton } from "./CopyButton";
 import {
   INITIAL_SECRET_VIEW_STATE,
   SECRET_MASK,
@@ -28,6 +29,7 @@ export function SecretValue({ resetKey, ...props }: SecretValueProps) {
   return <SecretValueView key={resetKey} {...props} />;
 }
 
+/** 复制按钮只在明文显示时出现，遮盖状态下不存在可用的复制入口。 */
 function SecretValueView({
   className,
   label,
@@ -39,7 +41,7 @@ function SecretValueView({
   );
   const valueId = useId();
   const t = useT();
-  const { copy, revealed } = state;
+  const { revealed } = state;
 
   useEffect(() => {
     if (!revealed) return;
@@ -63,16 +65,6 @@ function SecretValueView({
   const hideOnEscape = useCallback((event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") dispatch("hide");
   }, []);
-
-  const copyValue = async () => {
-    try {
-      if (!navigator.clipboard) throw new Error("clipboard unavailable");
-      await navigator.clipboard.writeText(value);
-      dispatch("copied");
-    } catch {
-      dispatch("copyFailed");
-    }
-  };
 
   return (
     <span
@@ -116,21 +108,13 @@ function SecretValueView({
       >
         {revealed ? t("common.secret.hide") : t("common.secret.show")}
       </Button>
-      <Button
-        aria-label={t("common.secret.copyValueOf", { label })}
-        onClick={copyValue}
-        size="sm"
-        variant="ghost"
-      >
-        {t("common.copy")}
-      </Button>
-      <span className="text-aux text-muted-foreground" role="status">
-        {copy === "copied"
-          ? t("common.clipboard.copied")
-          : copy === "failed"
-            ? t("common.clipboard.writeFailed")
-            : ""}
-      </span>
+      {revealed ? (
+        <CopyButton
+          ariaLabel={t("common.secret.copyValueOf", { label })}
+          label={t("common.copy")}
+          value={value}
+        />
+      ) : null}
     </span>
   );
 }

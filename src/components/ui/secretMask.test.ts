@@ -6,11 +6,8 @@ import {
 } from "./secretMask";
 
 describe("secret view state", () => {
-  it("starts masked with no copy feedback", () => {
-    expect(INITIAL_SECRET_VIEW_STATE).toEqual({
-      revealed: false,
-      copy: "idle",
-    });
+  it("starts masked", () => {
+    expect(INITIAL_SECRET_VIEW_STATE).toEqual({ revealed: false });
   });
 
   it("reveals and hides explicitly", () => {
@@ -19,25 +16,10 @@ describe("secret view state", () => {
     expect(secretViewReducer(shown, "hide").revealed).toBe(false);
   });
 
-  it("toggle flips the mask and clears copy feedback", () => {
-    const copied = secretViewReducer(INITIAL_SECRET_VIEW_STATE, "copied");
-    const shown = secretViewReducer(copied, "toggle");
-    expect(shown).toEqual({ revealed: true, copy: "idle" });
+  it("toggle flips the mask", () => {
+    const shown = secretViewReducer(INITIAL_SECRET_VIEW_STATE, "toggle");
+    expect(shown).toEqual({ revealed: true });
     expect(secretViewReducer(shown, "toggle").revealed).toBe(false);
-  });
-
-  it("copying does not reveal the value", () => {
-    const copied = secretViewReducer(INITIAL_SECRET_VIEW_STATE, "copied");
-    expect(copied).toEqual({ revealed: false, copy: "copied" });
-    expect(secretViewReducer(copied, "copyFailed").copy).toBe("failed");
-  });
-
-  it("hiding when the user leaves clears copy feedback too", () => {
-    const state = secretViewReducer(
-      secretViewReducer(INITIAL_SECRET_VIEW_STATE, "reveal"),
-      "copied",
-    );
-    expect(secretViewReducer(state, "hide")).toEqual(INITIAL_SECRET_VIEW_STATE);
   });
 
   it("hide on an already masked state returns the same object", () => {

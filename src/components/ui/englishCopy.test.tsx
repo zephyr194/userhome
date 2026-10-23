@@ -72,9 +72,8 @@ describe("shared components in English", () => {
       <SecretValue label="API_KEY" value="secret" />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "Show the value of API_KEY" }),
-    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show the value of API_KEY" }));
+
     expect(screen.getByRole("button", { name: "Copy the value of API_KEY" })).toBeTruthy();
     expectNoCjk(container.textContent ?? "");
   });
