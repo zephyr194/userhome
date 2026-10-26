@@ -1,16 +1,19 @@
 import { invoke, type InvokeArgs } from "@tauri-apps/api/core";
 
-export type AppErrorCode =
-  | "INVALID_INPUT"
-  | "NOT_FOUND"
-  | "NOT_SUPPORTED"
-  | "PERMISSION_DENIED"
-  | "VALIDATION_FAILED"
-  | "CONFLICT"
-  | "PROCESS_FAILED"
-  | "PARTIAL_FAILURE"
-  | "TIMEOUT"
-  | "INTERNAL";
+export const APP_ERROR_CODES = [
+  "INVALID_INPUT",
+  "NOT_FOUND",
+  "NOT_SUPPORTED",
+  "PERMISSION_DENIED",
+  "VALIDATION_FAILED",
+  "CONFLICT",
+  "PROCESS_FAILED",
+  "PARTIAL_FAILURE",
+  "TIMEOUT",
+  "INTERNAL",
+] as const;
+
+export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
 
 export interface AppError {
   code: AppErrorCode;
@@ -23,19 +26,6 @@ export interface AppStatus {
   status: "ok";
   version: string;
 }
-
-const APP_ERROR_CODES: readonly string[] = [
-  "INVALID_INPUT",
-  "NOT_FOUND",
-  "NOT_SUPPORTED",
-  "PERMISSION_DENIED",
-  "VALIDATION_FAILED",
-  "CONFLICT",
-  "PROCESS_FAILED",
-  "PARTIAL_FAILURE",
-  "TIMEOUT",
-  "INTERNAL",
-];
 
 export function createInternalError(): AppError {
   return {
@@ -83,8 +73,8 @@ function decodeDetails(
   return Object.fromEntries(details);
 }
 
-function isAppErrorCode(value: unknown): value is AppErrorCode {
-  return typeof value === "string" && APP_ERROR_CODES.includes(value);
+export function isAppErrorCode(value: unknown): value is AppErrorCode {
+  return typeof value === "string" && (APP_ERROR_CODES as readonly string[]).includes(value);
 }
 
 export function decodeAppError(value: unknown): AppError {

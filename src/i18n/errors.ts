@@ -1,17 +1,18 @@
+import { isAppErrorCode, type AppErrorCode } from "../ipc/core";
 import { translate, type Locale, type MessageKey } from "./index";
 
-const CODE_KEYS: ReadonlyMap<string, MessageKey> = new Map<string, MessageKey>([
-  ["INVALID_INPUT", "error.code.INVALID_INPUT"],
-  ["NOT_FOUND", "error.code.NOT_FOUND"],
-  ["NOT_SUPPORTED", "error.code.NOT_SUPPORTED"],
-  ["PERMISSION_DENIED", "error.code.PERMISSION_DENIED"],
-  ["VALIDATION_FAILED", "error.code.VALIDATION_FAILED"],
-  ["CONFLICT", "error.code.CONFLICT"],
-  ["PROCESS_FAILED", "error.code.PROCESS_FAILED"],
-  ["PARTIAL_FAILURE", "error.code.PARTIAL_FAILURE"],
-  ["TIMEOUT", "error.code.TIMEOUT"],
-  ["INTERNAL", "error.code.INTERNAL"],
-]);
+const CODE_KEYS: Readonly<Record<AppErrorCode, MessageKey>> = {
+  INVALID_INPUT: "error.code.INVALID_INPUT",
+  NOT_FOUND: "error.code.NOT_FOUND",
+  NOT_SUPPORTED: "error.code.NOT_SUPPORTED",
+  PERMISSION_DENIED: "error.code.PERMISSION_DENIED",
+  VALIDATION_FAILED: "error.code.VALIDATION_FAILED",
+  CONFLICT: "error.code.CONFLICT",
+  PROCESS_FAILED: "error.code.PROCESS_FAILED",
+  PARTIAL_FAILURE: "error.code.PARTIAL_FAILURE",
+  TIMEOUT: "error.code.TIMEOUT",
+  INTERNAL: "error.code.INTERNAL",
+};
 
 /** Frontend-generated messages, keyed by the exact zh-CN text the decoder or form produces. */
 const FRONTEND_MESSAGE_KEYS: ReadonlyMap<string, MessageKey> = new Map<string, MessageKey>([
@@ -30,6 +31,8 @@ export function localizeError(
   locale: Locale,
 ): string {
   if (locale === "zh-CN") return error.message;
-  const key = FRONTEND_MESSAGE_KEYS.get(error.message) ?? CODE_KEYS.get(error.code);
+  const key =
+    FRONTEND_MESSAGE_KEYS.get(error.message) ??
+    (isAppErrorCode(error.code) ? CODE_KEYS[error.code] : undefined);
   return key === undefined ? error.message : translate(locale, key);
 }

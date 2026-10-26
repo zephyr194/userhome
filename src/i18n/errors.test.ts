@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AppErrorCode } from "../ipc/core";
+import { APP_ERROR_CODES, type AppErrorCode } from "../ipc/core";
 import { localizeError } from "./errors";
 import { translate, type MessageKey } from "./index";
 
@@ -61,5 +61,13 @@ describe("localizeError", () => {
 
   it("keeps a Chinese backend message that has neither a code mapping nor a frontend match", () => {
     expect(localizeError({ code: "", message: "内部错误" }, "en")).toBe("内部错误");
+  });
+
+  it("localizes every runtime error code through its own key", () => {
+    for (const code of APP_ERROR_CODES) {
+      expect(localizeError({ code, message: "原文" }, "en")).toBe(
+        translate("en", `error.code.${code}` as MessageKey),
+      );
+    }
   });
 });
