@@ -117,7 +117,7 @@ describe("Modal 对话框", () => {
 
 describe("过渡与动效", () => {
   it("状态过渡时长令牌 ≤120ms，且 state-transition 使用线性缓动", () => {
-    expect(toMs(tokenValue("app-motion-state"))).toBeLessThanOrEqual(120);
+    expect(toMs(tokenValue("app-motion-duration-fast"))).toBeLessThanOrEqual(120);
     const body = rulesFor(".state-transition").join("\n");
     expect(body).toMatch(/transition-duration:\s*var\(--app-motion-state\)/);
     expect(body).toMatch(/transition-timing-function:\s*linear/);

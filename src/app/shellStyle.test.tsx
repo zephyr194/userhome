@@ -19,7 +19,7 @@ function tokenValue(name: string): string {
 
 function resolve(value: string): string {
   const token = value.match(/^var\(--([\w-]+)\)$/);
-  return token ? tokenValue(token[1]) : value.trim();
+  return token ? resolve(tokenValue(token[1])) : value.trim();
 }
 
 function rulesFor(selector: string): string[] {

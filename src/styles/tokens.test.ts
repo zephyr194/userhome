@@ -1,5 +1,6 @@
 /// <reference types="node" />
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -107,6 +108,7 @@ function parseRootStates(source: string) {
   const merge = (list: Declarations[]) => Object.assign({}, ...list) as Declarations;
   const light = merge(buckets.light);
   return {
+    declaredLight: Object.keys(light),
     states: {
       light: resolveAll(light),
       darkExplicit: resolveAll({ ...light, ...merge(buckets.darkExplicit) }),
@@ -127,6 +129,10 @@ function renamed(map: Declarations): Declarations {
   return Object.fromEntries(Object.entries(map).map(([name, value]) => [RENAMED_TOKENS[name] ?? name, value]));
 }
 
+function pick(map: Declarations, names: readonly string[]): Declarations {
+  return Object.fromEntries(names.map((name) => [name, map[name]]));
+}
+
 const SCOPED_LOCALS = [
   "--app-line-height-row",
   "--app-page-master-width",
@@ -134,11 +140,43 @@ const SCOPED_LOCALS = [
   "--r12-shell-notice-max-width",
 ];
 
+const ACCENT_TOKENS = [
+  "--app-primary",
+  "--app-primary-hover",
+  "--app-primary-soft",
+  "--app-primary-foreground",
+  "--app-accent-text",
+  "--app-focus-ring",
+  "--app-selection",
+  "--app-selection-border",
+  "--app-selection-foreground",
+  "--app-signal",
+  "--app-search-mark-bg",
+  "--app-sidebar-current-foreground",
+  "--app-sidebar-current-border",
+  "--app-brand-accent",
+  "--app-brand-accent-deep",
+] as const;
+
+const MOTION_TIERS = ["--app-motion-duration-fast", "--app-motion-duration-base", "--app-motion-duration-slow"] as const;
+
+// shadow-[var(--app-shadow-raised)] 在 Modal.tsx、forms/index.tsx、e2e/E2eFormProbe.tsx 中是已知的令牌引用，允许
+const FORBIDDEN_ARBITRARY = ["rounded-[", "bg-[", "text-[#", "shadow-[", "duration-[", "ease-["];
+
+function tsxFiles(): string[] {
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  return readdirSync(root, { recursive: true })
+    .map(String)
+    .filter((file) => file.endsWith(".tsx"))
+    .map((file) => join(root, file));
+}
+
 describe("theme token baseline (resolved from global.css, pre-migration)", () => {
   it.each(["light", "darkExplicit", "darkSystem"] as const)(
     "resolves every %s token to the baseline value",
     (state) => {
-      expect(parsed.states[state]).toEqual(renamed(baseline.states[state]));
+      const expected = renamed(baseline.states[state]);
+      expect(pick(parsed.states[state], Object.keys(expected))).toEqual(expected);
     },
   );
 
@@ -176,5 +214,58 @@ describe("token definitions live in one zone", () => {
 
   it("no longer uses the orphan round-scoped token names", () => {
     expect(css).not.toMatch(/--r4-signal|--r8-aisearch-mark-bg/);
+  });
+});
+
+describe("accent token contract", () => {
+  it.each(ACCENT_TOKENS)("defines %s in the light block and both dark states", (name) => {
+    expect(parsed.declaredLight).toContain(name);
+    expect(parsed.states.darkExplicit[name]).toBeDefined();
+    expect(parsed.states.darkSystem[name]).toBeDefined();
+  });
+
+  it("keeps the explicit and system dark accent values identical", () => {
+    expect(pick(parsed.states.darkSystem, ACCENT_TOKENS)).toEqual(pick(parsed.states.darkExplicit, ACCENT_TOKENS));
+  });
+
+  it("groups the accent tokens as one contiguous run in the light block", () => {
+    const lightBody = css.match(/^:root \{([^}]*)\}/m)?.[1] ?? "";
+    const names = [...lightBody.matchAll(/^\s*(--[\w-]+)\s*:/gm)].map((match) => match[1]);
+    const indexes = ACCENT_TOKENS.map((name) => names.indexOf(name));
+    expect(Math.min(...indexes)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...indexes) - Math.min(...indexes) + 1).toBe(ACCENT_TOKENS.length);
+  });
+});
+
+describe("motion tiers and shadow tier", () => {
+  it.each(MOTION_TIERS)("%s reuses an existing duration from the baseline", (tier) => {
+    const existing = ["--app-motion-state", "--app-motion-switch", "--app-motion-slide"].map(
+      (name) => baseline.states.light[name],
+    );
+    expect(existing).toContain(parsed.states.light[tier]);
+  });
+
+  it("keeps the legacy motion names as aliases of the new tiers", () => {
+    expect(parsed.states.light["--app-motion-state"]).toBe(parsed.states.light["--app-motion-duration-fast"]);
+    expect(parsed.states.light["--app-motion-switch"]).toBe(parsed.states.light["--app-motion-duration-base"]);
+    expect(parsed.states.light["--app-motion-slide"]).toBe(parsed.states.light["--app-motion-duration-slow"]);
+  });
+
+  it.each(["light", "darkExplicit", "darkSystem"] as const)(
+    "gives --app-shadow-float the same value as --app-shadow-raised in %s",
+    (state) => {
+      expect(parsed.states[state]["--app-shadow-float"]).toBe(parsed.states[state]["--app-shadow-raised"]);
+    },
+  );
+});
+
+describe("theme-related arbitrary values stay out of TSX", () => {
+  it("uses no literal arbitrary radius, colour, shadow, duration or easing utilities", () => {
+    const literal = (pattern: string) => new RegExp(`${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!var\\(--app-)`);
+    const offenders = tsxFiles().flatMap((file) => {
+      const text = readFileSync(file, "utf8");
+      return FORBIDDEN_ARBITRARY.filter((pattern) => literal(pattern).test(text)).map((pattern) => `${file}: ${pattern}`);
+    });
+    expect(offenders).toEqual([]);
   });
 });

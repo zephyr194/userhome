@@ -132,7 +132,7 @@ describe("选中语言：滑动指示器", () => {
       "transform, width, height, opacity",
     );
     expect(declaredIn(section, INDICATOR, "transition-duration")[0]).toBe("var(--app-motion-slide)");
-    expect(toMs(tokenValue("app-motion-slide"))).toBeGreaterThanOrEqual(200);
+    expect(toMs(tokenValue("app-motion-duration-slow"))).toBeGreaterThanOrEqual(200);
     expect(lastDeclaredIn(section, INDICATOR, "transition-timing-function")).toBe(
       "cubic-bezier(0.2, 0.7, 0.2, 1)",
     );
@@ -213,7 +213,7 @@ describe("选中语言：退化规则", () => {
     expect(lastDeclaredIn(section, ".slide-item", "transition-duration")).toBe(
       "var(--app-motion-state)",
     );
-    expect(toMs(tokenValue("app-motion-state"))).toBeLessThanOrEqual(120);
+    expect(toMs(tokenValue("app-motion-duration-fast"))).toBeLessThanOrEqual(120);
     expect(lastDeclaredIn(section, ".slide-item", "transition-timing-function")).toBe("linear");
   });
 });

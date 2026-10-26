@@ -113,8 +113,8 @@
   --app-warning-border: var(--app-warning);
   --app-danger-soft: #F5DFDC;
   --app-danger-border: var(--app-danger);
-  --app-search-mark-bg: #F2E0CC;
 
+  --app-search-mark-bg: #F2E0CC;
   --app-primary: #B65C24;
   --app-accent-text: #A64D1D;
   --app-primary-hover: #994619;
@@ -129,8 +129,8 @@
   --app-brand-accent-deep: #B65C24;
   --app-sidebar-current-foreground: var(--app-selection-foreground);
   --app-sidebar-current-border: var(--app-selection-border);
-  --app-selection-secondary: #D5DDE6;
 
+  --app-selection-secondary: #D5DDE6;
   --app-focus-gap: #F8FAFC;
 
   --app-space-2: 2px;
@@ -181,11 +181,18 @@
   --app-letter-spacing-label: 0.04em;
 
   --app-shadow-raised: 0 4px 12px rgb(20 27 36 / 0.18);
+  --app-shadow-float: 0 4px 12px rgb(20 27 36 / 0.18);
   --app-shadow-sticky: none;
 
-  --app-motion-state: 120ms;
-  --app-motion-switch: 140ms;
-  --app-motion-slide: 240ms;
+  --app-motion-duration-fast: 120ms;
+  --app-motion-duration-base: 140ms;
+  --app-motion-duration-slow: 240ms;
+  --app-motion-ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --app-motion-ease-enter: var(--app-motion-ease-standard);
+  --app-motion-ease-exit: var(--app-motion-ease-standard);
+  --app-motion-state: var(--app-motion-duration-fast);
+  --app-motion-switch: var(--app-motion-duration-base);
+  --app-motion-slide: var(--app-motion-duration-slow);
 
   --app-brand-bg: #1D242D;
   --app-brand-fg: #E6EBF1;
@@ -244,8 +251,8 @@
   --app-success-soft: #20382D;
   --app-warning-soft: #3A321F;
   --app-danger-soft: #3B2423;
-  --app-search-mark-bg: #5A3A22;
 
+  --app-search-mark-bg: #5A3A22;
   --app-primary: #F0A060;
   --app-accent-text: #F0A060;
   --app-primary-hover: #F6BA83;
@@ -257,11 +264,12 @@
   --app-selection-border: #F0A060;
   --app-brand-accent: #F0A060;
   --app-brand-accent-deep: #B65C24;
-  --app-selection-secondary: #2A313A;
 
+  --app-selection-secondary: #2A313A;
   --app-focus-gap: #1D2228;
 
   --app-shadow-raised: 0 4px 12px rgb(4 8 12 / 0.46);
+  --app-shadow-float: 0 4px 12px rgb(4 8 12 / 0.46);
   --app-shadow-sticky: none;
 
   --app-brand-bg: #262C34;
@@ -314,8 +322,8 @@
     --app-success-soft: #20382D;
     --app-warning-soft: #3A321F;
     --app-danger-soft: #3B2423;
-    --app-search-mark-bg: #5A3A22;
 
+    --app-search-mark-bg: #5A3A22;
     --app-primary: #F0A060;
     --app-accent-text: #F0A060;
     --app-primary-hover: #F6BA83;
@@ -327,11 +335,12 @@
     --app-selection-border: #F0A060;
     --app-brand-accent: #F0A060;
     --app-brand-accent-deep: #B65C24;
-    --app-selection-secondary: #2A313A;
 
+    --app-selection-secondary: #2A313A;
     --app-focus-gap: #1D2228;
 
     --app-shadow-raised: 0 4px 12px rgb(4 8 12 / 0.46);
+    --app-shadow-float: 0 4px 12px rgb(4 8 12 / 0.46);
     --app-shadow-sticky: none;
 
     --app-brand-bg: #262C34;

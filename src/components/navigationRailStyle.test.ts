@@ -124,7 +124,7 @@ function r10Declared(selector: string, property: string): string[] {
 // 与 global.css 中的真实令牌一致；下方的断言保证两者不会漂移。
 const LIGHT = {
   name: "浅色",
-  tokens: blockOf(/:root\s*\{([^}]*)\}/),
+  tokens: blockOf(/^:root\s*\{([^}]*)\}/m),
   canvas: "#EDF1F5",
   surface: "#F8FAFC",
   surfaceMuted: "#E3E9EF",
