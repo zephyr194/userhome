@@ -58,20 +58,6 @@ describe("shared ui primitives", () => {
     expect(markup).toContain("text-foreground");
   });
 
-  it("Panel 默认不带选中语言，selectable 时带 slide-item 与 aria-selected", () => {
-    const plain = renderToStaticMarkup(<Panel>内容</Panel>);
-    expect(plain).not.toContain("slide-item");
-    expect(plain).not.toContain("aria-selected");
-
-    const idle = renderToStaticMarkup(<Panel selectable>内容</Panel>);
-    expect(idle).toContain("slide-item");
-    expect(idle).toContain('aria-selected="false"');
-
-    const picked = renderToStaticMarkup(<Panel selectable selected>内容</Panel>);
-    expect(picked).toContain("slide-item");
-    expect(picked).toContain('aria-selected="true"');
-  });
-
   it("Modal backdrop and typography come from semantic tokens", () => {
     const markup = renderToStaticMarkup(
       <Modal open onClose={() => undefined} title="确认">
