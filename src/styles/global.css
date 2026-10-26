@@ -512,7 +512,6 @@ a {
   scrollbar-gutter: stable;
 }
 
-.welcome-panel,
 .placeholder-panel,
 .operation-history {
   background: var(--app-surface);
@@ -520,14 +519,12 @@ a {
   border-radius: var(--app-radius-panel);
 }
 
-.welcome-panel,
 .placeholder-panel,
 .operation-history {
   min-height: 240px;
   padding: clamp(16px, 2vw, 24px);
 }
 
-.welcome-panel h2,
 .placeholder-panel h2 {
   max-width: 560px;
   margin: 10px 0 12px;
@@ -667,7 +664,6 @@ a {
   gap: var(--app-space-8);
 }
 
-.welcome-panel p:last-child,
 .placeholder-panel p:last-child {
   max-width: 610px;
   color: var(--app-muted-foreground);
@@ -1913,13 +1909,6 @@ button[class*="border-border"],
   overflow-wrap: anywhere;
 }
 
-.services-inventory-row__meta {
-  min-width: 0;
-  font-size: var(--app-font-size-aux);
-  color: var(--app-muted-foreground);
-  overflow-wrap: anywhere;
-}
-
 .services-disclosure > summary {
   cursor: pointer;
   list-style: none;
@@ -2835,64 +2824,6 @@ code {
   }
 }
 /* /r8-aisearch */
-/* r8-deeplink ------------------------------------------------------------ */
-.r8-deeplink-examples {
-  display: grid;
-  gap: var(--app-space-8);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.r8-deeplink-examples__row {
-  display: grid;
-  gap: var(--app-space-4);
-  min-width: 0;
-}
-
-.r8-deeplink-examples__line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--app-space-8);
-  min-width: 0;
-}
-
-.r8-deeplink-examples__link,
-.r8-deeplink-copy-failure__link {
-  min-width: 0;
-  padding: var(--app-space-2) var(--app-space-8);
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-control);
-  background: var(--app-surface-muted);
-  color: var(--app-foreground);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
-.r8-deeplink-copy-failure {
-  display: grid;
-  gap: var(--app-space-4);
-  min-width: 0;
-  font-size: 12px;
-  color: var(--app-danger);
-}
-
-.r8-deeplink-copy-failure__link {
-  display: block;
-}
-
-@media (forced-colors: active) {
-  .r8-deeplink-examples__link,
-  .r8-deeplink-copy-failure__link {
-    border-color: CanvasText;
-    background: Canvas;
-    color: CanvasText;
-  }
-}
-/* /r8-deeplink */
 /* r8-i18n-shell */
 .navigation-rail a {
   height: auto;
