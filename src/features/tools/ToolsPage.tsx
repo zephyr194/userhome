@@ -60,6 +60,7 @@ export function ToolsPage() {
           {TOOL_ENTRIES.map((tool) => (
             <Tab
               key={tool.id}
+              aria-current={tool.id === activeTool ? "true" : undefined}
               className={({ selected }) =>
                 selected
                   ? "slide-item inline-flex h-control-md items-center px-ui-12 text-aux font-medium text-foreground"
