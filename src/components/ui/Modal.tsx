@@ -7,6 +7,9 @@ import {
 import { useCallback, useRef, type ReactNode } from "react";
 import { classNames } from "./classNames";
 
+const PANEL_CLASS =
+  "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]";
+
 export function Modal({
   bodyClassName,
   busy = false,
@@ -47,32 +50,20 @@ export function Modal({
           aria-busy={busy || undefined}
           aria-labelledby={titleId}
           aria-modal="true"
-          className={classNames(
-            "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
-            className,
-          )}
+          className={classNames(PANEL_CLASS, className)}
           role="dialog"
         >
-          {title !== undefined ? (
-            <div className="shrink-0 border-b border-line px-ui-16 py-ui-12">
-              <div className="min-w-0 break-words text-group font-semibold">
-                {title}
-              </div>
-            </div>
-          ) : null}
-          <div
-            className={classNames(
-              "min-h-0 flex-1 overflow-y-auto min-w-0 break-words px-ui-16 py-ui-12 text-body",
-              bodyClassName,
-            )}
+          <ModalFrame
+            bodyClassName={bodyClassName}
+            footer={footer}
+            titleNode={
+              title === undefined ? undefined : (
+                <div className="min-w-0 break-words text-group font-semibold">{title}</div>
+              )
+            }
           >
             {children}
-          </div>
-          {footer ? (
-            <div className="flex shrink-0 flex-wrap justify-end gap-ui-8 border-t border-line px-ui-16 py-ui-12">
-              {footer}
-            </div>
-          ) : null}
+          </ModalFrame>
         </section>
       </div>
     );
@@ -98,7 +89,7 @@ export function Modal({
             aria-busy={busy || undefined}
             aria-labelledby={titleId}
             className={classNames(
-              "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]",
+              PANEL_CLASS,
               "state-transition data-closed:opacity-0",
               className,
             )}
@@ -109,32 +100,55 @@ export function Modal({
             }}
             transition
           >
-            {title !== undefined ? (
-              <div className="shrink-0 border-b border-line px-ui-16 py-ui-12">
-                <DialogTitle
-                  as="div"
-                  className="min-w-0 break-words text-group font-semibold"
-                >
-                  {title}
-                </DialogTitle>
-              </div>
-            ) : null}
-            <div
-              className={classNames(
-                "min-h-0 flex-1 overflow-y-auto min-w-0 break-words px-ui-16 py-ui-12 text-body",
-                bodyClassName,
-              )}
+            <ModalFrame
+              bodyClassName={bodyClassName}
+              footer={footer}
+              titleNode={
+                title === undefined ? undefined : (
+                  <DialogTitle as="div" className="min-w-0 break-words text-group font-semibold">
+                    {title}
+                  </DialogTitle>
+                )
+              }
             >
               {children}
-            </div>
-            {footer ? (
-              <div className="flex shrink-0 flex-wrap justify-end gap-ui-8 border-t border-line px-ui-16 py-ui-12">
-                {footer}
-              </div>
-            ) : null}
+            </ModalFrame>
           </DialogPanel>
         </div>
       </div>
     </Dialog>
+  );
+}
+
+function ModalFrame({
+  bodyClassName,
+  children,
+  footer,
+  titleNode,
+}: {
+  bodyClassName?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  titleNode?: ReactNode;
+}) {
+  return (
+    <>
+      {titleNode !== undefined ? (
+        <div className="shrink-0 border-b border-line px-ui-16 py-ui-12">{titleNode}</div>
+      ) : null}
+      <div
+        className={classNames(
+          "min-h-0 flex-1 overflow-y-auto min-w-0 break-words px-ui-16 py-ui-12 text-body",
+          bodyClassName,
+        )}
+      >
+        {children}
+      </div>
+      {footer ? (
+        <div className="flex shrink-0 flex-wrap justify-end gap-ui-8 border-t border-line px-ui-16 py-ui-12">
+          {footer}
+        </div>
+      ) : null}
+    </>
   );
 }
