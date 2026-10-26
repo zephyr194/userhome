@@ -14,18 +14,16 @@ import type { MessageKey } from "../../i18n";
 import { formatDateTime } from "../../i18n/format";
 import { useLocale, useT } from "../../i18n/useLocale";
 import type { EnvChange, EnvEditPreview } from "../../ipc/environment";
+import { ActionResultPanel } from "./ActionResultPanel";
 import type { DotenvEditorController, EditorState } from "./dotenvEditorController";
 import {
-  canResumeEditing,
   entryEditability,
   looksLikeSecretName,
   previewHeadline,
   recoveryText,
-  saveResultText,
   type DraftCheck,
   type EditorNotice,
   type EntryRow,
-  type SaveResult,
 } from "./dotenvEditorModel";
 import type { DotenvEditFocus } from "./environmentModel";
 import { useFocusRequest } from "./useFocusRequest";
@@ -115,7 +113,7 @@ export function DotenvEditor({ actions, check, focus, state }: DotenvEditorProps
       ) : null}
 
       {state.phase === "saved" && state.result ? (
-        <ResultPanel actions={actions} result={state.result} />
+        <ActionResultPanel actions={actions} result={state.result} scope="dotenv" />
       ) : (
         <>
           {target.kind === "existing" ? (
@@ -556,53 +554,5 @@ function PreviewDialog({
         </Button>
       </ActionRow>
     </ConfirmDialog>
-  );
-}
-
-// ---- result -----------------------------------------------------------------------
-
-function ResultPanel({
-  actions,
-  result,
-}: {
-  actions: DotenvEditorActions;
-  result: SaveResult;
-}) {
-  const t = useT();
-  const text = saveResultText(result, t);
-  return (
-    <section
-      aria-labelledby="dotenv-result-heading"
-      className={classNames(
-        "grid gap-ui-8 rounded-control border px-ui-8 py-ui-8 text-sm",
-        WRAP,
-        text.tone === "success" && "border-transparent bg-success-soft text-success",
-        text.tone === "danger" && "border-danger-border bg-danger-soft text-danger",
-        text.tone === "warning" && "border-transparent bg-warning-soft text-warning",
-      )}
-      role={text.tone === "success" ? "status" : "alert"}
-    >
-      <h3 className="m-0 text-sm font-semibold" id="dotenv-result-heading">
-        {result.status === "SUCCEEDED"
-          ? t("env.editor.dotenv.result.heading")
-          : t("env.editor.dotenv.result.unfinished")}
-      </h3>
-      <p className="m-0">{text.headline}</p>
-      {text.detail ? <p className="m-0 text-xs">{text.detail}</p> : null}
-      {result.recoveryPoint === "BACKUP" && result.backupId ? (
-        <p className="m-0 text-xs">{t("env.editor.dotenv.result.backupId", { id: result.backupId })}</p>
-      ) : null}
-      {result.errorMessage ? (
-        <p className="m-0 text-xs">{t("env.editor.dotenv.result.reason", { message: result.errorMessage })}</p>
-      ) : null}
-      <ActionRow>
-        <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
-          {t("env.editor.dotenv.result.done")}
-        </Button>
-        {result.status === "FAILED" && canResumeEditing(result) ? (
-          <Button onClick={actions.resumeEditing} variant="primary">{t("env.editor.dotenv.result.resume")}</Button>
-        ) : null}
-      </ActionRow>
-    </section>
   );
 }

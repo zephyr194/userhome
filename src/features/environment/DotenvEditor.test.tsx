@@ -330,6 +330,14 @@ describe("the save result", () => {
     expect(markup).toContain("返回继续编辑");
   });
 
+  it("labels the result region with its heading and announces by tone", () => {
+    const markup = saved({});
+    expect(markup).toContain('<section aria-labelledby="dotenv-result-heading"');
+    expect(markup).toContain('<h3 class="m-0 text-sm font-semibold" id="dotenv-result-heading">保存结果</h3>');
+    expect(markup).toContain('role="status"');
+    expect(saved({ status: "FAILED", fileState: "RESTORED" })).toContain('role="alert"');
+  });
+
   it("does not offer to continue when the file state is uncertain", () => {
     const markup = saved({ status: "FAILED", fileState: "RESTORE_FAILED" });
     expect(markup).toContain("未能确认已恢复");

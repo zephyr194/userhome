@@ -440,6 +440,14 @@ describe("the save result", () => {
     expect(failed).not.toContain("仅对之后新开的终端");
   });
 
+  it("labels the result region with its heading and announces by tone", () => {
+    const markup = saved({});
+    expect(markup).toContain('<section aria-labelledby="zsh-result-heading"');
+    expect(markup).toContain('<h3 class="m-0 text-sm font-semibold" id="zsh-result-heading">保存结果</h3>');
+    expect(markup).toContain('role="status"');
+    expect(saved({ status: "FAILED", fileState: "RESTORED" })).toContain('role="alert"');
+  });
+
   it("does not offer to continue when the file may hold the new content", () => {
     const markup = saved({ status: "FAILED", fileState: "RESTORE_FAILED" });
     expect(markup).toContain("可能含有新内容");

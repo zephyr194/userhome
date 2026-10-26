@@ -19,13 +19,8 @@ import type {
   ZshEditState,
   ZshVariableChange,
 } from "../../ipc/environment";
-import {
-  canResumeEditing,
-  recoveryText,
-  saveResultText,
-  type EditorNotice,
-  type SaveResult,
-} from "./dotenvEditorModel";
+import { ActionResultPanel } from "./ActionResultPanel";
+import { recoveryText, type EditorNotice } from "./dotenvEditorModel";
 import type { ZshEditorController, ZshEditorState } from "./zshEditorController";
 import {
   editAvailability,
@@ -170,7 +165,12 @@ function Body({
         </p>
       ) : null}
       {state.phase === "saved" && state.result ? (
-        <ResultPanel actions={actions} result={state.result} />
+        <ActionResultPanel
+          actions={actions}
+          note={state.result.status === "SUCCEEDED" ? zshEffectNote(t) : undefined}
+          result={state.result}
+          scope="zsh"
+        />
       ) : (
         <>
           {editable && check ? (
@@ -941,54 +941,5 @@ function PreviewDialog({
         </Button>
       </ActionRow>
     </ConfirmDialog>
-  );
-}
-
-// ---- result -------------------------------------------------------------------------------
-
-function ResultPanel({
-  actions,
-  result,
-}: {
-  actions: ZshEditorActions;
-  result: SaveResult;
-}) {
-  const t = useT();
-  const text = saveResultText(result, t);
-  return (
-    <section
-      aria-labelledby="zsh-result-heading"
-      className={classNames(
-        "grid gap-ui-8 rounded-control border px-ui-8 py-ui-8 text-sm",
-        WRAP,
-        text.tone === "success" && "border-transparent bg-success-soft text-success",
-        text.tone === "danger" && "border-danger-border bg-danger-soft text-danger",
-        text.tone === "warning" && "border-transparent bg-warning-soft text-warning",
-      )}
-      role={text.tone === "success" ? "status" : "alert"}
-    >
-      <h3 className="m-0 text-sm font-semibold" id="zsh-result-heading">
-        {result.status === "SUCCEEDED"
-          ? t("env.editor.zsh.result.heading")
-          : t("env.editor.zsh.result.unfinished")}
-      </h3>
-      <p className="m-0">{text.headline}</p>
-      {text.detail ? <p className="m-0 text-xs">{text.detail}</p> : null}
-      {result.status === "SUCCEEDED" ? <p className="m-0 text-xs">{zshEffectNote(t)}</p> : null}
-      {result.recoveryPoint === "BACKUP" && result.backupId ? (
-        <p className="m-0 text-xs">{t("env.editor.zsh.result.backupId", { id: result.backupId })}</p>
-      ) : null}
-      {result.errorMessage ? (
-        <p className="m-0 text-xs">{t("env.editor.zsh.result.reason", { message: result.errorMessage })}</p>
-      ) : null}
-      <ActionRow>
-        <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
-          {t("env.editor.zsh.result.done")}
-        </Button>
-        {result.status === "FAILED" && canResumeEditing(result) ? (
-          <Button onClick={actions.resumeEditing} variant="primary">{t("env.editor.zsh.result.resume")}</Button>
-        ) : null}
-      </ActionRow>
-    </section>
   );
 }
