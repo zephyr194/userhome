@@ -26,10 +26,10 @@ const darkSurface = firstBlock(css, /^:root\[data-appearance="dark"\] \{([^}]*)\
   "--app-surface-muted"
 ];
 
-const lightCode = firstBlock(block, /^:root \{([^}]*)\}/m);
-const darkCode = firstBlock(block, /^:root\[data-appearance="dark"\] \{([^}]*)\}/m);
+const lightCode = firstBlock(css, /^:root \{([^}]*)\}/m);
+const darkCode = firstBlock(css, /^:root\[data-appearance="dark"\] \{([^}]*)\}/m);
 const systemDarkCode = firstBlock(
-  block,
+  css,
   /@media \(prefers-color-scheme: dark\) \{[\s\S]*?:root:not\(\[data-appearance\]\),\s*:root\[data-appearance="system"\]\s*\{([^}]*)\}/,
 );
 

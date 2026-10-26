@@ -118,11 +118,27 @@ function parseRootStates(source: string) {
 
 const parsed = parseRootStates(css);
 
+const RENAMED_TOKENS: Declarations = {
+  "--r4-signal": "--app-signal",
+  "--r8-aisearch-mark-bg": "--app-search-mark-bg",
+};
+
+function renamed(map: Declarations): Declarations {
+  return Object.fromEntries(Object.entries(map).map(([name, value]) => [RENAMED_TOKENS[name] ?? name, value]));
+}
+
+const SCOPED_LOCALS = [
+  "--app-line-height-row",
+  "--app-page-master-width",
+  "--app-page-status-dot",
+  "--r12-shell-notice-max-width",
+];
+
 describe("theme token baseline (resolved from global.css, pre-migration)", () => {
   it.each(["light", "darkExplicit", "darkSystem"] as const)(
     "resolves every %s token to the baseline value",
     (state) => {
-      expect(parsed.states[state]).toEqual(baseline.states[state]);
+      expect(parsed.states[state]).toEqual(renamed(baseline.states[state]));
     },
   );
 
@@ -144,5 +160,21 @@ describe("theme token baseline (resolved from global.css, pre-migration)", () =>
       expect(baseline.states.darkExplicit[name], name).toBeDefined();
       expect(baseline.states.darkSystem[name], name).toBeDefined();
     }
+  });
+});
+
+describe("token definitions live in one zone", () => {
+  it("defines app and round-scoped tokens only inside the token zone", () => {
+    const zoneStart = css.search(/^:root \{/m);
+    const zoneEnd = css.indexOf("\n* {\n");
+    expect(zoneStart).toBeGreaterThan(css.indexOf("@theme inline"));
+    expect(zoneEnd).toBeGreaterThan(zoneStart);
+    const outside = css.slice(0, zoneStart) + css.slice(zoneEnd);
+    const defined = new Set([...outside.matchAll(/^\s*(--(?:app|r\d+)-[\w-]+)\s*:/gm)].map((m) => m[1]));
+    expect([...defined].sort()).toEqual([...SCOPED_LOCALS].sort());
+  });
+
+  it("no longer uses the orphan round-scoped token names", () => {
+    expect(css).not.toMatch(/--r4-signal|--r8-aisearch-mark-bg/);
   });
 });

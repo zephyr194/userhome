@@ -103,7 +103,7 @@ const r10Source = source.slice(source.indexOf("/* r10-nav"), source.indexOf("/* 
 const r10Css = r10Source.replace(/\/\*[\s\S]*?\*\//g, "");
 
 function blockOf(header: RegExp): string {
-  const match = r10Css.match(header);
+  const match = css.match(header);
   if (!match) throw new Error(`r10-nav 区块缺少 ${header}`);
   return match[1];
 }
