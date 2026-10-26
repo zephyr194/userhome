@@ -132,7 +132,7 @@ export function QuitConfirmationDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-4"
+      bodyClassName="space-y-4"
       onCancel={onCancel}
       titleId="quit-confirmation-heading"
     >

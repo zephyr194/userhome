@@ -364,7 +364,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
 
       {pendingTab !== null ? (
         <ConfirmDialog
-          className="grid gap-ui-12"
+          bodyClassName="grid gap-ui-12"
           titleId="app-config-tab-switch"
           onCancel={() => setPendingTab(null)}
         >
@@ -384,7 +384,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
 
       {confirmExit ? (
         <ConfirmDialog
-          className="grid gap-ui-12"
+          bodyClassName="grid gap-ui-12"
           titleId="app-config-exit"
           onCancel={() => setConfirmExit(false)}
         >

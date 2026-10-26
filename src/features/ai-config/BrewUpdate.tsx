@@ -87,7 +87,7 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
       ) : null}
       {state.status === "confirming" ? (
         <ConfirmDialog
-          className="grid gap-ui-16"
+          bodyClassName="grid gap-ui-16"
           onCancel={() => setState({ status: "idle" })}
           titleId={titleId}
         >

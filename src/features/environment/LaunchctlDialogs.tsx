@@ -243,7 +243,7 @@ export function LaunchctlRemoveDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-ui-16"
+      bodyClassName="space-y-ui-16"
       onCancel={onCancel}
       titleId={titleId}
     >

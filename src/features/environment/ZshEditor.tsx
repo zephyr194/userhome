@@ -795,7 +795,7 @@ function PreviewDialog({
   return (
     <ConfirmDialog
       busy={busy}
-      className="space-y-ui-16"
+      bodyClassName="space-y-ui-16"
       onCancel={actions.cancelPreview}
       titleId="zsh-preview-heading"
     >

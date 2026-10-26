@@ -6,7 +6,7 @@ describe("ConfirmDialog", () => {
   it("exposes modal dialog semantics and a labelled heading", () => {
     const markup = renderToStaticMarkup(
       <ConfirmDialog
-        className="action-dialog"
+        bodyClassName="action-dialog"
         titleId="confirm-heading"
         onCancel={() => undefined}
       >
