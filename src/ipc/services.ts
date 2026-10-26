@@ -18,6 +18,7 @@ import {
   type OperationDetails,
   type OperationPreview,
 } from "./operations";
+import { singleFlight } from "./singleFlight";
 
 export type ServiceScope = "USER" | "SYSTEM" | "UNKNOWN";
 export type ServiceState = "STARTED" | "STOPPED" | "ERROR" | "UNKNOWN";
@@ -722,20 +723,9 @@ export function decodeLaunchdDiscovery(value: unknown): LaunchdDiscovery {
 // The backend admits one discovery at a time. Overlapping callers (a StrictMode
 // double mount, a remount while a read is still running) share the read that is
 // already in flight instead of starting a second one that would be refused.
-let pendingDiscovery: Promise<LaunchdDiscovery> | undefined;
-
-export function listLaunchdServices(): Promise<LaunchdDiscovery> {
-  if (pendingDiscovery === undefined) {
-    const request = invokeCommand(
-      "list_launchd_services",
-      decodeLaunchdDiscovery,
-    ).finally(() => {
-      if (pendingDiscovery === request) pendingDiscovery = undefined;
-    });
-    pendingDiscovery = request;
-  }
-  return pendingDiscovery;
-}
+export const listLaunchdServices = singleFlight(() =>
+  invokeCommand("list_launchd_services", decodeLaunchdDiscovery),
+);
 
 // Creating a UserHome-owned launchd job. The request is a typed form; the file
 // path is fixed in the backend and never sent from here. Nothing is loaded or
