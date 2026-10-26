@@ -211,7 +211,7 @@ describe("选中级别样式（r10-nav）", () => {
       const secondary = tokenIn(theme.tokens, "--app-selection-secondary");
       expect(secondary, theme.name).not.toBe(theme.selectionFill);
       expect(ORANGE_TOKENS, theme.name).not.toContain(secondary.toUpperCase());
-      expect(secondary, theme.name).not.toMatch(/var\(--(app-primary|app-selection-border|r4-signal|app-brand-accent-deep)\)/);
+      expect(secondary, theme.name).not.toMatch(/var\(--(app-primary|app-selection-border|r4-signal|app-signal|app-brand-accent-deep)\)/);
     }
   });
 
