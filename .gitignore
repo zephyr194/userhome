@@ -41,3 +41,7 @@ spec*.md
 
 # 本地技能安装状态
 /skills-lock.json
+
+# Swift helper 构建产物（SwiftPM/XCBuild 中间文件与产物）
+/src-tauri/helper/.build/
+/src-tauri/helper/dist/
