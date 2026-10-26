@@ -40,10 +40,12 @@ class FakeResizeObserver {
 
 function Harness({
   selected,
+  lagging,
   axis = "y",
   level,
 }: {
   selected: string;
+  lagging?: string;
   axis?: SlideAxis;
   level?: SlideLevel;
 }) {
@@ -60,6 +62,7 @@ function Harness({
             type="button"
             className="slide-item"
             aria-current={selected === id ? "true" : undefined}
+            aria-selected={lagging === id ? "true" : undefined}
             data-offset-left={left}
             data-offset-top={top}
             data-offset-width={width}
@@ -104,6 +107,17 @@ describe("useSlideIndicator", () => {
     expect(list?.style.getPropertyValue("--slide-x")).toBe("24px");
     expect(list?.style.getPropertyValue("--slide-y")).toBe("64px");
     expect(list?.style.getPropertyValue("--slide-w")).toBe("96px");
+  });
+
+  it("向上移动选中时，Headless UI 尚未更新的旧 aria-selected 不得抢走测量（aria-current 优先）", () => {
+    stubLayout();
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    const { container, rerender } = render(<Harness selected="third" />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    rerender(<Harness selected="first" lagging="third" />);
+    expect(list?.style.getPropertyValue("--slide-x")).toBe("0px");
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("0px");
+    expect(list?.style.getPropertyValue("--slide-w")).toBe("120px");
   });
 
   it("没有选中项时保留上一次位置并标记 data-slide-empty，不摘掉 data-slide-ready", () => {

@@ -3,9 +3,14 @@ import { useLayoutEffect, useRef, useState } from "react";
 export type SlideAxis = "x" | "y";
 export type SlideLevel = "primary" | "secondary";
 
-const SELECTED_ITEM = [
+// aria-current follows the selected key in the same commit; Headless UI's aria-selected/data-selected lag one commit behind.
+const CURRENT_ITEM = [
   ".slide-item[aria-current=\"true\"]",
   ".slide-item[aria-current=\"page\"]",
+].join(",");
+
+const SELECTED_ITEM = [
+  CURRENT_ITEM,
   ".slide-item[aria-selected=\"true\"]",
   ".slide-item[data-selected=\"true\"]",
 ].join(",");
@@ -82,7 +87,8 @@ export function useSlideIndicator(
 
     function refresh(animateSelection: boolean) {
       observeItems();
-      const matches = list.querySelectorAll<HTMLElement>(SELECTED_ITEM);
+      const current = list.querySelectorAll<HTMLElement>(CURRENT_ITEM);
+      const matches = current.length > 0 ? current : list.querySelectorAll<HTMLElement>(SELECTED_ITEM);
       const selected = matches[matches.length - 1];
       if (!selected) {
         list.setAttribute(EMPTY, "");

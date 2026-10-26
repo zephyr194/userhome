@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { restoreSlideLayout, stubSlideLayout } from "./slideLayoutStub";
 import { VerticalMenu, type VerticalMenuItem } from "./VerticalMenu";
 
 const ITEMS: readonly VerticalMenuItem[] = [
@@ -119,5 +121,29 @@ describe("VerticalMenu", () => {
 
     const tab = screen.getByRole("tab", { name: /项目 dotenv/ });
     expect(tab.getAttribute("aria-selected")).toBe("true");
+  });
+});
+
+describe("VerticalMenu 指示条", () => {
+  beforeEach(() => {
+    stubSlideLayout("y");
+  });
+
+  afterEach(() => {
+    restoreSlideLayout();
+  });
+
+  it("先选中下方项，再选中上方项时指示条立即移动到上方", () => {
+    function Controlled() {
+      const [selected, setSelected] = useState("launchctl");
+      return (
+        <VerticalMenu items={ITEMS} label="环境变量域" onSelect={setSelected} selected={selected} />
+      );
+    }
+    const { container } = render(<Controlled />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("80px");
+    fireEvent.click(screen.getByRole("tab", { name: /项目 dotenv/ }));
+    expect(list?.style.getPropertyValue("--slide-y")).toBe("0px");
   });
 });

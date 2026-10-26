@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { restoreSlideLayout, stubSlideLayout } from "./slideLayoutStub";
 import { SectionTabs } from "./SectionTabs";
 
 const SECTIONS = [
@@ -44,5 +46,27 @@ describe("SectionTabs", () => {
     );
     fireEvent.click(screen.getByRole("tab", { name: "原文 Caddyfile" }));
     expect(onSelect).toHaveBeenCalledWith("raw");
+  });
+});
+
+describe("SectionTabs 指示条", () => {
+  beforeEach(() => {
+    stubSlideLayout("x");
+  });
+
+  afterEach(() => {
+    restoreSlideLayout();
+  });
+
+  it("先选中右侧分区，再选中左侧分区时指示条立即移动到左侧", () => {
+    function Controlled() {
+      const [selected, setSelected] = useState("raw");
+      return <SectionTabs label="Caddy 分区" sections={SECTIONS} selected={selected} onSelect={setSelected} />;
+    }
+    const { container } = render(<Controlled />);
+    const list = container.querySelector<HTMLElement>(".slide-list");
+    expect(list?.style.getPropertyValue("--slide-x")).toBe("200px");
+    fireEvent.click(screen.getByRole("tab", { name: "站点规则" }));
+    expect(list?.style.getPropertyValue("--slide-x")).toBe("0px");
   });
 });
