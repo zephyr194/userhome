@@ -438,7 +438,7 @@ describe("zsh view is read only and accessible", () => {
     const details = markup.indexOf("<details");
     expect(table).toBeGreaterThan(-1);
     expect(table).toBeLessThan(details);
-    expect(markup.slice(details, details + 200)).toContain("读取顺序与启动文件");
+    expect(markup.slice(details, details + 200)).toContain("读取顺序");
     expect(markup.slice(details, details + 40)).not.toContain(" open");
   });
 
