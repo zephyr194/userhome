@@ -113,27 +113,27 @@ describe("run action buttons", () => {
   it("enables preview and disables stop while stopped", () => {
     const markup = view({ status: STOPPED });
     expect(isDisabled(markup, "开启前预览")).toBe(false);
-    expect(isDisabled(markup, "关闭")).toBe(true);
+    expect(isDisabled(markup, "停止")).toBe(true);
   });
 
   it("disables preview and enables stop while running", () => {
     const markup = view({ status: RUNNING });
     expect(isDisabled(markup, "开启前预览")).toBe(true);
-    expect(isDisabled(markup, "关闭")).toBe(false);
+    expect(isDisabled(markup, "停止")).toBe(false);
   });
 
   it("disables every action while a request is in flight", () => {
     const markup = view({ status: STOPPED, busy: true, summary: READY });
     expect(isDisabled(markup, "开启前预览")).toBe(true);
     expect(isDisabled(markup, "确认开启")).toBe(true);
-    expect(isDisabled(markup, "关闭")).toBe(true);
+    expect(isDisabled(markup, "停止")).toBe(true);
   });
 
   it("disables stop while stopping, and keeps preview unavailable", () => {
     const markup = view({
       status: { state: "STOPPING", message: "正在停止，等待进程退出……", diagnostics: [] },
     });
-    expect(isDisabled(markup, "关闭")).toBe(true);
+    expect(isDisabled(markup, "停止")).toBe(true);
     expect(isDisabled(markup, "开启前预览")).toBe(true);
   });
 });

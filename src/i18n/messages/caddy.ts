@@ -184,7 +184,7 @@ export const caddyZh = {
   "caddy.run.workdirGate": "{reason}后才能开启或应用配置。",
   "caddy.run.preview": "开启前预览",
   "caddy.run.apply": "应用到运行实例",
-  "caddy.run.stop": "关闭",
+  "caddy.run.stop": "停止",
   "caddy.run.applyNote": "保存不会启动或重载；只有点击“应用到运行实例”并确认后，才会重载自有实例。",
   "caddy.run.applying": "正在应用：重载自有实例，结果以复核为准……",
   "caddy.run.logLabel": "Caddy 日志",
