@@ -194,6 +194,13 @@ describe("zsh view states", () => {
     expect(markup).not.toContain("部分文件没有读取");
   });
 
+  it("states the static-reading limit once on the page", () => {
+    const markup = render(readyState(FULL));
+    expect(markup.match(/不等于实际生效/g)).toHaveLength(1);
+    expect(markup).not.toContain("是否真的生效");
+    expect(markup).not.toContain("静态读取看不到");
+  });
+
   it("is partial when a file could not be read", () => {
     const markup = render(readyState(FULL));
     expect(markup).toContain("部分文件没有读取：.zlogin：越界，未读取");

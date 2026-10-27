@@ -365,6 +365,10 @@ describe("the preview dialog", () => {
     expect(markup).not.toContain(SECRET_TEXT);
   });
 
+  it("states the restore rule once in the preview", () => {
+    expect(previewed().match(/校验失败/g)).toHaveLength(1);
+  });
+
   it("states that a new file is created without a recovery point", () => {
     const markup = previewed({
       kind: "CREATE",
