@@ -262,7 +262,7 @@ export function SettingsConfirmationDialog({
             disabled={busy}
             onClick={onCancel}
             size="sm"
-            variant="secondary"
+            variant="default"
           >
             {cancelLabel}
           </Button>

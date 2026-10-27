@@ -247,7 +247,7 @@ export function CaddyPage() {
           <Button
             className="caddy-back"
             size="sm"
-            variant="secondary"
+            variant="default"
             onClick={() => onNavigate({ routeId: "systemTools" })}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">

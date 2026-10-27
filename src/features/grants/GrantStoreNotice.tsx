@@ -144,7 +144,7 @@ function ResetDialog({
         </div>
       ) : null}
       <div className="flex flex-wrap justify-end gap-ui-8">
-        <Button data-dialog-cancel disabled={busy} onClick={onCancel} variant="secondary">
+        <Button data-dialog-cancel disabled={busy} onClick={onCancel} variant="default">
           {t("common.cancel")}
         </Button>
         <Button variant="danger" disabled={busy} onClick={onConfirm}>
@@ -182,7 +182,7 @@ export function GrantStoreNoticeView({
       disabled={state.rechecking || dialog.phase === "resetting"}
       onClick={onRecheck}
       size="sm"
-      variant="secondary"
+      variant="default"
     >
       {state.rechecking
         ? t("grants.recheck.busy")
@@ -235,7 +235,7 @@ export function GrantStoreNoticeView({
       {completed ? (
         <NoticeRow
           actions={
-            <Button className="shrink-0" onClick={onDismissCompleted} size="sm" variant="secondary">
+            <Button className="shrink-0" onClick={onDismissCompleted} size="sm" variant="default">
               {t("grants.notice.gotIt")}
             </Button>
           }

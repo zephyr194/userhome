@@ -50,7 +50,7 @@ export function ActionResultPanel({
         </p>
       ) : null}
       <ActionRow>
-        <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "secondary"}>
+        <Button onClick={actions.close} variant={result.status === "SUCCEEDED" ? "primary" : "default"}>
           {t(`env.editor.${scope}.result.done`)}
         </Button>
         {result.status === "FAILED" && canResumeEditing(result) ? (

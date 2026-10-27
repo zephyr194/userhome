@@ -108,7 +108,7 @@ export function ClaudeSettingsView({
             path: projectGrant ? projectGrant.displayPath : t("aiConfig.claude.noProject"),
           })}
         </span>
-        <Button size="sm" variant="secondary" disabled={busy} onClick={onChooseProject}>
+        <Button size="sm" variant="default" disabled={busy} onClick={onChooseProject}>
           {projectGrant ? t("aiConfig.claude.changeProject") : t("aiConfig.claude.chooseProject")}
         </Button>
         {projectGrant ? (
@@ -132,7 +132,7 @@ export function ClaudeSettingsView({
       {state.status === "failed" ? (
         <div className="grid justify-items-start gap-ui-4" role="alert">
           <p className="m-0 text-aux text-danger">{localizeError(state.error, locale)}</p>
-          <Button size="sm" variant="secondary" disabled={busy} onClick={onRetry}>
+          <Button size="sm" variant="default" disabled={busy} onClick={onRetry}>
             {t("aiConfig.claude.reread")}
           </Button>
         </div>

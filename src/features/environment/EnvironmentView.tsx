@@ -95,7 +95,7 @@ function DirectoryContent(props: EnvironmentViewProps) {
         <span className="break-words [overflow-wrap:anywhere]">
           {localizeError(grants.error, locale)}
         </span>{" "}
-        <Button onClick={actions.reloadGrants} size="sm" variant="secondary">
+        <Button onClick={actions.reloadGrants} size="sm" variant="default">
           {t("env.dotenv.retry")}
         </Button>
       </AsyncState>
@@ -203,7 +203,7 @@ function DirectoryHeader({
             disabled={choosingNewFile === true}
             onClick={actions.newFile}
             size="sm"
-            variant="secondary"
+            variant="default"
           >
             {choosingNewFile ? t("env.dotenv.newFile.waiting") : t("env.dotenv.newFile")}
           </Button>
@@ -230,7 +230,7 @@ function DirectoryStatus({ actions, directory }: { actions: EnvironmentActions; 
         {scan.error.retryable ? (
           <>
             {" "}
-            <Button onClick={actions.rescan} size="sm" variant="secondary">
+            <Button onClick={actions.rescan} size="sm" variant="default">
               {t("env.dotenv.retry")}
             </Button>
           </>

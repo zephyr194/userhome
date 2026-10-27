@@ -96,7 +96,7 @@ function ExamplesContent({ onClose }: { onClose: () => void }) {
         <Button onClick={copyExample} size="sm" variant="ghost">
           {t("caddy.examples.copy")}
         </Button>
-        <Button data-modal-cancel onClick={onClose} size="sm" variant="secondary">
+        <Button data-modal-cancel onClick={onClose} size="sm" variant="default">
           {t("common.close")}
         </Button>
       </div>

@@ -94,7 +94,7 @@ function PreviewCard({
         >
           {t("services.action.confirm", { action })}
         </Button>
-        <Button size="sm" variant="secondary" disabled={busy} onClick={onCancel}>
+        <Button size="sm" variant="default" disabled={busy} onClick={onCancel}>
           {t("common.cancel")}
         </Button>
       </div>
@@ -152,11 +152,11 @@ function ResultCard({
       ) : null}
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {result.needsRefresh ? (
-          <Button size="sm" variant="secondary" onClick={onRefresh}>
+          <Button size="sm" variant="default" onClick={onRefresh}>
             {t("common.refresh")}
           </Button>
         ) : null}
-        <Button size="sm" variant="secondary" onClick={onDismiss}>
+        <Button size="sm" variant="default" onClick={onDismiss}>
           {t("common.close")}
         </Button>
       </div>
@@ -260,7 +260,7 @@ export function LaunchdActionPanel({
             >
               <Button
                 size="sm"
-                variant={action === "STOP" || action === "UNLOAD" ? "danger" : "secondary"}
+                variant={action === "STOP" || action === "UNLOAD" ? "danger" : "default"}
                 disabled={busy || state.phase === "previewed"}
                 onClick={() => preview(action)}
               >
@@ -370,11 +370,11 @@ function ActionError({
       ) : null}
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {during === "execute" ? (
-          <Button size="sm" variant="secondary" onClick={onRefresh}>
+          <Button size="sm" variant="default" onClick={onRefresh}>
             {t("common.refresh")}
           </Button>
         ) : null}
-        <Button size="sm" variant="secondary" onClick={onClose}>
+        <Button size="sm" variant="default" onClick={onClose}>
           {t("common.close")}
         </Button>
       </div>

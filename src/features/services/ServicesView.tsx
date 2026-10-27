@@ -132,7 +132,7 @@ export function ServicesView(props: ServicesViewProps) {
                 size="sm"
                 disabled={props.refreshDisabled}
                 onClick={props.onRefresh}
-                variant="secondary"
+                variant="default"
               >
                 {t("services.list.refresh")}
               </Button>
@@ -293,7 +293,7 @@ function ListBody({
           <span className={WRAP}>{discoveryErrorText(state.error, t, locale)}</span>
         </AsyncState>
         <div className="mt-ui-8">
-          <Button size="sm" disabled={refreshDisabled} onClick={onRefresh} variant="secondary">
+          <Button size="sm" disabled={refreshDisabled} onClick={onRefresh} variant="default">
             {t("services.list.retry")}
           </Button>
         </div>

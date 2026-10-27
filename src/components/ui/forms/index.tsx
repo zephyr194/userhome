@@ -249,7 +249,7 @@ export function TextAreaField({
           <Modal
             footer={
               <>
-                <Button variant="secondary" onClick={() => setEditing(false)}>
+                <Button variant="default" onClick={() => setEditing(false)}>
                   {t("common.cancel")}
                 </Button>
                 <Button

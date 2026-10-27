@@ -96,7 +96,7 @@ function ShellNotice({
         {children}
       </p>
       {onDismiss ? (
-        <Button className="shrink-0" onClick={onDismiss} size="sm" variant="secondary">
+        <Button className="shrink-0" onClick={onDismiss} size="sm" variant="default">
           {dismissLabel}
         </Button>
       ) : null}
@@ -183,7 +183,7 @@ export function QuitConfirmationDialog({
         </p>
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">
-        <Button data-dialog-cancel disabled={busy} onClick={onCancel} variant="secondary">
+        <Button data-dialog-cancel disabled={busy} onClick={onCancel} variant="default">
           {t("shell.quit.cancel")}
         </Button>
         <Button variant="danger" disabled={busy} onClick={onConfirm}>
@@ -547,13 +547,13 @@ export function ShellContent({
             ? ` ${t("shell.refresh.retained")}`
             : ""}
         </p>
-        <Button className="shrink-0" size="sm" variant="secondary" onClick={requestRefresh}>
+        <Button className="shrink-0" size="sm" variant="default" onClick={requestRefresh}>
           {t("common.retry")}
         </Button>
         <Button
           className="shrink-0"
           size="sm"
-          variant="secondary"
+          variant="default"
           onClick={() =>
             setDismissedRefreshError(
               state.refresh.status === "error" ? state.refresh.message : undefined,
@@ -651,7 +651,7 @@ export function ShellContent({
                 <Button
                   className="toolbar-refresh-button"
                   size="md"
-                  variant="secondary"
+                  variant="default"
                   disabled={
                     state.preferences.status === "loading" ||
                     state.refresh.status === "refreshing"

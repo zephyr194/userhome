@@ -109,7 +109,7 @@ export function ZshEditor({ actions, check, focus, state }: ZshEditorProps) {
           </h2>
           <p className="mt-ui-4 text-xs text-muted-foreground">{t("env.editor.zsh.headerNote")}</p>
         </div>
-        <Button disabled={busy} onClick={actions.close} size="sm" variant="secondary">
+        <Button disabled={busy} onClick={actions.close} size="sm" variant="default">
           {t("env.editor.zsh.backToReadOnly")}
         </Button>
       </header>
@@ -138,7 +138,7 @@ function Body({
       <AsyncState kind={problem?.kind === "UNAVAILABLE" || problem?.kind === "ERROR" ? "error" : "partial"}>
         <span className={WRAP}>{problem?.message ?? t("env.editor.zsh.unreadable")}</span>{" "}
         {problem?.kind === "OUTSIDE_HOME" ? null : (
-          <Button disabled={busy} onClick={() => void actions.reload()} size="sm" variant="secondary">
+          <Button disabled={busy} onClick={() => void actions.reload()} size="sm" variant="default">
             {t("env.editor.zsh.readAgain")}
           </Button>
         )}
@@ -194,11 +194,11 @@ function Body({
                     ? t("env.editor.zsh.previewButtonBusy")
                     : t("env.editor.zsh.previewButton")}
                 </Button>
-                <Button disabled={busy} onClick={actions.close} variant="secondary">
+                <Button disabled={busy} onClick={actions.close} variant="default">
                   {t("env.editor.zsh.cancelEditing")}
                 </Button>
                 {state.notice ? (
-                  <Button disabled={busy} onClick={() => void actions.reload()} variant="secondary">
+                  <Button disabled={busy} onClick={() => void actions.reload()} variant="default">
                     {t("env.editor.zsh.reloadFile")}
                   </Button>
                 ) : null}
@@ -373,7 +373,7 @@ function VariablesSection({
         <h3 className="text-sm font-semibold" id="zsh-editor-variables-heading">
           {t("env.editor.zsh.var.heading")}
         </h3>
-        <Button disabled={disabled} onClick={actions.addVariable} size="sm" variant="secondary">
+        <Button disabled={disabled} onClick={actions.addVariable} size="sm" variant="default">
           {t("env.editor.zsh.var.add")}
         </Button>
       </div>
@@ -546,7 +546,7 @@ function PathSection({
         <h3 className="text-sm font-semibold" id="zsh-editor-path-heading">
           {t("env.editor.zsh.path.heading")}
         </h3>
-        <Button disabled={disabled} onClick={actions.addPathItem} size="sm" variant="secondary">
+        <Button disabled={disabled} onClick={actions.addPathItem} size="sm" variant="default">
           {t("env.editor.zsh.path.add")}
         </Button>
       </div>
@@ -933,7 +933,7 @@ function PreviewDialog({
         </p>
       ) : null}
       <ActionRow align="end">
-        <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview} variant="secondary">
+        <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview} variant="default">
           {t("env.editor.zsh.preview.back")}
         </Button>
         <Button disabled={busy} onClick={() => void actions.confirm()} variant="primary">

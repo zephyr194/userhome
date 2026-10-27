@@ -5,14 +5,17 @@ import { classNames } from "./classNames";
 /**
  * variant 层级，每个 Button 显式写出：
  * primary：一个操作区里唯一要提交或推进的动作（保存、创建、应用），同区最多一个。
- * secondary：与主动作并列的备选或辅助动作（取消、预览、刷新、导入），也是默认外观。
+ * default：一般动作（取消、预览、刷新、导入），也是默认外观。
+ * secondary：与主动作并列的备选或辅助动作（取消、预览、刷新、导入）。
  * ghost：行内、工具类与图标按钮（复制、展开、清除、显示/隐藏）。
  * danger：删除、停止、卸载、重置、覆盖等破坏性确认，永远不作为 primary。
  */
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type ButtonVariant = "default" | "primary" | "secondary" | "danger" | "ghost";
 type ButtonSize = "sm" | "md";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
+  default:
+    "border-control-border bg-surface text-foreground enabled:hover:bg-surface-muted enabled:active:bg-surface-muted",
   primary:
     "r12-btn--primary border-transparent bg-primary text-primary-foreground enabled:hover:bg-primary-hover enabled:active:bg-primary-hover",
   secondary:
@@ -39,7 +42,7 @@ export function Button({
   ref,
   size = "md",
   type = "button",
-  variant = "secondary",
+  variant = "default",
   ...props
 }: ButtonProps) {
   return (

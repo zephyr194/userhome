@@ -148,7 +148,7 @@ function FormBody({
             disabled={disabled}
             onClick={() => onFormChange(addArgument(form))}
             size="sm"
-            variant="secondary"
+            variant="default"
           >
             {t("services.dialog.create.addArgument")}
           </Button>
@@ -253,7 +253,7 @@ function FormBody({
             disabled={disabled}
             onClick={() => onFormChange(addEnvironment(form))}
             size="sm"
-            variant="secondary"
+            variant="default"
           >
             {t("services.dialog.common.addEnvironment")}
           </Button>
@@ -487,7 +487,7 @@ export function EditServiceDialogView({
       );
       footer = (
         <>
-          <Button data-modal-cancel disabled={busy} onClick={onClose} variant="secondary">
+          <Button data-modal-cancel disabled={busy} onClick={onClose} variant="default">
             {t("services.dialog.common.cancel")}
           </Button>
           <Button disabled={busy} onClick={onPreview} variant="primary">
@@ -514,7 +514,7 @@ export function EditServiceDialogView({
             data-modal-cancel
             disabled={dialog.phase === "saving"}
             onClick={onEdit}
-            variant="secondary"
+            variant="default"
           >
             {t("services.dialog.common.backToEdit")}
           </Button>
@@ -536,10 +536,10 @@ export function EditServiceDialogView({
       body = <ResultBody dialog={dialog} form={form} />;
       footer = (
         <>
-          <Button data-modal-cancel onClick={onClose} variant="secondary">
+          <Button data-modal-cancel onClick={onClose} variant="default">
             {t("services.dialog.common.close")}
           </Button>
-          <Button onClick={onEdit} variant="secondary">
+          <Button onClick={onEdit} variant="default">
             {t("services.dialog.common.backToEdit")}
           </Button>
         </>

@@ -66,7 +66,7 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
           <p role="alert" className="m-0 whitespace-pre-line break-words text-aux text-danger">
             {failure}
           </p>
-          <Button size="sm" variant="secondary" onClick={() => setState({ status: "confirming" })}>
+          <Button size="sm" variant="default" onClick={() => setState({ status: "confirming" })}>
             {t("common.retry")}
           </Button>
         </>
@@ -100,7 +100,7 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
             </p>
           </div>
           <ActionRow align="end">
-            <Button variant="secondary" onClick={() => setState({ status: "idle" })}>
+            <Button variant="default" onClick={() => setState({ status: "idle" })}>
               {t("common.cancel")}
             </Button>
             <Button variant="primary" onClick={run}>

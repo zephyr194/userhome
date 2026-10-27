@@ -94,7 +94,7 @@ export function CommandBuilderView({
         <div role="alert" className="grid gap-ui-8">
           <p className="m-0 text-aux">{localizeError(options.error, locale)}</p>
           <div>
-            <Button variant="secondary" onClick={onRetry}>
+            <Button variant="default" onClick={onRetry}>
               {t("common.retry")}
             </Button>
           </div>
@@ -396,7 +396,7 @@ function TerminalConfirmDialog({
       busy={busy}
       footer={
         <>
-          <Button data-modal-cancel variant="secondary" disabled={busy} onClick={onCancel}>
+          <Button data-modal-cancel variant="default" disabled={busy} onClick={onCancel}>
             {t("common.cancel")}
           </Button>
           <Button variant="primary" disabled={busy} onClick={onConfirm}>

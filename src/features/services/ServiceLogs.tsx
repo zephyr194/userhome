@@ -342,7 +342,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
               key={option}
               onClick={() => selectStream(option)}
               size="sm"
-              variant={stream === option ? "primary" : "secondary"}
+              variant={stream === option ? "primary" : "default"}
             >
               {streamLabel(option)}
               {available ? "" : t("services.logs.undeclared")}
@@ -383,7 +383,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
             disabled={!hasContent}
             onClick={() => setExportState({ stage: "confirm" })}
             size="sm"
-            variant="secondary"
+            variant="default"
           >
             {t("services.logs.export")}
           </Button>
@@ -422,7 +422,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
             <Button
               onClick={() => setExportState({ stage: "closed" })}
               size="sm"
-              variant="secondary"
+              variant="default"
             >
               {t("common.cancel")}
             </Button>
@@ -451,7 +451,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
             <Button
               onClick={() => void discardExport(exportState.preview)}
               size="sm"
-              variant="secondary"
+              variant="default"
             >
               {t("services.logs.discard")}
             </Button>

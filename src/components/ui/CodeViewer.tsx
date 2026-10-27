@@ -60,7 +60,7 @@ export function CodeViewer({
         bodyClassName="r6-code-window-body"
         className="r6-code-window"
         footer={
-          <Button data-modal-cancel onClick={() => setWindowOpen(false)} size="sm" variant="secondary">
+          <Button data-modal-cancel onClick={() => setWindowOpen(false)} size="sm" variant="default">
             {t("common.close")}
           </Button>
         }

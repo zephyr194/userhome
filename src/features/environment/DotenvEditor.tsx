@@ -146,7 +146,7 @@ export function DotenvEditor({ actions, check, focus, state }: DotenvEditorProps
                 ? t("env.editor.dotenv.action.previewBusy")
                 : t("env.editor.dotenv.action.preview")}
             </Button>
-            <Button disabled={busy} onClick={actions.close} variant="secondary">
+            <Button disabled={busy} onClick={actions.close} variant="default">
               {t("env.editor.dotenv.action.cancel")}
             </Button>
             {!check.ready && state.phase === "editing" ? (
@@ -334,7 +334,7 @@ function AdditionList({
         <h3 className="text-sm font-semibold" id="dotenv-additions-heading">
           {t("env.editor.dotenv.additions.heading")}
         </h3>
-        <Button disabled={disabled} onClick={actions.addRow} size="sm" variant="secondary">
+        <Button disabled={disabled} onClick={actions.addRow} size="sm" variant="default">
           {t("env.editor.dotenv.additions.addRow")}
         </Button>
       </div>
@@ -544,7 +544,7 @@ function PreviewDialog({
         </p>
       ) : null}
       <ActionRow align="end">
-        <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview} variant="secondary">
+        <Button data-dialog-cancel disabled={busy} onClick={actions.cancelPreview} variant="default">
           {t("env.editor.dotenv.preview.back")}
         </Button>
         <Button disabled={busy} onClick={() => void actions.confirm()} variant="primary">

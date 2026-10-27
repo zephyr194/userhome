@@ -5,7 +5,7 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 const SRC = join(process.cwd(), "src");
-const VARIANTS = new Set(["primary", "secondary", "ghost", "danger"]);
+const VARIANTS = new Set(["default", "primary", "secondary", "ghost", "danger"]);
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

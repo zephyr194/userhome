@@ -339,7 +339,7 @@ export function CaddyRunView({
         </p>
       ) : null}
       <div className="flex flex-wrap gap-ui-8">
-        <Button variant="secondary" disabled={!previewEnabled} onClick={onPrepare}>
+        <Button variant="default" disabled={!previewEnabled} onClick={onPrepare}>
           {t("caddy.run.preview")}
         </Button>
         {onApply !== undefined ? (
@@ -397,7 +397,7 @@ function ApplyConfirm({
         <Button variant="primary" disabled={busy} onClick={onConfirm}>
           {t("caddy.run.applyConfirmAction")}
         </Button>
-        <Button variant="secondary" onClick={onCancel}>
+        <Button variant="default" onClick={onCancel}>
           {t("common.cancel")}
         </Button>
       </div>
@@ -548,7 +548,7 @@ function SummaryBlock({
             >
               {t("caddy.run.confirmStart")}
             </Button>
-            <Button variant="secondary" disabled={busy} onClick={onCancel}>
+            <Button variant="default" disabled={busy} onClick={onCancel}>
               {t("common.cancel")}
             </Button>
           </div>
@@ -600,7 +600,7 @@ function ConflictBlock({
           <span className="text-aux text-muted-foreground">
             {t("caddy.run.targetOnly", { label: target.label })}
           </span>
-          <Button variant="secondary" onClick={() => onOpenService?.(target)}>
+          <Button variant="default" onClick={() => onOpenService?.(target)}>
             {t("caddy.run.openService")}
           </Button>
         </div>

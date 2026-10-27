@@ -86,12 +86,12 @@ export function CaddyRulesEditor({
           {t("caddy.rules.heading")}
         </h2>
         <div className="flex flex-wrap items-center gap-ui-8">
-          <Button size="sm" variant="secondary" onClick={() => setExamplesOpen(true)}>
+          <Button size="sm" variant="default" onClick={() => setExamplesOpen(true)}>
             {t("caddy.rules.examples")}
           </Button>
           <Button
             size="sm"
-            variant="secondary"
+            variant="default"
             disabled={sites.length >= MAX_DRAFT_SITES}
             onClick={() => onChange([...sites, newSiteDraft(ids)])}
           >
@@ -159,7 +159,7 @@ export function CaddyRulesEditor({
             <div className="flex justify-end border-t border-border pt-ui-8">
               <Button
                 size="sm"
-                variant="secondary"
+                variant="default"
                 className="caddy-danger-outline"
                 aria-label={t("caddy.rules.deleteSiteLabel", { site: siteIndex + 1 })}
                 onClick={() => onChange(sites.filter((_, position) => position !== siteIndex))}
@@ -453,7 +453,7 @@ function AddDirectiveGroup({
           <Button
             key={id}
             size="sm"
-            variant="secondary"
+            variant="default"
             disabled={!canAddDirective(site, id)}
             onClick={() => onSite(addDirective(site, id, ids))}
           >
@@ -487,7 +487,7 @@ function FileRow({
       <span className="text-aux text-muted-foreground">
         {line.symbol} {line.text}
       </span>
-      <Button variant="secondary" onClick={onPick}>
+      <Button variant="default" onClick={onPick}>
         {buttonLabel}
       </Button>
     </div>

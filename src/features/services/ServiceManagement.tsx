@@ -62,7 +62,7 @@ function ReleaseAdoptionDialog({
       className="max-w-[560px]"
       footer={
         <>
-          <Button data-modal-cancel disabled={busy} onClick={onClose} variant="secondary">
+          <Button data-modal-cancel disabled={busy} onClick={onClose} variant="default">
             {t("common.cancel")}
           </Button>
           <Button disabled={busy} onClick={confirm} variant="danger">
@@ -166,7 +166,7 @@ export function ServiceManagement({
                   {t("services.management.edit")}
                 </Button>
               ) : null}
-              <Button onClick={() => openDialog("release")} variant="secondary">
+              <Button onClick={() => openDialog("release")} variant="default">
                 {t("services.management.release")}
               </Button>
             </div>

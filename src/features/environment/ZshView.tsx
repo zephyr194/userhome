@@ -96,7 +96,7 @@ export function ZshView(props: ZshViewProps) {
             disabled={load.status === "loading"}
             onClick={props.onReload}
             size="sm"
-            variant="secondary"
+            variant="default"
           >
             {load.status === "loading" ? t("env.zsh.reloading") : t("env.zsh.reload")}
           </Button>
@@ -131,7 +131,7 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
         <span className="break-words [overflow-wrap:anywhere]">
           {localizeError(load.error, locale)}
         </span>{" "}
-        <Button onClick={props.onReload} size="sm" variant="secondary">
+        <Button onClick={props.onReload} size="sm" variant="default">
           {t("env.zsh.retry")}
         </Button>
       </AsyncState>
@@ -323,7 +323,7 @@ function ZdotdirPanel({
             disabled={choosing}
             onClick={onChooseDirectory}
             size="sm"
-            variant={summary.needsChoice ? "primary" : "secondary"}
+            variant={summary.needsChoice ? "primary" : "default"}
           >
             {choosing
               ? t("env.zsh.zdotdir.waiting")
@@ -381,7 +381,7 @@ function FileCard({
               aria-label={t("env.zsh.file.editBlockLabel", { name: file.name })}
               onClick={() => onEditFile(file.file)}
               size="sm"
-              variant={file.file === "ZSHRC" ? "primary" : "secondary"}
+              variant={file.file === "ZSHRC" ? "primary" : "default"}
             >
               {t("env.zsh.file.editBlock")}
             </Button>

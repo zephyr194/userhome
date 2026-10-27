@@ -62,7 +62,7 @@ export function ConfigFileViewer({ toolId }: { readonly toolId: AiToolId }) {
           {t("aiConfig.file.heading")}
         </h4>
         <p className="m-0 text-aux text-muted-foreground">{t("aiConfig.file.note")}</p>
-        <Button size="sm" variant="secondary" onClick={load}>
+        <Button size="sm" variant="default" onClick={load}>
           {t("aiConfig.file.open")}
         </Button>
       </section>
@@ -100,7 +100,7 @@ export function ConfigFileViewer({ toolId }: { readonly toolId: AiToolId }) {
         <div role="alert" className="grid justify-items-start gap-ui-4">
           <p className="m-0 text-aux font-semibold text-danger">{t("aiConfig.file.failed")}</p>
           <p className="m-0 text-aux">{localizeError(state.error, locale)}</p>
-          <Button size="sm" variant="secondary" onClick={load}>
+          <Button size="sm" variant="default" onClick={load}>
             {t("common.retry")}
           </Button>
         </div>

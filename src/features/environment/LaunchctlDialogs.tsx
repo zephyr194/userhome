@@ -125,7 +125,7 @@ export function LaunchctlSetDialog({
         busy={busy}
         footer={
           <>
-            <Button disabled={busy} onClick={() => setPreviewed(null)} variant="secondary">
+            <Button disabled={busy} onClick={() => setPreviewed(null)} variant="default">
               {t("env.editor.launchctl.preview.back")}
             </Button>
             <Button disabled={busy} onClick={confirm} variant="primary">
@@ -162,7 +162,7 @@ export function LaunchctlSetDialog({
       busy={busy}
       footer={
         <>
-          <Button data-modal-cancel="" disabled={busy} onClick={onClose} variant="secondary">
+          <Button data-modal-cancel="" disabled={busy} onClick={onClose} variant="default">
             {t("env.editor.launchctl.cancel")}
           </Button>
           <Button disabled={busy} form={formId} type="submit" variant="primary">
@@ -259,7 +259,7 @@ export function LaunchctlRemoveDialog({
         </p>
       ) : null}
       <ActionRow align="end">
-        <Button data-dialog-cancel="" disabled={busy} onClick={onCancel} variant="secondary">
+        <Button data-dialog-cancel="" disabled={busy} onClick={onCancel} variant="default">
           {t("env.editor.launchctl.cancel")}
         </Button>
         <Button disabled={busy} onClick={remove} variant="danger">

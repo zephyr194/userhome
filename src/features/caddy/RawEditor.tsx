@@ -112,20 +112,20 @@ export function RawEditorView({
         />
         <div className="flex flex-wrap items-center gap-ui-8">
           <Button
-            variant="secondary"
+            variant="default"
             disabled={loading || running || blocked}
             onClick={onValidate}
           >
             {t("caddy.raw.check")}
           </Button>
           {running ? (
-            <Button variant="secondary" onClick={onCancel}>
+            <Button variant="default" onClick={onCancel}>
               {t("caddy.raw.cancelCheck")}
             </Button>
           ) : null}
           {canAllow ? (
             <Button
-              variant="secondary"
+              variant="default"
               disabled={running || blocked}
               onClick={onAllowExternalAndValidate}
             >

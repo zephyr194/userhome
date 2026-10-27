@@ -17,7 +17,7 @@ export function SystemToolsPage({ onOpen }: SystemToolsPageProps) {
           <Button
             key={tool.routeId}
             className="system-tool-card"
-            variant="secondary"
+            variant="default"
             onClick={() => onOpen(tool.routeId)}
           >
             <span className="system-tool-card__icon">

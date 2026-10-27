@@ -70,7 +70,7 @@ export function PasteButton({
       </span>
       <Button
         size="sm"
-        variant="secondary"
+        variant="default"
         disabled={reading || disabled}
         onClick={() => void paste()}
       >

@@ -35,7 +35,7 @@ export function CaddyWorkdirPanel(props: CaddyWorkdirPanelProps) {
             {t("caddy.workdir.legacyOutro")}
           </p>
           <div>
-            <Button size="sm" variant="secondary" onClick={props.onDismissLegacy}>
+            <Button size="sm" variant="default" onClick={props.onDismissLegacy}>
               {t("caddy.workdir.legacyAck")}
             </Button>
           </div>
@@ -66,7 +66,7 @@ function WorkdirBody(props: WorkdirBodyProps) {
         <p role="alert" className="m-0 text-body text-danger">
           {t("caddy.workdir.loadFailed", { error: localizeError(load.error, locale) })}
         </p>
-        <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onRetry}>
+        <Button size="sm" variant="default" disabled={props.busy} onClick={props.onRetry}>
           {t("caddy.workdir.recheck")}
         </Button>
       </>
@@ -93,7 +93,7 @@ function UnauthorizedBody(props: WorkdirBodyProps & { defaultPath: string }) {
         >
           {t("caddy.workdir.useDefault", { path: props.defaultPath })}
         </Button>
-        <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onSelect}>
+        <Button size="sm" variant="default" disabled={props.busy} onClick={props.onSelect}>
           {t("caddy.workdir.chooseOther")}
         </Button>
       </ActionRow>
@@ -125,7 +125,7 @@ function AuthorizedBody(props: WorkdirBodyProps & { displayPath: string }) {
           <Button size="sm" variant="danger" disabled={props.busy} onClick={props.onRevoke}>
             {t("caddy.workdir.confirmRevoke")}
           </Button>
-          <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onCancelRevoke}>
+          <Button size="sm" variant="default" disabled={props.busy} onClick={props.onCancelRevoke}>
             {t("common.cancel")}
           </Button>
         </ActionRow>
@@ -142,10 +142,10 @@ function AuthorizedBody(props: WorkdirBodyProps & { displayPath: string }) {
         </dd>
       </dl>
       <ActionRow>
-        <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onSelect}>
+        <Button size="sm" variant="default" disabled={props.busy} onClick={props.onSelect}>
           {t("caddy.workdir.changeFolder")}
         </Button>
-        <Button size="sm" variant="secondary" disabled={props.busy} onClick={props.onConfirmRevoke}>
+        <Button size="sm" variant="default" disabled={props.busy} onClick={props.onConfirmRevoke}>
           {t("caddy.workdir.revoke")}
         </Button>
       </ActionRow>

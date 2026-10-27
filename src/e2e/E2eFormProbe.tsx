@@ -37,10 +37,10 @@ export function E2eFormProbe() {
         <Button size="sm" type="submit" variant="primary">
           Probe submit
         </Button>
-        <Button size="sm" type="reset" variant="secondary">
+        <Button size="sm" type="reset" variant="default">
           Probe reset
         </Button>
-        <Button size="sm" type="button" variant="secondary" onClick={() => setDismissed(true)}>
+        <Button size="sm" type="button" variant="default" onClick={() => setDismissed(true)}>
           Probe dismiss
         </Button>
       </div>
