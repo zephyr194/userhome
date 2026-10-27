@@ -144,6 +144,7 @@ const ACCENT_TOKENS = [
   "--app-primary",
   "--app-primary-hover",
   "--app-primary-soft",
+  "--app-primary-soft-hover",
   "--app-primary-foreground",
   "--app-accent-text",
   "--app-focus-ring",

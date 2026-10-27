@@ -121,6 +121,7 @@ const checks: Array<[foreground: string, background: string, minimum: number]> =
     "--app-surface-raised",
     "--app-sidebar",
     "--app-primary-soft",
+    "--app-primary-soft-hover",
   ].map((background): [string, string, number] => ["--app-accent-text", background, TEXT]),
   ["--app-selection-foreground", "--app-selection", TEXT],
   ...["--app-surface", "--app-canvas", "--app-success-soft"].map((background): [string, string, number] => [
@@ -148,6 +149,8 @@ const checks: Array<[foreground: string, background: string, minimum: number]> =
     UI,
   ]),
   ["--app-control-border", "--app-surface-muted", UI],
+  ["--app-control-border", "--app-sidebar", UI],
+  ["--app-selection-foreground", "--app-primary-soft-hover", TEXT],
   ...["--app-surface", "--app-canvas", "--app-surface-muted", "--app-sidebar"].map(
     (background): [string, string, number] => ["--app-focus-ring", background, UI],
   ),
@@ -176,6 +179,21 @@ describe("token contrast, resolved from global.css", () => {
       },
     );
   }
+});
+
+// --app-button-border 是显式例外：带文字的普通按钮由文字识别，不套用 3:1 界面元素阈值（SPEC-theme-refine §3.3）。
+describe("普通按钮描边为显式例外", () => {
+  for (const [themeName, tokens] of Object.entries(themes)) {
+    it(`${themeName}: 默认按钮文字在其底面达到 4.5:1`, () => {
+      for (const background of ["--app-surface", "--app-surface-muted"]) {
+        expect(contrastRatio(opaqueColor(tokens, "--app-foreground"), opaqueColor(tokens, background))).toBeGreaterThanOrEqual(TEXT);
+      }
+    });
+  }
+
+  it("不把按钮描边计入界面元素检查", () => {
+    expect(checks.some(([foreground]) => foreground === "--app-button-border")).toBe(false);
+  });
 });
 
 describe("dark token declarations stay in sync", () => {

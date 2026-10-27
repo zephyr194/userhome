@@ -125,16 +125,16 @@ function r10Declared(selector: string, property: string): string[] {
 const LIGHT = {
   name: "浅色",
   tokens: blockOf(/^:root\s*\{([^}]*)\}/m),
-  canvas: "#F4F7FA",
+  canvas: "#F7F9F9",
   surface: "#FFFFFF",
-  surfaceMuted: "#EBF0F4",
-  sidebar: "#E9EEF3",
-  sidebarHover: "#DCE3EA",
+  surfaceMuted: "#EFF3F3",
+  sidebar: "#F0F4F4",
+  sidebarHover: "#E5EBEB",
   foreground: "#1D242D",
-  selectionFill: "#F8EBE1",
-  selectionText: "#A64D1D",
-  selectionBorder: "#B65C24",
-  primaryIcon: "#B65C24",
+  selectionFill: "#E4F2F1",
+  selectionText: "#0B6F6C",
+  selectionBorder: "#0B6F6C",
+  primaryIcon: "#0B6F6C",
 };
 
 const DARK_BODIES = [
@@ -149,10 +149,10 @@ const DARK = {
   sidebar: "#171B20",
   sidebarHover: "#272E37",
   foreground: "#E6EBF1",
-  selectionFill: "#3B2A20",
-  selectionText: "#F0A060",
-  selectionBorder: "#F0A060",
-  primaryIcon: "#F0A060",
+  selectionFill: "#143532",
+  selectionText: "#3DD9C4",
+  selectionBorder: "#35C7B3",
+  primaryIcon: "#35C7B3",
 };
 
 const ORANGE_TOKENS = ["#B65C24", "#F0A060", "#A64D1D", "#E9925E", "#F6BA83", "#F8EBE1", "#3B2A20"];
@@ -185,22 +185,22 @@ describe("选中级别样式（r10-nav）", () => {
 
   it("对比度参照色与 global.css 中的真实令牌一致", () => {
     for (const value of [
-      "--app-canvas: #F4F7FA;",
+      "--app-canvas: #F7F9F9;",
       "--app-surface: #FFFFFF;",
-      "--app-surface-muted: #EBF0F4;",
-      "--app-sidebar: #E9EEF3;",
-      "--app-sidebar-hover: #DCE3EA;",
+      "--app-surface-muted: #EFF3F3;",
+      "--app-sidebar: #F0F4F4;",
+      "--app-sidebar-hover: #E5EBEB;",
       "--app-canvas: #10181E;",
       "--app-surface: #162029;",
       "--app-surface-muted: #1E2A34;",
       "--app-sidebar: #171B20;",
       "--app-sidebar-hover: #272E37;",
-      "--app-primary-soft: #F8EBE1;",
-      "--app-selection-foreground: #A64D1D;",
-      "--app-selection-border: #B65C24;",
-      "--app-primary-soft: #3B2A20;",
-      "--app-selection-foreground: #F0A060;",
-      "--app-selection-border: #F0A060;",
+      "--app-primary-soft: #E4F2F1;",
+      "--app-selection-foreground: #0B6F6C;",
+      "--app-selection-border: #0B6F6C;",
+      "--app-primary-soft: #143532;",
+      "--app-selection-foreground: #3DD9C4;",
+      "--app-selection-border: #35C7B3;",
     ]) {
       expect(source, value).toContain(value);
     }
@@ -218,7 +218,7 @@ describe("选中级别样式（r10-nav）", () => {
   it("删除 r8 的一级令牌与图标令牌，描边令牌只保留 --app-selection-border", () => {
     expect(source).not.toMatch(/--app-selection-primary/);
     expect(source).not.toMatch(/--app-selection-secondary-border/);
-    expect(source).toMatch(/--app-selection-border:\s*#B65C24;/);
+    expect(source).toMatch(/--app-selection-border:\s*#0B6F6C;/);
   });
 
   it("一级：橙字在浅底上 ≥4.5:1（浅色与深色）", () => {

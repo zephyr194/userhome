@@ -31,9 +31,9 @@ function contrast(left: string, right: string): number {
 describe("global theme tokens", () => {
   it("uses the approved cool steel-gray palette", () => {
     for (const value of [
-      "#F4F7FA", "#EBF0F4", "#FFFFFF", "#1D242D", "#4F5B69",
-      "#B65C24", "#A64D1D", "#2B744F", "#8C5F12", "#B33A3A",
-      "#10181E", "#162029", "#2C333C", "#E6EBF1", "#F0A060",
+      "#F7F9F9", "#EFF3F3", "#FFFFFF", "#1D242D", "#4F5B69",
+      "#B65C24", "#0B6F6C", "#2B744F", "#8C5F12", "#B33A3A",
+      "#10181E", "#162029", "#2C333C", "#E6EBF1", "#3DD9C4",
     ]) expect(css.toUpperCase()).toContain(value);
     expect(css).not.toMatch(
       /#f5f6f8|#171c24|#1663b7|#82baff|#f5f1ea|#fcfaf6|#746a5e|#a94f1f|#948678|#f0eae2|#d8cec1|#efe9e0|#e7ddd1|#c8bcae|#a99989|#5e554b|#f3e3d7|#29241e|#171512|#211e1a|#2a2621|#f3ece2|#b8ada0|#4f473e|#7c7062|#1b1815|#2b2722|#cfc4b7/i,
@@ -82,24 +82,24 @@ describe("global theme tokens", () => {
   });
 
   it("meets text and control contrast across every approved surface", () => {
-    const lightSurfaces = ["#F4F7FA", "#FFFFFF", "#EBF0F4", "#FFFFFF"];
+    const lightSurfaces = ["#F7F9F9", "#FFFFFF", "#EFF3F3", "#FFFFFF"];
     const darkSurfaces = ["#10181E", "#162029", "#1E2A34", "#2C333C"];
     for (const foreground of [
-      "#1D242D", "#4F5B69", "#A64D1D", "#2B744F", "#8C5F12", "#B33A3A",
+      "#1D242D", "#4F5B69", "#0B6F6C", "#2B744F", "#8C5F12", "#B33A3A",
     ]) {
       for (const surface of lightSurfaces) {
         expect(contrast(foreground, surface)).toBeGreaterThanOrEqual(4.5);
       }
     }
     for (const foreground of [
-      "#E6EBF1", "#AEB9C6", "#F0A060", "#65C894", "#E3B85B", "#EE7D78",
+      "#E6EBF1", "#AEB9C6", "#3DD9C4", "#65C894", "#E3B85B", "#EE7D78",
     ]) {
       for (const surface of darkSurfaces) {
         expect(contrast(foreground, surface)).toBeGreaterThanOrEqual(4.5);
       }
     }
     for (const surface of lightSurfaces) {
-      expect(contrast("#7A8896", surface)).toBeGreaterThanOrEqual(3);
+      expect(contrast("#7B8C8C", surface)).toBeGreaterThanOrEqual(3);
     }
     for (const surface of darkSurfaces) {
       expect(contrast("#7C8A98", surface)).toBeGreaterThanOrEqual(3);

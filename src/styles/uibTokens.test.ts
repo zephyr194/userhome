@@ -64,9 +64,9 @@ describe("选中角标令牌（UIB-0）", () => {
   it("选中颜色复用既有令牌，深色主题同样覆盖选中与悬停颜色", () => {
     const darkBlock = css.match(/:root\[data-appearance="dark"\]\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(tokenValue("app-selection")).toBe("var(--app-primary-soft)");
-    expect(tokenValue("app-selection-border")).toBe("#B65C24");
-    expect(tokenValue("app-control-border")).toBe("#7A8896");
-    expect(darkBlock).toMatch(/--app-selection-border:\s*#F0A060;/);
+    expect(tokenValue("app-selection-border")).toBe("#0B6F6C");
+    expect(tokenValue("app-control-border")).toBe("#7B8C8C");
+    expect(darkBlock).toMatch(/--app-selection-border:\s*#35C7B3;/);
     expect(darkBlock).toMatch(/--app-control-border:\s*#7C8A98;/);
   });
 
