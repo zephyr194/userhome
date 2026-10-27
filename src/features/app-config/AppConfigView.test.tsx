@@ -314,7 +314,7 @@ describe("AppConfigView flat entry rows (UIF-14)", () => {
     expect(html).toContain("仅显示默认位置。查看不修改任何文件。");
   });
 
-  it("shows the path once in the detail, in the location row, with the status in the header", () => {
+  it("shows the path once in the detail, in the location row, without repeating the list status", () => {
     const html = render(
       { status: "ready", items: [ZED] },
       readyDetail("zed-settings", {
@@ -324,7 +324,7 @@ describe("AppConfigView flat entry rows (UIF-14)", () => {
     );
     const detail = html.slice(html.indexOf('role="region"'));
     expect(detail.split("~/.config/zed-settings.json")).toHaveLength(2);
-    expect(detail).toContain("已发现");
+    expect(detail).not.toContain("已发现");
   });
 });
 

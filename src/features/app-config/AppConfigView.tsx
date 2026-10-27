@@ -252,11 +252,8 @@ function EntryDetail({
       <h2 id={headingId} className="m-0 text-group font-semibold">
         {selected ? entryName(selected.summary, copy) : copy.t("appConfig.detail.heading")}
       </h2>
-      {selected ? (
-        <EntryHeader
-          item={selected}
-          onEdit={canEdit && edit ? () => edit.onStart(selected.summary.id) : undefined}
-        />
+      {selected && canEdit && edit ? (
+        <EntryHeader onEdit={() => edit.onStart(selected.summary.id)} />
       ) : null}
       {selected ? <EntryFacts item={selected} /> : null}
       {!editing && edit?.notice ? (
@@ -278,16 +275,13 @@ function EntryDetail({
   );
 }
 
-function EntryHeader({ item, onEdit }: { item: AppConfigListItem; onEdit?: () => void }) {
+function EntryHeader({ onEdit }: { onEdit: () => void }) {
   const copy = appConfigCopy(useLocale());
   return (
-    <div className="flex flex-wrap items-center justify-between gap-ui-8">
-      <ProbeStatus probe={item.probe} />
-      {onEdit ? (
-        <Button variant="default" onClick={onEdit}>
-          {copy.t("common.edit")}
-        </Button>
-      ) : null}
+    <div className="flex justify-end">
+      <Button variant="default" onClick={onEdit}>
+        {copy.t("common.edit")}
+      </Button>
     </div>
   );
 }
