@@ -84,14 +84,14 @@ describe("圆角审计（UI-01）", () => {
     expect(tokenValue("radius-sm")).toBe("var(--app-radius-control)");
     expect(tokenValue("radius-md")).toBe("var(--app-radius-control)");
     expect(tokenValue("radius-lg")).toBe("var(--app-radius-container)");
-    expect(tokenValue("app-radius-control")).toBe("6px");
+    expect(tokenValue("app-radius-control")).toBe("4px");
     expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
-    expect(tokenValue("app-control-height-sm")).toBe("24px");
-    expect(tokenValue("app-control-height-md")).toBe("28px");
+    expect(tokenValue("app-control-height-sm")).toBe("20px");
+    expect(tokenValue("app-control-height-md")).toBe("24px");
     expect(tokenValue("app-status-badge-height")).toBe("20px");
     expect(tokenValue("app-row-height-compact")).toBe("28px");
-    expect(tokenValue("app-row-height-standard")).toBe("32px");
-    expect(tokenValue("app-row-height-two-line")).toBe("44px");
+    expect(tokenValue("app-row-height-standard")).toBe("36px");
+    expect(tokenValue("app-row-height-two-line")).toBe("52px");
     expect(tokenValue("app-titlebar-height")).toBe("44px");
     expect(tokenValue("app-toolbar-height")).toBe("44px");
     expect(tokenValue("app-sidebar-width")).toBe("188px");
@@ -99,15 +99,15 @@ describe("圆角审计（UI-01）", () => {
 
   it("间距与字号令牌取值与 SPEC-ui-refresh 一致", () => {
     expect(tokenValue("app-space-2")).toBe("2px");
-    expect(tokenValue("app-space-4")).toBe("4px");
-    expect(tokenValue("app-space-8")).toBe("8px");
-    expect(tokenValue("app-space-8")).toBe("8px");
-    expect(tokenValue("app-space-8")).toBe("8px");
-    expect(tokenValue("app-space-12")).toBe("12px");
-    expect(tokenValue("app-space-12")).toBe("12px");
-    expect(tokenValue("app-space-16")).toBe("16px");
-    expect(tokenValue("app-font-size-page-title")).toBe("18px");
-    expect(tokenValue("app-font-size-body")).toBe("13px");
+    expect(tokenValue("app-space-4")).toBe("6px");
+    expect(tokenValue("app-space-8")).toBe("12px");
+    expect(tokenValue("app-space-8")).toBe("12px");
+    expect(tokenValue("app-space-8")).toBe("12px");
+    expect(tokenValue("app-space-12")).toBe("16px");
+    expect(tokenValue("app-space-12")).toBe("16px");
+    expect(tokenValue("app-space-16")).toBe("24px");
+    expect(tokenValue("app-font-size-page-title")).toBe("17px");
+    expect(tokenValue("app-font-size-body")).toBe("12px");
   });
 
   it("阴影去掉装饰层，对话框阴影保持单层", () => {

@@ -66,10 +66,10 @@ function productionTsx(dir: string, files: string[] = []): string[] {
 }
 
 describe("控件高度由令牌决定（UI-1c）", () => {
-  it("令牌数值精确且两档不同、均不小于 24px", () => {
-    expect(tokenPx("sm")).toBe(24);
-    expect(tokenPx("md")).toBe(28);
-    expect(tokenPx("sm")).toBeGreaterThanOrEqual(24);
+  it("令牌数值精确且两档不同、均不小于 20px", () => {
+    expect(tokenPx("sm")).toBe(20);
+    expect(tokenPx("md")).toBe(24);
+    expect(tokenPx("sm")).toBeGreaterThanOrEqual(20);
     expect(tokenPx("md")).not.toBe(tokenPx("sm"));
   });
 

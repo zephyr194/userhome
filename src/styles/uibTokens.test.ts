@@ -12,11 +12,19 @@ function tokenValue(name: string): string {
 }
 
 const SPACE_STEPS = [2, 4, 8, 12, 16, 24] as const;
+const SPACE_VALUES: Record<(typeof SPACE_STEPS)[number], number> = {
+  2: 2,
+  4: 6,
+  8: 12,
+  12: 16,
+  16: 24,
+  24: 32,
+};
 
 describe("4px 栅格间距令牌（UIB-0）", () => {
-  it("新增档位恰为 2/4/8/12/16/24px", () => {
+  it("令牌档位名不变，取值为 2/6/12/16/24/32px", () => {
     for (const step of SPACE_STEPS) {
-      expect(tokenValue(`app-space-${step}`)).toBe(`${step}px`);
+      expect(tokenValue(`app-space-${step}`)).toBe(`${SPACE_VALUES[step]}px`);
     }
   });
 
@@ -36,7 +44,7 @@ describe("4px 栅格间距令牌（UIB-0）", () => {
 
 describe("圆角令牌（UIB-0）", () => {
   it("控件 6px、容器 8px，面板指向容器令牌", () => {
-    expect(tokenValue("app-radius-control")).toBe("6px");
+    expect(tokenValue("app-radius-control")).toBe("4px");
     expect(tokenValue("app-radius-container")).toBe("8px");
     expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
   });

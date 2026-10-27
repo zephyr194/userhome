@@ -21,15 +21,15 @@ function ruleBody(selector: string): string {
 }
 
 const READING_TOKENS = [
-  { name: "meta", font: 11, line: 16, minRatio: 1.4 },
-  { name: "aux", font: 12, line: 18, minRatio: 1.45 },
-  { name: "body", font: 13, line: 20, minRatio: 1.45 },
+  { name: "meta", font: 10.5, line: 16, minRatio: 1.4 },
+  { name: "aux", font: 11, line: 17, minRatio: 1.45 },
+  { name: "body", font: 12, line: 19, minRatio: 1.45 },
   { name: "code", font: 12, line: 18, minRatio: 1.45 },
 ] as const;
 
 const HEADING_TOKENS = [
-  { name: "group", font: 14, line: 20 },
-  { name: "page-title", font: 18, line: 23 },
+  { name: "group", font: 13, line: 20 },
+  { name: "page-title", font: 17, line: 24 },
 ] as const;
 
 const SELECTION_TEXT_RATIO = 1.2;
