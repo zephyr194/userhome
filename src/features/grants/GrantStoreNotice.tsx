@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode, type Ref } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button } from "../../components/ui";
 import type { Locale, MessageKey, TranslateFunction } from "../../i18n";
 import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
@@ -48,40 +48,30 @@ function failureText(
 
 function NoticeRow({
   actions,
-  badge,
-  children,
-  role,
-  tone,
   busy,
+  children,
+  heading,
+  role,
 }: {
   actions?: ReactNode;
-  badge: string;
   busy?: boolean;
   children: ReactNode;
+  heading: string;
   role: "alert" | "status";
-  tone: "danger" | "success" | "warning";
 }) {
   return (
     <div
-      className="r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border border-line px-ui-12 py-ui-8 text-xs"
+      className="r12-shell-notice text-xs"
       role={role}
       aria-busy={busy || undefined}
     >
-      <StatusBadge className="shrink-0" tone={tone}>
-        {badge}
-      </StatusBadge>
-      <p
-        className={`m-0 min-w-0 flex-1 leading-relaxed ${WRAP} ${
-          tone === "danger"
-            ? "text-danger"
-            : tone === "success"
-              ? "text-muted-foreground"
-              : "text-warning"
-        }`}
-      >
-        {children}
-      </p>
-      {actions}
+      <div className="flex min-w-0 items-center gap-ui-8">
+        <span className="shrink-0 text-body font-semibold text-foreground">{heading}</span>
+        {actions ? (
+          <div className="ml-auto flex shrink-0 items-center gap-ui-8">{actions}</div>
+        ) : null}
+      </div>
+      <p className={`m-0 min-w-0 leading-relaxed text-foreground ${WRAP}`}>{children}</p>
     </div>
   );
 }
@@ -182,7 +172,7 @@ export function GrantStoreNoticeView({
       disabled={state.rechecking || dialog.phase === "resetting"}
       onClick={onRecheck}
       size="sm"
-      variant="default"
+      variant="danger"
     >
       {state.rechecking
         ? t("grants.recheck.busy")
@@ -212,10 +202,9 @@ export function GrantStoreNoticeView({
               {recheck}
             </>
           }
-          badge={t("grants.notice.unavailable")}
           busy={state.rechecking}
+          heading={t("grants.notice.unavailable")}
           role="alert"
-          tone="danger"
         >
           {t(PROBLEM_KEYS[check.reason])}
           {isResettable(check.reason) ? t("grants.notice.resettable") : ""}
@@ -224,10 +213,9 @@ export function GrantStoreNoticeView({
       {check.phase === "check-failed" ? (
         <NoticeRow
           actions={recheck}
-          badge={t("grants.notice.unknown")}
           busy={state.rechecking}
+          heading={t("grants.notice.unknown")}
           role="alert"
-          tone="warning"
         >
           {t("grants.recheck.unknownStatus")}
         </NoticeRow>
@@ -239,9 +227,8 @@ export function GrantStoreNoticeView({
               {t("grants.notice.gotIt")}
             </Button>
           }
-          badge={t("grants.notice.reset")}
+          heading={t("grants.notice.reset")}
           role="status"
-          tone="success"
         >
           {t(
             completed.previousReason === "NEWER_VERSION"

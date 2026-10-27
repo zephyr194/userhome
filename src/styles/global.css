@@ -604,13 +604,13 @@ a {
 .desktop-workspace__toolbar {
   min-width: 0;
   min-height: var(--app-toolbar-height-roomy);
-  padding: var(--app-space-12) var(--app-space-16) 0;
+  padding: var(--app-space-12) var(--app-space-16) var(--app-space-12);
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--app-space-16);
-  background: color-mix(in srgb, var(--app-surface) 88%, var(--app-canvas));
+  background: var(--app-surface);
   border-bottom: 1px solid var(--app-line-subtle);
 }
 
@@ -3116,8 +3116,14 @@ code {
 }
 
 .r12-shell-notice {
+  display: grid;
+  gap: var(--app-space-4);
   min-width: 0;
-  background: var(--app-surface-raised);
+  padding: var(--app-space-8);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-container);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-float);
 }
 /* /r12-shell */
 /* r12-settings-env ------------------------------------------------------- */

@@ -11,7 +11,7 @@ import {
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DesktopWorkspace } from "../components/DesktopWorkspace";
 import { NavigationRail } from "../components/NavigationRail";
-import { ActionRow, Button, StatusBadge } from "../components/ui";
+import { ActionRow, Button, CloseButton } from "../components/ui";
 import { GrantStoreNotice } from "../features/grants/GrantStoreNotice";
 import { isGrantStoreNoticeVisible } from "../features/grants/grantStoreController";
 import { useGrantStoreNotice } from "../features/grants/useGrantStoreNotice";
@@ -61,45 +61,40 @@ interface AppShellProps {
 }
 
 function ShellNotice({
+  actions,
   busy = false,
   children,
-  dismissLabel,
+  className,
+  dismiss,
   label,
-  onDismiss,
   role = "status",
-  tone,
 }: {
+  actions?: ReactNode;
   busy?: boolean;
   children: ReactNode;
-  dismissLabel?: string;
+  className?: string;
+  dismiss?: { label: string; onDismiss: () => void };
   label: string;
-  onDismiss?: () => void;
   role?: "alert" | "status";
-  tone: "danger" | "warning";
 }) {
   return (
     <div
-      className={`r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border px-ui-12 py-ui-8 text-xs ${
-        tone === "danger" ? "border-danger-border" : "border-warning-border"
-      }`}
+      className={`r12-shell-notice text-xs${className ? ` ${className}` : ""}`}
       role={role}
       aria-busy={busy || undefined}
     >
-      <StatusBadge className="shrink-0" tone={tone}>
-        {label}
-      </StatusBadge>
-      <p
-        className={`m-0 min-w-0 flex-1 break-words leading-relaxed ${
-          tone === "danger" ? "text-danger" : "text-warning"
-        }`}
-      >
-        {children}
-      </p>
-      {onDismiss ? (
-        <Button className="shrink-0" onClick={onDismiss} size="sm" variant="default">
-          {dismissLabel}
-        </Button>
-      ) : null}
+      <div className="flex min-w-0 items-center gap-ui-8">
+        <span className="shrink-0 text-body font-semibold text-foreground">{label}</span>
+        {actions || dismiss ? (
+          <div className="ml-auto flex shrink-0 items-center gap-ui-8">
+            {actions}
+            {dismiss ? (
+              <CloseButton label={dismiss.label} onClick={dismiss.onDismiss} />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      <p className="m-0 min-w-0 break-words leading-relaxed text-foreground">{children}</p>
     </div>
   );
 }
@@ -509,20 +504,17 @@ export function ShellContent({
       : undefined;
   const preferencesNotice =
     state.preferences.status === "loading" ? (
-      <ShellNotice
-        busy
-        label={t("common.loading")}
-        tone="warning"
-      >
+      <ShellNotice busy label={t("common.loading")}>
         {t("shell.preferences.loading")}
       </ShellNotice>
     ) : safeDefaultMessage !== undefined && safeDefaultMessage !== dismissedSafeDefault ? (
       <ShellNotice
-        dismissLabel={t("common.close")}
+        dismiss={{
+          label: t("common.close"),
+          onDismiss: () => setDismissedSafeDefault(safeDefaultMessage),
+        }}
         label={t("shell.preferences.safeDefault")}
-        onDismiss={() => setDismissedSafeDefault(safeDefaultMessage)}
         role="alert"
-        tone="warning"
       >
         {safeDefaultMessage}
       </ShellNotice>
@@ -533,48 +525,31 @@ export function ShellContent({
   // the copy states plainly that previously loaded data is retained.
   const refreshNotice =
     state.refresh.status === "error" && state.refresh.message !== dismissedRefreshError ? (
-      <div
-        className="r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border border-danger-border px-ui-12 py-ui-8 text-xs"
-        role="alert"
-      >
-        <StatusBadge className="shrink-0" tone="danger">
-          {t("shell.refresh.failed")}
-        </StatusBadge>
-        <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-danger">
-          {state.refresh.message}
-          {state.discovery.status === "error" &&
-          state.discovery.previousSnapshot
-            ? ` ${t("shell.refresh.retained")}`
-            : ""}
-        </p>
-        <Button className="shrink-0" size="sm" variant="default" onClick={requestRefresh}>
-          {t("common.retry")}
-        </Button>
-        <Button
-          className="shrink-0"
-          size="sm"
-          variant="default"
-          onClick={() =>
+      <ShellNotice
+        actions={
+          <Button onClick={requestRefresh} size="sm" variant="danger">
+            {t("common.retry")}
+          </Button>
+        }
+        dismiss={{
+          label: t("common.close"),
+          onDismiss: () =>
             setDismissedRefreshError(
               state.refresh.status === "error" ? state.refresh.message : undefined,
-            )
-          }
-        >
-          {t("common.close")}
-        </Button>
-      </div>
-    ) : refreshCompletedAt !== undefined && refreshCompletedAt !== dismissedRefreshAt ? (
-      <div
-        className="r4-fe5-refreshed r12-shell-notice flex min-w-0 flex-wrap items-center gap-ui-8 rounded-control border border-line px-ui-12 py-ui-8 text-xs"
-        role="status"
+            ),
+        }}
+        label={t("shell.refresh.failed")}
+        role="alert"
       >
-        <StatusBadge className="shrink-0" tone="success">
-          {t("shell.refresh.refreshed")}
-        </StatusBadge>
-        <p className="m-0 min-w-0 flex-1 break-words leading-relaxed text-muted-foreground">
-          {t("shell.refresh.refreshedDetail")}
-        </p>
-      </div>
+        {state.refresh.message}
+        {state.discovery.status === "error" && state.discovery.previousSnapshot
+          ? ` ${t("shell.refresh.retained")}`
+          : ""}
+      </ShellNotice>
+    ) : refreshCompletedAt !== undefined && refreshCompletedAt !== dismissedRefreshAt ? (
+      <ShellNotice className="r4-fe5-refreshed" label={t("shell.refresh.refreshed")}>
+        {t("shell.refresh.refreshedDetail")}
+      </ShellNotice>
     ) : undefined;
 
   return (
@@ -617,11 +592,12 @@ export function ShellContent({
               <div className="grid min-w-0 gap-ui-8">
                 {commandError ? (
                   <ShellNotice
-                    dismissLabel={t("common.close")}
+                    dismiss={{
+                      label: t("common.close"),
+                      onDismiss: () => setCommandError(undefined),
+                    }}
                     label={t("shell.notice.commandUnavailable")}
-                    onDismiss={() => setCommandError(undefined)}
                     role="alert"
-                    tone="danger"
                   >
                     {commandError}
                   </ShellNotice>
@@ -663,17 +639,6 @@ export function ShellContent({
                       : t("shell.refresh.button")
                   }
                 >
-                  <svg
-                    className={
-                      state.refresh.status === "refreshing"
-                        ? "animate-spin"
-                        : undefined
-                    }
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
-                  </svg>
                   {state.refresh.status === "refreshing"
                     ? t("common.refreshing")
                     : t("common.refresh")}
