@@ -81,6 +81,14 @@ describe("default system visibility", () => {
     );
   });
 
+  it("says the hidden count once when the empty list only hides system services", () => {
+    renderList({
+      state: readyState(sampleServices().filter((service) => service.id.startsWith("system/"))),
+    });
+    expect(document.body.textContent?.match(/已隐藏/g)).toHaveLength(1);
+    expect(screen.getByText("勾选“显示系统服务”即可查看。")).toBeTruthy();
+  });
+
   it("explains a system service that the selection points at but the list hides", () => {
     renderList({ selectedId: "system/com.apple.metadata.mds" });
     expect(screen.getByText(/所选任务是系统服务，列表中已隐藏/)).toBeTruthy();

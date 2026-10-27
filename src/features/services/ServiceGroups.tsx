@@ -103,7 +103,7 @@ export function ServiceGroups({
             {t("services.list.emptyFiltered")}
             {systemCount > 0 && !showSystem ? (
               <span className="block">
-                {t("services.emptyHiddenSystem", { count: systemCount })}
+                {t("services.emptyHiddenSystem")}
               </span>
             ) : null}
           </AsyncState>

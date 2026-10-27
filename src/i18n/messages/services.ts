@@ -8,7 +8,7 @@ export const servicesZh = {
   "services.group.count": "{count} 项",
   "services.hiddenSystem": "已隐藏 {count} 个系统服务",
   "services.showSystem": "显示系统服务",
-  "services.emptyHiddenSystem": "其中 {count} 个系统服务已隐藏，勾选“显示系统服务”后可见。",
+  "services.emptyHiddenSystem": "勾选“显示系统服务”即可查看。",
   "services.selectedSystemHidden": "所选任务是系统服务，列表中已隐藏。勾选“显示系统服务”后可在清单中看到。",
   "services.purposeUnknown": "作用未知",
   "services.noProgramPath": "未记录程序路径",
@@ -625,8 +625,7 @@ export const servicesEn = {
   "services.group.count": "{count} items",
   "services.hiddenSystem": "{count} system services hidden",
   "services.showSystem": "Show system services",
-  "services.emptyHiddenSystem":
-    "{count} system services are hidden. Check “Show system services” to see them.",
+  "services.emptyHiddenSystem": "Check “Show system services” to see them.",
   "services.selectedSystemHidden":
     "The selected task is a system service and is hidden from the list. Check “Show system services” to find it there.",
   "services.purposeUnknown": "Purpose unknown",
