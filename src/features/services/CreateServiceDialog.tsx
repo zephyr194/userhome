@@ -110,12 +110,12 @@ function FormBody({
         required
       >
         <div className="flex min-w-0 items-stretch">
-          <span className="flex min-w-0 items-center break-all rounded-l-control border border-r-0 border-control-border bg-surface-muted px-ui-8 font-mono text-aux text-muted-foreground">
+          <span className="flex shrink-0 items-center whitespace-nowrap rounded-l-control border border-r-0 border-control-border bg-surface-muted px-ui-8 font-mono text-aux text-muted-foreground">
             {CREATE_SERVICE_NAMESPACE}
           </span>
           <Input
             autoComplete="off"
-            className="h-control-md w-full min-w-0 rounded-l-none rounded-r-control border border-control-border bg-surface px-ui-8 text-body text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-control-md min-w-0 flex-1 rounded-l-none rounded-r-control border border-control-border bg-surface px-ui-8 text-body text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             disabled={disabled}
             invalid={Boolean(shown?.label)}
             onChange={(event) =>

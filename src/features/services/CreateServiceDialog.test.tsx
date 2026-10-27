@@ -129,6 +129,14 @@ describe("create dialog: editing", () => {
     expect(markup).toContain("只填后缀。");
   });
 
+  it("keeps the namespace prefix on one line so it never grows taller than the input", () => {
+    const markup = view({ phase: "editing" }, { labelSuffix: "" });
+    const prefix = markup.match(/<span class="([^"]*)">com\.[^<]*<\/span>/)?.[1] ?? "";
+    expect(prefix).toContain("shrink-0");
+    expect(prefix).toContain("whitespace-nowrap");
+    expect(prefix).not.toContain("break-all");
+  });
+
   it("shows the form fields and the label the job will get", () => {
     const markup = view({ phase: "editing" }, { labelSuffix: "backup" });
     for (const text of [
