@@ -43,7 +43,7 @@ export const shellZh = {
   "shell.skipToContent": "跳到主要内容",
   "shell.listSeparator": "、",
   "shell.quit.title": "退出 UserHome？",
-  "shell.quit.body": "UserHome 仍有 {processCount} 个由它启动的进程在运行。 “停止并退出”会先停止这些进程，确认全部已退出后才退出应用； “取消退出”不会改变任何内容。",
+  "shell.quit.body": "UserHome 仍有 {processCount} 个由它启动的进程在运行。“停止并退出”会先停止这些进程，确认全部已退出后才退出应用；“取消退出”不会改变任何内容。",
   "shell.quit.runningItems": "仍在运行的项目",
   "shell.quit.stopping": "正在停止进程并等待其退出…",
   "shell.quit.quitting": "进程已全部退出，正在退出应用…",

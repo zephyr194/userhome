@@ -411,6 +411,12 @@ describe("QuitConfirmationDialog", () => {
       />,
     );
 
+  it("puts no space before the Chinese quote marks in the quit body", () => {
+    const markup = render({ phase: "asking", processCount: 2 });
+    expect(markup).not.toContain(" “");
+    expect(markup).toContain("“停止并退出”");
+  });
+
   it("asks to stop and quit or cancel, with cancel as the focus default", () => {
     const markup = render({ phase: "asking", processCount: 2 });
 
