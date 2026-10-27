@@ -281,6 +281,7 @@ describe("AiConfigView refresh (r5-ai)", () => {
     expect(html).toContain("刷新失败，仍显示上次读取的结果");
     expect(html).toContain("检测命令没有返回结果。");
     expect(html).toContain("可在页头点击“刷新”重试。");
+    expect(html).toMatch(/<button[^>]*>重试<\/button>/);
     expect(html).toContain("Claude Code");
     expect(html).not.toContain("无法检测 AI 工具");
   });

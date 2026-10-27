@@ -192,6 +192,11 @@ function StateNotice({
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.view.refreshFailed")}</p>
         <p className="m-0 text-body">{localizeError(refreshError, locale)}</p>
         <p className="m-0 text-aux text-muted-foreground">{t("aiConfig.view.refreshFailedHint")}</p>
+        <div>
+          <Button variant="danger" onClick={onRetry}>
+            {t("common.retry")}
+          </Button>
+        </div>
       </Panel>
     );
   }
