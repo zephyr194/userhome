@@ -261,7 +261,6 @@ export function SettingsConfirmationDialog({
             data-modal-cancel
             disabled={busy}
             onClick={onCancel}
-            size="sm"
             variant="default"
           >
             {cancelLabel}

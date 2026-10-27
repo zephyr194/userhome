@@ -246,7 +246,6 @@ export function CaddyPage() {
         <ActionRow>
           <Button
             className="caddy-back"
-            size="sm"
             variant="default"
             onClick={() => onNavigate({ routeId: "systemTools" })}
           >

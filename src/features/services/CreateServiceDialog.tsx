@@ -173,7 +173,6 @@ function FormBody({
           <Button
             disabled={disabled || form.arguments.length >= CREATE_SERVICE_LIMITS.arguments}
             onClick={() => onFormChange(addArgument(form))}
-            size="sm"
             variant="default"
           >
             {t("services.dialog.create.addArgument")}
@@ -242,7 +241,6 @@ function FormBody({
               disabled || form.environment.length >= CREATE_SERVICE_LIMITS.environmentEntries
             }
             onClick={() => onFormChange(addEnvironment(form))}
-            size="sm"
             variant="default"
           >
             {t("services.dialog.common.addEnvironment")}

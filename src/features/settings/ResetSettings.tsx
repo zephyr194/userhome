@@ -28,7 +28,6 @@ function ResetConfirmation({
       action={
         !error ? (
           <Button
-            size="sm"
             variant="danger"
             disabled={busy}
             onClick={onConfirm}
@@ -124,7 +123,6 @@ export function ResetSettings({
         description={t("settings.reset.dangerDescription")}
       >
         <Button
-          size="sm"
           variant="danger"
           disabled={busy}
           onClick={() => {

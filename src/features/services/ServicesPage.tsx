@@ -224,7 +224,6 @@ export function ServicesPage({
         headerActions={
           <div className="grid min-w-0 justify-items-end gap-ui-4">
             <Button
-              size="sm"
               variant="primary"
               onClick={() => {
                 setCreatedLabel(undefined);
@@ -242,14 +241,12 @@ export function ServicesPage({
               >
                 {t("services.page.created", { label: createdLabel })}{" "}
                 <Button
-                  size="sm"
                   variant="ghost"
                   onClick={goToCreated}
                 >
                   {t("services.page.goLoad")}
                 </Button>{" "}
                 <Button
-                  size="sm"
                   variant="ghost"
                   onClick={() => {
                     setCreatedLabel(undefined);

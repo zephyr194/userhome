@@ -90,13 +90,12 @@ export function LaunchctlView({
           ) : null}
         </div>
         <ActionRow>
-          <Button disabled={loading} onClick={onRetry} size="sm" variant="default">
+          <Button disabled={loading} onClick={onRetry} variant="default">
             {t("env.launchctl.reload")}
           </Button>
           <Button
             disabled={loading}
             onClick={() => setDialog({ kind: "set" })}
-            size="sm"
             variant="primary"
           >
             {t("env.launchctl.setVariable")}
@@ -129,7 +128,7 @@ export function LaunchctlView({
           <p className="text-aux text-muted-foreground">
             {t("env.launchctl.reason", { message: localizeError(state.error, locale) })}
           </p>
-          <Button onClick={onRetry} size="sm" variant="danger">
+          <Button onClick={onRetry} variant="danger">
             {t("env.launchctl.retry")}
           </Button>
         </div>

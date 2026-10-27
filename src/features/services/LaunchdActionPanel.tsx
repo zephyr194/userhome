@@ -87,14 +87,13 @@ function PreviewCard({
       </p>
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         <Button
-          size="sm"
           variant={destructive ? "danger" : "primary"}
           disabled={busy}
           onClick={onConfirm}
         >
           {t("services.action.confirm", { action })}
         </Button>
-        <Button size="sm" variant="default" disabled={busy} onClick={onCancel}>
+        <Button variant="default" disabled={busy} onClick={onCancel}>
           {t("common.cancel")}
         </Button>
       </div>
@@ -152,7 +151,7 @@ function ResultCard({
       ) : null}
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {result.needsRefresh ? (
-          <Button size="sm" variant="default" onClick={onRefresh}>
+          <Button variant="default" onClick={onRefresh}>
             {t("common.refresh")}
           </Button>
         ) : null}
@@ -368,7 +367,7 @@ function ActionError({
       ) : null}
       <div className="mt-ui-8 flex flex-wrap gap-ui-8">
         {during === "execute" ? (
-          <Button size="sm" variant="default" onClick={onRefresh}>
+          <Button variant="default" onClick={onRefresh}>
             {t("common.refresh")}
           </Button>
         ) : null}

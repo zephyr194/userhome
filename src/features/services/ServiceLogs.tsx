@@ -341,7 +341,6 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
               disabled={!available}
               key={option}
               onClick={() => selectStream(option)}
-              size="sm"
               variant={stream === option ? "primary" : "default"}
             >
               {streamLabel(option)}
@@ -373,16 +372,15 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
           <span className="break-all">
             {t("services.logs.authorized", { path: grant.displayPath })}
           </span>
-          <Button onClick={() => stopTracking(null)} size="sm" variant="ghost">
+          <Button onClick={() => stopTracking(null)} variant="ghost">
             {t("services.logs.stop")}
           </Button>
-          <Button onClick={() => void begin(false)} size="sm" variant="ghost">
+          <Button onClick={() => void begin(false)} variant="ghost">
             {t("services.logs.reselect")}
           </Button>
           <Button
             disabled={!hasContent}
             onClick={() => setExportState({ stage: "confirm" })}
-            size="sm"
             variant="default"
           >
             {t("services.logs.export")}
@@ -392,7 +390,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
 
       {status === "paused" ? (
         <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
-          <Button onClick={() => stopTracking(null)} size="sm" variant="ghost">
+          <Button onClick={() => stopTracking(null)} variant="ghost">
             {t("services.logs.stop")}
           </Button>
         </div>
@@ -416,12 +414,11 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
         <section aria-label={t("services.logs.exportSection")} className="grid gap-ui-8 rounded-control border border-warning-border bg-warning-soft px-ui-8 py-ui-8 text-xs text-warning">
           <p>{t("services.logs.exportWarning")}</p>
           <div className="flex flex-wrap gap-ui-8">
-            <Button onClick={() => void chooseSaveLocation()} size="sm" variant="primary">
+            <Button onClick={() => void chooseSaveLocation()} variant="primary">
               {t("services.logs.chooseSave")}
             </Button>
             <Button
               onClick={() => setExportState({ stage: "closed" })}
-              size="sm"
               variant="default"
             >
               {t("common.cancel")}
@@ -443,14 +440,12 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
           <div className="flex flex-wrap gap-ui-8">
             <Button
               onClick={() => void confirmExport(exportState.preview)}
-              size="sm"
               variant="danger"
             >
               {t("services.logs.confirmWrite")}
             </Button>
             <Button
               onClick={() => void discardExport(exportState.preview)}
-              size="sm"
               variant="default"
             >
               {t("services.logs.discard")}

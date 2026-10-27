@@ -143,19 +143,12 @@ const FORM_TAG =
 // VariableChainTable：搜索框（md）旁的“清空”已改为 md；表格行内的 sm 按钮与搜索框不同排
 // AppConfigEditor：sm 按钮只与文字同排（返回查看、撤销、移除），表单控件各自独占一行，无 sm 与 md 控件同排
 const REVIEWED_SM_WITH_FORMS = [
-  "features/app-config/AppConfigEditor.tsx",
   "features/caddy/CaddyRulesEditor.tsx",
   "features/environment/DotenvEditor.tsx",
-  "features/environment/EnvironmentView.tsx",
   "features/environment/VariableChainTable.tsx",
   "features/environment/ZshEditor.tsx",
   "features/services/CreateServiceDialog.tsx",
   "features/services/EditServiceDialog.tsx",
-  "features/services/ServicesView.tsx",
-  "features/settings/BackupSettings.tsx",
-  "features/tools/CodecTool.tsx",
-  "features/tools/JsonTool.tsx",
-  "features/tools/XmlTool.tsx",
 ];
 
 // 静态检测无法可靠判断“同一行”，故对已知的同排位置逐个断言为 md

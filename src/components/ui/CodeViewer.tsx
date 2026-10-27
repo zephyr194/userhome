@@ -60,7 +60,7 @@ export function CodeViewer({
         bodyClassName="r6-code-window-body"
         className="r6-code-window"
         footer={
-          <Button data-modal-cancel onClick={() => setWindowOpen(false)} size="sm" variant="default">
+          <Button data-modal-cancel onClick={() => setWindowOpen(false)} variant="default">
             {t("common.close")}
           </Button>
         }
@@ -103,11 +103,11 @@ function CodeToolbar({
         {highlightOff ? <p className="m-0">{t("common.code.highlightOff")}</p> : null}
       </div>
       <div className="flex shrink-0 items-center gap-ui-8">
-        <Button onClick={onToggleWrap} size="sm" variant="ghost">
+        <Button onClick={onToggleWrap} variant="ghost">
           {wrap ? t("common.code.unwrap") : t("common.code.wrap")}
         </Button>
         {onOpenWindow ? (
-          <Button aria-haspopup="dialog" onClick={onOpenWindow} size="sm" variant="ghost">
+          <Button aria-haspopup="dialog" onClick={onOpenWindow} variant="ghost">
             {t("common.code.openWindow")}
           </Button>
         ) : null}

@@ -86,11 +86,10 @@ export function CaddyRulesEditor({
           {t("caddy.rules.heading")}
         </h2>
         <div className="flex flex-wrap items-center gap-ui-8">
-          <Button size="sm" variant="default" onClick={() => setExamplesOpen(true)}>
+          <Button variant="default" onClick={() => setExamplesOpen(true)}>
             {t("caddy.rules.examples")}
           </Button>
           <Button
-            size="sm"
             variant="default"
             disabled={sites.length >= MAX_DRAFT_SITES}
             onClick={() => onChange([...sites, newSiteDraft(ids)])}
@@ -158,7 +157,6 @@ export function CaddyRulesEditor({
             <AddDirectiveGroup site={site} ids={ids} onSite={(next) => replaceSite(siteIndex, next)} />
             <div className="flex justify-end border-t border-border pt-ui-8">
               <Button
-                size="sm"
                 variant="default"
                 className="caddy-danger-outline"
                 aria-label={t("caddy.rules.deleteSiteLabel", { site: siteIndex + 1 })}
@@ -452,7 +450,6 @@ function AddDirectiveGroup({
         {addableDirectives(site).map((id) => (
           <Button
             key={id}
-            size="sm"
             variant="default"
             disabled={!canAddDirective(site, id)}
             onClick={() => onSite(addDirective(site, id, ids))}

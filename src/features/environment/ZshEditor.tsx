@@ -109,7 +109,7 @@ export function ZshEditor({ actions, check, focus, state }: ZshEditorProps) {
           </h2>
           <p className="mt-ui-4 text-xs text-muted-foreground">{t("env.editor.zsh.headerNote")}</p>
         </div>
-        <Button disabled={busy} onClick={actions.close} size="sm" variant="default">
+        <Button disabled={busy} onClick={actions.close} variant="default">
           {t("env.editor.zsh.backToReadOnly")}
         </Button>
       </header>
@@ -138,7 +138,7 @@ function Body({
       <AsyncState kind={problem?.kind === "UNAVAILABLE" || problem?.kind === "ERROR" ? "error" : "partial"}>
         <span className={WRAP}>{problem?.message ?? t("env.editor.zsh.unreadable")}</span>{" "}
         {problem?.kind === "OUTSIDE_HOME" ? null : (
-          <Button disabled={busy} onClick={() => void actions.reload()} size="sm" variant="default">
+          <Button disabled={busy} onClick={() => void actions.reload()} variant="default">
             {t("env.editor.zsh.readAgain")}
           </Button>
         )}
@@ -315,7 +315,7 @@ function AuthorizationPanel({
     <div className="flex min-w-0 flex-wrap items-center gap-ui-8 text-xs text-muted-foreground">
       <StatusBadge tone="success">{t("env.editor.zsh.auth.enabled")}</StatusBadge>
       <span>{t("env.editor.zsh.auth.enabledNote")}</span>
-      <Button disabled={busy} onClick={() => void actions.disable()} size="sm" variant="ghost">
+      <Button disabled={busy} onClick={() => void actions.disable()} variant="ghost">
         {t("env.editor.zsh.auth.disable")}
       </Button>
     </div>
@@ -373,7 +373,7 @@ function VariablesSection({
         <h3 className="text-sm font-semibold" id="zsh-editor-variables-heading">
           {t("env.editor.zsh.var.heading")}
         </h3>
-        <Button disabled={disabled} onClick={actions.addVariable} size="sm" variant="default">
+        <Button disabled={disabled} onClick={actions.addVariable} variant="default">
           {t("env.editor.zsh.var.add")}
         </Button>
       </div>
@@ -546,7 +546,7 @@ function PathSection({
         <h3 className="text-sm font-semibold" id="zsh-editor-path-heading">
           {t("env.editor.zsh.path.heading")}
         </h3>
-        <Button disabled={disabled} onClick={actions.addPathItem} size="sm" variant="default">
+        <Button disabled={disabled} onClick={actions.addPathItem} variant="default">
           {t("env.editor.zsh.path.add")}
         </Button>
       </div>

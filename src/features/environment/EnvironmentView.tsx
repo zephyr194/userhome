@@ -94,7 +94,7 @@ function DirectoryContent(props: EnvironmentViewProps) {
       <AsyncState
         kind="error"
         action={
-          <Button onClick={actions.reloadGrants} size="sm" variant="danger">
+          <Button onClick={actions.reloadGrants} variant="danger">
             {t("env.dotenv.retry")}
           </Button>
         }
@@ -109,7 +109,7 @@ function DirectoryContent(props: EnvironmentViewProps) {
     return (
       <div className="flex flex-col items-start gap-ui-8 px-ui-12 py-ui-12">
         <AsyncState kind="empty">{t("env.dotenv.noGrants")}</AsyncState>
-        <Button disabled={props.addingGrant} onClick={actions.addGrant} size="sm" variant="primary">
+        <Button disabled={props.addingGrant} onClick={actions.addGrant} variant="primary">
           {props.addingGrant ? t("env.dotenv.grant.waiting") : t("env.dotenv.grant.add")}
         </Button>
         <GrantNotice notice={props.grantNotice} />
@@ -198,7 +198,6 @@ function DirectoryHeader({
           <Button
             disabled={!canAdd || target === undefined}
             onClick={() => target !== undefined && actions.addVariable(target)}
-            size="sm"
             variant="primary"
           >
             {t("env.dotenv.addVariable")}
@@ -206,7 +205,6 @@ function DirectoryHeader({
           <Button
             disabled={choosingNewFile === true}
             onClick={actions.newFile}
-            size="sm"
             variant="default"
           >
             {choosingNewFile ? t("env.dotenv.newFile.waiting") : t("env.dotenv.newFile")}
@@ -231,7 +229,7 @@ function DirectoryStatus({ actions, directory }: { actions: EnvironmentActions; 
         kind="error"
         action={
           scan.error.retryable ? (
-            <Button onClick={actions.rescan} size="sm" variant="danger">
+            <Button onClick={actions.rescan} variant="danger">
               {t("env.dotenv.retry")}
             </Button>
           ) : undefined
@@ -394,7 +392,6 @@ function SettingsDetails(props: EnvironmentViewProps) {
             <Button
               aria-label={t("env.dotenv.grant.revokeLabel", { path: selectedGrant.displayPath })}
               onClick={() => actions.revokeGrant(selectedGrant.id)}
-              size="sm"
               variant="ghost"
             >
               {t("env.dotenv.grant.revoke")}

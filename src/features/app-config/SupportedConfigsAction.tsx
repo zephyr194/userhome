@@ -10,7 +10,7 @@ export function SupportedConfigsAction({ items }: { items: readonly AppConfigLis
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)} size="sm" variant="default">
+      <Button onClick={() => setOpen(true)} variant="default">
         {copy.t("appConfig.supported.open")}
       </Button>
       <SupportedConfigsDialog items={items} onClose={() => setOpen(false)} open={open} />

@@ -232,7 +232,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
         <p className="m-0 min-w-0 break-all text-aux text-muted-foreground">
           {copy.t("appConfig.edit.editing", { path: summary.displayPath })}
         </p>
-        <Button size="sm" variant="default" disabled={busy} onClick={requestExit}>
+        <Button variant="default" disabled={busy} onClick={requestExit}>
           {copy.t("appConfig.edit.backToView")}
         </Button>
       </div>
@@ -250,7 +250,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
           </p>
           <p className="m-0 text-body">{localizeError(load.error, copy.locale)}</p>
           <div>
-            <Button size="sm" variant="danger" onClick={() => setLoadKey((key) => key + 1)}>
+            <Button variant="danger" onClick={() => setLoadKey((key) => key + 1)}>
               {copy.t("common.retry")}
             </Button>
           </div>
@@ -420,7 +420,7 @@ function PhaseNotice({
         <Panel role="alert" className="grid gap-ui-8 p-ui-8">
           <p className="m-0 text-body font-semibold text-danger">{copy.t("appConfig.edit.conflict")}</p>
           <div>
-            <Button size="sm" variant="danger" onClick={onReload}>
+            <Button variant="danger" onClick={onReload}>
               {copy.t("appConfig.edit.reread")}
             </Button>
           </div>
@@ -659,13 +659,12 @@ function FieldRow({
         </p>
         <div className="flex flex-wrap items-center gap-ui-4">
           {draft ? (
-            <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onChange(undefined)}>
+            <Button variant="ghost" disabled={disabled} onClick={() => onChange(undefined)}>
               {copy.t("appConfig.edit.undo")}
             </Button>
           ) : null}
           {removable ? (
             <Button
-              size="sm"
               variant="ghost"
               disabled={disabled}
               onClick={() => onChange({ kind: "remove" })}

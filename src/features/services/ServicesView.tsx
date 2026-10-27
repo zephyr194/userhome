@@ -129,7 +129,6 @@ export function ServicesView(props: ServicesViewProps) {
             <div className="flex min-w-0 flex-wrap items-start gap-ui-8">
               {props.headerActions}
               <Button
-                size="sm"
                 disabled={props.refreshDisabled}
                 onClick={props.onRefresh}
                 variant="default"
@@ -248,7 +247,6 @@ function FilterBar({
         </span>
         {isFilterActive(filter) ? (
           <Button
-            size="sm"
             variant="ghost"
             onClick={() =>
               onFilterChange({ ...EMPTY_FILTER, showSystem: filter.showSystem })
@@ -293,7 +291,7 @@ function ListBody({
           flush
           kind="error"
           action={
-            <Button size="sm" disabled={refreshDisabled} onClick={onRefresh} variant="danger">
+            <Button disabled={refreshDisabled} onClick={onRefresh} variant="danger">
               {t("services.list.retry")}
             </Button>
           }

@@ -25,7 +25,7 @@ export function CaddyDetectPanel({ state, onRetry }: CaddyDetectPanelProps) {
           {t("caddy.detect.heading")}
         </h2>
         <DetectSummary state={state} />
-        <Button size="sm" variant="default" disabled={state.status === "loading"} onClick={onRetry}>
+        <Button variant="default" disabled={state.status === "loading"} onClick={onRetry}>
           {t("caddy.detect.recheck")}
         </Button>
       </div>

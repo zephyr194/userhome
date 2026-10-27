@@ -58,7 +58,6 @@ function BackupClearDialog({
       action={
         !finished && !error ? (
           <Button
-            size="sm"
             variant="danger"
             disabled={busy}
             onClick={onConfirm}
@@ -254,7 +253,6 @@ export function BackupSettings({
         </div>
         <SettingsActions className="mt-ui-12">
           <Button
-            size="sm"
             variant="danger"
             disabled={
               !summary ||

@@ -172,7 +172,7 @@ function StateNotice({
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.view.detectFailed")}</p>
         <p className="m-0 text-body">{localizeError(state.error, locale)}</p>
         <div>
-          <Button size="sm" variant="danger" onClick={onRetry}>
+          <Button variant="danger" onClick={onRetry}>
             {t("common.retry")}
           </Button>
         </div>
@@ -242,7 +242,6 @@ function SearchEmpty({
           {matches.map((match) => (
             <Button
               key={match.toolId}
-              size="sm"
               variant="default"
               onClick={() => onSelectTool(match.toolId)}
             >
@@ -287,7 +286,6 @@ function ToolRow({
   return (
     <Button
       variant="ghost"
-      size="sm"
       className="slide-item ai-tool-row"
       aria-current={selected ? "true" : undefined}
       onClick={() => onSelect(tool.id)}

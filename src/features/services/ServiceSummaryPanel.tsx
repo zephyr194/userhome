@@ -165,7 +165,7 @@ export function ServiceSummaryPanel({
         )}
         {hasLogPaths && renderLogs ? (
           <div className="grid min-w-0 justify-items-start gap-ui-12">
-            <Button size="sm" variant="ghost" onClick={() => setLogsOpen((open) => !open)}>
+            <Button variant="ghost" onClick={() => setLogsOpen((open) => !open)}>
               {logsOpen ? t("services.summary.hideLogs") : t("services.summary.viewLogs")}
             </Button>
             {logsOpen ? renderLogs(service) : null}

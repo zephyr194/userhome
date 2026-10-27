@@ -86,7 +86,6 @@ export function ZshView(props: ZshViewProps) {
             <Button
               disabled={!zshrcEditable(overview)}
               onClick={() => props.onEditFile?.("ZSHRC", { kind: "addition" })}
-              size="sm"
               variant="primary"
             >
               {t("env.zsh.addVariable")}
@@ -95,7 +94,6 @@ export function ZshView(props: ZshViewProps) {
           <Button
             disabled={load.status === "loading"}
             onClick={props.onReload}
-            size="sm"
             variant="default"
           >
             {load.status === "loading" ? t("env.zsh.reloading") : t("env.zsh.reload")}
@@ -130,7 +128,7 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
       <AsyncState
         kind="error"
         action={
-          <Button onClick={props.onReload} size="sm" variant="danger">
+          <Button onClick={props.onReload} variant="danger">
             {t("env.zsh.retry")}
           </Button>
         }
@@ -326,7 +324,6 @@ function ZdotdirPanel({
           <Button
             disabled={choosing}
             onClick={onChooseDirectory}
-            size="sm"
             variant={summary.needsChoice ? "primary" : "default"}
           >
             {choosing
@@ -336,7 +333,7 @@ function ZdotdirPanel({
                 : t("env.zsh.zdotdir.choose")}
           </Button>
           {summary.selected ? (
-            <Button disabled={choosing} onClick={onClearDirectory} size="sm" variant="ghost">
+            <Button disabled={choosing} onClick={onClearDirectory} variant="ghost">
               {t("env.zsh.zdotdir.clear")}
             </Button>
           ) : null}
@@ -384,7 +381,6 @@ function FileCard({
             <Button
               aria-label={t("env.zsh.file.editBlockLabel", { name: file.name })}
               onClick={() => onEditFile(file.file)}
-              size="sm"
               variant={file.file === "ZSHRC" ? "primary" : "default"}
             >
               {t("env.zsh.file.editBlock")}

@@ -163,7 +163,7 @@ export function CodecTool() {
             {t("tools.result.heading")}
           </h3>
           {view.status === "success" ? (
-            <Button size="sm" variant="ghost" onClick={() => copyResult(view.output.text)}>
+            <Button variant="ghost" onClick={() => copyResult(view.output.text)}>
               {t("tools.result.copy")}
             </Button>
           ) : null}

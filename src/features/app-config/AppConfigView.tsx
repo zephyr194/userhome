@@ -90,7 +90,7 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
             {copy.t("appConfig.list.empty")}
           </p>
           <ActionRow>
-            <Button size="sm" variant="default" onClick={onReload}>
+            <Button variant="default" onClick={onReload}>
               {copy.t("common.refresh")}
             </Button>
             <SupportedConfigsAction items={[]} />
@@ -111,7 +111,7 @@ function ListStatusNotice({ list, onReload }: { list: ListState; onReload: () =>
           </p>
           <p className="m-0 text-body">{localizeError(list.error, copy.locale)}</p>
           <ActionRow>
-            <Button size="sm" variant="danger" onClick={onReload}>
+            <Button variant="danger" onClick={onReload}>
               {copy.t("common.retry")}
             </Button>
             <SupportedConfigsAction items={undefined} />
@@ -284,7 +284,7 @@ function EntryHeader({ item, onEdit }: { item: AppConfigListItem; onEdit?: () =>
     <div className="flex flex-wrap items-center justify-between gap-ui-8">
       <ProbeStatus probe={item.probe} />
       {onEdit ? (
-        <Button size="sm" variant="default" onClick={onEdit}>
+        <Button variant="default" onClick={onEdit}>
           {copy.t("common.edit")}
         </Button>
       ) : null}

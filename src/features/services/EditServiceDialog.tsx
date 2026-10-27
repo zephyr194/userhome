@@ -147,7 +147,6 @@ function FormBody({
           <Button
             disabled={disabled}
             onClick={() => onFormChange(addArgument(form))}
-            size="sm"
             variant="default"
           >
             {t("services.dialog.create.addArgument")}
@@ -252,7 +251,6 @@ function FormBody({
           <Button
             disabled={disabled}
             onClick={() => onFormChange(addEnvironment(form))}
-            size="sm"
             variant="default"
           >
             {t("services.dialog.common.addEnvironment")}

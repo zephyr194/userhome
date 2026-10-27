@@ -334,7 +334,7 @@ function AdditionList({
         <h3 className="text-sm font-semibold" id="dotenv-additions-heading">
           {t("env.editor.dotenv.additions.heading")}
         </h3>
-        <Button disabled={disabled} onClick={actions.addRow} size="sm" variant="default">
+        <Button disabled={disabled} onClick={actions.addRow} variant="default">
           {t("env.editor.dotenv.additions.addRow")}
         </Button>
       </div>
