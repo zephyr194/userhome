@@ -5,9 +5,10 @@ interface BrandMarkProps {
 export function BrandMark({ className }: BrandMarkProps) {
   return (
     <svg aria-hidden="true" className={className} viewBox="100 100 824 824">
-      <rect className="brand-mark__frame" x="100" y="100" width="824" height="824" rx="106" />
-      <path className="brand-mark__glyph" d="M290 272 H386 V528 A126 126 0 0 0 638 528 V272 H734 V528 A222 222 0 0 1 290 528 Z" />
-      <rect className="brand-mark__square" x="455" y="466" width="114" height="114" />
+      <rect className="brand-mark__frame" x="100" y="100" width="824" height="824" rx="184" />
+      <rect className="brand-mark__block" x="307.2" y="531.2" width="192.0" height="192.0" rx="57.6" />
+      <rect className="brand-mark__block" x="524.8" y="531.2" width="192.0" height="192.0" rx="57.6" />
+      <rect className="brand-mark__block brand-mark__block--accent" x="416.0" y="300.8" width="192.0" height="192.0" rx="57.6" />
     </svg>
   );
 }

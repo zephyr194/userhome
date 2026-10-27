@@ -28,14 +28,40 @@ const darkBlock = () => block(/:root\[data-appearance="dark"\]\s*\{([^}]*)\}/);
 const systemDarkBlock = () =>
   block(/:root:not\(\[data-appearance\]\),\s*:root\[data-appearance="system"\]\s*\{([^}]*)\}/);
 
+type Attrs = Record<string, string>;
+const attributes = (text: string): Attrs =>
+  Object.fromEntries([...text.matchAll(/([\w-]+)="([^"]*)"/g)].map((m) => [m[1], m[2]]));
+const rects = (svg: string): Attrs[] => [...svg.matchAll(/<rect\s([^>]*?)\/?>/g)].map((m) => attributes(m[1]));
+const geometry = (rect: Attrs) => ({ x: rect.x, y: rect.y, width: rect.width, height: rect.height, rx: rect.rx });
+
 describe("BrandMark", () => {
-  it("renders a decorative svg with the icon artwork and the cropped viewBox", () => {
+  it("renders a decorative svg with the framed mark, the cropped viewBox and no text", () => {
     const markup = renderToStaticMarkup(<BrandMark className="brand-size" />);
     expect(markup).toMatch(/^<svg[^>]*aria-hidden="true"/);
     expect(markup).toContain('class="brand-size"');
     expect(markup).toContain('viewBox="100 100 824 824"');
-    expect(markup).toContain('d="M290 272 H386 V528 A126 126 0 0 0 638 528 V272 H734 V528 A222 222 0 0 1 290 528 Z"');
-    expect(markup.match(/<rect /g)).toHaveLength(2);
+    expect(markup.replace(/<[^>]+>/g, "").trim()).toBe("");
+    expect(markup.match(/<rect /g)).toHaveLength(4);
+    expect(rects(markup)[0]).toMatchObject({
+      class: "brand-mark__frame",
+      x: "100",
+      y: "100",
+      width: "824",
+      height: "824",
+      rx: "184",
+    });
+  });
+
+  it("draws the three blocks with the same geometry as the icon source, accent on top", () => {
+    const markup = renderToStaticMarkup(<BrandMark />);
+    const source = readFileSync(
+      fileURLToPath(new URL("../../../src-tauri/icons/icon-source.svg", import.meta.url)),
+      "utf8",
+    );
+    const blocks = rects(markup).filter((rect) => (rect.class ?? "").startsWith("brand-mark__block"));
+    expect(blocks.map(geometry)).toEqual(rects(source).slice(1).map(geometry));
+    const accents = blocks.filter((rect) => (rect.class ?? "").includes("brand-mark__block--accent"));
+    expect(accents.map(geometry)).toEqual([{ x: "416.0", y: "300.8", width: "192.0", height: "192.0", rx: "57.6" }]);
   });
 });
 
@@ -70,19 +96,18 @@ describe("brand tokens", () => {
     }
   });
 
-  it("keeps the light brand block on the icon's cool steel-gray", () => {
-    expect(lightBlock()).toMatch(/--app-brand-bg:\s*#1D242D;/);
-    expect(lightBlock()).toMatch(/--app-brand-fg:\s*#E6EBF1;/);
-    expect(lightBlock()).toMatch(/--app-brand-accent:\s*#F0A060;/);
+  it("keeps the light brand block on the icon's steel-blue palette", () => {
+    expect(lightBlock()).toMatch(/--app-brand-bg:\s*#F8FBFC;/);
+    expect(lightBlock()).toMatch(/--app-brand-fg:\s*#2A4A5C;/);
+    expect(lightBlock()).toMatch(/--app-brand-accent:\s*#14B8A6;/);
   });
 
-  it("lifts the dark brand background above the sidebar without changing the mark colors", () => {
+  it("gives the explicit and system dark brand blocks the same icon palette", () => {
     for (const dark of [darkBlock(), systemDarkBlock()]) {
-      expect(dark).toMatch(/--app-brand-bg:\s*#262C34;/);
-      expect(dark).toMatch(/--app-brand-accent:\s*#F0A060;/);
+      expect(dark).toMatch(/--app-brand-bg:\s*#1B2A33;/);
+      expect(dark).toMatch(/--app-brand-fg:\s*#DCEBF1;/);
+      expect(dark).toMatch(/--app-brand-accent:\s*#3DD9C4;/);
       expect(dark).toMatch(/--app-brand-accent-deep:\s*#B65C24;/);
     }
-    expect(darkBlock()).toMatch(/--app-brand-fg:\s*#E6EBF1;/);
-    expect(systemDarkBlock()).toMatch(/--app-brand-fg:\s*#E6EBF1;/);
   });
 });

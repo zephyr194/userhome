@@ -125,7 +125,7 @@
   --app-selection: var(--app-primary-soft);
   --app-selection-foreground: #A64D1D;
   --app-selection-border: #B65C24;
-  --app-brand-accent: #F0A060;
+  --app-brand-accent: #14B8A6;
   --app-brand-accent-deep: #B65C24;
   --app-sidebar-current-foreground: var(--app-selection-foreground);
   --app-sidebar-current-border: var(--app-selection-border);
@@ -194,8 +194,8 @@
   --app-motion-switch: var(--app-motion-duration-base);
   --app-motion-slide: var(--app-motion-duration-slow);
 
-  --app-brand-bg: #1D242D;
-  --app-brand-fg: #E6EBF1;
+  --app-brand-bg: #F8FBFC;
+  --app-brand-fg: #2A4A5C;
   --app-brand-rail: #4F5B69;
   --app-brand-knob: #AEB9C6;
 
@@ -262,7 +262,7 @@
   --app-focus-ring: #F0A060;
   --app-selection-foreground: #F0A060;
   --app-selection-border: #F0A060;
-  --app-brand-accent: #F0A060;
+  --app-brand-accent: #3DD9C4;
   --app-brand-accent-deep: #B65C24;
 
   --app-selection-secondary: #2A313A;
@@ -272,8 +272,8 @@
   --app-shadow-float: 0 4px 12px rgb(4 8 12 / 0.46);
   --app-shadow-sticky: none;
 
-  --app-brand-bg: #262C34;
-  --app-brand-fg: #E6EBF1;
+  --app-brand-bg: #1B2A33;
+  --app-brand-fg: #DCEBF1;
   --app-brand-rail: #4F5B69;
   --app-brand-knob: #AEB9C6;
 
@@ -333,7 +333,7 @@
     --app-focus-ring: #F0A060;
     --app-selection-foreground: #F0A060;
     --app-selection-border: #F0A060;
-    --app-brand-accent: #F0A060;
+    --app-brand-accent: #3DD9C4;
     --app-brand-accent-deep: #B65C24;
 
     --app-selection-secondary: #2A313A;
@@ -343,8 +343,8 @@
     --app-shadow-float: 0 4px 12px rgb(4 8 12 / 0.46);
     --app-shadow-sticky: none;
 
-    --app-brand-bg: #262C34;
-    --app-brand-fg: #E6EBF1;
+    --app-brand-bg: #1B2A33;
+    --app-brand-fg: #DCEBF1;
     --app-brand-rail: #4F5B69;
     --app-brand-knob: #AEB9C6;
 
@@ -1495,14 +1495,16 @@ body {
 
 .brand-mark__frame {
   fill: var(--app-brand-bg);
+  stroke: var(--app-border);
+  stroke-width: 5;
 }
 
-.brand-mark__glyph {
+.brand-mark__block {
   fill: var(--app-brand-fg);
 }
 
-.brand-mark__square {
-  fill: var(--app-brand-accent-deep);
+.brand-mark__block--accent {
+  fill: var(--app-brand-accent);
 }
 
 .navigation-rail ul {
