@@ -390,6 +390,10 @@ describe("service details", () => {
     expect(details()).not.toContain(">任务详情<");
   });
 
+  it("explains that source is not ownership only once, in the list filter", () => {
+    expect(details()).not.toContain("不是归属判定");
+  });
+
   it("shows every SVC-1 service field", () => {
     const markup = details();
     expect(markup).toContain('id="service-details-heading"');
@@ -539,7 +543,7 @@ describe("service details", () => {
     const markup = details(agent);
     expect(markup).not.toContain("<button");
     expect(markup).toContain("只读");
-    expect(markup).toContain("仅按目录归类，不是归属判定");
+    expect(markup).toContain("不提供删除配置文件");
   });
 
   it("does not truncate long values", () => {
@@ -623,8 +627,7 @@ describe("ownership in the details", () => {
     expect(markup).toContain("判定依据");
     expect(markup).toContain("位于 ~/Library/LaunchAgents");
     expect(markup).toContain("文件所有者是当前用户");
-    // The directory classification stays a separate, labelled concept.
-    expect(markup).toContain("仅按目录归类，不是归属判定");
+    expect(markup).toContain("不提供删除配置文件");
   });
 
   it.each([
