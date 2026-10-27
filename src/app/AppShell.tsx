@@ -89,7 +89,7 @@ function ShellNotice({
           <div className="ml-auto flex shrink-0 items-center gap-ui-8">
             {actions}
             {dismiss ? (
-              <CloseButton label={dismiss.label} onClick={dismiss.onDismiss} />
+              <CloseButton label={dismiss.label} onClick={dismiss.onDismiss} size="sm" />
             ) : null}
           </div>
         ) : null}
