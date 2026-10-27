@@ -158,3 +158,54 @@ describe("motion audit: reduced motion", () => {
     }
   });
 });
+
+describe("motion surfaces: dialog, popover, notices", () => {
+  const ruleFor = (selector: string, reduced = false) =>
+    styleRules.find(
+      (rule) =>
+        rule.selector.split(",").map((part) => part.trim()).includes(selector) && isReduced(rule) === reduced,
+    );
+  const valueOf = (rule: Rule | undefined, property: string) =>
+    rule?.declarations.find(([name]) => name === property)?.[1];
+
+  it("弹窗面板进入 base、退出 fast，退出时缩放到 0.98", () => {
+    const enter = ruleFor(".motion-dialog");
+    expect(valueOf(enter, "transition-duration")).toBe("var(--app-motion-duration-base)");
+    expect(valueOf(enter, "transition-timing-function")).toBe("var(--app-motion-ease-enter)");
+    const closed = ruleFor(".motion-dialog[data-closed]");
+    expect(valueOf(closed, "transform")).toBe("scale(0.98)");
+    expect(valueOf(closed, "transition-duration")).toBe("var(--app-motion-duration-fast)");
+    expect(valueOf(closed, "transition-timing-function")).toBe("var(--app-motion-ease-exit)");
+  });
+
+  it("下拉面板淡入加 translateY(-4px)，退出用 fast 与 exit 缓动", () => {
+    expect(valueOf(ruleFor(".motion-popover"), "transition-duration")).toBe("var(--app-motion-duration-base)");
+    const closed = ruleFor(".motion-popover[data-closed]");
+    expect(valueOf(closed, "transform")).toBe("translateY(-4px)");
+    expect(valueOf(closed, "transition-duration")).toBe("var(--app-motion-duration-fast)");
+  });
+
+  it("通知浮层进入时淡入并从 -8px 滑入", () => {
+    const notices = ruleFor('.desktop-workspace__banner[data-overlay="notices"]');
+    expect(valueOf(notices, "animation")).toBe(
+      "motion-notice-in var(--app-motion-duration-base) var(--app-motion-ease-enter)",
+    );
+    const from = rules.find((rule) => rule.ancestors.some((a) => a === "@keyframes motion-notice-in") && rule.selector === "from");
+    expect(valueOf(from, "transform")).toBe("translateY(-8px)");
+  });
+
+  it("动效规则不挡操作（不使用 pointer-events: none）", () => {
+    const motionRules = styleRules.filter((rule) => rule.selector.includes("motion-") || rule.selector.includes('data-overlay="notices"'));
+    expect(motionRules.length).toBeGreaterThan(0);
+    for (const rule of motionRules) {
+      expect(valueOf(rule, "pointer-events"), rule.selector).toBeUndefined();
+    }
+  });
+
+  it("reduced-motion 下弹窗、下拉与通知浮层都关闭过渡与动画", () => {
+    for (const selector of [".motion-dialog", ".motion-dialog[data-closed]", ".motion-popover", ".motion-popover[data-closed]"]) {
+      expect(valueOf(ruleFor(selector, true), "transition"), selector).toBe("none");
+    }
+    expect(valueOf(ruleFor('.desktop-workspace__banner[data-overlay="notices"]', true), "animation")).toBe("none");
+  });
+});

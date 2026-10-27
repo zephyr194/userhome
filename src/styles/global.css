@@ -3142,3 +3142,58 @@ code {
   }
 }
 /* /r12-btn */
+
+/* motion ------------------------------------------------------------------ */
+.motion-dialog {
+  transition-property: opacity, transform;
+  transition-duration: var(--app-motion-duration-base);
+  transition-timing-function: var(--app-motion-ease-enter);
+}
+
+.motion-dialog[data-closed] {
+  transform: scale(0.98);
+  transition-duration: var(--app-motion-duration-fast);
+  transition-timing-function: var(--app-motion-ease-exit);
+}
+
+.motion-popover {
+  transition-property: opacity, transform;
+  transition-duration: var(--app-motion-duration-base);
+  transition-timing-function: var(--app-motion-ease-enter);
+}
+
+.motion-popover[data-closed] {
+  transform: translateY(-4px);
+  transition-duration: var(--app-motion-duration-fast);
+  transition-timing-function: var(--app-motion-ease-exit);
+}
+
+@keyframes motion-notice-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.desktop-workspace__banner[data-overlay="notices"] {
+  animation: motion-notice-in var(--app-motion-duration-base) var(--app-motion-ease-enter);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-dialog,
+  .motion-dialog[data-closed],
+  .motion-popover,
+  .motion-popover[data-closed] {
+    transform: none;
+    transition: none;
+  }
+
+  .desktop-workspace__banner[data-overlay="notices"] {
+    animation: none;
+  }
+}
+/* /motion */

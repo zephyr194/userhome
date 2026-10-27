@@ -90,7 +90,7 @@ export function Modal({
             aria-labelledby={titleId}
             className={classNames(
               PANEL_CLASS,
-              "state-transition data-closed:opacity-0",
+              "motion-dialog data-closed:opacity-0",
               className,
             )}
             onKeyDown={(event) => {
