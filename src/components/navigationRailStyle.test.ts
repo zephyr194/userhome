@@ -227,9 +227,8 @@ describe("选中级别样式（r10-nav）", () => {
     }
   });
 
-  it("一级：1px 描边相对侧栏 ≥3:1，图标相对浅底 ≥3:1（浅色与深色）", () => {
+  it("一级：图标相对浅底 ≥3:1（浅色与深色）", () => {
     for (const theme of themes) {
-      expect(contrast(theme.selectionBorder, theme.sidebar), `${theme.name} 描边`).toBeGreaterThanOrEqual(3);
       expect(contrast(theme.primaryIcon, theme.selectionFill), `${theme.name} 图标`).toBeGreaterThanOrEqual(3);
     }
   });
@@ -247,11 +246,9 @@ describe("选中级别样式（r10-nav）", () => {
     }
   });
 
-  it("一级指示器：浅橙底 + 1px 内描边，不用外阴影", () => {
+  it("一级指示器：浅橙底，无描边，不用阴影", () => {
     expect(lastOf(r10Declared(PRIMARY_INDICATOR, "background"))).toBe("var(--app-selection)");
-    expect(lastOf(r10Declared(PRIMARY_INDICATOR, "box-shadow"))).toBe(
-      "inset 0 0 0 1px var(--app-selection-border)",
-    );
+    expect(lastOf(r10Declared(PRIMARY_INDICATOR, "box-shadow"))).toBe("none");
   });
 
   it("一级选中项：橙字用 --app-selection-foreground，字重沿用基础样式的 600", () => {
@@ -259,7 +256,7 @@ describe("选中级别样式（r10-nav）", () => {
     expect(r10Declared(PRIMARY_ITEM, "font-weight")).toEqual([]);
   });
 
-  it("一级未就绪时的回退与就绪态一致：浅橙底 + 1px 内描边", () => {
+  it("一级未就绪时的回退与就绪态一致：浅橙底，无描边", () => {
     const fallback = [
       ...r10Css.matchAll(
         /\.slide-list\[data-slide-level="primary"\]:not\(\[data-slide-axis="x"\]\):not\(\[data-slide-ready\]\) \.slide-item:is\([^{]*\{([^}]*)\}/g,
@@ -267,7 +264,7 @@ describe("选中级别样式（r10-nav）", () => {
     ].map((match) => match[1]);
     expect(fallback.length).toBeGreaterThan(0);
     expect(fallback.join("\n")).toMatch(/background:\s*var\(--app-selection\);/);
-    expect(fallback.join("\n")).toMatch(/box-shadow:\s*inset 0 0 0 1px var\(--app-selection-border\);/);
+    expect(fallback.join("\n")).toMatch(/box-shadow:\s*none;/);
   });
 
   it("一级图标不再单独上色，沿用基础的 --app-primary 图标色", () => {

@@ -2532,7 +2532,7 @@ button[class*="border-border"],
 /* r10-nav ----------------------------------------------------------- */
 .slide-list[data-slide-level="primary"]:not([data-slide-axis="x"])[data-slide-ready]::before {
   background: var(--app-selection);
-  box-shadow: inset 0 0 0 1px var(--app-selection-border);
+  box-shadow: none;
 }
 
 .slide-list[data-slide-level="primary"]:not([data-slide-axis="x"]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
@@ -2541,7 +2541,7 @@ button[class*="border-border"],
 
 .slide-list[data-slide-level="primary"]:not([data-slide-axis="x"]):not([data-slide-ready]) .slide-item:is([aria-current="true"], [aria-current="page"], [aria-selected="true"], [data-selected="true"]) {
   background: var(--app-selection);
-  box-shadow: inset 0 0 0 1px var(--app-selection-border);
+  box-shadow: none;
 }
 
 .slide-list[data-slide-instant][data-slide-ready]::before {
