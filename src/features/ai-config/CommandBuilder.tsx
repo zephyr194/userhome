@@ -154,11 +154,14 @@ function CoverageNotice({ summary }: { readonly summary: ClaudeOptionSummary }) 
       </div>
     );
   }
-  const counts = t("aiConfig.cmd.coverageCounts", {
-    flags: flags.listedCount,
-    env: env.listedCount,
-  });
   const complete = flags.snapshotComplete && env.snapshotComplete;
+  const counts = t(
+    complete ? "aiConfig.cmd.coverageCompleteCounts" : "aiConfig.cmd.coverageCounts",
+    {
+      flags: flags.listedCount,
+      env: env.listedCount,
+    },
+  );
   return (
     <div role="note" className={COVERAGE_BOX_CLASS}>
       <p className="m-0 font-semibold">

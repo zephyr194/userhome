@@ -234,7 +234,7 @@ describe("CommandBuilderView listing coverage notice", () => {
       }),
     );
 
-    expect(notice).toContain("✔ 已完整收录：已收录 2 项命令行参数 / 2 项环境变量。");
+    expect(notice).toContain("✔ 已完整收录 2 项命令行参数 / 2 项环境变量。");
     expect(notice).not.toContain("部分收录");
   });
 

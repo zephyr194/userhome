@@ -118,7 +118,7 @@ describe("AI 工具配置项搜索", () => {
   it("names the search field and announces the match count politely", async () => {
     render(<Harness />);
     await screen.findByRole("list", { name: "官方设置键" });
-    expect(searchInput().placeholder).toBe("搜索配置项（键名或说明）");
+    expect(searchInput().placeholder).toBe("例如 model，或说明中的关键词");
     typeQuery("mcp");
     const count = await screen.findByText("匹配 1 项");
     expect(count.getAttribute("aria-live")).toBe("polite");
@@ -153,7 +153,7 @@ describe("AI 工具配置项搜索", () => {
     await screen.findByRole("list", { name: "官方设置键" });
     typeQuery("claude-only");
     expect(await screen.findByText("没有匹配的配置项。")).toBeTruthy();
-    expect(screen.getByText("其他工具里有 1 个匹配。")).toBeTruthy();
+    expect(screen.queryByText("其他工具里有 1 个匹配。")).toBeNull();
     expect(screen.getByRole("button", { name: "查看 Claude Code（1 项）" })).toBeTruthy();
     expect(screen.getByText("还有 2 个工具尚未打开过，其配置项未计入。")).toBeTruthy();
   });

@@ -235,13 +235,15 @@ function SearchEmpty({
 }) {
   const t = useT();
   const total = matches.reduce((sum, match) => sum + match.count, 0);
-  let otherText = t("aiConfig.view.noOtherMatches");
-  if (total > 0) otherText = t("aiConfig.view.otherMatches", { count: total });
-  else if (unloadedCount > 0) otherText = t("aiConfig.view.noOpenedMatches");
+  let otherText: string | null = null;
+  if (total === 0) {
+    otherText =
+      unloadedCount > 0 ? t("aiConfig.view.noOpenedMatches") : t("aiConfig.view.noOtherMatches");
+  }
   return (
     <section aria-label={t("aiConfig.view.searchResults")} className="grid min-w-0 justify-items-start gap-ui-8">
       <p className="m-0 text-body font-semibold">{t("aiConfig.view.noMatchingSettings")}</p>
-      <p className="m-0 text-aux text-muted-foreground">{otherText}</p>
+      {otherText !== null ? <p className="m-0 text-aux text-muted-foreground">{otherText}</p> : null}
       {matches.length > 0 ? (
         <ActionRow>
           {matches.map((match) => (
