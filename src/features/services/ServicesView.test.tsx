@@ -372,6 +372,10 @@ describe("service details", () => {
     );
   }
 
+  it("does not repeat the section name as an eyebrow above the job label", () => {
+    expect(details()).not.toContain(">任务详情<");
+  });
+
   it("shows every SVC-1 service field", () => {
     const markup = details();
     expect(markup).toContain('id="service-details-heading"');
