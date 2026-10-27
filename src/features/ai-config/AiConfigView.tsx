@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ActionRow, Button, InfoTip, PageShell, Panel, StatusBadge } from "../../components/ui";
+import { ActionRow, Button, PageShell, Panel, StatusBadge } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import { useSlideIndicator } from "../../components/ui/useSlideIndicator";
 import type { AiToolReport } from "../../ipc/aiConfig";
@@ -347,10 +347,9 @@ function ToolCard({ tool, onRefresh }: { tool: AiToolReport; onRefresh: () => vo
               ) : (
                 <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
                   <span>{t("aiConfig.view.directInstall")}</span>
-                  <InfoTip
-                    title={t("aiConfig.view.directInstallTitle")}
-                    description={t("aiConfig.view.directInstallDescription")}
-                  />
+                  <span className="text-aux text-muted-foreground">
+                    {t("aiConfig.view.directInstallNote")}
+                  </span>
                 </span>
               )}
             </dd>

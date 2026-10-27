@@ -121,6 +121,7 @@ describe("Homebrew 安装方式与更新", () => {
     await renderPage(claudeWire({ type: "direct" }));
 
     expect(rtl.screen.getByText("直接安装")).toBeTruthy();
+    expect(rtl.screen.getByText("请用工具自带的方式更新。")).toBeTruthy();
     expect(updateButton()).toBeNull();
   });
 
