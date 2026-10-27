@@ -185,11 +185,11 @@
   --app-shadow-sticky: none;
 
   --app-motion-duration-fast: 120ms;
-  --app-motion-duration-base: 140ms;
+  --app-motion-duration-base: 160ms;
   --app-motion-duration-slow: 240ms;
   --app-motion-ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
   --app-motion-ease-enter: var(--app-motion-ease-standard);
-  --app-motion-ease-exit: var(--app-motion-ease-standard);
+  --app-motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   --app-motion-state: var(--app-motion-duration-fast);
   --app-motion-switch: var(--app-motion-duration-base);
   --app-motion-slide: var(--app-motion-duration-slow);
@@ -1104,7 +1104,7 @@ a {
   background: var(--app-surface);
   color: var(--app-foreground);
   text-align: left;
-  transition: background-color 120ms ease;
+  transition: background-color var(--app-motion-duration-fast) ease;
 }
 
 .brew-inventory-row:hover {

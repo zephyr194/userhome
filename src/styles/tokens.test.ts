@@ -259,6 +259,17 @@ describe("motion tiers and shadow tier", () => {
   );
 });
 
+describe("motion timing values", () => {
+  it.each(["light", "darkExplicit", "darkSystem"] as const)(
+    "%s sets base to 160ms, exit to a fast-out curve, and switch to follow base",
+    (state) => {
+      expect(parsed.states[state]["--app-motion-duration-base"]).toBe("160ms");
+      expect(parsed.states[state]["--app-motion-ease-exit"]).toBe("cubic-bezier(0.4, 0, 1, 1)");
+      expect(parsed.states[state]["--app-motion-switch"]).toBe("160ms");
+    },
+  );
+});
+
 describe("theme-related arbitrary values stay out of TSX", () => {
   it("uses no literal arbitrary radius, colour, shadow, duration or easing utilities", () => {
     const literal = (pattern: string) => new RegExp(`${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!var\\(--app-)`);
