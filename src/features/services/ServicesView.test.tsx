@@ -101,6 +101,14 @@ describe("services view states", () => {
     expect(markup).toContain(">重试<");
   });
 
+  it("tells the reader where to retry when the selected detail cannot load", () => {
+    const markup = view({
+      state: { status: "error", error: ERROR },
+      selectedId: sampleDiscovery().services[0].id,
+    });
+    expect(markup).toContain("读取失败，暂时无法显示所选任务的详情。请使用左侧清单中的“重试”。");
+  });
+
   it("puts the first-load retry inside a full-width alert box", () => {
     const { container } = renderInDom(
       element({ state: { status: "error", error: ERROR } }),
