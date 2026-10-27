@@ -46,7 +46,7 @@ export function OperationHistory({
       className="min-h-0 p-ui-16"
       aria-labelledby="operation-history-heading"
     >
-      <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+      <p className="text-xs font-semibold text-primary">
         {t("operations.history.eyebrow")}
       </p>
       <div className="mt-ui-4 flex items-center justify-between gap-ui-12">

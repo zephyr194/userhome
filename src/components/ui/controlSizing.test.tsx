@@ -127,12 +127,12 @@ describe("控件高度由令牌决定（UI-1c）", () => {
     expect(toggle).not.toMatch(VERTICAL_PADDING);
   });
 
-  it("StatusBadge 使用 18px 令牌且无垂直内边距", () => {
+  it("StatusBadge 使用 20px 令牌且无垂直内边距", () => {
     const badge = classOf(renderToStaticMarkup(<StatusBadge>运行中</StatusBadge>), /^<span\b/);
 
     expect(badge).toContain("min-h-status-badge");
     expect(badge).not.toMatch(VERTICAL_PADDING);
-    expect(tokenValue("app-status-badge-height")).toBe("18px");
+    expect(tokenValue("app-status-badge-height")).toBe("20px");
   });
 });
 

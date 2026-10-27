@@ -44,7 +44,7 @@ describe("shared ui primitives", () => {
       <StatusBadge tone="warning">需要注意</StatusBadge>,
     );
     expect(markup).toContain("min-h-status-badge");
-    expect(markup).toContain("text-meta");
+    expect(markup).toContain("text-aux");
     expect(markup).toContain("break-words");
     expect(markup).toContain("bg-warning-soft");
     expect(markup).not.toMatch(/(?:^|\s)border(?:\s|$)/);

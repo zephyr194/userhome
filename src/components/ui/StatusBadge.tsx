@@ -22,7 +22,7 @@ export function StatusBadge({
   return (
     <span
       className={classNames(
-        "inline-flex min-h-status-badge max-w-full items-center break-words rounded-control px-ui-8 font-mono text-meta font-medium uppercase tracking-(--app-letter-spacing-label) state-transition",
+        "inline-flex min-h-status-badge max-w-full items-center break-words rounded-control px-ui-8 font-sans text-aux font-medium state-transition",
         TONE_CLASSES[tone],
         className,
       )}

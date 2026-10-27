@@ -274,7 +274,7 @@ export function SettingsConfirmationDialog({
       title={
         <div className="flex min-w-0 flex-wrap items-start justify-between gap-ui-12">
           <div className="min-w-0">
-            <p className="m-0 break-words text-meta font-semibold uppercase tracking-widest text-danger">
+            <p className="m-0 break-words text-meta font-semibold text-danger">
               {eyebrow}
             </p>
             <h3

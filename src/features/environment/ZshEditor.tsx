@@ -801,7 +801,7 @@ function PreviewDialog({
     >
       <div className="flex flex-wrap items-start justify-between gap-ui-12">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+          <p className="text-xs font-semibold text-primary">
             {t("env.editor.zsh.preview.eyebrow")}
           </p>
           <h3 className={WRAP} id="zsh-preview-heading">

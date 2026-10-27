@@ -208,7 +208,7 @@ export function AdoptServiceDialogView({
       titleId={TITLE_ID}
     >
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary">
+        <p className="text-xs font-semibold text-primary">
           {t("services.dialog.adopt.eyebrow")}
         </p>
         <h3 className="break-words [overflow-wrap:anywhere]" id={TITLE_ID}>

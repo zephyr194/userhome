@@ -155,7 +155,7 @@
   --app-inspector-width: 232px;
   --app-control-height-sm: 24px;
   --app-control-height-md: 28px;
-  --app-status-badge-height: 18px;
+  --app-status-badge-height: 20px;
   --app-row-height-compact: 28px;
   --app-row-height-standard: 32px;
   --app-row-height-two-line: 44px;
@@ -1478,10 +1478,8 @@ body {
 .navigation-rail__brand small,
 .navigation-rail__status small {
   color: var(--app-tertiary-foreground);
-  font-family: var(--font-mono);
   font-size: var(--app-font-size-meta);
   font-weight: 650;
-  letter-spacing: var(--app-letter-spacing-label);
 }
 
 .navigation-rail__brand-mark {
@@ -1645,7 +1643,6 @@ button {
   font-size: var(--app-font-size-meta);
   font-weight: 650;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 
 .settings-pane {

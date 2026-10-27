@@ -71,12 +71,15 @@ describe("StatusBadge 等宽大写标签", () => {
     expect(markup).toContain('aria-label="连接状态：失败"');
   });
 
-  it("使用等宽、大写与不超过 0.04em 的字距，并走状态过渡", () => {
+  it("使用常规字体、不大写、无额外字距，保留换行约束与状态过渡", () => {
     const markup = renderToStaticMarkup(<StatusBadge tone="success">OK</StatusBadge>);
-    expect(markup).toContain("font-mono");
-    expect(markup).toContain("uppercase");
+    expect(markup).toContain("font-sans");
+    expect(markup).not.toContain("font-mono");
+    expect(markup).not.toContain("uppercase");
+    expect(markup).not.toContain("tracking-");
+    expect(markup).toContain("max-w-full");
+    expect(markup).toContain("break-words");
     expect(markup).toContain("state-transition");
-    expect(tokenValue("app-letter-spacing-label")).toBe("0.04em");
   });
 });
 
