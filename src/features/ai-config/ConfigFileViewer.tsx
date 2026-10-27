@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { Button, CodeViewer } from "../../components/ui";
+import { Button, CloseButton, CodeViewer } from "../../components/ui";
 import type { CodeLanguage } from "../../components/ui/codeTokens";
 import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
@@ -86,9 +86,7 @@ export function ConfigFileViewer({ toolId }: { readonly toolId: AiToolId }) {
           <Button size="sm" variant="ghost" onClick={load} disabled={loading}>
             {t("aiConfig.file.refresh")}
           </Button>
-          <Button size="sm" variant="ghost" onClick={close}>
-            {t("aiConfig.file.close")}
-          </Button>
+          <CloseButton label={t("aiConfig.file.close")} onClick={close} size="sm" />
         </span>
       </div>
       {state.status === "loading" ? (

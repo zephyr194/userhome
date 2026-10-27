@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef } from "react";
-import { Button, StatusBadge } from "../../components/ui";
+import { Button, CloseButton, StatusBadge } from "../../components/ui";
 import { localizeError } from "../../i18n/errors";
 import { useLocale, useT } from "../../i18n/useLocale";
 import { decodeAppError } from "../../ipc/core";
@@ -156,9 +156,7 @@ function ResultCard({
             {t("common.refresh")}
           </Button>
         ) : null}
-        <Button size="sm" variant="default" onClick={onDismiss}>
-          {t("common.close")}
-        </Button>
+        <CloseButton label={t("common.close")} onClick={onDismiss} size="sm" />
       </div>
     </div>
   );
@@ -374,9 +372,7 @@ function ActionError({
             {t("common.refresh")}
           </Button>
         ) : null}
-        <Button size="sm" variant="default" onClick={onClose}>
-          {t("common.close")}
-        </Button>
+        <CloseButton label={t("common.close")} onClick={onClose} size="sm" />
       </div>
     </div>
   );
