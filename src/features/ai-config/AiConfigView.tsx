@@ -101,7 +101,7 @@ export function AiConfigView({
             <ul
               ref={toolListRef}
               aria-label={t("aiConfig.view.toolListLabel")}
-              className="slide-list m-0 grid list-none gap-ui-4 p-0"
+              className="motion-enter slide-list m-0 grid list-none gap-ui-4 p-0"
             >
               {tools.map((tool) => (
                 <li key={tool.id}>

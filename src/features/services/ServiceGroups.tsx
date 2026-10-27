@@ -81,7 +81,7 @@ export function ServiceGroups({
   }
 
   return (
-    <div className="services-groups">
+    <div className="services-groups motion-enter">
       {systemCount > 0 ? (
         <div className="services-groups__system">
           {showSystem ? null : (

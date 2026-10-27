@@ -1,5 +1,5 @@
 import { Button as HeadlessButton } from "@headlessui/react";
-import { ActionRow, Button, CodeViewer, PageShell, Panel } from "../../components/ui";
+import { ActionRow, Button, CodeViewer, PageShell, Panel, Skeleton } from "../../components/ui";
 import { PageRegion } from "../../components/ui/PageShell";
 import { localizeError } from "../../i18n/errors";
 import { useLocale } from "../../i18n/useLocale";
@@ -55,13 +55,16 @@ export function AppConfigView({ list, detail, onReload, onSelect, edit }: AppCon
       <PageRegion className="r4-fe4-scroll content-start gap-ui-12 overflow-y-auto overscroll-contain">
         {list.status === "loading" ? <ListHeading items={undefined} /> : null}
         <ListStatusNotice list={list} onReload={onReload} />
+        {list.status === "loading" ? <Skeleton bars={3} className="motion-skeleton--list" /> : null}
         {items ? (
-          <EntryList
-            items={items}
-            locked={Boolean(edit?.editingId)}
-            selectedId={selectedId}
-            onSelect={onSelect}
-          />
+          <div className="motion-enter">
+            <EntryList
+              items={items}
+              locked={Boolean(edit?.editingId)}
+              selectedId={selectedId}
+              onSelect={onSelect}
+            />
+          </div>
         ) : null}
       </PageRegion>
       <PageRegion className="r4-fe4-scroll content-start overflow-y-auto overscroll-contain">

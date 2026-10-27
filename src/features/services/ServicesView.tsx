@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AsyncState } from "../../components/AsyncState";
+import { Skeleton } from "../../components/ui/Skeleton";
 import {
   Button,
   PageShell,
@@ -278,7 +279,12 @@ function ListBody({
   const t = useT();
   const locale = useLocale();
   if (state.status === "loading") {
-    return <div aria-busy="true" />;
+    return (
+      <div aria-busy="true">
+        <Skeleton bars={3} className="motion-skeleton--list" />
+      </div>
+    );
+
   }
   if (state.status === "error") {
     return (

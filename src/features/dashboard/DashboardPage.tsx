@@ -114,9 +114,9 @@ function FactCell({ model, now, onNavigate }: { model: FactModel; now: number; o
           <span className="ov-fact__title">{model.title}</span>
           <span className="ov-fact__fresh">{freshnessLabel(model.freshnessAt, now, t)}</span>
         </span>
-        <span className="ov-fact__figure">{model.figure}</span>
+        <span key={model.figure} className="ov-fact__figure motion-enter">{model.figure}</span>
         <span className="ov-fact__desc">{model.description}</span>
-        <span className="ov-fact__status">
+        <span key={model.status.label} className="ov-fact__status motion-enter">
           <StatusMark busy={model.status.busy} tone={model.status.tone} />
           <span>{model.status.label}</span>
         </span>

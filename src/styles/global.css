@@ -3205,6 +3205,15 @@ code {
   width: 60%;
 }
 
+.motion-skeleton--list {
+  min-height: calc(var(--app-row-height-standard) * 3);
+  align-content: center;
+}
+
+.ai-tool-skeleton__bar {
+  animation: motion-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
 @keyframes motion-enter-in {
   from {
     opacity: 0;
@@ -3232,6 +3241,7 @@ code {
   }
 
   .motion-skeleton__bar,
+  .ai-tool-skeleton__bar,
   .motion-enter {
     animation: none;
   }
