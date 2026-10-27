@@ -35,9 +35,9 @@ describe("4px 栅格间距令牌（UIB-0）", () => {
 });
 
 describe("圆角令牌（UIB-0）", () => {
-  it("控件 3px、容器 4px，面板指向容器令牌", () => {
-    expect(tokenValue("app-radius-control")).toBe("3px");
-    expect(tokenValue("app-radius-container")).toBe("4px");
+  it("控件 6px、容器 8px，面板指向容器令牌", () => {
+    expect(tokenValue("app-radius-control")).toBe("6px");
+    expect(tokenValue("app-radius-container")).toBe("8px");
     expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
   });
 
@@ -57,9 +57,9 @@ describe("选中角标令牌（UIB-0）", () => {
     const darkBlock = css.match(/:root\[data-appearance="dark"\]\s*\{([^}]*)\}/)?.[1] ?? "";
     expect(tokenValue("app-selection")).toBe("var(--app-primary-soft)");
     expect(tokenValue("app-selection-border")).toBe("#B65C24");
-    expect(tokenValue("app-control-border")).toBe("#6B7785");
+    expect(tokenValue("app-control-border")).toBe("#7A8896");
     expect(darkBlock).toMatch(/--app-selection-border:\s*#F0A060;/);
-    expect(darkBlock).toMatch(/--app-control-border:\s*#7F8B99;/);
+    expect(darkBlock).toMatch(/--app-control-border:\s*#7C8A98;/);
   });
 
   it("!important 仍恰好 4 处（仅 reduced motion）", () => {

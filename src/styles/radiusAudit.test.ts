@@ -84,7 +84,7 @@ describe("圆角审计（UI-01）", () => {
     expect(tokenValue("radius-sm")).toBe("var(--app-radius-control)");
     expect(tokenValue("radius-md")).toBe("var(--app-radius-control)");
     expect(tokenValue("radius-lg")).toBe("var(--app-radius-container)");
-    expect(tokenValue("app-radius-control")).toBe("3px");
+    expect(tokenValue("app-radius-control")).toBe("6px");
     expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
     expect(tokenValue("app-control-height-sm")).toBe("24px");
     expect(tokenValue("app-control-height-md")).toBe("28px");

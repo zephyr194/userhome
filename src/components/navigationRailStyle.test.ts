@@ -125,9 +125,9 @@ function r10Declared(selector: string, property: string): string[] {
 const LIGHT = {
   name: "浅色",
   tokens: blockOf(/^:root\s*\{([^}]*)\}/m),
-  canvas: "#EDF1F5",
-  surface: "#F8FAFC",
-  surfaceMuted: "#E3E9EF",
+  canvas: "#F4F7FA",
+  surface: "#FFFFFF",
+  surfaceMuted: "#EBF0F4",
   sidebar: "#E9EEF3",
   sidebarHover: "#DCE3EA",
   foreground: "#1D242D",
@@ -143,9 +143,9 @@ const DARK_BODIES = [
 ];
 
 const DARK = {
-  canvas: "#15191E",
-  surface: "#1D2228",
-  surfaceMuted: "#262C34",
+  canvas: "#10181E",
+  surface: "#162029",
+  surfaceMuted: "#1E2A34",
   sidebar: "#171B20",
   sidebarHover: "#272E37",
   foreground: "#E6EBF1",
@@ -185,14 +185,14 @@ describe("选中级别样式（r10-nav）", () => {
 
   it("对比度参照色与 global.css 中的真实令牌一致", () => {
     for (const value of [
-      "--app-canvas: #EDF1F5;",
-      "--app-surface: #F8FAFC;",
-      "--app-surface-muted: #E3E9EF;",
+      "--app-canvas: #F4F7FA;",
+      "--app-surface: #FFFFFF;",
+      "--app-surface-muted: #EBF0F4;",
       "--app-sidebar: #E9EEF3;",
       "--app-sidebar-hover: #DCE3EA;",
-      "--app-canvas: #15191E;",
-      "--app-surface: #1D2228;",
-      "--app-surface-muted: #262C34;",
+      "--app-canvas: #10181E;",
+      "--app-surface: #162029;",
+      "--app-surface-muted: #1E2A34;",
       "--app-sidebar: #171B20;",
       "--app-sidebar-hover: #272E37;",
       "--app-primary-soft: #F8EBE1;",

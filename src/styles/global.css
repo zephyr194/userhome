@@ -81,20 +81,20 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 
-  --app-canvas: #EDF1F5;
-  --app-surface: #F8FAFC;
-  --app-surface-muted: #E3E9EF;
+  --app-canvas: #F4F7FA;
+  --app-surface: #FFFFFF;
+  --app-surface-muted: #EBF0F4;
   --app-surface-raised: #FFFFFF;
   --app-qr-substrate: #FFFFFF;
-  --app-border: #C5CED9;
-  --app-control-border: #6B7785;
+  --app-border: #DCE5EB;
+  --app-control-border: #7A8896;
   --app-foreground: #1D242D;
   --app-muted-foreground: #4F5B69;
   --app-tertiary-foreground: #4F5B69;
   --app-success-text: #2B744F;
   --app-warning-text: #8C5F12;
   --app-danger-text: #B33A3A;
-  --app-line-subtle: #C5CED9;
+  --app-line-subtle: #DCE5EB;
   --app-success: #2B744F;
   --app-warning: #8C5F12;
   --app-danger: #B33A3A;
@@ -131,7 +131,7 @@
   --app-sidebar-current-border: var(--app-selection-border);
 
   --app-selection-secondary: #D5DDE6;
-  --app-focus-gap: #F8FAFC;
+  --app-focus-gap: #FFFFFF;
 
   --app-space-2: 2px;
   --app-space-4: 4px;
@@ -140,8 +140,8 @@
   --app-space-16: 16px;
   --app-space-24: 24px;
 
-  --app-radius-control: 3px;
-  --app-radius-container: 4px;
+  --app-radius-control: 6px;
+  --app-radius-container: 8px;
   --app-radius-panel: var(--app-radius-container);
 
   --app-viewport-width: 1120px;
@@ -180,8 +180,8 @@
   --app-line-height-code: 18px;
   --app-letter-spacing-label: 0.04em;
 
-  --app-shadow-raised: 0 4px 12px rgb(20 27 36 / 0.18);
-  --app-shadow-float: 0 4px 12px rgb(20 27 36 / 0.18);
+  --app-shadow-raised: 0 6px 20px rgb(22 42 58 / 0.14);
+  --app-shadow-float: 0 6px 20px rgb(22 42 58 / 0.14);
   --app-shadow-sticky: none;
 
   --app-motion-duration-fast: 120ms;
@@ -209,14 +209,14 @@
   --app-code-punct: #4F5B69;
   --app-code-gutter: #5B6470;
 
-  --app-preview-light-canvas: #EDF1F5;
+  --app-preview-light-canvas: #F4F7FA;
   --app-preview-light-surface: #FFFFFF;
   --app-preview-light-sidebar: #E9EEF3;
-  --app-preview-light-border: #C5CED9;
-  --app-preview-dark-canvas: #15191E;
-  --app-preview-dark-surface: #1D2228;
+  --app-preview-light-border: #DCE5EB;
+  --app-preview-dark-canvas: #10181E;
+  --app-preview-dark-surface: #162029;
   --app-preview-dark-sidebar: #171B20;
-  --app-preview-dark-border: #3D4650;
+  --app-preview-dark-border: #2B3A46;
 }
 
 :root[data-appearance="dark"] {
@@ -224,19 +224,19 @@
   background: var(--app-canvas);
   color-scheme: dark;
 
-  --app-canvas: #15191E;
-  --app-surface: #1D2228;
-  --app-surface-muted: #262C34;
+  --app-canvas: #10181E;
+  --app-surface: #162029;
+  --app-surface-muted: #1E2A34;
   --app-surface-raised: #2C333C;
-  --app-border: #3D4650;
-  --app-control-border: #7F8B99;
+  --app-border: #2B3A46;
+  --app-control-border: #7C8A98;
   --app-foreground: #E6EBF1;
   --app-muted-foreground: #AEB9C6;
   --app-tertiary-foreground: #AEB9C6;
   --app-success-text: #65C894;
   --app-warning-text: #E3B85B;
   --app-danger-text: #EE7D78;
-  --app-line-subtle: #3D4650;
+  --app-line-subtle: #2B3A46;
   --app-success: #65C894;
   --app-warning: #E3B85B;
   --app-danger: #EE7D78;
@@ -266,10 +266,10 @@
   --app-brand-accent-deep: #B65C24;
 
   --app-selection-secondary: #2A313A;
-  --app-focus-gap: #1D2228;
+  --app-focus-gap: #162029;
 
-  --app-shadow-raised: 0 4px 12px rgb(4 8 12 / 0.46);
-  --app-shadow-float: 0 4px 12px rgb(4 8 12 / 0.46);
+  --app-shadow-raised: 0 6px 20px rgb(0 0 0 / 0.5);
+  --app-shadow-float: 0 6px 20px rgb(0 0 0 / 0.5);
   --app-shadow-sticky: none;
 
   --app-brand-bg: #1B2A33;
@@ -295,19 +295,19 @@
     background: var(--app-canvas);
     color-scheme: dark;
 
-    --app-canvas: #15191E;
-    --app-surface: #1D2228;
-    --app-surface-muted: #262C34;
+    --app-canvas: #10181E;
+    --app-surface: #162029;
+    --app-surface-muted: #1E2A34;
     --app-surface-raised: #2C333C;
-    --app-border: #3D4650;
-    --app-control-border: #7F8B99;
+    --app-border: #2B3A46;
+    --app-control-border: #7C8A98;
     --app-foreground: #E6EBF1;
     --app-muted-foreground: #AEB9C6;
     --app-tertiary-foreground: #AEB9C6;
     --app-success-text: #65C894;
     --app-warning-text: #E3B85B;
     --app-danger-text: #EE7D78;
-    --app-line-subtle: #3D4650;
+    --app-line-subtle: #2B3A46;
     --app-success: #65C894;
     --app-warning: #E3B85B;
     --app-danger: #EE7D78;
@@ -337,10 +337,10 @@
     --app-brand-accent-deep: #B65C24;
 
     --app-selection-secondary: #2A313A;
-    --app-focus-gap: #1D2228;
+    --app-focus-gap: #162029;
 
-    --app-shadow-raised: 0 4px 12px rgb(4 8 12 / 0.46);
-    --app-shadow-float: 0 4px 12px rgb(4 8 12 / 0.46);
+    --app-shadow-raised: 0 6px 20px rgb(0 0 0 / 0.5);
+    --app-shadow-float: 0 6px 20px rgb(0 0 0 / 0.5);
     --app-shadow-sticky: none;
 
     --app-brand-bg: #1B2A33;
