@@ -128,6 +128,8 @@ describe("AppConfigView states", () => {
     const html = render({ status: "ready", items: [ZED] });
     expect(html).toContain("仅显示默认位置");
     expect(html).toContain("查看不修改任何文件");
+    expect(html).not.toContain("未登记");
+    expect(html).toContain("选择左侧条目，查看其内容。");
   });
 });
 
@@ -309,7 +311,7 @@ describe("AppConfigView flat entry rows (UIF-14)", () => {
     const rows = html.match(/<button[^>]*slide-item[^>]*>.*?<\/button>/g) ?? [];
     expect(rows).toHaveLength(2);
     for (const row of rows) expect(row).not.toContain("只读");
-    expect(html).toContain("仅显示默认位置。查看不修改任何文件，也不检查未登记的文件。");
+    expect(html).toContain("仅显示默认位置。查看不修改任何文件。");
   });
 
   it("shows the path once in the detail, in the location row, with the status in the header", () => {
