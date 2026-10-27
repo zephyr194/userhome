@@ -108,7 +108,7 @@ describe("ClaudeSettingsView", () => {
       { projectGrant: { id: "11111111-1111-4111-8111-111111111111", displayPath: "~/work/a" } },
     );
     expect(withProject).toContain("更换项目");
-    expect(withProject).toContain("取消项目");
+    expect(withProject).toContain("移除项目");
     expect(withProject).toContain("~/work/a");
   });
 
