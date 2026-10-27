@@ -122,6 +122,13 @@ describe("create dialog: editing", () => {
     expect(view()).not.toContain(">UserHome 自建任务<");
   });
 
+  it("shows the namespace as a fixed prefix beside the task name, not in the intro", () => {
+    const markup = view({ phase: "editing" }, { labelSuffix: "" });
+    expect(markup).toContain(`>${NAMESPACE}</span>`);
+    expect(markup).not.toContain("label 固定在");
+    expect(markup).toContain("只填后缀。");
+  });
+
   it("shows the form fields and the label the job will get", () => {
     const markup = view({ phase: "editing" }, { labelSuffix: "backup" });
     for (const text of [

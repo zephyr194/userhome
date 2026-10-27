@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useReducer, useState } from "react";
 import type { ReactNode } from "react";
+import { Input } from "@headlessui/react";
 import { decodeAppError, type AppError } from "../../ipc/core";
 import {
   CREATE_SERVICE_LIMITS,
@@ -9,7 +10,7 @@ import {
   type CreateServiceExecution,
   type CreateServicePreview,
 } from "../../ipc/services";
-import { ActionRow, Button, Modal, SwitchField, TextField } from "../../components/ui";
+import { ActionRow, Button, FieldFrame, Modal, SwitchField, TextField } from "../../components/ui";
 import { formatDateTime } from "../../i18n/format";
 import { useLocale, useT } from "../../i18n/useLocale";
 import {
@@ -89,11 +90,10 @@ function FormBody({
   return (
     <div className="grid gap-ui-16">
       <p className="text-xs leading-relaxed text-muted-foreground">
-        {t("services.dialog.create.intro", { namespace: CREATE_SERVICE_NAMESPACE })}
+        {t("services.dialog.create.intro")}
       </p>
 
-      <TextField
-        autoComplete="off"
+      <FieldFrame
         description={
           label === undefined ? (
             t("services.dialog.create.labelHint")
@@ -107,11 +107,26 @@ function FormBody({
         disabled={disabled}
         error={shown?.label}
         label={t("services.dialog.create.taskName")}
-        onValueChange={(value) => onFormChange(setFormField(form, "labelSuffix", value))}
         required
-        spellCheck={false}
-        value={form.labelSuffix}
-      />
+      >
+        <div className="flex min-w-0 items-stretch">
+          <span className="flex min-w-0 items-center break-all rounded-l-control border border-r-0 border-control-border bg-surface-muted px-ui-8 font-mono text-aux text-muted-foreground">
+            {CREATE_SERVICE_NAMESPACE}
+          </span>
+          <Input
+            autoComplete="off"
+            className="h-control-md w-full min-w-0 rounded-l-none rounded-r-control border border-control-border bg-surface px-ui-8 text-body text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled}
+            invalid={Boolean(shown?.label)}
+            onChange={(event) =>
+              onFormChange(setFormField(form, "labelSuffix", event.currentTarget.value))
+            }
+            required
+            spellCheck={false}
+            value={form.labelSuffix}
+          />
+        </div>
+      </FieldFrame>
       <TextField
         autoComplete="off"
         description={t("services.dialog.field.executableHint")}
