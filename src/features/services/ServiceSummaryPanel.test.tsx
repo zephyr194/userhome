@@ -140,6 +140,12 @@ describe("service summary panel", () => {
     expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
   });
 
+  it("states the action scope without repeating the button list", () => {
+    render(<ServiceSummaryPanel service={createdService()} />);
+    expect(screen.queryByText(/仅限加载/)).toBeNull();
+    expect(screen.getByText(/不会删除配置文件/)).toBeTruthy();
+  });
+
   it("copies a configuration path and confirms it", async () => {
     render(<ServiceSummaryPanel service={launchdService()} />);
     fireEvent.click(screen.getAllByRole("button", { name: "复制路径" })[0]);
