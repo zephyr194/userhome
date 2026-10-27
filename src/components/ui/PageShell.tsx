@@ -40,7 +40,7 @@ export function PageShell({
   const hasHeader = title !== undefined || status !== undefined || actions !== undefined;
 
   return (
-    <section className="page-shell">
+    <section className="page-shell motion-enter">
       {hasHeader ? (
         <header className="page-shell__header">
           {title !== undefined ? <h1 className="page-shell__title">{title}</h1> : null}

@@ -62,7 +62,7 @@ export function SettingsPage({
             return (
               <TabPanel
                 key={group.id}
-                className="settings-pane__detail flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface"
+                className={`settings-pane__detail flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-surface${index === selectedIndex ? " motion-enter" : ""}`}
                 id={`settings-panel-${group.id}`}
                 aria-labelledby={headingId}
               >

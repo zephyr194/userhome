@@ -3227,6 +3227,16 @@ code {
   animation: motion-enter-in var(--app-motion-duration-base) var(--app-motion-ease-enter);
 }
 
+.motion-press {
+  transition-property: color, background-color, border-color, transform;
+  transition-duration: var(--app-motion-duration-fast);
+  transition-timing-function: var(--app-motion-ease-standard);
+}
+
+.motion-press:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .motion-dialog,
   .motion-dialog[data-closed],
@@ -3244,6 +3254,10 @@ code {
   .ai-tool-skeleton__bar,
   .motion-enter {
     animation: none;
+  }
+
+  .motion-press:active:not(:disabled) {
+    transform: none;
   }
 }
 /* /motion */

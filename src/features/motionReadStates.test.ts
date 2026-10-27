@@ -31,3 +31,20 @@ describe("读取状态的动效接入", () => {
     expect(appConfig).toContain('<div className="motion-enter">');
   });
 });
+
+describe("按钮按压与设置分组淡入", () => {
+  it("按钮基类带 motion-press，按压只作用于未禁用的按钮", () => {
+    expect(source("../components/ui/Button.tsx")).toContain("motion-press");
+  });
+
+  it("设置分组只有选中的面板淡入", () => {
+    const settings = source("./settings/SettingsPage.tsx");
+    expect(settings).toContain('index === selectedIndex ? " motion-enter" : ""');
+  });
+});
+
+describe("路由切换淡入", () => {
+  it("PageShell 根元素在挂载时淡入，不新增元素", () => {
+    expect(source("../components/ui/PageShell.tsx")).toContain('<section className="page-shell motion-enter">');
+  });
+});

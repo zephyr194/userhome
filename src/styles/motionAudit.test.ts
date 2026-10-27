@@ -211,3 +211,16 @@ describe("motion surfaces: dialog, popover, notices", () => {
     expect(valueOf(ruleFor('.desktop-workspace__banner[data-overlay="notices"]', true), "animation")).toBe("none");
   });
 });
+
+describe("motion surfaces: button press", () => {
+  it("按压缩放只作用于未禁用按钮，焦点环不在过渡属性内", () => {
+    const press = styleRules.find((rule) => rule.selector === ".motion-press:active:not(:disabled)" && !isReduced(rule));
+    expect(press?.declarations.find(([name]) => name === "transform")?.[1]).toBe("scale(0.985)");
+    const base = styleRules.find((rule) => rule.selector === ".motion-press" && !isReduced(rule));
+    const properties = base?.declarations.find(([name]) => name === "transition-property")?.[1] ?? "";
+    expect(properties).not.toMatch(/outline|box-shadow/);
+    expect(base?.declarations.find(([name]) => name === "transition-duration")?.[1]).toBe(
+      "var(--app-motion-duration-fast)",
+    );
+  });
+});
