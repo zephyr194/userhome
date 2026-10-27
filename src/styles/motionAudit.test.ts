@@ -72,7 +72,6 @@ const keyframeNames = [
 const isReduced = (rule: Rule) => rule.ancestors.includes(REDUCED_MEDIA);
 
 const NAMED_LITERAL_EXEMPTIONS = [
-  { selector: ".r4-fe5-refreshed", property: "animation", literal: "3s", reason: "通知停留时长，非过渡时长" },
   { selector: ".status-glyph--busy", property: "animation", literal: "1s", reason: "旋转 spinner 循环时长" },
   { selector: ".motion-skeleton__bar", property: "animation", literal: "1.2s", reason: "骨架脉动循环时长（规格 1.2s）" },
   { selector: ".ai-tool-skeleton__bar", property: "animation", literal: "1.2s", reason: "AI 工具列表骨架脉动循环时长（同规格 1.2s）" },

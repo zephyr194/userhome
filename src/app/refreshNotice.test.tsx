@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import { AppShell } from "./AppShell";
 import type { ShellState } from "./shellState";
 
-const NOTICE = "本机状态已刷新。";
+const SUCCESS_NOTICE = "本机状态已刷新。";
+const FAILURE_LABEL = "刷新未完成";
 
 function shellState(refresh: ShellState["refresh"]): ShellState {
   return {
@@ -26,52 +27,29 @@ function Shell({ state }: { state: ShellState }) {
   );
 }
 
-describe("刷新完成提示只短暂出现", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
+describe("刷新成功不再弹出提示", () => {
   afterEach(() => {
     cleanup();
-    vi.useRealTimers();
   });
 
-  it("disappears three seconds after a refresh completes", () => {
+  it("shows no success notice after a refresh completes", () => {
     render(
       <Shell
         state={shellState({ status: "ready", completedAt: "2026-10-22T01:00:00Z" })}
       />,
     );
-    expect(screen.queryByText(NOTICE)).not.toBeNull();
 
-    act(() => {
-      vi.advanceTimersByTime(2999);
-    });
-    expect(screen.queryByText(NOTICE)).not.toBeNull();
-
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(screen.queryByText(NOTICE)).toBeNull();
+    expect(screen.queryByText(SUCCESS_NOTICE)).toBeNull();
+    expect(screen.queryByText(FAILURE_LABEL)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
-  it("appears again when a later refresh completes", () => {
-    const { rerender } = render(
-      <Shell
-        state={shellState({ status: "ready", completedAt: "2026-10-22T01:00:00Z" })}
-      />,
+  it("keeps a failed refresh visible as an alert", () => {
+    render(
+      <Shell state={shellState({ status: "error", message: "刷新失败。" })} />,
     );
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
-    expect(screen.queryByText(NOTICE)).toBeNull();
 
-    rerender(<Shell state={shellState({ status: "refreshing" })} />);
-    rerender(
-      <Shell
-        state={shellState({ status: "ready", completedAt: "2026-10-22T01:05:00Z" })}
-      />,
-    );
-    expect(screen.queryByText(NOTICE)).not.toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain(FAILURE_LABEL);
+    expect(screen.queryByText(SUCCESS_NOTICE)).toBeNull();
   });
 });

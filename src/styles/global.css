@@ -2117,28 +2117,6 @@ button[class*="border-border"],
 }
 /* /r4-fe3-caddy */
 
-/* r4-fe5-shell */
-.r4-fe5-refreshed {
-  animation: r4-fe5-refreshed-out 3s linear both;
-}
-
-@keyframes r4-fe5-refreshed-out {
-  0%,
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .r4-fe5-refreshed {
-    animation: none;
-  }
-}
-/* /r4-fe5-shell */
-
 /* r5-settings ------------------------------------------------------------ */
 .settings-pane__tab {
   min-height: 40px;

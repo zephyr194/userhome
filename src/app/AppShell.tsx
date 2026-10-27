@@ -50,8 +50,6 @@ import {
 import { SectionContext, type SectionContextValue } from "./SectionContext";
 import type { ShellState } from "./shellState";
 
-const REFRESHED_NOTICE_MS = 3000;
-
 interface AppShellProps {
   onAppearanceChange: (appearance: Appearance) => Promise<void>;
   onPreferencesChange?: (patch: UpdatePreferencesRequest) => Promise<void>;
@@ -251,9 +249,6 @@ export function ShellContent({
   const grantStore = useGrantStoreNotice();
   const grantStoreVisible = isGrantStoreNoticeVisible(grantStore.state);
   const [quitPrompt, setQuitPrompt] = useState<QuitPrompt>();
-  const refreshCompletedAt =
-    state.refresh.status === "ready" ? state.refresh.completedAt : undefined;
-  const [dismissedRefreshAt, setDismissedRefreshAt] = useState<string>();
   const [dismissedRefreshError, setDismissedRefreshError] = useState<string>();
   const quitReturnFocus = useRef<HTMLElement | null>(null);
   const pendingNavigationSource = useRef<NavigationSource>("primary-nav");
@@ -293,15 +288,6 @@ export function ShellContent({
   useEffect(() => {
     saveSelectionMemory(restoreSelection, selection);
   }, [restoreSelection, selection]);
-
-  useEffect(() => {
-    if (refreshCompletedAt === undefined) return;
-    const timer = window.setTimeout(
-      () => setDismissedRefreshAt(refreshCompletedAt),
-      REFRESHED_NOTICE_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [refreshCompletedAt]);
 
   // A later failure shows again once the user has refreshed since the dismissed one.
   const requestRefresh = useCallback(() => {
@@ -545,10 +531,6 @@ export function ShellContent({
         {state.discovery.status === "error" && state.discovery.previousSnapshot
           ? ` ${t("shell.refresh.retained")}`
           : ""}
-      </ShellNotice>
-    ) : refreshCompletedAt !== undefined && refreshCompletedAt !== dismissedRefreshAt ? (
-      <ShellNotice className="r4-fe5-refreshed" label={t("shell.refresh.refreshed")}>
-        {t("shell.refresh.refreshedDetail")}
       </ShellNotice>
     ) : undefined;
 

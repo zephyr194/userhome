@@ -212,14 +212,7 @@ describe("外壳焦点与刷新提示（r4-fe5）", () => {
     expect(css).toMatch(/:where\([^{]*\[tabindex\][^{]*\):focus\s*\{\s*outline:\s*none;/);
   });
 
-  it("刷新提示 3 秒内淡出，reduced-motion 下不做动画", () => {
-    const block = css.slice(
-      css.indexOf("/* r4-fe5-shell */"),
-      css.indexOf("/* /r4-fe5-shell */"),
-    );
-    expect([...block.matchAll(/animation:\s*([^;]+);/g)].map((match) => match[1].trim())).toEqual([
-      "r4-fe5-refreshed-out 3s linear both",
-      "none",
-    ]);
+  it("不再保留刷新成功提示的淡出样式", () => {
+    expect(css).not.toContain("r4-fe5-refreshed");
   });
 });

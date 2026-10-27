@@ -295,7 +295,7 @@ describe("AppShell", () => {
     expect(markup).toContain("已保留上次成功加载的数据。");
   });
 
-  it("announces a completed refresh as a quiet status rather than an alert", () => {
+  it("shows no success notice after a completed refresh", () => {
     const state: ShellState = {
       ...loadingState,
       refresh: {
@@ -312,8 +312,7 @@ describe("AppShell", () => {
       />,
     );
 
-    expect(markup).toContain('role="status"');
-    expect(markup).toContain("本机状态已刷新。");
+    expect(markup).not.toContain("本机状态已刷新。");
     expect(markup).not.toContain('role="alert"');
   });
 
