@@ -32,5 +32,6 @@ export {
 export { LogViewer, type LogViewerProps } from "./LogViewer";
 export { SecretValue, type SecretValueProps } from "./SecretValue";
 export { SectionTabs, type SectionTab, type SectionTabsProps } from "./SectionTabs";
+export { Skeleton, type SkeletonProps } from "./Skeleton";
 export { useSlideIndicator, type SlideAxis, type SlideLevel } from "./useSlideIndicator";
 export { VerticalMenu, type VerticalMenuItem, type VerticalMenuProps } from "./VerticalMenu";

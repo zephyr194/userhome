@@ -74,6 +74,7 @@ const isReduced = (rule: Rule) => rule.ancestors.includes(REDUCED_MEDIA);
 const NAMED_LITERAL_EXEMPTIONS = [
   { selector: ".r4-fe5-refreshed", property: "animation", literal: "3s", reason: "通知停留时长，非过渡时长" },
   { selector: ".status-glyph--busy", property: "animation", literal: "1s", reason: "旋转 spinner 循环时长" },
+  { selector: ".motion-skeleton__bar", property: "animation", literal: "1.2s", reason: "骨架脉动循环时长（规格 1.2s）" },
 ];
 
 function literalTimeAudit() {
@@ -150,7 +151,7 @@ describe("motion audit: reduced motion", () => {
         const disabled = styleRules.some(
           (rule) =>
             isReduced(rule) &&
-            rule.selector === user.selector &&
+            rule.selector.split(",").map((part) => part.trim()).includes(user.selector) &&
             rule.declarations.some(([prop, value]) => prop === "animation" && value === "none"),
         );
         expect(disabled, `${name} @ ${user.selector}`).toBe(true);

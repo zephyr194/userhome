@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useT } from "../i18n/useLocale";
 import { classNames } from "./ui/classNames";
+import { Skeleton } from "./ui/Skeleton";
 
 type AsyncStateKind = "loading" | "empty" | "partial" | "error";
 
@@ -37,6 +38,7 @@ export function AsyncState({
         </strong>
       ) : null}
       {children}
+      {kind === "loading" ? <Skeleton bars={2} className="mt-ui-8" /> : null}
     </div>
   );
 }

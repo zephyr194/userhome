@@ -3183,6 +3183,41 @@ code {
   animation: motion-notice-in var(--app-motion-duration-base) var(--app-motion-ease-enter);
 }
 
+@keyframes motion-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.motion-skeleton__bar {
+  display: block;
+  height: 10px;
+  border-radius: var(--app-radius-control);
+  background: var(--app-line-subtle);
+  animation: motion-skeleton-pulse 1.2s ease-in-out infinite;
+}
+
+.motion-skeleton__bar--short {
+  width: 60%;
+}
+
+@keyframes motion-enter-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.motion-enter {
+  animation: motion-enter-in var(--app-motion-duration-base) var(--app-motion-ease-enter);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .motion-dialog,
   .motion-dialog[data-closed],
@@ -3193,6 +3228,11 @@ code {
   }
 
   .desktop-workspace__banner[data-overlay="notices"] {
+    animation: none;
+  }
+
+  .motion-skeleton__bar,
+  .motion-enter {
     animation: none;
   }
 }
