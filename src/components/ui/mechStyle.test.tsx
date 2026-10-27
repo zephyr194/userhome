@@ -93,7 +93,7 @@ describe("Modal 对话框", () => {
     expect(markup).toContain("确认删除");
   });
 
-  it("4px 容器圆角、1px 发丝线、标题栏底部分隔线，阴影使用 raised 令牌", () => {
+  it("4px 容器圆角、1px 发丝线、标题栏底部分隔线，阴影使用 float 令牌", () => {
     const markup = renderToStaticMarkup(
       <Modal open onClose={() => undefined} title="确认">
         内容
@@ -102,7 +102,7 @@ describe("Modal 对话框", () => {
     expect(markup).toContain("rounded-panel");
     expect(markup).toContain("ring-line");
     expect(markup).toContain("border-b border-line");
-    expect(markup).toContain("var(--app-shadow-raised)");
+    expect(markup).toContain("var(--app-shadow-float)");
     expect(markup).not.toMatch(/rounded-(lg|xl|2xl|3xl)\b/);
     expect(tokenValue("app-radius-panel")).toBe("var(--app-radius-container)");
   });

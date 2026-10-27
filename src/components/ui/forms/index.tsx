@@ -372,7 +372,7 @@ export function SelectField<T extends string>({
             </ListboxButton>
             <ListboxOptions
               anchor="bottom start"
-              className="motion-popover mt-ui-4 max-h-56 min-w-(--button-width) max-w-[min(32rem,90vw)] w-max overflow-y-auto rounded-panel bg-surface-raised p-ui-4 text-body text-foreground shadow-[var(--app-shadow-raised)] ring-1 ring-line ring-inset"
+              className="motion-popover mt-ui-4 max-h-56 min-w-(--button-width) max-w-[min(32rem,90vw)] w-max overflow-y-auto rounded-panel bg-surface-raised p-ui-4 text-body text-foreground shadow-[var(--app-shadow-float)] ring-1 ring-line ring-inset"
               transition
             >
               {options.map((option) => (

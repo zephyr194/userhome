@@ -112,7 +112,7 @@ describe("圆角审计（UI-01）", () => {
 
   it("阴影去掉装饰层，对话框阴影保持单层", () => {
     expect(tokenValue("app-shadow-sticky")).toBe("none");
-    expect(tokenValue("app-shadow-raised")).not.toContain(",");
+    expect(tokenValue("app-shadow-float")).not.toContain(",");
   });
 
   it("导航标签与分组标题不超过侧栏 188px 的字符上限", () => {

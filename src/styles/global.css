@@ -180,7 +180,6 @@
   --app-line-height-code: 18px;
   --app-letter-spacing-label: 0.04em;
 
-  --app-shadow-raised: 0 6px 20px rgb(22 42 58 / 0.14);
   --app-shadow-float: 0 6px 20px rgb(22 42 58 / 0.14);
   --app-shadow-sticky: none;
 
@@ -268,7 +267,6 @@
   --app-selection-secondary: #2A313A;
   --app-focus-gap: #162029;
 
-  --app-shadow-raised: 0 6px 20px rgb(0 0 0 / 0.5);
   --app-shadow-float: 0 6px 20px rgb(0 0 0 / 0.5);
   --app-shadow-sticky: none;
 
@@ -339,7 +337,6 @@
     --app-selection-secondary: #2A313A;
     --app-focus-gap: #162029;
 
-    --app-shadow-raised: 0 6px 20px rgb(0 0 0 / 0.5);
     --app-shadow-float: 0 6px 20px rgb(0 0 0 / 0.5);
     --app-shadow-sticky: none;
 

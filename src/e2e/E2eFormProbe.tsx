@@ -13,7 +13,7 @@ export function E2eFormProbe() {
 
   return (
     <form
-      className="fixed right-2 bottom-2 z-[100] grid w-64 gap-ui-8 rounded-panel bg-surface-raised p-ui-8 shadow-[var(--app-shadow-raised)]"
+      className="fixed right-2 bottom-2 z-[100] grid w-64 gap-ui-8 rounded-panel bg-surface-raised p-ui-8 shadow-[var(--app-shadow-float)]"
       data-testid="e2e-form-probe"
       onReset={() => setResult("reset")}
       onSubmit={(event) => {

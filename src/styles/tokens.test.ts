@@ -160,7 +160,7 @@ const ACCENT_TOKENS = [
 
 const MOTION_TIERS = ["--app-motion-duration-fast", "--app-motion-duration-base", "--app-motion-duration-slow"] as const;
 
-// shadow-[var(--app-shadow-raised)] 在 Modal.tsx、forms/index.tsx、e2e/E2eFormProbe.tsx 中是已知的令牌引用，允许
+// shadow-[var(--app-shadow-float)] 在 Modal.tsx、forms/index.tsx、e2e/E2eFormProbe.tsx 中是已知的令牌引用，允许
 const FORBIDDEN_ARBITRARY = ["rounded-[", "bg-[", "text-[#", "shadow-[", "duration-[", "ease-["];
 
 function tsxFiles(): string[] {
@@ -251,12 +251,6 @@ describe("motion tiers and shadow tier", () => {
     expect(parsed.states.light["--app-motion-slide"]).toBe(parsed.states.light["--app-motion-duration-slow"]);
   });
 
-  it.each(["light", "darkExplicit", "darkSystem"] as const)(
-    "gives --app-shadow-float the same value as --app-shadow-raised in %s",
-    (state) => {
-      expect(parsed.states[state]["--app-shadow-float"]).toBe(parsed.states[state]["--app-shadow-raised"]);
-    },
-  );
 });
 
 describe("motion timing values", () => {

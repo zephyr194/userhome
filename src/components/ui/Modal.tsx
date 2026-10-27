@@ -8,7 +8,7 @@ import { useCallback, useRef, type ReactNode } from "react";
 import { classNames } from "./classNames";
 
 const PANEL_CLASS =
-  "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-raised)]";
+  "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-panel bg-surface-raised text-foreground ring-1 ring-inset ring-line shadow-[var(--app-shadow-float)]";
 
 export function Modal({
   bodyClassName,
