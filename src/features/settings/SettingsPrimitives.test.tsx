@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   SettingsChoiceGroup,
+  SettingsDangerZone,
   SettingsField,
   SettingsSection,
   SettingsValueField,
@@ -49,5 +50,26 @@ describe("settings primitives typography", () => {
     );
     expect(markup).toContain("text-group");
     expect(markup).toContain("text-aux");
+  });
+});
+
+describe("settings danger zone", () => {
+  it("is a surface marked by a left danger rule, not a red-tinted box", () => {
+    const markup = renderToStaticMarkup(
+      <SettingsDangerZone title="重置偏好" description="恢复默认值。">
+        <button type="button">重置偏好…</button>
+      </SettingsDangerZone>,
+    );
+    const section = markup.match(/<section class="([^"]*)"/)?.[1] ?? "";
+    const tokens = section.split(/\s+/);
+
+    expect(tokens).toContain("bg-surface");
+    expect(tokens).toContain("border-l-2");
+    expect(tokens).toContain("border-danger");
+    expect(tokens).toContain("rounded-r-panel");
+    expect(tokens).not.toContain("bg-danger-soft");
+    expect(tokens).not.toContain("border-danger-border");
+    expect(markup).not.toContain("bg-danger-soft");
+    expect(markup).not.toContain("border-danger-border");
   });
 });

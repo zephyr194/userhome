@@ -212,12 +212,12 @@ export function SettingsDangerZone({
   title: ReactNode;
 }) {
   return (
-    <section className="rounded-panel border border-danger-border bg-danger-soft p-ui-12">
+    <section className="rounded-r-panel border-l-2 border-danger bg-surface p-ui-12">
       <h3 className="m-0 text-group font-semibold text-danger">{title}</h3>
       <p className="mt-ui-4 mb-0 break-words text-aux leading-relaxed text-muted-foreground">
         {description}
       </p>
-      <SettingsActions className="border-danger-border">
+      <SettingsActions>
         {children}
       </SettingsActions>
     </section>

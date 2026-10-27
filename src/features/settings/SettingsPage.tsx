@@ -99,10 +99,13 @@ export function SettingsPage({
                     <div className="settings-pane__detail-content min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [overscroll-behavior:contain] [scrollbar-gutter:stable]">
                       {preferences.status === "safe-default" ? (
                         <p
-                          className="m-0 mb-ui-12 rounded-control bg-warning-soft px-ui-12 py-ui-8 text-xs leading-relaxed text-warning"
+                          className="m-0 mb-ui-12 text-xs leading-relaxed text-foreground"
                           role="status"
                         >
-                          {t("settings.page.safeDefaultNotice", { message: preferences.diagnostic.message })}
+                          <strong className="block font-semibold text-warning">
+                            {t("settings.status.safeDefault")}
+                          </strong>
+                          {preferences.diagnostic.message}
                         </p>
                       ) : null}
                       {preferences.status === "loading" ? (

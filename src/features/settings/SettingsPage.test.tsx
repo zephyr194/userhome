@@ -120,8 +120,38 @@ describe("settings page list/detail reference layout", () => {
     const markup = render("reset");
 
     expect(markup).toContain("重置偏好");
-    expect(markup).toContain("border-danger-border");
+    expect(markup).toContain("border-l-2 border-danger ");
     expect(markup).toContain("重置偏好…");
+  });
+
+  it("shows the safe-default notice as a bare heading and message, not a tinted box", () => {
+    const markup = renderToStaticMarkup(
+      <SettingsPage
+        onAppearanceChange={() => Promise.resolve()}
+        onDiscoveryRefresh={() => undefined}
+        onPreferencesChange={() => Promise.resolve()}
+        onPreferencesReset={() => Promise.resolve()}
+        onSelectedGroupChange={() => undefined}
+        preferences={{
+          status: "safe-default",
+          preferences,
+          diagnostic: { code: "INVALID_DOCUMENT", message: "偏好设置无效，已启用安全默认值。" },
+        }}
+        selectedGroup="general"
+      />,
+    );
+    const noticeTag = [...markup.matchAll(/<p\b[^>]*>/g)]
+      .map((match) => match[0])
+      .find((tag) => tag.includes('role="status"'));
+    const noticeTokens = (noticeTag?.match(/class="([^"]*)"/)?.[1] ?? "").split(/\s+/);
+
+    expect(noticeTag).toBeDefined();
+    expect(markup).toMatch(/<strong class="[^"]*font-semibold[^"]*text-warning[^"]*">/);
+    expect(noticeTokens).not.toContain("text-warning");
+    expect(noticeTokens).not.toContain("bg-warning-soft");
+    expect(noticeTokens).not.toContain("rounded-control");
+    expect(markup).toContain(translate("zh-CN", "settings.status.safeDefault"));
+    expect(markup).toContain("偏好设置无效，已启用安全默认值。");
   });
 
   it("never hides, truncates, or clamps help and description text", () => {
