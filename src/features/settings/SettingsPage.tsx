@@ -76,9 +76,6 @@ export function SettingsPage({
                         >
                           {t(group.labelKey)}
                         </h2>
-                        <p className="mt-ui-4 mb-0 break-words text-xs leading-relaxed text-muted-foreground">
-                          {t(group.summaryKey)}
-                        </p>
                       </div>
                       <StatusBadge
                         className="shrink-0"

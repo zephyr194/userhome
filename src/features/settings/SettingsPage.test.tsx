@@ -84,6 +84,14 @@ describe("settings page list/detail reference layout", () => {
     );
   });
 
+  it("shows the selected group summary once, in the sidebar", () => {
+    for (const group of SETTINGS_GROUPS) {
+      const markup = render(group.id);
+      const summary = translate("zh-CN", group.summaryKey);
+      expect(markup.split(summary)).toHaveLength(2);
+    }
+  });
+
   it("keeps a single detail group heading and drops the duplicate page header", () => {
     for (const group of SETTINGS_GROUPS) {
       const markup = render(group.id);
