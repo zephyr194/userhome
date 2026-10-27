@@ -12,6 +12,7 @@ const SRC = join(ROOT, "src");
 const SM_ALLOWED_FILES = [
   "src/app/AppShell.tsx",
   "src/features/ai-config/AiConfigView.tsx",
+  "src/features/ai-config/BrewUpdate.tsx",
   "src/features/ai-config/CommandBuilder.tsx",
   "src/features/ai-config/ConfigFileViewer.tsx",
   "src/features/ai-config/ToolReference.tsx",
@@ -19,6 +20,8 @@ const SM_ALLOWED_FILES = [
   "src/features/app-config/AppConfigEditor.tsx",
   "src/features/app-config/AppConfigView.tsx",
   "src/features/app-config/SupportedConfigsDialog.tsx",
+  "src/features/caddy/CaddyWorkdirPanel.tsx",
+  "src/features/dashboard/DashboardPage.tsx",
   "src/features/environment/EnvironmentView.tsx",
   "src/features/environment/LaunchctlView.tsx",
   "src/features/environment/ZshView.tsx",

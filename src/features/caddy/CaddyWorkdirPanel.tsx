@@ -66,7 +66,7 @@ function WorkdirBody(props: WorkdirBodyProps) {
         <p role="alert" className="m-0 text-body text-danger">
           {t("caddy.workdir.loadFailed", { error: localizeError(load.error, locale) })}
         </p>
-        <Button variant="danger" disabled={props.busy} onClick={props.onRetry}>
+        <Button variant="danger" size="sm" disabled={props.busy} onClick={props.onRetry}>
           {t("caddy.workdir.recheck")}
         </Button>
       </>
