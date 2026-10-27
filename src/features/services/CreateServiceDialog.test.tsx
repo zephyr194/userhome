@@ -110,7 +110,12 @@ describe("create dialog: editing", () => {
     expect(markup).toContain(NAMESPACE);
     expect(markup).toContain("仅创建配置文件");
     expect(markup).toContain("不会加载或启动");
-    expect(markup).toContain("不经 shell");
+  });
+
+  it("states the no-shell rule only in the execution target, not in the form", () => {
+    const markup = view();
+    expect(markup).not.toContain("不经 shell");
+    expect(markup).not.toContain("被 shell 再次解析");
   });
 
   it("shows the dialog title once, without a repeated eyebrow", () => {
@@ -214,6 +219,10 @@ describe("create dialog: preview", () => {
     expect(markup).toContain("MODE");
     expect(markup).toContain("值不会显示");
     expect(markup).toContain("~/logs/out.log");
+  });
+
+  it("states that the program runs without a shell in the execution target", () => {
+    expect(markup).toContain("不经 shell");
   });
 
   it("states the persistence impact and that nothing is loaded or started", () => {
