@@ -179,6 +179,12 @@ describe("services view states", () => {
 });
 
 describe("services list", () => {
+  it("describes the list without calling it read-only", () => {
+    const markup = view();
+    expect(markup).toContain("本机 launchd 常驻任务");
+    expect(markup).not.toContain("只读查看");
+  });
+
   it("shows a readable name, a purpose line and the status in each row", () => {
     const markup = view();
     expect(markup).toContain("example.agent");

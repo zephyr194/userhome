@@ -11,8 +11,7 @@ describe("create entry on the services page", () => {
     expect(markup).toContain("刷新");
     expect(markup).not.toContain("创建 UserHome 自建任务");
     expect(markup).not.toContain('role="dialog"');
-    // The discovered tasks stay read-only.
-    expect(markup).toContain("只读");
+    expect(markup).toContain("本机 launchd 常驻任务");
   });
 
   it("renders the view without any extra control unless the page supplies one", () => {
