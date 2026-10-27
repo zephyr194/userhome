@@ -117,7 +117,7 @@ export function ServicesView(props: ServicesViewProps) {
           className="grid min-h-0 min-w-0 grid-rows-[auto_auto_minmax(0,1fr)] overflow-hidden border-b border-border sm:border-r sm:border-b-0"
           aria-labelledby="services-heading"
         >
-          <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
+          <header className="flex min-w-0 flex-wrap items-start justify-between gap-ui-8 border-b border-border px-ui-12 py-ui-8">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold" id="services-heading">
                 {t("services.list.heading")}
@@ -188,7 +188,7 @@ function FilterBar({
   ).length;
   const refreshing = state.status === "ready" && state.refreshing;
   return (
-    <div className="grid min-w-0 gap-ui-8 border-b border-border bg-surface-muted px-ui-12 py-ui-8">
+    <div className="grid min-w-0 gap-ui-8 border-b border-border px-ui-12 py-ui-8">
       <TextField
         label={t("services.filter.search")}
         type="search"
@@ -288,15 +288,18 @@ function ListBody({
   }
   if (state.status === "error") {
     return (
-      <div className="p-ui-12">
-        <AsyncState kind="error">
+      <div className="py-ui-12">
+        <AsyncState
+          flush
+          kind="error"
+          action={
+            <Button size="sm" disabled={refreshDisabled} onClick={onRefresh} variant="default">
+              {t("services.list.retry")}
+            </Button>
+          }
+        >
           <span className={WRAP}>{discoveryErrorText(state.error, t, locale)}</span>
         </AsyncState>
-        <div className="mt-ui-8">
-          <Button size="sm" disabled={refreshDisabled} onClick={onRefresh} variant="default">
-            {t("services.list.retry")}
-          </Button>
-        </div>
       </div>
     );
   }

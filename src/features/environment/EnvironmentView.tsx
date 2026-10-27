@@ -91,13 +91,17 @@ function DirectoryContent(props: EnvironmentViewProps) {
   }
   if (grants.status === "error") {
     return (
-      <AsyncState kind="error">
+      <AsyncState
+        kind="error"
+        action={
+          <Button onClick={actions.reloadGrants} size="sm" variant="default">
+            {t("env.dotenv.retry")}
+          </Button>
+        }
+      >
         <span className="break-words [overflow-wrap:anywhere]">
           {localizeError(grants.error, locale)}
-        </span>{" "}
-        <Button onClick={actions.reloadGrants} size="sm" variant="default">
-          {t("env.dotenv.retry")}
-        </Button>
+        </span>
       </AsyncState>
     );
   }
@@ -223,18 +227,19 @@ function DirectoryStatus({ actions, directory }: { actions: EnvironmentActions; 
   }
   if (scan.status === "error") {
     return (
-      <AsyncState kind="error">
-        <span className="break-words [overflow-wrap:anywhere]">
-          {localizeError(scan.error, locale)}
-        </span>
-        {scan.error.retryable ? (
-          <>
-            {" "}
+      <AsyncState
+        kind="error"
+        action={
+          scan.error.retryable ? (
             <Button onClick={actions.rescan} size="sm" variant="default">
               {t("env.dotenv.retry")}
             </Button>
-          </>
-        ) : null}
+          ) : undefined
+        }
+      >
+        <span className="break-words [overflow-wrap:anywhere]">
+          {localizeError(scan.error, locale)}
+        </span>
       </AsyncState>
     );
   }

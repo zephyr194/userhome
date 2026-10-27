@@ -127,13 +127,17 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
   const { load } = state;
   if (load.status === "error") {
     return (
-      <AsyncState kind="error">
+      <AsyncState
+        kind="error"
+        action={
+          <Button onClick={props.onReload} size="sm" variant="default">
+            {t("env.zsh.retry")}
+          </Button>
+        }
+      >
         <span className="break-words [overflow-wrap:anywhere]">
           {localizeError(load.error, locale)}
-        </span>{" "}
-        <Button onClick={props.onReload} size="sm" variant="default">
-          {t("env.zsh.retry")}
-        </Button>
+        </span>
       </AsyncState>
     );
   }

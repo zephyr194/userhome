@@ -101,6 +101,23 @@ describe("services view states", () => {
     expect(markup).toContain(">重试<");
   });
 
+  it("puts the first-load retry inside a full-width alert box", () => {
+    const { container } = renderInDom(
+      element({ state: { status: "error", error: ERROR } }),
+    );
+    const alert = screen.getByRole("alert");
+    const retry = screen.getByRole("button", { name: "重试" });
+
+    expect(alert.contains(retry)).toBe(true);
+    expect(alert.className).not.toContain("rounded-control");
+    expect(alert.parentElement?.className).toContain("py-ui-12");
+    expect(alert.parentElement?.className).not.toMatch(/(^|\s)p-ui-12(\s|$)/);
+    expect(container.querySelector("header")?.className).not.toContain("bg-surface-muted");
+    expect(container.querySelector("details")?.parentElement?.className).not.toContain(
+      "bg-surface-muted",
+    );
+  });
+
   it("renders empty only when discovery was complete", () => {
     const empty = view({
       state: ready(sampleDiscovery({ services: [] })),
