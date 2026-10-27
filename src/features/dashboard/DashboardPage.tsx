@@ -96,7 +96,7 @@ interface FactModel {
   figure: string;
   freshnessAt?: number;
   onRetry?: () => void;
-  status: { tone: StatusTone; label: string; busy?: boolean };
+  status?: { tone: StatusTone; label: string; busy?: boolean };
   target: NavigationIntent;
   title: string;
 }
@@ -116,10 +116,12 @@ function FactCell({ model, now, onNavigate }: { model: FactModel; now: number; o
         </span>
         <span key={model.figure} className="ov-fact__figure motion-enter">{model.figure}</span>
         <span className="ov-fact__desc">{model.description}</span>
-        <span key={model.status.label} className="ov-fact__status motion-enter">
-          <StatusMark busy={model.status.busy} tone={model.status.tone} />
-          <span>{model.status.label}</span>
-        </span>
+        {model.status ? (
+          <span key={model.status.label} className="ov-fact__status motion-enter">
+            <StatusMark busy={model.status.busy} tone={model.status.tone} />
+            <span>{model.status.label}</span>
+          </span>
+        ) : null}
       </Button>
       {model.onRetry ? (
         <Button className="ov-fact__read" onClick={model.onRetry} size="sm" variant="danger">
@@ -138,7 +140,7 @@ function readStatus<T>(
   state: HubState<T>,
   t: TranslateFunction,
   attention = false,
-): FactModel["status"] {
+): FactModel["status"] | undefined {
   switch (state.status) {
     case "loading":
       return state.previous === undefined
@@ -147,7 +149,7 @@ function readStatus<T>(
     case "error":
       return { tone: "danger", label: t("dashboard.fact.failed") };
     case "empty":
-      return { tone: "neutral", label: t("dashboard.fact.unread") };
+      return undefined;
     case "ready":
       return attention
         ? { tone: "warning", label: t("dashboard.fact.attention") }
@@ -194,7 +196,10 @@ function aiModel(
   return {
     description,
     figure: value
-      ? `${formatNumber(names.length, locale)}/${formatNumber(value.value.tools.length, locale)}`
+      ? t("dashboard.ai.figure", {
+          installed: formatNumber(names.length, locale),
+          total: formatNumber(value.value.tools.length, locale),
+        })
       : "—",
     freshnessAt: value?.readAt,
     onRetry: retryWhenFailed(state, retry),
@@ -214,11 +219,10 @@ function environmentModel(
   return {
     description: value
       ? t("dashboard.environment.summary", {
-          zshFiles: formatNumber(value.value.zshFiles, locale),
           directories: formatNumber(value.value.dotenvDirectories, locale),
         })
       : pendingDescription(state, t("dashboard.environment.unread"), t, locale),
-    figure: value ? formatNumber(value.value.zshFiles, locale) : "—",
+    figure: value ? t("dashboard.environment.zshFiles", { count: value.value.zshFiles }) : "—",
     freshnessAt: value?.readAt,
     onRetry: retryWhenFailed(state, retry),
     status: readStatus(state, t),
@@ -238,9 +242,7 @@ function appConfigModel(
     description: value
       ? t("dashboard.appConfig.summary")
       : pendingDescription(state, t("dashboard.appConfig.unread"), t, locale),
-    figure: value
-      ? t("dashboard.appConfig.figure", { count: formatNumber(value.value, locale) })
-      : "—",
+    figure: value ? t("dashboard.appConfig.figure", { count: value.value }) : "—",
     freshnessAt: value?.readAt,
     onRetry: retryWhenFailed(state, retry),
     status: readStatus(state, t),

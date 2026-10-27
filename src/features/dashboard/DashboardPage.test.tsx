@@ -155,7 +155,7 @@ describe("DashboardPage fact ledger", () => {
   it("reads the app config, zsh, grant, and AI sources once when the overview opens", async () => {
     rtl.render(<DashboardPage state={READY_STATE} />);
     await rtl.waitFor(() => expect(detectCalls).toBe(1));
-    await rtl.screen.findByText("已发现的应用配置条目数。");
+    await rtl.screen.findByText("应用配置条目数。");
     expect(mocks.listAppConfigEntries).toHaveBeenCalledTimes(1);
     expect(mocks.readZshStartupFiles).toHaveBeenCalledTimes(1);
     expect(mocks.listGrants).toHaveBeenCalledTimes(1);
@@ -169,35 +169,35 @@ describe("DashboardPage fact ledger", () => {
     rtl.render(<DashboardPage state={READY_STATE} />);
     const cell = factCell("环境变量");
     expect(cell.textContent).toContain("读取中");
-    await rtl.screen.findByText("zsh 启动文件 2 个 · 授权目录 1 个");
+    await rtl.screen.findByText("授权目录 1 个");
     expect(rtl.within(cell).queryByRole("button", { name: "读取" })).toBeNull();
     expect(cell.textContent).toContain("刚刚读取");
   });
 
   it("does not read the environment again after leaving and returning to the overview", async () => {
     const first = rtl.render(<DashboardPage state={READY_STATE} />);
-    await rtl.screen.findByText("zsh 启动文件 2 个 · 授权目录 1 个");
+    await rtl.screen.findByText("授权目录 1 个");
     first.unmount();
 
     rtl.render(<DashboardPage state={READY_STATE} />);
-    expect(factCell("环境变量").textContent).toContain("zsh 启动文件 2 个");
+    expect(factCell("环境变量").textContent).toContain("2 个 zsh 文件");
     expect(mocks.readZshStartupFiles).toHaveBeenCalledTimes(1);
     expect(mocks.listGrants).toHaveBeenCalledTimes(1);
   });
 
   it("shows the app config count once the read finishes", async () => {
     rtl.render(<DashboardPage state={READY_STATE} />);
-    await rtl.screen.findByText("已发现的应用配置条目数。");
-    expect(factCell("应用配置").textContent).toContain("已发现 3 项");
+    await rtl.screen.findByText("应用配置条目数。");
+    expect(factCell("应用配置").textContent).toContain("3 个条目");
     expect(mocks.listAppConfigEntries).toHaveBeenCalledTimes(1);
   });
 
   it("shows a one-line reason and a retry when a read fails, and the retry reads again", async () => {
     mocks.listAppConfigEntries.mockRejectedValueOnce({ code: "INTERNAL", message: "配置目录不可读", retryable: true });
     rtl.render(<DashboardPage state={READY_STATE} />);
-    await rtl.screen.findByText(/读取失败：配置目录不可读/);
+    await rtl.screen.findByText(/配置目录不可读。/);
     rtl.fireEvent.click(rtl.within(factCell("应用配置")).getByRole("button", { name: "重试" }));
-    await rtl.screen.findByText("已发现的应用配置条目数。");
+    await rtl.screen.findByText("应用配置条目数。");
     expect(mocks.listAppConfigEntries).toHaveBeenCalledTimes(2);
   });
 
@@ -237,8 +237,8 @@ describe("DashboardPage fact ledger", () => {
 
   it("re-reads the light overview sources when a header refresh completes, and leaves the AI scan to its cache", async () => {
     const view = rtl.render(<DashboardPage refresh={{ status: "idle" }} state={READY_STATE} />);
-    await rtl.screen.findByText("zsh 启动文件 2 个 · 授权目录 1 个");
-    await rtl.screen.findByText("已发现的应用配置条目数。");
+    await rtl.screen.findByText("授权目录 1 个");
+    await rtl.screen.findByText("应用配置条目数。");
     await rtl.waitFor(() => expect(detectCalls).toBe(1));
 
     view.rerender(<DashboardPage refresh={{ status: "refreshing" }} state={READY_STATE} />);
@@ -250,13 +250,13 @@ describe("DashboardPage fact ledger", () => {
 
   it("keeps the last numbers visible with an updating label while a re-read is in flight", async () => {
     const view = rtl.render(<DashboardPage refresh={{ status: "idle" }} state={READY_STATE} />);
-    await rtl.screen.findByText("已发现的应用配置条目数。");
+    await rtl.screen.findByText("应用配置条目数。");
     mocks.listAppConfigEntries.mockReturnValueOnce(new Promise(() => undefined));
 
     view.rerender(<DashboardPage refresh={{ status: "refreshing" }} state={READY_STATE} />);
     view.rerender(<DashboardPage refresh={{ status: "ready", completedAt: "2026-10-22T10:00:00Z" }} state={READY_STATE} />);
     await rtl.waitFor(() => expect(factCell("应用配置").textContent).toContain("更新中"));
-    expect(factCell("应用配置").textContent).toContain("已发现 3 项");
+    expect(factCell("应用配置").textContent).toContain("3 个条目");
   });
 
   it("does not update the overview after it is closed while a read is still running", async () => {
@@ -276,6 +276,48 @@ describe("DashboardPage fact ledger", () => {
     expect(listServiceCalls).toBe(1);
     rtl.fireEvent.click(rtl.screen.getByRole("button", { name: /^服务/ }));
     expect(navigate).toHaveBeenCalledWith({ routeId: "services" });
+  });
+
+  it("puts the zsh file count with its unit on the figure and only the directory count in the description", async () => {
+    rtl.render(<DashboardPage state={READY_STATE} />);
+    await rtl.screen.findByText("授权目录 1 个");
+    const cell = factCell("环境变量");
+    expect(cell.querySelector(".ov-fact__figure")?.textContent).toBe("2 个 zsh 文件");
+    expect(cell.querySelector(".ov-fact__desc")?.textContent).toBe("授权目录 1 个");
+  });
+
+  it("shows the app config figure with a unit and does not repeat the discovered wording", async () => {
+    rtl.render(<DashboardPage state={READY_STATE} />);
+    await rtl.screen.findByText("应用配置条目数。");
+    const cell = factCell("应用配置");
+    expect(cell.querySelector(".ov-fact__figure")?.textContent).toBe("3 个条目");
+    expect(cell.textContent).not.toContain("已发现");
+  });
+
+  it("shows the AI tool figure with its denominator named as supported tools", async () => {
+    rtl.render(<DashboardPage state={READY_STATE} />);
+    await rtl.screen.findByText("未发现已安装的 AI 工具。");
+    expect(factCell("AI 工具").querySelector(".ov-fact__figure")?.textContent).toBe("0/4 个支持的工具");
+  });
+
+  it("says not read once on an unread card and keeps the read hint as the only action", async () => {
+    const { dataHub } = await import("../../app/dataHub");
+    const ensure = vi.spyOn(dataHub, "ensure").mockReturnValue(new Promise(() => undefined));
+    rtl.render(<DashboardPage state={READY_STATE} />);
+    const cell = factCell("应用配置");
+    expect(cell.textContent?.match(/未读取/g)).toHaveLength(1);
+    expect(cell.textContent).toContain("读取后显示应用配置条目数。");
+    ensure.mockRestore();
+  });
+
+  it("keeps the failure word on the status line and the retry guidance in the description once", async () => {
+    mocks.listAppConfigEntries.mockRejectedValueOnce({ code: "INTERNAL", message: "配置目录不可读", retryable: true });
+    rtl.render(<DashboardPage state={READY_STATE} />);
+    await rtl.screen.findByText(/配置目录不可读。/);
+    const cell = factCell("应用配置");
+    expect(cell.querySelector(".ov-fact__status")?.textContent).toBe("读取失败");
+    expect(cell.querySelector(".ov-fact__desc")?.textContent).not.toContain("读取失败");
+    expect(rtl.within(cell).getByRole("button", { name: "重试" })).toBeTruthy();
   });
 });
 
@@ -315,7 +357,8 @@ describe("DashboardPage English copy", () => {
     expect(text).toContain("Login shell");
     expect(text).not.toMatch(CJK_PATTERN);
     await rtl.screen.findByText("No installed AI tools found.");
-    await rtl.screen.findByText("zsh startup files: 2 · authorized directories: 1");
-    await rtl.screen.findByText("Number of app config entries found.");
+    await rtl.screen.findByText("2 zsh files");
+    await rtl.screen.findByText("Authorized directories: 1");
+    await rtl.screen.findByText("Number of app config entries.");
   });
 });
