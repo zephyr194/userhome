@@ -122,7 +122,7 @@ function FactCell({ model, now, onNavigate }: { model: FactModel; now: number; o
         </span>
       </Button>
       {model.onRetry ? (
-        <Button className="ov-fact__read" onClick={model.onRetry} size="sm" variant="danger">
+        <Button className="ov-fact__read" onClick={model.onRetry} variant="danger">
           {t("common.retry")}
         </Button>
       ) : null}

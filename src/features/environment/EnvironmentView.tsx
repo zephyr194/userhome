@@ -94,7 +94,7 @@ function DirectoryContent(props: EnvironmentViewProps) {
       <AsyncState
         kind="error"
         action={
-          <Button onClick={actions.reloadGrants} variant="danger">
+          <Button onClick={actions.reloadGrants} size="sm" variant="danger">
             {t("env.dotenv.retry")}
           </Button>
         }
@@ -229,7 +229,7 @@ function DirectoryStatus({ actions, directory }: { actions: EnvironmentActions; 
         kind="error"
         action={
           scan.error.retryable ? (
-            <Button onClick={actions.rescan} variant="danger">
+            <Button onClick={actions.rescan} size="sm" variant="danger">
               {t("env.dotenv.retry")}
             </Button>
           ) : undefined

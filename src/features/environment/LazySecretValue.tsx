@@ -140,7 +140,6 @@ export function LazySecretValueBody({
         aria-label={t("env.model.lazy.fetchLabel", { label })}
         disabled={state.status === "loading"}
         onClick={onFetch}
-        size="sm"
         variant="ghost"
       >
         {state.status === "loading" ? t("env.model.lazy.loading") : t("env.model.lazy.fetch")}

@@ -394,7 +394,6 @@ function AdditionList({
                     aria-label={t("env.editor.dotenv.additions.removeAria", { n: index + 1 })}
                     disabled={disabled}
                     onClick={() => actions.removeRow(row.id)}
-                    size="sm"
                     variant="ghost"
                   >
                     {t("env.editor.dotenv.additions.removeRow")}

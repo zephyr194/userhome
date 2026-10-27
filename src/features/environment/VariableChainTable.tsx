@@ -254,7 +254,6 @@ function Row({
               <Button
                 aria-label={t("env.chain.edit", { name: row.name })}
                 onClick={() => onEdit(row)}
-                size="sm"
                 variant="ghost"
               >
                 {t("env.chain.editButton")}
@@ -264,7 +263,6 @@ function Row({
               <Button
                 aria-label={t("env.chain.remove", { name: row.name })}
                 onClick={() => onRemove(row)}
-                size="sm"
                 variant="ghost"
               >
                 {t("env.chain.removeButton")}
@@ -306,7 +304,6 @@ function Row({
               aria-controls={detailId}
               aria-expanded={isOpen}
               onClick={onToggle}
-              size="sm"
               variant="ghost"
             >
               {merged

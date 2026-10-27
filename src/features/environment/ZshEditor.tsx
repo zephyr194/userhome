@@ -579,7 +579,6 @@ function PathSection({
                       aria-label={t("env.editor.zsh.path.upAria", { n: position })}
                       disabled={disabled || index === 0}
                       onClick={() => actions.movePathItem(item.id, -1)}
-                      size="sm"
                       variant="ghost"
                     >
                       {t("env.editor.zsh.path.up")}
@@ -588,7 +587,6 @@ function PathSection({
                       aria-label={t("env.editor.zsh.path.downAria", { n: position })}
                       disabled={disabled || index === items.length - 1}
                       onClick={() => actions.movePathItem(item.id, 1)}
-                      size="sm"
                       variant="ghost"
                     >
                       {t("env.editor.zsh.path.down")}
@@ -597,7 +595,6 @@ function PathSection({
                       aria-label={t("env.editor.zsh.path.deleteAria", { n: position })}
                       disabled={disabled}
                       onClick={() => actions.removePathItem(item.id)}
-                      size="sm"
                       variant="ghost"
                     >
                       {t("env.editor.zsh.path.delete")}

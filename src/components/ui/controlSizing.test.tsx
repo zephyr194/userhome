@@ -139,16 +139,13 @@ describe("控件高度由令牌决定（UI-1c）", () => {
 const FORM_TAG =
   /<(TextField|SelectField|TextAreaField|SecretReplacementField|CheckboxField|SwitchField|RadioCardGroup|input|select|textarea)\b/;
 
-// 人工复核过的“页面内既有 size=\"sm\" 按钮又有表单控件”的文件（同排只检出 3 处混档并已改为 md）
-// VariableChainTable：搜索框（md）旁的“清空”已改为 md；表格行内的 sm 按钮与搜索框不同排
-// AppConfigEditor：sm 按钮只与文字同排（返回查看、撤销、移除），表单控件各自独占一行，无 sm 与 md 控件同排
+// 人工复核过的“页面内既有 size=\"sm\" 按钮又有表单控件”的文件：sm 仅为错误容器内的补救按钮（见 buttonSizeAudit.test.ts）
 const REVIEWED_SM_WITH_FORMS = [
-  "features/caddy/CaddyRulesEditor.tsx",
-  "features/environment/DotenvEditor.tsx",
-  "features/environment/VariableChainTable.tsx",
-  "features/environment/ZshEditor.tsx",
-  "features/services/CreateServiceDialog.tsx",
-  "features/services/EditServiceDialog.tsx",
+  "features/ai-config/CommandBuilder.tsx",
+  "features/ai-config/ToolReference.tsx",
+  "features/app-config/AppConfigEditor.tsx",
+  "features/environment/EnvironmentView.tsx",
+  "features/services/ServicesView.tsx",
 ];
 
 // 静态检测无法可靠判断“同一行”，故对已知的同排位置逐个断言为 md

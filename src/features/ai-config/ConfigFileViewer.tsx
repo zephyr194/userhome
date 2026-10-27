@@ -86,7 +86,7 @@ export function ConfigFileViewer({ toolId }: { readonly toolId: AiToolId }) {
           <Button variant="ghost" onClick={load} disabled={loading}>
             {t("aiConfig.file.refresh")}
           </Button>
-          <CloseButton label={t("aiConfig.file.close")} onClick={close} size="sm" />
+          <CloseButton label={t("aiConfig.file.close")} onClick={close} />
         </span>
       </div>
       {state.status === "loading" ? (
@@ -98,7 +98,7 @@ export function ConfigFileViewer({ toolId }: { readonly toolId: AiToolId }) {
         <div role="alert" className="grid justify-items-start gap-ui-4">
           <p className="m-0 text-aux font-semibold text-danger">{t("aiConfig.file.failed")}</p>
           <p className="m-0 text-aux">{localizeError(state.error, locale)}</p>
-          <Button variant="danger" onClick={load}>
+          <Button size="sm" variant="danger" onClick={load}>
             {t("common.retry")}
           </Button>
         </div>

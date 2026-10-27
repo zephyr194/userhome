@@ -69,7 +69,6 @@ export function PasteButton({
         {notice ? t(notice) : ""}
       </span>
       <Button
-        size="sm"
         variant="default"
         disabled={reading || disabled}
         onClick={() => void paste()}

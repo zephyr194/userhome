@@ -111,7 +111,6 @@ function SecretValueView({
             : t("common.secret.showValueOf", { label })
         }
         onClick={() => dispatch("toggle")}
-        size="sm"
         variant="ghost"
       >
         {revealed ? t("common.secret.hide") : t("common.secret.show")}
@@ -119,7 +118,6 @@ function SecretValueView({
       <Button
         aria-label={t("common.secret.copyValueOf", { label })}
         onClick={copyValue}
-        size="sm"
         variant="ghost"
       >
         {t("common.copy")}

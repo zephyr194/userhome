@@ -193,7 +193,7 @@ function PathEntry({ label, path, result, onCopy }: PathEntryProps) {
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className={`font-mono text-xs ${WRAP}`}>{path}</span>
       <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
-        <Button size="sm" variant="ghost" onClick={() => onCopy(path)}>
+        <Button variant="ghost" onClick={() => onCopy(path)}>
           {t("services.copy.button")}
         </Button>
         {shown?.ok ? (

@@ -291,7 +291,7 @@ function ListBody({
           flush
           kind="error"
           action={
-            <Button disabled={refreshDisabled} onClick={onRefresh} variant="danger">
+            <Button disabled={refreshDisabled} onClick={onRefresh} size="sm" variant="danger">
               {t("services.list.retry")}
             </Button>
           }

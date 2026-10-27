@@ -119,7 +119,6 @@ function FormBody({
               <Button
                 disabled={disabled || index === 0}
                 onClick={() => onFormChange(moveArgument(form, row.id, -1))}
-                size="sm"
                 variant="ghost"
               >
                 {t("services.dialog.common.moveUp")}
@@ -127,7 +126,6 @@ function FormBody({
               <Button
                 disabled={disabled || index === form.arguments.length - 1}
                 onClick={() => onFormChange(moveArgument(form, row.id, 1))}
-                size="sm"
                 variant="ghost"
               >
                 {t("services.dialog.common.moveDown")}
@@ -135,7 +133,6 @@ function FormBody({
               <Button
                 disabled={disabled}
                 onClick={() => onFormChange(removeArgument(form, row.id))}
-                size="sm"
                 variant="ghost"
               >
                 {t("services.dialog.create.removeArgument")}
@@ -194,7 +191,6 @@ function FormBody({
                   <Button
                     disabled={disabled}
                     onClick={() => onFormChange(toggleEnvironmentRemoval(form, name))}
-                    size="sm"
                     variant="ghost"
                   >
                     {removed
@@ -239,7 +235,6 @@ function FormBody({
               <Button
                 disabled={disabled}
                 onClick={() => onFormChange(removeEnvironment(form, row.id))}
-                size="sm"
                 variant="ghost"
               >
                 {t("services.dialog.edit.removeRow")}

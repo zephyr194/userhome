@@ -34,7 +34,7 @@ describe("PasteButton", () => {
   it("renders a small secondary button with the full label and a polite live region", () => {
     const markup = renderToStaticMarkup(<PasteButton onPaste={() => {}} />);
     expect(markup).toContain("读取粘贴板");
-    expect(markup).toContain("min-h-control-sm");
+    expect(markup).toContain("min-h-control-md");
     expect(markup).toContain("border-button-border");
     expect(markup).toContain('aria-live="polite"');
     expect(markup).not.toContain("truncate");

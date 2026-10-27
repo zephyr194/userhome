@@ -253,7 +253,6 @@ function DirectiveRowView({
         ) : required ? (
           <Button
             variant="ghost"
-            size="sm"
             aria-label={t("caddy.rules.deleteDirectiveLabel", {
               directive: directiveShort,
               site: siteIndex + 1,

@@ -114,7 +114,7 @@ export function ToolReferenceView({
       <Panel role="alert" className="grid justify-items-start gap-ui-8 p-ui-12">
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.ref.failed")}</p>
         <p className="m-0 text-body">{localizeError(state.error, locale)}</p>
-        <Button variant="danger" onClick={onRetry}>{t("common.retry")}</Button>
+        <Button size="sm" variant="danger" onClick={onRetry}>{t("common.retry")}</Button>
       </Panel>
     );
   }

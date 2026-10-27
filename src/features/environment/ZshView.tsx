@@ -128,7 +128,7 @@ function Body(props: ZshViewProps & { overview?: ZshOverview }) {
       <AsyncState
         kind="error"
         action={
-          <Button onClick={props.onReload} variant="danger">
+          <Button onClick={props.onReload} size="sm" variant="danger">
             {t("env.zsh.retry")}
           </Button>
         }

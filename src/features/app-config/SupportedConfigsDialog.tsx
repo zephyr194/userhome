@@ -103,6 +103,7 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
               setState({ status: "loading" });
               setAttempt((count) => count + 1);
             }}
+            size="sm"
             variant="danger"
           >
             {copy.t("common.retry")}

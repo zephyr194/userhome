@@ -35,7 +35,7 @@ export function CopyButton({
 
   return (
     <span className="r12-copy-button">
-      <Button aria-label={ariaLabel} onClick={() => void copy()} size="sm" variant="ghost">
+      <Button aria-label={ariaLabel} onClick={() => void copy()} variant="ghost">
         {label}
       </Button>
       <span className="r12-copy-button__feedback">

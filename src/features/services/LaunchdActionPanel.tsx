@@ -155,7 +155,7 @@ function ResultCard({
             {t("common.refresh")}
           </Button>
         ) : null}
-        <CloseButton label={t("common.close")} onClick={onDismiss} size="sm" />
+        <CloseButton label={t("common.close")} onClick={onDismiss} />
       </div>
     </div>
   );
@@ -256,7 +256,6 @@ export function LaunchdActionPanel({
               key={action}
             >
               <Button
-                size="sm"
                 variant={action === "STOP" || action === "UNLOAD" ? "danger" : "default"}
                 disabled={busy || state.phase === "previewed"}
                 onClick={() => preview(action)}
@@ -371,7 +370,7 @@ function ActionError({
             {t("common.refresh")}
           </Button>
         ) : null}
-        <CloseButton label={t("common.close")} onClick={onClose} size="sm" />
+        <CloseButton label={t("common.close")} onClick={onClose} />
       </div>
     </div>
   );

@@ -6,25 +6,24 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
 
-// SPEC-theme-refine.md §4.2.1: size="sm" is reserved for notices, inline row actions,
-// value-adjacent tools and IconButton/CloseButton; every other button is md (the default).
+// SPEC-theme-refine.md §4.2.1: size="sm" 只允许两类容器内出现：错误容器内的补救按钮
+// （AsyncState kind="error" 的 action、role="alert" 的出错提示框）与右上角通知条（ShellNotice、
+// GrantStoreNotice）；其余按钮一律 md（默认值，不写 size）。
 const SM_ALLOWED_FILES = [
   "src/app/AppShell.tsx",
-  "src/components/ui/CopyButton.tsx",
-  "src/components/ui/PasteButton.tsx",
-  "src/components/ui/SecretValue.tsx",
+  "src/features/ai-config/AiConfigView.tsx",
+  "src/features/ai-config/CommandBuilder.tsx",
   "src/features/ai-config/ConfigFileViewer.tsx",
-  "src/features/caddy/CaddyRulesEditor.tsx",
-  "src/features/dashboard/DashboardPage.tsx",
-  "src/features/environment/DotenvEditor.tsx",
-  "src/features/environment/LazySecretValue.tsx",
-  "src/features/environment/VariableChainTable.tsx",
-  "src/features/environment/ZshEditor.tsx",
+  "src/features/ai-config/ToolReference.tsx",
+  "src/features/ai-config/ToolSettings.tsx",
+  "src/features/app-config/AppConfigEditor.tsx",
+  "src/features/app-config/AppConfigView.tsx",
+  "src/features/app-config/SupportedConfigsDialog.tsx",
+  "src/features/environment/EnvironmentView.tsx",
+  "src/features/environment/LaunchctlView.tsx",
+  "src/features/environment/ZshView.tsx",
   "src/features/grants/GrantStoreNotice.tsx",
-  "src/features/services/CreateServiceDialog.tsx",
-  "src/features/services/EditServiceDialog.tsx",
-  "src/features/services/LaunchdActionPanel.tsx",
-  "src/features/services/ServiceSummaryPanel.tsx",
+  "src/features/services/ServicesView.tsx",
 ].sort();
 
 function sourceFiles(directory: string): string[] {
