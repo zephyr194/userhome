@@ -16,7 +16,7 @@ const css = readFileSync(
 );
 const srcRoot = fileURLToPath(new URL("../", import.meta.url));
 
-const ALLOWED_RADIUS_SIZES = new Set(["none", "sm", "md", "control", "panel"]);
+const ALLOWED_RADIUS_SIZES = new Set(["none", "sm", "md", "control", "panel", "badge"]);
 const ALLOWED_CSS_RADII = new Set([
   "0",
   "1px",
@@ -89,7 +89,7 @@ describe("圆角审计（UI-01）", () => {
     expect(tokenValue("app-control-height-sm")).toBe("20px");
     expect(tokenValue("app-control-height-md")).toBe("24px");
     expect(tokenValue("app-status-badge-height")).toBe("20px");
-    expect(tokenValue("app-row-height-compact")).toBe("28px");
+    expect(tokenValue("app-row-height-compact")).toBe("32px");
     expect(tokenValue("app-row-height-standard")).toBe("36px");
     expect(tokenValue("app-row-height-two-line")).toBe("52px");
     expect(tokenValue("app-titlebar-height")).toBe("44px");

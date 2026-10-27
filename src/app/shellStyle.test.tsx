@@ -83,12 +83,12 @@ describe("导航当前页", () => {
 });
 
 describe("导航项尺寸与交互", () => {
-  it("导航项高度使用 compact 行高令牌（28px），不被内边距撑高", () => {
-    expect(resolve(lastDeclared(".navigation-rail a", "height"))).toBe("28px");
+  it("导航项高度使用 compact 行高令牌（32px），不被内边距撑高", () => {
+    expect(resolve(lastDeclared(".navigation-rail a", "height"))).toBe("32px");
     expect(lastDeclared(".navigation-rail a", "height")).toBe(
       "var(--app-row-height-compact)",
     );
-    expect(tokenValue("app-row-height-compact")).toBe("28px");
+    expect(tokenValue("app-row-height-compact")).toBe("32px");
     expect(lastDeclared(".navigation-rail a", "padding")).toMatch(/^0\s/);
   });
 
