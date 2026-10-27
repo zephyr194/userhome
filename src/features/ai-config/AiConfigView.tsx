@@ -172,7 +172,7 @@ function StateNotice({
         <p className="m-0 text-body font-semibold text-danger">{t("aiConfig.view.detectFailed")}</p>
         <p className="m-0 text-body">{localizeError(state.error, locale)}</p>
         <div>
-          <Button size="sm" variant="default" onClick={onRetry}>
+          <Button size="sm" variant="danger" onClick={onRetry}>
             {t("common.retry")}
           </Button>
         </div>

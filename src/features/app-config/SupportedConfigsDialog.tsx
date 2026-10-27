@@ -104,7 +104,7 @@ function SupportedToolsContent({ items }: { items: readonly AppConfigListItem[] 
               setAttempt((count) => count + 1);
             }}
             size="sm"
-            variant="default"
+            variant="danger"
           >
             {copy.t("common.retry")}
           </Button>

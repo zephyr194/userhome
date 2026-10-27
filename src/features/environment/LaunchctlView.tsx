@@ -129,7 +129,7 @@ export function LaunchctlView({
           <p className="text-aux text-muted-foreground">
             {t("env.launchctl.reason", { message: localizeError(state.error, locale) })}
           </p>
-          <Button onClick={onRetry} size="sm" variant="default">
+          <Button onClick={onRetry} size="sm" variant="danger">
             {t("env.launchctl.retry")}
           </Button>
         </div>

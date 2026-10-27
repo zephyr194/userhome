@@ -250,7 +250,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
           </p>
           <p className="m-0 text-body">{localizeError(load.error, copy.locale)}</p>
           <div>
-            <Button size="sm" variant="default" onClick={() => setLoadKey((key) => key + 1)}>
+            <Button size="sm" variant="danger" onClick={() => setLoadKey((key) => key + 1)}>
               {copy.t("common.retry")}
             </Button>
           </div>
@@ -420,7 +420,7 @@ function PhaseNotice({
         <Panel role="alert" className="grid gap-ui-8 p-ui-8">
           <p className="m-0 text-body font-semibold text-danger">{copy.t("appConfig.edit.conflict")}</p>
           <div>
-            <Button size="sm" variant="default" onClick={onReload}>
+            <Button size="sm" variant="danger" onClick={onReload}>
               {copy.t("appConfig.edit.reread")}
             </Button>
           </div>

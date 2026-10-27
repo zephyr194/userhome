@@ -94,7 +94,7 @@ export function CommandBuilderView({
         <div role="alert" className="grid gap-ui-8">
           <p className="m-0 text-aux">{localizeError(options.error, locale)}</p>
           <div>
-            <Button variant="default" onClick={onRetry}>
+            <Button variant="danger" onClick={onRetry}>
               {t("common.retry")}
             </Button>
           </div>
