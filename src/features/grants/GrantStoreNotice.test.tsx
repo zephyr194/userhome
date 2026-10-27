@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { en } from "../../i18n/messages/en";
+import { zhCN } from "../../i18n/messages/zh-CN";
 import type { GrantStoreProblem } from "../../ipc/grants";
 import {
   isGrantStoreNoticeVisible,
@@ -96,12 +98,17 @@ describe("GrantStoreNoticeView", () => {
     }
   });
 
+  it("keeps the unknown-status body to its consequence, not a restatement of the title", () => {
+    expect(zhCN["grants.recheck.unknownStatus"]).toBe("授权相关操作可能不可用。");
+    expect(en["grants.recheck.unknownStatus"]).toBe("Grant-related actions may be unavailable.");
+  });
+
   it("reports an unreadable status as unknown, with a re-check", () => {
     const state = stateOf({ check: { phase: "check-failed" } });
     const markup = render(state);
 
     expect(isGrantStoreNoticeVisible(state)).toBe(true);
-    expect(markup).toContain("无法检测授权存储状态");
+    expect(markup).toContain("授权相关操作可能不可用");
     expect(markup).toContain("重新检测");
     expect(markup).not.toContain("隔离并重置");
   });
