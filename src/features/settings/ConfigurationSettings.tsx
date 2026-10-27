@@ -29,7 +29,7 @@ export function ConfigurationSettings({
         disabled={form.saving}
         options={[
           { value: "STRUCTURED", label: t("settings.configuration.editorMode.structured"), description: t("settings.configuration.editorMode.structuredDesc") },
-          { value: "RAW", label: "Raw", description: t("settings.configuration.editorMode.rawDesc") },
+          { value: "RAW", label: t("settings.configuration.editorMode.raw"), description: t("settings.configuration.editorMode.rawDesc") },
         ]}
         onValueChange={(preferredEditorMode) => void form.update(t("settings.saveLabel.editorMode"), { preferredEditorMode: preferredEditorMode as PreferredEditorMode })}
       />

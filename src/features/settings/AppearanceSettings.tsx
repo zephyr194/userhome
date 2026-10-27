@@ -13,13 +13,13 @@ import { SettingsFeedback, SettingsFieldList, SettingsForm, SettingsValueField }
 import { usePreferenceForm } from "./usePreferenceForm";
 
 interface AppearanceOption {
-  description: string;
+  description?: string;
   label: string;
   value: Appearance;
 }
 
 interface LanguageOption {
-  description: string;
+  description?: string;
   label: string;
   value: LanguagePreference;
 }
@@ -51,12 +51,10 @@ export function AppearanceSettings({
     {
       value: "LIGHT",
       label: t("settings.appearance.option.light"),
-      description: t("settings.appearance.option.lightDescription"),
     },
     {
       value: "DARK",
       label: t("settings.appearance.option.dark"),
-      description: t("settings.appearance.option.darkDescription"),
     },
   ];
 
@@ -69,12 +67,10 @@ export function AppearanceSettings({
     {
       value: "zh-CN",
       label: LANGUAGE_NAMES["zh-CN"],
-      description: t("settings.language.option.zhCNDescription"),
     },
     {
       value: "en",
       label: LANGUAGE_NAMES.en,
-      description: t("settings.language.option.enDescription"),
     },
   ];
 

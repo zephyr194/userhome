@@ -139,7 +139,6 @@ describe("语言偏好控件", () => {
         />
       </LocaleProvider>,
     );
-    expect(markup).toContain("Shows the interface in English.");
     expect(CJK_PATTERN.test(markup.replace(/跟随系统|简体中文/g, ""))).toBe(false);
   });
 });

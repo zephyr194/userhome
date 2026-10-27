@@ -45,7 +45,7 @@ describe("DeepLinkSettings", () => {
   it("states that links work only in the installed app, in text rather than colour alone", () => {
     render(<DeepLinkSettings />);
     expect(screen.getByText("仅安装后可用")).toBeTruthy();
-    expect(screen.getByText(/开发运行（tauri dev）时系统不会注册这个链接/)).toBeTruthy();
+    expect(screen.getByText(/开发运行时系统不会注册这个链接/)).toBeTruthy();
   });
 
   it("copies one link and confirms beside that row only", async () => {
