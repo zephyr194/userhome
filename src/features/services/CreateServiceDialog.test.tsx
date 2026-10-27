@@ -113,6 +113,10 @@ describe("create dialog: editing", () => {
     expect(markup).toContain("不经 shell");
   });
 
+  it("shows the dialog title once, without a repeated eyebrow", () => {
+    expect(view()).not.toContain(">UserHome 自建任务<");
+  });
+
   it("shows the form fields and the label the job will get", () => {
     const markup = view({ phase: "editing" }, { labelSuffix: "backup" });
     for (const text of [

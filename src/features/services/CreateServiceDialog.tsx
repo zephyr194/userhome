@@ -565,9 +565,6 @@ export function CreateServiceDialogView({
       titleId={TITLE_ID}
     >
       <div className="min-w-0">
-        <p className="text-xs font-semibold text-primary">
-          {t("services.dialog.create.eyebrow")}
-        </p>
         <h3 className="break-words [overflow-wrap:anywhere]" id={TITLE_ID}>
           {t("services.dialog.create.title")}
         </h3>
