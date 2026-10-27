@@ -3153,6 +3153,11 @@ code {
 }
 /* /r12-btn */
 
+/* 未分层规则，压过 Button 的 px-ui-8，使图标按钮保持正方形 */
+.r16-icon-button {
+  padding-inline: 0;
+}
+
 /* motion ------------------------------------------------------------------ */
 .motion-dialog {
   transition-property: opacity, transform;
