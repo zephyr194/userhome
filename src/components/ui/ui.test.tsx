@@ -28,7 +28,7 @@ describe("shared ui primitives", () => {
   it("Button uses semantic control sizes and body typography", () => {
     const md = renderToStaticMarkup(<Button>保存</Button>);
     expect(md).toContain("min-h-control-md");
-    expect(md).toContain("text-body");
+    expect(md).toContain("text-aux");
     expect(md).not.toContain("shadow-focus");
     expect(md).toContain("disabled:opacity-50");
     expect(md).not.toContain("truncate");
@@ -36,7 +36,7 @@ describe("shared ui primitives", () => {
 
     const sm = renderToStaticMarkup(<Button size="sm">取消</Button>);
     expect(sm).toContain("min-h-control-sm");
-    expect(sm).toContain("text-aux");
+    expect(sm).toContain("text-meta");
   });
 
   it("StatusBadge keeps metadata size and wraps long content", () => {

@@ -35,7 +35,7 @@ describe("PasteButton", () => {
     const markup = renderToStaticMarkup(<PasteButton onPaste={() => {}} />);
     expect(markup).toContain("读取粘贴板");
     expect(markup).toContain("min-h-control-sm");
-    expect(markup).toContain("border-control-border");
+    expect(markup).toContain("border-button-border");
     expect(markup).toContain('aria-live="polite"');
     expect(markup).not.toContain("truncate");
     expect(markup).not.toContain("line-clamp");

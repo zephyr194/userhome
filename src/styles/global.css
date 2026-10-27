@@ -11,7 +11,10 @@
   --color-primary: var(--app-primary);
   --color-primary-hover: var(--app-primary-hover);
   --color-primary-soft: var(--app-primary-soft);
+  --color-primary-soft-hover: var(--app-primary-soft-hover);
   --color-primary-foreground: var(--app-primary-foreground);
+  --color-button-border: var(--app-button-border);
+  --color-button-border-hover: var(--app-button-border-hover);
   --color-success: var(--app-success);
   --color-success-border: var(--app-success-border);
   --color-success-soft: var(--app-success-soft);

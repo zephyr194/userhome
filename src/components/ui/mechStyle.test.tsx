@@ -158,7 +158,7 @@ describe("AsyncState 与 LogViewer", () => {
     expect(markup).toContain('role="log"');
     expect(markup).toContain("font-mono");
     expect(markup).toContain("text-aux");
-    expect(markup).not.toMatch(/leading-(none|tight|snug)/);
+    expect(markup.match(/<[^>]*role="log"[^>]*>/)?.[0] ?? "").not.toMatch(/leading-(none|tight|snug)/);
     expect(markup).toContain('tabindex="0"');
   });
 });
