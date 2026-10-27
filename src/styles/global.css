@@ -404,12 +404,14 @@ body {
   overflow: hidden;
 }
 
-button,
-a,
-input,
-select,
-textarea {
-  font: inherit;
+@layer base {
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 button,

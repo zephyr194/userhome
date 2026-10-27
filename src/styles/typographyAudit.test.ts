@@ -111,6 +111,32 @@ function productionTsx(dir: string, files: string[] = []): string[] {
   return files;
 }
 
+function layerSpans(text: string, name: string): Array<[number, number]> {
+  const spans: Array<[number, number]> = [];
+  for (const match of text.matchAll(new RegExp(`@layer ${name}\\s*\\{`, "g"))) {
+    const start = (match.index ?? 0) + match[0].length;
+    let depth = 1;
+    let i = start;
+    for (; i < text.length && depth > 0; i++) {
+      if (text[i] === "{") depth++;
+      else if (text[i] === "}") depth--;
+    }
+    spans.push([start, i]);
+  }
+  return spans;
+}
+
+describe("全局字号层（RF-2）", () => {
+  it("font: inherit 只出现在 @layer base 内，使 text-* 工具类对按钮与输入框生效", () => {
+    const spans = layerSpans(CSS, "base");
+    const offsets = [...CSS.matchAll(/font:\s*inherit\s*;/g)].map((match) => match.index ?? -1);
+    expect(offsets.length).toBeGreaterThan(0);
+    for (const offset of offsets) {
+      expect(spans.some(([start, end]) => offset > start && offset < end), `offset ${offset}`).toBe(true);
+    }
+  });
+});
+
 describe("多行阅读文本的 leading 覆盖（扫描）", () => {
   it("阅读文本类名不再用小于 1.45 的 leading 覆盖（none / tight / snug）", () => {
     const violations: string[] = [];
