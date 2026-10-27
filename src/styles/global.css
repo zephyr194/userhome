@@ -2043,7 +2043,7 @@ button[class*="border-border"],
 .r4-fe4-scroll::-webkit-scrollbar-thumb {
   background: var(--app-scrollbar-thumb-strong);
   border: 2px solid transparent;
-  border-radius: 0;
+  border-radius: var(--app-radius-control);
   background-clip: padding-box;
 }
 
@@ -2141,7 +2141,7 @@ button[class*="border-border"],
   width: 24px;
   height: 24px;
   padding: 0;
-  border-radius: 0;
+  border-radius: var(--app-radius-control);
   background: transparent;
   color: var(--app-muted-foreground);
   cursor: pointer;
@@ -2167,7 +2167,7 @@ button[class*="border-border"],
   margin-top: 4px;
   padding: 8px 12px;
   border: 1px solid var(--app-border);
-  border-radius: 0;
+  border-radius: var(--app-radius-panel);
   background: var(--app-surface);
   color: var(--app-foreground);
   font-weight: 400;
@@ -2222,7 +2222,7 @@ button[class*="border-border"],
   min-height: 0;
   padding: 16px;
   border: 1px solid var(--app-control-border);
-  border-radius: 0;
+  border-radius: var(--app-radius-panel);
   background: var(--app-surface);
   box-shadow: none;
   color: var(--app-foreground);
@@ -2375,7 +2375,7 @@ button[class*="border-border"],
   gap: var(--app-space-8);
   padding: var(--app-space-12) var(--app-space-16) var(--app-space-16);
   border: 0;
-  border-radius: 0;
+  border-radius: var(--app-radius-panel);
   background: transparent;
   color: var(--app-foreground);
   font-weight: 400;
