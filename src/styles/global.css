@@ -1639,10 +1639,8 @@ button {
 /* Shared workspace surfaces ----------------------------------------- */
 .section-kicker {
   color: var(--app-primary);
-  font-family: var(--font-mono);
   font-size: var(--app-font-size-meta);
   font-weight: 650;
-  letter-spacing: 0.12em;
 }
 
 .settings-pane {
