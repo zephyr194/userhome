@@ -11,6 +11,7 @@ export type AppRouteId =
   | "aiConfig"
   | "systemTools"
   | "tools"
+  | "skillhub"
   | "settings";
 
 export type AppRouteIcon =
@@ -24,6 +25,7 @@ export type AppRouteIcon =
   | "aiConfig"
   | "systemTools"
   | "tools"
+  | "skillhub"
   | "settings";
 
 export type NavGroupId = "overview" | "system-tools" | "toolset" | "support";
@@ -181,6 +183,12 @@ const ROUTE_REGISTRY: Record<AppRouteId, Omit<AppRoute, "id">> = {
     eyebrowKey: "route.tools.eyebrow",
     descriptionKey: "route.tools.description",
   },
+  skillhub: {
+    icon: "skillhub",
+    labelKey: "route.skillhub.label",
+    eyebrowKey: "route.skillhub.eyebrow",
+    descriptionKey: "route.skillhub.description",
+  },
   settings: {
     icon: "settings",
     labelKey: "route.settings.label",
@@ -200,7 +208,7 @@ export const APP_ROUTES: readonly AppRoute[] = (
 const NAV_LAYOUT: Record<NavGroupId, readonly AppRouteId[]> = {
   overview: ["dashboard"],
   "system-tools": ["environment", "appConfig", "aiConfig", "systemTools"],
-  toolset: ["tools"],
+  toolset: ["tools", "skillhub"],
   support: ["services", "settings"],
 };
 
@@ -259,4 +267,5 @@ export type NavigationIntent = (
   | { routeId: "aiConfig" }
   | { routeId: "systemTools" }
   | { routeId: "tools" }
+  | { routeId: "skillhub" }
 ) & { source?: NavigationSource };

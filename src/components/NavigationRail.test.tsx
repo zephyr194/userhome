@@ -81,6 +81,7 @@ describe("NavigationRail", () => {
       "aiConfig",
       "systemTools",
       "tools",
+      "skillhub",
       "services",
       "settings",
     ]);
@@ -94,6 +95,6 @@ describe("NavigationRail", () => {
   });
 
   it("keeps every entry linked, with no third-level controls", () => {
-    expect(renderRail("dashboard").match(/<a href="#/g)).toHaveLength(8);
+    expect(renderRail("dashboard").match(/<a href="#/g)).toHaveLength(9);
   });
 });

@@ -31,6 +31,7 @@ describe("route registry", () => {
       "AI 工具",
       "系统工具",
       "工具集",
+      "SKILLHUB",
       "服务",
       "设置",
     ]);
@@ -48,7 +49,7 @@ describe("route registry", () => {
     expect(groups.map(({ routes }) => routes.map((route) => route.id))).toEqual([
       ["dashboard"],
       ["environment", "appConfig", "aiConfig", "systemTools"],
-      ["tools"],
+      ["tools", "skillhub"],
       ["services", "settings"],
     ]);
   });
@@ -99,10 +100,21 @@ describe("route registry", () => {
     expect(services && routeDescription(services, zh)).not.toContain("Homebrew");
   });
 
-  it("places the tools page in its own group between system tools and the support group", () => {
+  it("places the toolset group between system tools and the support group, with SKILLHUB after the tools page", () => {
     const ids = primaryNavigationRoutes(APP_ROUTES).map((route) => route.id);
     expect(ids.indexOf("tools")).toBe(ids.indexOf("systemTools") + 1);
-    expect(ids.indexOf("services")).toBe(ids.indexOf("tools") + 1);
+    expect(ids.indexOf("skillhub")).toBe(ids.indexOf("tools") + 1);
+    expect(ids.indexOf("services")).toBe(ids.indexOf("skillhub") + 1);
+  });
+
+  it("restores the SKILLHUB sidebar entry and labels it in zh-CN and English", () => {
+    const skillhub = APP_ROUTES.find((route) => route.id === "skillhub");
+    expect(skillhub && routeLabel(skillhub, zh)).toBe("SKILLHUB");
+    expect(skillhub && routeDescription(skillhub, zh)).toBe(
+      "只读浏览 Skill 速查表中的来源、调用方式与用途。",
+    );
+    expect(isRestorableRoute("skillhub")).toBe(true);
+    expect(navigationRouteOf("skillhub")).toBe("skillhub");
   });
 
   it("opens the sidebar on the overview, which is the default route", () => {

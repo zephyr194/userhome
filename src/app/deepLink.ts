@@ -22,6 +22,7 @@ export const DEEP_LINK_ROUTE_IDS = [
   "systemTools",
   "caddy",
   "tools",
+  "skillhub",
   "services",
   "settings",
 ] as const satisfies readonly AppRouteId[];

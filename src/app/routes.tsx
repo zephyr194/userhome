@@ -6,6 +6,7 @@ import { EnvironmentPage } from "../features/environment/EnvironmentPage";
 import { ServicesPage } from "../features/services/ServicesPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { SystemToolsPage } from "../features/system-tools/SystemToolsPage";
+import { SkillHubPage } from "../features/skillhub/SkillHubPage";
 import { ToolsPage } from "../features/tools/ToolsPage";
 import type { SettingsGroupId } from "../features/settings/settingsGroups";
 import type {
@@ -137,6 +138,10 @@ export function RoutePanel({
 
   if (route.id === "tools") {
     return <ToolsPage />;
+  }
+
+  if (route.id === "skillhub") {
+    return <SkillHubPage />;
   }
 
   if (route.id === "settings") {

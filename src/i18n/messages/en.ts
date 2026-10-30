@@ -13,6 +13,7 @@ import { servicesEn } from "./services";
 import { settingsEn } from "./settings";
 import { shellEn } from "./shell";
 import { systemToolsEn } from "./systemTools";
+import { skillhubEn } from "./skillhub";
 
 export const en: Record<MessageKey, string> = {
   ...shellEn,
@@ -29,4 +30,5 @@ export const en: Record<MessageKey, string> = {
   ...appConfigEn,
   ...environmentEditorsEn,
   ...environmentModelsEn,
+  ...skillhubEn,
 };
