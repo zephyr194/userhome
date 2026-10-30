@@ -6,6 +6,7 @@ pub mod discover;
 pub mod edit;
 pub mod patch;
 pub mod patch_ini;
+pub mod patch_kv;
 pub mod patch_toml;
 pub mod pending;
 pub mod read;

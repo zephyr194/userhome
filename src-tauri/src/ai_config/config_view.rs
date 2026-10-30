@@ -108,7 +108,9 @@ fn language_for(format: Format) -> ConfigLanguage {
     match format {
         Format::Json | Format::Jsonc => ConfigLanguage::Json,
         Format::Toml => ConfigLanguage::Toml,
-        Format::Ini | Format::Plist | Format::Dotenv | Format::Text => ConfigLanguage::Text,
+        Format::Ini | Format::Plist | Format::Dotenv | Format::Text | Format::KeyValue => {
+            ConfigLanguage::Text
+        }
     }
 }
 

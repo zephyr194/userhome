@@ -331,6 +331,7 @@ describe("代码高亮语言推断", () => {
     expect(codeLanguageFor(summary("json", "~/.config/zed/settings.json"))).toBe("json");
     expect(codeLanguageFor(summary("jsonc", "~/.config/code/settings.jsonc"))).toBe("json");
     expect(codeLanguageFor(summary("toml", "~/.cargo/config.toml"))).toBe("toml");
+    expect(codeLanguageFor(summary("keyValue", "~/.config/ghostty/config.ghostty"))).toBe("ini");
     expect(codeLanguageFor(summary("ini", "~/.gitconfig"))).toBe("ini");
     expect(codeLanguageFor(summary("dotenv", "~/.env"))).toBe("dotenv");
   });

@@ -323,6 +323,7 @@ function schemaWire(overrides: Record<string, unknown> = {}) {
 function editReadWire(overrides: Record<string, unknown> = {}) {
   return {
     fields: [{ path: "user.name", present: true, value: "Ada" }],
+    keyValues: [],
     rawText: "[user]\n\tname = Ada\n",
     hash: "abc123",
     rawBlockedReason: null,
@@ -388,6 +389,32 @@ describe("decodeAppConfigEditRead", () => {
     expect(read.fields.map((field) => field.value)).toEqual(["Ada", true, 0.9, null]);
     expect(read.rawText).toBeNull();
     expect(read.rawBlockedReason).toContain("疑似秘密");
+  });
+
+  it("decodes key-value readouts with hidden sensitive and repeated values", () => {
+    const read = decodeAppConfigEditRead(
+      editReadWire({
+        keyValues: [
+          { key: "font-size", value: "14", sensitive: false, repeated: false },
+          { key: "api-token", value: null, sensitive: true, repeated: false },
+          { key: "keybind", value: null, sensitive: false, repeated: true },
+        ],
+      }),
+    );
+
+    expect(read.keyValues).toEqual([
+      { key: "font-size", value: "14", sensitive: false, repeated: false },
+      { key: "api-token", value: null, sensitive: true, repeated: false },
+      { key: "keybind", value: null, sensitive: false, repeated: true },
+    ]);
+  });
+
+  it.each([
+    ["a key-value row without a name", editReadWire({ keyValues: [{ key: "", value: "1", sensitive: false, repeated: false }] })],
+    ["a key-value row without a flag", editReadWire({ keyValues: [{ key: "a", value: "1", repeated: false }] })],
+    ["a missing key-value list", editReadWire({ keyValues: undefined })],
+  ])("fails closed on %s", (_label, payload) => {
+    expect(() => decodeAppConfigEditRead(payload)).toThrow();
   });
 
   it.each([

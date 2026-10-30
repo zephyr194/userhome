@@ -95,6 +95,7 @@ const READ: AppConfigEditRead = {
     { path: "core.tabsize", present: false, value: null },
     { path: "credential.token", present: true, value: null },
   ],
+  keyValues: [],
   rawText: "[user]\n\tname = Archie\n",
   hash: "hash-1",
   rawBlockedReason: null,
@@ -347,5 +348,78 @@ describe("AppConfigEditor 高级模式", () => {
     fireEvent.click(screen.getByRole("tab", { name: "高级" }));
     expect(await screen.findByLabelText("原始内容")).toBeTruthy();
     expect(screen.queryByText("切换会放弃当前模式未保存的修改")).toBeNull();
+  });
+});
+
+describe("AppConfigEditor 键值对文件（Ghostty）", () => {
+  const GHOSTTY = entry(
+    {
+      id: "ghostty-config",
+      name: "Ghostty 配置",
+      category: "terminal",
+      displayPath: "~/.config/ghostty/config.ghostty",
+      format: "keyValue",
+      sensitivity: "sensitiveKeys",
+    },
+    FOUND_PROBE,
+  );
+  const KEY_VALUE_SCHEMA: AppConfigSchema = {
+    visualSupported: true,
+    advancedSupported: true,
+    formatLabel: "键值对（键 = 值）",
+    fields: [],
+  };
+  const KEY_VALUE_READ: AppConfigEditRead = {
+    fields: [],
+    keyValues: [
+      { key: "font-size", value: "14", sensitive: false, repeated: false },
+      { key: "api-token", value: null, sensitive: true, repeated: false },
+      { key: "keybind", value: null, sensitive: false, repeated: true },
+    ],
+    rawText: null,
+    hash: "hash-kv",
+    rawBlockedReason: "文件里有疑似秘密的值，请用外部编辑器修改。",
+  };
+
+  beforeEach(() => {
+    mocks.getAppConfigSchema.mockResolvedValue(KEY_VALUE_SCHEMA);
+    mocks.readAppConfigForEdit.mockResolvedValue(KEY_VALUE_READ);
+  });
+
+  it("shows each single key as a setting and explains that repeated keys are advanced-only", async () => {
+    renderEditor(GHOSTTY);
+    await waitForLoaded();
+    expect((screen.getByLabelText("font-size") as HTMLInputElement).value).toBe("14");
+    expect((screen.getByLabelText("api-token") as HTMLInputElement).value).toBe("");
+    expect(screen.getByText("已设置（值已隐藏）")).toBeTruthy();
+    expect(screen.getByText(/只能在高级模式中修改：keybind/)).toBeTruthy();
+    expect(screen.queryByLabelText("keybind")).toBeNull();
+  });
+
+  it("previews only the changed key with its literal value and the file hash", async () => {
+    renderEditor(GHOSTTY);
+    await waitForLoaded();
+    fireEvent.change(screen.getByLabelText("font-size"), { target: { value: "16" } });
+    fireEvent.click(screen.getByRole("button", { name: "预览更改" }));
+
+    await waitFor(() => expect(mocks.previewAppConfigEdit).toHaveBeenCalledTimes(1));
+    expect(mocks.previewAppConfigEdit.mock.calls[0][0]).toMatchObject({
+      id: "ghostty-config",
+      mode: "fields",
+      changes: [{ path: "font-size", value: "16" }],
+      expectedHash: "hash-kv",
+    });
+  });
+
+  it("explains an empty key-value file instead of showing an empty form", async () => {
+    mocks.readAppConfigForEdit.mockResolvedValue({
+      ...KEY_VALUE_READ,
+      keyValues: [],
+      rawText: "",
+      rawBlockedReason: null,
+    });
+    renderEditor(GHOSTTY);
+    await waitForLoaded();
+    expect(screen.getByText("文件里没有可以可视化修改的设置。要添加设置，请使用高级模式。")).toBeTruthy();
   });
 });

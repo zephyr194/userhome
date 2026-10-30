@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { AppConfigFieldSpec, AppConfigFieldReadout } from "../../ipc/appConfig";
+import type {
+  AppConfigFieldSpec,
+  AppConfigFieldReadout,
+  AppConfigKeyValueReadout,
+} from "../../ipc/appConfig";
 import {
   checkFieldDraft,
   collectChanges,
@@ -7,7 +11,10 @@ import {
   fieldStatus,
   initialTextFor,
   issuesByPath,
+  keyValueReadouts,
+  keyValueSpecs,
   rawIssues,
+  repeatedKeyNames,
   type FieldDrafts,
 } from "./appConfigEditModel";
 
@@ -240,5 +247,45 @@ describe("rawIssues and issuesByPath", () => {
         { line: 1, message: "语法错误" },
       ]),
     ).toEqual({ "user.name": "不能为空" });
+  });
+});
+
+describe("key-value settings", () => {
+  const KEY_VALUES: AppConfigKeyValueReadout[] = [
+    { key: "font-size", value: "14", sensitive: false, repeated: false },
+    { key: "api-token", value: null, sensitive: true, repeated: false },
+    { key: "keybind", value: null, sensitive: false, repeated: true },
+  ];
+
+  it("turns each single key into a plain string setting named after the key", () => {
+    const specs = keyValueSpecs(KEY_VALUES);
+    expect(specs.map((spec) => spec.path)).toEqual(["font-size", "api-token"]);
+    expect(specs[0]).toMatchObject({ label: "font-size", kind: "string", sensitive: false });
+    expect(specs[1]).toMatchObject({ kind: "string", sensitive: true });
+    expect(specs[0].description).toBe("配置文件中的一项设置，保存时只改动这一行的值。");
+  });
+
+  it("reads back the visible value and keeps hidden values out of the form", () => {
+    expect(keyValueReadouts(KEY_VALUES)).toEqual([
+      { path: "font-size", present: true, value: "14" },
+      { path: "api-token", present: true, value: null },
+    ]);
+  });
+
+  it("names repeated keys so the form can explain they are advanced-only", () => {
+    expect(repeatedKeyNames(KEY_VALUES)).toEqual(["keybind"]);
+    expect(repeatedKeyNames([])).toEqual([]);
+  });
+
+  it("collects a key's edited text as a string change, and rejects an empty one", () => {
+    const specs = keyValueSpecs(KEY_VALUES);
+    expect(collectChanges(specs, { "font-size": { kind: "text", text: "16" } })).toEqual({
+      ok: true,
+      changes: [{ path: "font-size", value: "16" }],
+    });
+    expect(collectChanges(specs, { "font-size": { kind: "text", text: " " } })).toMatchObject({
+      ok: false,
+      errors: { "font-size": "请输入内容；如需删除该项，点击“移除”。" },
+    });
   });
 });

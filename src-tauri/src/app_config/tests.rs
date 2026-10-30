@@ -549,10 +549,10 @@ fn registry_builtin_lists_the_reviewed_entries_with_their_locations_and_rules() 
         (
             "ghostty-config",
             "~/.config/ghostty/config.ghostty",
-            Format::Text,
-            Capability::ReadOnly,
+            Format::KeyValue,
+            Capability::Writable,
             Sensitivity::SensitiveKeys,
-            true,
+            false,
             "https://ghostty.org/docs/config",
         ),
         (
@@ -688,7 +688,7 @@ fn registry_builtin_only_fixed_entry_is_the_read_only_ssh_system_config() {
 }
 
 #[test]
-fn registry_builtin_limits_metadata_only_to_ghostty_tmux_and_neovim() {
+fn registry_builtin_limits_metadata_only_to_tmux_and_neovim() {
     let registry = Registry::builtin().expect("builtin registry is valid");
 
     let metadata_only: Vec<&str> = registry
@@ -700,12 +700,7 @@ fn registry_builtin_limits_metadata_only_to_ghostty_tmux_and_neovim() {
 
     assert_eq!(
         metadata_only,
-        [
-            "ghostty-config",
-            "tmux-conf",
-            "tmux-config-xdg",
-            "neovim-init"
-        ]
+        ["tmux-conf", "tmux-config-xdg", "neovim-init"]
     );
 }
 

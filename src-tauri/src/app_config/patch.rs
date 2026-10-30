@@ -286,6 +286,7 @@ pub fn check_raw(format: Format, text: &str) -> Result<(), RawError> {
         Format::Ini => ini_check(text),
         Format::Toml => toml_check(text),
         Format::Jsonc => jsonc_check(text),
+        Format::KeyValue => super::patch_kv::check_raw(text),
         _ => Err(RawError {
             line: None,
             message: "这个格式暂不支持在应用内编辑。",
@@ -321,6 +322,7 @@ pub fn raw_secret_present(format: Format, text: &str) -> bool {
         Format::Jsonc => parse_json_document("JSONC", text)
             .map(|value| json_secret(&value))
             .unwrap_or(false),
+        Format::KeyValue => super::patch_kv::secret_present(text),
         _ => false,
     }
 }

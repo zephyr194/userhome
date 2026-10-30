@@ -337,14 +337,14 @@ fn credential_files_return_metadata_only_and_their_content_is_never_read() {
 #[test]
 fn metadata_only_entries_return_discovered_size_and_mtime_without_content() {
     let mut fs = FakeFs::new().dir(HOME).forbid_reads();
-    for id in ["ghostty-config", "tmux-conf", "neovim-init"] {
+    for id in ["tmux-conf", "neovim-init"] {
         let path = resolve_path(&builtin(id), Path::new(HOME))
             .to_string_lossy()
             .into_owned();
         fs = fs.file(&path, "token = \"leaked-in-metadata-entry\"\n");
     }
 
-    for id in ["ghostty-config", "tmux-conf", "neovim-init"] {
+    for id in ["tmux-conf", "neovim-init"] {
         let result = read(&builtin(id), &fs);
         assert!(
             matches!(result, ReadResult::MetadataOnly { .. }),
@@ -352,6 +352,25 @@ fn metadata_only_entries_return_discovered_size_and_mtime_without_content() {
         );
         assert!(!serialized(&result).contains("leaked-in-metadata-entry"));
     }
+}
+
+#[test]
+fn ghostty_config_renders_key_values_and_masks_secrets() {
+    let path = resolve_path(&builtin("ghostty-config"), Path::new(HOME))
+        .to_string_lossy()
+        .into_owned();
+    let fs = FakeFs::new().dir(HOME).file(
+        &path,
+        "# theme\nfont-size = 14\napi-token = hunter2\nfont-family = Fira Code # kept\n",
+    );
+
+    let ReadResult::Content { view } = read(&builtin("ghostty-config"), &fs) else {
+        panic!("ghostty config must render as content");
+    };
+    assert!(view.text.contains("font-size = 14"));
+    assert!(view.text.contains("font-family = Fira Code # kept"));
+    assert!(!view.text.contains("hunter2"));
+    assert!(view.redacted);
 }
 
 #[test]

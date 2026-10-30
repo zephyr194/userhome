@@ -86,6 +86,7 @@ const SCHEMA: AppConfigSchema = {
 
 const EDIT_READ: AppConfigEditRead = {
   fields: [{ path: "user.name", present: true, value: "Archie" }],
+  keyValues: [],
   rawText: null,
   hash: "hash-1",
   rawBlockedReason: null,

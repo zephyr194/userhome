@@ -3,6 +3,7 @@ import type {
   AppConfigFieldReadout,
   AppConfigFieldSpec,
   AppConfigFieldValue,
+  AppConfigKeyValueReadout,
   AppConfigPreviewIssue,
 } from "../../ipc/appConfig";
 import { ZH_COPY, type AppConfigCopy } from "./appConfigModel";
@@ -197,4 +198,37 @@ export function issuesByPath(issues: readonly AppConfigPreviewIssue[]): Record<s
     }
   }
   return byPath;
+}
+
+/** Each key that appears once in the file becomes one editable setting; its name is the path. */
+export function keyValueSpecs(
+  keyValues: readonly AppConfigKeyValueReadout[],
+  copy: AppConfigCopy = ZH_COPY,
+): AppConfigFieldSpec[] {
+  return keyValues
+    .filter((item) => !item.repeated)
+    .map((item) => ({
+      path: item.key,
+      label: item.key,
+      description: copy.t("appConfig.kv.description"),
+      kind: "string",
+      enumValues: [],
+      min: null,
+      max: null,
+      pattern: null,
+      default: null,
+      sensitive: item.sensitive,
+    }));
+}
+
+export function keyValueReadouts(
+  keyValues: readonly AppConfigKeyValueReadout[],
+): AppConfigFieldReadout[] {
+  return keyValues
+    .filter((item) => !item.repeated)
+    .map((item) => ({ path: item.key, present: true, value: item.value }));
+}
+
+export function repeatedKeyNames(keyValues: readonly AppConfigKeyValueReadout[]): string[] {
+  return keyValues.filter((item) => item.repeated).map((item) => item.key);
 }

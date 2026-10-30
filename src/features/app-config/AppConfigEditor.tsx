@@ -45,7 +45,10 @@ import {
   fieldStatus,
   initialTextFor,
   issuesByPath,
+  keyValueReadouts,
+  keyValueSpecs,
   rawIssues,
+  repeatedKeyNames,
   type EditTab,
   type FieldDraft,
   type FieldDrafts,
@@ -124,6 +127,13 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
   }, [summary.id, loadKey]);
 
   const data = load.status === "ready" ? load.data : null;
+  const fieldSpecs = data
+    ? [...data.schema.fields, ...keyValueSpecs(data.read.keyValues, copy)]
+    : [];
+  const fieldReadouts = data
+    ? [...data.read.fields, ...keyValueReadouts(data.read.keyValues)]
+    : [];
+  const repeatedKeys = data ? repeatedKeyNames(data.read.keyValues) : [];
   const modes = data ? editModes(data.schema) : null;
   const activeMode: EditTab | null =
     modes === null ? null : mode !== null && modes.tabs.includes(mode) ? mode : modes.initial;
@@ -177,7 +187,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
     const expectedHash = data.read.hash;
     let input: AppConfigPreviewInput;
     if (activeMode === "fields") {
-      const collected = collectChanges(data.schema.fields, drafts, copy);
+      const collected = collectChanges(fieldSpecs, drafts, copy);
       if (!collected.ok) {
         setPhase({ status: "failed", error: FIX_FIRST });
         return;
@@ -220,7 +230,7 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
     phase.status === "previewed" && !phase.result.ok ? phase.result.errors : [];
   const serverByPath = issuesByPath(serverMessages);
   const serverRaw = rawIssues(serverMessages);
-  const knownPaths = new Set(data?.schema.fields.map((field) => field.path) ?? []);
+  const knownPaths = new Set(fieldSpecs.map((field) => field.path));
   const unplaced = serverMessages.filter(
     (issue) =>
       issue.line === undefined && (issue.path === undefined || !knownPaths.has(issue.path)),
@@ -278,14 +288,27 @@ export function AppConfigEditor({ item, onExit, onSaved }: AppConfigEditorProps)
       ) : null}
 
       {data && activeMode === "fields" ? (
-        <FieldsForm
-          fields={data.schema.fields}
-          readouts={data.read.fields}
-          drafts={drafts}
-          serverByPath={serverByPath}
-          disabled={busy}
-          onChange={setDraft}
-        />
+        <>
+          {repeatedKeys.length > 0 ? (
+            <p role="status" className="m-0 text-aux text-muted-foreground">
+              {copy.t("appConfig.kv.repeated", { keys: repeatedKeys.join("、") })}
+            </p>
+          ) : null}
+          {fieldSpecs.length === 0 ? (
+            <p role="status" className="m-0 text-body text-muted-foreground">
+              {copy.t("appConfig.kv.empty")}
+            </p>
+          ) : (
+            <FieldsForm
+              fields={fieldSpecs}
+              readouts={fieldReadouts}
+              drafts={drafts}
+              serverByPath={serverByPath}
+              disabled={busy}
+              onChange={setDraft}
+            />
+          )}
+        </>
       ) : null}
 
       {data && activeMode === "raw" ? (
