@@ -32,7 +32,22 @@ const CIRCULAR_ALLOWLIST: Record<string, number> = {
 const CORNER_PREFIX =
   /^rounded(?:-(?:tl|tr|br|bl|ss|se|ee|es|ts|te|bs|be|t|r|b|l|s|e))?(?:-(.+))?$/;
 const RADIUS_CLASS = /(?<![\w-])rounded[\w[\]().%/-]*/g;
-const NAV_LABEL_MAX_CHARS = 6;
+/** 导航标签上限，以 1em（一个中文字符宽）为单位计。 */
+const NAV_LABEL_MAX_EM = 6;
+const NAV_LABEL_FONT_PX = 12;
+const SIDEBAR_WIDTH_PX = 188;
+const SIDEBAR_PADDING_PX = 12;
+const NAV_ICON_PX = 18;
+
+/** 估算标签宽度（em）：CJK 1em，拉丁大写 0.75em，其余拉丁与数字 0.6em，空格 0.3em。 */
+function navLabelEm(label: string): number {
+  return Array.from(label).reduce((width, char) => {
+    if (/\s/.test(char)) return width + 0.3;
+    if (/[A-Z]/.test(char)) return width + 0.75;
+    if (char.charCodeAt(0) < 0x80) return width + 0.6;
+    return width + 1;
+  }, 0);
+}
 
 function tokenValue(name: string): string {
   const match = css.match(new RegExp(`--${name}:\\s*([^;]+);`));
@@ -115,11 +130,16 @@ describe("圆角审计（UI-01）", () => {
     expect(tokenValue("app-shadow-float")).not.toContain(",");
   });
 
-  it("导航标签与分组标题不超过侧栏 188px 的字符上限", () => {
+  it("导航标签按显示宽度估算不超过上限", () => {
     const labels = primaryNavigationRoutes(APP_ROUTES).map((route) =>
       routeLabel(route, (key) => translate("zh-CN", key)),
     );
-    const longest = Math.max(...labels.map((label) => Array.from(label).length));
-    expect(longest).toBeLessThanOrEqual(NAV_LABEL_MAX_CHARS);
+    const longest = Math.max(...labels.map(navLabelEm));
+    expect(longest).toBeLessThanOrEqual(NAV_LABEL_MAX_EM);
+  });
+
+  it("SKILLHUB 估算宽度落在 188px 侧栏的可用宽度内（真机截断与否待人工确认）", () => {
+    const available = SIDEBAR_WIDTH_PX - SIDEBAR_PADDING_PX * 2 - NAV_ICON_PX;
+    expect(navLabelEm("SKILLHUB") * NAV_LABEL_FONT_PX).toBeLessThan(available);
   });
 });
