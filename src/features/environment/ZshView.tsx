@@ -12,7 +12,7 @@ import type {
   ZshOverview,
   ZshRow,
 } from "../../ipc/environment";
-import { VariableChainList } from "./VariableChainTable";
+import { VariableChainList } from "./VariableChainList";
 import { zshVariableRows, type VariableChainRow } from "./variableChainModel";
 import {
   appliesToText,

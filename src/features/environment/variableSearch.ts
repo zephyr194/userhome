@@ -14,7 +14,8 @@ export function queryTerms(raw: string): string[] {
 
 function stepFields(step: ChainStep): string[] {
   const text = step.value.kind === "text" ? [step.value.text] : [];
-  return [step.source.file, ...text];
+  const effective = step.effective?.kind === "text" ? [step.effective.text] : [];
+  return [step.source.file, ...text, ...effective];
 }
 
 /**
@@ -22,14 +23,6 @@ function stepFields(step: ChainStep): string[] {
  * search cannot reveal what they contain. Merged cross-file rows are matched on
  * their name and per-file steps only; their `final` stands for the first file.
  */
-export function chainHitsFor(row: VariableChainRow, terms: readonly string[]): number[] {
-  if (terms.length === 0) return [];
-  return row.chain.flatMap((step, index) => {
-    const haystack = stepFields(step).join("\n").toLowerCase();
-    return terms.some((term) => haystack.includes(term)) ? [index] : [];
-  });
-}
-
 export function matchesVariable(row: VariableChainRow, terms: readonly string[]): boolean {
   if (terms.length === 0) return true;
   const fields = [row.name, ...(row.definedIn === undefined ? stepFields(row.final) : []), ...row.chain.flatMap(stepFields)]

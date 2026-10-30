@@ -1,5 +1,7 @@
+// @vitest-environment jsdom
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render as mountTree, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 import type { AppError } from "../../ipc/core";
 import type {
   ZshEntryRow,
@@ -112,6 +114,34 @@ function render(state: ZshState, overrides: Partial<ZshViewProps> = {}): string 
     />,
   );
 }
+
+function mount(state: ZshState): void {
+  mountTree(
+    <ZshView
+      choosing={false}
+      onChooseDirectory={() => undefined}
+      onClearDirectory={() => undefined}
+      onLoadValue={() => Promise.resolve("never")}
+      onReload={() => undefined}
+      state={state}
+    />,
+  );
+}
+
+function selectRow(name: string, index = 0): void {
+  const list = screen.getByRole("region", { name: "zsh 变量的最终值与过程值" });
+  const button = within(list)
+    .getAllByRole("button")
+    .filter((candidate) => candidate.querySelector("code")?.textContent === name)[index];
+  if (!button) throw new Error(`no variable row for ${name}`);
+  fireEvent.click(button);
+}
+
+function detail(): HTMLElement {
+  return screen.getByRole("region", { name: "选中变量的详情" });
+}
+
+afterEach(() => cleanup());
 
 const FULL = overview([
   file("ZSHENV", ready([entry({ name: "EDITOR", value: "vim", line: 1 })])),
@@ -346,18 +376,29 @@ describe("zsh view ZDOTDIR", () => {
 describe("zsh view entries", () => {
   const markup = render(readyState(FULL));
 
-  it("shows references and dynamic values with their state in the variable table", () => {
-    expect(markup).toContain("含引用（未解析）");
-    expect(markup).toContain("动态／未解析");
-    expect(markup).toContain("$HOME/work");
-    expect(markup).toContain("nano");
-    expect(markup).toContain(">vim<");
-    expect(markup).toContain("可能被后面的文件覆盖");
+  it("shows a reference the reader cannot expand as written, with the reason it is not expanded", () => {
+    mount(readyState(FULL));
+    selectRow("WORKDIR");
+    expect(within(detail()).getByText("$HOME/work")).toBeTruthy();
+    expect(within(detail()).getByText(/引用的 HOME 在它之前没有可确定的赋值/)).toBeTruthy();
   });
 
-  it("keeps PATH as written in the table and flags it as dynamic", () => {
-    expect(markup).toContain("/opt/bin:$PATH::$(brew --prefix)/bin");
-    expect(markup).not.toContain('aria-label="PATH 项（按书写顺序）"');
+  it("keeps the earlier value as a process value and the final value with its note", () => {
+    mount(readyState(FULL));
+    expect(within(detail()).getByText("vim")).toBeTruthy();
+    expect(within(detail()).getByText("可能被后面的文件覆盖")).toBeTruthy();
+    selectRow("EDITOR", 1);
+    expect(within(detail()).getByText("nano")).toBeTruthy();
+    expect(within(detail()).getByText("过程值（读取顺序）")).toBeTruthy();
+    expect(within(detail()).getByText("vim")).toBeTruthy();
+  });
+
+  it("keeps PATH as written and says it is decided at run time", () => {
+    mount(readyState(FULL));
+    selectRow("PATH");
+    expect(within(detail()).getByText("/opt/bin:$PATH::$(brew --prefix)/bin")).toBeTruthy();
+    expect(within(detail()).getByText(/值在运行时才确定/)).toBeTruthy();
+    expect(screen.queryByLabelText("PATH 项（按书写顺序）")).toBeNull();
   });
 
   it("marks dynamic statements and keeps unrecognized lines as written", () => {
@@ -375,9 +416,15 @@ describe("zsh view entries", () => {
   it("masks secrets, never prints a value, and withholds secret-looking text", () => {
     expect(markup).toContain("秘密");
     expect(markup).toContain("GITHUB_TOKEN");
-    expect(markup).toContain("载入 GITHUB_TOKEN 的值");
     expect(markup).toContain("（疑似含秘密，内容已隐藏）");
     expect(markup).toContain("1 项已遮盖");
+  });
+
+  it("offers to load a secret only in its own detail, never printing it", () => {
+    mount(readyState(FULL));
+    selectRow("GITHUB_TOKEN");
+    expect(screen.getByRole("button", { name: "载入 GITHUB_TOKEN 的值" })).toBeTruthy();
+    expect(detail().textContent).not.toContain("ghp-");
   });
 
   it("hands a loaded value to the shared SecretValue, still masked", () => {
@@ -394,7 +441,7 @@ describe("zsh view entries", () => {
   });
 
   it("shows the empty value and long values that must be fetched", () => {
-    const rendered = render(
+    mount(
       readyState(
         overview([
           file(
@@ -407,8 +454,9 @@ describe("zsh view entries", () => {
         ]),
       ),
     );
-    expect(rendered).toContain("（空值）");
-    expect(rendered).toContain("载入 BIG 的值");
+    expect(screen.getByRole("button", { name: "载入 BIG 的值" })).toBeTruthy();
+    selectRow("EMPTY");
+    expect(within(detail()).getByText("（空值）")).toBeTruthy();
   });
 });
 

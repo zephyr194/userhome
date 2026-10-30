@@ -69,6 +69,11 @@ function fillForm(name: string, value: string) {
   });
 }
 
+function selectVariable(name: string) {
+  const list = screen.getByRole("region", { name: "登录会话的环境变量" });
+  fireEvent.click(within(list).getByRole("button", { name: new RegExp(`^${name}\\b`) }));
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -124,21 +129,24 @@ describe("LaunchctlView", () => {
   it("shows plain values as text and marks an empty value", () => {
     renderView({ status: "ready", environment: ENVIRONMENT });
 
-    expect(screen.getByText("PATH")).toBeTruthy();
-    expect(screen.getByText("/usr/bin:/bin")).toBeTruthy();
-    expect(screen.getByText("（空值）")).toBeTruthy();
+    selectVariable("PATH");
+    const detail = screen.getByRole("region", { name: "选中变量的详情" });
+    expect(within(detail).getByText("PATH")).toBeTruthy();
+    expect(within(detail).getByText("/usr/bin:/bin")).toBeTruthy();
+
+    selectVariable("EMPTY_ONE");
+    expect(within(screen.getByRole("region", { name: "选中变量的详情" })).getByText("（空值）")).toBeTruthy();
   });
 
   it("lists one row per variable, sorted by name, with the login session as its source", () => {
     renderView({ status: "ready", environment: ENVIRONMENT });
 
-    const table = screen.getByRole("table", { name: "登录会话的环境变量" });
-    const names = within(table)
-      .getAllByRole("row")
-      .slice(1)
-      .map((row) => row.querySelector("code")?.textContent);
+    const list = screen.getByRole("region", { name: "登录会话的环境变量" });
+    const names = within(list)
+      .getAllByRole("button")
+      .map((button) => button.querySelector("code")?.textContent);
     expect(names).toEqual(["API_TOKEN", "EMPTY_ONE", "PATH"]);
-    expect(within(table).getAllByText("登录会话（launchctl）")).toHaveLength(3);
+    expect(within(list).getAllByText("登录会话（launchctl）")).toHaveLength(3);
   });
 
   it("masks a revealed secret again after the list is re-read", async () => {
@@ -170,8 +178,8 @@ describe("LaunchctlView", () => {
   it("keeps a secret masked until its value is loaded and shown on request", async () => {
     const { onReveal } = renderView({ status: "ready", environment: ENVIRONMENT });
 
-    const row = screen.getByText("API_TOKEN").closest("tr");
-    expect(row?.textContent).toContain("已隐藏，值尚未载入");
+    const detail = screen.getByRole("region", { name: "选中变量的详情" });
+    expect(detail.textContent).toContain("已隐藏，值尚未载入");
     expect(screen.queryByText("s3cret")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "载入 API_TOKEN 的值" }));
@@ -199,11 +207,12 @@ describe("LaunchctlView", () => {
     expect(screen.getByText(/下面的列表可能不完整/)).toBeTruthy();
   });
 
-  it("offers set, modify and remove actions for each row", () => {
+  it("offers modify and remove actions for the selected row", () => {
     renderView({ status: "ready", environment: ENVIRONMENT });
 
     expect(screen.getByRole("button", { name: "设置变量" })).toBeTruthy();
     for (const key of ["PATH", "EMPTY_ONE", "API_TOKEN"]) {
+      selectVariable(key);
       expect(screen.getByRole("button", { name: `修改 ${key}` })).toBeTruthy();
       expect(screen.getByRole("button", { name: `移除 ${key}` })).toBeTruthy();
     }
@@ -316,6 +325,7 @@ describe("LaunchctlView", () => {
   it("opens a modify form with the name fixed and a plain value filled in", () => {
     renderView({ status: "ready", environment: ENVIRONMENT });
 
+    selectVariable("PATH");
     fireEvent.click(screen.getByRole("button", { name: "修改 PATH" }));
     const dialog = screen.getByRole("dialog");
     const name = within(dialog).getByLabelText("变量名") as HTMLInputElement;
@@ -347,6 +357,7 @@ describe("LaunchctlView", () => {
     );
     renderView({ status: "ready", environment: ENVIRONMENT }, { onSet });
 
+    selectVariable("PATH");
     fireEvent.click(screen.getByRole("button", { name: "修改 PATH" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "预览设置" }));
     fireEvent.click(await screen.findByRole("button", { name: "确认设置" }));
@@ -375,6 +386,7 @@ describe("LaunchctlView", () => {
   it("asks before removing a variable and removes it on confirmation", async () => {
     const props = renderView({ status: "ready", environment: ENVIRONMENT });
 
+    selectVariable("PATH");
     fireEvent.click(screen.getByRole("button", { name: "移除 PATH" }));
     const dialog = screen.getByRole("dialog");
     expect(dialog.textContent).toContain("将从登录会话中移除 PATH");
@@ -399,6 +411,7 @@ describe("LaunchctlView", () => {
     }));
     const props = renderView({ status: "ready", environment: ENVIRONMENT }, { onPreview });
 
+    selectVariable("PATH");
     fireEvent.click(screen.getByRole("button", { name: "移除 PATH" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "移除变量" }));
 
@@ -421,6 +434,7 @@ describe("LaunchctlView", () => {
     );
     renderView({ status: "ready", environment: ENVIRONMENT }, { onUnset });
 
+    selectVariable("PATH");
     fireEvent.click(screen.getByRole("button", { name: "移除 PATH" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "移除变量" }));
 

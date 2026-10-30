@@ -313,24 +313,32 @@ describe("directory status", () => {
     renderView({ editor: undefined });
     expect(screen.queryByRole("button", { name: "设置变量" })).toBeNull();
     expect(screen.queryByRole("button", { name: "新建环境文件…" })).toBeNull();
-    expect(screen.getByRole("table", { name: "目录 dotenv 的变量" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "目录 dotenv 的变量" })).toBeTruthy();
   });
 });
 
 describe("layout of one directory tab", () => {
-  it("places the variable table before the collapsed settings section", () => {
+  it("places the variable list before the collapsed settings section", () => {
     renderView();
-    const table = screen.getByRole("table", { name: "目录 dotenv 的变量" });
+    const list = screen.getByRole("region", { name: "目录 dotenv 的变量" });
     const details = screen.getByText("文件与扫描设置");
-    expect(table.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(list.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(details.closest("details")?.hasAttribute("open")).toBe(false);
   });
 
-  it("places the search field above the table", () => {
+  it("shows the variable list and the selected variable's details as two labelled regions side by side", () => {
+    renderView();
+    const list = screen.getByRole("region", { name: "目录 dotenv 的变量" });
+    const detail = screen.getByRole("region", { name: "选中变量的详情" });
+    expect(list.parentElement).toBe(detail.parentElement);
+    expect(list.parentElement?.className).toContain("sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]");
+  });
+
+  it("places the search field above the variable list", () => {
     renderView();
     const search = screen.getByPlaceholderText("变量名、文件名或值");
-    const table = screen.getByRole("table", { name: "目录 dotenv 的变量" });
-    expect(search.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const list = screen.getByRole("region", { name: "目录 dotenv 的变量" });
+    expect(search.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("changes the file filter through selectFile, with ALL mapping to no filter", () => {
@@ -421,7 +429,7 @@ describe("editor open", () => {
       },
     });
     expect(screen.getByRole("heading", { name: "编辑环境文件" })).toBeTruthy();
-    expect(screen.queryByRole("table", { name: "目录 dotenv 的变量" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "目录 dotenv 的变量" })).toBeNull();
     expect(screen.queryByText("文件与扫描设置")).toBeNull();
   });
 });

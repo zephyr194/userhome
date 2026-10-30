@@ -164,7 +164,7 @@ const PHASE_ONE_FILES = [
   "features/environment/LaunchctlView.tsx",
   "features/environment/LazySecretValue.tsx",
   "features/environment/SameNameHint.tsx",
-  "features/environment/VariableChainTable.tsx",
+  "features/environment/VariableChainList.tsx",
   "features/environment/ZshEditor.tsx",
   "features/environment/ZshPage.tsx",
   "features/environment/ZshView.tsx",

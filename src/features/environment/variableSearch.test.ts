@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   MAX_QUERY_LENGTH,
-  chainHitsFor,
   filterVariables,
   forgetQueries,
   highlightParts,
@@ -116,16 +115,19 @@ describe("filterVariables", () => {
   });
 });
 
-describe("chainHitsFor", () => {
-  it("reports the process steps that contain a word, so the chain opens on them", () => {
-    const row = ROWS[2] as VariableChainRow;
-    expect(chainHitsFor(row, ["opt"])).toEqual([0]);
-    expect(chainHitsFor(row, ["zshrc"])).toEqual([0]);
-    expect(chainHitsFor(row, ["zshenv"])).toEqual([]);
-  });
-
-  it("reports nothing without words", () => {
-    expect(chainHitsFor(ROWS[0] as VariableChainRow, [])).toEqual([]);
+describe("matchesVariable: expanded values", () => {
+  it("matches the expanded final value, not only the written reference", () => {
+    const row: VariableChainRow = {
+      name: "BIN",
+      final: {
+        value: { kind: "text", text: "$BASE/bin" },
+        source: { file: ".zshenv", line: 2 },
+        effective: { kind: "text", text: "/opt/bin" },
+      },
+      chain: [],
+    };
+    expect(matchesVariable(row, ["/opt"])).toBe(true);
+    expect(matchesVariable(row, ["$base"])).toBe(true);
   });
 });
 

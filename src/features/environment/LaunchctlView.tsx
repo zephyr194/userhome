@@ -15,7 +15,7 @@ import {
   LaunchctlSetDialog,
   type LaunchctlSetInput,
 } from "./LaunchctlDialogs";
-import { VariableChainList } from "./VariableChainTable";
+import { VariableChainList } from "./VariableChainList";
 import { launchctlVariableRows } from "./variableChainModel";
 
 export type LaunchctlState =

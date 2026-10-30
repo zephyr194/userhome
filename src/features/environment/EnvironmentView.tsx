@@ -15,7 +15,7 @@ import { DotenvEditor, type DotenvEditorProps } from "./DotenvEditor";
 import type { DirectoryGrant, DirectoryState, DotenvWorkspaceState } from "./dotenvDirectoryModel";
 import { directoryVariableSources } from "./dotenvDirectoryModel";
 import { checkSettings, failureText, partialReasonText, sameSettings, skipReasonText } from "./environmentModel";
-import { VariableChainList } from "./VariableChainTable";
+import { VariableChainList } from "./VariableChainList";
 import { dotenvChainRows, type VariableChainRow } from "./variableChainModel";
 
 export interface EnvironmentActions {

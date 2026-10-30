@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LocaleProvider } from "../../i18n/LocaleProvider";
-import { VariableChainTable } from "./VariableChainTable";
+import { VariableChainList } from "./VariableChainList";
 import type { VariableChainRow } from "./variableChainModel";
 
 const CJK_PATTERN = /[㐀-鿿豈-﫿]/;
@@ -34,11 +34,20 @@ function stubClipboard(writeText: (text: string) => Promise<void>) {
   });
 }
 
-function renderTable(onRevealFinal: (row: VariableChainRow) => Promise<string>, english = false) {
-  const table = (
-    <VariableChainTable label="变量" onRevealFinal={onRevealFinal} rows={ROWS} />
+function renderList(onRevealFinal: (row: VariableChainRow) => Promise<string>, english = false) {
+  const list = (
+    <VariableChainList label="变量" onRevealFinal={onRevealFinal} rows={ROWS} searchKey="value-copy" />
   );
-  return render(english ? <LocaleProvider preference="en">{table}</LocaleProvider> : table);
+  return render(english ? <LocaleProvider preference="en">{list}</LocaleProvider> : list);
+}
+
+function pick(name: RegExp) {
+  fireEvent.click(within(screen.getByRole("region", { name: "变量" })).getByRole("button", { name }));
+}
+
+/** The status line sits beside its copy button, inside the same control wrapper. */
+function feedbackOf(copy: HTMLElement): string | null {
+  return within(copy.parentElement as HTMLElement).queryByRole("status")?.textContent ?? null;
 }
 
 async function flush() {
@@ -54,38 +63,38 @@ describe("copying variable values", () => {
     Reflect.deleteProperty(navigator, "clipboard");
   });
 
-  it("copies a plain value exactly from the final column and from a chain step", async () => {
+  it("copies a plain value exactly from the final value and from a chain step", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     stubClipboard(writeText);
-    renderTable(() => Promise.resolve("unused"));
+    renderList(() => Promise.resolve("unused"));
 
-    fireEvent.click(screen.getByRole("button", { name: /过程值/ }));
+    pick(/^EDITOR\b/);
     const [finalCopy, stepCopy] = screen.getAllByRole("button", { name: "复制 EDITOR 的值" });
-    fireEvent.click(finalCopy);
+    fireEvent.click(finalCopy as HTMLElement);
     await flush();
     expect(writeText).toHaveBeenLastCalledWith("code");
 
-    fireEvent.click(stepCopy);
+    fireEvent.click(stepCopy as HTMLElement);
     await flush();
     expect(writeText).toHaveBeenLastCalledWith("vim");
-    expect(within(stepCopy.closest("li") as HTMLElement).getByRole("status").textContent).toBe("已复制");
+    expect(feedbackOf(stepCopy as HTMLElement)).toBe("已复制");
   });
 
   it("explains a failed copy beside the value", async () => {
     stubClipboard(() => Promise.reject(new Error("denied")));
-    renderTable(() => Promise.resolve("unused"));
+    renderList(() => Promise.resolve("unused"));
 
-    fireEvent.click(screen.getByRole("button", { name: "复制 EDITOR 的值" }));
+    pick(/^EDITOR\b/);
+    const copy = screen.getAllByRole("button", { name: "复制 EDITOR 的值" })[0] as HTMLElement;
+    fireEvent.click(copy);
     await flush();
-
-    const cell = screen.getByRole("button", { name: "复制 EDITOR 的值" }).closest("td");
-    expect(within(cell as HTMLElement).getByRole("status").textContent).toBe("复制失败");
+    expect(feedbackOf(copy)).toBe("复制失败");
   });
 
   it("offers no copy control for a secret until it is shown, then copies the real value", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     stubClipboard(writeText);
-    const { container } = renderTable(() => Promise.resolve(SECRET));
+    const { container } = renderList(() => Promise.resolve(SECRET));
 
     expect(screen.queryByRole("button", { name: "复制 API_TOKEN 的值" })).toBeNull();
     expect(container.innerHTML).not.toContain(SECRET);
@@ -102,8 +111,9 @@ describe("copying variable values", () => {
   it("copies the whole value of a long value once it is loaded", async () => {
     const writeText = vi.fn(() => Promise.resolve());
     stubClipboard(writeText);
-    renderTable(() => Promise.resolve(LONG));
+    renderList(() => Promise.resolve(LONG));
 
+    pick(/^PATH\b/);
     fireEvent.click(screen.getByRole("button", { name: "载入 PATH 的值" }));
     expect(await screen.findByText(LONG)).toBeTruthy();
 
@@ -115,13 +125,14 @@ describe("copying variable values", () => {
 
   it("labels the copy controls in English without Chinese characters", async () => {
     stubClipboard(() => Promise.resolve());
-    const { container } = renderTable(() => Promise.resolve("unused"), true);
+    const { container } = renderList(() => Promise.resolve("unused"), true);
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy the value of EDITOR" }));
+    pick(/^EDITOR\b/);
+    const copy = screen.getAllByRole("button", { name: "Copy the value of EDITOR" })[0] as HTMLElement;
+    fireEvent.click(copy);
     await flush();
 
-    const cell = screen.getByRole("button", { name: "Copy the value of EDITOR" }).closest("td");
-    expect(within(cell as HTMLElement).getByRole("status").textContent).toBe("Copied");
+    expect(feedbackOf(copy)).toBe("Copied");
     expect(CJK_PATTERN.test(container.textContent ?? "")).toBe(false);
   });
 });
