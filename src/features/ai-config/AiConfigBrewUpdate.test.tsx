@@ -172,7 +172,7 @@ describe("Homebrew 安装方式与更新", () => {
     await rtl.waitFor(() => expect(detectCalls).toBe(2));
   });
 
-  it("失败时显示原因与重试，且不重新检测", async () => {
+  it("失败时显示摘要与重试，原因写入更新日志，且不重新检测", async () => {
     await renderPage(claudeWire(HOMEBREW), () => ({
       status: "FAILED",
       message: "brew upgrade claude-code 未能完成（退出码 1）。\n可稍后重试。",
@@ -181,13 +181,15 @@ describe("Homebrew 安装方式与更新", () => {
 
     await confirmUpdate();
 
-    const message = await rtl.screen.findByText(/未能完成（退出码 1）/);
-    expect(message.getAttribute("role")).toBe("alert");
-    expect(rtl.within(message.parentElement as HTMLElement).getByRole("button", { name: "重试" })).toBeTruthy();
+    const alert = await rtl.screen.findByText("更新失败，详情见下方更新日志。");
+    expect(alert.getAttribute("role")).toBe("alert");
+    expect(rtl.within(alert.parentElement as HTMLElement).getByRole("button", { name: "重试" })).toBeTruthy();
+    expect(rtl.screen.getByText(/未能完成（退出码 1）/)).toBeTruthy();
+    expect(rtl.screen.getByText("可稍后重试。")).toBeTruthy();
     expect(detectCalls).toBe(1);
   });
 
-  it("调用失败时显示后端给出的原因", async () => {
+  it("调用失败时显示摘要，并把后端给出的原因写入更新日志", async () => {
     await renderPage(claudeWire(HOMEBREW), () =>
       Promise.reject({
         code: "NOT_FOUND",
@@ -198,8 +200,17 @@ describe("Homebrew 安装方式与更新", () => {
 
     await confirmUpdate();
 
-    const message = await rtl.screen.findByText(/没有找到 Homebrew，无法更新。/);
-    expect(message.getAttribute("role")).toBe("alert");
+    expect((await rtl.screen.findByText("更新失败，详情见下方更新日志。")).getAttribute("role")).toBe("alert");
+    expect(rtl.screen.getByText("没有找到 Homebrew，无法更新。")).toBeTruthy();
     expect(detectCalls).toBe(1);
+  });
+
+  it("更新开始后日志区显示正在执行的命令", async () => {
+    await renderPage(claudeWire(HOMEBREW), () => new Promise(() => undefined));
+
+    await confirmUpdate();
+
+    expect(await rtl.screen.findByText("正在执行 brew upgrade claude-code……")).toBeTruthy();
+    expect(rtl.screen.getByRole("log")).toBeTruthy();
   });
 });

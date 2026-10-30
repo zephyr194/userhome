@@ -160,6 +160,36 @@ describe("ConfigFileViewer", () => {
     expect(container.textContent).not.toContain("theme");
   });
 
+  it("drops the shown content when the same viewer is pointed at another tool", async () => {
+    serveConfig((payload) =>
+      payload.toolId === "claude-code"
+        ? configWire()
+        : configWire({ toolId: "gemini-cli", content: '{"theme":"dark"}', redactedCount: 0 }),
+    );
+    const view = mountViewer("claude-code");
+    rtl.fireEvent.click(rtl.screen.getByRole("button", { name: "查看当前配置" }));
+    await rtl.waitFor(() => expect(view.container.textContent).toContain("sonnet"));
+
+    view.rerender(
+      <LocaleProvider preference="zh-CN">
+        <ConfigFileViewer toolId="gemini-cli" />
+      </LocaleProvider>,
+    );
+
+    expect(view.container.textContent).not.toContain("sonnet");
+    expect(rtl.screen.getByRole("button", { name: "查看当前配置" })).toBeTruthy();
+  });
+
+  it("says so when the file exists but is empty", async () => {
+    serveConfig(() => configWire({ content: "", sizeBytes: 0, redactedCount: 0 }));
+    const { container } = mountViewer();
+
+    rtl.fireEvent.click(rtl.screen.getByRole("button", { name: "查看当前配置" }));
+
+    await rtl.waitFor(() => expect(container.textContent).toContain("文件为空。"));
+    expect(container.textContent).toContain("~/.claude/settings.json");
+  });
+
   it("never renders the raw secret that the backend masked", async () => {
     serveConfig();
     const { container } = mountViewer();

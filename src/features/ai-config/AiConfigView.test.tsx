@@ -138,8 +138,8 @@ describe("AiConfigView list and loading (r4-fe4)", () => {
   it("reserves four fixed-height skeleton rows while detection runs", () => {
     const html = render({ status: "loading" });
 
-    expect(html.match(/ai-tool-skeleton"/g)).toHaveLength(4);
-    expect(html).toContain('aria-hidden="true" class="m-0 grid list-none');
+    expect(html.match(/ai-tool-skeleton[^"]*h-control-md/g)).toHaveLength(4);
+    expect(html).toContain('aria-hidden="true" class="m-0 grid list-none gap-ui-2');
   });
 
   it("keeps paths and versions out of the list rows, leaving them to the selected detail", () => {

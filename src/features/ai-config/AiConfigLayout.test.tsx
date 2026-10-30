@@ -98,6 +98,31 @@ describe("AI 工具页布局（UIB-4d）", () => {
   it("falls back to the first tool when the selected id is no longer reported", () => {
     expect(selectedToolOf(TOOLS, "missing-tool")?.id).toBe("claude-code");
   });
+
+  it("packs the tool rows tightly: compact gap and no fixed two-line row class", () => {
+    const markup = renderView();
+    const toolList = markup.match(/<ul aria-label="AI 工具列表"[^>]*>/)?.[0] ?? "";
+    expect(toolList).toContain("gap-ui-2");
+    expect(toolList).not.toContain("gap-ui-4");
+    expect(markup).not.toContain("ai-tool-row");
+  });
+
+  it("puts only the selected tool's detail in the right column and hides the Claude panels for other tools", () => {
+    const markup = renderToStaticMarkup(
+      <AiConfigView
+        state={READY}
+        selectedToolId="codex-cli"
+        onSelectTool={noop}
+        onRefresh={noop}
+        claudePanel={<p>设置占位</p>}
+      />,
+    );
+    const detail = markup.match(/<section aria-label="所选工具"[\s\S]*?<\/section>/)?.[0] ?? "";
+    expect(detail).toContain(">Codex CLI</h3>");
+    expect(detail).not.toContain(">Claude Code</h3>");
+    expect(markup).toMatch(/<div hidden=""><div class="[^"]*"><p>设置占位<\/p>/);
+    expect(markup).toMatch(/aria-current="true"[^>]*>(?:(?!<\/button>).)*Codex CLI/);
+  });
 });
 
 describe("AI 工具页没有顶部分区 tabs（r5-ai）", () => {
