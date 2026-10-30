@@ -12,6 +12,7 @@ import { servicesZh } from "./services";
 import { settingsZh } from "./settings";
 import { shellZh } from "./shell";
 import { systemToolsZh } from "./systemTools";
+import { skillhubZh } from "./skillhub";
 
 export const zhCN = {
   ...shellZh,
@@ -28,6 +29,7 @@ export const zhCN = {
   ...appConfigZh,
   ...environmentEditorsZh,
   ...environmentModelsZh,
+  ...skillhubZh,
 } as const;
 
 export type MessageKey = keyof typeof zhCN;

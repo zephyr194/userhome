@@ -36,8 +36,8 @@ describe("route sections", () => {
     ]);
   });
 
-  it("keeps eight primary navigation entries", () => {
-    expect(primaryNavigationRoutes(APP_ROUTES)).toHaveLength(8);
+  it("keeps nine primary navigation entries", () => {
+    expect(primaryNavigationRoutes(APP_ROUTES)).toHaveLength(9);
   });
 
   it("uses the stored section when the route declares it and the first section otherwise", () => {
