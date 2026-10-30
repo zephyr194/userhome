@@ -137,17 +137,29 @@ function renderView(
   return actions;
 }
 
-function bodyRow(name: string): HTMLElement {
-  const table = screen.getByRole("table");
-  const row = within(table)
-    .getAllByRole("row")
-    .slice(1)
-    .find((candidate) => candidate.querySelector("code")?.textContent === name);
-  if (!row) throw new Error(`no row for ${name}`);
-  return row;
+function variableList(): HTMLElement {
+  return screen.getByRole("region", { name: "目录 dotenv 的变量" });
 }
 
-describe("dotenv table: a key that repeats in one file", () => {
+function detail(): HTMLElement {
+  return screen.getByRole("region", { name: "选中变量的详情" });
+}
+
+function listNames(): (string | undefined)[] {
+  return within(variableList())
+    .getAllByRole("button")
+    .map((button) => button.querySelector("code")?.textContent);
+}
+
+function selectVariable(name: string) {
+  const button = within(variableList())
+    .getAllByRole("button")
+    .find((candidate) => candidate.querySelector("code")?.textContent === name);
+  if (!button) throw new Error(`no variable row for ${name}`);
+  fireEvent.click(button);
+}
+
+describe("dotenv list: a key that repeats in one file", () => {
   const files = {
     ".env": file(".env", [
       entry(1, "PORT", "3000"),
@@ -156,99 +168,120 @@ describe("dotenv table: a key that repeats in one file", () => {
     ]),
   };
 
-  it("shows the value that takes effect as the final value, once per name", () => {
+  it("lists one row per name in alphabetical order", () => {
     renderView(directory(files));
-    const table = screen.getByRole("table", { name: "目录 dotenv 的变量" });
-    expect(within(table).getAllByRole("row").slice(1)).toHaveLength(2);
-    expect(within(bodyRow("PORT")).getByText("8080")).toBeTruthy();
-    expect(within(bodyRow("PORT")).getByText(".env:3")).toBeTruthy();
+    expect(listNames()).toEqual(["HOST", "PORT"]);
   });
 
-  it("marks the final value with a 最终 badge once the chain is opened", () => {
+  it("shows the value that takes effect as the final value, with its source", () => {
     renderView(directory(files));
-    fireEvent.click(within(bodyRow("PORT")).getByRole("button", { name: "过程值 1" }));
-    expect(screen.getByText("最终")).toBeTruthy();
+    selectVariable("PORT");
+    expect(within(detail()).getByText("最终生效值")).toBeTruthy();
+    expect(within(detail()).getByText("8080")).toBeTruthy();
+    expect(within(detail()).getByText(".env:3")).toBeTruthy();
   });
 
-  it("keeps the earlier line as a process value that opens on demand", () => {
+  it("keeps the earlier line as a process value that shows once the name is selected", () => {
     renderView(directory(files));
     expect(screen.queryByText("3000")).toBeNull();
-    fireEvent.click(within(bodyRow("PORT")).getByRole("button", { name: "过程值 1" }));
-    expect(screen.getByText("3000")).toBeTruthy();
-    expect(screen.getByText(".env:1")).toBeTruthy();
+    selectVariable("PORT");
+    expect(within(detail()).getByText("过程值（读取顺序）")).toBeTruthy();
+    expect(within(detail()).getByText("3000")).toBeTruthy();
+    expect(within(detail()).getByText(".env:1")).toBeTruthy();
   });
 
   it("opens the editor on the line that takes effect", () => {
     const actions = renderView(directory(files));
-    fireEvent.click(screen.getByRole("button", { name: "修改 PORT" }));
+    selectVariable("PORT");
+    fireEvent.click(within(detail()).getByRole("button", { name: "修改 PORT" }));
     expect(actions.editRow).toHaveBeenLastCalledWith(".env", 3);
-    fireEvent.click(screen.getByRole("button", { name: "修改 HOST" }));
+    selectVariable("HOST");
+    fireEvent.click(within(detail()).getByRole("button", { name: "修改 HOST" }));
     expect(actions.editRow).toHaveBeenLastCalledWith(".env", 2);
   });
 });
 
-describe("dotenv table: a name defined in several files", () => {
+describe("dotenv list: a single-file key", () => {
+  it("shows its value as the final value once it is selected, with the line it comes from", () => {
+    renderView(directory({ ".env": file(".env", [entry(1, "HOST", "localhost")]) }));
+    selectVariable("HOST");
+    expect(within(detail()).getByText("最终生效值")).toBeTruthy();
+    expect(within(detail()).getByText("localhost")).toBeTruthy();
+    expect(within(detail()).getByText(".env:1")).toBeTruthy();
+    expect(within(detail()).queryByText("过程值（读取顺序）")).toBeNull();
+  });
+});
+
+describe("dotenv list: a name defined in several files", () => {
   const files = {
     ".env": file(".env", [entry(1, "PORT", "3000")]),
     "app/.env.local": file("app/.env.local", [entry(4, "PORT", "5000"), entry(5, "REGION", "cn")]),
   };
 
-  it("lists the name once with a count of files and no final badge", () => {
+  it("lists the name once with a count of files and no final value", () => {
     renderView(directory(files));
-    const row = bodyRow("PORT");
-    expect(within(row).getByText("在 2 个文件中定义")).toBeTruthy();
-    expect(within(row).getByText("多个文件")).toBeTruthy();
-    expect(within(row).queryByText("最终")).toBeNull();
-    expect(within(row).queryByText("3000")).toBeNull();
-    expect(screen.getAllByText("PORT")).toHaveLength(1);
+    expect(listNames()).toEqual(["PORT", "REGION"]);
+    expect(within(variableList()).getByRole("button", { name: /^PORT.*在 2 个文件中定义/ })).toBeTruthy();
+    selectVariable("PORT");
+    expect(within(detail()).queryByText("最终生效值")).toBeNull();
+    expect(within(detail()).queryByText("8080")).toBeNull();
   });
 
   it("explains that no file is ranked above another", () => {
     renderView(directory(files));
+    selectVariable("PORT");
     expect(screen.getByText(/这里不判断哪一个生效/)).toBeTruthy();
+    expect(within(detail()).getByText(/这里不推断/)).toBeTruthy();
   });
 
-  it("lists each file's value side by side in the expansion, without a final badge", () => {
+  it("lists each file's value side by side in the detail, without a final value", () => {
     renderView(directory(files));
-    fireEvent.click(within(bodyRow("PORT")).getByRole("button", { name: "各文件的值 2" }));
-    const list = screen.getByRole("list", { name: "PORT 在各文件中的值" });
-    expect(within(list).getByText("3000")).toBeTruthy();
-    expect(within(list).getByText("5000")).toBeTruthy();
-    expect(within(list).getByText(".env:1")).toBeTruthy();
-    expect(within(list).getByText("app/.env.local:4")).toBeTruthy();
-    expect(within(list).queryByText("最终")).toBeNull();
+    selectVariable("PORT");
+    expect(within(detail()).getByText("各文件的值（读取顺序）")).toBeTruthy();
+    expect(within(detail()).getByText("3000")).toBeTruthy();
+    expect(within(detail()).getByText("5000")).toBeTruthy();
+    expect(within(detail()).getByText(".env:1")).toBeTruthy();
+    expect(within(detail()).getByText("app/.env.local:4")).toBeTruthy();
+    expect(within(detail()).queryByText("最终生效值")).toBeNull();
   });
 
-  it("has no edit or reveal action on the merged row", () => {
+  it("has no edit or reveal action on the merged name", () => {
     renderView(directory(files));
+    selectVariable("PORT");
     expect(screen.queryByRole("button", { name: "修改 PORT" })).toBeNull();
     expect(screen.queryByRole("button", { name: "载入" })).toBeNull();
   });
 
-  it("gives the single-file row an edit action once the file filter narrows the list", () => {
+  it("gives the single-file row a final value and an edit action once the file filter narrows the list", () => {
     const actions = renderView(directory(files, "app/.env.local"));
-    expect(within(bodyRow("PORT")).getByText("5000")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "修改 PORT" }));
+    selectVariable("PORT");
+    expect(within(detail()).getByText("最终生效值")).toBeTruthy();
+    expect(within(detail()).getByText("5000")).toBeTruthy();
+    fireEvent.click(within(detail()).getByRole("button", { name: "修改 PORT" }));
     expect(actions.editRow).toHaveBeenCalledWith("app/.env.local", 4);
   });
 
   it("renders the merged name in English", () => {
     renderView(directory(files), {}, "en");
-    expect(within(bodyRow("PORT")).getByText("Defined in 2 files")).toBeTruthy();
-    expect(within(bodyRow("PORT")).getByText("Several files")).toBeTruthy();
-    expect(within(bodyRow("PORT")).getByRole("button", { name: "Values in 2 files" })).toBeTruthy();
+    const list = screen.getByRole("region", { name: "Directory dotenv variables" });
+    expect(within(list).getByText("Defined in 2 files")).toBeTruthy();
+    fireEvent.click(within(list).getByRole("button", { name: /^PORT/ }));
+    const englishDetail = screen.getByRole("region", { name: "Selected variable details" });
+    expect(within(englishDetail).getByText("Values in each file (reading order)")).toBeTruthy();
+    expect(within(englishDetail).queryByText("Final value")).toBeNull();
   });
 });
 
-describe("dotenv table: a file that was cut short", () => {
+describe("dotenv list: a file that was cut short", () => {
   it("shows the truncated note on the names it defines", () => {
     renderView(
       directory({
         ".env": file(".env", [entry(1, "PORT", "3000"), entry(2, "PORT", "4000")], true),
       }),
     );
+    selectVariable("PORT");
     expect(
-      within(bodyRow("PORT")).getByText("文件行数过多，只读取了前面的行，后面可能还有同名变量。"),
+      within(detail()).getByText("文件行数过多，只读取了前面的行，后面可能还有同名变量。"),
     ).toBeTruthy();
   });
 
@@ -258,9 +291,10 @@ describe("dotenv table: a file that was cut short", () => {
         ".env": file(".env", [entry(1, "HOST", "localhost")], true),
       }),
     );
-    expect(within(bodyRow("HOST")).getByText("localhost")).toBeTruthy();
+    selectVariable("HOST");
+    expect(within(detail()).getByText("localhost")).toBeTruthy();
     expect(
-      within(bodyRow("HOST")).getByText("文件行数过多，只读取了前面的行，后面可能还有同名变量。"),
+      within(detail()).getByText("文件行数过多，只读取了前面的行，后面可能还有同名变量。"),
     ).toBeTruthy();
   });
 });

@@ -95,28 +95,45 @@ function renderView(state: ZshState, overrides: Partial<ZshViewProps> = {}) {
   );
 }
 
-function variableTable(): HTMLElement {
-  return screen.getByRole("table", { name: "zsh 变量的最终值与过程值" });
+function variableList(): HTMLElement {
+  return screen.getByRole("region", { name: "zsh 变量的最终值与过程值" });
 }
 
-describe("zsh view: a name assigned in more than one file", () => {
+function detail(): HTMLElement {
+  return screen.getByRole("region", { name: "选中变量的详情" });
+}
+
+function rowsNamed(name: string): HTMLElement[] {
+  return within(variableList())
+    .getAllByRole("button")
+    .filter((candidate) => candidate.querySelector("code")?.textContent === name);
+}
+
+function selectRow(name: string, index = 0) {
+  const button = rowsNamed(name)[index];
+  if (!button) throw new Error(`no variable row for ${name}`);
+  fireEvent.click(button);
+}
+
+describe("zsh list: a name assigned in more than one file", () => {
   it("shows one row per scope when the final values differ, each with its shells", () => {
     renderView(stateOf(FILES));
-    const table = within(variableTable());
-    expect(table.getAllByText("EDITOR")).toHaveLength(2);
-    expect(table.getByText("vim")).toBeTruthy();
-    expect(table.getByText("code")).toBeTruthy();
-    expect(table.getByText("所有 zsh")).toBeTruthy();
-    expect(table.getByText("仅交互 shell")).toBeTruthy();
+    expect(rowsNamed("EDITOR")).toHaveLength(2);
+    expect(within(detail()).getByText("vim")).toBeTruthy();
+    expect(within(detail()).getByText("所有 zsh")).toBeTruthy();
+    selectRow("EDITOR", 1);
+    expect(within(detail()).getByText("code")).toBeTruthy();
+    expect(within(detail()).getByText("仅交互 shell")).toBeTruthy();
   });
 
-  it("keeps the earlier value of the narrower row as a process value, opened by 过程值 N", () => {
+  it("keeps the earlier value of the narrower row as a process value, listed in reading order", () => {
     renderView(stateOf(FILES));
-    fireEvent.click(screen.getByRole("button", { name: "过程值 1" }));
-    const detail = within(screen.getByRole("list", { name: "EDITOR 的读取顺序" }));
-    expect(detail.getByText(".zshenv:1")).toBeTruthy();
-    expect(detail.getByText("最终")).toBeTruthy();
-    expect(detail.getByText(".zshrc:3")).toBeTruthy();
+    selectRow("EDITOR", 1);
+    const steps = within(screen.getByRole("list", { name: "EDITOR 的读取顺序" }));
+    expect(steps.getByText(".zshenv:1")).toBeTruthy();
+    expect(steps.getByText("vim")).toBeTruthy();
+    expect(within(detail()).getByText("code")).toBeTruthy();
+    expect(within(detail()).getByText("最终生效值")).toBeTruthy();
   });
 
   it("gives a same-scope replacement one row, with the earlier value as its process value", () => {
@@ -126,12 +143,12 @@ describe("zsh view: a name assigned in more than one file", () => {
         file("ZLOGIN", ready([entry({ line: 3, name: "EDITOR", value: "code" })])),
       ]),
     );
-    const table = within(variableTable());
-    expect(table.getAllByText("EDITOR")).toHaveLength(1);
-    expect(table.queryByText("vim")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "过程值 1" }));
-    expect(screen.getByText(".zprofile:1")).toBeTruthy();
-    expect(screen.getByText("vim")).toBeTruthy();
+    expect(rowsNamed("EDITOR")).toHaveLength(1);
+    selectRow("EDITOR");
+    expect(within(detail()).getByText("code")).toBeTruthy();
+    const steps = within(screen.getByRole("list", { name: "EDITOR 的读取顺序" }));
+    expect(steps.getByText(".zprofile:1")).toBeTruthy();
+    expect(steps.getByText("vim")).toBeTruthy();
   });
 
   it("keeps both rows when the last one appends, and marks the append", () => {
@@ -141,16 +158,42 @@ describe("zsh view: a name assigned in more than one file", () => {
         file("ZSHRC", ready([entry({ line: 2, name: "PATH", operation: "APPEND", value: "/opt/bin" })])),
       ]),
     );
-    const table = within(variableTable());
-    expect(table.getAllByText("PATH")).toHaveLength(2);
-    expect(table.getByText("追加")).toBeTruthy();
-    expect(table.getByText("/usr/bin")).toBeTruthy();
-    expect(table.getByText("/opt/bin")).toBeTruthy();
+    expect(rowsNamed("PATH")).toHaveLength(2);
+    selectRow("PATH", 0);
+    expect(within(detail()).getByText("/usr/bin")).toBeTruthy();
+    selectRow("PATH", 1);
+    expect(within(detail()).getByText("/opt/bin")).toBeTruthy();
+    expect(within(detail()).getByText("追加")).toBeTruthy();
   });
 
   it("no longer shows the separate same-name section", () => {
     renderView(stateOf(FILES));
     expect(screen.queryByText("同名项对照")).toBeNull();
+  });
+});
+
+describe("zsh view: references are expanded from earlier assignments", () => {
+  it("shows the expanded value as final, with the written value noted", () => {
+    renderView(
+      stateOf([
+        file("ZSHENV", ready([entry({ line: 1, name: "BASE", value: "/opt" })])),
+        file("ZSHRC", ready([entry({ line: 2, name: "BIN", value: "$BASE/bin", state: "REFERENCE" })])),
+      ]),
+    );
+    selectRow("BIN");
+    expect(within(detail()).getByText("/opt/bin")).toBeTruthy();
+    expect(within(detail()).getByText("由原文 $BASE/bin 展开得到")).toBeTruthy();
+  });
+
+  it("shows a reference with no earlier assignment as written, and says why", () => {
+    renderView(
+      stateOf([
+        file("ZSHENV", ready([entry({ line: 1, name: "BIN", value: "$HOME/bin", state: "REFERENCE" })])),
+      ]),
+    );
+    selectRow("BIN");
+    expect(within(detail()).getByText("$HOME/bin")).toBeTruthy();
+    expect(within(detail()).getByText(/引用的 HOME 在它之前没有可确定的赋值，无法算出结果/)).toBeTruthy();
   });
 });
 
@@ -162,13 +205,14 @@ describe("zsh view: variable actions", () => {
     expect(onEditFile).toHaveBeenCalledWith("ZSHRC", { kind: "addition" });
   });
 
-  it("opens the file and line of the assignment each 修改 button belongs to", () => {
+  it("opens the file and line of the assignment the selected row belongs to", () => {
     const onEditFile = vi.fn();
     renderView(stateOf(FILES), { onEditFile });
-    const [zshenvEdit, zshrcEdit] = screen.getAllByRole("button", { name: "修改 EDITOR" });
-    fireEvent.click(zshrcEdit as HTMLElement);
+    selectRow("EDITOR", 1);
+    fireEvent.click(within(detail()).getByRole("button", { name: "修改 EDITOR" }));
     expect(onEditFile).toHaveBeenLastCalledWith("ZSHRC", { kind: "variable", name: "EDITOR", line: 3 });
-    fireEvent.click(zshenvEdit as HTMLElement);
+    selectRow("EDITOR", 0);
+    fireEvent.click(within(detail()).getByRole("button", { name: "修改 EDITOR" }));
     expect(onEditFile).toHaveBeenLastCalledWith("ZSHENV", { kind: "variable", name: "EDITOR", line: 1 });
   });
 

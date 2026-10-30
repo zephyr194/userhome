@@ -20,6 +20,18 @@ export type ChainValue =
   /** A long non-secret value that the list does not carry; fetched on demand. */
   | { readonly kind: "withheld" };
 
+/** Why a written value cannot be worked out without running the shell. */
+export type UnresolvedReason = "reference" | "hidden" | "dynamic" | "append" | "complex";
+
+/**
+ * The value that results from the written text. `reference` names the variable
+ * that has no earlier static assignment; `hidden` names a secret or long value
+ * that is not expanded.
+ */
+export type Effective =
+  | { readonly kind: "text"; readonly text: string }
+  | { readonly kind: "unresolved"; readonly reason: UnresolvedReason; readonly names: readonly string[] };
+
 export interface ChainSource {
   readonly file: string;
   readonly line?: number;
@@ -31,6 +43,7 @@ export interface ChainStep {
   readonly scope?: ZshAppliesTo;
   readonly state?: ZshValueState;
   readonly append?: boolean;
+  readonly effective?: Effective;
 }
 
 export interface VariableChainRow {
@@ -68,9 +81,12 @@ interface ZshItem {
   readonly name: string;
   readonly fileName: string;
   readonly appliesTo: ZshAppliesTo;
+  readonly position: number;
   readonly row: ZshEntryRow;
   readonly key: string;
 }
+
+type EffectiveOf = (item: ZshItem) => Effective | undefined;
 
 function zshValue(row: ZshEntryRow): ChainValue {
   if (!row.hasValue) return { kind: "empty" };
@@ -79,23 +95,26 @@ function zshValue(row: ZshEntryRow): ChainValue {
   return { kind: "text", text: row.value };
 }
 
-function zshStep(item: ZshItem, scope?: ZshAppliesTo): ChainStep {
+function zshStep(item: ZshItem, effectiveOf: EffectiveOf, scope?: ZshAppliesTo): ChainStep {
+  const effective = effectiveOf(item);
   return {
     value: zshValue(item.row),
     source: { file: item.fileName, line: item.row.line },
     ...(scope === undefined ? {} : { scope }),
     ...(item.row.state === "STATIC" ? {} : { state: item.row.state }),
     ...(item.row.operation === "APPEND" ? { append: true } : {}),
+    ...(effective === undefined ? {} : { effective }),
   };
 }
 
-/** Two finals with the same known text merge; masked, dynamic or unknown ones never do. */
-function comparableText(item: ZshItem): string | undefined {
+/** Two finals with the same known effective text merge; masked, dynamic or unknown ones never do. */
+function comparableText(item: ZshItem, effectiveOf: EffectiveOf): string | undefined {
   if (item.row.state === "DYNAMIC") return undefined;
   const value = zshValue(item.row);
-  if (value.kind === "text") return `text:${value.text}`;
   if (value.kind === "empty") return "empty";
-  return undefined;
+  if (value.kind !== "text") return undefined;
+  const effective = effectiveOf(item);
+  return effective?.kind === "text" ? `text:${effective.text}` : undefined;
 }
 
 function zshNameRows(
@@ -103,6 +122,7 @@ function zshNameRows(
   items: readonly ZshItem[],
   resolution: ZshNameResolution,
   overriddenNote: string,
+  effectiveOf: EffectiveOf,
 ): VariableChainRow[] {
   const visible = items.filter((item) => !resolution.hidden.has(item.key));
   const finals = SCOPE_ORDER.flatMap((scope) => {
@@ -112,11 +132,11 @@ function zshNameRows(
   });
   if (finals.length === 0) return [];
 
-  const first = comparableText(finals[0] as ZshItem);
+  const first = comparableText(finals[0] as ZshItem, effectiveOf);
   const sameText =
     finals.length > 1 &&
     first !== undefined &&
-    finals.every((item) => comparableText(item) === first);
+    finals.every((item) => comparableText(item, effectiveOf) === first);
 
   const outcomes = sameText
     ? [finals.reduce((latest, item) => (items.indexOf(item) > items.indexOf(latest) ? item : latest))]
@@ -127,11 +147,100 @@ function zshNameRows(
     const earlier = items.slice(0, items.indexOf(final));
     return {
       name,
-      final: zshStep(final, sameText || finals.length === 1 ? undefined : final.appliesTo),
-      chain: earlier.map((item) => zshStep(item, item.appliesTo)),
+      final: zshStep(final, effectiveOf, sameText || finals.length === 1 ? undefined : final.appliesTo),
+      chain: earlier.map((item) => zshStep(item, effectiveOf, item.appliesTo)),
       ...(note === undefined ? {} : { note }),
     };
   });
+}
+
+const REFERENCE_TOKEN = /\$\{([^}]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)|\$|\\/g;
+const SHELL_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+type Resolved =
+  | { readonly ok: true; readonly text: string }
+  | { readonly ok: false; readonly reason: UnresolvedReason; readonly names: readonly string[] };
+
+function failed(reason: UnresolvedReason, names: readonly string[] = []): Resolved {
+  return { ok: false, reason, names };
+}
+
+/**
+ * Works out the value each assignment leaves, from the assignments a shell reads
+ * before it. A reference reads the latest earlier assignment of its name that the
+ * same shell reads; anything that needs the shell itself stays unresolved.
+ */
+function zshEffectiveResolver(items: readonly ZshItem[], unreadablePositions: readonly number[]): EffectiveOf {
+  const memo = new Map<number, Resolved>();
+
+  const latestVisibleBefore = (index: number, name: string): number => {
+    const { appliesTo } = items[index] as ZshItem;
+    for (let earlier = index - 1; earlier >= 0; earlier -= 1) {
+      const other = items[earlier] as ZshItem;
+      if (other.name === name && (other.appliesTo === "ALL" || other.appliesTo === appliesTo)) {
+        return earlier;
+      }
+    }
+    return -1;
+  };
+
+  const lookup = (index: number, name: string): Resolved => {
+    const source = latestVisibleBefore(index, name);
+    if (source < 0) return failed("reference", [name]);
+    const low = (items[source] as ZshItem).position;
+    const high = (items[index] as ZshItem).position;
+    if (unreadablePositions.some((position) => position > low && position < high)) {
+      return failed("reference", [name]);
+    }
+    const sub = valueAt(source);
+    if (sub.ok) return sub;
+    return failed(sub.reason, sub.reason === "reference" ? sub.names : [name]);
+  };
+
+  const expand = (index: number, text: string): Resolved => {
+    let out = "";
+    let last = 0;
+    for (const match of text.matchAll(REFERENCE_TOKEN)) {
+      const [token, braced, plain] = match;
+      const at = match.index ?? 0;
+      out += text.slice(last, at);
+      last = at + token.length;
+      const name = braced ?? plain;
+      if (name === undefined || !SHELL_NAME.test(name)) return failed("complex");
+      const resolved = lookup(index, name);
+      if (!resolved.ok) return resolved;
+      out += resolved.text;
+    }
+    return { ok: true, text: out + text.slice(last) };
+  };
+
+  const compute = (index: number): Resolved => {
+    const item = items[index] as ZshItem;
+    if (item.row.state === "DYNAMIC") return failed("dynamic");
+    if (item.row.operation === "APPEND") return failed("append");
+    const value = zshValue(item.row);
+    if (value.kind === "empty") return { ok: true, text: "" };
+    if (value.kind !== "text") return failed("hidden", [item.name]);
+    if (item.row.state !== "REFERENCE") return { ok: true, text: value.text };
+    return expand(index, value.text);
+  };
+
+  const valueAt = (index: number): Resolved => {
+    const cached = memo.get(index);
+    if (cached) return cached;
+    const result = compute(index);
+    memo.set(index, result);
+    return result;
+  };
+
+  return (item) => {
+    const value = zshValue(item.row);
+    if (value.kind === "masked" || value.kind === "withheld") return undefined;
+    const result = valueAt(items.indexOf(item));
+    return result.ok
+      ? { kind: "text", text: result.text }
+      : { kind: "unresolved", reason: result.reason, names: result.names };
+  };
 }
 
 /**
@@ -155,14 +264,26 @@ export function zshVariableRows(
         name: row.name,
         fileName: file.name,
         appliesTo: file.appliesTo,
+        position: file.position,
         row,
         key: zshRowKey(file.file as ZshFileKey, row.line),
       });
     }
   }
+  const truncated = files.some((file) => file.outcome.status === "READY" && file.outcome.rowsTruncated);
+  const unreadablePositions = files
+    .filter(
+      (file) =>
+        file.outcome.status !== "READY" &&
+        !(file.outcome.status === "UNAVAILABLE" && file.outcome.reason === "NOT_FOUND"),
+    )
+    .map((file) => file.position);
+  const effectiveOf: EffectiveOf = truncated
+    ? () => undefined
+    : zshEffectiveResolver(items, unreadablePositions);
   const rows: VariableChainRow[] = [];
   for (const [name, group] of groupByName(items)) {
-    rows.push(...zshNameRows(name, group, resolution, t("env.chain.overridden")));
+    rows.push(...zshNameRows(name, group, resolution, t("env.chain.overridden"), effectiveOf));
   }
   return rows.sort(compareVariableNames);
 }

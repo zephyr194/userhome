@@ -6,7 +6,7 @@ import type { LanguagePreference } from "../../i18n";
 import { EnvironmentPage } from "./EnvironmentPage";
 import { EnvironmentView, type EnvironmentActions } from "./EnvironmentView";
 import { LaunchctlView, type LaunchctlState } from "./LaunchctlView";
-import { VariableChainList } from "./VariableChainTable";
+import { VariableChainList } from "./VariableChainList";
 import { ZshView, type ZshViewProps } from "./ZshView";
 import { INITIAL_ZSH_STATE } from "./zshModel";
 import { EMPTY_DIRECTORY } from "./dotenvDirectoryModel";

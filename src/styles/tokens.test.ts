@@ -134,7 +134,6 @@ function pick(map: Declarations, names: readonly string[]): Declarations {
 }
 
 const SCOPED_LOCALS = [
-  "--app-line-height-row",
   "--app-page-master-width",
   "--app-page-status-dot",
   "--r12-shell-notice-max-width",
