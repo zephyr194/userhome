@@ -224,12 +224,14 @@ pub struct EditSchema {
 }
 
 /// Schemas exist only for writable entries. The Zed entry is advanced-only:
-/// JSONC comments do not survive a structured rewrite.
+/// JSONC comments do not survive a structured rewrite. Key-value entries have no
+/// static fields; their keys come from the file being edited.
 pub fn schema_for(entry_id: &str, format: Format) -> Option<EditSchema> {
-    let fields: &'static [FieldSpec] = match entry_id {
-        "git-config-home" | "git-config-xdg" => GIT_FIELDS,
-        "alacritty-config" => ALACRITTY_FIELDS,
-        "zed-settings" => &[],
+    let fields: &'static [FieldSpec] = match (entry_id, format) {
+        ("git-config-home" | "git-config-xdg", _) => GIT_FIELDS,
+        ("alacritty-config", _) => ALACRITTY_FIELDS,
+        ("zed-settings", _) => &[],
+        (_, Format::KeyValue) => &[],
         _ => return None,
     };
     Some(EditSchema {
@@ -249,6 +251,7 @@ pub fn format_label(format: Format) -> &'static str {
         Format::Plist => "属性列表",
         Format::Dotenv => "环境变量文件",
         Format::Text => "纯文本",
+        Format::KeyValue => "键值对（键 = 值）",
     }
 }
 

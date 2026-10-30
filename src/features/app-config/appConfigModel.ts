@@ -259,6 +259,7 @@ export function codeLanguageFor(
     case "toml":
       return "toml";
     case "ini":
+    case "keyValue":
       return "ini";
     case "dotenv":
       return "dotenv";

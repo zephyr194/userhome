@@ -25,6 +25,8 @@ pub enum Format {
     Ini,
     Dotenv,
     Text,
+    #[serde(rename = "keyValue")]
+    KeyValue,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -394,10 +396,10 @@ pub const BUILTIN_ENTRIES: &[Entry] = &[
         name: "Ghostty 配置",
         category: Category::Terminal,
         location: Location::Home(".config/ghostty/config.ghostty"),
-        format: Format::Text,
-        capability: Capability::ReadOnly,
+        format: Format::KeyValue,
+        capability: Capability::Writable,
         sensitivity: Sensitivity::SensitiveKeys,
-        metadata_only: true,
+        metadata_only: false,
         source: Source {
             url: "https://ghostty.org/docs/config",
             verified_on: VERIFIED_ON,

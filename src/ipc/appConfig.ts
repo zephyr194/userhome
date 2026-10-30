@@ -20,6 +20,7 @@ export const APP_CONFIG_FORMATS = [
   "ini",
   "dotenv",
   "text",
+  "keyValue",
 ] as const;
 export type AppConfigFormat = (typeof APP_CONFIG_FORMATS)[number];
 
@@ -348,8 +349,17 @@ export interface AppConfigFieldReadout {
   value: AppConfigFieldValue;
 }
 
+export interface AppConfigKeyValueReadout {
+  key: string;
+  /** Null for sensitive keys and for repeated keys, whose values are never shown. */
+  value: string | null;
+  sensitive: boolean;
+  repeated: boolean;
+}
+
 export interface AppConfigEditRead {
   fields: AppConfigFieldReadout[];
+  keyValues: AppConfigKeyValueReadout[];
   rawText: string | null;
   hash: string;
   rawBlockedReason: string | null;
@@ -460,10 +470,21 @@ function decodeFieldReadout(value: unknown): AppConfigFieldReadout {
   };
 }
 
+function decodeKeyValueReadout(value: unknown): AppConfigKeyValueReadout {
+  const record = requireRecord(value);
+  return {
+    key: requireNonEmptyString(record.key),
+    value: requireNullableString(record.value),
+    sensitive: requireBoolean(record.sensitive),
+    repeated: requireBoolean(record.repeated),
+  };
+}
+
 export function decodeAppConfigEditRead(value: unknown): AppConfigEditRead {
   const record = requireRecord(value);
   return {
     fields: requireArray(record.fields).map(decodeFieldReadout),
+    keyValues: requireArray(record.keyValues).map(decodeKeyValueReadout),
     rawText: requireNullableString(record.rawText),
     hash: requireString(record.hash),
     rawBlockedReason: requireNullableString(record.rawBlockedReason),

@@ -107,7 +107,9 @@ fn render(format: Format, bytes: &[u8]) -> ReadResult {
     match format {
         Format::Json => render_json("JSON", content),
         Format::Jsonc => render_json("JSONC", content),
-        Format::Ini | Format::Toml | Format::Text => render_keyed_lines(format, content),
+        Format::Ini | Format::Toml | Format::Text | Format::KeyValue => {
+            render_keyed_lines(format, content)
+        }
         Format::Plist | Format::Dotenv => ReadResult::Failed {
             kind: ReadFailure::Unreadable,
         },
@@ -173,7 +175,11 @@ fn render_keyed_lines(format: Format, content: &str) -> ReadResult {
             });
             continue;
         };
-        let value = strip_inline_comment(value);
+        let value = if format == Format::KeyValue {
+            value
+        } else {
+            strip_inline_comment(value)
+        };
         let (shown, changed) = mask_assignment(format, key, value);
         redacted |= changed;
         output.push(match format {
@@ -199,7 +205,7 @@ fn render_keyed_lines(format: Format, content: &str) -> ReadResult {
 
 fn split_pair(line: &str, format: Format) -> Option<(&str, &str)> {
     match format {
-        Format::Ini | Format::Toml => {
+        Format::Ini | Format::Toml | Format::KeyValue => {
             let (key, value) = line.split_once('=')?;
             let key = key.trim();
             (!key.is_empty()).then_some((key, value.trim()))

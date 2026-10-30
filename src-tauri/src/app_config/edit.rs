@@ -21,9 +21,10 @@ use crate::{
             Change, Lookup, RawError, apply_change, check_raw, lookup, raw_secret_present,
             scalar_value,
         },
+        patch_kv::{self, KeyValueReadout},
         pending::{AppConfigEditState, PendingEdit},
         read::{REDACTED, ReadResult, read_entry},
-        registry::{Capability, Entry, Location, Registry, resolve_path},
+        registry::{Capability, Entry, Format, Location, Registry, resolve_path},
         schema::{EditSchema, FieldSpec, schema_for, typed_value},
     },
     config::{
@@ -127,6 +128,7 @@ pub struct FieldReadout {
 #[serde(rename_all = "camelCase")]
 pub struct EditRead {
     pub fields: Vec<FieldReadout>,
+    pub key_values: Vec<KeyValueReadout>,
     pub raw_text: Option<String>,
     pub hash: String,
     pub raw_blocked_reason: Option<&'static str>,
@@ -266,6 +268,11 @@ pub fn read_for_edit(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<Ed
         .iter()
         .map(|field| field_readout(entry, &text, field))
         .collect();
+    let key_values = if entry.format == Format::KeyValue {
+        patch_kv::readouts(&text)
+    } else {
+        Vec::new()
+    };
     let (raw_text, raw_blocked_reason) = if raw_secret_present(entry.format, &text) {
         (None, Some(SECRET_RAW_REASON))
     } else {
@@ -273,6 +280,7 @@ pub fn read_for_edit(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<Ed
     };
     Ok(EditRead {
         fields,
+        key_values,
         raw_text,
         hash,
         raw_blocked_reason,
@@ -357,6 +365,9 @@ pub fn preview(
         });
     }
     let mut plan = match input.mode {
+        EditMode::Fields if entry.format == Format::KeyValue => {
+            plan_key_values(&current, &input.changes)
+        }
         EditMode::Fields => plan_fields(entry.format, &schema, &current, &input.changes),
         EditMode::Raw => plan_raw(entry.format, input.raw_text.as_deref()),
     };
@@ -390,6 +401,38 @@ pub fn preview(
         warnings: plan.warnings,
         preview_token: Some(token),
     })
+}
+
+fn plan_key_values(current: &str, changes: &[FieldChange]) -> Plan {
+    let mut plan = Plan::new(current.to_owned());
+    let mut seen = HashSet::new();
+    for change in changes {
+        if !seen.insert(change.path.as_str()) {
+            plan.issue(Some(change.path.as_str()), None, "同一个字段只能修改一次。");
+            continue;
+        }
+        let next = if change.value.is_null() {
+            patch_kv::remove_key(&plan.proposed, &change.path)
+        } else {
+            match change.value.as_str() {
+                Some(value) => match patch_kv::check_value(value) {
+                    Ok(()) => patch_kv::set_value(&plan.proposed, &change.path, value),
+                    Err(message) => Err(message.to_owned()),
+                },
+                None => Err("这个设置只接受文本值。".to_owned()),
+            }
+        };
+        match next {
+            Ok(text) => plan.proposed = text,
+            Err(message) => plan.issue(Some(change.path.as_str()), None, message),
+        }
+    }
+    if plan.issues.is_empty()
+        && let Err(RawError { line, message }) = check_raw(Format::KeyValue, &plan.proposed)
+    {
+        plan.issue(None, line, message);
+    }
+    plan
 }
 
 fn plan_fields(format: crate::app_config::registry::Format, schema: &EditSchema, current: &str, changes: &[FieldChange]) -> Plan {
