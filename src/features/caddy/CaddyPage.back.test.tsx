@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RouteNavigationContext } from "../../app/routeNavigation";
@@ -34,14 +34,29 @@ describe("Caddy 页返回系统工具", () => {
     expect(withRoute).toContain("caddy-back");
   });
 
-  it("点击返回控件以 systemTools 调用导航", () => {
+  it("返回控件是导航链接而非按钮，可从页面位置导航区域到达", () => {
     const onNavigate = vi.fn();
     render(
       <RouteNavigationContext.Provider value={onNavigate}>
         <CaddyPage />
       </RouteNavigationContext.Provider>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "返回系统工具" }));
+    const nav = screen.getByRole("navigation", { name: "页面位置" });
+    const link = within(nav).getByRole("link", { name: "返回系统工具" });
+    expect(link.getAttribute("href")).toBe("#systemTools");
+    expect(screen.queryByRole("button", { name: "返回系统工具" })).toBeNull();
+  });
+
+  it("点击返回链接以 systemTools 调用导航，并阻止默认跳转", () => {
+    const onNavigate = vi.fn();
+    render(
+      <RouteNavigationContext.Provider value={onNavigate}>
+        <CaddyPage />
+      </RouteNavigationContext.Provider>,
+    );
+    const link = screen.getByRole("link", { name: "返回系统工具" });
+    const notPrevented = fireEvent.click(link);
+    expect(notPrevented).toBe(false);
     expect(onNavigate).toHaveBeenCalledWith({ routeId: "systemTools" });
   });
 });

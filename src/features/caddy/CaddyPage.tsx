@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActionRow, Button, PageShell, Panel, SectionTabs } from "../../components/ui";
+import { ActionRow, PageShell, Panel, SectionTabs } from "../../components/ui";
 import { useToolSection } from "../../app/SectionContext";
 import { routeSectionsOf } from "../../app/routeDefinitions";
 import {
@@ -244,16 +244,21 @@ export function CaddyPage() {
     <PageShell layout="strip" scrollKey="compact">
       {onNavigate ? (
         <ActionRow>
-          <Button
-            className="caddy-back"
-            variant="default"
-            onClick={() => onNavigate({ routeId: "systemTools" })}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M14.5 6 8.5 12l6 6" />
-            </svg>
-            {t("caddy.page.back")}
-          </Button>
+          <nav aria-label={t("caddy.page.breadcrumb")}>
+            <a
+              className="caddy-back"
+              href="#systemTools"
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigate({ routeId: "systemTools" });
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 6 8.5 12l6 6" />
+              </svg>
+              {t("caddy.page.back")}
+            </a>
+          </nav>
         </ActionRow>
       ) : null}
       <SectionTabs

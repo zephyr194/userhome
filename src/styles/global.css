@@ -2262,6 +2262,22 @@ button[class*="border-border"],
   color: var(--app-accent-text);
 }
 
+.caddy-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--app-control-height-sm);
+  font-size: var(--text-aux);
+  font-weight: 600;
+  color: var(--app-accent-text);
+  text-decoration: none;
+}
+
+.caddy-back:hover,
+.caddy-back:focus-visible {
+  text-decoration: underline;
+}
+
 .caddy-back svg {
   width: 14px;
   height: 14px;
