@@ -101,7 +101,7 @@ export function AiConfigView({
             <ul
               ref={toolListRef}
               aria-label={t("aiConfig.view.toolListLabel")}
-              className="motion-enter slide-list m-0 grid list-none gap-ui-4 p-0"
+              className="motion-enter slide-list m-0 grid list-none gap-ui-2 p-0"
             >
               {tools.map((tool) => (
                 <li key={tool.id}>
@@ -268,9 +268,12 @@ function SearchEmpty({
 
 function ToolSkeleton() {
   return (
-    <ul aria-hidden="true" className="m-0 grid list-none gap-ui-4 p-0">
+    <ul aria-hidden="true" className="m-0 grid list-none gap-ui-2 p-0">
       {Array.from({ length: 4 }, (_, index) => (
-        <li key={index} className="ai-tool-row ai-tool-skeleton">
+        <li
+          key={index}
+          className="ai-tool-skeleton flex h-control-md items-center justify-between gap-ui-8 px-ui-8"
+        >
           <span className="ai-tool-skeleton__bar ai-tool-skeleton__bar--name" />
           <span className="ai-tool-skeleton__bar ai-tool-skeleton__bar--status" />
         </li>
@@ -293,19 +296,22 @@ function ToolRow({
   return (
     <Button
       variant="ghost"
-      className="slide-item ai-tool-row"
+      size="sm"
+      className="slide-item w-full min-w-0 text-left"
       aria-current={selected ? "true" : undefined}
       onClick={() => onSelect(tool.id)}
     >
-      <strong className="min-w-0 text-body font-semibold">{tool.displayName}</strong>
-      <span className="flex min-w-0 flex-wrap items-center gap-ui-8">
+      <span className="flex w-full min-w-0 items-center justify-between gap-ui-8">
+        <span className="grid min-w-0 gap-ui-2">
+          <strong className="min-w-0 truncate text-body font-semibold">{tool.displayName}</strong>
+          {tool.invalidReason ? (
+            <span className="text-aux">{t(INVALID_REASON_KEYS[tool.invalidReason])}</span>
+          ) : null}
+        </span>
         <StatusBadge tone={install.tone}>
           <span aria-hidden="true">{install.symbol} </span>
           {t(install.labelKey)}
         </StatusBadge>
-        {tool.invalidReason ? (
-          <span className="text-aux">{t(INVALID_REASON_KEYS[tool.invalidReason])}</span>
-        ) : null}
       </span>
     </Button>
   );

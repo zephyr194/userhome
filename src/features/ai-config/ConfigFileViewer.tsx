@@ -26,6 +26,10 @@ const CODE_LANGUAGES: Record<AiConfigLanguage, CodeLanguage> = {
 };
 
 export function ConfigFileViewer({ toolId }: { readonly toolId: AiToolId }) {
+  return <ConfigFileSection key={toolId} toolId={toolId} />;
+}
+
+function ConfigFileSection({ toolId }: { readonly toolId: AiToolId }) {
   const t = useT();
   const locale = useLocale();
   const [state, setState] = useState<ConfigFileState>({ status: "closed" });
@@ -115,6 +119,14 @@ function ConfigFileBody({ view }: { readonly view: AiConfigFileView }) {
       <div className="grid min-w-0 gap-ui-4">
         <p className="m-0 break-all font-mono text-aux">{view.displayPath}</p>
         <p className="m-0 text-aux">{t("aiConfig.file.absent")}</p>
+      </div>
+    );
+  }
+  if (view.content === "") {
+    return (
+      <div className="grid min-w-0 gap-ui-4">
+        <p className="m-0 break-all font-mono text-aux">{view.displayPath}</p>
+        <p className="m-0 text-aux">{t("aiConfig.file.empty")}</p>
       </div>
     );
   }

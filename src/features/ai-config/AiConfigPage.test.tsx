@@ -162,3 +162,36 @@ describe("AiConfigPage detection cache (r5-ai)", () => {
     await rtl.waitFor(() => expect(calls()).toBe(2));
   });
 });
+
+describe("AiConfigPage 查看当前配置（集成）", () => {
+  it("reads the Claude Code settings file from the selected tool card and shows the masked content", async () => {
+    const report = reportWire() as { tools: Record<string, unknown>[] };
+    report.tools[0].configDisplayPath = "~/.claude/settings.json";
+    const reads: unknown[] = [];
+    mockIPC((command, payload) => {
+      if (command === "ai_config_detect") return report;
+      if (command === "ai_config_read_config") {
+        reads.push(payload);
+        return {
+          toolId: "claude-code",
+          displayPath: "~/.claude/settings.json",
+          exists: true,
+          language: "json",
+          content: "{\n  \"model\": \"sonnet\"\n}",
+          truncated: false,
+          sizeBytes: 24,
+          redactedCount: 0,
+          readAt: "2026-10-30T00:00:00Z",
+        };
+      }
+      return null;
+    });
+    rtl.render(page());
+    await waitForList();
+
+    rtl.fireEvent.click(rtl.screen.getByRole("button", { name: "查看当前配置" }));
+
+    await rtl.waitFor(() => expect(document.body.textContent).toContain("sonnet"));
+    expect(reads).toEqual([{ toolId: "claude-code" }]);
+  });
+});

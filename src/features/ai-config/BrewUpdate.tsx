@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
-import { ActionRow, Button } from "../../components/ui";
+import { ActionRow, Button, LogViewer } from "../../components/ui";
 import {
   aiConfigBrewUpgrade,
   type AiBrewUpgradeOutcome,
@@ -16,6 +16,23 @@ type UpdateState =
   | { readonly status: "running" }
   | { readonly status: "finished"; readonly outcome: AiBrewUpgradeOutcome }
   | { readonly status: "errored"; readonly message: string };
+
+function updateLog(
+  state: UpdateState,
+  packageName: string,
+  t: ReturnType<typeof useT>,
+): readonly string[] | null {
+  switch (state.status) {
+    case "running":
+      return [t("aiConfig.brew.logRunning", { package: packageName })];
+    case "finished":
+      return state.outcome.message.split("\n");
+    case "errored":
+      return state.message.split("\n");
+    default:
+      return null;
+  }
+}
 
 export interface BrewUpdateProps {
   readonly toolId: AiToolId;
@@ -58,13 +75,14 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
           })
         : t("aiConfig.brew.upToDate")
       : null;
+  const log = updateLog(state, packageName, t);
 
   return (
     <div className="grid min-w-0 justify-items-start gap-ui-4">
       {failure !== null ? (
         <>
-          <p role="alert" className="m-0 whitespace-pre-line break-words text-aux text-danger">
-            {failure}
+          <p role="alert" className="m-0 text-aux text-danger">
+            {t("aiConfig.brew.failed")}
           </p>
           <Button variant="danger" size="sm" onClick={() => setState({ status: "confirming" })}>
             {t("common.retry")}
@@ -83,6 +101,13 @@ export function BrewUpdate({ toolId, displayName, packageName, onRefreshed }: Br
         <p role="status" className="m-0 text-aux">
           {result}
         </p>
+      ) : null}
+      {log !== null ? (
+        <LogViewer
+          className="w-full"
+          label={t("aiConfig.brew.logLabel", { name: displayName })}
+          lines={log}
+        />
       ) : null}
       {state.status === "confirming" ? (
         <ConfirmDialog

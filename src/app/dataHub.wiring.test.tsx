@@ -125,7 +125,7 @@ describe("overview data is published by the pages that read it", () => {
 
 describe("overview data is invalidated after a write", () => {
   it("invalidates the AI tool data after a successful Homebrew update", async () => {
-    mocks.aiConfigBrewUpgrade.mockResolvedValue({ status: "UPGRADED", newVersion: "2.0.0" } as never);
+    mocks.aiConfigBrewUpgrade.mockResolvedValue({ status: "UPGRADED", message: "已更新到 2.0.0。", newVersion: "2.0.0" } as never);
     const invalidate = vi.spyOn(dataHub, "invalidate");
     const onRefreshed = vi.fn();
     render(
