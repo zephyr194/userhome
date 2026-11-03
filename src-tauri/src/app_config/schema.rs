@@ -300,9 +300,7 @@ pub fn typed_value(field: &FieldSpec, value: &Value) -> Result<TypedValue, Strin
 }
 
 fn text_value(field: &FieldSpec, value: &Value) -> Result<String, String> {
-    let text = value
-        .as_str()
-        .ok_or_else(|| "应为文本。".to_owned())?;
+    let text = value.as_str().ok_or_else(|| "应为文本。".to_owned())?;
     if text.trim().is_empty()
         || text.chars().count() > MAX_TEXT_CHARS
         || text.chars().any(char::is_control)
@@ -349,8 +347,12 @@ fn check_range(field: &FieldSpec, number: f64) -> Result<(), String> {
     let below = field.min.is_some_and(|min| number < min);
     let above = field.max.is_some_and(|max| number > max);
     if below || above {
-        let min = field.min.map_or_else(|| "无下限".to_owned(), |min| min.to_string());
-        let max = field.max.map_or_else(|| "无上限".to_owned(), |max| max.to_string());
+        let min = field
+            .min
+            .map_or_else(|| "无下限".to_owned(), |min| min.to_string());
+        let max = field
+            .max
+            .map_or_else(|| "无上限".to_owned(), |max| max.to_string());
         return Err(format!("超出允许范围（{min} 到 {max}）。"));
     }
     Ok(())

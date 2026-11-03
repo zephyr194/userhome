@@ -98,7 +98,6 @@ pub fn app_config_supported() -> Result<Vec<SupportedEntry>, AppError> {
     Ok(supported_entries(&builtin_registry()?))
 }
 
-
 pub fn read_entry_by_id(
     registry: &Registry,
     id: &str,
@@ -271,9 +270,7 @@ mod tests {
     #[test]
     fn list_keeps_symlinks_and_non_regular_files_as_discovered() {
         let registry = Registry::builtin().expect("built-in registry is valid");
-        let fs = FakeFs::new()
-            .dir(HOME)
-            .special("/Users/example/.tmux.conf");
+        let fs = FakeFs::new().dir(HOME).special("/Users/example/.tmux.conf");
 
         let items = list_entries(&registry, Path::new(HOME), &fs);
 
@@ -306,7 +303,11 @@ mod tests {
 
         let supported = supported_entries(&registry);
 
-        assert!(supported.iter().all(|entry| entry.category != Category::AiClient));
+        assert!(
+            supported
+                .iter()
+                .all(|entry| entry.category != Category::AiClient)
+        );
         for id in ["claude-code-settings", "gemini-user-settings"] {
             assert!(supported.iter().all(|entry| entry.id != id), "{id}");
         }
@@ -334,7 +335,11 @@ mod tests {
 
         let items = list_entries(&registry, Path::new(HOME), &fs);
 
-        assert!(items.iter().all(|item| item.summary.category != Category::AiClient));
+        assert!(
+            items
+                .iter()
+                .all(|item| item.summary.category != Category::AiClient)
+        );
         for id in ["claude-code-settings", "gemini-user-settings"] {
             assert!(items.iter().all(|item| item.summary.id != id), "{id}");
         }
@@ -343,9 +348,10 @@ mod tests {
     #[test]
     fn ai_client_entries_stay_readable_by_id_for_the_ai_tool_page() {
         let registry = Registry::builtin().expect("built-in registry is valid");
-        let fs = FakeFs::new()
-            .dir(HOME)
-            .file("/Users/example/.gemini/settings.json", "{\"theme\":\"dark\"}");
+        let fs = FakeFs::new().dir(HOME).file(
+            "/Users/example/.gemini/settings.json",
+            "{\"theme\":\"dark\"}",
+        );
 
         let result = read_entry_by_id(&registry, "gemini-user-settings", Path::new(HOME), &fs)
             .expect("registered AI entry reads");
