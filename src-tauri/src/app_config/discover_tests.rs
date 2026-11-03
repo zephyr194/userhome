@@ -153,7 +153,7 @@ fn probe_rejects_a_same_prefix_sibling_directory_as_out_of_bounds() {
 fn probe_rejects_a_target_that_resolves_into_a_protected_directory() {
     let fs = FakeFs::new()
         .dir(HOME)
-        .symlink("/Users/example/.config", "/Users/example/.ssh/zed")
+        .symlink("/Users/example/.config", "/Users/example/.ssh")
         .file("/Users/example/.ssh/zed/settings.json", "{}");
 
     assert_eq!(
