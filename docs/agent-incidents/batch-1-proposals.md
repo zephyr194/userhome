@@ -199,6 +199,12 @@
 - 反向误报验证：对 HEAD 全量运行 ESLint 规则，列出命中项逐个人工判断；把已有、确实无需绑定请求的一次性读取标注豁免，豁免清单需随规则一并批准。预计误报集中在只读且不依赖选中项的页面。
 - 状态：L4 工具与服务页 L6 已实现，ESLint 规则试运行（warn）
 - 试运行命中数：全仓 13 处，服务页 0 处，其余页面本次未迁移；豁免只是提案，未落地
+- 状态（2026-11-03，第二步）：防竞态写法已统一并迁移，规则已改进，仍为 warn
+  - 统一：`useLatestRequest`、`createSequenceGate` 移到 `src/app/`；工具页与 Caddy 两份同构的 `createRequestTracker` 合并为 `src/app/sequenceGate.ts` 里的一份（基于同一个 gate）；`singleFlight`（并发去重）与 sequence gate（后发覆盖先发）语义不同，保留，文件头注明各自适用场景。
+  - 迁移：`ToolSettings` 的 `getClaudeSnapshot`、`getClaudeEditCatalog`，`CommandBuilder` 的 `buildClaudeCommand`，`CaddyRunPanel` 的 `caddyLogs` 改用 `useLatestRequest`；`caddyStatus` 与 start/stop 共用同一个 `statusTracker`（轮询答案被后发的 start/stop 作废，较新的轮询又作废较旧的 start 答案），拆开会改变语义，保留 tracker 写法，由改进后的规则识别。每处补回归测试（StrictMode 双挂载、旧响应晚到、卸载后晚到）。
+  - 规则改进：识别 effect 内 `let x = <bool>`、仅在清理函数里置反、且 ipc 之后每个 setState 都由该标志守卫的写法，不再报；标志在别处被改写、声明在 effect 外、清理未置反、守卫晚于 setState 或在 await 之前、只守卫部分回调，仍然报。
+  - 命中数：全仓 13 → 迁移后 9 → 规则改进后 0。剩余 9 处原本都是标准清理标志写法（`current`/`active`/`disposed` + 回调内判断），经人工逐条核对不是竞态：AppShell 退出确认监听、ToolReference、SupportedConfigsDialog、CaddyPage `caddyLoadRules`、CaddyRunPanel `caddyStatus`、RawEditor、useServiceOverview、BackupSettings、DiagnosticsSettings。
+  - 建议（只提建议，级别未改）：命中数为 0 后，下一步把 `userhome/no-raw-ipc-in-effect` 从 warn 升为 error。理由：全仓已无命中，升级不会产生存量阻塞，之后新增的裸调用会在 `pnpm lint` 当场拦下；风险是规则只认“标准写法”，需要豁免时应改写成 `useLatestRequest` 而不是加 `eslint-disable`（后者本来就被禁止）。建议先让 `pnpm lint` 在 CI 上以 warn 再观察一个合并周期，确认没有新增命中后再升级。
 
 ### P4：UI 契约审计升级为 ESLint 规则（签名 S01–S04）
 
