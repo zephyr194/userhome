@@ -30,6 +30,7 @@ import {
   tailFromSnapshot,
   type LogTail,
 } from "./logTailModel";
+import { useLatestRequest } from "./useLatestRequest";
 
 const STREAM_LABEL_KEYS: Record<LogStream, MessageKey> = {
   STDOUT: "services.logs.stream.STDOUT",
@@ -98,6 +99,7 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
   const tailRef = useRef<LogTail>(EMPTY_LOG_TAIL);
   /** Bumped whenever tracking stops, so results of older requests are dropped. */
   const sessionRef = useRef(0);
+  const pollRequest = useLatestRequest();
   const lines = useMemo(() => displayLines(tail), [tail]);
 
   const setTail = useCallback((next: LogTail) => {
@@ -194,42 +196,48 @@ export function ServiceLogs({ service }: { service: LaunchdService }) {
   const activeGrant = grant?.grantId ?? null;
   useEffect(() => {
     if (status !== "tracking" || activeGrant === null) return undefined;
+    // One poll at a time; leaving the tracking state, or unmounting, drops the
+    // answer still on its way and ends the loop. `session` also catches a
+    // begin/pause that has bumped the counter but not yet re-rendered.
     const session = sessionRef.current;
-    let stopped = false;
     let timer: number | undefined;
-    const poll = async () => {
-      const cursor = tailRef.current.cursor;
-      try {
-        const snapshot =
-          cursor === null
-            ? await readLaunchdLogTail(target, activeGrant)
-            : await readLaunchdLogSince(target, activeGrant, cursor);
-        if (stopped || session !== sessionRef.current) return;
-        setTail(
-          cursor === null
-            ? tailFromSnapshot(snapshot, t)
-            : advanceTail(tailRef.current, snapshot, t),
-        );
-      } catch (error) {
-        if (stopped || session !== sessionRef.current) return;
-        if (!isBusy(error)) {
-          stopTracking(errorMessage(error, t, locale));
-          return;
-        }
-      }
-      if (!stopped) {
-        timer = window.setTimeout(
-          poll,
-          clampPollInterval(LOG_POLL_INTERVAL_MS),
-        );
-      }
+    const schedule = () => {
+      timer = window.setTimeout(poll, clampPollInterval(LOG_POLL_INTERVAL_MS));
     };
-    timer = window.setTimeout(poll, clampPollInterval(LOG_POLL_INTERVAL_MS));
+    const poll = () => {
+      const cursor = tailRef.current.cursor;
+      pollRequest.run(
+        () =>
+          cursor === null
+            ? readLaunchdLogTail(target, activeGrant)
+            : readLaunchdLogSince(target, activeGrant, cursor),
+        {
+          onResult(snapshot) {
+            if (session !== sessionRef.current) return;
+            setTail(
+              cursor === null
+                ? tailFromSnapshot(snapshot, t)
+                : advanceTail(tailRef.current, snapshot, t),
+            );
+            schedule();
+          },
+          onError(error) {
+            if (session !== sessionRef.current) return;
+            if (!isBusy(error)) {
+              stopTracking(errorMessage(error, t, locale));
+              return;
+            }
+            schedule();
+          },
+        },
+      );
+    };
+    schedule();
     return () => {
-      stopped = true;
+      pollRequest.cancel();
       window.clearTimeout(timer);
     };
-  }, [status, activeGrant, target, setTail, stopTracking, t, locale]);
+  }, [status, activeGrant, target, pollRequest, setTail, stopTracking, t, locale]);
 
   useEffect(
     () => () => {
