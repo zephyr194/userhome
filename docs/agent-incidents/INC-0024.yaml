@@ -1,0 +1,18 @@
+id: INC-0024
+commit_fix: 6427d74
+commit_origin: a7952f3
+related_commits: []
+area: rust
+type: missing-edge-case
+symptom: 按 clippy 建议把 .last() 改为 .next_back() 后，与前面的 .filter() 连起来触发新的 clippy::filter_next，CI 的 Rust job 又失败一轮
+evidence: "run 41598828470：patch_ini.rs:237 called `filter(..).next_back()` ... use `.rfind(..)`"
+should_catch_at: review
+caught_at: ci
+escaped_to: main
+cost: low
+severity: S2
+record_reason: [R1]
+root_cause: env-defect
+signature: 本机无法编译 Rust，盲改的 lint 修复引出连锁 lint，只能靠多轮 CI 收敛
+confidence: high
+notes: 首次出现，按 §9 S2 只记录。若再现，候选措施：盲改 Rust 时先推分支走 PR CI 再合并（L3），或在用户决定 testing.md Q1 后允许本地 cargo clippy（不运行测试二进制）。
