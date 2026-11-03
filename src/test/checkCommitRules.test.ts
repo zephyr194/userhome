@@ -82,6 +82,9 @@ describe("isRuleFile", () => {
     "scripts/check-commit-rules.mjs",
     "eslint.config.js",
     "eslint.config.mjs",
+    "scripts/eslint-rules/x.mjs",
+    "scripts/eslint-rules/index.mjs",
+    "scripts/eslint-rules/no-raw-ipc-in-effect.d.mts",
     "src/components/ui/buttonSizeAudit.test.ts",
     "src/styles/radiusAudit.test.ts",
     "src/styles/tokens.baseline.json",
@@ -101,6 +104,7 @@ describe("isRuleFile", () => {
     "docs/release.md",
     "scripts/merge-claude-schema.mjs",
     "scripts/lib/claude-schema-merge.mjs",
+    "scripts/eslint-rules-notes.md",
     "src/styles/global.css",
     "src/features/services/ServicesView.test.tsx",
     "src/components/ui/Button.tsx",
@@ -203,6 +207,17 @@ describe("evaluateCommit", () => {
   it("改规则类文件被 rule-files 拦下，列出文件", () => {
     const hits = rules.evaluateCommit(commit([change("AGENTS.md"), change("src/a.ts")]));
     expect(hits.map((hit) => [hit.rule.id, hit.files])).toEqual([["rule-files", ["AGENTS.md"]]]);
+  });
+
+  it("改 scripts/eslint-rules 下的自定义规则被 rule-files 拦下，带审批行时放行", () => {
+    const files = [change("scripts/eslint-rules/x.mjs", ["export {};"], [])];
+    const hits = rules.evaluateCommit(commit(files));
+    expect(hits.map((hit) => [hit.rule.id, hit.files])).toEqual([
+      ["rule-files", ["scripts/eslint-rules/x.mjs"]],
+    ]);
+    expect(
+      hitIds(commit(files, "feat(lint): 说明\n\nRule-Change-Approved: 用户原话：“可以”")),
+    ).toEqual([]);
   });
 
   it("删除规则类文件同样被拦", () => {

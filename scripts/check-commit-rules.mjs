@@ -16,6 +16,7 @@ const RULE_FILE_PATTERNS = [
   /^\.claude\//,
   /^scripts\/check-[^/]*\.mjs$/,
   /(^|\/)eslint\.config\.[^/]+$/,
+  /^scripts\/eslint-rules\//,
   /(^|\/)[^/]*Audit\.test\.[^/]+$/,
   /^src\/styles\/tokens\.baseline\.json$/,
   /^docs\/agent-incidents\/README\.md$/,
