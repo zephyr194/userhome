@@ -112,6 +112,9 @@ struct CoordinatorState {
     generation: u64,
     snapshot: DiscoverySnapshot,
     brew_inventory: Option<BrewInventory>,
+    /// 测试观察点：已经加入进行中扫描、进入 wait_while 的 refresh 调用数。
+    #[cfg(test)]
+    joined_refreshes: usize,
 }
 
 impl CoordinatorState {
@@ -227,6 +230,8 @@ impl DiscoveryCoordinator {
                     generation: 0,
                     snapshot: empty_snapshot(),
                     brew_inventory: None,
+                    #[cfg(test)]
+                    joined_refreshes: 0,
                 }),
                 changed: Condvar::new(),
             }),
@@ -400,6 +405,8 @@ impl DiscoveryCoordinator {
                 .unwrap_or_else(|error| error.into_inner());
             if state.refreshing {
                 let active_generation = state.generation;
+                #[cfg(test)]
+                self.record_joined_refresh(&mut state);
                 state = self
                     .inner
                     .changed
@@ -414,6 +421,13 @@ impl DiscoveryCoordinator {
         };
 
         self.run_scan(generation)
+    }
+
+    /// 在仍持有状态锁时记录并通知：观察者拿到锁并看到计数，说明调用者已原子地进入等待。
+    #[cfg(test)]
+    fn record_joined_refresh(&self, state: &mut CoordinatorState) {
+        state.joined_refreshes += 1;
+        self.inner.changed.notify_all();
     }
 
     /// 执行已登记（`begin_scan`）的一轮扫描，直到 brew 结果落定。
@@ -735,6 +749,25 @@ mod tests {
         assert!(!result.timed_out(), "scan should finish once released");
     }
 
+    fn wait_for_joined_refreshes(coordinator: &DiscoveryCoordinator, expected: usize) {
+        let state = coordinator
+            .inner
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let (_state, result) = coordinator
+            .inner
+            .changed
+            .wait_timeout_while(state, TEST_WAIT_LIMIT, |state| {
+                state.joined_refreshes < expected
+            })
+            .unwrap_or_else(|error| error.into_inner());
+        assert!(
+            !result.timed_out(),
+            "a second refresh should join the active scan"
+        );
+    }
+
     #[test]
     fn first_read_starts_the_initial_scan_and_returns_at_system_ready() {
         // 启动时不刷新：没有任何 refresh() 调用，首次读取也不能停在空快照；
@@ -818,35 +851,99 @@ mod tests {
 
     #[test]
     fn duplicate_refresh_requests_join_the_active_scan() {
+        // system 阻塞在测试持有的 channel 上；确认第二个 refresh 已经在等待后才放行，
+        // 因此"加入而不是另起一轮"不依赖线程调度快慢。
+        let (system_started, started_signal) = mpsc::channel::<()>();
+        let system_started = Mutex::new(system_started);
+        let (release_system, system_gate) = mpsc::channel::<()>();
+        let system_gate = Mutex::new(system_gate);
         let system_runs = Arc::new(AtomicUsize::new(0));
         let counter = system_runs.clone();
         let coordinator = DiscoveryCoordinator::new(
             DiscoveryRunners {
                 system: Arc::new(move || {
                     counter.fetch_add(1, Ordering::SeqCst);
-                    thread::sleep(Duration::from_millis(60));
+                    let _ = system_started
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .send(());
+                    let _ = system_gate
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .recv();
                     Ok(sample_system())
                 }),
                 brew: Arc::new(|| Err(InventoryError::NotFound)),
                 candidates: Arc::new(|_| Ok(ConfigurationCoverage::empty())),
             },
-            ModuleTimeouts {
-                system: Duration::from_secs(1),
-                brew: Duration::from_secs(1),
-                candidates: Duration::from_secs(1),
-            },
+            generous_timeouts(),
         );
         let first = coordinator.clone();
         let second = coordinator.clone();
         let first_thread = thread::spawn(move || first.refresh());
-        thread::sleep(Duration::from_millis(10));
+        started_signal
+            .recv_timeout(TEST_WAIT_LIMIT)
+            .expect("the first refresh should start the system scan");
         let second_thread = thread::spawn(move || second.refresh());
+        wait_for_joined_refreshes(&coordinator, 1);
+        release_system
+            .send(())
+            .expect("system runner should be waiting");
 
         let first_snapshot = first_thread.join().expect("first refresh should finish");
         let second_snapshot = second_thread.join().expect("second refresh should finish");
 
         assert_eq!(system_runs.load(Ordering::SeqCst), 1);
         assert_eq!(first_snapshot.refresh_id, second_snapshot.refresh_id);
+    }
+
+    #[test]
+    fn refresh_racing_the_first_read_shares_one_scan() {
+        // 启动时前端同时发 get 与 refresh：get 先到并登记首轮扫描，refresh 必须加入同一轮。
+        let (system_started, started_signal) = mpsc::channel::<()>();
+        let system_started = Mutex::new(system_started);
+        let (release_system, system_gate) = mpsc::channel::<()>();
+        let system_gate = Mutex::new(system_gate);
+        let system_runs = Arc::new(AtomicUsize::new(0));
+        let counter = system_runs.clone();
+        let coordinator = DiscoveryCoordinator::new(
+            DiscoveryRunners {
+                system: Arc::new(move || {
+                    counter.fetch_add(1, Ordering::SeqCst);
+                    let _ = system_started
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .send(());
+                    let _ = system_gate
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .recv();
+                    Ok(sample_system())
+                }),
+                brew: Arc::new(|| Err(InventoryError::NotFound)),
+                candidates: Arc::new(|_| Ok(ConfigurationCoverage::empty())),
+            },
+            generous_timeouts(),
+        );
+
+        let reader = coordinator.clone();
+        let read_thread = thread::spawn(move || reader.snapshot_after_local());
+        started_signal
+            .recv_timeout(TEST_WAIT_LIMIT)
+            .expect("the first read should start the scan");
+        let refresher = coordinator.clone();
+        let refresh_thread = thread::spawn(move || refresher.refresh());
+        wait_for_joined_refreshes(&coordinator, 1);
+        release_system
+            .send(())
+            .expect("system runner should be waiting");
+
+        let read_snapshot = read_thread.join().expect("first read should finish");
+        let refresh_snapshot = refresh_thread.join().expect("refresh should finish");
+
+        assert_eq!(read_snapshot.system.status, ModuleStatus::Ready);
+        assert_eq!(system_runs.load(Ordering::SeqCst), 1);
+        assert_eq!(read_snapshot.refresh_id, refresh_snapshot.refresh_id);
     }
 
     #[test]
