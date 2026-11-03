@@ -3,7 +3,7 @@
   "schema": {
     "id": "唯一标识，前缀对应目标：cv- config_view，cc- caddy_redact，kr- config_redaction，sm- secret_mask",
     "kind": "positive = 含秘密，输出不得包含 must_not_contain；negative = 不含秘密，输出必须与输入逐字相同（is_secret_key 则判为 false）",
-    "targets": "适用的脱敏器：config_view = ai_config::config_view::mask_config_text（input 为文件文本，反例还要求遮盖计数为 0）；caddy_redact = caddy::redact::redact_text 与 StreamRedactor（input 为输出文本，tls 为授权的证书/私钥对）；config_redaction = config::redaction::is_secret_key（input 为键名）；secret_mask = SecretValue 默认遮盖态（input 为秘密值）",
+    "targets": "适用的脱敏器：config_view = ai_config::config_view::mask_config_text（input 为文件文本，反例还要求遮盖计数为 0）；caddy_redact = caddy::redact::redact_text 与 StreamRedactor（input 为输出文本，tls 为授权的证书/私钥对）；config_redaction = config::redaction::is_secret_key（input 为键名；app_config::read::is_secret_key 是它的 re-export，两处共用同一实现）；secret_mask = SecretValue 默认遮盖态（input 为秘密值）",
     "must_not_contain": "正例：输出里不得出现的子串，每一项必须真实出现在 input 里（防止样例空转）",
     "must_contain": "可选：输出里必须保留的子串，防止过度遮盖",
     "note": "来源提交或对照说明",
@@ -857,8 +857,7 @@
       ],
       "input": "apiKey",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 把 apiKey 判为秘密，本函数的归一化只替换 - 和 .，apiKey 变成 apikey，不含 api_key；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数归一化只替换 - 和 .，apiKey 变成 apikey，不含 api_key 而漏判；现与 app_config::read 共用同一套归一化（只留字母数字、转小写）和片段"
     },
     {
       "id": "kr-private-key-camel-case",
@@ -868,8 +867,7 @@
       ],
       "input": "privateKey",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 含 key 片段判为秘密，本函数不含；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数没有 key 片段而漏判；现共用同一套片段"
     },
     {
       "id": "kr-credentials",
@@ -879,8 +877,7 @@
       ],
       "input": "credentials",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 含 credential 片段判为秘密，本函数不含；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数没有 credential 片段而漏判；现共用同一套片段"
     },
     {
       "id": "kr-passwd",
@@ -890,8 +887,7 @@
       ],
       "input": "passwd",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 含 passwd 片段判为秘密，本函数不含；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数没有 passwd 片段而漏判；现共用同一套片段"
     },
     {
       "id": "kr-ordinary-model",
@@ -924,14 +920,34 @@
       "note": "反例：带点的普通键名"
     },
     {
-      "id": "kr-author-is-not-auth",
+      "id": "kr-ordinary-default-branch",
       "kind": "negative",
       "targets": [
         "config_redaction"
       ],
-      "input": "author_name",
+      "input": "defaultBranch",
       "must_not_contain": [],
-      "note": "反例：author 只是以 auth 开头，不是 _auth 或 authorization"
+      "note": "反例：驼峰写法的普通键名，归一化不能把它拼出片段"
+    },
+    {
+      "id": "kr-ordinary-editor-mode",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "editorMode",
+      "must_not_contain": [],
+      "note": "反例：内置配置档的可编辑字段，新规则不得误拒"
+    },
+    {
+      "id": "kr-ordinary-render-markdown",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "renderMarkdown",
+      "must_not_contain": [],
+      "note": "反例：内置配置档的可编辑字段，新规则不得误拒"
     },
     {
       "id": "sm-plain-token",
