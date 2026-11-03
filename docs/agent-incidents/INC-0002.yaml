@@ -1,0 +1,17 @@
+id: INC-0002
+sig_group: S02   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 1d13a17
+commit_origin: unknown
+related_commits: [30685a9, 757244e, 0e07167]
+area: "ui/buttons（全局，36 个文件）"
+type: ui-spec-drift
+symptom: "行内按钮用 sm（24px）与输入框（28px）并排错位，sm 被大量用在不该用的地方。"
+evidence: "0e07167：“Dotenv 与 Zsh 编辑器的行内删除/移除按钮与文本输入同排，原为 sm（24px）与输入框（28px）并排错位，改为 md”；1d13a17：“按 SPEC-theme-refine §4.2.1：sm 只保留在通知条、列表行内动作……新增 buttonSizeAudit.test.ts 守护 size=\"sm\" 的文件白名单”；随后 757244e 又把 3 处“出错后的补救按钮”改回 sm 并给白名单加 3 行。"
+should_catch_at: L3
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: context-ignored
+signature: "按钮尺寸 sm/md 与规格 §4.2.1 不一致，靠白名单审计事后收敛"
+confidence: low
+notes: "“规格文档已存在、实现未遵守”为推断（1d13a17 的提交信息引用了该规格）；757244e 调整白名单属于规则边界仍在摇摆。"

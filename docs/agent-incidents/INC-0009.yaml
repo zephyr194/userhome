@@ -1,0 +1,17 @@
+id: INC-0009
+sig_group: S09   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 929c6f1
+commit_origin: unknown
+related_commits: [47703d2, 56c6084, 2740c30, 97193fe, 1d37916]
+area: "ai-config、services、caddy、shell、nav"
+type: wrong-intent
+symptom: "界面使用内部词、冗余说明、不统一的叫法与标点。"
+evidence: "929c6f1：“把 flags、env、editable/reason、快照等内部词替换为命令行参数、环境变量、可以修改等说明”；1d37916：空状态指向页面上实际的“设置变量”按钮，统一“读取顺序”叫法；2740c30：去掉中文引号前多余空格。"
+should_catch_at: review
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: vague-task
+signature: "文案直接沿用代码/内部术语，未经面向用户的措辞校对"
+confidence: low
+notes: "这是低代价高频的文案修正，适合 L1/L2 约束，不适合做重型规则。"

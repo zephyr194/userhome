@@ -1,0 +1,17 @@
+id: INC-0017
+sig_group: S17   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: f2b6990
+commit_origin: unknown
+related_commits: [36befe0, f9d8aec, 7a41805]
+area: "services（用途词典、摘要）、environment（zsh 作用域、登录变量空值）"
+type: missing-edge-case
+symptom: "领域判断使用子串匹配、忽略作用域或空值，造成误判。"
+evidence: "f2b6990：“只比较程序文件名（去扩展名）和 label 末段……不再做子串匹配”，标题点明“避免 exporter 与 backup 误判”；36befe0：ZSHENV 对所有 zsh 生效，ZSHRC 只对交互 shell 生效，原先只显示最后一处会隐藏非交互 zsh -c 仍在使用的值；f9d8aec：空字符串登录会话变量被当成文本。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: missing-context
+signature: "领域匹配/优先级规则用近似手段实现，缺少反例（同名、空值、作用域）"
+confidence: low
+notes: "引入点在 e99bdda/e8e7eef 前后，未确认。"

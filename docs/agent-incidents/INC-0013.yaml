@@ -1,0 +1,17 @@
+id: INC-0013
+sig_group: S13   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: ee07246
+commit_origin: 67f3f0b
+related_commits: [968123e, 496647c, eb8035c, cb648b3, 91834f3, 4913e6f, afda9f4]
+area: "services/launchd 解析；config/read；ipc 解码；ai-config detect"
+type: platform-assumption
+symptom: "对 launchctl、plist、INI/TOML、FIFO、控制字符等外部输出/文件的格式假设不完整，边界输入被误判或静默当作 null。"
+evidence: "ee07246：“真实 launchctl print <域> 的服务行，状态列会出现 (pe)、(jt) 等括号标记，PID 列的 0 表示没有运行中的进程。此前前者被当作无法解析的行计入跳过，后者被解析为 pid=0 并判为运行中”；afda9f4：别名文件若是 FIFO 或设备，直接打开会阻塞探测流程；91834f3：INI 反斜杠续行只改首行会留下悬空续行；4913e6f：installSource 的未知或畸形值原先静默当作 null。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: mid
+root_cause: missing-context
+signature: "解析器只按已见样例实现，缺少真实输出样本与畸形输入"
+confidence: high
+notes: "origin 67f3f0b 为 launchd 只读发现后端的引入提交（output.rs 由该提交创建）；同签名其余提交的引入点未追溯。Rust 侧修复的测试本机未运行。"

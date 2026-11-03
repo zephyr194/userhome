@@ -1,0 +1,17 @@
+id: INC-0016
+sig_group: S16   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: d1ee404
+commit_origin: b32d3b0
+related_commits: [b32d3b0, a8f46c9]
+area: "ui/SecretValue、secretMask、environment"
+type: scope-creep
+symptom: "实现“读取值可复制”时顺带把 SecretValue 收紧为必须先显示才能复制，超出需求，随后被还原。"
+evidence: "d1ee404：“读取值复制改动把 SecretValue 收紧为必须先显示才能复制，超出本次需求。还原 SecretValue 与 secretMask 及其测试，非秘密值的复制仍走 CopyButton”；同签名另有 a8f46c9：一个 fix 提交混入行距、更新日志展示、切换状态清除三件事。"
+should_catch_at: review
+caught_at: review
+escaped_to: unknown
+cost: low
+root_cause: vague-task
+signature: "修复/小需求中顺手改了未被要求的组件契约，并连带改了该组件的测试"
+confidence: high
+notes: "b32d3b0 的提交信息自称“秘密值显示后才可复制”，d1ee404 认定这超出范围；需求原文未见，root_cause 为推断。注意 d1ee404 同时改了 secretMask.test.ts，属于测试随实现一起被还原。"

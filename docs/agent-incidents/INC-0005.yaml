@@ -1,0 +1,17 @@
+id: INC-0005
+sig_group: S05   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 730e162
+commit_origin: unknown
+related_commits: [abc5407, 7490e3b, 37ceb45, 2b413fd, 7e484ad, c4a4cad, 4625a49, a233117]
+area: "ui（Button、下拉、纵向列表、创建表单）"
+type: ui-spec-drift
+symptom: "长文案或长标识在按钮、列表行、下拉、表单前缀中溢出、被裁切或折行。"
+evidence: "730e162：“按钮设为不换行且不被压缩，超长文案缩短：应用到运行实例、允许并校验。新增样式审计测试，禁止按钮使用省略号与溢出裁切”；7490e3b：纵向列表行允许换行，长标识不再溢出到徽标下；37ceb45：下拉选项允许换行并按内容撑开面板宽度；abc5407：命名空间前缀不再折行。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: checker-gap
+signature: "未考虑长文本/中英文长度差异，布局在极端内容下溢出或折行"
+confidence: low
+notes: "730e162 要求按钮不换行，37ceb45 与 7490e3b 又放开换行：不同控件的规则方向相反，需要显式区分适用范围。"

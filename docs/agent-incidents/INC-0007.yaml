@@ -1,0 +1,17 @@
+id: INC-0007
+sig_group: S07   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: dfd29a8
+commit_origin: 514eb1e
+related_commits: [94d2ece, 92df1c7, f523d26, a41d847, 876b5b8, f49d2cf]
+area: "ui/useSlideIndicator、nav、tools tabs"
+type: missing-edge-case
+symptom: "选中指示器在向上移动、换语言、隐藏、尺寸变化、重排后等边界状态下跳变或不滑动，4 天内连续补 7 次。"
+evidence: "dfd29a8：“Headless UI 的 aria-selected/data-selected 比 React 同步写入的 aria-current 晚一次提交更新……向上移动时会拿到仍带旧 aria-selected 的下方项，指示条只会跳变而不滑动”；876b5b8 为其在 tools 页面的对应补丁；其余 94d2ece、f523d26、a41d847、92df1c7、f49d2cf 均为同一机制的不同边界。useSlideIndicator.ts 在 514eb1e（引入）之后被 4 个 fix（94d2ece、f523d26、a41d847、dfd29a8）修改；92df1c7、f49d2cf 改的是 CSS。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: mid
+root_cause: model-capability
+signature: "DOM 测量/动画状态机一次实现未穷举边界，之后逐个补丁"
+confidence: high
+notes: "root_cause 为推断：同一 hook 连续 7 次补边界，说明一次性穷举状态的能力不足；dfd29a8 同时提到第三方库（Headless UI）的更新时序，也可能是 missing-context，未验证。"

@@ -1,0 +1,17 @@
+id: INC-0001
+sig_group: S01   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 1c6d385
+commit_origin: unknown
+related_commits: [2173cda, 56aced0, 27322c5]
+area: "ui/buttons（services、ai-config、app-config、environment）"
+type: ui-spec-drift
+symptom: "页面按钮未显式指定 variant，全部落为统一次级样式，主/次/幽灵/危险的层级丢失。"
+evidence: "27322c5：“未写 variant 的按钮原先都落为统一次级，丢失主/次/幽灵/危险的区分”；1c6d385：“停止与卸载等破坏性确认使用危险按钮，取消保持次级”。每页一个修复提交，共 4 页；其后 3a76784 新增“Button 必须显式 variant”的审计测试。"
+should_catch_at: L3
+caught_at: test
+escaped_to: unknown
+cost: low
+root_cause: checker-gap
+signature: "Button 未写 variant（或写错）导致视觉层级塌缩，逐页补标"
+confidence: low
+notes: "引入点分散在各页最初的功能提交里，未逐个追溯；审计测试是修复之前还是同时加入，只按提交日志推断。"

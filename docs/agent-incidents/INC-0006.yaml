@@ -1,0 +1,17 @@
+id: INC-0006
+sig_group: S06   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: f9e62ed
+commit_origin: unknown
+related_commits: [d85a43e, b31a9d4, 62548e5]
+area: "services / caddy / app-config / shell"
+type: ui-spec-drift
+symptom: "同一信息在弹框与页面同时出现，或提示条出现/消失时撑动整个内容区。"
+evidence: "f9e62ed：“弹框完成面板与页面横幅同时显示同一句标题”；d85a43e：配置示例弹层里嵌套第二个“在窗口中查看”；b31a9d4：去掉重复刷新与重复的位置、只读信息；62548e5：“提示原先放在工作区文档流里，出现或消失时整个内容区会跳动”。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: missing-context
+signature: "组合多个组件时出现重复展示或文档流跳动，单组件测试看不出"
+confidence: low
+notes: "未逐个追溯引入点。"

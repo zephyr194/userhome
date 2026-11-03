@@ -1,0 +1,17 @@
+id: INC-0012
+sig_group: S12   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: c94fc16
+commit_origin: 7a9d5c8
+related_commits: [7e86aba, 7842992]
+area: "qr / grants / environment(zsh)"
+type: missing-edge-case
+symptom: "导出授权用后未撤销，授权范围过宽，使通用写入口仍可对该文件预览和替换。"
+evidence: "c94fc16：“二维码导出把保存位置授权留在授权库里，之后通用文本写入口仍可对该文件预览和替换。确认导出无论成功、失败或校验不一致都会撤销授权”；7e86aba：前端放弃、重预览、更换图标时调用 discard_qr_export；7842992：shell 启动文件授权限定专用命令（新增 ShellStartupFile 用途，通用读写入口一律拒绝），并按协调者同意修改了既有断言。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: high
+root_cause: missing-context
+signature: "一次性授权没有绑定用途与生命周期，用完后仍可被其他入口复用"
+confidence: high
+notes: "origin 7a9d5c8 为 qr 后端引入提交，c94fc16 修复的是该提交的授权遗留；7842992 改了既有测试断言，提交信息注明协调者同意。root_cause 为推断：只检索了 docs/threat-model.md 中与授权相关的前 8 处匹配，描述的是授权库与撤销，未见“用途限定、用后即撤”的规则文字，未通读全文。"
