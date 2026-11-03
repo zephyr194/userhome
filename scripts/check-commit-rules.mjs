@@ -25,6 +25,15 @@ const RULE_FILE_PATTERNS = [
   /^\.github\/workflows\//,
 ];
 
+// 脱敏实现（提案 P1，签名 S11）：改动其中任何一个，都要同时改动共享样例集。
+const REDACTION_IMPLEMENTATION_FILES = [
+  'src-tauri/src/ai_config/config_view.rs',
+  'src-tauri/src/caddy/redact.rs',
+  'src-tauri/src/config/redaction.rs',
+  'src/components/ui/secretMask.ts',
+];
+const REDACTION_CORPUS_FILE = 'src-tauri/tests/fixtures/redaction_corpus.json';
+
 const TEST_FILE_PATTERNS = [
   /\.test\.tsx?$/,
   /\.spec\.ts$/,
@@ -109,6 +118,16 @@ export const RULES = [
         .filter((f) => isTestFile(f.path))
         .filter((f) => weakensAssertions(f) || countSkipMarkers(f.added, f.path) > 0)
         .map((f) => f.path),
+  },
+  {
+    id: 'redaction-corpus',
+    description:
+      '提交改动了脱敏实现文件（config_view.rs、caddy/redact.rs、config/redaction.rs、secretMask.ts），却没有同时改动共享样例集 src-tauri/tests/fixtures/redaction_corpus.json；脱敏改动必须新增或确认样例',
+    check: (commit) => {
+      const paths = commit.files.map((f) => f.path);
+      if (paths.includes(REDACTION_CORPUS_FILE)) return [];
+      return paths.filter((path) => REDACTION_IMPLEMENTATION_FILES.includes(path));
+    },
   },
 ];
 
