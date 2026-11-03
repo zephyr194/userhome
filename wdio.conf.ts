@@ -45,6 +45,9 @@ writeFileSync(
     preferredEditorMode: "STRUCTURED",
     backupRetention: 20,
     optionalDiscoveryRoots: [],
+    // 固定界面语言：缺省 "system" 会跟随 WebView 的 navigator.language，
+    // CI runner 是英文系统，导航与页面文案会变成英文，而 spec 断言的是中文。
+    language: "zh-CN",
   }),
   { mode: 0o600 },
 );

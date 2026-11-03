@@ -151,12 +151,17 @@ describe("UserHome desktop smoke", () => {
         .querySelector<HTMLElement>("a[href='#dashboard']")
         ?.click();
     });
-    await $("#user-directory-coverage-heading").waitForDisplayed({ timeout: 5_000 });
-    expect(await $(".desktop-workspace__page-title").getText()).toBe("概览");
     const dashboard = await $("section[aria-label='概览']");
+    await dashboard.waitForDisplayed({ timeout: 5_000 });
+    expect(await $(".desktop-workspace__page-title").getText()).toBe("概览");
     expect(await dashboard.getText()).toContain("macOS");
     expect(await dashboard.getText()).toContain("架构");
-    expect(await dashboard.getText()).toContain("在线");
+    // 连接状态在导航栏底部，不在概览区内。
+    await browser.waitUntil(
+      async () =>
+        (await $(".navigation-rail__status--ready").getText()).includes("在线"),
+      { timeout: 5_000, timeoutMsg: "Navigation rail did not report online" },
+    );
     const viewport = await browser.execute(() => ({
       appearance: document.documentElement.dataset.appearance,
       colorScheme: document.documentElement.style.colorScheme,
@@ -210,17 +215,25 @@ describe("UserHome desktop smoke", () => {
       expect(route.length).toBeGreaterThan(0);
     };
 
-    expect(await $("#user-directory-coverage-heading").getText()).toBe(
-      "用户目录配置",
+    const factTitles = await $$(".ov-fact__title").map((title) =>
+      title.getText(),
     );
+    expect(factTitles).toEqual(["服务", "AI 工具", "环境变量", "应用配置"]);
     await browser.waitUntil(
-      async () => (await dashboard.getText()).includes("四类计数守恒"),
+      async () => {
+        const statuses = await $$(".ov-fact__status").map((status) =>
+          status.getText(),
+        );
+        return (
+          statuses.length === 4 &&
+          statuses.every((text) => ["正常", "需留意", "读取失败"].includes(text))
+        );
+      },
       {
         timeout: 10_000,
-        timeoutMsg: "User-directory coverage did not settle",
+        timeoutMsg: "Overview facts did not settle",
       },
     );
-    expect(await dashboard.getText()).toContain("四类计数守恒");
     await assertDocumentFits("dashboard");
 
     await $("a[href='#services']").click();
@@ -235,7 +248,7 @@ describe("UserHome desktop smoke", () => {
     expect(await $("[aria-label='设置分组']").isDisplayed()).toBe(true);
     expect(await $(".settings-pane__detail").isDisplayed()).toBe(true);
     const settingsTabs = await $$("[aria-label='设置分组'] [role='tab']");
-    expect(await settingsTabs.length).toBe(7);
+    expect(await settingsTabs.length).toBe(8);
     await browser.execute((tab) => tab.focus(), settingsTabs[0]);
     expect(
       await browser.execute(() =>
@@ -302,7 +315,7 @@ describe("UserHome desktop smoke", () => {
       { id: "environment", title: "环境变量" },
       { id: "caddy", title: "Caddy" },
       { id: "appConfig", title: "应用配置" },
-      { id: "aiConfig", title: "AI 配置" },
+      { id: "aiConfig", title: "AI 工具" },
       { id: "tools", title: "工具集" },
       { id: "settings", title: "设置" },
     ];
