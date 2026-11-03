@@ -1,16 +1,19 @@
 {
   "description": "脱敏对抗性样例集（INC-0011 / 签名 S11，提案 P1）。单一数据源：Rust（include_str! + serde_json）与 TS（import）读取同一份。",
   "schema": {
-    "id": "唯一标识，前缀对应目标：cv- config_view，cc- caddy_redact，kr- config_redaction，sm- secret_mask",
+    "id": "唯一标识，前缀对应目标：cv- config_view，cc- caddy_redact，kr- config_redaction，sm- secret_mask，op- operations_sanitize，am- app_config_read",
     "kind": "positive = 含秘密，输出不得包含 must_not_contain；negative = 不含秘密，输出必须与输入逐字相同（is_secret_key 则判为 false）",
-    "targets": "适用的脱敏器：config_view = ai_config::config_view::mask_config_text（input 为文件文本，反例还要求遮盖计数为 0）；caddy_redact = caddy::redact::redact_text 与 StreamRedactor（input 为输出文本，tls 为授权的证书/私钥对）；config_redaction = config::redaction::is_secret_key（input 为键名）；secret_mask = SecretValue 默认遮盖态（input 为秘密值）",
+    "targets": "适用的脱敏器：config_view = ai_config::config_view::mask_config_text（input 为文件文本，反例还要求遮盖计数为 0）；caddy_redact = caddy::redact::redact_text 与 StreamRedactor（input 为输出文本，tls 为授权的证书/私钥对）；config_redaction = config::redaction::is_secret_key（input 为键名；app_config::read::is_secret_key 是它的 re-export，两处共用同一实现）；secret_mask = SecretValue 默认遮盖态（input 为秘密值）；operations_sanitize = operations::sanitize_payload（input 为诊断/进度文本，反例要求输出与输入逐字相同；该函数按行遮盖，输入不得以换行结尾）；app_config_read = app_config::read::read_entry 读取注册的配置项（mask_json、keyed 行遮盖、mask_url_credentials；input 为文件文本，输出是重新排版的文本，所以反例只要求 redacted 为 false 且 must_contain 保留）",
     "must_not_contain": "正例：输出里不得出现的子串，每一项必须真实出现在 input 里（防止样例空转）",
     "must_contain": "可选：输出里必须保留的子串，防止过度遮盖",
     "note": "来源提交或对照说明",
     "tls": "caddy_redact 专用：授权路径，[{certificate, private_key}]",
     "chunks": "caddy_redact 可选：按这些分片依次喂给 StreamRedactor，拼接后必须等于 input",
     "chunk_bytes": "caddy_redact 可选：把 input 按每 N 字节切成分片喂给 StreamRedactor",
-    "known_gap": "可选：true 表示当前代码上这条样例不成立（真实缺口）；测试跳过并打印说明，修复要另派任务并走规则审批"
+    "known_gap": "可选：true 表示当前代码上这条样例不成立（真实缺口）；测试跳过并打印说明，修复要另派任务并走规则审批",
+    "entry": "app_config_read 专用：app_config 注册表里的条目 id，如 claude-code-settings（JSON）、alacritty-config（TOML）",
+    "known": "operations_sanitize 可选：已登记的敏感值，原样传给 sanitize_payload 的 known 参数；每一项必须真实出现在 input 里",
+    "max_bytes": "operations_sanitize 可选：sanitize_payload 的 max_bytes，默认 4096"
   },
   "cases": [
     {
@@ -857,8 +860,7 @@
       ],
       "input": "apiKey",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 把 apiKey 判为秘密，本函数的归一化只替换 - 和 .，apiKey 变成 apikey，不含 api_key；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数归一化只替换 - 和 .，apiKey 变成 apikey，不含 api_key 而漏判；现与 app_config::read 共用同一套归一化（只留字母数字、转小写）和片段"
     },
     {
       "id": "kr-private-key-camel-case",
@@ -868,8 +870,7 @@
       ],
       "input": "privateKey",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 含 key 片段判为秘密，本函数不含；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数没有 key 片段而漏判；现共用同一套片段"
     },
     {
       "id": "kr-credentials",
@@ -879,8 +880,7 @@
       ],
       "input": "credentials",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 含 credential 片段判为秘密，本函数不含；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数没有 credential 片段而漏判；现共用同一套片段"
     },
     {
       "id": "kr-passwd",
@@ -890,8 +890,7 @@
       ],
       "input": "passwd",
       "must_not_contain": [],
-      "note": "S11 对照：app_config::read::is_secret_key 含 passwd 片段判为秘密，本函数不含；无对应提交，属新发现",
-      "known_gap": true
+      "note": "S11 对照：原先本函数没有 passwd 片段而漏判；现共用同一套片段"
     },
     {
       "id": "kr-ordinary-model",
@@ -924,14 +923,34 @@
       "note": "反例：带点的普通键名"
     },
     {
-      "id": "kr-author-is-not-auth",
+      "id": "kr-ordinary-default-branch",
       "kind": "negative",
       "targets": [
         "config_redaction"
       ],
-      "input": "author_name",
+      "input": "defaultBranch",
       "must_not_contain": [],
-      "note": "反例：author 只是以 auth 开头，不是 _auth 或 authorization"
+      "note": "反例：驼峰写法的普通键名，归一化不能把它拼出片段"
+    },
+    {
+      "id": "kr-ordinary-editor-mode",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "editorMode",
+      "must_not_contain": [],
+      "note": "反例：内置配置档的可编辑字段，新规则不得误拒"
+    },
+    {
+      "id": "kr-ordinary-render-markdown",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "renderMarkdown",
+      "must_not_contain": [],
+      "note": "反例：内置配置档的可编辑字段，新规则不得误拒"
     },
     {
       "id": "sm-plain-token",
@@ -992,6 +1011,500 @@
         "line-one\nzzcanary-sm5"
       ],
       "note": "S11 对照：多行值"
+    },
+    {
+      "id": "op-diagnostic-secret-assignment",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "Error: basicauth password=zzcanary-o1",
+      "must_not_contain": [
+        "zzcanary-o1"
+      ],
+      "must_contain": [
+        "[REDACTED]"
+      ],
+      "note": "6a5e10b：运行诊断里的 password= 赋值整行遮盖（该提交的单元测试用例）"
+    },
+    {
+      "id": "op-token-colon-line-multiline",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "request failed\ntoken: zzcanary-o2\nretrying",
+      "must_not_contain": [
+        "zzcanary-o2"
+      ],
+      "must_contain": [
+        "request failed",
+        "retrying"
+      ],
+      "note": "6a5e10b：token: 行整行遮盖，前后行保留"
+    },
+    {
+      "id": "op-authorization-bearer-header",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "GET /x\nAuthorization: Bearer zzcanary-o3\nHost: example.com",
+      "must_not_contain": [
+        "zzcanary-o3"
+      ],
+      "must_contain": [
+        "GET /x",
+        "Host: example.com"
+      ],
+      "note": "6a5e10b：Authorization 头与 Bearer 令牌整行遮盖，其他头保留"
+    },
+    {
+      "id": "op-inline-api-key-assignments",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "start with api_key=zzcanary-o4 and apikey=zzcanary-o5 done",
+      "must_not_contain": [
+        "zzcanary-o4",
+        "zzcanary-o5"
+      ],
+      "must_contain": [
+        "start with api_key=",
+        "and apikey=",
+        " done"
+      ],
+      "note": "6a5e10b：行内 api_key=、apikey= 赋值只遮盖值，同一行两处都处理，其余文本保留"
+    },
+    {
+      "id": "op-known-value-registered",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "connected with zzcanary-o6 now",
+      "must_not_contain": [
+        "zzcanary-o6"
+      ],
+      "must_contain": [
+        "connected with [REDACTED] now"
+      ],
+      "note": "6a5e10b：已登记的敏感值先于启发式替换（调用方 store 传入 known）",
+      "known": [
+        "zzcanary-o6"
+      ]
+    },
+    {
+      "id": "op-known-value-cut-by-truncation",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "head zzcanary-o7-long-value",
+      "must_not_contain": [
+        "zzcanary-o7"
+      ],
+      "must_contain": [
+        "head "
+      ],
+      "note": "operations：先遮盖再截断，截断不会留下已登记敏感值的一部分",
+      "known": [
+        "zzcanary-o7-long-value"
+      ],
+      "max_bytes": 12
+    },
+    {
+      "id": "op-json-quoted-secret-key-line",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "{\"secret\": \"zzcanary-o8\"}",
+      "must_not_contain": [
+        "zzcanary-o8"
+      ],
+      "must_contain": [
+        "[REDACTED]"
+      ],
+      "note": "6a5e10b：带引号的 \"secret\" 键所在行整行遮盖"
+    },
+    {
+      "id": "op-npmrc-auth-line",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "//registry.example.com/:_auth=zzcanary-o9",
+      "must_not_contain": [
+        "zzcanary-o9"
+      ],
+      "must_contain": [
+        "[REDACTED]"
+      ],
+      "note": "6a5e10b：_auth= 行整行遮盖"
+    },
+    {
+      "id": "op-plain-diagnostic-unchanged",
+      "kind": "negative",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "Error: adapting config: Caddyfile:2: unrecognized directive 中文",
+      "must_not_contain": [],
+      "note": "反例：不含秘密标记的诊断原样保留（含多字节文本）"
+    },
+    {
+      "id": "op-token-named-fields-unchanged",
+      "kind": "negative",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "token_bucket: 100 requests per second; secret_santa=off",
+      "must_not_contain": [],
+      "note": "反例：名字里带 token/secret 字样但不是 token= 之类的赋值，不得遮盖"
+    },
+    {
+      "id": "op-multiline-plain-unchanged",
+      "kind": "negative",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "line one\nline two\nline three",
+      "must_not_contain": [],
+      "note": "反例：多行普通文本逐行保留，换行不变"
+    },
+    {
+      "id": "op-gap-api-key-colon",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "api_key: zzcanary-og1",
+      "must_not_contain": [
+        "zzcanary-og1"
+      ],
+      "note": "新发现的缺口：整行标记表里没有 api_key:，行内赋值表只认 api_key=，冒号写法原样输出；修复要另派任务并走规则审批",
+      "known_gap": true
+    },
+    {
+      "id": "op-gap-json-api-key",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "{\"api_key\": \"zzcanary-og2\"}",
+      "must_not_contain": [
+        "zzcanary-og2"
+      ],
+      "note": "新发现的缺口：JSON 写法 \"api_key\": 既不在整行标记表（只有 \"token\"、\"secret\"、\"password\"），也不是 api_key= 赋值；修复要另派任务并走规则审批",
+      "known_gap": true
+    },
+    {
+      "id": "op-gap-cli-token-flag",
+      "kind": "positive",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "caddy run --token zzcanary-og3",
+      "must_not_contain": [
+        "zzcanary-og3"
+      ],
+      "note": "新发现的缺口：--token 后面空格分隔的值没有 token= 或 token: 标记，原样输出；修复要另派任务并走规则审批",
+      "known_gap": true
+    },
+    {
+      "id": "am-json-nested-api-token",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"editor.fontSize\":14,\"extension\":{\"apiToken\":\"zzcanary-a1\"}}",
+      "must_not_contain": [
+        "zzcanary-a1"
+      ],
+      "must_contain": [
+        "editor.fontSize",
+        "[REDACTED]"
+      ],
+      "note": "1d1900a：紧凑 JSON 里嵌套的 apiToken 遮盖，普通键保留",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-env-container-any-key",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"env\":{\"ANTHROPIC_BASE_URL\":\"https://gw.example\",\"PLAIN\":\"zzcanary-a2\"}}",
+      "must_not_contain": [
+        "zzcanary-a2",
+        "gw.example"
+      ],
+      "must_contain": [
+        "\"env\""
+      ],
+      "note": "1d1900a：env 容器里的所有值（含键名不像秘密的）都遮盖",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-headers-container-any-key",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"headers\":{\"X-Custom-Session\":\"zzcanary-a3\"},\"model\":\"opus\"}",
+      "must_not_contain": [
+        "zzcanary-a3"
+      ],
+      "must_contain": [
+        "X-Custom-Session",
+        "\"model\": \"opus\""
+      ],
+      "note": "1d1900a：headers 容器里的所有值都遮盖，容器外的普通键保留",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-secret-in-array-of-objects",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"servers\":[{\"name\":\"a\",\"apiKey\":\"zzcanary-a4\"}]}",
+      "must_not_contain": [
+        "zzcanary-a4"
+      ],
+      "must_contain": [
+        "\"name\": \"a\""
+      ],
+      "note": "1d1900a：对象数组里的秘密键遮盖，同对象的普通键保留",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-secret-key-array-value",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"tokens\":[\"zzcanary-a5\",\"zzcanary-a6\"]}",
+      "must_not_contain": [
+        "zzcanary-a5",
+        "zzcanary-a6"
+      ],
+      "must_contain": [
+        "\"tokens\""
+      ],
+      "note": "1d1900a：秘密键的数组值整体替换",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-url-credentials",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"endpoint\":\"https://user:zzcanary-a7@gw.example/v1\"}",
+      "must_not_contain": [
+        "zzcanary-a7"
+      ],
+      "must_contain": [
+        "https://user:[REDACTED]@gw.example/v1"
+      ],
+      "note": "1d1900a：普通键下字符串里的 URL 口令遮盖，保留用户名与主机",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-camel-case-secret-keys",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"clientSecret\":\"zzcanary-a8\",\"privateKey\":\"zzcanary-a9\"}",
+      "must_not_contain": [
+        "zzcanary-a8",
+        "zzcanary-a9"
+      ],
+      "must_contain": [
+        "clientSecret",
+        "privateKey"
+      ],
+      "note": "1d1900a：驼峰写法的秘密键（归一化后含 secret、key）",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-env-nested-object",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"env\":{\"nested\":{\"deep\":\"zzcanary-b1\"}}}",
+      "must_not_contain": [
+        "zzcanary-b1"
+      ],
+      "must_contain": [
+        "\"env\""
+      ],
+      "note": "1d1900a：env 容器里更深一层的对象整体遮盖",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-toml-secret-key-value",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "GITHUB_TOKEN = \"zzcanary-t1\"\nmodel = \"x\"",
+      "must_not_contain": [
+        "zzcanary-t1"
+      ],
+      "must_contain": [
+        "model = \"x\""
+      ],
+      "note": "1d1900a 同属 app_config::read：TOML 秘密键的值遮盖，其他行保留",
+      "entry": "alacritty-config"
+    },
+    {
+      "id": "am-toml-inline-table-naming-secret",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "inline = { API_TOKEN = \"zzcanary-t2\" }",
+      "must_not_contain": [
+        "zzcanary-t2"
+      ],
+      "must_contain": [
+        "inline = "
+      ],
+      "note": "app_config::read：内联表里出现秘密键名时整个值遮盖",
+      "entry": "alacritty-config"
+    },
+    {
+      "id": "am-toml-comment-dropped",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "background = \"#1d1f21\" # zzcanary-t3",
+      "must_not_contain": [
+        "zzcanary-t3"
+      ],
+      "must_contain": [
+        "background = \"#1d1f21\""
+      ],
+      "note": "app_config::read：行尾注释不显示，引号内的 # 保留",
+      "entry": "alacritty-config"
+    },
+    {
+      "id": "am-toml-url-credentials",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "endpoint = \"https://u:zzcanary-t4@proxy.example:3128\"",
+      "must_not_contain": [
+        "zzcanary-t4"
+      ],
+      "must_contain": [
+        "https://u:[REDACTED]@proxy.example:3128"
+      ],
+      "note": "app_config::read：keyed 行里的 URL 口令遮盖",
+      "entry": "alacritty-config"
+    },
+    {
+      "id": "am-toml-comment-line-withheld",
+      "kind": "positive",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "# note zzcanary-t5\nmodel = \"x\"",
+      "must_not_contain": [
+        "zzcanary-t5"
+      ],
+      "must_contain": [
+        "model = \"x\""
+      ],
+      "note": "app_config::read：整行注释不显示，其他行保留",
+      "entry": "alacritty-config"
+    },
+    {
+      "id": "am-json-plain-settings-unchanged",
+      "kind": "negative",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"model\":\"opus\",\"editor.fontSize\":14,\"permissions\":{\"allow\":[\"Bash(ls)\"]}}",
+      "must_not_contain": [],
+      "must_contain": [
+        "\"model\": \"opus\"",
+        "\"editor.fontSize\": 14",
+        "Bash(ls)"
+      ],
+      "note": "反例：普通设置不得遮盖，redacted 为 false（防止 mask_json 过度遮盖）",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-urls-without-credentials-unchanged",
+      "kind": "negative",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"homepage\":\"https://example.com:8080/path\",\"at\":\"12:30:45\",\"email\":\"a@b.example\"}",
+      "must_not_contain": [],
+      "must_contain": [
+        "https://example.com:8080/path",
+        "12:30:45",
+        "a@b.example"
+      ],
+      "note": "反例：没有口令的 URL、时间、邮箱里的冒号与 @ 不被当成 URL 口令",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-json-scalars-unchanged",
+      "kind": "negative",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "{\"enabled\":true,\"count\":3,\"nothing\":null,\"ratio\":1.5}",
+      "must_not_contain": [],
+      "must_contain": [
+        "\"enabled\": true",
+        "\"count\": 3",
+        "\"nothing\": null",
+        "\"ratio\": 1.5"
+      ],
+      "note": "反例：布尔、数字、null 原样保留",
+      "entry": "claude-code-settings"
+    },
+    {
+      "id": "am-toml-plain-pairs-unchanged",
+      "kind": "negative",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "model = \"gpt\"\nfont = \"Menlo\"",
+      "must_not_contain": [],
+      "must_contain": [
+        "model = \"gpt\"",
+        "font = \"Menlo\""
+      ],
+      "note": "反例：普通 keyed 行不得遮盖",
+      "entry": "alacritty-config"
+    },
+    {
+      "id": "am-toml-urls-and-times-unchanged",
+      "kind": "negative",
+      "targets": [
+        "app_config_read"
+      ],
+      "input": "at = 12:30:45\nurl = \"http://example.com:8080/path\"",
+      "must_not_contain": [],
+      "must_contain": [
+        "at = 12:30:45",
+        "url = \"http://example.com:8080/path\""
+      ],
+      "note": "反例：没有口令的 URL 与时间不被遮盖",
+      "entry": "alacritty-config"
     }
   ]
 }

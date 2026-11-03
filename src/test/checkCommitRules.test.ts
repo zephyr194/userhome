@@ -82,6 +82,9 @@ describe("isRuleFile", () => {
     "scripts/check-commit-rules.mjs",
     "eslint.config.js",
     "eslint.config.mjs",
+    "scripts/eslint-rules/x.mjs",
+    "scripts/eslint-rules/index.mjs",
+    "scripts/eslint-rules/no-raw-ipc-in-effect.d.mts",
     "src/components/ui/buttonSizeAudit.test.ts",
     "src/styles/radiusAudit.test.ts",
     "src/styles/tokens.baseline.json",
@@ -101,6 +104,7 @@ describe("isRuleFile", () => {
     "docs/release.md",
     "scripts/merge-claude-schema.mjs",
     "scripts/lib/claude-schema-merge.mjs",
+    "scripts/eslint-rules-notes.md",
     "src/styles/global.css",
     "src/features/services/ServicesView.test.tsx",
     "src/components/ui/Button.tsx",
@@ -205,6 +209,17 @@ describe("evaluateCommit", () => {
     expect(hits.map((hit) => [hit.rule.id, hit.files])).toEqual([["rule-files", ["AGENTS.md"]]]);
   });
 
+  it("改 scripts/eslint-rules 下的自定义规则被 rule-files 拦下，带审批行时放行", () => {
+    const files = [change("scripts/eslint-rules/x.mjs", ["export {};"], [])];
+    const hits = rules.evaluateCommit(commit(files));
+    expect(hits.map((hit) => [hit.rule.id, hit.files])).toEqual([
+      ["rule-files", ["scripts/eslint-rules/x.mjs"]],
+    ]);
+    expect(
+      hitIds(commit(files, "feat(lint): 说明\n\nRule-Change-Approved: 用户原话：“可以”")),
+    ).toEqual([]);
+  });
+
   it("删除规则类文件同样被拦", () => {
     expect(hitIds(commit([change("src/styles/radiusAudit.test.ts", [], ["const x = 1;"])]))).toEqual([
       "rule-files",
@@ -263,6 +278,8 @@ describe("redaction-corpus 规则", () => {
     "src-tauri/src/ai_config/config_view.rs",
     "src-tauri/src/caddy/redact.rs",
     "src-tauri/src/config/redaction.rs",
+    "src-tauri/src/operations/mod.rs",
+    "src-tauri/src/app_config/read.rs",
     "src/components/ui/secretMask.ts",
   ];
   const hits = (c: Commit) =>
@@ -274,8 +291,8 @@ describe("redaction-corpus 规则", () => {
   });
 
   it("一个提交改了多个脱敏文件时全部列出", () => {
-    const found = hits(commit([change(IMPLEMENTATIONS[0]), change("README.md"), change(IMPLEMENTATIONS[3])]));
-    expect(found.map((hit) => hit.files)).toEqual([[IMPLEMENTATIONS[0], IMPLEMENTATIONS[3]]]);
+    const found = hits(commit([change(IMPLEMENTATIONS[0]), change("README.md"), change(IMPLEMENTATIONS[IMPLEMENTATIONS.length - 1])]));
+    expect(found.map((hit) => hit.files)).toEqual([[IMPLEMENTATIONS[0], IMPLEMENTATIONS[IMPLEMENTATIONS.length - 1]]]);
   });
 
   it("同时改动了样例集时不命中", () => {
@@ -320,6 +337,15 @@ describe("历史提交的正向回归（没有审批行，必须被拦）", () =
     const result = runScript([`${sha}^`, sha], repoRoot);
     expect(result.status).toBe(1);
     expect(result.stdout).toContain(`${sha} ${ruleId} `);
+  });
+});
+
+describe("历史提交的误报回归：移动测试文件", () => {
+  it("3d414e3 把测试文件移到 src/app 且断言没有减少，不再被 weakened-tests 命中", () => {
+    const result = runScript(["--warn", "3d414e3^", "3d414e3"], repoRoot);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("规则变更检查通过");
+    expect(result.stdout).not.toContain("weakened-tests");
   });
 });
 
@@ -388,6 +414,46 @@ describe("命令行行为（临时仓库）", () => {
     expect(runScript([blocked, "HEAD"], dir, env).status).toBe(0);
     expect(runScript(["0".repeat(40), "HEAD"], dir, env).status).toBe(0);
     expect(runScript(["1".repeat(40), "HEAD"], dir, env).status).toBe(0);
+  });
+
+  it("git mv 测试文件：断言不减少放行；同时删掉一条断言仍命中 weakened-tests", () => {
+    git("init", "-q", "-b", "main");
+    const body = Array.from({ length: 6 }, (_, i) => `  expect(value${i}).toBe(${i});`);
+    const content = `it("x", () => {\n${body.join("\n")}\n});\n`;
+    commitFile("src/old/moveA.test.ts", content, "test(x): 初始 A");
+    commitFile("src/old/moveB.test.ts", content, "test(x): 初始 B");
+
+    const beforeA = git("rev-parse", "HEAD");
+    mkdirSync(join(dir, "src/moved"), { recursive: true });
+    git("mv", "src/old/moveA.test.ts", "src/moved/moveA.test.ts");
+    writeFileSync(join(dir, "src/moved/moveA.test.ts"), `${content}// 新增注释\n`);
+    git("add", "-A");
+    git("commit", "-m", "refactor(x): 移动 A，断言不变");
+    const clean = runScript([beforeA, "HEAD"], dir, env);
+    expect(clean.status, clean.stdout).toBe(0);
+    expect(clean.stdout).toContain("规则变更检查通过");
+
+    const beforeB = git("rev-parse", "HEAD");
+    git("mv", "src/old/moveB.test.ts", "src/moved/moveB.test.ts");
+    const weakened = content.replace("  expect(value5).toBe(5);\n", "");
+    writeFileSync(join(dir, "src/moved/moveB.test.ts"), weakened);
+    git("add", "-A");
+    git("commit", "-m", "refactor(x): 移动 B 并删掉一条断言");
+    const hit = runScript([beforeB, "HEAD"], dir, env);
+    expect(hit.status).toBe(1);
+    expect(hit.stdout).toContain("weakened-tests src/moved/moveB.test.ts");
+  });
+
+  it("把规则类文件 git mv 走同样会命中 rule-files", () => {
+    git("init", "-q", "-b", "main");
+    commitFile("scripts/eslint-rules/moveme.mjs", "export const rule = 1;\nexport const other = 2;\n", "chore: 初始规则");
+    const before = git("rev-parse", "HEAD");
+    mkdirSync(join(dir, "scripts/elsewhere"), { recursive: true });
+    git("mv", "scripts/eslint-rules/moveme.mjs", "scripts/elsewhere/moveme.mjs");
+    git("commit", "-m", "chore: 移走规则文件");
+    const result = runScript([before, "HEAD"], dir, env);
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("rule-files scripts/eslint-rules/moveme.mjs");
   });
 
   it("缺少参数时给出用法并以非 0 退出，--warn 不改变这一点", () => {

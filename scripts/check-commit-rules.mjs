@@ -9,6 +9,8 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 const ZERO_SHA = /^0+$/;
+// 改名检测的相似度阈值：默认 50% 不够，3d414e3 移动并大幅扩写的 sequenceGate.test.ts 只有 42%。
+const RENAME_FLAG = '-M30%';
 const APPROVAL_LINE = /^Rule-Change-Approved:[ \t]*(\S.*?)[ \t]*$/m;
 
 // 规则类文件。INC-*.yaml、batch-*.md 属于普通维护，不在此列。
@@ -16,6 +18,7 @@ const RULE_FILE_PATTERNS = [
   /^\.claude\//,
   /^scripts\/check-[^/]*\.mjs$/,
   /(^|\/)eslint\.config\.[^/]+$/,
+  /^scripts\/eslint-rules\//,
   /(^|\/)[^/]*Audit\.test\.[^/]+$/,
   /^src\/styles\/tokens\.baseline\.json$/,
   /^docs\/agent-incidents\/README\.md$/,
@@ -30,6 +33,8 @@ const REDACTION_IMPLEMENTATION_FILES = [
   'src-tauri/src/ai_config/config_view.rs',
   'src-tauri/src/caddy/redact.rs',
   'src-tauri/src/config/redaction.rs',
+  'src-tauri/src/operations/mod.rs',
+  'src-tauri/src/app_config/read.rs',
   'src/components/ui/secretMask.ts',
 ];
 const REDACTION_CORPUS_FILE = 'src-tauri/tests/fixtures/redaction_corpus.json';
@@ -122,7 +127,7 @@ export const RULES = [
   {
     id: 'redaction-corpus',
     description:
-      '提交改动了脱敏实现文件（config_view.rs、caddy/redact.rs、config/redaction.rs、secretMask.ts），却没有同时改动共享样例集 src-tauri/tests/fixtures/redaction_corpus.json；脱敏改动必须新增或确认样例',
+      '提交改动了脱敏实现文件（config_view.rs、caddy/redact.rs、config/redaction.rs、operations/mod.rs、app_config/read.rs、secretMask.ts），却没有同时改动共享样例集 src-tauri/tests/fixtures/redaction_corpus.json；脱敏改动必须新增或确认样例',
     check: (commit) => {
       const paths = commit.files.map((f) => f.path);
       if (paths.includes(REDACTION_CORPUS_FILE)) return [];
@@ -156,38 +161,68 @@ function revExists(rev) {
   }
 }
 
-// 解析 `git diff-tree -p -U0` 输出，按文件收集新增与删除的行。
+// 解析 `git diff-tree -p -U0 -M` 输出，按（新）路径收集新增与删除的行。
+// 改名/移动的文件头是 `diff --git a/旧 b/新`，新路径取自其后的 `rename to` 行，行内容是旧内容对新内容的差异。
 function parsePatch(patch) {
   const byPath = new Map();
   let current = null;
   let inHunk = false;
   for (const line of patch.split('\n')) {
-    const header = /^diff --git a\/(.+) b\/\1$/.exec(line);
-    if (header) {
-      current = { path: header[1], added: [], removed: [] };
-      byPath.set(current.path, current);
+    if (line.startsWith('diff --git ')) {
+      const plain = /^diff --git a\/(.+) b\/\1$/.exec(line);
+      current = { path: plain ? plain[1] : null, added: [], removed: [] };
       inHunk = false;
     } else if (current && line.startsWith('@@')) {
       inHunk = true;
+    } else if (current && !inHunk && line.startsWith('rename to ')) {
+      current.path = line.slice('rename to '.length);
     } else if (current && inHunk) {
       if (line.startsWith('+')) current.added.push(line.slice(1));
       else if (line.startsWith('-')) current.removed.push(line.slice(1));
     }
+    if (current?.path) byPath.set(current.path, current);
   }
   return byPath;
 }
 
+// 解析 `git diff-tree --name-status -z -M`：普通项 `状态\0路径\0`，改名项 `Rnn\0旧路径\0新路径\0`。
+function parseNameStatus(output) {
+  const tokens = output.split('\0').filter(Boolean);
+  const entries = [];
+  for (let i = 0; i < tokens.length; ) {
+    if (tokens[i].startsWith('R')) {
+      entries.push({ path: tokens[i + 2], oldPath: tokens[i + 1] });
+      i += 3;
+    } else {
+      entries.push({ path: tokens[i + 1] });
+      i += 2;
+    }
+  }
+  return entries;
+}
+
+// 改名的文件同时列出旧路径（空内容）和新路径：移走规则类文件、脱敏实现文件照样命中。
+// 内容差异挂在新路径上；只有“测试文件改名成非测试文件”时挂在旧路径上，这样断言减少仍被识别。
 export function loadCommit(sha) {
   const message = git(['log', '-1', '--format=%B', sha]);
-  const paths = git(['diff-tree', '--root', '--no-commit-id', '--no-renames', '-r', '--name-only', '-z', sha])
-    .split('\0')
-    .filter(Boolean);
-  const testPaths = paths.filter(isTestFile);
+  const entries = parseNameStatus(
+    git(['diff-tree', '--root', '--no-commit-id', RENAME_FLAG, '-r', '--name-status', '-z', sha]),
+  );
+  const testPaths = entries
+    .flatMap((entry) => [entry.path, entry.oldPath])
+    .filter((path) => path && isTestFile(path));
   const patches =
     testPaths.length > 0
-      ? parsePatch(git(['diff-tree', '--root', '--no-commit-id', '--no-renames', '-r', '-p', '-U0', sha, '--', ...testPaths]))
+      ? parsePatch(git(['diff-tree', '--root', '--no-commit-id', RENAME_FLAG, '-r', '-p', '-U0', sha, '--', ...testPaths]))
       : new Map();
-  const files = paths.map((path) => patches.get(path) ?? { path, added: [], removed: [] });
+  const files = entries.flatMap(({ path, oldPath }) => {
+    const empty = (p) => ({ path: p, added: [], removed: [] });
+    if (!oldPath) return [patches.get(path) ?? empty(path)];
+    const content = patches.get(path) ?? empty(path);
+    return !isTestFile(path) && isTestFile(oldPath)
+      ? [{ ...content, path: oldPath }, empty(path)]
+      : [empty(oldPath), content];
+  });
   return { sha, message, files };
 }
 

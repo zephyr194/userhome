@@ -14,7 +14,9 @@ type Target =
   | "config_view"
   | "caddy_redact"
   | "config_redaction"
-  | "secret_mask";
+  | "secret_mask"
+  | "operations_sanitize"
+  | "app_config_read";
 
 interface CorpusCase {
   id: string;
@@ -28,6 +30,9 @@ interface CorpusCase {
   tls?: { certificate: string; private_key: string }[];
   chunks?: string[];
   chunk_bytes?: number;
+  entry?: string;
+  known?: string[];
+  max_bytes?: number;
 }
 
 const cases = (corpusJson as unknown as { cases: CorpusCase[] }).cases;
@@ -36,6 +41,8 @@ const TARGETS: Target[] = [
   "caddy_redact",
   "config_redaction",
   "secret_mask",
+  "operations_sanitize",
+  "app_config_read",
 ];
 
 function casesFor(target: Target): CorpusCase[] {

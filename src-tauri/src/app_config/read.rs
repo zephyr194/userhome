@@ -16,16 +16,6 @@ use super::{
 
 pub const REDACTED: &str = "[REDACTED]";
 
-const SECRET_KEY_FRAGMENTS: [&str; 7] = [
-    "token",
-    "password",
-    "passwd",
-    "secret",
-    "credential",
-    "key",
-    "auth",
-];
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ParseWarning {
@@ -255,19 +245,8 @@ fn strip_inline_comment(value: &str) -> &str {
     value
 }
 
-/// Secret-key heuristic shared by every format. It matches the normalized key
-/// (alphanumerics only, lowercase), so `api-key`, `API_KEY` and `apiKey` agree.
-/// Deliberately broad: a false positive hides a value, a false negative leaks it.
-pub fn is_secret_key(key: &str) -> bool {
-    let normalized: String = key
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric())
-        .map(|c| c.to_ascii_lowercase())
-        .collect();
-    SECRET_KEY_FRAGMENTS
-        .iter()
-        .any(|fragment| normalized.contains(fragment))
-}
+/// Secret-key heuristic shared by every format; defined once in `config::redaction`.
+pub use crate::config::redaction::is_secret_key;
 
 pub fn is_protected_container(key: &str) -> bool {
     matches!(key.to_ascii_lowercase().as_str(), "env" | "headers")
