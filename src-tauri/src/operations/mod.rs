@@ -11,6 +11,7 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
 use crate::{
+    config::redaction::is_secret_key,
     error::{AppError, AppErrorCode},
     process_session::{ProcessSession, StopOutcome},
 };
@@ -380,8 +381,9 @@ pub(crate) fn format_timestamp(unix_seconds: i64) -> Result<String, AppError> {
 /// Redacts `known` values first, then the heuristic patterns, then truncates, so
 /// truncation can never leave a partial known value behind.
 pub(crate) fn sanitize_payload(value: &str, max_bytes: usize, known: &[String]) -> String {
+    let lines_redacted = redact_sensitive_lines(&redact_known_values(value, known));
     truncate_utf8(
-        &redact_secret_assignments(&redact_sensitive_lines(&redact_known_values(value, known))),
+        &redact_secret_assignments(&redact_secret_flag_values(&lines_redacted)),
         max_bytes,
     )
 }
@@ -449,14 +451,111 @@ fn redact_sensitive_lines(value: &str) -> String {
         .lines()
         .map(|line| {
             let lower = line.to_ascii_lowercase();
-            if MARKERS.iter().any(|marker| lower.contains(marker)) {
-                "[REDACTED]"
+            if MARKERS.iter().any(|marker| lower.contains(marker)) || has_secret_key_pair(line) {
+                REDACTED
             } else {
                 line
             }
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Whether the line holds a `key: value` or `"key": value` pair whose key names
+/// a secret (`api_key: …`, `{"api_key": "…"}`). Only the last `_`/`-`/`.` segment
+/// of the key is judged, with the shared `is_secret_key`, so `token_bucket: 100`
+/// stays readable while `access_token:` and `client-secret:` are caught.
+fn has_secret_key_pair(line: &str) -> bool {
+    line.match_indices(':').any(|(index, _)| {
+        let head = line[..index].trim_end().trim_end_matches(['"', '\'']);
+        let key = head
+            .rsplit(|c: char| !(c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.')))
+            .next()
+            .unwrap_or_default();
+        key.rsplit(['_', '-', '.'])
+            .find(|segment| !segment.is_empty())
+            .is_some_and(is_secret_key)
+    })
+}
+
+/// Masks the argument after a secret command-line flag (`--token VALUE`) and the
+/// value of `--api-key=VALUE`, the same flag rule `ai_config::config_view` applies
+/// to config files. The value stays masked even when it is quoted and holds spaces.
+fn redact_secret_flag_values(value: &str) -> String {
+    let mut output = String::with_capacity(value.len());
+    let mut rest = value;
+    let mut mask_next = false;
+
+    while !rest.is_empty() {
+        let word_start = rest
+            .find(|c: char| !c.is_whitespace())
+            .unwrap_or(rest.len());
+        output.push_str(&rest[..word_start]);
+        rest = &rest[word_start..];
+        if rest.is_empty() {
+            break;
+        }
+
+        // A flag directly after a secret flag is not its value.
+        if mask_next && !rest.starts_with("--") {
+            let end = argument_len(rest);
+            output.push_str(REDACTED);
+            rest = &rest[end..];
+            mask_next = false;
+            continue;
+        }
+        mask_next = false;
+
+        let word_end = rest.find(char::is_whitespace).unwrap_or(rest.len());
+        let word = &rest[..word_end];
+        let Some(flag) = word.strip_prefix('-') else {
+            output.push_str(word);
+            rest = &rest[word_end..];
+            continue;
+        };
+        let flag = flag.trim_start_matches('-');
+        match flag.split_once('=') {
+            Some((name, _)) if is_secret_key(name) => {
+                let value_start = word.len() - flag.len() + name.len() + 1;
+                let value_end = value_start + argument_len(&rest[value_start..]);
+                output.push_str(&rest[..value_start]);
+                if value_end > value_start {
+                    output.push_str(REDACTED);
+                } else {
+                    // `--token= VALUE`: the value is the next argument.
+                    mask_next = true;
+                }
+                rest = &rest[value_end..];
+            }
+            Some(_) => {
+                output.push_str(word);
+                rest = &rest[word_end..];
+            }
+            None => {
+                mask_next = !flag.is_empty() && is_secret_key(flag);
+                output.push_str(word);
+                rest = &rest[word_end..];
+            }
+        }
+    }
+
+    output
+}
+
+/// Length of the argument at the start of `text`: up to the next whitespace, or,
+/// for a quoted argument, through its closing quote (to the end if it never closes).
+fn argument_len(text: &str) -> usize {
+    let plain = |from: usize| {
+        text[from..]
+            .find(char::is_whitespace)
+            .map_or(text.len(), |offset| from + offset)
+    };
+    match text.chars().next() {
+        Some(quote @ ('"' | '\'')) => text[1..]
+            .find(quote)
+            .map_or(text.len(), |close| plain(close + 2)),
+        _ => plain(0),
+    }
 }
 
 fn redact_secret_assignments(value: &str) -> String {
@@ -937,6 +1036,27 @@ mod tests {
         let serialized = serde_json::to_string(&details).expect("json");
         assert!(!serialized.contains(SECRET), "leaked: {serialized}");
         assert!(serialized.contains("listening with [REDACTED]"));
+    }
+
+    #[test]
+    fn sanitize_payload_masks_secret_flag_and_key_pair_forms() {
+        let max = MAX_RESULT_SUMMARY_BYTES;
+        assert_eq!(
+            sanitize_payload(
+                "run --api-key=abc123 --token \"two words\" --verbose",
+                max,
+                &[]
+            ),
+            "run --api-key=[REDACTED] --token [REDACTED] --verbose"
+        );
+        assert_eq!(
+            sanitize_payload("start --token --verbose done", max, &[]),
+            "start --token --verbose done"
+        );
+        assert_eq!(
+            sanitize_payload("x\napi-key: abc\n{\"client-secret\": \"abc\"}\ny", max, &[]),
+            "x\n[REDACTED]\n[REDACTED]\ny"
+        );
     }
 
     const REDACTION_CORPUS: &str = include_str!("../../tests/fixtures/redaction_corpus.json");
