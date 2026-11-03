@@ -726,19 +726,27 @@ mod tests {
 
     #[test]
     fn module_timeout_preserves_completed_partial_results() {
+        // brew 在测试放行前一直阻塞，超时是否触发与调度快慢无关；
+        // system/candidates 立即返回，其超时只是上限，留足余量避免线程饥饿误判。
+        let (release_brew, brew_gate) = mpsc::channel::<()>();
+        let brew_gate = Mutex::new(brew_gate);
         let coordinator = DiscoveryCoordinator::new(
             DiscoveryRunners {
                 system: Arc::new(|| Ok(sample_system())),
-                brew: Arc::new(|| {
-                    thread::sleep(Duration::from_millis(100));
+                brew: Arc::new(move || {
+                    // 放行或发送端被丢弃（断言失败展开）都会让线程退出。
+                    let _ = brew_gate
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .recv();
                     Err(InventoryError::NotFound)
                 }),
                 candidates: Arc::new(|_| Ok(ConfigurationCoverage::empty())),
             },
             ModuleTimeouts {
-                system: Duration::from_millis(50),
+                system: Duration::from_secs(5),
                 brew: Duration::from_millis(20),
-                candidates: Duration::from_millis(50),
+                candidates: Duration::from_secs(5),
             },
         );
 
@@ -756,6 +764,8 @@ mod tests {
                 .module,
             "homebrew"
         );
+
+        let _ = release_brew.send(());
     }
 
     #[test]

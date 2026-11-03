@@ -154,6 +154,16 @@ describe("UserHome desktop smoke", () => {
     const dashboard = await $("section[aria-label='概览']");
     await dashboard.waitForDisplayed({ timeout: 5_000 });
     expect(await $(".desktop-workspace__page-title").getText()).toBe("概览");
+    // 系统信息在启动刷新结束后才到终态（ready）：此前显示"正在读取本机信息"或
+    // "本机信息暂不可用"，两者都是过渡态。只等 ready 的摘要区出现，不接受告警态。
+    await browser.waitUntil(
+      async () =>
+        await dashboard.$("dl[aria-label='系统信息摘要']").isDisplayed(),
+      {
+        timeout: 10_000,
+        timeoutMsg: "Overview system summary did not reach ready",
+      },
+    );
     expect(await dashboard.getText()).toContain("macOS");
     expect(await dashboard.getText()).toContain("架构");
     // 连接状态在导航栏底部，不在概览区内。
