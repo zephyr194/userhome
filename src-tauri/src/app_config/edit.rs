@@ -201,7 +201,7 @@ pub fn resolve_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<T
     }
     match locate(entry, home, fs) {
         Located::Found { path, .. } => Ok(Target { path, exists: true }),
-        // The list only includes existing entries; this branch is kept for later.
+        // The file is missing: it may be created when its directory exists.
         Located::Unavailable(ProbeStatus::NotFound) => creatable_target(entry, home, fs),
         Located::Unavailable(ProbeStatus::OutOfBounds) => {
             Err(AppError::permission_denied(OUTSIDE_HOME))
@@ -216,7 +216,10 @@ pub fn resolve_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<T
     }
 }
 
-/// A missing file may be created only inside `$HOME`, in a directory that already exists.
+/// A missing file may be created only in a directory that already exists. The
+/// new file itself must pass the `$HOME` rule: strictly below the home
+/// directory and outside the protected credential locations. Its directory may
+/// be the home directory itself (`~/.gitconfig`).
 fn creatable_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<Target, AppError> {
     let declared = resolve_path(entry, home);
     let (Some(parent), Some(leaf)) = (declared.parent(), declared.file_name()) else {
@@ -228,11 +231,12 @@ fn creatable_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<Tar
     let real_parent = fs
         .canonicalize(parent)
         .map_err(|_| AppError::not_found("配置文件所在的目录不存在，请先创建该目录再修改。"))?;
-    if !is_below_home(&real_parent, Some(&canonical_home)) {
+    let path = real_parent.join(leaf);
+    if !is_below_home(&path, Some(&canonical_home)) {
         return Err(AppError::permission_denied(OUTSIDE_HOME));
     }
     Ok(Target {
-        path: real_parent.join(leaf),
+        path,
         exists: false,
     })
 }
