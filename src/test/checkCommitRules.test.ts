@@ -10,6 +10,8 @@ interface FileChange {
   path: string;
   added: string[];
   removed: string[];
+  addedAt?: number[];
+  after?: string[];
 }
 interface Commit {
   sha: string;
@@ -30,6 +32,8 @@ interface RulesModule {
   weakensAssertions: (file: FileChange) => boolean;
   parseApproval: (message: string) => string | null;
   evaluateCommit: (commit: Commit) => { rule: Rule; files: string[] }[];
+  sleepViolations: (file: FileChange) => string[];
+  cfgTestRanges: (lines: string[]) => [number, number][];
 }
 
 // 脚本是不带类型声明的 .mjs，用变量路径动态导入以避开 TS7016；类型由上面的接口给出。
@@ -64,7 +68,7 @@ describe("规则表", () => {
   it("每条规则都有 id、说明和 check 函数，id 不重复", () => {
     const ids = rules.RULES.map((rule) => rule.id);
     expect(ids).toEqual(
-      expect.arrayContaining(["rule-files", "weakened-tests", "redaction-corpus"]),
+      expect.arrayContaining(["rule-files", "weakened-tests", "redaction-corpus", "sleep-timing"]),
     );
     expect(new Set(ids).size).toBe(ids.length);
     for (const rule of rules.RULES) {
@@ -354,6 +358,294 @@ describe("历史提交的正向回归：改了脱敏实现而没改样例集", (
     const result = runScript(["--warn", `${sha}^`, sha], repoRoot);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain(`${sha} redaction-corpus `);
+  });
+});
+
+describe("sleep-timing 规则", () => {
+  const sleepHits = (c: Commit) =>
+    rules.evaluateCommit(c).filter((hit) => hit.rule.id === "sleep-timing").flatMap((hit) => hit.files);
+
+  // 带提交后文件内容与新增行号的文件，对应 loadCommit 给候选文件补的 after / addedAt。
+  function sleepChange(path: string, after: string, addedLines: number[], removed: string[] = []): FileChange {
+    const all = after.split("\n");
+    return { path, added: addedLines.map((n) => all[n - 1]), removed, addedAt: addedLines, after: all };
+  }
+
+  const srcFile = [
+    "fn poll() {",
+    "    std::thread::sleep(POLL);", // 2：非测试代码
+    "}",
+    "",
+    "#[cfg(test)]",
+    "mod tests {",
+    "    #[test]",
+    "    fn races() {",
+    "        thread::sleep(Duration::from_millis(60));", // 9：测试模块内
+    "    }",
+    "}",
+    "",
+    "fn tail() {",
+    "    thread::sleep(POLL);", // 14：测试模块之后的非测试代码
+    "}",
+  ].join("\n");
+
+  describe("Rust", () => {
+    it.each([
+      ["src-tauri/tests/process_session.rs"],
+      ["src-tauri/src/caddy/session_owned_tests.rs"],
+      ["src-tauri/src/config/tests.rs"],
+    ])("%s 新增 thread::sleep( 与 std::thread::sleep( 都命中，列出行号", (path) => {
+      const found = sleepHits(
+        commit([change(path, ["    thread::sleep(d);", "let x = 1;", "    std::thread::sleep(d);"], [])]),
+      );
+      expect(found).toEqual([`${path}:1`, `${path}:3`]);
+    });
+
+    it("src-tauri/src 普通文件：只有 #[cfg(test)] 条目内的新增行命中", () => {
+      const path = "src-tauri/src/discovery/refresh.rs";
+      expect(sleepHits(commit([sleepChange(path, srcFile, [2, 9, 14])]))).toEqual([`${path}:9`]);
+    });
+
+    it("#[cfg(test)] mod tests; 只覆盖那一行，其后的非测试代码不命中", () => {
+      const after = ["#[cfg(test)]", "mod tests;", "", "fn run() {", "    thread::sleep(POLL);", "}"].join("\n");
+      expect(sleepHits(commit([sleepChange("src-tauri/src/x.rs", after, [5])]))).toEqual([]);
+      expect(rules.cfgTestRanges(after.split("\n"))).toEqual([[1, 2]]);
+    });
+
+    it("#[cfg(test)] 标注单个函数时只覆盖该函数，叠加其他属性也算", () => {
+      const after = [
+        "#[cfg(test)]",
+        "#[allow(dead_code)]",
+        "fn helper() {",
+        "    thread::sleep(d);",
+        "}",
+        "fn prod() {",
+        "    thread::sleep(d);",
+        "}",
+      ].join("\n");
+      expect(rules.cfgTestRanges(after.split("\n"))).toEqual([[1, 5]]);
+      expect(sleepHits(commit([sleepChange("src-tauri/src/x.rs", after, [4, 7])]))).toEqual([
+        "src-tauri/src/x.rs:4",
+      ]);
+    });
+
+    it("非测试代码里的 sleep 不命中（有无 after 内容都一样）", () => {
+      expect(
+        sleepHits(commit([change("src-tauri/src/process.rs", ["        thread::sleep(POLL_INTERVAL);"], [])])),
+      ).toEqual([]);
+      expect(sleepHits(commit([sleepChange("src-tauri/src/process.rs", "fn a() {\n    thread::sleep(P);\n}", [2])]))).toEqual([]);
+    });
+
+    it("注释里的 thread::sleep( 和不相关的 sleep 不命中", () => {
+      const lines = ["// thread::sleep(d) 会让测试依赖时钟", "let s = tokio::time::sleep(d);", "let t = sleep_for_test(d);"];
+      expect(sleepHits(commit([change("src-tauri/tests/a.rs", lines, [])]))).toEqual([]);
+    });
+
+    it.each([
+      ["同一行", ["    thread::sleep(d); // timing-ok: 轮询间隔，上限 5 秒"], 1],
+      ["上一行", ["    // timing-ok: 验证宽限期后被杀，必须真实等待", "    thread::sleep(d);"], 2],
+      ["上方连续注释块", ["    // timing-ok: 轮询间隔，", "    // 外层有 deadline 兜底", "    thread::sleep(d);"], 3],
+    ])("%s 有 timing-ok 标记时不命中", (_name, lines, at) => {
+      const after = lines.join("\n");
+      expect(sleepHits(commit([sleepChange("src-tauri/tests/a.rs", after, [at])]))).toEqual([]);
+    });
+
+    it.each([
+      ["理由为空", "    // timing-ok:\n    thread::sleep(d);", 2],
+      ["标记与 sleep 之间隔了空行", "    // timing-ok: 理由\n\n    thread::sleep(d);", 3],
+      ["标记在别的语句之上", "    // timing-ok: 理由\n    let a = 1;\n    thread::sleep(d);", 3],
+      ["写成了别的字样", "    // timing ok: 理由\n    thread::sleep(d);", 2],
+    ])("%s 时仍然命中", (_name, after, at) => {
+      expect(sleepHits(commit([sleepChange("src-tauri/tests/a.rs", after, [at])]))).toEqual([
+        `src-tauri/tests/a.rs:${at}`,
+      ]);
+    });
+
+    it("删除 sleep 的提交不命中；原样搬动的 sleep（同一提交先删后增同一行）不命中", () => {
+      const path = "src-tauri/src/discovery/refresh.rs";
+      expect(sleepHits(commit([change(path, [], ["        thread::sleep(Duration::from_millis(100));"])]))).toEqual([]);
+      expect(
+        sleepHits(
+          commit([
+            change(path, ["    thread::sleep(d);"], ["        thread::sleep(d);"]),
+          ]),
+        ),
+      ).toEqual([]);
+      expect(
+        sleepHits(commit([change("src-tauri/tests/a.rs", ["thread::sleep(d);", "thread::sleep(d);"], ["thread::sleep(d);"])])),
+      ).toEqual(["src-tauri/tests/a.rs:2"]);
+    });
+
+    it("带审批行的提交放行", () => {
+      const files = [change("src-tauri/tests/a.rs", ["thread::sleep(d);"], [])];
+      expect(hitIds(commit(files))).toEqual(["sleep-timing"]);
+      expect(hitIds(commit(files, "test(x): 说明\n\nRule-Change-Approved: 用户原话：“可以”"))).toEqual([]);
+    });
+  });
+
+  describe("e2e", () => {
+    it.each([
+      ["browser.pause", "  await browser.pause(500);"],
+      ["driver.pause", "  await driver.pause(1_000);"],
+      ["Promise + setTimeout", "  await new Promise((resolve) => setTimeout(resolve, 300));"],
+      ["timers/promises 的 setTimeout", "  await setTimeout(300);"],
+    ])("e2e 新增 %s 命中", (_name, line) => {
+      expect(sleepHits(commit([change("e2e/smoke.spec.ts", [line], [])]))).toEqual(["e2e/smoke.spec.ts:1"]);
+    });
+
+    it("waitUntil、设置 WebDriver 超时、注释里的 pause 不命中", () => {
+      const lines = [
+        "  await browser.waitUntil(async () => (await $('[data-state=ready]').isExisting()), { timeout: 5000 });",
+        "  await browser.setTimeout({ implicit: 0 });",
+        "  // 不要用 browser.pause(500)",
+        "  const timeoutMs = 5000;",
+      ];
+      expect(sleepHits(commit([change("e2e/smoke.spec.ts", lines, [])]))).toEqual([]);
+    });
+
+    it("带 timing-ok 的 e2e 等待不命中；e2e 之外的文件不检查", () => {
+      expect(
+        sleepHits(commit([change("e2e/smoke.spec.ts", ["  await browser.pause(500); // timing-ok: 等系统动画结束，无可观察终态"], [])])),
+      ).toEqual([]);
+      expect(sleepHits(commit([change("src/e2e/probe.ts", ["browser.pause(1)"], [])]))).toEqual([]);
+      expect(sleepHits(commit([change("src/app/AppShell.test.tsx", ["setTimeout(r, 5)"], [])]))).toEqual([]);
+    });
+
+    it("删除 browser.pause 的提交不命中", () => {
+      expect(sleepHits(commit([change("e2e/smoke.spec.ts", [], ["  await browser.pause(500);"])]))).toEqual([]);
+    });
+  });
+});
+
+describe("历史提交的正向回归：refresh 测试里用 sleep 比快慢", () => {
+  // git log -S 'thread::sleep' -- src-tauri/src/discovery/refresh.rs 列出 98e2c8b（引入）与 b30ed3f（删除其中一处）。
+  // 98e2c8b 同时引入了 duplicate_refresh_requests_join_the_active_scan（536、551 行）与 module_timeout_preserves_completed_partial_results（567 行）两处 sleep。
+  it("98e2c8b 被 sleep-timing 命中，并列出 refresh.rs 里三处新增 sleep 的行号", () => {
+    const result = runScript(["--warn", "98e2c8b^", "98e2c8b"], repoRoot);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("98e2c8b sleep-timing ");
+    for (const line of [536, 551, 567]) {
+      expect(result.stdout).toContain(`src-tauri/src/discovery/refresh.rs:${line}`);
+    }
+    expect(result.stderr).toContain("timing-ok");
+  });
+
+  it("b30ed3f 删掉 sleep 的修复版本不被 sleep-timing 命中", () => {
+    const result = runScript(["--warn", "b30ed3f^", "b30ed3f"], repoRoot);
+    expect(result.stdout).not.toContain("sleep-timing");
+  });
+});
+
+describe("sleep-timing 的命令行行为（临时仓库）", () => {
+  const dir = mkdtempSync(join(tmpdir(), "commit-rules-sleep-"));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  const env = {
+    ...process.env,
+    HOME: dir,
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_CONFIG_GLOBAL: join(dir, "no-global-gitconfig"),
+  };
+  function git(...args: string[]) {
+    const result = spawnSync(
+      "git",
+      ["-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false", ...args],
+      { cwd: dir, env, encoding: "utf8" },
+    );
+    expect(result.status, result.stderr).toBe(0);
+    return result.stdout.trim();
+  }
+  function commitFile(path: string, content: string, message: string) {
+    mkdirSync(dirname(join(dir, path)), { recursive: true });
+    writeFileSync(join(dir, path), content);
+    git("add", "-f", path);
+    git("commit", "-m", message);
+  }
+  const rangeFrom = (before: string) => runScript(["--warn", before, "HEAD"], dir, env);
+
+  it("e2e 新增 browser.pause 命中并给出行号；改用 waitUntil、带 timing-ok、删除 pause 都不命中", () => {
+    git("init", "-q", "-b", "main");
+    const spec = (body: string[]) => `it("x", async () => {\n${body.join("\n")}\n});\n`;
+    commitFile("e2e/smoke.spec.ts", spec(["  await $('#a').click();"]), "test(e2e): 初始");
+
+    let before = git("rev-parse", "HEAD");
+    commitFile("e2e/smoke.spec.ts", spec(["  await $('#a').click();", "  await browser.pause(500);"]), "test(e2e): 等一下");
+    const hit = rangeFrom(before);
+    expect(hit.stdout).toContain("sleep-timing e2e/smoke.spec.ts:3");
+    expect(hit.stderr).toContain("waitUntil");
+
+    before = git("rev-parse", "HEAD");
+    commitFile("e2e/smoke.spec.ts", spec(["  await $('#a').click();"]), "test(e2e): 删掉 pause");
+    expect(rangeFrom(before).stdout).not.toContain("sleep-timing");
+
+    before = git("rev-parse", "HEAD");
+    commitFile(
+      "e2e/smoke.spec.ts",
+      spec(["  await $('#a').click();", "  // timing-ok: 系统动画没有可观察的终态", "  await browser.pause(500);"]),
+      "test(e2e): 带标记的等待",
+    );
+    expect(rangeFrom(before).stdout).not.toContain("sleep-timing");
+  });
+
+  it("Rust：#[cfg(test)] 模块里新增 sleep 命中并给出提交后的行号，非测试代码里的 sleep 不命中", () => {
+    git("init", "-q", "-b", "main");
+    const lib = (testBody: string[], tail: string[] = []) =>
+      [
+        "fn work() {}",
+        "",
+        "#[cfg(test)]",
+        "mod tests {",
+        ...testBody,
+        "}",
+        ...tail,
+        "",
+      ].join("\n");
+    commitFile("src-tauri/src/lib_x.rs", lib(["    #[test]", "    fn a() {}"]), "test(x): 初始");
+
+    let before = git("rev-parse", "HEAD");
+    commitFile(
+      "src-tauri/src/lib_x.rs",
+      lib(["    #[test]", "    fn a() {", "        std::thread::sleep(D);", "    }"]),
+      "test(x): 睡一会",
+    );
+    expect(rangeFrom(before).stdout).toContain("sleep-timing src-tauri/src/lib_x.rs:7");
+
+    before = git("rev-parse", "HEAD");
+    commitFile(
+      "src-tauri/src/lib_x.rs",
+      lib(["    #[test]", "    fn a() {", "    }"], ["fn poll() {", "    thread::sleep(POLL);", "}"]),
+      "feat(x): 非测试代码里的轮询",
+    );
+    expect(rangeFrom(before).stdout).not.toContain("sleep-timing");
+
+    before = git("rev-parse", "HEAD");
+    commitFile(
+      "src-tauri/src/lib_x.rs",
+      lib(["    #[test]", "    fn a() {", "        // timing-ok: 轮询标记文件，上限 5 秒", "        thread::sleep(D);", "    }"], ["fn poll() {", "    thread::sleep(POLL);", "}"]),
+      "test(x): 带标记的轮询",
+    );
+    expect(rangeFrom(before).stdout).not.toContain("sleep-timing");
+
+    before = git("rev-parse", "HEAD");
+    commitFile(
+      "src-tauri/src/lib_x.rs",
+      lib(["    #[test]", "    fn a() {", "    }"], ["fn poll() {", "    thread::sleep(POLL);", "}"]),
+      "test(x): 删掉测试里的 sleep",
+    );
+    expect(rangeFrom(before).stdout).not.toContain("sleep-timing");
+  });
+
+  it("src-tauri/tests 里新增 sleep 命中，删除含 sleep 的整个文件不命中", () => {
+    git("init", "-q", "-b", "main");
+    commitFile("README.md", "x\n", "chore: 初始");
+    let before = git("rev-parse", "HEAD");
+    commitFile("src-tauri/tests/slow.rs", "#[test]\nfn t() {\n    std::thread::sleep(D);\n}\n", "test(x): 新增集成测试");
+    expect(rangeFrom(before).stdout).toContain("sleep-timing src-tauri/tests/slow.rs:3");
+
+    before = git("rev-parse", "HEAD");
+    git("rm", "-q", "src-tauri/tests/slow.rs");
+    git("commit", "-m", "test(x): 删除集成测试");
+    expect(rangeFrom(before).stdout).not.toContain("sleep-timing");
   });
 });
 
