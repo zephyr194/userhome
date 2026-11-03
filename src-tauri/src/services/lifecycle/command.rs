@@ -38,11 +38,12 @@ fn service_target(uid: u32, label: &Label) -> String {
 }
 
 fn plist_path_text(path: &Path) -> Result<&str, Rejected> {
-    use std::path::Component;
     let text = path.to_str().ok_or(Rejected::Path)?;
-    let plain = path
-        .components()
-        .all(|component| !matches!(component, Component::ParentDir | Component::CurDir));
+    // `Path::components` drops a `.` in the middle of a path, so the text itself
+    // is checked: the string handed to launchctl must hold no `.` or `..` segment.
+    let plain = text
+        .split('/')
+        .all(|segment| segment != "." && segment != "..");
     let name = path.file_name().and_then(|name| name.to_str());
     let in_launch_agents = path.parent().is_some_and(|parent| {
         parent

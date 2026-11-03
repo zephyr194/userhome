@@ -31,11 +31,12 @@ use crate::{
 };
 
 const HOME: &str = "/Users/example";
-const WRITABLE: [&str; 4] = [
+const WRITABLE: [&str; 5] = [
     "git-config-home",
     "git-config-xdg",
-    "alacritty-config",
     "zed-settings",
+    "ghostty-config",
+    "alacritty-config",
 ];
 
 fn entry(id: &str) -> Entry {

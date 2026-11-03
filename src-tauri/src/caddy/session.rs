@@ -1937,7 +1937,14 @@ mod tests {
     #[test]
     fn a_process_ignoring_sigterm_is_killed_after_the_grace_period() {
         let scratch = Scratch::new();
-        let executable = scratch.fixture("trap '' TERM\nwhile true; do sleep 1; done");
+        // `Ready(true)` reports ready on the first probe, so stop() could reach
+        // the shell before it runs `trap` and end it with SIGTERM, not SIGKILL.
+        // The fixture marks the moment the trap is in place; stop() waits for it.
+        let armed = scratch.0.join("trap-armed");
+        let executable = scratch.fixture(&format!(
+            "trap '' TERM\n: > '{}'\nwhile true; do sleep 1; done",
+            armed.display()
+        ));
         let coordinator = CaddyRunCoordinator::with_timing(fast_timing());
         let started = start_with(
             &coordinator,
@@ -1948,6 +1955,14 @@ mod tests {
         )
         .expect("status");
         assert_eq!(started.state, RunState::Running);
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !armed.exists() {
+            assert!(
+                Instant::now() < deadline,
+                "the fixture never installed its SIGTERM trap"
+            );
+            thread::sleep(Duration::from_millis(20));
+        }
         let stopped = coordinator.stop().expect("stop");
         assert_eq!(stopped.state, RunState::Stopped);
         assert_eq!(stopped.exit_signal, Some(libc::SIGKILL));

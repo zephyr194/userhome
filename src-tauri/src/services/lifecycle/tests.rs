@@ -742,8 +742,12 @@ fn an_unreadable_state_after_the_command_is_unknown_not_stopped() {
     assert_eq!(execution.outcome, LifecycleOutcome::Unknown);
     assert_eq!(execution.observed.loaded, None);
     assert_eq!(execution.observed.running, None);
+    // The message states that the result is not "stopped"; it must not claim it.
     assert!(
-        !execution.message.contains("已停止"),
+        !execution
+            .message
+            .replace("也不代表已停止", "")
+            .contains("已停止"),
         "{}",
         execution.message
     );
