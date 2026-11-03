@@ -8,7 +8,10 @@ use std::{
 use serde_json::{Value, json};
 
 use super::{
-    edit::{ConfigStore, EditMode, FieldChange, PreviewInput, confirm_at, preview, read_for_edit},
+    edit::{
+        ConfigStore, EditMode, FieldChange, PreviewInput, Target, confirm_at, preview,
+        read_for_edit, resolve_target,
+    },
     patch::{
         Change, Lookup, Scalar, UNSAFE_LOCATION, apply_change, check_raw, lookup,
         raw_secret_present, scalar_value,
@@ -16,7 +19,7 @@ use super::{
     patch_ini::ini_check,
     patch_toml::toml_check,
     pending::{AppConfigEditState, PendingEdit},
-    registry::{Capability, Entry, Format, Registry},
+    registry::{Capability, Entry, Format, Location, Registry},
     schema::{FieldKind, FieldSpec, TypedValue, schema_for, typed_value},
     test_support::FakeFs,
 };
@@ -847,6 +850,66 @@ fn read_for_edit_refuses_creation_when_the_parent_directory_is_missing() {
     let error = read_for_edit(&entry("git-config-xdg"), Path::new(HOME), &fs)
         .expect_err("parent directory is missing");
     assert_eq!(error.code(), AppErrorCode::NotFound);
+}
+
+fn entry_at(relative: &'static str) -> Entry {
+    Entry {
+        location: Location::Home(relative),
+        ..entry("git-config-home")
+    }
+}
+
+#[test]
+fn a_missing_file_directly_in_home_is_creatable() {
+    let fs = FakeFs::new().dir(HOME);
+    let target = resolve_target(&entry_at(".gitconfig"), Path::new(HOME), &fs)
+        .expect("a file in the home directory may be created");
+    assert_eq!(
+        target,
+        Target {
+            path: PathBuf::from("/Users/example/.gitconfig"),
+            exists: false,
+        }
+    );
+}
+
+#[test]
+fn a_missing_file_in_an_existing_directory_below_home_is_creatable() {
+    let fs = FakeFs::new().dir(HOME).dir("/Users/example/.config/git");
+    let target = resolve_target(&entry("git-config-xdg"), Path::new(HOME), &fs)
+        .expect("creatable below home");
+    assert_eq!(
+        target,
+        Target {
+            path: PathBuf::from("/Users/example/.config/git/config"),
+            exists: false,
+        }
+    );
+}
+
+#[test]
+fn a_missing_file_in_a_protected_directory_is_never_creatable() {
+    for relative in [".ssh/x", ".gnupg/x", "Library/Keychains/x"] {
+        let fs = FakeFs::new()
+            .dir(HOME)
+            .dir("/Users/example/.ssh")
+            .dir("/Users/example/.gnupg")
+            .dir("/Users/example/Library/Keychains");
+        let error = resolve_target(&entry_at(relative), Path::new(HOME), &fs)
+            .expect_err("protected directory");
+        assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{relative}");
+    }
+}
+
+#[test]
+fn a_missing_file_whose_directory_resolves_outside_home_is_not_creatable() {
+    let fs = FakeFs::new()
+        .dir(HOME)
+        .symlink("/Users/example/.config", "/opt/shared")
+        .dir("/opt/shared/git");
+    let error =
+        resolve_target(&entry("git-config-xdg"), Path::new(HOME), &fs).expect_err("outside home");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied);
 }
 
 #[test]
