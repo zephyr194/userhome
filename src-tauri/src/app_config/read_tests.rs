@@ -491,3 +491,81 @@ fn read_result_serializes_outcome_tags_in_camel_case() {
         Value::String("outOfBounds".to_owned())
     );
 }
+
+const REDACTION_CORPUS: &str = include_str!("../../tests/fixtures/redaction_corpus.json");
+
+fn corpus_strings(case: &Value, field: &str) -> Vec<String> {
+    case[field]
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[test]
+fn shared_redaction_corpus_holds_for_read_entry() {
+    let corpus: Value =
+        serde_json::from_str(REDACTION_CORPUS).expect("redaction corpus is valid JSON");
+    let cases: Vec<&Value> = corpus["cases"]
+        .as_array()
+        .expect("corpus has a cases array")
+        .iter()
+        .filter(|case| {
+            case["targets"].as_array().is_some_and(|targets| {
+                targets
+                    .iter()
+                    .any(|entry| entry.as_str() == Some("app_config_read"))
+            })
+        })
+        .collect();
+    assert!(!cases.is_empty(), "the corpus has no app_config_read cases");
+
+    for case in cases {
+        let id = case["id"].as_str().expect("case id");
+        if case["known_gap"].as_bool() == Some(true) {
+            eprintln!("redaction corpus: skipping known gap {id}");
+            continue;
+        }
+        let input = case["input"].as_str().expect("case input");
+        let entry = builtin(case["entry"].as_str().expect("case entry"));
+        let path = resolve_path(&entry, Path::new(HOME))
+            .to_string_lossy()
+            .into_owned();
+        let fs = FakeFs::new().dir(HOME).file(&path, input);
+        let view = content(read(&entry, &fs));
+
+        if case["kind"].as_str() == Some("negative") {
+            assert!(!view.redacted, "{id}: nothing in the input is a secret");
+            for needle in corpus_strings(case, "must_contain") {
+                assert!(
+                    view.text.contains(&needle),
+                    "{id}: {needle:?} was masked away in {:?}",
+                    view.text
+                );
+            }
+            continue;
+        }
+        for needle in corpus_strings(case, "must_not_contain") {
+            assert!(
+                input.contains(&needle),
+                "{id}: {needle:?} is not in the input"
+            );
+            assert!(
+                !view.text.contains(&needle),
+                "{id}: {needle:?} leaked into {:?}",
+                view.text
+            );
+        }
+        for needle in corpus_strings(case, "must_contain") {
+            assert!(
+                view.text.contains(&needle),
+                "{id}: {needle:?} was lost from {:?}",
+                view.text
+            );
+        }
+    }
+}

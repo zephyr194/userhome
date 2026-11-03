@@ -938,4 +938,83 @@ mod tests {
         assert!(!serialized.contains(SECRET), "leaked: {serialized}");
         assert!(serialized.contains("listening with [REDACTED]"));
     }
+
+    const REDACTION_CORPUS: &str = include_str!("../../tests/fixtures/redaction_corpus.json");
+
+    fn corpus_strings(case: &Value, field: &str) -> Vec<String> {
+        case[field]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn shared_redaction_corpus_holds_for_sanitize_payload() {
+        let corpus: Value =
+            serde_json::from_str(REDACTION_CORPUS).expect("redaction corpus is valid JSON");
+        let cases: Vec<&Value> = corpus["cases"]
+            .as_array()
+            .expect("corpus has a cases array")
+            .iter()
+            .filter(|case| {
+                case["targets"].as_array().is_some_and(|targets| {
+                    targets
+                        .iter()
+                        .any(|entry| entry.as_str() == Some("operations_sanitize"))
+                })
+            })
+            .collect();
+        assert!(
+            !cases.is_empty(),
+            "the corpus has no operations_sanitize cases"
+        );
+
+        for case in cases {
+            let id = case["id"].as_str().expect("case id");
+            if case["known_gap"].as_bool() == Some(true) {
+                eprintln!("redaction corpus: skipping known gap {id}");
+                continue;
+            }
+            let input = case["input"].as_str().expect("case input");
+            let known = corpus_strings(case, "known");
+            for value in &known {
+                assert!(
+                    input.contains(value.as_str()),
+                    "{id}: known value {value:?} is not in the input"
+                );
+            }
+            let max_bytes = case["max_bytes"]
+                .as_u64()
+                .map_or(MAX_RESULT_SUMMARY_BYTES, |bytes| {
+                    usize::try_from(bytes).expect("max_bytes fits usize")
+                });
+            let out = sanitize_payload(input, max_bytes, &known);
+
+            if case["kind"].as_str() == Some("negative") {
+                assert_eq!(out, input, "{id}: a non-secret input must not change");
+                continue;
+            }
+            for needle in corpus_strings(case, "must_not_contain") {
+                assert!(
+                    input.contains(&needle),
+                    "{id}: {needle:?} is not in the input"
+                );
+                assert!(
+                    !out.contains(&needle),
+                    "{id}: {needle:?} leaked into {out:?}"
+                );
+            }
+            for needle in corpus_strings(case, "must_contain") {
+                assert!(
+                    out.contains(&needle),
+                    "{id}: {needle:?} was masked away in {out:?}"
+                );
+            }
+        }
+    }
 }

@@ -278,6 +278,8 @@ describe("redaction-corpus 规则", () => {
     "src-tauri/src/ai_config/config_view.rs",
     "src-tauri/src/caddy/redact.rs",
     "src-tauri/src/config/redaction.rs",
+    "src-tauri/src/operations/mod.rs",
+    "src-tauri/src/app_config/read.rs",
     "src/components/ui/secretMask.ts",
   ];
   const hits = (c: Commit) =>
@@ -289,8 +291,8 @@ describe("redaction-corpus 规则", () => {
   });
 
   it("一个提交改了多个脱敏文件时全部列出", () => {
-    const found = hits(commit([change(IMPLEMENTATIONS[0]), change("README.md"), change(IMPLEMENTATIONS[3])]));
-    expect(found.map((hit) => hit.files)).toEqual([[IMPLEMENTATIONS[0], IMPLEMENTATIONS[3]]]);
+    const found = hits(commit([change(IMPLEMENTATIONS[0]), change("README.md"), change(IMPLEMENTATIONS[IMPLEMENTATIONS.length - 1])]));
+    expect(found.map((hit) => hit.files)).toEqual([[IMPLEMENTATIONS[0], IMPLEMENTATIONS[IMPLEMENTATIONS.length - 1]]]);
   });
 
   it("同时改动了样例集时不命中", () => {

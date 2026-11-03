@@ -33,6 +33,8 @@ const REDACTION_IMPLEMENTATION_FILES = [
   'src-tauri/src/ai_config/config_view.rs',
   'src-tauri/src/caddy/redact.rs',
   'src-tauri/src/config/redaction.rs',
+  'src-tauri/src/operations/mod.rs',
+  'src-tauri/src/app_config/read.rs',
   'src/components/ui/secretMask.ts',
 ];
 const REDACTION_CORPUS_FILE = 'src-tauri/tests/fixtures/redaction_corpus.json';
@@ -125,7 +127,7 @@ export const RULES = [
   {
     id: 'redaction-corpus',
     description:
-      '提交改动了脱敏实现文件（config_view.rs、caddy/redact.rs、config/redaction.rs、secretMask.ts），却没有同时改动共享样例集 src-tauri/tests/fixtures/redaction_corpus.json；脱敏改动必须新增或确认样例',
+      '提交改动了脱敏实现文件（config_view.rs、caddy/redact.rs、config/redaction.rs、operations/mod.rs、app_config/read.rs、secretMask.ts），却没有同时改动共享样例集 src-tauri/tests/fixtures/redaction_corpus.json；脱敏改动必须新增或确认样例',
     check: (commit) => {
       const paths = commit.files.map((f) => f.path);
       if (paths.includes(REDACTION_CORPUS_FILE)) return [];
