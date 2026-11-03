@@ -1184,8 +1184,10 @@
       "must_not_contain": [
         "zzcanary-og1"
       ],
-      "note": "新发现的缺口：整行标记表里没有 api_key:，行内赋值表只认 api_key=，冒号写法原样输出；修复要另派任务并走规则审批",
-      "known_gap": true
+      "must_contain": [
+        "[REDACTED]"
+      ],
+      "note": "冒号写法 api_key: 整行遮盖；键名取最后一段（_ - .）交给 config::redaction::is_secret_key 判定，不另设关键字表（原为 known_gap，用户 2026-11-03 批准修复）"
     },
     {
       "id": "op-gap-json-api-key",
@@ -1197,8 +1199,10 @@
       "must_not_contain": [
         "zzcanary-og2"
       ],
-      "note": "新发现的缺口：JSON 写法 \"api_key\": 既不在整行标记表（只有 \"token\"、\"secret\"、\"password\"），也不是 api_key= 赋值；修复要另派任务并走规则审批",
-      "known_gap": true
+      "must_contain": [
+        "[REDACTED]"
+      ],
+      "note": "JSON 写法 \"api_key\": 所在行整行遮盖，带引号的键名与冒号写法走同一判定（原为 known_gap，用户 2026-11-03 批准修复）"
     },
     {
       "id": "op-gap-cli-token-flag",
@@ -1210,8 +1214,30 @@
       "must_not_contain": [
         "zzcanary-og3"
       ],
-      "note": "新发现的缺口：--token 后面空格分隔的值没有 token= 或 token: 标记，原样输出；修复要另派任务并走规则审批",
-      "known_gap": true
+      "must_contain": [
+        "caddy run --token [REDACTED]"
+      ],
+      "note": "--token 后空格分隔的值只遮盖值，命令其余部分保留；参数名用 is_secret_key 判定，与 ai_config::config_view 的 Sweeper 对 --flag 下一个值的处理一致（原为 known_gap，用户 2026-11-03 批准修复）"
+    },
+    {
+      "id": "op-plain-key-value-pairs-unchanged",
+      "kind": "negative",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "{\"name\": \"caddy\", \"port\": 2019}\nadapter: caddyfile\nlisten: :8080",
+      "must_not_contain": [],
+      "note": "反例：键名不指向秘密的 JSON / 冒号键值（含 listen: :8080 的空键名）不得遮盖"
+    },
+    {
+      "id": "op-plain-cli-flags-unchanged",
+      "kind": "negative",
+      "targets": [
+        "operations_sanitize"
+      ],
+      "input": "caddy run --config /etc/caddy/Caddyfile --adapter caddyfile --port 8080 --watch",
+      "must_not_contain": [],
+      "note": "反例：普通命令行参数及其值不得遮盖"
     },
     {
       "id": "am-json-nested-api-token",
