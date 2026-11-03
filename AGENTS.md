@@ -106,8 +106,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 
 ## 9. 错题流程
 
-被拒收、回滚或用户纠正时，由**协调者**在 `docs/agent-incidents/` 按 [README.md](docs/agent-incidents/README.md) 的 schema 记一条 `INC-NNNN.yaml`；schema、分类与维护流程以该文件为准，此处不重复。
-新增 INC、补 `related_commits` 属普通文档维护，不算规则变更。
+由**协调者**在验收时按 [docs/agent-incidents/README.md](docs/agent-incidents/README.md) §7 的记录条件（R1–R4 / N1–N5）判断是否记错题，拒收时在汇报里写明“记 / 不记”及依据。schema、升级与维护流程以该文件为准，此处不重复。
 
 ## 10. 模型路由
 

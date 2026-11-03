@@ -10,6 +10,8 @@ should_catch_at: L3
 caught_at: review
 escaped_to: main
 cost: low
+severity: S2
+record_reason: [R1, R2]
 root_cause: vague-task
 signature: worker 预先暂存文件，协调者按文件名提交时未核对 git diff --cached
 confidence: high
