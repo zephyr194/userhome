@@ -234,12 +234,10 @@ fn insert_key(
     key: &str,
     rendered: &str,
 ) -> Result<(), String> {
-    let header = (0..lines.len())
-        .filter(|&index| {
-            roles[index] == Role::Header
-                && matches!(ini_header(&lines[index].text), Some((name, None)) if name == section)
-        })
-        .next_back();
+    let header = (0..lines.len()).rfind(|&index| {
+        roles[index] == Role::Header
+            && matches!(ini_header(&lines[index].text), Some((name, None)) if name == section)
+    });
     match header {
         Some(start) => {
             let end = (start + 1..lines.len())
