@@ -346,4 +346,127 @@ mod tests {
 
         assert_eq!(later, "second <私钥文件>\n".as_bytes());
     }
+
+    const REDACTION_CORPUS: &str = include_str!("../../tests/fixtures/redaction_corpus.json");
+
+    fn corpus_cases() -> Vec<serde_json::Value> {
+        let corpus: serde_json::Value =
+            serde_json::from_str(REDACTION_CORPUS).expect("redaction corpus is valid JSON");
+        corpus["cases"]
+            .as_array()
+            .expect("corpus has a cases array")
+            .iter()
+            .filter(|case| {
+                case["targets"].as_array().is_some_and(|targets| {
+                    targets
+                        .iter()
+                        .any(|entry| entry.as_str() == Some("caddy_redact"))
+                })
+            })
+            .cloned()
+            .collect()
+    }
+
+    fn corpus_strings(case: &serde_json::Value, field: &str) -> Vec<String> {
+        case[field]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    fn corpus_known_paths(case: &serde_json::Value) -> Vec<SensitivePath> {
+        let resolved: Vec<TlsPaths> = case["tls"]
+            .as_array()
+            .expect("a caddy_redact case lists its tls pairs")
+            .iter()
+            .map(|pair| TlsPaths {
+                certificate: PathBuf::from(pair["certificate"].as_str().expect("certificate")),
+                private_key: PathBuf::from(pair["private_key"].as_str().expect("private_key")),
+            })
+            .collect();
+        sensitive_paths(&resolved)
+    }
+
+    fn corpus_chunks(case: &serde_json::Value, input: &str) -> Option<Vec<Vec<u8>>> {
+        if let Some(chunks) = case["chunks"].as_array() {
+            return Some(
+                chunks
+                    .iter()
+                    .map(|chunk| chunk.as_str().expect("chunk").as_bytes().to_vec())
+                    .collect(),
+            );
+        }
+        case["chunk_bytes"].as_u64().map(|size| {
+            let size = usize::try_from(size).expect("chunk size");
+            input
+                .as_bytes()
+                .chunks(size)
+                .map(|chunk| chunk.to_vec())
+                .collect()
+        })
+    }
+
+    fn stream_redacted(chunks: &[Vec<u8>], known: &[SensitivePath]) -> String {
+        let mut redactor = StreamRedactor::new(SensitiveSet::new(known.to_vec()));
+        let mut stored = Vec::new();
+        for chunk in chunks {
+            stored.extend(redactor.push(chunk));
+        }
+        stored.extend(redactor.finish());
+        String::from_utf8(stored).expect("redacted stream is utf8")
+    }
+
+    #[test]
+    fn shared_redaction_corpus_holds_for_path_redaction() {
+        let cases = corpus_cases();
+        assert!(!cases.is_empty(), "the corpus has no caddy_redact cases");
+
+        for case in cases {
+            let id = case["id"].as_str().expect("case id");
+            if case["known_gap"].as_bool() == Some(true) {
+                eprintln!("redaction corpus: skipping known gap {id}");
+                continue;
+            }
+            let input = case["input"].as_str().expect("case input");
+            let known = corpus_known_paths(&case);
+
+            let mut outputs = vec![redact_text(input, &known)];
+            if let Some(chunks) = corpus_chunks(&case, input) {
+                assert_eq!(
+                    chunks.concat(),
+                    input.as_bytes().to_vec(),
+                    "{id}: the chunks must add up to the input"
+                );
+                outputs.push(stream_redacted(&chunks, &known));
+            }
+
+            for out in outputs {
+                if case["kind"].as_str() == Some("negative") {
+                    assert_eq!(out, input, "{id}: an unauthorized path must not change");
+                    continue;
+                }
+                for needle in corpus_strings(&case, "must_not_contain") {
+                    assert!(
+                        input.contains(&needle),
+                        "{id}: {needle:?} is not in the input"
+                    );
+                    assert!(
+                        !out.contains(&needle),
+                        "{id}: {needle:?} leaked into {out:?}"
+                    );
+                }
+                for needle in corpus_strings(&case, "must_contain") {
+                    assert!(
+                        out.contains(&needle),
+                        "{id}: {needle:?} was lost from {out:?}"
+                    );
+                }
+            }
+        }
+    }
 }
