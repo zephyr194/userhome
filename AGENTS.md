@@ -66,9 +66,13 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 
 ## 5. 工作流
 
-规格（**用户确认**）→ 计划 → 分发 → 验收 → 合并（**用户确认**）。
+规格（**用户确认**）→ 计划 → 分发 → 协调者验收 → 合并 → 收敛清理。
 
-- 分支命名 `zephyr19/<name>`；合并到 main 用 `--no-ff`。
+- 分支命名 `zephyr19/<name>`。合并不需要用户确认：协调者复核通过后用 `--no-ff` 合并到 main，不 push。
+- worktree 生命周期：
+  - 复核通过：合并，然后执行 `orca worktree rm --worktree branch:<branch> --delete-branch`，移除 worktree 和已合并的分支。
+  - 复核不通过：用 `orca orchestration send` 打回给同一个 worker，worktree 保留。
+  - 放弃任务：须用户确认后才能移除；未合并的分支不删。
 - 提交遵循 Conventional Commits：`type(scope): 中文描述`，例如 `fix(services): 详情读取失败时指向左侧清单的重试入口`。
   常见 type：`feat`、`fix`、`refactor`、`docs`、`test`、`chore`；scope 取模块名（`services`、`app-config`、`ai-config`、`ui` 等）。以 `git log` 实际风格为准。
 - agent 不得 `push`，不得改写 main 历史（`reset`、`rebase`、`amend` 已合并提交），不得 force（含 `--force`、`reset --hard` 覆盖他人提交）。
