@@ -101,10 +101,8 @@ pub fn insert_lines(lines: &mut Vec<Line>, at: usize, texts: Vec<String>) {
     let eol = default_eol(lines);
     let appending = at == lines.len();
     let unterminated_end = appending && lines.last().is_some_and(|line| line.eol.is_empty());
-    if unterminated_end {
-        if let Some(last) = lines.last_mut() {
-            last.eol = eol;
-        }
+    if unterminated_end && let Some(last) = lines.last_mut() {
+        last.eol = eol;
     }
     let count = texts.len();
     let inserted: Vec<Line> = texts

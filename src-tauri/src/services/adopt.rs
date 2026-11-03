@@ -125,10 +125,8 @@ fn scan_xml(bytes: &[u8]) -> Result<XmlScan, ()> {
                     dictionaries.pop();
                 }
             }
-            Event::Empty(start) => {
-                if start.local_name().as_ref() == "key" {
-                    record_key(&mut dictionaries, String::new(), &mut unique_keys);
-                }
+            Event::Empty(start) if start.local_name().as_ref() == "key" => {
+                record_key(&mut dictionaries, String::new(), &mut unique_keys);
             }
             Event::Text(text) => {
                 if let Some(raw) = key.as_mut() {

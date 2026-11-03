@@ -406,7 +406,7 @@ fn insert_key(
             matches!(entry, TomlEntry::Header { segments, array: false } if path_is(segments, table))
         })
         .map(|(index, _)| index)
-        .last();
+        .next_back();
     match header {
         Some(start) => {
             if !dotted.is_empty() {
