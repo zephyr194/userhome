@@ -25,7 +25,6 @@ dist-ssr
 *.sw?
 
 # 本地代理配置
-/.agents/
 /.github/
 /.claude/settings.local.json
 /.cluade/

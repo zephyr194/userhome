@@ -26,7 +26,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 | `catalog-corpus/` | 应用语料产物，只由 `scripts/catalog/` 生成 |
 | `.github/workflows/` | CI（`ci.yml`）与发布（`release.yml`） |
 
-注意：`.claude/` 已纳入 git 跟踪，只有个人权限文件 `.claude/settings.local.json` 被忽略；`.claude/skills`、`.claude/references` 是指向 `../.agents/...` 的符号链接，而 `.agents/` 仍在 `.gitignore` 中、只存在本地，所以在新 worktree 里这两个链接是断链；`.github/` 虽在 `.gitignore` 中，但 `workflows/` 已被强制跟踪。
+注意：`.claude/` 与 `.agents/` 已纳入 git 跟踪，只有个人权限文件 `.claude/settings.local.json` 被忽略；`.claude/skills`、`.claude/references` 是指向 `../.agents/...` 的符号链接，新 worktree 里同样可用；`.github/` 虽在 `.gitignore` 中，但 `workflows/` 已被强制跟踪。
 
 ## 3. 常用命令
 
