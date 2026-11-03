@@ -19,6 +19,4 @@
 ## Claude 特有
 
 - Skill：分发 worker 用 `orchestration`；提交用 `functional-commit`（只提交、不 push）。
-- Hook：`.claude/hooks/guard-doc-layout.sh`（PreToolUse，配置在 `.claude/settings.json`）拦截在 `docs/specs/` 之外写 `SPEC*.md` / `CAPABILITY-MAP.md`，被拦时改写到 `docs/specs/`。
-  `.claude/` 在 `.gitignore` 中，新 worktree 里可能没有这个 hook，此时仍以 `pnpm lint` 为准。
-- 被派为 worker 时，不得修改 `.claude/settings*.json`、`.claude/hooks/**` 及 AGENTS.md §7 列出的规则类文件。
+- 被派为 worker 时，不得修改 `.claude/` 下的配置文件及 AGENTS.md §7 列出的规则类文件。

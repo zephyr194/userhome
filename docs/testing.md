@@ -25,7 +25,7 @@
 | L2 Rust 单元 | `cargo test`（内联 `#[cfg(test)]`） | 路径与权限校验、原子写、备份与恢复、授权（grants）、launchd plist 生成、解析、命令构造（用假的 runner） | 真实 `launchctl`/`brew`/`caddy` 调用、真实 `~` | 与被测模块同目录；大型的拆成 `tests.rs` 或 `xxx_tests.rs`；临时目录用 `temp_dir()/userhome-*-<uuid>` | `cargo test --manifest-path src-tauri/Cargo.toml`（**本地禁止**） | `rust` job（macos） |
 | L3 Rust 集成 | `cargo test`（`src-tauri/tests/`） | 只通过 `userhome_lib` 公共 API 的契约：IPC 契约、catalog、operations、进程会话 | 内部私有实现 | `src-tauri/tests/<主题>.rs` | 同上，**本地禁止** | `rust` job |
 | L4 语料校验 | Node 脚本 | 生成的应用语料与运行时 catalog 一致、检测类应用无越权 | Homebrew 实时数据（`corpus:refresh` 才联网） | `scripts/catalog/` | `pnpm corpus:validate` | 无（**现状缺口**，见 §9） |
-| L5 E2E 冒烟 | WebdriverIO + Mocha | 真实 WebView 中外壳可启动、导航、窗口尺寸、主题令牌、设置页键盘焦点 | 写入类流程、提权、真实服务管理 | `e2e/*.spec.ts`（`wdio.conf.ts:64` 的 glob） | `pnpm test:e2e`（构建并启动真实应用，见 §3） | `e2e` job（macos） |
+| L5 E2E 冒烟 | WebdriverIO + Mocha | 真实 WebView 中外壳可启动、导航、窗口尺寸、主题令牌、设置页键盘焦点 | 写入类流程、提权、真实服务管理 | `e2e/*.spec.ts`（`wdio.conf.ts:64` 的 glob） | `pnpm test:e2e`（构建并启动真实应用；**默认禁止，仅用户明确要求时可运行**，见 §3） | `e2e` job（macos） |
 | L6 构建冒烟 | Tauri CLI | 无签名 release 构建可产出二进制 | 签名、公证、打包 | — | `pnpm build:unsigned` | `unsigned-build` job |
 | L7 人工验收 | 真机 + 清单 | 真实 GUI、提权、签名、真实服务与配置 | — | `docs/*-acceptance.md`、`docs/release-readiness.md` | 见 §6 | 否 |
 
@@ -48,17 +48,25 @@
 | `pnpm build`（= typecheck + `vite build`） | 允许 | 只产出 `dist/`；**[推断]** 未在本次调查中运行 |
 | `cargo fmt --check` | 允许 | 不产生测试二进制 |
 | `cargo test`、`cargo clippy`、`cargo build`、`pnpm check:rust`、`pnpm check` | **禁止** | `check:rust` 与 `check` 内含 `cargo test`（`package.json` scripts）；clippy/build 会触发编译 build script 与二进制，同属被拦截风险，**[待用户确认]** 是否放开（见 §10 Q1） |
-| `pnpm test:e2e`、`pnpm build:e2e` | **禁止（需人工确认后才能跑）** | 会构建并启动真实 Tauri 应用；见下方分析 |
+| `pnpm test:e2e`、`pnpm build:e2e` | **默认禁止；仅在用户于当前对话中明确要求运行 e2e 时才可运行**（Q2 已决定） | 会构建并启动真实 Tauri 应用；见下方分析与授权规则 |
 | `pnpm build:unsigned`、`pnpm tauri *` | 禁止 | 全量 release 构建并可能拉起应用，只在 CI 或人工 |
 | `pnpm corpus:refresh`、`pnpm corpus:build` | 禁止 | 联网并改写仓库内产物，属发布/语料维护操作 |
 
-**E2E 为何建议禁止本地运行：**
+**E2E 为何默认禁止本地运行：**
 
 - `wdio.conf.ts:13-14, 74-75` 已把 `HOME` 与 `XDG_CONFIG_HOME` 指向 `mkdtemp` 目录，写入类配置不会落到真实 `~`。
 - 但隔离是**不完整**的：`/bin/launchctl`、Homebrew 前缀（`/opt/homebrew`）、`/etc/ssh/ssh_config` 都不是 HOME 派生路径（`config/mod.rs:46`、`environment/launchctl.rs:30`、`app_config/registry.rs:510`），
   应用启动即会读取真实登录会话与真实 Homebrew 清单（`release-readiness.md:97` 记录过一次真实 Homebrew 清单超时导致 e2e 失败）。
 - 它会启动真实 GUI 进程与 WebDriver；产物二进制 `src-tauri/target/debug/userhome` 同样会被安全软件拦截。**[推断]** 同 Rust 测试。
-- 结论：agent 本地不得运行；由 CI 的 macOS runner 运行，或经用户明确批准后在用户的机器上运行。
+- 结论：默认由 CI 的 macOS runner 运行；本地 agent 不得运行，除非满足下列授权规则。
+
+**本地运行 e2e 的授权规则（Q2 已决定）：**
+
+- 只有**用户在当前对话里明确要求运行 e2e**，才可以运行 `pnpm test:e2e` 或 `pnpm build:e2e`。
+- agent 不得自行判断"需要跑 e2e"，也不得主动提议后自己执行；想建议跑时只能写进汇报，由用户决定。
+- 授权只对用户当次明确要求的那一次运行有效，不得当成以后都可以；下一次要跑需用户再次明确要求。
+- worker 只有在协调者转述了用户的明确要求时才能运行；协调者不得替用户做这个决定。
+- 运行结果按 §6 如实报告：给出命令与实际输出，首轮失败必须记录。
 
 ## 4. 前端如何 mock Tauri `invoke`
 
@@ -118,7 +126,7 @@ agent 在报告中**必须写明等级**，不得只写"已验证"。等级从�
 | 等级 | 含义 | 本机可达 | 示例写法 |
 |---|---|---|---|
 | A 自动测试通过 | 对应层的测试**实际运行**且通过，并给出命令、通过/失败数 | 仅 L1（Vitest）、L4 | "A：`pnpm test` 267 文件 3567 用例通过" |
-| A-CI 自动测试在 CI 通过 | PR 上对应 job 为绿，给出 job 名与运行链接 | 否（需 CI） | "A-CI：`rust` job 通过，见 run #…" |
+| A-CI 自动测试在 CI 通过 | PR 或 `main` 上对应 job 为绿，给出 job 名与运行链接 | 否（需 CI） | "A-CI：`rust` job 通过，见 run #…" |
 | B 类型/静态检查通过 | `pnpm typecheck`、`pnpm lint`、`cargo fmt --check` 通过，但无行为测试 | 是 | "B：typecheck + lint 通过，行为未测" |
 | C 仅人工推断 | 读代码得出结论，未运行任何东西 | 是 | "C：读 `config/mod.rs:42` 推断，未运行" |
 | D 未验证 | 未运行或被禁止运行 | 是 | "D：Rust 测试，本地禁止，待 CI" |
@@ -126,7 +134,7 @@ agent 在报告中**必须写明等级**，不得只写"已验证"。等级从�
 规则：
 
 1. **Rust 改动在本地永远是 D**，直到 CI 的 `rust` job 通过后升为 A-CI。不得因 `cargo check` 之类的间接信号提升等级。
-2. E2E 在本地永远是 D，只有 CI 的 `e2e` job 通过才是 A-CI。
+2. E2E 在本地默认是 D（默认禁止运行），只有 CI 的 `e2e` job 通过才是 A-CI；用户明确要求并实际在本地运行时，如实报告命令与输出，不因此升为 A-CI。
 3. 一个报告里每个声明单独标注等级；只有最低等级决定"整体已验证"的说法。
 4. 测试未运行或失败时必须如实写出输出，禁止写"应该通过"。
 5. e2e 的非确定性（见 `release-readiness.md:97` 的首轮失败后重跑通过）必须记录首轮结果，不得只报重跑成绩。
@@ -180,7 +188,7 @@ agent **不得**在真机桌面上使用 `computer-use` 或任何 GUI 自动化�
 `.github/workflows/ci.yml`：`frontend`（ubuntu：lint、typecheck、test、build）、`rust`（macos：`pnpm check:rust`）、`e2e`（macos：`pnpm test:e2e`）、`unsigned-build`（macos）。
 
 - 缺口：`pnpm corpus:validate` 未在 CI 运行 → 建议加入 `frontend` job（只读、秒级）。
-- 缺口：CI 仅在 `pull_request` 与 `workflow_dispatch` 触发，合并到 `main` 后无运行 → 见 Q5。
+- 已决定（Q5）：CI 在 `pull_request`、push 到 `main` 与 `workflow_dispatch` 时触发，合并到 `main` 后也会运行。`unsigned-build` 的 artifact 上传步骤仍只在 `pull_request` 事件执行。
 - 注意：CI 的 `e2e` 同样使用 `wdio.conf.ts` 的临时 HOME，但 runner 上的 launchctl/Homebrew 是真实的，与 §5.1 同。
 - `Cargo.toml` 的 `e2e` feature 只引入 wdio 插件（`Cargo.toml:20`），并在 `commands/grants.rs:76-90` 替换文件选择器；它**不**提供 HOME 重定向，重定向全部来自 `wdio.conf.ts` 注入的环境变量。
 
@@ -189,10 +197,10 @@ agent **不得**在真机桌面上使用 `computer-use` 或任何 GUI 自动化�
 | # | 问题 | 我的建议 |
 |---|---|---|
 | Q1 | `cargo clippy` / `cargo build` / `cargo fmt --check` 本地是否放开？拦截是否只针对测试二进制？ | 放开 `fmt --check`；clippy/build 先请用户实测一次再定，在此之前按禁止处理。原因未定，不绕过 |
-| Q2 | `pnpm test:e2e` 本地：完全禁止，还是允许在用户明确批准后由 agent 运行？ | 完全禁止 agent 运行；用户可自行运行。T3 完成后再重新评估 |
+| Q2 | `pnpm test:e2e` 本地：完全禁止，还是允许在用户明确批准后由 agent 运行？ | **已决定：默认禁止；只有用户在当前对话里明确要求运行 e2e 时才可运行。** agent 不得自行判断需要跑、不得主动提议后自己执行、不得把一次授权当成以后都可以；worker 只有在协调者转述了用户的明确要求时才能运行（见 §3）。T3 完成后再重新评估 |
 | Q3 | 是否立即做 T1（`launchctl.rs` 的 runner 注入）？ | 做，且列为优先级最高：它是唯一无法在不改真实登录会话下测试的写类路径 |
 | Q4 | 是否做 T2/T3（e2e feature 下重定向 Homebrew 前缀与 launchctl）？ | 做 T3；T2 仅 `e2e` feature 内生效，避免生产被环境变量改写 |
-| Q5 | CI 是否增加 `push` 到 `main` 的触发？ | 增加，Rust 测试只能在 CI 验证，合并后更需要兜底 |
+| Q5 | CI 是否增加 `push` 到 `main` 的触发？ | **已决定：push 到 main 时触发 CI**（`ci.yml` 已加 `push: branches: [main]`）。Rust 测试只能在 CI 验证，合并后更需要兜底 |
 | Q6 | `pnpm corpus:validate` 是否加入 CI？ | 加入 `frontend` job |
 | Q7 | 是否要求每个 PR 说明用 §6 的证据等级格式（A/A-CI/B/C/D）？ | 要求，写进 PR 模板 |
 | Q8 | 是否加入 vitest 覆盖率阈值，还是继续以"每个功能最低测试要求"为准？ | 暂不加阈值（3567 用例已多，数字阈值易被刷）；按 §8.1 执行并用 review 把关 |

@@ -26,7 +26,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 | `catalog-corpus/` | 应用语料产物，只由 `scripts/catalog/` 生成 |
 | `.github/workflows/` | CI（`ci.yml`）与发布（`release.yml`） |
 
-注意：`.claude/`、`.agents/` 在 `.gitignore` 中，只存在本地，新 worktree 里没有 `.claude/` 的 hook；`.github/` 虽在 `.gitignore` 中，但 `workflows/` 已被强制跟踪。
+注意：`.claude/` 已纳入 git 跟踪，只有个人权限文件 `.claude/settings.local.json` 被忽略；`.claude/skills`、`.claude/references` 是指向 `../.agents/...` 的符号链接，而 `.agents/` 仍在 `.gitignore` 中、只存在本地，所以在新 worktree 里这两个链接是断链；`.github/` 虽在 `.gitignore` 中，但 `workflows/` 已被强制跟踪。
 
 ## 3. 常用命令
 
@@ -44,7 +44,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 
 - 本机受管安全软件会拦截 Rust 测试二进制：`cargo test`、`pnpm check:rust`、`pnpm check` 本地禁止运行（`check:rust`、`check` 内含 `cargo test`）。
   Rust 改动一律记为"未验证"（等级 D），待 CI 的 `rust` job；不得换名、换目录、签名等方式绕过拦截。
-- `pnpm test:e2e`、`pnpm build:e2e` 本地禁止（会启动真实应用，隔离不完整）；由 CI 的 `e2e` job 运行。
+- `pnpm test:e2e`、`pnpm build:e2e` 默认禁止（会启动真实应用，隔离不完整），由 CI 的 `e2e` job 运行。**只有用户在当前对话里明确要求运行 e2e 时才可以运行**：agent 不得自行判断需要跑，不得主动提议后自己执行，也不得把一次授权当成以后都可以；worker 只有在协调者转述了用户的明确要求时才能运行。
 - `cargo clippy`、`cargo build` 暂按禁止处理；`pnpm build:unsigned`、`pnpm tauri *`、`pnpm corpus:refresh`、`pnpm corpus:build` 同样禁止（理由见 testing.md §3）。
 
 提交前本地至少运行：`pnpm lint && pnpm typecheck && pnpm test`。涉及 Rust 的改动，在汇报中写"Rust：D，待 CI"。
@@ -62,7 +62,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 | 根目录 | 只放 `README.md`、`AGENTS.md`、`CLAUDE.md` 这类入口文件 |
 
 - `docs/specs/`、`tasks/plan.md`、`tasks/todo.md` 被 gitignore，**只存在本地，新 worktree 里没有**。需要读规格时从主工作区取，不要为此提交它们。
-- 规格放错位置会被 `scripts/check-doc-layout.mjs`（`pnpm lint` 的一部分）和本地 hook `.claude/hooks/guard-doc-layout.sh` 拦下。
+- 规则：`SPEC*.md`、`CAPABILITY-MAP.md` 不得写在 `docs/specs/` 之外；写规格前先确认目标路径。违反时由 `scripts/check-doc-layout.mjs`（`pnpm lint` 的一部分）拦下，编辑时没有自动拦截，要靠自觉遵守。
 
 ## 5. 工作流
 
@@ -88,7 +88,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 - 写 worktree 以外的路径，或读写真实 `~`；测试一律用临时目录并通过注入的 base dir（testing.md §5.3）。
 - 在真机桌面使用 computer-use 或任何 GUI 自动化；这类验收记为"待人工"。
 - worker 修改规则类文件，以下文件只有经用户批准才能改：
-  `.claude/settings*.json`、`.claude/hooks/**`、`scripts/check-*.mjs`、`docs/agent-incidents/README.md`、`docs/testing.md`、`AGENTS.md`、`CLAUDE.md`。
+  `.claude/` 下的配置文件、`scripts/check-*.mjs`、`docs/agent-incidents/README.md`、`docs/testing.md`、`AGENTS.md`、`CLAUDE.md`。
   发现规则本身有问题时，写进汇报，不要自己改规则让检查变绿（见 agent-incidents/README.md §6）。
 
 ## 8. 必须停下来问用户

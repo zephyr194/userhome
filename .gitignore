@@ -27,7 +27,7 @@ dist-ssr
 # 本地代理配置
 /.agents/
 /.github/
-/.claude/
+/.claude/settings.local.json
 /.cluade/
 
 # 本地需求规格与实施计划（不忽略 *.spec.ts 等测试文件）
