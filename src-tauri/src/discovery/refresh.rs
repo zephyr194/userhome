@@ -114,6 +114,24 @@ struct CoordinatorState {
     brew_inventory: Option<BrewInventory>,
 }
 
+impl CoordinatorState {
+    /// 登记一轮新扫描并返回它的 generation；调用者必须持有状态锁。
+    fn begin_scan(&mut self) -> u64 {
+        self.refreshing = true;
+        self.generation = self.generation.saturating_add(1);
+        self.snapshot = DiscoverySnapshot {
+            refresh_id: Uuid::new_v4().to_string(),
+            started_at_epoch_ms: now_epoch_ms(),
+            completed_at_epoch_ms: None,
+            system: ModuleSnapshot::loading(),
+            brew: ModuleSnapshot::loading(),
+            candidates: ModuleSnapshot::loading(),
+        };
+        self.brew_inventory = None;
+        self.generation
+    }
+}
+
 type SystemRunner = Arc<dyn Fn() -> Result<SystemSummary, DiscoveryIssue> + Send + Sync>;
 type BrewRunner = Arc<dyn Fn() -> Result<BrewInventory, InventoryError> + Send + Sync>;
 type CandidateRunner = Arc<
@@ -330,6 +348,9 @@ impl DiscoveryCoordinator {
     }
 
     pub fn snapshot_after_local(&self) -> DiscoverySnapshot {
+        // 首次读取可能早于前端的刷新请求，或者根本没有刷新请求（启动时不刷新）：
+        // 先同步登记首轮扫描，下面的等待才会等到 system 模块，而不是拿到一份空快照。
+        self.ensure_initial_refresh();
         let timeouts = self.timeouts();
         let mut state = self
             .inner
@@ -351,23 +372,26 @@ impl DiscoveryCoordinator {
     }
 
     pub fn ensure_initial_refresh(&self) {
-        let state = self
-            .inner
-            .state
-            .lock()
-            .unwrap_or_else(|error| error.into_inner());
-        let should_start = !state.refreshing && state.generation == 0;
-        drop(state);
-        if should_start {
-            let coordinator = self.clone();
-            thread::spawn(move || {
-                coordinator.refresh();
-            });
-        }
+        // 在状态锁内同步登记首轮扫描（refreshing = true），再交给后台线程执行：
+        // 返回之后任何读取者都能看到"正在刷新"，不会出现线程尚未启动的空窗。
+        let generation = {
+            let mut state = self
+                .inner
+                .state
+                .lock()
+                .unwrap_or_else(|error| error.into_inner());
+            if state.refreshing || state.generation != 0 {
+                return;
+            }
+            state.begin_scan()
+        };
+        let coordinator = self.clone();
+        thread::spawn(move || {
+            coordinator.run_scan(generation);
+        });
     }
 
     pub fn refresh(&self) -> DiscoverySnapshot {
-        let timeouts = self.timeouts();
         let generation = {
             let mut state = self
                 .inner
@@ -386,20 +410,15 @@ impl DiscoveryCoordinator {
                 return state.snapshot.clone();
             }
 
-            state.refreshing = true;
-            state.generation = state.generation.saturating_add(1);
-            state.snapshot = DiscoverySnapshot {
-                refresh_id: Uuid::new_v4().to_string(),
-                started_at_epoch_ms: now_epoch_ms(),
-                completed_at_epoch_ms: None,
-                system: ModuleSnapshot::loading(),
-                brew: ModuleSnapshot::loading(),
-                candidates: ModuleSnapshot::loading(),
-            };
-            state.brew_inventory = None;
-            state.generation
+            state.begin_scan()
         };
 
+        self.run_scan(generation)
+    }
+
+    /// 执行已登记（`begin_scan`）的一轮扫描，直到 brew 结果落定。
+    fn run_scan(&self, generation: u64) -> DiscoverySnapshot {
+        let timeouts = self.timeouts();
         let started_at = Instant::now();
         let system = spawn_module(self.runners.system.clone());
         let candidate_runner = self.runners.candidates.clone();
@@ -689,6 +708,112 @@ mod tests {
             applications: Vec::new(),
             issues: Vec::new(),
         }
+    }
+
+    /// 仅作为"永不返回"的兜底上限：同步靠 channel / Condvar，不靠这个时长。
+    const TEST_WAIT_LIMIT: Duration = Duration::from_secs(30);
+
+    fn generous_timeouts() -> ModuleTimeouts {
+        ModuleTimeouts {
+            system: TEST_WAIT_LIMIT,
+            brew: TEST_WAIT_LIMIT,
+            candidates: TEST_WAIT_LIMIT,
+        }
+    }
+
+    fn wait_until_idle(coordinator: &DiscoveryCoordinator) {
+        let state = coordinator
+            .inner
+            .state
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let (_state, result) = coordinator
+            .inner
+            .changed
+            .wait_timeout_while(state, TEST_WAIT_LIMIT, |state| state.refreshing)
+            .unwrap_or_else(|error| error.into_inner());
+        assert!(!result.timed_out(), "scan should finish once released");
+    }
+
+    #[test]
+    fn first_read_starts_the_initial_scan_and_returns_at_system_ready() {
+        // 启动时不刷新：没有任何 refresh() 调用，首次读取也不能停在空快照；
+        // brew 被屏障挡住，读取必须在 system 完成后就返回，不等 brew。
+        let (release_brew, brew_gate) = mpsc::channel::<()>();
+        let brew_gate = Mutex::new(brew_gate);
+        let system_runs = Arc::new(AtomicUsize::new(0));
+        let counter = system_runs.clone();
+        let coordinator = DiscoveryCoordinator::new(
+            DiscoveryRunners {
+                system: Arc::new(move || {
+                    counter.fetch_add(1, Ordering::SeqCst);
+                    Ok(sample_system())
+                }),
+                brew: Arc::new(move || {
+                    let _ = brew_gate
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .recv();
+                    Err(InventoryError::NotFound)
+                }),
+                candidates: Arc::new(|_| Ok(ConfigurationCoverage::empty())),
+            },
+            generous_timeouts(),
+        );
+
+        let snapshot = coordinator.snapshot_after_local();
+
+        assert!(!snapshot.refresh_id.is_empty());
+        assert_eq!(snapshot.system.status, ModuleStatus::Ready);
+        assert_eq!(snapshot.brew.status, ModuleStatus::Loading);
+        assert_eq!(snapshot.completed_at_epoch_ms, None);
+
+        release_brew
+            .send(())
+            .expect("brew runner should be waiting");
+        wait_until_idle(&coordinator);
+        let settled = coordinator.snapshot_after_local();
+        assert_eq!(settled.refresh_id, snapshot.refresh_id);
+        assert_eq!(settled.brew.status, ModuleStatus::Ready);
+        assert_eq!(system_runs.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn ensure_initial_refresh_marks_the_scan_active_before_returning() {
+        // 过去先 spawn 线程、由线程内的 refresh() 置位 refreshing，
+        // 调用返回到线程拿到锁之间的读取者会看到"未开始"。
+        let (release_system, system_gate) = mpsc::channel::<()>();
+        let system_gate = Mutex::new(system_gate);
+        let coordinator = DiscoveryCoordinator::new(
+            DiscoveryRunners {
+                system: Arc::new(move || {
+                    let _ = system_gate
+                        .lock()
+                        .unwrap_or_else(|error| error.into_inner())
+                        .recv();
+                    Ok(sample_system())
+                }),
+                brew: Arc::new(|| Err(InventoryError::NotFound)),
+                candidates: Arc::new(|_| Ok(ConfigurationCoverage::empty())),
+            },
+            generous_timeouts(),
+        );
+
+        coordinator.ensure_initial_refresh();
+
+        assert_eq!(
+            coordinator.diagnostics().refresh_state,
+            DiagnosticRefreshState::Refreshing
+        );
+
+        release_system
+            .send(())
+            .expect("system runner should be waiting");
+        wait_until_idle(&coordinator);
+        assert_eq!(
+            coordinator.diagnostics().refresh_state,
+            DiagnosticRefreshState::Complete
+        );
     }
 
     #[test]
