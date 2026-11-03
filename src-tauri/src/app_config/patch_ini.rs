@@ -4,8 +4,8 @@
 //! patched in place, so they are refused.
 
 use super::patch::{
-    Change, Line, Lookup, RawError, Scalar, UNSAFE_LOCATION, comment_start, insert_lines,
-    ini_unquote as unquote, join_lines, quotes_balanced, render, split_lines,
+    Change, Line, Lookup, RawError, Scalar, UNSAFE_LOCATION, comment_start, ini_unquote as unquote,
+    insert_lines, join_lines, quotes_balanced, render, split_lines,
 };
 use crate::app_config::registry::Format;
 
@@ -66,9 +66,7 @@ pub fn ini_key(text: &str) -> Option<IniKey<'_>> {
     if !(tail.is_empty() || tail.starts_with(['=', '#', ';'])) {
         return None;
     }
-    let eq = tail
-        .starts_with('=')
-        .then(|| text.len() - tail.len());
+    let eq = tail.starts_with('=').then(|| text.len() - tail.len());
     Some(IniKey {
         name,
         leading: &text[..leading_len],
@@ -153,7 +151,8 @@ fn section_matches(lines: &[Line], roles: &[Role], section: &str, key: &str) -> 
                 };
                 if sub.is_none()
                     && name == section
-                    && ini_key(&line.text).is_some_and(|parsed| parsed.name.eq_ignore_ascii_case(key))
+                    && ini_key(&line.text)
+                        .is_some_and(|parsed| parsed.name.eq_ignore_ascii_case(key))
                 {
                     hits.push(index);
                 }
@@ -235,12 +234,10 @@ fn insert_key(
     key: &str,
     rendered: &str,
 ) -> Result<(), String> {
-    let header = (0..lines.len())
-        .filter(|&index| {
-            roles[index] == Role::Header
-                && matches!(ini_header(&lines[index].text), Some((name, None)) if name == section)
-        })
-        .last();
+    let header = (0..lines.len()).rfind(|&index| {
+        roles[index] == Role::Header
+            && matches!(ini_header(&lines[index].text), Some((name, None)) if name == section)
+    });
     match header {
         Some(start) => {
             let end = (start + 1..lines.len())
@@ -256,7 +253,9 @@ fn insert_key(
             let indent = (start + 1..position)
                 .rev()
                 .filter(|&index| roles[index] == Role::Key)
-                .find_map(|index| ini_key(&lines[index].text).map(|parsed| parsed.leading.to_owned()))
+                .find_map(|index| {
+                    ini_key(&lines[index].text).map(|parsed| parsed.leading.to_owned())
+                })
                 .unwrap_or_else(|| "\t".to_owned());
             insert_lines(lines, position, vec![format!("{indent}{key} = {rendered}")]);
         }
@@ -264,7 +263,10 @@ fn insert_key(
             if lines.last().is_some_and(|line| continues(&line.text)) {
                 return Err(APPEND_UNSAFE.to_owned());
             }
-            if lines.last().is_some_and(|line| !line.text.trim().is_empty()) {
+            if lines
+                .last()
+                .is_some_and(|line| !line.text.trim().is_empty())
+            {
                 let end = lines.len();
                 insert_lines(lines, end, vec![String::new()]);
             }
@@ -289,7 +291,10 @@ pub fn ini_check(text: &str) -> Result<(), RawError> {
             Role::Text => {}
             Role::Header => in_section = true,
             Role::Invalid if line.text.trim_start().starts_with('[') => {
-                return Err(line_error(number, "段落标题格式不正确，应为 [名称] 或 [名称 \"子名称\"]。"));
+                return Err(line_error(
+                    number,
+                    "段落标题格式不正确，应为 [名称] 或 [名称 \"子名称\"]。",
+                ));
             }
             Role::Invalid => return Err(line_error(number, "键的写法不正确，应为 键 = 值。")),
             Role::Key => {

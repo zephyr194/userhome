@@ -213,10 +213,16 @@ pub fn toml_scalar(raw: &str) -> Option<Scalar> {
     if raw.starts_with("\"\"\"") || raw.starts_with("'''") || raw.starts_with(['[', '{']) {
         return None;
     }
-    if let Some(inner) = raw.strip_prefix('"').and_then(|rest| rest.strip_suffix('"')) {
+    if let Some(inner) = raw
+        .strip_prefix('"')
+        .and_then(|rest| rest.strip_suffix('"'))
+    {
         return Some(Scalar::Text(toml_unescape(inner)));
     }
-    if let Some(inner) = raw.strip_prefix('\'').and_then(|rest| rest.strip_suffix('\'')) {
+    if let Some(inner) = raw
+        .strip_prefix('\'')
+        .and_then(|rest| rest.strip_suffix('\''))
+    {
         return Some(Scalar::Text(inner.to_owned()));
     }
     Some(Scalar::Bare(raw.to_owned()))
@@ -289,7 +295,12 @@ fn has_prefix<A: AsRef<str>, B: AsRef<str>>(path: &[A], prefix: &[B]) -> bool {
             .all(|(segment, wanted)| segment.as_ref() == wanted.as_ref())
 }
 
-pub fn toml_patch(text: &str, table: &[&str], key: &str, change: &Change) -> Result<String, String> {
+pub fn toml_patch(
+    text: &str,
+    table: &[&str],
+    key: &str,
+    change: &Change,
+) -> Result<String, String> {
     let mut lines = split_lines(text);
     let (entries, _) = scan_toml(&lines);
     let mut wanted_full: Vec<&str> = table.to_vec();
@@ -317,9 +328,7 @@ pub fn toml_patch(text: &str, table: &[&str], key: &str, change: &Change) -> Res
                 }
             }
             TomlEntry::Header { segments, array } => {
-                if has_prefix(segments, &wanted_full)
-                    || (*array && has_prefix(table, segments))
-                {
+                if has_prefix(segments, &wanted_full) || (*array && has_prefix(table, segments)) {
                     return Err(UNSAFE_LOCATION.to_owned());
                 }
             }
@@ -397,7 +406,7 @@ fn insert_key(
             matches!(entry, TomlEntry::Header { segments, array: false } if path_is(segments, table))
         })
         .map(|(index, _)| index)
-        .last();
+        .next_back();
     match header {
         Some(start) => {
             if !dotted.is_empty() {
@@ -420,7 +429,10 @@ fn insert_key(
         }
         None if !dotted.is_empty() => insert_dotted(lines, entries, table, key, rendered, dotted),
         None => {
-            if lines.last().is_some_and(|line| !line.text.trim().is_empty()) {
+            if lines
+                .last()
+                .is_some_and(|line| !line.text.trim().is_empty())
+            {
                 let end = lines.len();
                 insert_lines(lines, end, vec![String::new()]);
             }
@@ -448,7 +460,9 @@ fn insert_dotted(
         return Err(UNSAFE_LOCATION.to_owned());
     };
     let same_parent = dotted.iter().all(|(_, owner)| owner == parent);
-    let all_single_line = dotted.iter().all(|(index, _)| !is_complex(&entries[*index]));
+    let all_single_line = dotted
+        .iter()
+        .all(|(index, _)| !is_complex(&entries[*index]));
     if !same_parent || !all_single_line {
         return Err(UNSAFE_LOCATION.to_owned());
     }
@@ -461,7 +475,6 @@ fn insert_dotted(
     );
     Ok(())
 }
-
 
 fn back_over_blanks(lines: &[Line], mut position: usize, floor: usize) -> usize {
     while position > floor && lines[position - 1].text.trim().is_empty() {
@@ -510,7 +523,12 @@ pub fn toml_pairs(text: &str) -> Vec<(String, String)> {
                 value_end,
                 ..
             } => {
-                let path = table.iter().chain(segments).cloned().collect::<Vec<_>>().join(".");
+                let path = table
+                    .iter()
+                    .chain(segments)
+                    .cloned()
+                    .collect::<Vec<_>>()
+                    .join(".");
                 Some((path, lines[index].text[*value_start..*value_end].to_owned()))
             }
             _ => None,

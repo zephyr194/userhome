@@ -264,9 +264,8 @@ fn alignment_table_matches_the_patterns_in_encoded_symbols() {
         for &x in positions {
             for &y in positions {
                 let first = positions[0];
-                let overlaps_finder = (x == first && y == first)
-                    || (x == first && y == last)
-                    || (x == last && y == first);
+                let overlaps_finder =
+                    ((y == last || y == first) && x == first) || (x == last && y == first);
                 if overlaps_finder {
                     continue;
                 }

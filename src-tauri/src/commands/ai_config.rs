@@ -794,7 +794,8 @@ fn brew_outcome(before: Option<&str>, after: Option<&str>) -> AiBrewUpgradeOutco
     match (before, after) {
         (_, None) => AiBrewUpgradeOutcome {
             status: BrewUpgradeStatus::Upgraded,
-            message: "已执行更新，但没能读到新版本。请刷新页面重新检测，不需要再次更新。".to_owned(),
+            message: "已执行更新，但没能读到新版本。请刷新页面重新检测，不需要再次更新。"
+                .to_owned(),
             new_version: None,
         },
         (Some(before), Some(version)) if before == version => AiBrewUpgradeOutcome {

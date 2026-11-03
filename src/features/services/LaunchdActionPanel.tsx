@@ -24,6 +24,7 @@ import {
   stepStatusText,
   type ActionPanelState,
 } from "./launchdActionModel";
+import { useLatestRequest } from "./useLatestRequest";
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
 
@@ -180,50 +181,49 @@ export function LaunchdActionPanel({
     actionPanelReducer,
     INITIAL_ACTION_PANEL_STATE,
   );
-  const alive = useRef(true);
+  // The panel is keyed by the job, so leaving the job unmounts it and drops any
+  // preview or result still on its way.
+  const latest = useLatestRequest();
   const changedRef = useRef(onChanged);
 
   useEffect(() => {
     changedRef.current = onChanged;
   }, [onChanged]);
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
 
   const preview = useCallback(
     (action: LaunchdAction) => {
       dispatch({ type: "previewStarted", action });
-      previewLaunchdAction({ action, domain: "GUI", label: service.label })
-        .then((result) => {
-          if (alive.current) dispatch({ type: "previewed", preview: result });
-        })
-        .catch((error: unknown) => {
-          if (alive.current) {
-            dispatch({ type: "failed", error: decodeAppError(error) });
-          }
-        });
+      latest.run(
+        () => previewLaunchdAction({ action, domain: "GUI", label: service.label }),
+        {
+          onResult: (result) => dispatch({ type: "previewed", preview: result }),
+          onError: (error) =>
+            dispatch({ type: "failed", error: decodeAppError(error) }),
+        },
+      );
     },
-    [service.label],
+    [latest, service.label],
   );
 
-  const confirm = useCallback((shown: LaunchdActionPreview) => {
-    dispatch({ type: "executeStarted" });
-    executeLaunchdAction(shown.operationId)
-      .then((execution) => {
-        if (alive.current) dispatch({ type: "executed", execution });
-        changedRef.current?.();
-      })
-      .catch((error: unknown) => {
-        if (alive.current) {
-          dispatch({ type: "failed", error: decodeAppError(error) });
-        }
-        // The result is not known, so the list must not keep a stale state.
-        changedRef.current?.();
-      });
-  }, []);
+  const confirm = useCallback(
+    (shown: LaunchdActionPreview) => {
+      dispatch({ type: "executeStarted" });
+      latest.run(
+        // Whatever the outcome, or whoever is still looking, the list must not
+        // keep a stale state, so the refresh is not gated on the panel.
+        () =>
+          executeLaunchdAction(shown.operationId).finally(() =>
+            changedRef.current?.(),
+          ),
+        {
+          onResult: (execution) => dispatch({ type: "executed", execution }),
+          onError: (error) =>
+            dispatch({ type: "failed", error: decodeAppError(error) }),
+        },
+      );
+    },
+    [latest],
+  );
 
   const dismissPreview = useCallback((shown: LaunchdActionPreview) => {
     // Free the pending preview in the backend; its expiry would do it anyway.

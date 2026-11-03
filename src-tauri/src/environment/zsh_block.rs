@@ -912,7 +912,7 @@ fn read_back(written: &str, block: &ManagedBlock) -> Result<(), VerifyError> {
             variables += 1;
         }
     }
-    if variables != block.content.variables.len() || path_seen != !block.content.path.is_empty() {
+    if variables != block.content.variables.len() || path_seen == block.content.path.is_empty() {
         return Err(mismatch("?"));
     }
     Ok(())

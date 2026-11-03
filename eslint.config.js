@@ -3,6 +3,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+import userhome from "./scripts/eslint-rules/index.mjs";
 
 export default tseslint.config(
   { ignores: ["dist", "src-tauri/target"] },
@@ -19,6 +20,13 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  {
+    // 试运行（warn）：不拦截，命中清单与豁免提案见 docs/agent-incidents/batch-1-proposals.md P3。
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}"],
+    plugins: { userhome },
+    rules: { "userhome/no-raw-ipc-in-effect": "warn" },
   },
   {
     files: ["**/*.{ts,tsx}"],

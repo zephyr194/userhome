@@ -213,7 +213,10 @@ fn only_claude_and_gemini_configs_are_resolved_through_the_app_config_registry()
                 assert!(registry.get(id).is_ok());
             }
             ConfigSource::NotRegistered => {
-                assert!(!matches!(profile.id, ToolId::ClaudeCode | ToolId::GeminiCli));
+                assert!(!matches!(
+                    profile.id,
+                    ToolId::ClaudeCode | ToolId::GeminiCli
+                ));
             }
         }
     }
@@ -591,11 +594,15 @@ fn config_display_path_is_the_home_relative_registered_location() {
     let report = run(Path::new(HOME), &[], &FakeVersion::none(), &fs);
 
     assert_eq!(
-        tool(&report, ToolId::GeminiCli).config_display_path.as_deref(),
+        tool(&report, ToolId::GeminiCli)
+            .config_display_path
+            .as_deref(),
         Some("~/.gemini/settings.json")
     );
     assert_eq!(
-        tool(&report, ToolId::ClaudeCode).config_display_path.as_deref(),
+        tool(&report, ToolId::ClaudeCode)
+            .config_display_path
+            .as_deref(),
         Some("~/.claude/settings.json")
     );
 }

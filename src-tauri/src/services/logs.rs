@@ -463,9 +463,13 @@ fn read_snapshot(
     let grant_id = GrantId::parse(grant_id).map_err(|_| LogError::NotAuthorized)?;
     let declared = declared_log(ctx, target)?;
     let current = canonical_or_missing(&declared)?;
-    let record = grants
-        .resolve(&grant_id)
-        .map_err(|_| LogError::NotAuthorized)?;
+    let record = match grants.resolve(&grant_id) {
+        Ok(record) => record,
+        // The declared file is gone and the grant's own file check found nothing
+        // either: that is the missing state, not a lost authorization.
+        Err(GrantError::NotFound) if current.is_none() => return Ok(LogSnapshot::missing()),
+        Err(_) => return Err(LogError::NotAuthorized),
+    };
     if record.kind != GrantKind::File || record.purpose != GrantPurpose::ConfigFile {
         return Err(LogError::NotAuthorized);
     }

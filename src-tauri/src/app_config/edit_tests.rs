@@ -8,15 +8,18 @@ use std::{
 use serde_json::{Value, json};
 
 use super::{
-    edit::{ConfigStore, EditMode, FieldChange, PreviewInput, confirm_at, preview, read_for_edit},
+    edit::{
+        ConfigStore, EditMode, FieldChange, PreviewInput, Target, confirm_at, preview,
+        read_for_edit, resolve_target,
+    },
     patch::{
-        Change, Lookup, Scalar, UNSAFE_LOCATION, apply_change, check_raw, lookup, raw_secret_present,
-        scalar_value,
+        Change, Lookup, Scalar, UNSAFE_LOCATION, apply_change, check_raw, lookup,
+        raw_secret_present, scalar_value,
     },
     patch_ini::ini_check,
     patch_toml::toml_check,
     pending::{AppConfigEditState, PendingEdit},
-    registry::{Capability, Entry, Format, Registry},
+    registry::{Capability, Entry, Format, Location, Registry},
     schema::{FieldKind, FieldSpec, TypedValue, schema_for, typed_value},
     test_support::FakeFs,
 };
@@ -31,7 +34,13 @@ use crate::{
 };
 
 const HOME: &str = "/Users/example";
-const WRITABLE: [&str; 4] = ["git-config-home", "git-config-xdg", "alacritty-config", "zed-settings"];
+const WRITABLE: [&str; 5] = [
+    "git-config-home",
+    "git-config-xdg",
+    "zed-settings",
+    "ghostty-config",
+    "alacritty-config",
+];
 
 fn entry(id: &str) -> Entry {
     *Registry::builtin()
@@ -95,7 +104,11 @@ fn schema_field_paths_are_unique_and_constraints_are_well_formed() {
             assert!(!paths.contains(&field.path), "duplicate {}", field.path);
             paths.push(field.path);
             assert!(!field.sensitive, "{}", field.path);
-            assert!(!field.label.is_empty() && !field.description.is_empty(), "{}", field.path);
+            assert!(
+                !field.label.is_empty() && !field.description.is_empty(),
+                "{}",
+                field.path
+            );
             match field.kind {
                 FieldKind::Enum => assert!(!field.enum_values.is_empty(), "{}", field.path),
                 _ => assert!(field.enum_values.is_empty(), "{}", field.path),
@@ -160,7 +173,10 @@ fn zed_schema_is_advanced_only() {
 #[test]
 fn typed_value_enforces_each_field_kind_and_range() {
     let email = field("git-config-home", "user.email");
-    assert_eq!(typed_value(&email, &json!("ada@example.com")), Ok(text("ada@example.com")));
+    assert_eq!(
+        typed_value(&email, &json!("ada@example.com")),
+        Ok(text("ada@example.com"))
+    );
     assert!(typed_value(&email, &json!("not-an-email")).is_err());
     assert!(typed_value(&email, &json!("a@b c")).is_err());
 
@@ -174,7 +190,10 @@ fn typed_value_enforces_each_field_kind_and_range() {
     assert!(typed_value(&name, &json!(3)).is_err());
 
     let rebase = field("git-config-home", "pull.rebase");
-    assert_eq!(typed_value(&rebase, &json!(true)), Ok(TypedValue::Bool(true)));
+    assert_eq!(
+        typed_value(&rebase, &json!(true)),
+        Ok(TypedValue::Bool(true))
+    );
     assert!(typed_value(&rebase, &json!("true")).is_err());
 
     let decorations = field("alacritty-config", "window.decorations");
@@ -186,7 +205,10 @@ fn typed_value_enforces_each_field_kind_and_range() {
     assert!(typed_value(&opacity, &json!(1.5)).is_err());
 
     let history = field("alacritty-config", "scrolling.history");
-    assert_eq!(typed_value(&history, &json!(10)), Ok(TypedValue::Integer(10)));
+    assert_eq!(
+        typed_value(&history, &json!(10)),
+        Ok(TypedValue::Integer(10))
+    );
     assert!(typed_value(&history, &json!(1.5)).is_err());
     assert!(typed_value(&history, &json!(100001)).is_err());
 }
@@ -216,7 +238,10 @@ fn ini_new_key_goes_to_the_end_of_its_section_with_matching_indent() {
 fn ini_missing_section_is_appended_and_missing_final_newline_is_kept() {
     let before = "[core]\n\teditor = vim";
     let after = set(Format::Ini, before, "init.defaultBranch", text("main"));
-    assert_eq!(after, "[core]\n\teditor = vim\n\n[init]\n\tdefaultBranch = main");
+    assert_eq!(
+        after,
+        "[core]\n\teditor = vim\n\n[init]\n\tdefaultBranch = main"
+    );
 }
 
 #[test]
@@ -228,7 +253,12 @@ fn ini_keeps_crlf_line_endings_when_replacing() {
 
 #[test]
 fn ini_value_needing_quotes_is_quoted_and_reads_back_intact() {
-    let after = set(Format::Ini, "[core]\n", "core.editor", text("code --wait # x"));
+    let after = set(
+        Format::Ini,
+        "[core]\n",
+        "core.editor",
+        text("code --wait # x"),
+    );
     assert_eq!(after, "[core]\n\teditor = \"code --wait # x\"\n");
     assert_eq!(
         lookup(Format::Ini, &after, "core.editor"),
@@ -254,14 +284,22 @@ fn ini_bare_key_gets_an_explicit_value_when_replaced() {
 fn ini_value_that_continues_on_the_next_line_is_refused_for_set_and_delete() {
     let before = "[user]\n\tname = Ada \\\n\t\tLovelace\n\temail = a@b.c\n";
     assert_eq!(
-        apply_change(Format::Ini, before, "user.name", &Change::Set(text("Grace"))),
+        apply_change(
+            Format::Ini,
+            before,
+            "user.name",
+            &Change::Set(text("Grace"))
+        ),
         Err(UNSAFE_LOCATION.to_owned())
     );
     assert_eq!(
         apply_change(Format::Ini, before, "user.name", &Change::Delete),
         Err(UNSAFE_LOCATION.to_owned())
     );
-    assert_eq!(lookup(Format::Ini, before, "user.name"), Lookup::Present(None));
+    assert_eq!(
+        lookup(Format::Ini, before, "user.name"),
+        Lookup::Present(None)
+    );
 }
 
 #[test]
@@ -269,7 +307,11 @@ fn ini_continuation_lines_are_never_read_as_keys_or_headers() {
     let before = "[user]\n\tname = Ada\\\n\temail = a@b.c\n[core]\n\teditor = vim\n";
     assert_eq!(lookup(Format::Ini, before, "user.email"), Lookup::Absent);
     assert_eq!(
-        lookup(Format::Ini, "[user]\n\tname = a\\\n[core]\n\teditor = vim\n", "core.editor"),
+        lookup(
+            Format::Ini,
+            "[user]\n\tname = a\\\n[core]\n\teditor = vim\n",
+            "core.editor"
+        ),
         Lookup::Absent
     );
     let after = set(Format::Ini, before, "user.email", text("x@y.z"));
@@ -282,7 +324,15 @@ fn ini_continuation_lines_are_never_read_as_keys_or_headers() {
 #[test]
 fn ini_new_key_is_refused_when_the_section_ends_with_a_continued_line() {
     let before = "[user]\n\tname = Ada\\\n";
-    assert!(apply_change(Format::Ini, before, "user.email", &Change::Set(text("a@b.c"))).is_err());
+    assert!(
+        apply_change(
+            Format::Ini,
+            before,
+            "user.email",
+            &Change::Set(text("a@b.c"))
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -296,7 +346,10 @@ fn ini_escaped_backslash_at_line_end_is_not_a_continuation() {
 fn ini_raw_check_accepts_continued_values_and_reports_an_unclosed_quote_across_lines() {
     assert!(ini_check("[user]\n\tname = Ada\\\n\t\tLovelace\n[core]\n\teditor = vim\n").is_ok());
     assert!(ini_check("[user]\n\tname = \"a\\\n\tb\"\n").is_ok());
-    assert_eq!(ini_check("[user]\n\tname = \"a\\\n\tb\n").unwrap_err().line, Some(2));
+    assert_eq!(
+        ini_check("[user]\n\tname = \"a\\\n\tb\n").unwrap_err().line,
+        Some(2)
+    );
 }
 
 #[test]
@@ -310,7 +363,12 @@ fn ini_secret_inside_a_continued_value_is_detected() {
 #[test]
 fn toml_replacing_a_table_value_keeps_comments_and_other_lines() {
     let before = "# alacritty\n[window]\nopacity = 1.0 # 默认\n\n[font]\nsize = 11\n";
-    let after = set(Format::Toml, before, "window.opacity", TypedValue::Number(0.9));
+    let after = set(
+        Format::Toml,
+        before,
+        "window.opacity",
+        TypedValue::Number(0.9),
+    );
     assert_eq!(
         after,
         "# alacritty\n[window]\nopacity = 0.9 # 默认\n\n[font]\nsize = 11\n"
@@ -320,14 +378,24 @@ fn toml_replacing_a_table_value_keeps_comments_and_other_lines() {
 
 #[test]
 fn toml_whole_number_is_written_with_a_decimal_point() {
-    let after = set(Format::Toml, "[window]\nopacity = 0.5\n", "window.opacity", TypedValue::Number(1.0));
+    let after = set(
+        Format::Toml,
+        "[window]\nopacity = 0.5\n",
+        "window.opacity",
+        TypedValue::Number(1.0),
+    );
     assert_eq!(after, "[window]\nopacity = 1.0\n");
 }
 
 #[test]
 fn toml_missing_table_is_appended_at_the_end() {
     let before = "[window]\nopacity = 1.0\n";
-    let after = set(Format::Toml, before, "font.normal.family", text("JetBrains Mono"));
+    let after = set(
+        Format::Toml,
+        before,
+        "font.normal.family",
+        text("JetBrains Mono"),
+    );
     assert_eq!(
         after,
         "[window]\nopacity = 1.0\n\n[font.normal]\nfamily = \"JetBrains Mono\"\n"
@@ -349,7 +417,12 @@ fn toml_root_key_is_inserted_before_the_first_table() {
 #[test]
 fn toml_multiline_array_does_not_confuse_the_scanner() {
     let before = "[colors]\nlist = [\n  \"a\",\n  \"b\",\n]\n[window]\nopacity = 1.0\n";
-    let after = set(Format::Toml, before, "window.opacity", TypedValue::Number(0.5));
+    let after = set(
+        Format::Toml,
+        before,
+        "window.opacity",
+        TypedValue::Number(0.5),
+    );
     assert_eq!(after, before.replace("opacity = 1.0", "opacity = 0.5"));
     assert_eq!(changed_lines(before, after.as_str()), 1);
 }
@@ -379,7 +452,12 @@ fn toml_dotted_key_that_defines_the_target_is_refused() {
 #[test]
 fn toml_new_key_joins_a_dotted_sibling_in_the_same_table() {
     let before = "[font]\nnormal.bold = true\n[window]\nopacity = 1.0\n";
-    let after = set(Format::Toml, before, "font.normal.family", text("JetBrains Mono"));
+    let after = set(
+        Format::Toml,
+        before,
+        "font.normal.family",
+        text("JetBrains Mono"),
+    );
     assert_eq!(
         after,
         "[font]\nnormal.bold = true\nnormal.family = \"JetBrains Mono\"\n[window]\nopacity = 1.0\n"
@@ -446,7 +524,8 @@ fn toml_nested_key_is_refused_under_an_array_of_tables_that_owns_its_parent() {
 
 #[test]
 fn toml_read_returns_typed_scalars_for_nested_tables() {
-    let text_file = "[font.normal]\nfamily = \"Iosevka\"\n[window]\ndecorations = 'Full'\nopacity = 0.9\n";
+    let text_file =
+        "[font.normal]\nfamily = \"Iosevka\"\n[window]\ndecorations = 'Full'\nopacity = 0.9\n";
     assert_eq!(
         lookup(Format::Toml, text_file, "font.normal.family"),
         Lookup::Present(Some(Scalar::Text("Iosevka".to_owned())))
@@ -466,11 +545,24 @@ fn toml_read_returns_typed_scalars_for_nested_tables() {
 fn ini_and_toml_line_checks_report_the_offending_line() {
     assert!(ini_check("[user]\n\tname = Ada\n").is_ok());
     assert_eq!(ini_check("name = Ada\n").unwrap_err().line, Some(1));
-    assert_eq!(ini_check("[user]\n\tname = \"Ada\n").unwrap_err().line, Some(2));
+    assert_eq!(
+        ini_check("[user]\n\tname = \"Ada\n").unwrap_err().line,
+        Some(2)
+    );
 
     assert!(toml_check("[a]\nb = \"x\"\n# c\n").is_ok());
-    assert_eq!(toml_check("[a]\nb = \"x\"\nthis is wrong\n").unwrap_err().line, Some(3));
-    assert!(toml_check("[a]\nlist = [\n 1,\n").unwrap_err().line.is_none());
+    assert_eq!(
+        toml_check("[a]\nb = \"x\"\nthis is wrong\n")
+            .unwrap_err()
+            .line,
+        Some(3)
+    );
+    assert!(
+        toml_check("[a]\nlist = [\n 1,\n")
+            .unwrap_err()
+            .line
+            .is_none()
+    );
 }
 
 #[test]
@@ -495,7 +587,9 @@ fn unified_text_of_one_changed_line_has_one_removed_and_one_added_line() {
     let diff = unified_text("a\nb\nc\n", "a\nB\nc\n");
     let body: Vec<&str> = diff
         .lines()
-        .filter(|line| !line.starts_with("---") && !line.starts_with("+++") && !line.starts_with("@@"))
+        .filter(|line| {
+            !line.starts_with("---") && !line.starts_with("+++") && !line.starts_with("@@")
+        })
         .collect();
     assert_eq!(body, vec!["-b", "+B"]);
     assert_eq!(unified_text("a\n", "a\n"), "");
@@ -517,10 +611,16 @@ fn pending_edit(token: &str, created: Instant) -> PendingEdit {
 fn preview_token_is_single_use() {
     let state = AppConfigEditState::default();
     let now = Instant::now();
-    state.remember_at(pending_edit("t1", now), now).expect("stored");
+    state
+        .remember_at(pending_edit("t1", now), now)
+        .expect("stored");
     assert!(state.take_at("t1", now).is_ok());
     assert_eq!(
-        state.take_at("t1", now).map(|edit| edit.token).unwrap_err().code(),
+        state
+            .take_at("t1", now)
+            .map(|edit| edit.token)
+            .unwrap_err()
+            .code(),
         AppErrorCode::NotFound
     );
 }
@@ -529,7 +629,9 @@ fn preview_token_is_single_use() {
 fn preview_token_expires_after_ten_minutes() {
     let state = AppConfigEditState::default();
     let created = Instant::now();
-    state.remember_at(pending_edit("t", created), created).expect("stored");
+    state
+        .remember_at(pending_edit("t", created), created)
+        .expect("stored");
     let later = created + Duration::from_secs(601);
     assert!(state.take_at("t", later).is_err());
 }
@@ -548,7 +650,9 @@ fn preview_store_keeps_at_most_eight_entries() {
 }
 
 fn gitconfig(content: &str) -> FakeFs {
-    FakeFs::new().dir(HOME).file("/Users/example/.gitconfig", content)
+    FakeFs::new()
+        .dir(HOME)
+        .file("/Users/example/.gitconfig", content)
 }
 
 fn fields_input(hash: &str, changes: Vec<FieldChange>) -> PreviewInput {
@@ -578,8 +682,14 @@ fn preview_of_one_field_returns_a_one_line_diff_and_a_token() {
         vec![change("user.name", json!("Grace"))],
     );
 
-    let result = preview(&entry("git-config-home"), Path::new(HOME), &fs, &state, &input)
-        .expect("preview succeeds");
+    let result = preview(
+        &entry("git-config-home"),
+        Path::new(HOME),
+        &fs,
+        &state,
+        &input,
+    )
+    .expect("preview succeeds");
 
     assert!(result.ok);
     assert!(result.preview_token.is_some());
@@ -684,10 +794,18 @@ fn read_for_edit_returns_schema_values_and_the_raw_text() {
     let fs = gitconfig("[user]\n\tname = Ada\n");
     let read = read_for_edit(&entry("git-config-home"), Path::new(HOME), &fs).expect("reads");
 
-    let name = read.fields.iter().find(|f| f.path == "user.name").expect("field");
+    let name = read
+        .fields
+        .iter()
+        .find(|f| f.path == "user.name")
+        .expect("field");
     assert!(name.present);
     assert_eq!(name.value, Some(json!("Ada")));
-    let email = read.fields.iter().find(|f| f.path == "user.email").expect("field");
+    let email = read
+        .fields
+        .iter()
+        .find(|f| f.path == "user.email")
+        .expect("field");
     assert!(!email.present);
     assert_eq!(read.raw_text.as_deref(), Some("[user]\n\tname = Ada\n"));
     assert!(read.raw_blocked_reason.is_none());
@@ -708,7 +826,11 @@ fn read_for_edit_blocks_raw_text_that_holds_a_secret() {
 fn read_for_edit_hides_a_visual_value_that_looks_secret() {
     let fs = gitconfig("[user]\n\tname = https://ada:hunter2@host\n");
     let read = read_for_edit(&entry("git-config-home"), Path::new(HOME), &fs).expect("reads");
-    let name = read.fields.iter().find(|f| f.path == "user.name").expect("field");
+    let name = read
+        .fields
+        .iter()
+        .find(|f| f.path == "user.name")
+        .expect("field");
     assert!(name.present);
     assert!(name.value.is_none());
 }
@@ -730,6 +852,66 @@ fn read_for_edit_refuses_creation_when_the_parent_directory_is_missing() {
     assert_eq!(error.code(), AppErrorCode::NotFound);
 }
 
+fn entry_at(relative: &'static str) -> Entry {
+    Entry {
+        location: Location::Home(relative),
+        ..entry("git-config-home")
+    }
+}
+
+#[test]
+fn a_missing_file_directly_in_home_is_creatable() {
+    let fs = FakeFs::new().dir(HOME);
+    let target = resolve_target(&entry_at(".gitconfig"), Path::new(HOME), &fs)
+        .expect("a file in the home directory may be created");
+    assert_eq!(
+        target,
+        Target {
+            path: PathBuf::from("/Users/example/.gitconfig"),
+            exists: false,
+        }
+    );
+}
+
+#[test]
+fn a_missing_file_in_an_existing_directory_below_home_is_creatable() {
+    let fs = FakeFs::new().dir(HOME).dir("/Users/example/.config/git");
+    let target = resolve_target(&entry("git-config-xdg"), Path::new(HOME), &fs)
+        .expect("creatable below home");
+    assert_eq!(
+        target,
+        Target {
+            path: PathBuf::from("/Users/example/.config/git/config"),
+            exists: false,
+        }
+    );
+}
+
+#[test]
+fn a_missing_file_in_a_protected_directory_is_never_creatable() {
+    for relative in [".ssh/x", ".gnupg/x", "Library/Keychains/x"] {
+        let fs = FakeFs::new()
+            .dir(HOME)
+            .dir("/Users/example/.ssh")
+            .dir("/Users/example/.gnupg")
+            .dir("/Users/example/Library/Keychains");
+        let error = resolve_target(&entry_at(relative), Path::new(HOME), &fs)
+            .expect_err("protected directory");
+        assert_eq!(error.code(), AppErrorCode::PermissionDenied, "{relative}");
+    }
+}
+
+#[test]
+fn a_missing_file_whose_directory_resolves_outside_home_is_not_creatable() {
+    let fs = FakeFs::new()
+        .dir(HOME)
+        .symlink("/Users/example/.config", "/opt/shared")
+        .dir("/opt/shared/git");
+    let error =
+        resolve_target(&entry("git-config-xdg"), Path::new(HOME), &fs).expect_err("outside home");
+    assert_eq!(error.code(), AppErrorCode::PermissionDenied);
+}
+
 #[test]
 fn read_for_edit_refuses_entries_that_are_not_writable() {
     let fs = FakeFs::new().dir(HOME);
@@ -743,7 +925,10 @@ fn fields_are_typed_values_for_scalar_kinds_used_in_reads() {
     let scalar = Scalar::Text("true".to_owned());
     let pull = field("git-config-home", "pull.rebase");
     assert_eq!(scalar_value(&pull, &scalar), Some(json!(true)));
-    assert!(matches!(lookup(Format::Ini, "[pull]\n\trebase = yes\n", "pull.rebase"), Lookup::Present(_)));
+    assert!(matches!(
+        lookup(Format::Ini, "[pull]\n\trebase = yes\n", "pull.rebase"),
+        Lookup::Present(_)
+    ));
 }
 
 #[test]
@@ -756,7 +941,10 @@ fn fields_preview_is_refused_when_the_result_is_not_valid_config_text() {
         Path::new(HOME),
         &fs,
         &state,
-        &fields_input(&hash_bytes(content.as_bytes()), vec![change("user.email", json!("a@b.c"))]),
+        &fields_input(
+            &hash_bytes(content.as_bytes()),
+            vec![change("user.email", json!("a@b.c"))],
+        ),
     )
     .expect("preview returns a result");
     assert!(!result.ok);
@@ -776,8 +964,14 @@ fn raw_preview_is_refused_when_the_current_file_holds_a_secret() {
         raw_text: Some("[user]\n\tname = Grace\n".to_owned()),
         expected_hash: hash_bytes(content.as_bytes()),
     };
-    let result = preview(&entry("git-config-home"), Path::new(HOME), &fs, &state, &input)
-        .expect("preview returns a result");
+    let result = preview(
+        &entry("git-config-home"),
+        Path::new(HOME),
+        &fs,
+        &state,
+        &input,
+    )
+    .expect("preview returns a result");
     assert!(!result.ok);
     assert!(result.preview_token.is_none());
     assert_eq!(
@@ -796,7 +990,10 @@ fn fields_preview_still_allowed_when_the_file_holds_a_secret() {
         Path::new(HOME),
         &fs,
         &state,
-        &fields_input(&hash_bytes(content.as_bytes()), vec![change("user.name", json!("Grace"))]),
+        &fields_input(
+            &hash_bytes(content.as_bytes()),
+            vec![change("user.name", json!("Grace"))],
+        ),
     )
     .expect("preview returns a result");
     assert!(result.ok);
@@ -829,7 +1026,10 @@ impl MemoryStore {
     }
 
     fn mode_of(&self, path: &str) -> Option<u32> {
-        self.files.borrow().get(Path::new(path)).map(|(_, mode)| *mode)
+        self.files
+            .borrow()
+            .get(Path::new(path))
+            .map(|(_, mode)| *mode)
     }
 
     fn backup_count(&self) -> usize {
@@ -894,7 +1094,9 @@ impl ConfigStore for MemoryStore {
             .map(|(current, _)| current.clone())
             .ok_or_else(|| AtomicReplaceError::BeforeCommit(AppError::not_found("missing")))?;
         if hash_bytes(&current) != before_hash {
-            return Err(AtomicReplaceError::BeforeCommit(AppError::conflict("changed")));
+            return Err(AtomicReplaceError::BeforeCommit(AppError::conflict(
+                "changed",
+            )));
         }
         let stored = if self.corrupt_replace {
             b"tampered".to_vec()
@@ -927,7 +1129,10 @@ fn preview_name(fs: &FakeFs, state: &AppConfigEditState, content: &str, name: &s
         Path::new(HOME),
         fs,
         state,
-        &fields_input(&hash_bytes(content.as_bytes()), vec![change("user.name", json!(name))]),
+        &fields_input(
+            &hash_bytes(content.as_bytes()),
+            vec![change("user.name", json!(name))],
+        ),
     )
     .expect("preview returns a result");
     result.preview_token.expect("preview has a token")
@@ -940,9 +1145,17 @@ fn confirm_token(
     token: &str,
 ) -> Result<(), AppErrorCode> {
     let registry = Registry::builtin().expect("built-in registry is valid");
-    confirm_at(&registry, Path::new(HOME), fs, store, state, token, Instant::now())
-        .map(|_| ())
-        .map_err(|error| error.code())
+    confirm_at(
+        &registry,
+        Path::new(HOME),
+        fs,
+        store,
+        state,
+        token,
+        Instant::now(),
+    )
+    .map(|_| ())
+    .map_err(|error| error.code())
 }
 
 #[test]
@@ -954,7 +1167,10 @@ fn confirm_writes_the_previewed_text_and_backs_up_the_original() {
     let store = MemoryStore::with_file(GITCONFIG, content, 0o644);
 
     assert_eq!(confirm_token(&fs, &state, &store, &token), Ok(()));
-    assert_eq!(store.content(GITCONFIG).as_deref(), Some("[user]\n\tname = Grace\n"));
+    assert_eq!(
+        store.content(GITCONFIG).as_deref(),
+        Some("[user]\n\tname = Grace\n")
+    );
     assert_eq!(store.mode_of(GITCONFIG), Some(0o644));
     assert_eq!(store.backup_count(), 1);
     assert_eq!(
@@ -1006,8 +1222,19 @@ fn confirm_token_expires_after_ten_minutes() {
     let registry = Registry::builtin().expect("built-in registry is valid");
     let later = Instant::now() + Duration::from_secs(11 * 60);
 
-    let result = confirm_at(&registry, Path::new(HOME), &fs, &store, &state, &token, later);
-    assert_eq!(result.map(|_| ()).map_err(|error| error.code()), Err(AppErrorCode::NotFound));
+    let result = confirm_at(
+        &registry,
+        Path::new(HOME),
+        &fs,
+        &store,
+        &state,
+        &token,
+        later,
+    );
+    assert_eq!(
+        result.map(|_| ()).map_err(|error| error.code()),
+        Err(AppErrorCode::NotFound)
+    );
     assert_eq!(store.content(GITCONFIG).as_deref(), Some(content));
 }
 
@@ -1053,13 +1280,22 @@ fn confirm_creates_a_missing_file_with_owner_only_mode_and_no_backup() {
     let fs = FakeFs::new().dir(HOME);
     let state = AppConfigEditState::default();
     let input = fields_input(&hash_bytes(b""), vec![change("user.name", json!("Ada"))]);
-    let result = preview(&entry("git-config-home"), Path::new(HOME), &fs, &state, &input)
-        .expect("preview returns a result");
+    let result = preview(
+        &entry("git-config-home"),
+        Path::new(HOME),
+        &fs,
+        &state,
+        &input,
+    )
+    .expect("preview returns a result");
     let token = result.preview_token.expect("preview has a token");
     let store = MemoryStore::default();
 
     assert_eq!(confirm_token(&fs, &state, &store, &token), Ok(()));
-    assert_eq!(store.content(GITCONFIG).as_deref(), Some("[user]\n\tname = Ada\n"));
+    assert_eq!(
+        store.content(GITCONFIG).as_deref(),
+        Some("[user]\n\tname = Ada\n")
+    );
     assert_eq!(store.mode_of(GITCONFIG), Some(0o600));
     assert_eq!(store.backup_count(), 0);
 }

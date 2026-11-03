@@ -573,7 +573,7 @@ fn summary_marks_risks_secrets_and_display_only_items() {
         summary
             .items
             .iter()
-            .all(|item| (item.value_type == "unknown") == !item.generatable)
+            .all(|item| (item.value_type == "unknown") != item.generatable)
     );
 }
 

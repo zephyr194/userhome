@@ -37,9 +37,9 @@ use crate::{
         diff::unified_text,
         read::{hash_bytes, read_bounded},
     },
+    environment::dotenv::value_looks_secret,
     error::AppError,
     grants::is_below_home,
-    environment::dotenv::value_looks_secret,
     settings::BackupRetention,
 };
 
@@ -98,7 +98,14 @@ impl ConfigStore for DiskStore<'_> {
     }
 
     fn backup(&self, config_id: &str, bytes: &[u8], mode: u32) -> Result<BackupRecord, AppError> {
-        create_backup(self.environment, APP_ID, config_id, bytes, mode, self.retention)
+        create_backup(
+            self.environment,
+            APP_ID,
+            config_id,
+            bytes,
+            mode,
+            self.retention,
+        )
     }
 
     fn replace(
@@ -194,9 +201,11 @@ pub fn resolve_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<T
     }
     match locate(entry, home, fs) {
         Located::Found { path, .. } => Ok(Target { path, exists: true }),
-        // The list only includes existing entries; this branch is kept for later.
+        // The file is missing: it may be created when its directory exists.
         Located::Unavailable(ProbeStatus::NotFound) => creatable_target(entry, home, fs),
-        Located::Unavailable(ProbeStatus::OutOfBounds) => Err(AppError::permission_denied(OUTSIDE_HOME)),
+        Located::Unavailable(ProbeStatus::OutOfBounds) => {
+            Err(AppError::permission_denied(OUTSIDE_HOME))
+        }
         Located::Unavailable(ProbeStatus::SymlinkOrNonRegular) => Err(AppError::permission_denied(
             "配置文件是符号链接或特殊文件，不能在应用内修改，请用外部编辑器。",
         )),
@@ -207,7 +216,10 @@ pub fn resolve_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<T
     }
 }
 
-/// A missing file may be created only inside `$HOME`, in a directory that already exists.
+/// A missing file may be created only in a directory that already exists. The
+/// new file itself must pass the `$HOME` rule: strictly below the home
+/// directory and outside the protected credential locations. Its directory may
+/// be the home directory itself (`~/.gitconfig`).
 fn creatable_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<Target, AppError> {
     let declared = resolve_path(entry, home);
     let (Some(parent), Some(leaf)) = (declared.parent(), declared.file_name()) else {
@@ -216,14 +228,15 @@ fn creatable_target(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<Tar
     let canonical_home = fs
         .canonicalize(home)
         .map_err(|_| AppError::not_found("无法确定主目录，应用配置不可用。"))?;
-    let real_parent = fs.canonicalize(parent).map_err(|_| {
-        AppError::not_found("配置文件所在的目录不存在，请先创建该目录再修改。")
-    })?;
-    if !is_below_home(&real_parent, Some(&canonical_home)) {
+    let real_parent = fs
+        .canonicalize(parent)
+        .map_err(|_| AppError::not_found("配置文件所在的目录不存在，请先创建该目录再修改。"))?;
+    let path = real_parent.join(leaf);
+    if !is_below_home(&path, Some(&canonical_home)) {
         return Err(AppError::permission_denied(OUTSIDE_HOME));
     }
     Ok(Target {
-        path: real_parent.join(leaf),
+        path,
         exists: false,
     })
 }
@@ -238,7 +251,9 @@ fn load(target: &Target, fs: &dyn ConfigFs) -> Result<Loaded, AppError> {
     let bytes = fs
         .read_bounded(&target.path, MAX_RAW_BYTES)
         .map_err(|error| match error {
-            FsError::TooLarge => AppError::validation_failed("配置文件超过 512 KiB，请用外部编辑器修改。"),
+            FsError::TooLarge => {
+                AppError::validation_failed("配置文件超过 512 KiB，请用外部编辑器修改。")
+            }
             FsError::NotFound => AppError::not_found("配置文件已不存在，请重新读取。"),
             FsError::PermissionDenied | FsError::Other => {
                 AppError::permission_denied("无法读取配置文件，请检查文件权限。")
@@ -251,14 +266,14 @@ fn load(target: &Target, fs: &dyn ConfigFs) -> Result<Loaded, AppError> {
 }
 
 fn text_of(bytes: &[u8]) -> Result<String, AppError> {
-    String::from_utf8(bytes.to_vec()).map_err(|_| {
-        AppError::validation_failed("配置文件不是 UTF-8 文本，请用外部编辑器修改。")
-    })
+    String::from_utf8(bytes.to_vec())
+        .map_err(|_| AppError::validation_failed("配置文件不是 UTF-8 文本，请用外部编辑器修改。"))
 }
 
 pub fn read_for_edit(entry: &Entry, home: &Path, fs: &dyn ConfigFs) -> Result<EditRead, AppError> {
     ensure_writable(entry)?;
-    let schema = schema_for(entry.id, entry.format).ok_or_else(|| AppError::not_supported(NOT_EDITABLE))?;
+    let schema =
+        schema_for(entry.id, entry.format).ok_or_else(|| AppError::not_supported(NOT_EDITABLE))?;
     let target = resolve_target(entry, home, fs)?;
     let loaded = load(&target, fs)?;
     let hash = hash_bytes(&loaded.bytes);
@@ -343,7 +358,8 @@ pub fn preview(
     input: &PreviewInput,
 ) -> Result<PreviewResult, AppError> {
     ensure_writable(entry)?;
-    let schema = schema_for(entry.id, entry.format).ok_or_else(|| AppError::not_supported(NOT_EDITABLE))?;
+    let schema =
+        schema_for(entry.id, entry.format).ok_or_else(|| AppError::not_supported(NOT_EDITABLE))?;
     let target = resolve_target(entry, home, fs)?;
     let loaded = load(&target, fs)?;
     let current_hash = hash_bytes(&loaded.bytes);
@@ -435,7 +451,12 @@ fn plan_key_values(current: &str, changes: &[FieldChange]) -> Plan {
     plan
 }
 
-fn plan_fields(format: crate::app_config::registry::Format, schema: &EditSchema, current: &str, changes: &[FieldChange]) -> Plan {
+fn plan_fields(
+    format: crate::app_config::registry::Format,
+    schema: &EditSchema,
+    current: &str,
+    changes: &[FieldChange],
+) -> Plan {
     let mut plan = Plan::new(current.to_owned());
     if !schema.visual_supported {
         plan.issue(None, None, "这个文件只能使用高级模式修改。");
@@ -471,10 +492,10 @@ fn plan_fields(format: crate::app_config::registry::Format, schema: &EditSchema,
             Err(message) => plan.issue(Some(field.path), None, message),
         }
     }
-    if plan.issues.is_empty() {
-        if let Err(RawError { line, message }) = check_raw(format, &plan.proposed) {
-            plan.issue(None, line, message);
-        }
+    if plan.issues.is_empty()
+        && let Err(RawError { line, message }) = check_raw(format, &plan.proposed)
+    {
+        plan.issue(None, line, message);
     }
     plan
 }

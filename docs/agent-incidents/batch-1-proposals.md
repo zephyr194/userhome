@@ -198,6 +198,8 @@
   2. L6：抽出 `useLatestRequest()`/`singleFlight()`，ESLint 规则 `userhome/no-raw-ipc-in-effect`：`useEffect` 内直接 `await` ipc 调用并 `setState` 时报错，要求走上述封装。
 - 正向回归用例：`8b005db^` 的 `src/ipc/services.ts` + 新增的 StrictMode 测试应失败（后端收到两次 invoke）；`029c601^` 的 `ServicesPage.tsx` + “快速切换选中后旧预览不应弹确认”测试应失败。
 - 反向误报验证：对 HEAD 全量运行 ESLint 规则，列出命中项逐个人工判断；把已有、确实无需绑定请求的一次性读取标注豁免，豁免清单需随规则一并批准。预计误报集中在只读且不依赖选中项的页面。
+- 状态：L4 工具与服务页 L6 已实现，ESLint 规则试运行（warn）
+- 试运行命中数：全仓 13 处，服务页 0 处，其余页面本次未迁移；豁免只是提案，未落地
 
 ### P4：UI 契约审计升级为 ESLint 规则（签名 S01–S04）
 

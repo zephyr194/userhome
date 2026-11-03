@@ -151,12 +151,17 @@ describe("UserHome desktop smoke", () => {
         .querySelector<HTMLElement>("a[href='#dashboard']")
         ?.click();
     });
-    await $("#user-directory-coverage-heading").waitForDisplayed({ timeout: 5_000 });
-    expect(await $(".desktop-workspace__page-title").getText()).toBe("概览");
     const dashboard = await $("section[aria-label='概览']");
+    await dashboard.waitForDisplayed({ timeout: 5_000 });
+    expect(await $(".desktop-workspace__page-title").getText()).toBe("概览");
     expect(await dashboard.getText()).toContain("macOS");
     expect(await dashboard.getText()).toContain("架构");
-    expect(await dashboard.getText()).toContain("在线");
+    // 连接状态在导航栏底部，不在概览区内。
+    await browser.waitUntil(
+      async () =>
+        (await $(".navigation-rail__status--ready").getText()).includes("在线"),
+      { timeout: 5_000, timeoutMsg: "Navigation rail did not report online" },
+    );
     const viewport = await browser.execute(() => ({
       appearance: document.documentElement.dataset.appearance,
       colorScheme: document.documentElement.style.colorScheme,
@@ -181,7 +186,7 @@ describe("UserHome desktop smoke", () => {
     }
     expect(viewport.documentHeight).toBeLessThanOrEqual(viewport.viewportHeight);
     expect(viewport.documentWidth).toBeLessThanOrEqual(viewport.viewportWidth);
-    const themeTokens = await browser.execute(() => {
+    const rawThemeTokens = await browser.execute(() => {
       const styles = getComputedStyle(document.documentElement);
       return {
         canvas: styles.getPropertyValue("--app-canvas").trim().toUpperCase(),
@@ -189,9 +194,24 @@ describe("UserHome desktop smoke", () => {
         accent: styles.getPropertyValue("--app-primary").trim().toUpperCase(),
       };
     });
-    const expectedTheme = viewport.prefersDark
-      ? { canvas: "#15191E", surface: "#1D2228", accent: "#F0A060" }
-      : { canvas: "#EDF1F5", surface: "#F8FAFC", accent: "#B65C24" };
+    // 生产构建会把 #FFFFFF 压缩成 #FFF；展开三位简写后再与令牌源值比较。
+    const expandHex = (value: string) =>
+      value.replace(
+        /^#([0-9A-F])([0-9A-F])([0-9A-F])$/,
+        (_match, r: string, g: string, b: string) => `#${r}${r}${g}${g}${b}${b}`,
+      );
+    const themeTokens = {
+      canvas: expandHex(rawThemeTokens.canvas),
+      surface: expandHex(rawThemeTokens.surface),
+      accent: expandHex(rawThemeTokens.accent),
+    };
+    // 令牌源：src/styles/global.css 的 :root（浅色）与 :root[data-appearance="dark"]（深色）。
+    // 外观为 system 时由 OS 媒体查询决定。
+    const effectiveDark =
+      appearance === "dark" || (appearance === "system" && viewport.prefersDark);
+    const expectedTheme = effectiveDark
+      ? { canvas: "#10181E", surface: "#162029", accent: "#35C7B3" }
+      : { canvas: "#F7F9F9", surface: "#FFFFFF", accent: "#0B6F6C" };
     expect(themeTokens).toEqual(expectedTheme);
 
     const assertDocumentFits = async (route: string) => {
@@ -210,17 +230,25 @@ describe("UserHome desktop smoke", () => {
       expect(route.length).toBeGreaterThan(0);
     };
 
-    expect(await $("#user-directory-coverage-heading").getText()).toBe(
-      "用户目录配置",
+    const factTitles = await $$(".ov-fact__title").map((title) =>
+      title.getText(),
     );
+    expect(factTitles).toEqual(["服务", "AI 工具", "环境变量", "应用配置"]);
     await browser.waitUntil(
-      async () => (await dashboard.getText()).includes("四类计数守恒"),
+      async () => {
+        const statuses = await $$(".ov-fact__status").map((status) =>
+          status.getText(),
+        );
+        return (
+          statuses.length === 4 &&
+          statuses.every((text) => ["正常", "需留意", "读取失败"].includes(text))
+        );
+      },
       {
         timeout: 10_000,
-        timeoutMsg: "User-directory coverage did not settle",
+        timeoutMsg: "Overview facts did not settle",
       },
     );
-    expect(await dashboard.getText()).toContain("四类计数守恒");
     await assertDocumentFits("dashboard");
 
     await $("a[href='#services']").click();
@@ -235,7 +263,7 @@ describe("UserHome desktop smoke", () => {
     expect(await $("[aria-label='设置分组']").isDisplayed()).toBe(true);
     expect(await $(".settings-pane__detail").isDisplayed()).toBe(true);
     const settingsTabs = await $$("[aria-label='设置分组'] [role='tab']");
-    expect(await settingsTabs.length).toBe(7);
+    expect(await settingsTabs.length).toBe(8);
     await browser.execute((tab) => tab.focus(), settingsTabs[0]);
     expect(
       await browser.execute(() =>
@@ -295,15 +323,18 @@ describe("UserHome desktop smoke", () => {
     expect(refreshIds[0]).toBe(refreshIds[1]);
   });
 
-  it("lists the eight primary navigation entries and titles each page", async () => {
+  it("lists the nine primary navigation entries, titles each page and reaches Caddy from System tools", async () => {
+    // 侧栏九项（src/app/routeDefinitions.ts 的 NAV_LAYOUT）；Caddy 不在侧栏，
+    // 它是 systemTools 的子页，从系统工具页的卡片进入。
     const expectedRoutes = [
       { id: "dashboard", title: "概览" },
-      { id: "services", title: "服务" },
       { id: "environment", title: "环境变量" },
-      { id: "caddy", title: "Caddy" },
       { id: "appConfig", title: "应用配置" },
-      { id: "aiConfig", title: "AI 配置" },
+      { id: "aiConfig", title: "AI 工具" },
+      { id: "systemTools", title: "系统工具" },
       { id: "tools", title: "工具集" },
+      { id: "skillhub", title: "SKILLHUB" },
+      { id: "services", title: "服务" },
       { id: "settings", title: "设置" },
     ];
 
@@ -327,5 +358,29 @@ describe("UserHome desktop smoke", () => {
         },
       );
     }
+
+    // Caddy 现在是系统工具页上的卡片，不是侧栏项：从系统工具进入，
+    // 页面标题为 Caddy，侧栏仍高亮其父项 systemTools。
+    await $("nav[aria-label='主导航'] a[href='#systemTools']").click();
+    const caddyCard = await $(".system-tool-card");
+    await caddyCard.waitForDisplayed({ timeout: 5_000 });
+    expect(await caddyCard.getText()).toContain("Caddy");
+    await caddyCard.click();
+    await browser.waitUntil(
+      async () =>
+        (await $(".desktop-workspace__page-title").getText()) === "Caddy",
+      {
+        timeout: 5_000,
+        timeoutMsg: 'System tools Caddy card did not open the "Caddy" page',
+      },
+    );
+    expect(
+      await $("nav[aria-label='主导航'] a[href='#systemTools']").getAttribute(
+        "aria-current",
+      ),
+    ).toBe("page");
+    expect(await $("nav[aria-label='主导航'] a[href='#caddy']").isExisting()).toBe(
+      false,
+    );
   });
 });

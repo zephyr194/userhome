@@ -677,6 +677,41 @@ fn a_removed_file_is_reported_as_missing_and_never_as_an_empty_log() {
 }
 
 #[test]
+fn a_removed_file_does_not_turn_a_lost_authorization_into_missing() {
+    let env = Env::new();
+    let log = env.log("job.log");
+    Env::write(&log, b"hello\n");
+    let runner = job_runner(Some(&log), None);
+    let grants = env.grants();
+    let sessions = LogSessions::default();
+    let context = env.context(&runner);
+    let canonical = expected_log_path(&context, &target(LogStream::Stdout)).expect("declared");
+    let record =
+        authorize(&grants, &sessions, &target(LogStream::Stdout), &canonical).expect("authorize");
+    let grant = record.id.as_str().to_owned();
+    revoke(&grants, &sessions, &grant).expect("revoke");
+    fs::remove_file(&log).expect("remove log");
+
+    assert_eq!(
+        read_tail(
+            &context,
+            &grants,
+            &tail_request(target(LogStream::Stdout), &grant, None)
+        ),
+        Err(LogError::NotAuthorized)
+    );
+    let unknown = GrantId::parse(&Uuid::new_v4().to_string()).expect("unknown id");
+    assert_eq!(
+        read_tail(
+            &context,
+            &grants,
+            &tail_request(target(LogStream::Stdout), unknown.as_str(), None)
+        ),
+        Err(LogError::NotAuthorized)
+    );
+}
+
+#[test]
 fn a_utf8_sequence_split_at_the_end_waits_for_the_next_read() {
     assert_eq!(decode_complete(b"ok\n\xC3"), ("ok\n".to_owned(), 3, false));
     assert_eq!(

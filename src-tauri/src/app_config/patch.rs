@@ -4,10 +4,7 @@
 
 use serde_json::Value;
 
-use crate::{
-    config::formats::parse_json_document,
-    environment::dotenv::value_looks_secret,
-};
+use crate::{config::formats::parse_json_document, environment::dotenv::value_looks_secret};
 
 use super::{
     patch_ini::{ini_check, ini_lookup, ini_patch},
@@ -64,11 +61,20 @@ pub fn split_lines(text: &str) -> Vec<Line> {
     text.split_inclusive('\n')
         .map(|piece| {
             if let Some(body) = piece.strip_suffix("\r\n") {
-                Line { text: body.to_owned(), eol: "\r\n" }
+                Line {
+                    text: body.to_owned(),
+                    eol: "\r\n",
+                }
             } else if let Some(body) = piece.strip_suffix('\n') {
-                Line { text: body.to_owned(), eol: "\n" }
+                Line {
+                    text: body.to_owned(),
+                    eol: "\n",
+                }
             } else {
-                Line { text: piece.to_owned(), eol: "" }
+                Line {
+                    text: piece.to_owned(),
+                    eol: "",
+                }
             }
         })
         .collect()
@@ -95,10 +101,8 @@ pub fn insert_lines(lines: &mut Vec<Line>, at: usize, texts: Vec<String>) {
     let eol = default_eol(lines);
     let appending = at == lines.len();
     let unterminated_end = appending && lines.last().is_some_and(|line| line.eol.is_empty());
-    if unterminated_end {
-        if let Some(last) = lines.last_mut() {
-            last.eol = eol;
-        }
+    if unterminated_end && let Some(last) = lines.last_mut() {
+        last.eol = eol;
     }
     let count = texts.len();
     let inserted: Vec<Line> = texts
@@ -106,7 +110,11 @@ pub fn insert_lines(lines: &mut Vec<Line>, at: usize, texts: Vec<String>) {
         .enumerate()
         .map(|(index, text)| {
             let is_final = index + 1 == count;
-            let eol = if unterminated_end && is_final { "" } else { eol };
+            let eol = if unterminated_end && is_final {
+                ""
+            } else {
+                eol
+            };
             Line { text, eol }
         })
         .collect();
@@ -261,7 +269,12 @@ pub fn split_path(path: &str) -> Option<(Vec<&str>, &str)> {
     Some((segments, key))
 }
 
-pub fn apply_change(format: Format, text: &str, path: &str, change: &Change) -> Result<String, String> {
+pub fn apply_change(
+    format: Format,
+    text: &str,
+    path: &str,
+    change: &Change,
+) -> Result<String, String> {
     let (table, key) = split_path(path).ok_or_else(|| "字段路径无效。".to_owned())?;
     match format {
         Format::Ini if table.len() == 1 => ini_patch(text, table[0], key, change),

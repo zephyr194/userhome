@@ -334,7 +334,8 @@ fn upgrade_reports_that_the_update_ran_when_the_new_version_is_unreadable() {
         brew_outcome(Some("1.0.0"), None),
         AiBrewUpgradeOutcome {
             status: BrewUpgradeStatus::Upgraded,
-            message: "已执行更新，但没能读到新版本。请刷新页面重新检测，不需要再次更新。".to_owned(),
+            message: "已执行更新，但没能读到新版本。请刷新页面重新检测，不需要再次更新。"
+                .to_owned(),
             new_version: None,
         }
     );

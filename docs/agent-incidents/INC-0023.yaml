@@ -1,7 +1,7 @@
 id: INC-0023
 commit_fix: e052aca
 commit_origin: unknown
-related_commits: []
+related_commits: [f810fe6]
 area: ci
 type: platform-assumption
 symptom: CI 所有 job 在 pnpm/action-setup 处失败（with.version 与 package.json 的 packageManager 重复），CI 实际上从未运行成功
@@ -15,4 +15,4 @@ record_reason: [R1]
 root_cause: checker-gap
 signature: CI 配置从未实际运行过，修改 CI 后没有观察到一次成功运行
 confidence: high
-notes: CI 原先只在 PR 触发，仓库不走 PR，所以配置缺陷长期未暴露；2026-11-03 增加 push 到 main 触发后第一次运行即失败。首次出现，按 §9 S2 只记录；补 L1：改 CI 后必须看到一次运行结果才算完成。
+notes: CI 原先只在 PR 触发，仓库不走 PR，所以配置缺陷长期未暴露；2026-11-03 增加 push 到 main 触发后第一次运行即失败。首次出现，按 §9 S2 只记录；补 L1：改 CI 后必须看到一次运行结果才算完成。 CI 首次跑通安装后，Rust job 又因 rustfmt 漂移（11 个文件、78 处）失败，同属"CI 从未运行"，由 f810fe6 修复。

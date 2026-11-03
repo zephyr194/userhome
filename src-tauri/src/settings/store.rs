@@ -319,6 +319,7 @@ mod tests {
                 "appearance",
                 "backupRetention",
                 "closeBehavior",
+                "language",
                 "openWindowOnLaunch",
                 "optionalDiscoveryRoots",
                 "preferredEditorMode",
