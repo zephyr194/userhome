@@ -649,21 +649,31 @@ fn empty_snapshot() -> DiscoverySnapshot {
     }
 }
 
-fn spawn_module<T: Send + 'static>(runner: Arc<dyn Fn() -> T + Send + Sync>) -> Receiver<T> {
+/// 模块线程把结果连同"完成时刻"一起送回，截止判断以完成时刻为准，而不是协调线程检查的时刻。
+fn spawn_module<T: Send + 'static>(
+    runner: Arc<dyn Fn() -> T + Send + Sync>,
+) -> Receiver<(T, Instant)> {
     let (sender, receiver) = mpsc::sync_channel(1);
     thread::spawn(move || {
-        let _ = sender.send(runner());
+        let result = runner();
+        let _ = sender.send((result, Instant::now()));
     });
     receiver
 }
 
+/// 严格截止：完成时刻晚于 `started_at + timeout` 的结果一律视为超时，
+/// 即使它在协调线程检查之前已经到达。
 fn receive_before<T>(
-    receiver: Receiver<T>,
+    receiver: Receiver<(T, Instant)>,
     started_at: Instant,
     timeout: Duration,
 ) -> Result<T, ()> {
     let remaining = timeout.saturating_sub(started_at.elapsed());
-    receiver.recv_timeout(remaining).map_err(|_| ())
+    let (value, finished_at) = receiver.recv_timeout(remaining).map_err(|_| ())?;
+    if finished_at > started_at + timeout {
+        return Err(());
+    }
+    Ok(value)
 }
 
 fn brew_issue(error: InventoryError) -> DiscoveryIssue {
@@ -944,6 +954,26 @@ mod tests {
         assert_eq!(read_snapshot.system.status, ModuleStatus::Ready);
         assert_eq!(system_runs.load(Ordering::SeqCst), 1);
         assert_eq!(read_snapshot.refresh_id, refresh_snapshot.refresh_id);
+    }
+
+    #[test]
+    fn receive_before_rejects_results_finished_after_the_deadline() {
+        // 完成时刻由测试注入，结果在检查之前就已在 channel 里：
+        // 只有完成时刻晚于截止的才算超时，与检查快慢无关。
+        let started_at = Instant::now();
+        let timeout = Duration::from_millis(500);
+
+        let (late_sender, late) = mpsc::sync_channel(1);
+        late_sender
+            .send(("late", started_at + timeout + Duration::from_millis(1)))
+            .expect("channel has room");
+        assert_eq!(receive_before(late, started_at, timeout), Err(()));
+
+        let (on_time_sender, on_time) = mpsc::sync_channel(1);
+        on_time_sender
+            .send(("on-time", started_at + timeout))
+            .expect("channel has room");
+        assert_eq!(receive_before(on_time, started_at, timeout), Ok("on-time"));
     }
 
     #[test]
