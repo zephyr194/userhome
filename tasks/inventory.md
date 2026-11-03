@@ -6,7 +6,7 @@
 
 ## 1. 范围、口径与只读边界
 
-- 依据：`tasks/todo.md` 的 T-0 描述与验收、`tasks/plan.md`、`SPEC.md` 第 9 节。只调用 `/build`（单任务 T-0）；未调用其余技能。
+- 依据：`tasks/todo.md` 的 T-0 描述与验收、`tasks/plan.md`、`docs/specs/SPEC.md` 第 9 节。只调用 `/build`（单任务 T-0）；未调用其余技能。
 - 唯一主动写入的任务产物为本文件；未修改源码、规格、`.gitignore` 或 `tasks/todo.md`，未暂存、提交或推送。检查工具可能使用自身的忽略缓存；没有执行安装、服务启动或真实配置操作。
 - **保留**：保留其职责与现有证据，不表示无需后续回归；**重做**：现有实现与目标契约有差距，替换前保留；**待移除**：候选退出项，仍须 G-3 逐项批准，当前不删除。
 - 下列证据为仓库内实际执行的 `rg -n`（ripgrep，grep 等价检索）或 `git grep -nE/-nF`，计数统一为**命中行数**，不是符号引用次数、文件数或调用次数。查询覆盖的内部声明、测试引用与外部引用均按注明范围计入；共享证据 ID 不代表每个文件各有该数量的外部调用。无命中单列为 0，不据此直接删除。
@@ -72,15 +72,15 @@ Permission for this action was denied by the Claude Code auto mode classifier. R
 
 | ID | 文件 | 候选处置与理由／退出条件 | 引用证据 | 相关测试 | 相关文档 |
 |---|---|---|---|---|---|
-| B01 | `src/app/AppShell.tsx` | 保留壳层，导航由 CORE-1 改造，不整体移除 | EB01：13 行；`src/App.tsx:9,285` | `src/app/AppShell.test.tsx` | `SPEC.md §9`、`tasks/plan.md` |
-| B02 | `src/app/routeDefinitions.ts` | 重做平面 applications/homebrew 入口，保留类型安全导航职责与旧 ID 兼容 | EB02：11 行；`src/app/routes.tsx` | `src/app/AppShell.test.tsx`、`src/app/selectionMemory.test.ts` | `SPEC.md §9`、CORE-1/2 |
-| B03 | `src/components/NavigationRail.tsx` | 保留并改造分组，不移除键盘与焦点行为 | EB03：2 行；`src/app/AppShell.tsx` | `src/app/AppShell.test.tsx` | `SPEC.md §9`、CORE-1 |
-| B04 | `src/components/ui/index.ts` | 保留共享 UI 导出边界，不随旧应用页面删除 | EB04：57 行；`src/features/services/ServiceActionDialog.tsx:2` | `src/components/ui/ui.test.tsx`、`src/components/ui/forms/forms.test.tsx` | `SPEC.md §9`、CORE-11 |
-| B05 | `src/ipc/core.ts` | 保留错误解码与 invoke 边界，不随各旧命令封装删除 | EB05：43 行；`src/ipc/config.ts` 等 | `src/ipc/core.test.ts` | `SPEC.md §9`、`docs/threat-model.md` |
+| B01 | `src/app/AppShell.tsx` | 保留壳层，导航由 CORE-1 改造，不整体移除 | EB01：13 行；`src/App.tsx:9,285` | `src/app/AppShell.test.tsx` | `docs/specs/SPEC.md §9`、`tasks/plan.md` |
+| B02 | `src/app/routeDefinitions.ts` | 重做平面 applications/homebrew 入口，保留类型安全导航职责与旧 ID 兼容 | EB02：11 行；`src/app/routes.tsx` | `src/app/AppShell.test.tsx`、`src/app/selectionMemory.test.ts` | `docs/specs/SPEC.md §9`、CORE-1/2 |
+| B03 | `src/components/NavigationRail.tsx` | 保留并改造分组，不移除键盘与焦点行为 | EB03：2 行；`src/app/AppShell.tsx` | `src/app/AppShell.test.tsx` | `docs/specs/SPEC.md §9`、CORE-1 |
+| B04 | `src/components/ui/index.ts` | 保留共享 UI 导出边界，不随旧应用页面删除 | EB04：57 行；`src/features/services/ServiceActionDialog.tsx:2` | `src/components/ui/ui.test.tsx`、`src/components/ui/forms/forms.test.tsx` | `docs/specs/SPEC.md §9`、CORE-11 |
+| B05 | `src/ipc/core.ts` | 保留错误解码与 invoke 边界，不随各旧命令封装删除 | EB05：43 行；`src/ipc/config.ts` 等 | `src/ipc/core.test.ts` | `docs/specs/SPEC.md §9`、`docs/threat-model.md` |
 | B06 | `src-tauri/src/config/write.rs` | 保留并抽取可复用事务；现实现依赖 Catalog，不直接承诺新授权资源可用 | EB06：16 行（write/backup 共享查询）；`src-tauri/src/config/restore.rs:14`、`commands/config.rs:30` | 文件内 3 项测试（原子权限/链接、stale hash、写后校验恢复，未执行） | `docs/backup-and-restore.md`、CORE-6/7 |
 | B07 | `src-tauri/src/config/backup.rs` | 保留备份/保护模式职责，抽离 ConfigEnvironment 耦合后才供新资源复用 | EB06：16 行（write/backup 共享查询）；`commands/config.rs:21`、`config/retention.rs:7` | 文件内保护模式与链接越界测试（未执行） | `docs/backup-and-restore.md`、CORE-6/7 |
-| B08 | `src-tauri/src/operations/mod.rs` | 保留事务与预览职责，后续接入真正可终止的进程会话，不沿用“状态即取消”保证 | EB08：10 行；`lib.rs:32,133-135` | `src-tauri/tests/operations.rs`（5 项，未执行） | CORE-9、`SPEC.md §9` |
-| B09 | `src-tauri/src/operations/store.rs` | 重做真实取消与总量上限；`store.rs:161-178` 运行中取消只变成 Cancelling，不证明进程终止 | EB07：7 行；`operations/mod.rs:1,15,134,140` 与集成测试 | `src-tauri/tests/operations.rs`（5 项，未执行） | CORE-9、`SPEC.md §9` |
+| B08 | `src-tauri/src/operations/mod.rs` | 保留事务与预览职责，后续接入真正可终止的进程会话，不沿用“状态即取消”保证 | EB08：10 行；`lib.rs:32,133-135` | `src-tauri/tests/operations.rs`（5 项，未执行） | CORE-9、`docs/specs/SPEC.md §9` |
+| B09 | `src-tauri/src/operations/store.rs` | 重做真实取消与总量上限；`store.rs:161-178` 运行中取消只变成 Cancelling，不证明进程终止 | EB07：7 行；`operations/mod.rs:1,15,134,140` 与集成测试 | `src-tauri/tests/operations.rs`（5 项，未执行） | CORE-9、`docs/specs/SPEC.md §9` |
 
 ### 3.1 共享边界证据命令
 
@@ -102,15 +102,15 @@ Permission for this action was denied by the Claude Code auto mode classifier. R
 | ID | 文件 | 候选处置与已核事实 | 引用证据 | 相关测试 | 相关文档 |
 |---|---|---|---|---|---|
 | A01 | `src-tauri/src/config/adapters/copilot.rs` | 重做；`banner: Option<bool>`、`reasoning_effort` 映射 `reasoningEffort`，同时允许 `copilot-config` 结构写入。保留脱敏/未知字段用例，契约由 AI-12 裁决，不自动改真实配置 | EA01：4 行；`adapters/mod.rs:28,55,73` | 文件内 preserves_unknown_keys_and_redacts_secret_values、raw_edit_restores_redacted_unknown_secret、mcp_environment_values_are_never_exposed（未执行） | `docs/application-profiles.md`、`docs/managed-app-schema.md`、AI-12/13 |
-| A02 | `src-tauri/src/config/adapters/caddy.rs` | 重做；`first_site_range_ref:89-103` 用首个块与花括号计数，不能视为完整 Caddyfile 解析；复杂未知内容保留原文 | EA02：3 行；`adapters/mod.rs:29,77` | 文件内 4 项测试；`src/features/apps/editors/CaddyEditor.test.tsx`（前端已覆盖） | `SPEC.md §9`、CAD-1/2、`docs/managed-app-schema.md` |
+| A02 | `src-tauri/src/config/adapters/caddy.rs` | 重做；`first_site_range_ref:89-103` 用首个块与花括号计数，不能视为完整 Caddyfile 解析；复杂未知内容保留原文 | EA02：3 行；`adapters/mod.rs:29,77` | 文件内 4 项测试；`src/features/apps/editors/CaddyEditor.test.tsx`（前端已覆盖） | `docs/specs/SPEC.md §9`、CAD-1/2、`docs/managed-app-schema.md` |
 | S01 | `src-tauri/src/services/mod.rs` | 保留模块边界，内部发现/动作实现重做 | ES01：17 行；`lib.rs:14,34,124-127` | inventory/actions.rs 内测试；前端服务测试 | SVC-1…8、`docs/threat-model.md` |
-| S02 | `src-tauri/src/services/inventory.rs` | 重做；只从 Brew ServicesList 获取，Caddy 才补 config/package、才 manageable，`service_scope:209` 还将 Caddy 当 User 回退；不能当通用 launchd 发现 | ES02：9 行；`commands/services.rs:21,63` | 文件内 3 项测试（scope、malformed JSON、system Caddy elevation）；`src/features/services/ServicesPage.test.tsx` | SVC-1/3/8、`SPEC.md §9` |
+| S02 | `src-tauri/src/services/inventory.rs` | 重做；只从 Brew ServicesList 获取，Caddy 才补 config/package、才 manageable，`service_scope:209` 还将 Caddy 当 User 回退；不能当通用 launchd 发现 | ES02：9 行；`commands/services.rs:21,63` | 文件内 3 项测试（scope、malformed JSON、system Caddy elevation）；`src/features/services/ServicesPage.test.tsx` | SVC-1/3/8、`docs/specs/SPEC.md §9` |
 | S03 | `src-tauri/src/services/actions.rs` | 重做；`validate_action:120` 与 `execute_action:130` 只允许 caddy，动作委托 BrewCommand | ES03：40 行；`commands/services.rs`、`lib.rs:34`、`security/elevated_actions.rs:1` | success_requires_the_expected_refreshed_state；ServiceActionDialog.test.tsx | SVC-3/5、`docs/threat-model.md` |
-| S04 | `src-tauri/src/commands/services.rs` | 重做；重启前 Caddyfile 校验，user Brew/system helper 分支及 Caddy 文案需替换；不能顺带给系统任务开放动作 | ES04：6 行；`lib.rs:124-127` | `src-tauri/tests/ipc_contract.rs`；前端 ServiceActionDialog.test.tsx | SVC-1/3/5、`SPEC.md §9` |
+| S04 | `src-tauri/src/commands/services.rs` | 重做；重启前 Caddyfile 校验，user Brew/system helper 分支及 Caddy 文案需替换；不能顺带给系统任务开放动作 | ES04：6 行；`lib.rs:124-127` | `src-tauri/tests/ipc_contract.rs`；前端 ServiceActionDialog.test.tsx | SVC-1/3/5、`docs/specs/SPEC.md §9` |
 | S05 | `src/features/services/ServicesPage.tsx` | 重做通用任务列表；保留稳定选择/刷新职责 | ES05：6 行；`src/app/routes.tsx` | ServicesWorkspace.test.tsx | SVC-2、`docs/release-readiness.md`（历史证据） |
 | S06 | `src/features/services/ServiceDetails.tsx` | 重做 Caddyfile/可管理详情假设，保留可见错误与只读限制 | ES06：14 行；ServicesPage.tsx 与测试 | ServicesPage.test.tsx、ServicesWorkspace.test.tsx | SVC-2/3、`docs/threat-model.md` |
 | S07 | `src/features/services/ServiceActionDialog.tsx` | 重做动作目标/预览与真实取消衔接，保留显式确认 | ES07：8 行；ServiceDetails.tsx 与测试 | ServiceActionDialog.test.tsx、ServicesWorkspace.test.tsx | SVC-5、CORE-9 |
-| S08 | `src/ipc/services.ts` | 重做通用服务 DTO 与快照契约，保持运行时解码 | ES08：6 行；前端服务模块与 routes.tsx 导入 | ServicesPage.test.tsx、ServiceActionDialog.test.tsx | SVC-1/8、`SPEC.md §9` |
+| S08 | `src/ipc/services.ts` | 重做通用服务 DTO 与快照契约，保持运行时解码 | ES08：6 行；前端服务模块与 routes.tsx 导入 | ServicesPage.test.tsx、ServiceActionDialog.test.tsx | SVC-1/8、`docs/specs/SPEC.md §9` |
 
 ### 4.1 适配器与服务证据命令
 

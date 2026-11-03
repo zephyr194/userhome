@@ -1,7 +1,7 @@
 # 可视化配置（ai-config 的控件层）
 
 日期：2026-10-22
-状态：方向已由用户确认（2026-10-22）；对应规格条款见 SPEC-ai-config.md §2.1、§3.1、§4.1，SPEC-caddy-manager.md「工作目录」。
+状态：方向已由用户确认（2026-10-22）；对应规格条款见 docs/specs/SPEC-ai-config.md §2.1、§3.1、§4.1，docs/specs/SPEC-caddy-manager.md「工作目录」。
 
 ## Problem Statement
 

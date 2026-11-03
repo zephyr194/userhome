@@ -1,7 +1,7 @@
 # 表单控件、单层选中态与对齐间距（ui-forms）
 
 日期：2026-10-22
-状态：设计方向，待规格 SPEC-ui-forms.md 固化。依据：2026-10-22 对运行中的开发版应用（`pnpm tauri dev`，用 computer-use 截图）的只读观察，以及用户的四条反馈。
+状态：设计方向，待规格 docs/specs/SPEC-ui-forms.md 固化。依据：2026-10-22 对运行中的开发版应用（`pnpm tauri dev`，用 computer-use 截图）的只读观察，以及用户的四条反馈。
 
 ## 观察到的问题（真机截图证据）
 

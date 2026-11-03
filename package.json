@@ -16,7 +16,7 @@
     "corpus:build": "node scripts/catalog/build-corpus.mjs",
     "corpus:refresh": "node scripts/catalog/refresh-corpus.mjs",
     "corpus:validate": "node scripts/catalog/validate-corpus.mjs",
-    "lint": "eslint .",
+    "lint": "node scripts/check-doc-layout.mjs && eslint .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "pnpm build:e2e && wdio run ./wdio.conf.ts",

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
 
-// SPEC-theme-refine.md §4.2.1: size="sm" 只允许两类容器内出现：错误容器内的补救按钮
+// docs/specs/SPEC-theme-refine.md §4.2.1: size="sm" 只允许两类容器内出现：错误容器内的补救按钮
 // （AsyncState kind="error" 的 action、role="alert" 的出错提示框）与右上角通知条（ShellNotice、
 // GrantStoreNotice）；其余按钮一律 md（默认值，不写 size）。
 const SM_ALLOWED_FILES = [

@@ -2,7 +2,7 @@
 
 日期：2026-10-21
 状态：门禁，待用户逐项答复。本文件中的条目**尚未进入注册表**；只有用户确认后才能进入 APP-1。
-依据：SPEC-app-config.md（已批准）、tasks/todo.md 阶段 5c。
+依据：docs/specs/SPEC-app-config.md（已批准）、tasks/todo.md 阶段 5c。
 
 ## 核实方法与限制
 

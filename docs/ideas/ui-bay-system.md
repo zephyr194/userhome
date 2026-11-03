@@ -1,7 +1,7 @@
 # 舱位系统（Bay）：界面统一与完整看板
 
 日期：2026-10-22
-状态：方向已由用户确认（2026-10-22）。对应规格见 SPEC-ui-bay.md（修订并部分取代 SPEC-ui-refresh.md 的几何与间距条款）。
+状态：方向已由用户确认（2026-10-22）。对应规格见 docs/specs/SPEC-ui-bay.md（修订并部分取代 docs/specs/SPEC-ui-refresh.md 的几何与间距条款）。
 
 ## Problem Statement
 
