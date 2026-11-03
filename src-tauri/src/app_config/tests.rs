@@ -667,8 +667,9 @@ fn registry_builtin_writable_entries_are_exactly_the_reviewed_pilot_set() {
         [
             "git-config-home",
             "git-config-xdg",
-            "alacritty-config",
-            "zed-settings"
+            "zed-settings",
+            "ghostty-config",
+            "alacritty-config"
         ]
     );
 }
