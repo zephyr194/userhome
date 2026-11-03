@@ -24,6 +24,7 @@ import { isSystemService } from "./launchdModel";
 import { ServiceLogs } from "./ServiceLogs";
 import { ServiceManagement } from "./ServiceManagement";
 import { ServicesView } from "./ServicesView";
+import { useLatestRequest } from "./useLatestRequest";
 
 /**
  * launchd inventory. The discovered tasks are read-only; the one write entry is
@@ -58,7 +59,10 @@ export function ServicesPage({
   // The job just created, waiting to be found in the refreshed list so the
   // notice can take the user to its load action.
   const [createdLabel, setCreatedLabel] = useState<string | undefined>();
-  const requestRef = useRef(0);
+  // Two streams: a late Homebrew answer must not drop the launchd list, so each
+  // read has its own gate. A new read, or leaving the page, drops both.
+  const discoveryRequest = useLatestRequest();
+  const evidenceRequest = useLatestRequest();
   const inFlightRef = useRef(false);
   const lastStartedRef = useRef<number | undefined>(undefined);
   const coolingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -82,15 +86,12 @@ export function ServicesPage({
   }, []);
 
   const readDiscovery = useCallback(function read(attempt: number) {
-    const requestId = requestRef.current + 1;
-    requestRef.current = requestId;
     inFlightRef.current = true;
     clearTimeout(conflictRetryRef.current);
     lastStartedRef.current = Date.now();
     dispatch({ type: "refreshStarted" });
-    void listLaunchdServices()
-      .then((discovery) => {
-        if (requestRef.current !== requestId) return;
+    discoveryRequest.run(listLaunchdServices, {
+      onResult(discovery) {
         inFlightRef.current = false;
         dispatch({ type: "loaded", discovery });
         const followLabel = followLabelRef.current;
@@ -112,9 +113,8 @@ export function ServicesPage({
             setFilter((current) => ({ ...current, showSystem: true }));
           }
         }
-      })
-      .catch((error: unknown) => {
-        if (requestRef.current !== requestId) return;
+      },
+      onError(error) {
         const appError = decodeAppError(error);
         if (appError.code === "CONFLICT" && attempt === 0) {
           // Still reading: the list keeps its loading state until the retry settles.
@@ -126,20 +126,14 @@ export function ServicesPage({
         }
         inFlightRef.current = false;
         dispatch({ type: "failed", error: appError });
-      });
+      },
+    });
     // Homebrew is evidence only; its failure must not touch the launchd list.
-    void listServices()
-      .then((summaries) => {
-        if (requestRef.current === requestId) {
-          setEvidence({ status: "ready", summaries });
-        }
-      })
-      .catch(() => {
-        if (requestRef.current === requestId) {
-          setEvidence({ status: "unavailable" });
-        }
-      });
-  }, [select]);
+    evidenceRequest.run(listServices, {
+      onResult: (summaries) => setEvidence({ status: "ready", summaries }),
+      onError: () => setEvidence({ status: "unavailable" }),
+    });
+  }, [discoveryRequest, evidenceRequest, select]);
 
   const load = useCallback(() => readDiscovery(0), [readDiscovery]);
 
@@ -149,7 +143,6 @@ export function ServicesPage({
 
   useEffect(
     () => () => {
-      requestRef.current += 1;
       clearTimeout(coolingTimerRef.current);
       clearTimeout(conflictRetryRef.current);
     },
