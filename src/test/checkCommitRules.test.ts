@@ -338,6 +338,15 @@ describe("历史提交的正向回归（没有审批行，必须被拦）", () =
   });
 });
 
+describe("历史提交的误报回归：移动测试文件", () => {
+  it("3d414e3 把测试文件移到 src/app 且断言没有减少，不再被 weakened-tests 命中", () => {
+    const result = runScript(["--warn", "3d414e3^", "3d414e3"], repoRoot);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain("规则变更检查通过");
+    expect(result.stdout).not.toContain("weakened-tests");
+  });
+});
+
 describe("历史提交的正向回归：改了脱敏实现而没改样例集", () => {
   it.each(["dadc871", "cee157a"])("%s 被 redaction-corpus 命中", (sha) => {
     const result = runScript(["--warn", `${sha}^`, sha], repoRoot);
@@ -403,6 +412,46 @@ describe("命令行行为（临时仓库）", () => {
     expect(runScript([blocked, "HEAD"], dir, env).status).toBe(0);
     expect(runScript(["0".repeat(40), "HEAD"], dir, env).status).toBe(0);
     expect(runScript(["1".repeat(40), "HEAD"], dir, env).status).toBe(0);
+  });
+
+  it("git mv 测试文件：断言不减少放行；同时删掉一条断言仍命中 weakened-tests", () => {
+    git("init", "-q", "-b", "main");
+    const body = Array.from({ length: 6 }, (_, i) => `  expect(value${i}).toBe(${i});`);
+    const content = `it("x", () => {\n${body.join("\n")}\n});\n`;
+    commitFile("src/old/moveA.test.ts", content, "test(x): 初始 A");
+    commitFile("src/old/moveB.test.ts", content, "test(x): 初始 B");
+
+    const beforeA = git("rev-parse", "HEAD");
+    mkdirSync(join(dir, "src/moved"), { recursive: true });
+    git("mv", "src/old/moveA.test.ts", "src/moved/moveA.test.ts");
+    writeFileSync(join(dir, "src/moved/moveA.test.ts"), `${content}// 新增注释\n`);
+    git("add", "-A");
+    git("commit", "-m", "refactor(x): 移动 A，断言不变");
+    const clean = runScript([beforeA, "HEAD"], dir, env);
+    expect(clean.status, clean.stdout).toBe(0);
+    expect(clean.stdout).toContain("规则变更检查通过");
+
+    const beforeB = git("rev-parse", "HEAD");
+    git("mv", "src/old/moveB.test.ts", "src/moved/moveB.test.ts");
+    const weakened = content.replace("  expect(value5).toBe(5);\n", "");
+    writeFileSync(join(dir, "src/moved/moveB.test.ts"), weakened);
+    git("add", "-A");
+    git("commit", "-m", "refactor(x): 移动 B 并删掉一条断言");
+    const hit = runScript([beforeB, "HEAD"], dir, env);
+    expect(hit.status).toBe(1);
+    expect(hit.stdout).toContain("weakened-tests src/moved/moveB.test.ts");
+  });
+
+  it("把规则类文件 git mv 走同样会命中 rule-files", () => {
+    git("init", "-q", "-b", "main");
+    commitFile("scripts/eslint-rules/moveme.mjs", "export const rule = 1;\nexport const other = 2;\n", "chore: 初始规则");
+    const before = git("rev-parse", "HEAD");
+    mkdirSync(join(dir, "scripts/elsewhere"), { recursive: true });
+    git("mv", "scripts/eslint-rules/moveme.mjs", "scripts/elsewhere/moveme.mjs");
+    git("commit", "-m", "chore: 移走规则文件");
+    const result = runScript([before, "HEAD"], dir, env);
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain("rule-files scripts/eslint-rules/moveme.mjs");
   });
 
   it("缺少参数时给出用法并以非 0 退出，--warn 不改变这一点", () => {
