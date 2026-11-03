@@ -1,7 +1,7 @@
 id: INC-0025
 commit_fix: b30ed3f
 commit_origin: unknown
-related_commits: [7136674]
+related_commits: [7136674, 98e2c8b]
 area: ci
 type: platform-assumption
 symptom: CI macOS runner 负载高时依赖超时的读取偶发失败：discovery::refresh 计时测试（20ms 超时对 100ms 模块）与 e2e 概览页"本机信息暂不可用"（smoke.spec.ts:157 未等待系统信息就断言）
@@ -15,4 +15,4 @@ record_reason: [R1]
 root_cause: env-defect
 signature: 测试依赖真实时钟或未等待异步读取完成，CI 高负载下偶发失败
 confidence: high
-notes: 按 §7 N3，同一现象第二次出现才记录；首次（refresh 计时测试）未记，本次为第二次。修复方向：e2e 等待系统信息模块到达终态再断言；计时测试改为可控时钟或同步屏障。
+notes: 按 §7 N3，同一现象第二次出现才记录；首次（refresh 计时测试）未记，本次为第二次。修复方向：e2e 等待系统信息模块到达终态再断言；计时测试改为可控时钟或同步屏障。 第 3 次出现，按 §9 升级为 Q1。
