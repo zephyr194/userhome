@@ -255,6 +255,15 @@ describe("evaluateCommit", () => {
   });
 });
 
+describe("历史提交的 --warn 试运行", () => {
+  it("命中照常列出，首行标明 [试运行]，退出码 0", () => {
+    const result = runScript(["--warn", "f34583b^", "f34583b"], repoRoot);
+    expect(result.status).toBe(0);
+    expect(result.stdout.split("\n")[0]).toContain("[试运行]");
+    expect(result.stdout).toContain("f34583b rule-files ");
+  });
+});
+
 describe("历史提交的正向回归（没有审批行，必须被拦）", () => {
   it.each([
     ["f34583b", "rule-files"],
@@ -311,13 +320,23 @@ describe("命令行行为（临时仓库）", () => {
     expect(range.stdout).not.toContain("INC-0001");
     expect(range.stdout).not.toContain("docs/testing.md");
 
+    const warned = runScript(["--warn", base, "HEAD"], dir, env);
+    expect(warned.status).toBe(0);
+    expect(warned.stdout.split("\n")[0]).toContain("[试运行]");
+    expect(warned.stdout).toContain(`${blocked.slice(0, 7)} rule-files AGENTS.md`);
+    expect(runScript([base, "HEAD", "--warn"], dir, env).status).toBe(0);
+    const warnedClean = runScript(["--warn", blocked, "HEAD"], dir, env);
+    expect(warnedClean.status).toBe(0);
+    expect(warnedClean.stdout).toContain("[试运行]");
+
     expect(runScript([base, `${base}`], dir, env).status).toBe(0);
     expect(runScript([blocked, "HEAD"], dir, env).status).toBe(0);
     expect(runScript(["0".repeat(40), "HEAD"], dir, env).status).toBe(0);
     expect(runScript(["1".repeat(40), "HEAD"], dir, env).status).toBe(0);
   });
 
-  it("缺少参数时给出用法并以非 0 退出", () => {
+  it("缺少参数时给出用法并以非 0 退出，--warn 不改变这一点", () => {
     expect(runScript([], dir, env).status).toBe(2);
+    expect(runScript(["--warn"], dir, env).status).toBe(2);
   });
 });

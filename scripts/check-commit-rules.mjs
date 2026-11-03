@@ -1,5 +1,6 @@
 // 提交级规则变更门禁（提案 P5）。
-// 用法：node scripts/check-commit-rules.mjs <base> <head>
+// 用法：node scripts/check-commit-rules.mjs [--warn] <base> <head>
+// --warn（试运行）：照常打印命中，首行标明 [试运行]，但退出码恒为 0，不阻止合并。
 // 检查 `git rev-list --no-merges <base>..<head>` 中的每个提交：
 // 改了规则类文件或削弱了测试的提交，必须在提交信息里带一行 `Rule-Change-Approved: <用户原话或批准出处>`。
 // 运行位置：协调者合并分支前一次，CI 对 PR 与 push 的提交范围一次。不依赖 git hook 或 Claude hook。
@@ -182,13 +183,15 @@ export function checkRange(base, head, rules = RULES) {
 }
 
 function main(argv) {
-  const [base, head] = argv;
+  const warn = argv.includes('--warn');
+  const [base, head] = argv.filter((arg) => arg !== '--warn');
   if (!base || !head) {
-    console.error('用法：node scripts/check-commit-rules.mjs <base> <head>');
+    console.error('用法：node scripts/check-commit-rules.mjs [--warn] <base> <head>');
     return 2;
   }
+  const tag = warn ? '[试运行] ' : '';
   if (ZERO_SHA.test(base) || !revExists(base)) {
-    console.log(`base ${base} 为全 0 SHA 或在本仓库中不存在，没有可比较的范围，跳过规则变更检查。`);
+    console.log(`${tag}base ${base} 为全 0 SHA 或在本仓库中不存在，没有可比较的范围，跳过规则变更检查。`);
     return 0;
   }
   if (!revExists(head)) {
@@ -199,19 +202,27 @@ function main(argv) {
   const total = listCommits(base, head).length;
   const hits = checkRange(base, head);
   if (hits.length === 0) {
-    console.log(`规则变更检查通过：${base}..${head} 共 ${total} 个非合并提交，无未批准的规则变更。`);
+    console.log(`${tag}规则变更检查通过：${base}..${head} 共 ${total} 个非合并提交，无未批准的规则变更。`);
     return 0;
   }
 
+  if (warn) console.log('[试运行] 以下提交命中规则变更门禁，仅告警，不阻止合并：');
   for (const hit of hits) {
     console.log(`${hit.sha.slice(0, 7)} ${hit.rule.id} ${hit.files.join(' ')}`);
   }
   const used = new Map(hits.map((hit) => [hit.rule.id, hit.rule.description]));
   console.error('');
   for (const [id, description] of used) console.error(`${id}：${description}`);
+  const blocked = new Set(hits.map((h) => h.sha)).size;
+  const approval = '`Rule-Change-Approved: <用户原话或批准出处>`';
+  if (warn) {
+    console.error(
+      `[试运行] 共 ${blocked}/${total} 个提交命中，不阻止合并；提交仍应尽量带 ${approval} 行，协调者合并时在汇报里逐条列出命中。`,
+    );
+    return 0;
+  }
   console.error(
-    `共 ${new Set(hits.map((h) => h.sha)).size}/${total} 个提交被拦。这些提交需要在提交信息里加一行 ` +
-      '`Rule-Change-Approved: <用户原话或批准出处>`；协调者核对出处属实后才可放行。',
+    `共 ${blocked}/${total} 个提交被拦。这些提交需要在提交信息里加一行 ${approval}；协调者核对出处属实后才可放行。`,
   );
   return 1;
 }

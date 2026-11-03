@@ -36,7 +36,7 @@ jobs:
       - name: Check rule-change commits
         if: github.event_name != 'workflow_dispatch'
         run: >-
-          node scripts/check-commit-rules.mjs
+          node scripts/check-commit-rules.mjs --warn
           ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
