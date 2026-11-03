@@ -5,6 +5,7 @@
 // 改了规则类文件或削弱了测试的提交，必须在提交信息里带一行 `Rule-Change-Approved: <用户原话或批准出处>`。
 // 运行位置：协调者合并分支前一次，CI 对 PR 与 push 的提交范围一次。不依赖 git hook 或 Claude hook。
 // 新规则（如 P1）往 RULES 追加一项即可：check(commit) 返回命中的文件路径数组，空数组表示通过。
+// sleep-timing（Q1）需要新增行的行号和提交后的文件内容：loadCommit 为候选文件补 addedAt 与 after，见 isSleepScope。
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
@@ -106,6 +107,93 @@ export function parseApproval(message) {
   return match ? match[1] : null;
 }
 
+// ---- sleep-timing（提案 Q1，签名 S21）：测试用 sleep / pause 比快慢，CI 高负载下偶发失败 ----
+// 范围：Rust 测试代码（*_tests.rs、tests.rs、src-tauri/tests/**，以及 src-tauri/src/**/*.rs 里 #[cfg(test)] 标注的条目）与 e2e/**。
+// 只看提交新增的行；同一提交里原样删除又新增的行（搬动）互相抵消。
+// 放行约定：同一行或紧挨在上方的连续注释块里写 `// timing-ok: <理由>`（理由不能为空）。
+const RUST_SLEEP = /\bthread::sleep\s*\(/;
+const E2E_PAUSE = /\b(?:browser|driver)\.pause\s*\(/;
+// 裸 setTimeout 当作等待；`browser.setTimeout({...})` 是设置 WebDriver 超时，不是等待，前面有 `.` 的一律不算。
+const E2E_SET_TIMEOUT = /(?<![.\w])setTimeout\b/;
+const TIMING_OK = /(?:\/\/|\/\*)[ \t]*timing-ok:[ \t]*\S/;
+const CFG_TEST_ATTR = /^\s*#\[cfg\(test\)\]\s*$/;
+
+const isSrcRust = (path) => /^src-tauri\/.+\.rs$/.test(path);
+const isE2eFile = (path) => /^e2e\/.+\.[cm]?[jt]s$/.test(path);
+
+// 候选文件：loadCommit 只为这些文件补 addedAt / after。
+export function isSleepScope(path) {
+  return isSrcRust(path) || isE2eFile(path);
+}
+
+export function isSleepLine(line, path) {
+  const code = line.replace(/\/\/.*$/, '');
+  if (isE2eFile(path)) return E2E_PAUSE.test(code) || E2E_SET_TIMEOUT.test(code);
+  return RUST_SLEEP.test(code);
+}
+
+// 返回文件里 #[cfg(test)] 标注条目所占的 1 起始行号区间 [起, 止]（含）。
+// 条目到第一个以 `;` 结尾的行结束（`mod tests;`、`use ...;`），否则到与属性同缩进的 `}` 为止（rustfmt 下成立）。
+export function cfgTestRanges(lines) {
+  const ranges = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!CFG_TEST_ATTR.test(lines[i])) continue;
+    const indent = /^\s*/.exec(lines[i])[0];
+    let item = i + 1;
+    while (item < lines.length && /^\s*#\[/.test(lines[item])) item += 1;
+    if (item >= lines.length) break;
+    let end = item;
+    if (!lines[item].trimEnd().endsWith(';')) {
+      end = lines.length - 1;
+      for (let j = item + 1; j < lines.length; j += 1) {
+        if (lines[j].startsWith(`${indent}}`)) {
+          end = j;
+          break;
+        }
+      }
+    }
+    ranges.push([i + 1, end + 1]);
+    i = end;
+  }
+  return ranges;
+}
+
+// 同一行或紧挨在上方的连续 `//` / `/* */` 注释块里有 timing-ok 标记。n 为 1 起始行号。
+function hasTimingOk(after, n) {
+  if (TIMING_OK.test(after[n - 1] ?? '')) return true;
+  for (let i = n - 2; i >= 0 && /^\s*(?:\/\/|\/\*|\*)/.test(after[i]); i -= 1) {
+    if (TIMING_OK.test(after[i])) return true;
+  }
+  return false;
+}
+
+// file = { path, added, removed, addedAt?, after? }。没有 addedAt / after 时，把 added 当作整个文件内容（按行号 1..n）。
+// 返回 `路径:行号` 数组。
+export function sleepViolations(file) {
+  if (!isSleepScope(file.path) || file.added.length === 0) return [];
+  const real = file.after && file.addedAt;
+  const after = real ? file.after : file.added;
+  const addedAt = real ? file.addedAt : file.added.map((_, i) => i + 1);
+  const wholeFileIsTest = isE2eFile(file.path) || isTestFile(file.path);
+  const ranges = wholeFileIsTest ? [] : cfgTestRanges(after);
+  const moved = new Map();
+  for (const line of file.removed) moved.set(line.trim(), (moved.get(line.trim()) ?? 0) + 1);
+  const hits = [];
+  file.added.forEach((line, i) => {
+    const n = addedAt[i];
+    if (!isSleepLine(line, file.path)) return;
+    const left = moved.get(line.trim()) ?? 0;
+    if (left > 0) {
+      moved.set(line.trim(), left - 1);
+      return;
+    }
+    if (!wholeFileIsTest && !ranges.some(([from, to]) => n >= from && n <= to)) return;
+    if (hasTimingOk(after, n)) return;
+    hits.push(`${file.path}:${n}`);
+  });
+  return hits;
+}
+
 // commit = { sha, message, files: [{ path, added: string[], removed: string[] }] }
 // added / removed 只需要对测试文件填充，其余文件可以是空数组。
 export const RULES = [
@@ -133,6 +221,14 @@ export const RULES = [
       if (paths.includes(REDACTION_CORPUS_FILE)) return [];
       return paths.filter((path) => REDACTION_IMPLEMENTATION_FILES.includes(path));
     },
+  },
+  {
+    id: 'sleep-timing',
+    description:
+      '测试代码新增了 thread::sleep(（Rust 测试：*_tests.rs、tests.rs、src-tauri/tests/**、#[cfg(test)] 条目内），或 e2e/** 新增了 browser.pause( / 当作等待的 setTimeout；用 sleep 比快慢会在 CI 高负载下偶发失败（INC-0025）。' +
+      '改用测试控制的屏障或 channel；e2e 改用 waitUntil 加明确的终态选择器。' +
+      '确有必要时（如验证“超过宽限期后被杀”、轮询间隔的上限等待）在同一行或紧挨的上方注释里写 `// timing-ok: <理由>`，理由不能为空；带标记的不命中',
+    check: (commit) => commit.files.flatMap(sleepViolations),
   },
 ];
 
@@ -167,18 +263,23 @@ function parsePatch(patch) {
   const byPath = new Map();
   let current = null;
   let inHunk = false;
+  let newLine = 0;
   for (const line of patch.split('\n')) {
     if (line.startsWith('diff --git ')) {
       const plain = /^diff --git a\/(.+) b\/\1$/.exec(line);
-      current = { path: plain ? plain[1] : null, added: [], removed: [] };
+      current = { path: plain ? plain[1] : null, added: [], removed: [], addedAt: [] };
       inHunk = false;
     } else if (current && line.startsWith('@@')) {
       inHunk = true;
+      newLine = Number(/^@@ -\S+ \+(\d+)/.exec(line)?.[1] ?? 0);
     } else if (current && !inHunk && line.startsWith('rename to ')) {
       current.path = line.slice('rename to '.length);
     } else if (current && inHunk) {
-      if (line.startsWith('+')) current.added.push(line.slice(1));
-      else if (line.startsWith('-')) current.removed.push(line.slice(1));
+      if (line.startsWith('+')) {
+        current.added.push(line.slice(1));
+        current.addedAt.push(newLine);
+        newLine += 1;
+      } else if (line.startsWith('-')) current.removed.push(line.slice(1));
     }
     if (current?.path) byPath.set(current.path, current);
   }
@@ -208,12 +309,12 @@ export function loadCommit(sha) {
   const entries = parseNameStatus(
     git(['diff-tree', '--root', '--no-commit-id', RENAME_FLAG, '-r', '--name-status', '-z', sha]),
   );
-  const testPaths = entries
+  const patchPaths = entries
     .flatMap((entry) => [entry.path, entry.oldPath])
-    .filter((path) => path && isTestFile(path));
+    .filter((path) => path && (isTestFile(path) || isSleepScope(path)));
   const patches =
-    testPaths.length > 0
-      ? parsePatch(git(['diff-tree', '--root', '--no-commit-id', RENAME_FLAG, '-r', '-p', '-U0', sha, '--', ...testPaths]))
+    patchPaths.length > 0
+      ? parsePatch(git(['diff-tree', '--root', '--no-commit-id', RENAME_FLAG, '-r', '-p', '-U0', sha, '--', ...patchPaths]))
       : new Map();
   const files = entries.flatMap(({ path, oldPath }) => {
     const empty = (p) => ({ path: p, added: [], removed: [] });
@@ -223,7 +324,18 @@ export function loadCommit(sha) {
       ? [{ ...content, path: oldPath }, empty(path)]
       : [empty(oldPath), content];
   });
+  for (const file of files) attachAfterContent(sha, file);
   return { sha, message, files };
+}
+
+// sleep-timing 需要提交后的文件内容来判断新增行是否在 #[cfg(test)] 条目内、旁边有没有 timing-ok；只为有候选行的文件读取。
+function attachAfterContent(sha, file) {
+  if (!isSleepScope(file.path) || !file.added.some((line) => isSleepLine(line, file.path))) return;
+  try {
+    file.after = git(['show', `${sha}:${file.path}`]).split('\n');
+  } catch {
+    // 文件在该提交里不存在（删除或改名的旧路径）：退回只看新增行。
+  }
 }
 
 export function listCommits(base, head) {

@@ -89,6 +89,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 ## 7. 硬性禁止
 
 - 跳过测试、删除或弱化断言、降低阈值、放宽超时；新增 `@ts-ignore`、`eslint-disable`、`as any`（见 testing.md §8.2）。
+- 测试不得用 sleep 比快慢来判定结果，确有必要时加 `// timing-ok: <理由>` 注释并说明理由（由 `sleep-timing` 规则检查，试运行）。
 - 改动超出任务允许的路径。
 - 写 worktree 以外的路径，或读写真实 `~`；测试一律用临时目录并通过注入的 base dir（testing.md §5.3）。
 - 在真机桌面使用 computer-use 或任何 GUI 自动化；这类验收记为"待人工"。
