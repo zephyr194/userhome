@@ -1,0 +1,15 @@
+id: INC-0022
+commit_fix: unknown
+commit_origin: unknown
+related_commits: [5500d58, 4a86db9]
+area: process
+type: other
+symptom: worker 把有先后依赖的 git 步骤（建备份、reset 和后续 add/commit）放在同一批并行调用中执行
+evidence: karpathy worker（Haiku）在改写历史任务中自述步骤 2、3 与步骤 4 并行执行；事后核对结果正确
+should_catch_at: L1
+caught_at: review
+escaped_to: none
+cost: low
+root_cause: model-capability
+signature: 有依赖的破坏性 git 步骤被并行执行
+confidence: high

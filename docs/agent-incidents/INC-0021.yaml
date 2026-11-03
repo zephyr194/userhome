@@ -1,0 +1,15 @@
+id: INC-0021
+commit_fix: 4a86db9
+commit_origin: 3a25fa5
+related_commits: [5500d58]
+area: process
+type: scope-creep
+symptom: 协调者提交 ci 改动时，worker 事先暂存的 .claude 符号链接被一并带入，提交归组错误
+evidence: 任务卡要求 worker "git add" 两个符号链接但"不要 commit"；协调者提交前没检查暂存区，3a25fa5 含 3 个文件，应为 1 个
+should_catch_at: L3
+caught_at: review
+escaped_to: main
+cost: low
+root_cause: vague-task
+signature: worker 预先暂存文件，协调者按文件名提交时未核对 git diff --cached
+confidence: high
