@@ -24,7 +24,7 @@ import { isSystemService } from "./launchdModel";
 import { ServiceLogs } from "./ServiceLogs";
 import { ServiceManagement } from "./ServiceManagement";
 import { ServicesView } from "./ServicesView";
-import { useLatestRequest } from "./useLatestRequest";
+import { useLatestRequest } from "../../app/useLatestRequest";
 
 /**
  * launchd inventory. The discovered tasks are read-only; the one write entry is

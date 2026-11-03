@@ -2,8 +2,8 @@
 import { act, cleanup, fireEvent, render, renderHook } from "@testing-library/react";
 import { useEffect } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deferred } from "../../test/deferred";
-import { renderStrict } from "../../test/renderStrict";
+import { deferred } from "../test/deferred";
+import { renderStrict } from "../test/renderStrict";
 import { useLatestRequest } from "./useLatestRequest";
 
 afterEach(cleanup);

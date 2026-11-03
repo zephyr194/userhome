@@ -19,7 +19,7 @@ import {
   type AdoptFlowState,
 } from "./adoptServiceModel";
 import { domainLabel } from "./launchdModel";
-import { createSequenceGate } from "./sequenceGate";
+import { createSequenceGate } from "../../app/sequenceGate";
 
 const TITLE_ID = "adopt-service-heading";
 

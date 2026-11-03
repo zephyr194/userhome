@@ -17,7 +17,7 @@ import {
 import type { AppError } from "../../ipc/core";
 import { localizeError } from "../../i18n/errors";
 import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
-import { createRequestTracker } from "./caddyPreviewFlow";
+import { createRequestTracker } from "../../app/sequenceGate";
 import {
   DOMAIN_LABEL_KEYS,
   PORT_STATE_LABEL_KEYS,

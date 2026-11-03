@@ -28,12 +28,8 @@ import { CaddyRunPanel } from "./CaddyRunPanel";
 import { serviceFocusIntent, type ServiceTarget } from "./caddyConflictModel";
 import { CaddySaveBar, type SaveState } from "./CaddySaveBar";
 import { RawEditor } from "./RawEditor";
-import {
-  createDebouncer,
-  createRequestTracker,
-  type Debouncer,
-  type RequestTracker,
-} from "./caddyPreviewFlow";
+import { createRequestTracker, type RequestTracker } from "../../app/sequenceGate";
+import { createDebouncer, type Debouncer } from "./caddyPreviewFlow";
 import {
   createIdSource,
   externalExposures,

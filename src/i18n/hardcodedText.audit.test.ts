@@ -152,7 +152,7 @@ const PHASE_ONE_FILES = [
   "features/services/launchdFixtures.ts",
   "features/services/launchdModel.ts",
   "features/services/logTailModel.ts",
-  "features/services/sequenceGate.ts",
+  "app/sequenceGate.ts",
   "features/services/serviceDictionary.ts",
   "features/services/serviceProfile.ts",
   "features/services/testTranslators.ts",

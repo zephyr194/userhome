@@ -24,7 +24,7 @@ import {
   stepStatusText,
   type ActionPanelState,
 } from "./launchdActionModel";
-import { useLatestRequest } from "./useLatestRequest";
+import { useLatestRequest } from "../../app/useLatestRequest";
 
 const WRAP = "break-words [overflow-wrap:anywhere]";
 

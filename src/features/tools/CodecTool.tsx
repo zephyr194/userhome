@@ -27,10 +27,8 @@ import {
   successView,
   type CodecView,
 } from "./codecToolState";
-import {
-  createRequestTracker,
-  exceedsInputLimit,
-} from "./toolRequestState";
+import { createRequestTracker } from "../../app/sequenceGate";
+import { exceedsInputLimit } from "./toolRequestState";
 
 export function CodecTool() {
   const t = useT();

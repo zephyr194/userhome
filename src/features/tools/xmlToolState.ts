@@ -3,11 +3,7 @@ import { translate, type Locale } from "../../i18n";
 import type { AppError } from "../../ipc/core";
 import type { FormattedXml } from "../../ipc/textTools";
 
-export {
-  MAX_INPUT_BYTES,
-  createRequestTracker,
-  exceedsInputLimit,
-} from "./toolRequestState";
+export { MAX_INPUT_BYTES, exceedsInputLimit } from "./toolRequestState";
 
 export type XmlView =
   | { status: "idle" }

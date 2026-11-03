@@ -16,8 +16,8 @@ import {
   type FormattedXml,
   type XmlFormatMode,
 } from "../../ipc/textTools";
+import { createRequestTracker } from "../../app/sequenceGate";
 import {
-  createRequestTracker,
   exceedsInputLimit,
   failureView,
   oversizedView,

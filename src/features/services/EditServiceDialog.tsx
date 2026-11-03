@@ -44,7 +44,7 @@ import {
   type EditFormState,
   type EditOriginal,
 } from "./editServiceModel";
-import { createSequenceGate } from "./sequenceGate";
+import { createSequenceGate } from "../../app/sequenceGate";
 
 const TITLE_ID = "edit-service-heading";
 

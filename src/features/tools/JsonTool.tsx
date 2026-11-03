@@ -16,8 +16,8 @@ import {
   type FormattedJson,
   type JsonFormatMode,
 } from "../../ipc/textTools";
+import { createRequestTracker } from "../../app/sequenceGate";
 import {
-  createRequestTracker,
   exceedsInputLimit,
   failureView,
   oversizedView,
