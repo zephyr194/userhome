@@ -1,0 +1,17 @@
+id: INC-0015
+sig_group: S15   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: ca668bb
+commit_origin: 762722b
+related_commits: [ef18bf6]
+area: "nav/styles 测试"
+type: false-done
+symptom: "侧栏对比度测试用了错误的 hover 令牌，测试通过但实际浅色选中底色与侧栏几乎同亮（1.0:1）。"
+evidence: "ca668bb：“测试把 hover 参照色写成了 --app-surface-muted，而侧栏实际 hover 是 --app-sidebar-hover，且对比基准应为侧栏背景……浅色一级底色原先与侧栏几乎同亮（1.0:1），调到 #F3DDCB（1.12:1）”。另 ef18bf6：测试读取运行环境的语言，改为显式传入。"
+should_catch_at: L3
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: checker-gap
+signature: "测试断言引用了不存在的/错误的令牌，绿色测试掩盖真实缺陷"
+confidence: high
+notes: "origin 762722b 由 -S\"--app-surface-muted\" 确认引入了该测试参照色。类型选 false-done 是推断：测试通过本身给出了“对比度没问题”的错误结论，并非有意改弱测试。"

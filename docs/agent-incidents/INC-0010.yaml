@@ -1,0 +1,17 @@
+id: INC-0010
+sig_group: S10   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 8b005db
+commit_origin: unknown
+related_commits: [029c601, 7fbbcac, f77424d, a83a828, 7a76e2e, cd7f027, f7de30e]
+area: "ipc/services、services 页、settings、refresh"
+type: missing-edge-case
+symptom: "重复调用、过期响应或乱序导致服务清单丢失、确认框对应错误的服务、设置保存顺序出错。"
+evidence: "8b005db：“后端一次只允许一个 launchd 发现，StrictMode 双挂载或离开再回来时的重复调用会被拒为 CONFLICT，而先到的结果又因请求序号递增被丢弃”；029c601：“Gate preview responses by request and selected service so rapid keyboard navigation cannot open confirmation for a previously focused service”；7fbbcac：预览进行中表单仍可编辑，确认页可能显示旧名称却提交新名称；a83a828：persist retention before cleanup。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: mid
+root_cause: checker-gap
+signature: "异步结果未与请求序号/选中对象/表单快照绑定，StrictMode 双挂载与快速切换会暴露"
+confidence: low
+notes: "未追溯引入点；同签名共 8 个提交，跨前端与 Rust 后端。"

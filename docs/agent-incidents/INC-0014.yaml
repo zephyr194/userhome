@@ -1,0 +1,17 @@
+id: INC-0014
+sig_group: S14   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 8e128e3
+commit_origin: eef560c
+related_commits: [1cbd863, 6310e80, be02029]
+area: "shell/AppShell"
+type: regression
+symptom: "侧栏重构后丢掉了向 NavigationRail 传递 connection 的 prop，侧栏一直显示“正在连接”。"
+evidence: "8e128e3：“恢复侧栏连接状态，避免一直显示正在连接”，只加 1 行 `connection={state.connection}` 并补 21 行测试；eef560c（“侧栏改为扁平列表”）的 diff 中有 `-  connection={state.connection}`。同签名还有 1cbd863（恢复系统明暗）、6310e80（恢复路由焦点）、be02029（恢复有界候选扫描）。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: mid
+root_cause: checker-gap
+signature: "重构删除了无测试覆盖的既有行为，事后发现并“restore”"
+confidence: high
+notes: "8e128e3 的引入点已通过 -S 与 diff 确认；其余三个 restore 类提交的引入点未确认（be02029 删除了 ScanMode/MAX_ROOTS，ScanMode 由 a6c0acd 引入，但“谁删掉了有界扫描”未追溯）。"

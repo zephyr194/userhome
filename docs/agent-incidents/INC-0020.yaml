@@ -1,0 +1,17 @@
+id: INC-0020
+sig_group: S20   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 93881df
+commit_origin: unknown
+related_commits: [cc3e20f, 66fa596]
+area: "environment/launchctl；tauri capabilities；window"
+type: platform-assumption
+symptom: "对 macOS/Tauri/launchctl 的行为假设未在真机验证，后来被冒烟测试或审查推翻。"
+evidence: "93881df：“launchctl setenv 对 -- 的处理没有在本机验证，因此以 - 开头的值直接拒绝，前端同步给出同样的提示”；66fa596：“The unchanged macOS smoke reproduces the prior 1121x721 size and passes with exact bounds”；cc3e20f：只授权 Tauri start-dragging 权限，并用测试守住 capability allowlist。"
+should_catch_at: test
+caught_at: test
+escaped_to: unknown
+cost: mid
+root_cause: env-defect
+signature: "依赖平台/系统行为，写代码时没有真机样本，且无法在沙箱内验证"
+confidence: low
+notes: "caught_at 以 66fa596 为准（macOS smoke 复现）；93881df 自己声明了“未验证”，说明 agent 知道缺口但仍以拒绝作兜底，这是正确的诚实做法，不当作错误。root_cause 选 env-defect 是推断（缺少可复现的真机环境）。"

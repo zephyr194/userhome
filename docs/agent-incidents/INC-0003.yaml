@@ -1,0 +1,17 @@
+id: INC-0003
+sig_group: S03   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: f34583b
+commit_origin: unknown
+related_commits: [3cc3e7f, 1d832a4, 76cd33b, b43f987, cfdeb0a, 9e7facb, 534d112, 5960fb8, bda86ab]
+area: "styles/tokens（nav、StatusBadge、title bar、sidebar hover）"
+type: ui-spec-drift
+symptom: "导航行高、状态标签圆角、标题栏高度、侧栏悬停色等偏离规格令牌，事后逐个改回。"
+evidence: "f34583b：“导航 compact 行高 28→32px，状态标签改用 3px 标签圆角令牌；白名单与相关令牌断言随协调者批准同步更新”（同时改了 radiusAudit.test.ts 与 tokens.baseline.json）；1d832a4：“工具栏……实际约 54px，超出 44px 令牌”；76cd33b：悬停态沿用侧栏悬停令牌。"
+should_catch_at: L3
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: context-ignored
+signature: "样式值写死或沿用旧令牌，与规格令牌/基线不一致"
+confidence: low
+notes: "f34583b 修改了审计白名单与基线，提交信息称“随协调者批准”，属于有授权的规则变更，不判为 test-cheat；但这类改动将来必须由规则机制识别并要求批准。"

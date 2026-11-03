@@ -1,0 +1,17 @@
+id: INC-0019
+sig_group: S19   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: d66fdd7
+commit_origin: unknown
+related_commits: [fa3b7d7, 6c798cb, 3497275, 456b64b]
+area: "services、ai-config、app-config、settings、shell"
+type: missing-edge-case
+symptom: "失败路径没有用户可见的反馈或补救入口，直接展示后端英文原文或静默吞掉错误。"
+evidence: "d66fdd7：“CONFLICT 不再直接展示后端英文原文。页面在第一次忙碌时保持加载状态，约 800 毫秒后重试一次；仍然忙碌则给出原因和‘重试’按钮”；fa3b7d7：刷新失败面板内补充重试按钮；6c798cb：详情读取失败时指向左侧清单的重试入口；3497275：report retention cleanup setup failures（enforce_all 的初始化错误原先被 ? 提前返回而未上报）；456b64b：surface refresh failures and retained Brew data。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: missing-context
+signature: "只实现成功路径，错误/忙碌状态没有文案、没有重试入口或被吞掉"
+confidence: low
+notes: "未追溯引入点。"

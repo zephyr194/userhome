@@ -1,0 +1,17 @@
+id: INC-0008
+sig_group: S08   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 82e3db9
+commit_origin: bbd4328
+related_commits: [c31bd65, 1f5e0db, 1e43dcf, 5ad8638, 3ab42b8]
+area: "ai-config（Homebrew 更新）、app-config"
+type: missing-edge-case
+symptom: "界面或后端结果声称“已更新到 X”“已备份原文件”，实际并未发生或无法确认。"
+evidence: "82e3db9：“升级前版本未知时不再报‘已更新到 X’，改为‘已执行更新’并附带当前版本。升级后读不到版本时返回已执行更新而不是失败”；c31bd65：“后端只在已存在的文件上创建备份……避免告诉用户一份并不存在的备份”；1f5e0db：列表副标题不再把页面描述为只读；5ad8638：同文件重复键的提示与行内“最后一处生效”相矛盾。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: mid
+root_cause: missing-context
+signature: "成功/状态类文案未按真实分支（未知版本、新建文件、可写）分别生成"
+confidence: high
+notes: "origin 为 82e3db9 这一条的引入点（bbd4328，已用 -S\"已更新到\" 确认）；同签名其他提交的引入点未追溯。"

@@ -1,0 +1,17 @@
+id: INC-0018
+sig_group: S18   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: ab9723b
+commit_origin: unknown
+related_commits: [9c16f75, 00a493e, 2be6246]
+area: "shell/DesktopWorkspace、styles（焦点环、forced-colors）、caddy"
+type: ui-spec-drift
+symptom: "焦点与读屏语义反复调整：路由切换聚焦主区、焦点环被裁切、forced-colors 下边界消失、返回操作用按钮而非链接。"
+evidence: "ab9723b（09-21）：“Preserve focus on the triggering sidebar item instead of moving it to the main pane”，删除了路由变化时聚焦 main 的 effect；6310e80（10-12，归入 S14）：“restore route focus and region semantics”又让 content/menu/tray 来源在路由变化后聚焦 main；00a493e：全局焦点重置去掉对 tabindex=-1 的排除；2be6246：ring（box-shadow）在 forced-colors 下被忽略，补边框；9c16f75：返回系统工具是跳转而非提交动作，改用 href 链接。"
+should_catch_at: L4
+caught_at: unknown
+escaped_to: unknown
+cost: low
+root_cause: rule-conflict
+signature: "焦点策略与读屏语义缺少统一规则，不同提交互相撤销"
+confidence: low
+notes: "root_cause rule-conflict 为推断：ab9723b 与 6310e80 对“路由变化后焦点去哪”给出了相反的实现，后者通过来源区分才调和；未看到统一的书面规则。"

@@ -1,0 +1,17 @@
+id: INC-0011
+sig_group: S11   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: dadc871
+commit_origin: b358f7e
+related_commits: [8e588fe, cee157a, 6a5e10b, 1d1900a]
+area: "ai-config/config_view.rs；caddy/session.rs；config/adapters"
+type: missing-edge-case
+symptom: "秘密值遮盖只覆盖部分写法，同行多键、--token 参数、env/headers 容器、证书/私钥路径、只读敏感文件会原样泄漏，修了又补。"
+evidence: "dadc871：“审查发现首个键为秘密时，同一行后面的秘密键、secret 命令行参数的下一个参数、内联表与 env/headers 对象里的值会原样输出……Rust 测试已写（含 15 个泄漏场景），本机未运行（未验证）”；caddy 方面 6a5e10b → cee157a → 8e588fe 三轮递进，最终统一为同一脱敏函数；1d1900a：“fail closed for sensitive read-only files”（把逐行文本脱敏换成 JSON 脱敏 + 非 JSON 一律不返回内容）。"
+should_catch_at: L4
+caught_at: review
+escaped_to: unknown
+cost: high
+root_cause: checker-gap
+signature: "脱敏按已想到的写法逐行实现，没有对抗性样例集，fail-open"
+confidence: high
+notes: "dadc871 的 Rust 测试本机未运行；其“15 个场景全部覆盖”未验证。origin b358f7e 是 config_view.rs 的引入提交（同一天先后）。caddy 链的引入点未追溯。"

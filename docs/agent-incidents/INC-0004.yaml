@@ -1,0 +1,17 @@
+id: INC-0004
+sig_group: S04   # 对应 batch-1-proposals.md 的签名字典
+commit_fix: 010a00a
+commit_origin: unknown
+related_commits: []
+area: "styles/global.css"
+type: ui-spec-drift
+symptom: "未分层的全局 `font: inherit` 压过 Tailwind 工具类，按钮和输入框上的 text-* 字号从不生效。"
+evidence: "010a00a：“全局 font: inherit 原先未分层，覆盖了 Tailwind 工具类，导致按钮和输入框上的 text-* 字号从不生效。规则移入 @layer base，并新增断言保证其只出现在该层内”。"
+should_catch_at: L3
+caught_at: unknown
+escaped_to: unknown
+cost: mid
+root_cause: checker-gap
+signature: "未放入 @layer 的全局重置规则使 Tailwind 工具类静默失效"
+confidence: low
+notes: "`font: inherit` 在 ed1c83d、cb46558、c353ce0 中出现次数有变化，无法确认是哪一处引入当前这条规则，故 origin 填 unknown。"
