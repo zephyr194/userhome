@@ -69,6 +69,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 规格（**用户确认**）→ 计划 → 分发 → 协调者验收 → 合并 → 收敛清理。
 
 - 分支命名 `zephyr19/<name>`。合并不需要用户确认：协调者复核通过后用 `--no-ff` 合并到 main，不 push。
+- 合并前，协调者运行 `node scripts/check-commit-rules.mjs --warn main <branch>`；CI 对 PR 与 push 的提交范围以同样的 `--warn` 再运行一次。**试运行期间命中不阻止合并**，协调者合并时在汇报里逐条列出命中（短sha、规则、文件），由用户查看。
 - worktree 生命周期：
   - 复核通过：合并，然后执行 `orca worktree rm --worktree branch:<branch> --delete-branch`，移除 worktree 和已合并的分支。
   - 复核不通过：用 `orca orchestration send` 打回给同一个 worker，worktree 保留。
@@ -94,6 +95,8 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 - worker 修改规则类文件，以下文件只有经用户批准才能改：
   `.claude/` 下的配置文件、`scripts/check-*.mjs`、`docs/agent-incidents/README.md`、`docs/testing.md`、`AGENTS.md`、`CLAUDE.md`。
   发现规则本身有问题时，写进汇报，不要自己改规则让检查变绿（见 agent-incidents/README.md §6）。
+- 改规则类文件或削弱测试（删掉的断言多于新增、Rust 测试里既有断言被删除或改写、新增 skip/only/todo/ignore）的提交，必须带 `Rule-Change-Approved: <用户原话或批准出处>` 行，由 `scripts/check-commit-rules.mjs` 检查；没有用户批准就不得写这一行，协调者合并前核对出处。
+  **试运行期间（自 2026-11-03 起）命中只告警、不阻止合并**（脚本加 `--warn`，退出码 0）；命中仍由协调者在汇报里逐条列出，由用户查看，提交仍应尽量带 `Rule-Change-Approved` 行。强制范围待试运行数据出来后另行提案。
 
 ## 8. 必须停下来问用户
 

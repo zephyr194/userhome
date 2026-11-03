@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
         with:
-          version: 12.11.2
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
@@ -31,6 +31,12 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Check rule-change commits
+        if: github.event_name != 'workflow_dispatch'
+        run: >-
+          node scripts/check-commit-rules.mjs --warn
+          ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
   rust:
     name: Rust checks and tests
@@ -38,8 +44,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
@@ -53,8 +57,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
@@ -68,8 +70,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
