@@ -1,7 +1,7 @@
 id: INC-0025
-commit_fix: unknown
+commit_fix: b30ed3f
 commit_origin: unknown
-related_commits: []
+related_commits: [7136674]
 area: ci
 type: platform-assumption
 symptom: CI macOS runner 负载高时依赖超时的读取偶发失败：discovery::refresh 计时测试（20ms 超时对 100ms 模块）与 e2e 概览页"本机信息暂不可用"（smoke.spec.ts:157 未等待系统信息就断言）
