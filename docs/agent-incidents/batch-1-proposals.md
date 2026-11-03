@@ -176,6 +176,7 @@
 - 正向回归用例：取 `dadc871^` 版本的 `config_view.rs`，放入样例集（含 dadc871 提交信息列出的泄漏场景），样例应失败；取 `dadc871` 版本应通过。caddy 侧取 `6a5e10b^` / `cee157a^` 同理。
 - 反向误报验证：(a) 对 HEAD 全量跑样例集，应全部通过；(b) 增加“不含秘密”的样例（普通键值、名字里含 token 字样但不是秘密的字段、路径不在授权集合内），断言输出与输入逐字相同，防止过度遮盖；(c) hook 只匹配上述路径，用一个只改 README 的提交确认不触发。
 - 验证限制：Rust 样例在本机无法运行（测试二进制被拦截，见 INC-0011 备注），需在 CI 或其他机器上确认；TS 侧样例可本地跑。
+- 状态：样例集已落地（2026-11-03），共 67 条（正例 52 / 反例 15），known_gap 4 条（均为 `config::redaction::is_secret_key` 不识别 `apiKey`、`privateKey`、`credentials`、`passwd`，而 `app_config::read::is_secret_key` 识别，修复另派任务）；提交前检查按用户要求实现为 `scripts/check-commit-rules.mjs` 的 `redaction-corpus` 规则（试运行，只告警）。TS 侧已在本地运行；Rust 部分待 CI 验证。
 
 ### P2：授权生命周期契约测试（签名 S12）
 

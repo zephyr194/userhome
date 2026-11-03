@@ -1,0 +1,997 @@
+{
+  "description": "脱敏对抗性样例集（INC-0011 / 签名 S11，提案 P1）。单一数据源：Rust（include_str! + serde_json）与 TS（import）读取同一份。",
+  "schema": {
+    "id": "唯一标识，前缀对应目标：cv- config_view，cc- caddy_redact，kr- config_redaction，sm- secret_mask",
+    "kind": "positive = 含秘密，输出不得包含 must_not_contain；negative = 不含秘密，输出必须与输入逐字相同（is_secret_key 则判为 false）",
+    "targets": "适用的脱敏器：config_view = ai_config::config_view::mask_config_text（input 为文件文本，反例还要求遮盖计数为 0）；caddy_redact = caddy::redact::redact_text 与 StreamRedactor（input 为输出文本，tls 为授权的证书/私钥对）；config_redaction = config::redaction::is_secret_key（input 为键名）；secret_mask = SecretValue 默认遮盖态（input 为秘密值）",
+    "must_not_contain": "正例：输出里不得出现的子串，每一项必须真实出现在 input 里（防止样例空转）",
+    "must_contain": "可选：输出里必须保留的子串，防止过度遮盖",
+    "note": "来源提交或对照说明",
+    "tls": "caddy_redact 专用：授权路径，[{certificate, private_key}]",
+    "chunks": "caddy_redact 可选：按这些分片依次喂给 StreamRedactor，拼接后必须等于 input",
+    "chunk_bytes": "caddy_redact 可选：把 input 按每 N 字节切成分片喂给 StreamRedactor",
+    "known_gap": "可选：true 表示当前代码上这条样例不成立（真实缺口）；测试跳过并打印说明，修复要另派任务并走规则审批"
+  },
+  "cases": [
+    {
+      "id": "cv-second-key-after-ordinary",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\"model\": \"sonnet\", \"token\": \"zzcanary-a1\"}",
+      "must_not_contain": [
+        "zzcanary-a1"
+      ],
+      "must_contain": [
+        "\"model\": \"sonnet\""
+      ],
+      "note": "dadc871：首个键不是秘密、同一行后面的秘密键原样输出"
+    },
+    {
+      "id": "cv-two-secret-keys-one-line",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\"apiKey\": \"zzcanary-b1\", \"password\": \"zzcanary-b2\"}",
+      "must_not_contain": [
+        "zzcanary-b1",
+        "zzcanary-b2"
+      ],
+      "must_contain": [
+        "\"apiKey\"",
+        "\"password\""
+      ],
+      "note": "dadc871：首个键为秘密时，同一行后面的秘密键原样输出"
+    },
+    {
+      "id": "cv-flag-next-value-same-line",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "\"args\": [\"--serve\", \"--token\", \"zzcanary-c1\", \"--port\", \"80\"]",
+      "must_not_contain": [
+        "zzcanary-c1"
+      ],
+      "must_contain": [
+        "\"--serve\"",
+        "\"--token\"",
+        "\"--port\", \"80\""
+      ],
+      "note": "dadc871：secret 命令行参数（--token）的下一个参数原样输出；同一行"
+    },
+    {
+      "id": "cv-flag-next-value-across-lines",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "\"args\": [\n  \"--api-key\",\n  \"zzcanary-d1\",\n  \"--verbose\"\n]",
+      "must_not_contain": [
+        "zzcanary-d1"
+      ],
+      "must_contain": [
+        "\"--api-key\"",
+        "\"--verbose\""
+      ],
+      "note": "dadc871：--api-key 的下一个参数在下一行时原样输出"
+    },
+    {
+      "id": "cv-flag-inline-value",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "\"args\": [\"--token=zzcanary-e1\"]",
+      "must_not_contain": [
+        "zzcanary-e1"
+      ],
+      "must_contain": [
+        "--token="
+      ],
+      "note": "dadc871：--token=值 形式的内联值原样输出，应保留参数名"
+    },
+    {
+      "id": "cv-toml-inline-env-table",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "env = { API_KEY = \"zzcanary-f1\", PLAIN = \"zzcanary-f2\" }",
+      "must_not_contain": [
+        "zzcanary-f1",
+        "zzcanary-f2"
+      ],
+      "must_contain": [
+        "API_KEY",
+        "PLAIN"
+      ],
+      "note": "dadc871：TOML 内联表 env 里的值（包括键名不像秘密的值）原样输出"
+    },
+    {
+      "id": "cv-json-env-single-line",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "\"env\": {\"ANTHROPIC_AUTH_TOKEN\": \"zzcanary-g1\"}",
+      "must_not_contain": [
+        "zzcanary-g1"
+      ],
+      "must_contain": [
+        "ANTHROPIC_AUTH_TOKEN"
+      ],
+      "note": "dadc871：JSON 单行 env 对象里的值原样输出"
+    },
+    {
+      "id": "cv-json-headers-multiline-any-key",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\n  \"headers\": {\n    \"X-Custom-Session\": \"zzcanary-h1\"\n  },\n  \"model\": \"sonnet\"\n}",
+      "must_not_contain": [
+        "zzcanary-h1"
+      ],
+      "must_contain": [
+        "\"model\": \"sonnet\"",
+        "X-Custom-Session"
+      ],
+      "note": "dadc871：headers 对象里键名不像秘密的值也要遮盖，其后的普通键保留"
+    },
+    {
+      "id": "cv-toml-env-table",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "[mcp_servers.demo]\ncommand = \"npx\"\n[mcp_servers.demo.env]\nPLAIN = \"zzcanary-i1\"\nOTHER = 12345\n[next]\nname = \"kept\"",
+      "must_not_contain": [
+        "zzcanary-i1",
+        "12345"
+      ],
+      "must_contain": [
+        "command = \"npx\"",
+        "name = \"kept\""
+      ],
+      "note": "dadc871：TOML [...env] 表里每个值（含无引号数字）都要遮盖，表外保留"
+    },
+    {
+      "id": "cv-yaml-env-block",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "env:\n  PLAIN: zzcanary-j1\n  OTHER: zzcanary-j2\nname: kept",
+      "must_not_contain": [
+        "zzcanary-j1",
+        "zzcanary-j2"
+      ],
+      "must_contain": [
+        "name: kept"
+      ],
+      "note": "dadc871：YAML env: 块内缩进的值都要遮盖，块外保留"
+    },
+    {
+      "id": "cv-secret-array-first-key",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "\"tokens\": [\"zzcanary-k1\", \"zzcanary-k2\"]",
+      "must_not_contain": [
+        "zzcanary-k1",
+        "zzcanary-k2"
+      ],
+      "must_contain": [
+        "\"tokens\""
+      ],
+      "note": "dadc871：秘密键的数组值，逐元素遮盖"
+    },
+    {
+      "id": "cv-secret-array-second-key",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\"model\": \"m\", \"tokens\": [\"zzcanary-l1\", \"zzcanary-l2\"]}",
+      "must_not_contain": [
+        "zzcanary-l1",
+        "zzcanary-l2"
+      ],
+      "must_contain": [
+        "\"model\": \"m\""
+      ],
+      "note": "dadc871：数组秘密值出现在同一行的非首个键位置"
+    },
+    {
+      "id": "cv-crlf-secret-after-ordinary",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\r\n  \"model\": \"m\", \"token\": \"zzcanary-m1\"\r\n}\r\n",
+      "must_not_contain": [
+        "zzcanary-m1"
+      ],
+      "must_contain": [
+        "\r\n"
+      ],
+      "note": "dadc871：CRLF 换行下同行后面的秘密键，且保留换行"
+    },
+    {
+      "id": "cv-multibyte-before-secret",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\"备注\": \"中文说明\", \"password\": \"秘密值zzcanary-n1\"}",
+      "must_not_contain": [
+        "zzcanary-n1",
+        "秘密值"
+      ],
+      "must_contain": [
+        "\"备注\": \"中文说明\""
+      ],
+      "note": "dadc871：秘密键前有多字节文本，遮盖不能切坏字符也不能漏掉"
+    },
+    {
+      "id": "cv-first-key-secret-json",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\n  \"apiKey\": \"zzcanary-o1\",\n  \"model\": \"sonnet\"\n}",
+      "must_not_contain": [
+        "zzcanary-o1"
+      ],
+      "must_contain": [
+        "\"model\": \"sonnet\""
+      ],
+      "note": "b358f7e 基线：JSON 首键秘密，结构保留"
+    },
+    {
+      "id": "cv-toml-quoted-secret",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "token = \"zzcanary-p1\"\nname = \"x\"",
+      "must_not_contain": [
+        "zzcanary-p1"
+      ],
+      "must_contain": [
+        "name = \"x\""
+      ],
+      "note": "b358f7e 基线：TOML 带引号的秘密"
+    },
+    {
+      "id": "cv-unquoted-secret-with-comment",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "password = zzcanary-u1 # note",
+      "must_not_contain": [
+        "zzcanary-u1"
+      ],
+      "must_contain": [
+        "password = "
+      ],
+      "note": "b358f7e 基线：无引号秘密连同行尾注释一并遮盖"
+    },
+    {
+      "id": "cv-separator-styles",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "API-KEY: zzcanary-q1\napi_key = zzcanary-q2\nx-access-key: zzcanary-q3",
+      "must_not_contain": [
+        "zzcanary-q1",
+        "zzcanary-q2",
+        "zzcanary-q3"
+      ],
+      "note": "b358f7e 基线：连字符、下划线、冒号、等号几种写法等价"
+    },
+    {
+      "id": "cv-triple-quoted-multiline",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "[a]\nsecret = \"\"\"\nzzcanary-s1\nzzcanary-s2\n\"\"\"\nafter = 1",
+      "must_not_contain": [
+        "zzcanary-s1",
+        "zzcanary-s2"
+      ],
+      "must_contain": [
+        "after = 1"
+      ],
+      "note": "b358f7e 基线：三引号多行秘密逐行遮盖到结束符"
+    },
+    {
+      "id": "cv-nested-secret-object",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\n  \"credentials\": {\n    \"user\": \"zzcanary-t1\",\n    \"pass\": \"zzcanary-t2\"\n  },\n  \"x\": 1\n}",
+      "must_not_contain": [
+        "zzcanary-t1",
+        "zzcanary-t2"
+      ],
+      "must_contain": [
+        "\"x\": 1"
+      ],
+      "note": "b358f7e 基线：秘密键的嵌套对象只遮盖更深缩进的行"
+    },
+    {
+      "id": "cv-yaml-list-item-secret",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "- token: zzcanary-r1",
+      "must_not_contain": [
+        "zzcanary-r1"
+      ],
+      "must_contain": [
+        "- token: "
+      ],
+      "note": "b358f7e 基线：YAML 列表项里的秘密键"
+    },
+    {
+      "id": "cv-bearer-token-in-plain-value",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "description = \"use Bearer zzcanary-bearer9876 now\"",
+      "must_not_contain": [
+        "zzcanary-bearer9876"
+      ],
+      "must_contain": [
+        "use Bearer",
+        " now"
+      ],
+      "note": "b358f7e 基线：普通值里的 Bearer 令牌遮盖，保留 scheme"
+    },
+    {
+      "id": "cv-vendor-prefix-token",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "a = ghp_zzcanary-vendor0123",
+      "must_not_contain": [
+        "zzcanary-vendor0123"
+      ],
+      "must_contain": [
+        "a = "
+      ],
+      "note": "b358f7e 基线：ghp_ 前缀的令牌出现在普通键下"
+    },
+    {
+      "id": "cv-escaped-quote-inside-secret",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "\"token\": \"a\\\"bzzcanary-v1\"",
+      "must_not_contain": [
+        "zzcanary-v1"
+      ],
+      "must_contain": [
+        "\"token\""
+      ],
+      "note": "b358f7e 基线：值里有转义引号时不能泄漏引号之后的尾部"
+    },
+    {
+      "id": "cv-url-credentials",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "url = \"https://user:zzcanary-w1@example.com/x\"",
+      "must_not_contain": [
+        "zzcanary-w1"
+      ],
+      "must_contain": [
+        "https://user:",
+        "@example.com/x"
+      ],
+      "note": "b358f7e 基线：URL 里的口令遮盖，保留用户名与主机"
+    },
+    {
+      "id": "cv-commented-secret",
+      "kind": "positive",
+      "targets": [
+        "config_view"
+      ],
+      "input": "# password = zzcanary-x1\nmodel = 1",
+      "must_not_contain": [
+        "zzcanary-x1"
+      ],
+      "must_contain": [
+        "model = 1"
+      ],
+      "note": "b358f7e 基线：被注释掉的秘密行同样遮盖"
+    },
+    {
+      "id": "cv-plain-pairs-unchanged",
+      "kind": "negative",
+      "targets": [
+        "config_view"
+      ],
+      "input": "model = \"gpt\"\nname: kept\nport = 8080",
+      "must_not_contain": [],
+      "note": "反例：普通键值不得改动"
+    },
+    {
+      "id": "cv-urls-and-times-unchanged",
+      "kind": "negative",
+      "targets": [
+        "config_view"
+      ],
+      "input": "url = \"http://example.com:8080/path\"\nat = 12:30:45",
+      "must_not_contain": [],
+      "note": "反例：URL 与时间里的冒号不被当成键值对"
+    },
+    {
+      "id": "cv-empty-secret-unchanged",
+      "kind": "negative",
+      "targets": [
+        "config_view"
+      ],
+      "input": "\"token\": \"\"\nmodel = \"gpt\"",
+      "must_not_contain": [],
+      "note": "反例：空的秘密值没有可遮盖的内容，原样保留"
+    },
+    {
+      "id": "cv-ordinary-flags-unchanged",
+      "kind": "negative",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\"model\": \"sonnet\", \"args\": [\"--serve\", \"--port\", \"80\"]}",
+      "must_not_contain": [],
+      "note": "反例：非秘密命令行参数及其值不得被遮盖（防止 dadc871 的 --token 规则过度遮盖）"
+    },
+    {
+      "id": "cv-environment-is-not-env-container",
+      "kind": "negative",
+      "targets": [
+        "config_view"
+      ],
+      "input": "{\"environment\": {\"MODE\": \"visible-mode\"}}",
+      "must_not_contain": [],
+      "note": "反例：只有键名恰好是 env/headers 的容器才整体遮盖，environment 不是"
+    },
+    {
+      "id": "cv-env-prefixed-key-unchanged",
+      "kind": "negative",
+      "targets": [
+        "config_view"
+      ],
+      "input": "env_file: .env.local\nname: kept",
+      "must_not_contain": [],
+      "note": "反例：env_file 这类以 env 开头的普通键不是 env 容器"
+    },
+    {
+      "id": "cv-short-vendor-prefix-kept",
+      "kind": "negative",
+      "targets": [
+        "config_view"
+      ],
+      "input": "c = sk-ab",
+      "must_not_contain": [],
+      "note": "反例：过短的 sk- 片段不是令牌（MIN_TOKEN_LEN）"
+    },
+    {
+      "id": "cc-path-quoted-and-midline",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "load \"/Users/u/certs/cert.pem\" then /Users/u/certs/cert.pem again",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [
+        "/Users/u/certs/cert.pem",
+        "cert.pem"
+      ],
+      "must_contain": [
+        "<证书文件>",
+        "then",
+        "again"
+      ],
+      "note": "cee157a：运行日志与诊断中的证书路径（引号内、行中）每次出现都替换"
+    },
+    {
+      "id": "cc-validate-error-keeps-no-filename",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "Error: loading key pair: open /Users/u/certs/key.pem: permission denied",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [
+        "/Users/u/certs",
+        "key.pem"
+      ],
+      "must_contain": [
+        "<私钥文件>",
+        "permission denied"
+      ],
+      "note": "8e588fe：校验诊断里的私钥路径替换为占位，不再保留文件名与父目录"
+    },
+    {
+      "id": "cc-path-with-line-suffix",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "Error: /Users/u/certs/cert.pem:1 and /Users/u/certs/key.pem:12: no such file",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [
+        "/Users/u/certs",
+        "cert.pem",
+        "key.pem"
+      ],
+      "must_contain": [
+        "<证书文件>:1",
+        "<私钥文件>:12"
+      ],
+      "note": "8e588fe：路径后紧跟 :行号 时同样替换"
+    },
+    {
+      "id": "cc-directory-only",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "watching directory /Users/u/certs for changes",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [
+        "/Users/u/certs"
+      ],
+      "must_contain": [
+        "<TLS 目录>",
+        "for changes"
+      ],
+      "note": "cee157a：证书与私钥所在的父目录路径单独出现时替换"
+    },
+    {
+      "id": "cc-sibling-file-in-authorized-directory",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "open /Users/u/certs/key.pem and /Users/u/certs/other.pem",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [
+        "/Users/u/certs",
+        "key.pem"
+      ],
+      "must_contain": [
+        "<私钥文件>",
+        "<TLS 目录>/other.pem"
+      ],
+      "note": "cee157a：授权目录下的其他文件只替换目录前缀，不暴露目录"
+    },
+    {
+      "id": "cc-case-variants",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "ERROR /USERS/U/CERTS/KEY.PEM and /users/u/certs/cert.pem",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [
+        "/USERS/U/CERTS/KEY.PEM",
+        "KEY.PEM",
+        "/users/u/certs/cert.pem",
+        "cert.pem"
+      ],
+      "must_contain": [
+        "<私钥文件>",
+        "<证书文件>"
+      ],
+      "note": "cee157a：路径以其他大小写打印时仍替换（匹配忽略 ASCII 大小写）"
+    },
+    {
+      "id": "cc-two-directories",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "reading /Users/u/tls-b/site.key then /Users/u/tls-a/site.crt; cleanup /Users/u/tls-a",
+      "tls": [
+        {
+          "certificate": "/Users/u/tls-a/site.crt",
+          "private_key": "/Users/u/tls-b/site.key"
+        }
+      ],
+      "must_not_contain": [
+        "site.key",
+        "site.crt",
+        "/Users/u/tls-a",
+        "/Users/u/tls-b"
+      ],
+      "must_contain": [
+        "<私钥文件>",
+        "<证书文件>",
+        "<TLS 目录>"
+      ],
+      "note": "cee157a：证书与私钥位于不同目录时，两个目录与两个文件都替换"
+    },
+    {
+      "id": "cc-split-across-chunks",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "tls /Users/u/certs/cert.pem\nnext line\n",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "chunks": [
+        "tls /Users/u/cer",
+        "ts/cert.pe",
+        "m\nnext line\n"
+      ],
+      "must_not_contain": [
+        "/Users/u/certs",
+        "cert.pem",
+        "/Users/u/cer"
+      ],
+      "must_contain": [
+        "tls <证书文件>\nnext line\n"
+      ],
+      "note": "cee157a：路径跨读取分片时保留到完整后再替换，任何分片都不得存下路径的一部分"
+    },
+    {
+      "id": "cc-three-byte-chunks-unterminated-last-line",
+      "kind": "positive",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "first /Users/u/certs/key.pem\nsecond /Users/u/certs/cert.pem",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "chunk_bytes": 3,
+      "must_not_contain": [
+        "/Users/u/certs",
+        "key.pem",
+        "cert.pem"
+      ],
+      "must_contain": [
+        "first <私钥文件>\n",
+        "second <证书文件>"
+      ],
+      "note": "cee157a：每 3 字节一个分片、末行没有换行，结束时释放并替换"
+    },
+    {
+      "id": "cc-unrelated-error-unchanged",
+      "kind": "negative",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "Error: adapting config: Caddyfile:2: unrecognized directive 中文",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [],
+      "note": "反例：不含授权路径的诊断原样保留"
+    },
+    {
+      "id": "cc-unauthorized-path-unchanged",
+      "kind": "negative",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "open /Users/other/certs/cert.pem and /var/log/caddy/access.log",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [],
+      "note": "反例：不在授权集合内的路径（别的用户目录、日志路径）不得被替换"
+    },
+    {
+      "id": "cc-token-named-fields-are-not-paths",
+      "kind": "negative",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "token_bucket: 100 requests per second; secret_santa=off",
+      "tls": [
+        {
+          "certificate": "/Users/u/certs/cert.pem",
+          "private_key": "/Users/u/certs/key.pem"
+        }
+      ],
+      "must_not_contain": [],
+      "note": "反例：名字里带 token/secret 字样的普通文本，路径脱敏器不应改动"
+    },
+    {
+      "id": "cc-no-authorized-paths-unchanged",
+      "kind": "negative",
+      "targets": [
+        "caddy_redact"
+      ],
+      "input": "open /Users/u/certs/cert.pem",
+      "tls": [],
+      "must_not_contain": [],
+      "note": "反例：授权集合为空时，任何路径都原样保留（只替换授权过的路径）"
+    },
+    {
+      "id": "kr-api-key-snake",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "API_KEY",
+      "must_not_contain": [],
+      "note": "S11 对照：API_KEY 写法"
+    },
+    {
+      "id": "kr-api-key-hyphen",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "x-api-key",
+      "must_not_contain": [],
+      "note": "S11 对照：连字符写法"
+    },
+    {
+      "id": "kr-api-key-dotted",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "anthropic.api.key",
+      "must_not_contain": [],
+      "note": "S11 对照：点分写法"
+    },
+    {
+      "id": "kr-auth-token",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "ANTHROPIC_AUTH_TOKEN",
+      "must_not_contain": [],
+      "note": "S11 对照：env 里的 AUTH_TOKEN 键（dadc871 场景用到的键名）"
+    },
+    {
+      "id": "kr-authorization-header",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "Authorization",
+      "must_not_contain": [],
+      "note": "S11 对照：headers 里的 Authorization"
+    },
+    {
+      "id": "kr-client-secret",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "client_secret",
+      "must_not_contain": [],
+      "note": "S11 对照：secret 子串"
+    },
+    {
+      "id": "kr-password-suffix",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "db_password",
+      "must_not_contain": [],
+      "note": "S11 对照：password 子串"
+    },
+    {
+      "id": "kr-npmrc-auth",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "_auth",
+      "must_not_contain": [],
+      "note": "S11 对照：.npmrc 的 _auth"
+    },
+    {
+      "id": "kr-api-key-camel-case",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "apiKey",
+      "must_not_contain": [],
+      "note": "S11 对照：app_config::read::is_secret_key 把 apiKey 判为秘密，本函数的归一化只替换 - 和 .，apiKey 变成 apikey，不含 api_key；无对应提交，属新发现",
+      "known_gap": true
+    },
+    {
+      "id": "kr-private-key-camel-case",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "privateKey",
+      "must_not_contain": [],
+      "note": "S11 对照：app_config::read::is_secret_key 含 key 片段判为秘密，本函数不含；无对应提交，属新发现",
+      "known_gap": true
+    },
+    {
+      "id": "kr-credentials",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "credentials",
+      "must_not_contain": [],
+      "note": "S11 对照：app_config::read::is_secret_key 含 credential 片段判为秘密，本函数不含；无对应提交，属新发现",
+      "known_gap": true
+    },
+    {
+      "id": "kr-passwd",
+      "kind": "positive",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "passwd",
+      "must_not_contain": [],
+      "note": "S11 对照：app_config::read::is_secret_key 含 passwd 片段判为秘密，本函数不含；无对应提交，属新发现",
+      "known_gap": true
+    },
+    {
+      "id": "kr-ordinary-model",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "model",
+      "must_not_contain": [],
+      "note": "反例：普通键名"
+    },
+    {
+      "id": "kr-ordinary-base-url",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "base_url",
+      "must_not_contain": [],
+      "note": "反例：普通键名"
+    },
+    {
+      "id": "kr-ordinary-font-size",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "editor.fontSize",
+      "must_not_contain": [],
+      "note": "反例：带点的普通键名"
+    },
+    {
+      "id": "kr-author-is-not-auth",
+      "kind": "negative",
+      "targets": [
+        "config_redaction"
+      ],
+      "input": "author_name",
+      "must_not_contain": [],
+      "note": "反例：author 只是以 auth 开头，不是 _auth 或 authorization"
+    },
+    {
+      "id": "sm-plain-token",
+      "kind": "positive",
+      "targets": [
+        "secret_mask"
+      ],
+      "input": "zzcanary-sm1",
+      "must_not_contain": [
+        "zzcanary-sm1"
+      ],
+      "note": "S11 对照：默认遮盖，明文不进入渲染结果"
+    },
+    {
+      "id": "sm-long-value",
+      "kind": "positive",
+      "targets": [
+        "secret_mask"
+      ],
+      "input": "zzcanary-sm2-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "must_not_contain": [
+        "zzcanary-sm2-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "note": "S11 对照：遮盖串固定，不随值长度变化"
+    },
+    {
+      "id": "sm-url-with-credentials",
+      "kind": "positive",
+      "targets": [
+        "secret_mask"
+      ],
+      "input": "https://user:zzcanary-sm3@example.com/x",
+      "must_not_contain": [
+        "https://user:zzcanary-sm3@example.com/x"
+      ],
+      "note": "S11 对照：含口令的 URL 作为值"
+    },
+    {
+      "id": "sm-markup-like-value",
+      "kind": "positive",
+      "targets": [
+        "secret_mask"
+      ],
+      "input": "<b>zzcanary-sm4</b>",
+      "must_not_contain": [
+        "<b>zzcanary-sm4</b>"
+      ],
+      "note": "S11 对照：带标记字符的值"
+    },
+    {
+      "id": "sm-multiline-value",
+      "kind": "positive",
+      "targets": [
+        "secret_mask"
+      ],
+      "input": "line-one\nzzcanary-sm5",
+      "must_not_contain": [
+        "line-one\nzzcanary-sm5"
+      ],
+      "note": "S11 对照：多行值"
+    }
+  ]
+}

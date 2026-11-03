@@ -63,7 +63,9 @@ function hitIds(c: Commit) {
 describe("规则表", () => {
   it("每条规则都有 id、说明和 check 函数，id 不重复", () => {
     const ids = rules.RULES.map((rule) => rule.id);
-    expect(ids).toEqual(expect.arrayContaining(["rule-files", "weakened-tests"]));
+    expect(ids).toEqual(
+      expect.arrayContaining(["rule-files", "weakened-tests", "redaction-corpus"]),
+    );
     expect(new Set(ids).size).toBe(ids.length);
     for (const rule of rules.RULES) {
       expect(rule.description).not.toBe("");
@@ -255,6 +257,51 @@ describe("evaluateCommit", () => {
   });
 });
 
+describe("redaction-corpus 规则", () => {
+  const CORPUS = "src-tauri/tests/fixtures/redaction_corpus.json";
+  const IMPLEMENTATIONS = [
+    "src-tauri/src/ai_config/config_view.rs",
+    "src-tauri/src/caddy/redact.rs",
+    "src-tauri/src/config/redaction.rs",
+    "src/components/ui/secretMask.ts",
+  ];
+  const hits = (c: Commit) =>
+    rules.evaluateCommit(c).filter((hit) => hit.rule.id === "redaction-corpus");
+
+  it.each(IMPLEMENTATIONS)("只改 %s 而没有改样例集时命中，并列出该文件", (path) => {
+    const found = hits(commit([change(path)]));
+    expect(found.map((hit) => hit.files)).toEqual([[path]]);
+  });
+
+  it("一个提交改了多个脱敏文件时全部列出", () => {
+    const found = hits(commit([change(IMPLEMENTATIONS[0]), change("README.md"), change(IMPLEMENTATIONS[3])]));
+    expect(found.map((hit) => hit.files)).toEqual([[IMPLEMENTATIONS[0], IMPLEMENTATIONS[3]]]);
+  });
+
+  it("同时改动了样例集时不命中", () => {
+    expect(hits(commit([change(IMPLEMENTATIONS[0]), change(CORPUS)]))).toEqual([]);
+    expect(hits(commit(IMPLEMENTATIONS.map((path) => change(path)).concat(change(CORPUS))))).toEqual([]);
+  });
+
+  it("只改 README 或其他无关文件时不命中", () => {
+    expect(hits(commit([change("README.md")]))).toEqual([]);
+    expect(hits(commit([change("src/components/ui/SecretValue.tsx"), change("src-tauri/src/caddy/session.rs")]))).toEqual([]);
+  });
+
+  it("只改脱敏模块的测试文件或只改样例集时不命中", () => {
+    expect(hits(commit([change("src-tauri/src/ai_config/config_view_tests.rs", ["assert!(a);"], [])]))).toEqual([]);
+    expect(hits(commit([change(CORPUS)]))).toEqual([]);
+  });
+
+  it("带审批行的提交放行", () => {
+    expect(
+      rules.evaluateCommit(
+        commit([change(IMPLEMENTATIONS[1])], "fix(caddy): 说明\n\nRule-Change-Approved: 用户原话：“可以”"),
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("历史提交的 --warn 试运行", () => {
   it("命中照常列出，首行标明 [试运行]，退出码 0", () => {
     const result = runScript(["--warn", "f34583b^", "f34583b"], repoRoot);
@@ -273,6 +320,14 @@ describe("历史提交的正向回归（没有审批行，必须被拦）", () =
     const result = runScript([`${sha}^`, sha], repoRoot);
     expect(result.status).toBe(1);
     expect(result.stdout).toContain(`${sha} ${ruleId} `);
+  });
+});
+
+describe("历史提交的正向回归：改了脱敏实现而没改样例集", () => {
+  it.each(["dadc871", "cee157a"])("%s 被 redaction-corpus 命中", (sha) => {
+    const result = runScript(["--warn", `${sha}^`, sha], repoRoot);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(`${sha} redaction-corpus `);
   });
 });
 

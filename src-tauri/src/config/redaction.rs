@@ -8,3 +8,7 @@ pub fn is_secret_key(key: &str) -> bool {
         || normalized == "_auth"
         || normalized.ends_with("_auth")
 }
+
+#[cfg(test)]
+#[path = "redaction_tests.rs"]
+mod tests;
