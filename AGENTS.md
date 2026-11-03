@@ -68,7 +68,7 @@ UserHome：本地优先的 macOS 桌面与托盘应用，在当前用户权限�
 
 规格（**用户确认**）→ 计划 → 分发 → 协调者验收 → 合并 → 收敛清理。
 
-- 分支命名 `zephyr19/<name>`。合并不需要用户确认：协调者复核通过后用 `--no-ff` 合并到 main，不 push。
+- 分支命名：手工建的用 `zephyr19/<name>`；Orca 派发时自动生成 `zephyr194/<name>`，沿用即可。合并不需要用户确认：协调者复核通过后用 `--no-ff` 合并到 main，不 push。
 - 合并前，协调者运行 `node scripts/check-commit-rules.mjs --warn main <branch>`；CI 对 PR 与 push 的提交范围以同样的 `--warn` 再运行一次。**试运行期间命中不阻止合并**，协调者合并时在汇报里逐条列出命中（短sha、规则、文件），由用户查看。
 - worktree 生命周期：
   - 复核通过：合并，然后执行 `orca worktree rm --worktree branch:<branch> --delete-branch`，移除 worktree 和已合并的分支。
