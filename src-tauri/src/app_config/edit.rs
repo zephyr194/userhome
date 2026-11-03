@@ -488,10 +488,10 @@ fn plan_fields(
             Err(message) => plan.issue(Some(field.path), None, message),
         }
     }
-    if plan.issues.is_empty() {
-        if let Err(RawError { line, message }) = check_raw(format, &plan.proposed) {
-            plan.issue(None, line, message);
-        }
+    if plan.issues.is_empty()
+        && let Err(RawError { line, message }) = check_raw(format, &plan.proposed)
+    {
+        plan.issue(None, line, message);
     }
     plan
 }

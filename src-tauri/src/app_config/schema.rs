@@ -326,12 +326,10 @@ fn text_value(field: &FieldSpec, value: &Value) -> Result<String, String> {
                 ));
             }
         }
-        Some(FieldPattern::Charset { allowed }) => {
-            if !text.chars().all(|c| allowed.contains(c)) {
-                return Err("包含不允许的字符，请只使用字母、数字和 . _ / - 。".to_owned());
-            }
+        Some(FieldPattern::Charset { allowed }) if !text.chars().all(|c| allowed.contains(c)) => {
+            return Err("包含不允许的字符，请只使用字母、数字和 . _ / - 。".to_owned());
         }
-        None => {}
+        Some(FieldPattern::Charset { .. }) | None => {}
     }
     Ok(text.to_owned())
 }

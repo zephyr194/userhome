@@ -239,7 +239,7 @@ fn insert_key(
             roles[index] == Role::Header
                 && matches!(ini_header(&lines[index].text), Some((name, None)) if name == section)
         })
-        .last();
+        .next_back();
     match header {
         Some(start) => {
             let end = (start + 1..lines.len())
