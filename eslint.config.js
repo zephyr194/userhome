@@ -22,11 +22,11 @@ export default tseslint.config(
     },
   },
   {
-    // 试运行（warn）：不拦截，命中清单与豁免提案见 docs/agent-incidents/batch-1-proposals.md P3。
+    // 2026-11-03 试运行期满、零命中后升为 error；规则来历见 docs/agent-incidents/batch-1-proposals.md P3。
     files: ["src/**/*.{ts,tsx}"],
     ignores: ["**/*.test.{ts,tsx}"],
     plugins: { userhome },
-    rules: { "userhome/no-raw-ipc-in-effect": "warn" },
+    rules: { "userhome/no-raw-ipc-in-effect": "error" },
   },
   {
     files: ["**/*.{ts,tsx}"],
