@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { createRequestTracker } from "../../app/sequenceGate";
+import { useLatestRequest } from "../../app/useLatestRequest";
 import { Button, CheckboxField, LogViewer, Panel, StatusBadge } from "../../components/ui";
 import {
   caddyApply,
@@ -17,7 +19,6 @@ import {
 import type { AppError } from "../../ipc/core";
 import { localizeError } from "../../i18n/errors";
 import { useCaddyCopy, type CaddyCopy } from "./caddyCopy";
-import { createRequestTracker } from "../../app/sequenceGate";
 import {
   DOMAIN_LABEL_KEYS,
   PORT_STATE_LABEL_KEYS,
@@ -88,6 +89,8 @@ export function CaddyRunPanel({
   onOpenService?: (target: ServiceTarget) => void;
   workdirReason?: string;
 }) {
+  // Polls, start and stop share one tracker: a start or stop answer drops any
+  // poll answer issued before it, and a newer poll drops an older start answer.
   const [statusTracker] = useState(createRequestTracker);
   const [previewTracker] = useState(createRequestTracker);
   const [applyTracker] = useState(createRequestTracker);
@@ -101,6 +104,7 @@ export function CaddyRunPanel({
   const [logs, setLogs] = useState<LogView>(() => initialLogView(undefined));
   const [paused, setPaused] = useState(false);
   const logRef = useRef(logs);
+  const logRequest = useLatestRequest();
   const sessionId = status?.sessionId;
 
   useEffect(() => {
@@ -128,29 +132,28 @@ export function CaddyRunPanel({
 
   useEffect(() => {
     if (sessionId === undefined) return;
-    let active = true;
     let timer: number | undefined;
     logRef.current = initialLogView(sessionId);
     const poll = () => {
       const cursor = logRef.current;
-      caddyLogs(sessionId, cursor.stdoutOffset, cursor.stderrOffset).then(
-        (page) => {
-          if (!active || page.sessionId !== sessionId) return;
+      logRequest.run(() => caddyLogs(sessionId, cursor.stdoutOffset, cursor.stderrOffset), {
+        onResult: (page) => {
+          if (page.sessionId !== sessionId) return;
           logRef.current = applyLogPage(logRef.current, page);
           setLogs(logRef.current);
           timer = window.setTimeout(poll, page.hasMore ? 0 : LOG_POLL_MS);
         },
-        () => {
-          if (active) timer = window.setTimeout(poll, LOG_POLL_MS);
+        onError: () => {
+          timer = window.setTimeout(poll, LOG_POLL_MS);
         },
-      );
+      });
     };
     poll();
     return () => {
-      active = false;
+      logRequest.cancel();
       window.clearTimeout(timer);
     };
-  }, [sessionId]);
+  }, [sessionId, logRequest]);
 
   // A summary or log view belongs to one source or session; anything older is
   // hidden rather than cleared inside an effect.

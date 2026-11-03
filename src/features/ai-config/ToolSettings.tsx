@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dataHub } from "../../app/dataHub";
+import { useLatestRequest } from "../../app/useLatestRequest";
 import { Button } from "../../components/ui";
 import {
   getClaudeEditCatalog,
@@ -261,6 +262,8 @@ export function ToolSettings({ query = "" }: { readonly query?: string }) {
   const [choosingFile, setChoosingFile] = useState(false);
   const [chooseFileError, setChooseFileError] = useState<AppError | null>(null);
   const requestCounter = useRef(0);
+  const snapshotRequest = useLatestRequest();
+  const catalogRequest = useLatestRequest();
 
   const fetchView = useCallback((grant: ProjectGrant | null) => {
     const requestId = ++requestCounter.current;
@@ -285,10 +288,16 @@ export function ToolSettings({ query = "" }: { readonly query?: string }) {
   );
 
   useEffect(() => {
-    void getClaudeSnapshot().then(setSnapshot, () => setSnapshot(null));
-    void getClaudeEditCatalog().then(setCatalog, () => setCatalog(null));
+    snapshotRequest.run(getClaudeSnapshot, {
+      onResult: setSnapshot,
+      onError: () => setSnapshot(null),
+    });
+    catalogRequest.run(getClaudeEditCatalog, {
+      onResult: setCatalog,
+      onError: () => setCatalog(null),
+    });
     void fetchView(null);
-  }, [fetchView]);
+  }, [fetchView, snapshotRequest, catalogRequest]);
 
   useEffect(() => {
     if (state.status !== "ready") return;
