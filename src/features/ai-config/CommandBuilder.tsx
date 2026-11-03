@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useLatestRequest } from "../../app/useLatestRequest";
 import {
   buildClaudeCommand,
   getClaudeOptions,
@@ -445,7 +446,7 @@ export function CommandBuilder() {
   );
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const loadCounter = useRef(0);
-  const buildCounter = useRef(0);
+  const buildRequest = useLatestRequest();
 
   const load = useCallback(() => {
     const requestId = ++loadCounter.current;
@@ -479,22 +480,18 @@ export function CommandBuilder() {
   );
 
   useEffect(() => {
-    const requestId = ++buildCounter.current;
-    if (plan?.status !== "ready") return;
-    const key = JSON.stringify(plan.request);
-    buildClaudeCommand(plan.request).then(
-      (built) => {
-        if (requestId === buildCounter.current) {
-          setResult({ key, outcome: { ok: true, built } });
-        }
-      },
-      (error: unknown) => {
-        if (requestId === buildCounter.current) {
-          setResult({ key, outcome: { ok: false, error: decodeAppError(error) } });
-        }
-      },
-    );
-  }, [plan]);
+    if (plan?.status !== "ready") {
+      buildRequest.cancel();
+      return;
+    }
+    const { request } = plan;
+    const key = JSON.stringify(request);
+    buildRequest.run(() => buildClaudeCommand(request), {
+      onResult: (built) => setResult({ key, outcome: { ok: true, built } }),
+      onError: (error) =>
+        setResult({ key, outcome: { ok: false, error: decodeAppError(error) } }),
+    });
+  }, [plan, buildRequest]);
 
   const preview = useMemo<CommandPreview>(() => {
     if (plan === null) return { status: "loading" };

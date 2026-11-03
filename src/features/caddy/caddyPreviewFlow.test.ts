@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createDebouncer, createRequestTracker, type Timers } from "./caddyPreviewFlow";
+import { createRequestTracker } from "../../app/sequenceGate";
+import { createDebouncer, type Timers } from "./caddyPreviewFlow";
 
 function fakeTimers() {
   let nextHandle = 1;

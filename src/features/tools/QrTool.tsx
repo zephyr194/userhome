@@ -43,7 +43,7 @@ import {
   type QrSnapshot,
   type SizeChoice,
 } from "./qrToolState";
-import { createRequestTracker } from "./toolRequestState";
+import { createRequestTracker } from "../../app/sequenceGate";
 
 export function QrTool() {
   const t = useT();

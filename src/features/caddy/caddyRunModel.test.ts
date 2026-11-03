@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRequestTracker } from "./caddyPreviewFlow";
+import { createRequestTracker } from "../../app/sequenceGate";
 import type { CaddyApplyReport, CaddyLogPage, CaddyRunState } from "../../ipc/caddy";
 import {
   LOG_LINE_LIMIT,

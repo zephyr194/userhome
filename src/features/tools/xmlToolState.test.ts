@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { createRequestTracker } from "../../app/sequenceGate";
 import type { AppError } from "../../ipc/core";
 import type { FormattedXml } from "../../ipc/textTools";
 import {
   MAX_INPUT_BYTES,
-  createRequestTracker,
   exceedsInputLimit,
   failureView,
   oversizedView,

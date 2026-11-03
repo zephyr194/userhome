@@ -30,7 +30,7 @@ import {
   tailFromSnapshot,
   type LogTail,
 } from "./logTailModel";
-import { useLatestRequest } from "./useLatestRequest";
+import { useLatestRequest } from "../../app/useLatestRequest";
 
 const STREAM_LABEL_KEYS: Record<LogStream, MessageKey> = {
   STDOUT: "services.logs.stream.STDOUT",
