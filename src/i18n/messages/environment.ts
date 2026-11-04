@@ -1,5 +1,4 @@
 export const environmentZh = {
-  "env.chain.badge.final": "最终",
   "env.chain.badge.secret": "秘密",
   "env.chain.badge.append": "追加",
   "env.chain.empty": "（空值）",
@@ -167,7 +166,6 @@ export const environmentZh = {
 } as const;
 
 export const environmentEn = {
-  "env.chain.badge.final": "Final",
   "env.chain.badge.secret": "Secret",
   "env.chain.badge.append": "Append",
   "env.chain.empty": "(empty)",
