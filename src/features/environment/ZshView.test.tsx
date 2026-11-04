@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { renderToStaticMarkup } from "react-dom/server";
 import { cleanup, fireEvent, render as mountTree, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppError } from "../../ipc/core";
 import type {
   ZshEntryRow,
@@ -16,6 +16,21 @@ import { INITIAL_LAZY_VALUE } from "./environmentModel";
 import { LazySecretValueBody } from "./LazySecretValue";
 import { ZshView, type ZshViewProps } from "./ZshView";
 import { INITIAL_ZSH_STATE, type ZshState } from "./zshModel";
+
+// 真实数据里每个条目都带行号；这里只在个别用例中去掉行号，验证揭示失败的提示。
+const zshLines = vi.hoisted(() => ({ dropped: false }));
+vi.mock("./variableChainModel", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./variableChainModel")>();
+  return {
+    ...actual,
+    zshVariableRows: (...args: Parameters<typeof actual.zshVariableRows>) =>
+      actual.zshVariableRows(...args).map((row) =>
+        zshLines.dropped
+          ? { ...row, final: { ...row.final, source: { ...row.final.source, line: undefined } } }
+          : row,
+      ),
+  };
+});
 
 const ERROR: AppError = { code: "PERMISSION_DENIED", message: "无法读取主目录。", retryable: true };
 
@@ -514,5 +529,19 @@ describe("zsh view is read only and accessible", () => {
     expect(markup).not.toMatch(/<section[^>]*class="[^"]*bg-surface-muted/);
     expect(markup).not.toMatch(/class="[^"]*\bborder-b border-border/);
     expect(markup).toContain("text-muted-foreground");
+  });
+});
+
+describe("zsh reveal failures keep their reason", () => {
+  afterEach(() => {
+    zshLines.dropped = false;
+  });
+
+  it("shows the reason when a value's line is gone instead of an internal error", async () => {
+    zshLines.dropped = true;
+    mount(readyState(FULL));
+    selectRow("GITHUB_TOKEN");
+    fireEvent.click(within(detail()).getByRole("button", { name: "载入 GITHUB_TOKEN 的值" }));
+    expect(await screen.findByText("载入失败：找不到这个变量所在的行，请重新读取后再试。")).toBeTruthy();
   });
 });

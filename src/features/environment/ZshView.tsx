@@ -620,7 +620,9 @@ function VariablesSection({
             (item): item is ZshEntryRow => item.kind === "ENTRY" && item.line === line,
           )
         : undefined;
-    if (!file || !entry) return Promise.reject(new Error(t("env.chain.notFound")));
+    if (!file || !entry) {
+      return Promise.reject({ code: "NOT_FOUND", message: t("env.chain.notFound"), retryable: false });
+    }
     return onLoadValue(file.file, entry);
   };
 

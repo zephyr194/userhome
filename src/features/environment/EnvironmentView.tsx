@@ -296,7 +296,9 @@ function VariableListBody({
   };
   const reveal = (row: VariableChainRow): Promise<string> => {
     const line = row.final.source.line;
-    if (line === undefined) return Promise.reject(new Error(t("env.dotenv.changed")));
+    if (line === undefined) {
+      return Promise.reject({ code: "CONFLICT", message: t("env.dotenv.changed"), retryable: false });
+    }
     return actions.loadValue(row.final.source.file, row.name, line);
   };
 

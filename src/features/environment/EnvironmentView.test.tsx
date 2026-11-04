@@ -10,6 +10,21 @@ import { EnvironmentView, type EnvironmentActions, type EnvironmentViewProps } f
 import type { DirectoryFile, DirectoryState } from "./dotenvDirectoryModel";
 import { DEFAULT_PATTERNS_TEXT } from "./environmentModel";
 
+// 真实数据里每个条目都带行号；这里只在个别用例中去掉行号，验证揭示失败的提示。
+const chainLines = vi.hoisted(() => ({ dropped: false }));
+vi.mock("./variableChainModel", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./variableChainModel")>();
+  return {
+    ...actual,
+    dotenvChainRows: (...args: Parameters<typeof actual.dotenvChainRows>) =>
+      actual.dotenvChainRows(...args).map((row) =>
+        chainLines.dropped
+          ? { ...row, final: { ...row.final, source: { ...row.final.source, line: undefined } } }
+          : row,
+      ),
+  };
+});
+
 beforeEach(() => {
   // jsdom 没有 ResizeObserver；Headless UI 的 Listbox 打开时会构造它。空实现只满足构造。
   vi.stubGlobal(
@@ -431,5 +446,23 @@ describe("editor open", () => {
     expect(screen.getByRole("heading", { name: "编辑环境文件" })).toBeTruthy();
     expect(screen.queryByRole("region", { name: "目录 dotenv 的变量" })).toBeNull();
     expect(screen.queryByText("文件与扫描设置")).toBeNull();
+  });
+});
+
+describe("reveal failures keep their reason", () => {
+  afterEach(() => {
+    chainLines.dropped = false;
+  });
+
+  it("shows the reason when a value's line is gone instead of an internal error", async () => {
+    chainLines.dropped = true;
+    renderView({
+      editor: undefined,
+      directory: directoryOf({
+        files: { ".env": readyFile(".env", [entry({ line: 1, key: "TOKEN", secret: true, value: undefined })]) },
+      }),
+    });
+    fireEvent.click(screen.getByRole("button", { name: "载入 TOKEN 的值" }));
+    expect(await screen.findByText("载入失败：文件已变化，请重新选择文件。")).toBeTruthy();
   });
 });
