@@ -289,7 +289,6 @@ function ListBody({
         <Skeleton bars={3} className="motion-skeleton--list" />
       </div>
     );
-
   }
   if (state.status === "error") {
     return (

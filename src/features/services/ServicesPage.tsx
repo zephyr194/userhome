@@ -17,10 +17,10 @@ import {
   INITIAL_DISCOVERY_STATE,
   canStartRefresh,
   discoveryReducer,
+  isSystemService,
   type EvidenceState,
   type ServiceFilter,
 } from "./launchdModel";
-import { isSystemService } from "./launchdModel";
 import { ServiceLogs } from "./ServiceLogs";
 import { ServiceManagement } from "./ServiceManagement";
 import { ServicesView } from "./ServicesView";
