@@ -87,6 +87,18 @@ describe("triggerOf", () => {
     expect(trigger.sentence).toBe("登录时启动，已禁用。");
   });
 
+  it("keeps the disabled badge when the other badges would push it out", () => {
+    const trigger = triggerWith({
+      runAtLoad: true,
+      keepAlive: { mode: "ALWAYS", conditions: [] },
+      startInterval: 900,
+      disabled: true,
+    });
+    expect(trigger.kinds).toEqual(["LOGIN", "KEEP_ALIVE", "INTERVAL", "DISABLED"]);
+    expect(trigger.badge).toBe("登录时启动 · 已禁用…");
+    expect(trigger.sentence).toBe("登录时启动，常驻，退出后自动重启，每 15 分钟运行，已禁用。");
+  });
+
   it("says manual start before disabled when nothing else starts the job", () => {
     const trigger = triggerWith({ disabled: true });
     expect(trigger.kinds).toEqual(["MANUAL", "DISABLED"]);

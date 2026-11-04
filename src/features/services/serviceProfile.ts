@@ -321,14 +321,20 @@ export function triggerOf(service: LaunchdService, t: TranslateFunction): Servic
           },
         ]
       : triggerParts(service, details, t);
-  const badges = [...new Set(parts.map((part) => part.badge))];
-  const shown = badges.slice(0, BADGE_LIMIT).join(BADGE_JOINER);
+  const disabledPart = parts.find((part) => part.kind === "DISABLED");
+  const badges = [
+    ...new Set(parts.filter((part) => part !== disabledPart).map((part) => part.badge)),
+  ];
+  const slots = disabledPart === undefined ? BADGE_LIMIT : BADGE_LIMIT - 1;
+  const kept = badges.slice(0, slots);
+  if (disabledPart !== undefined) kept.push(disabledPart.badge);
+  const shown = kept.join(BADGE_JOINER);
   const sentence = parts
     .map((part, index) => (index === 0 ? part.phrase : lowerFirst(part.phrase)))
     .join(t("services.trigger.joiner"));
   return {
     kinds: parts.map((part) => part.kind),
-    badge: badges.length > BADGE_LIMIT ? `${shown}…` : shown,
+    badge: badges.length > slots ? `${shown}…` : shown,
     sentence: `${sentence}${t("services.trigger.end")}`,
   };
 }
