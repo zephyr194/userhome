@@ -69,6 +69,14 @@ function view(overrides: Partial<ServicesViewProps> = {}): string {
   return renderToStaticMarkup(element(overrides));
 }
 
+function viewWithSystemExpanded(overrides: Partial<ServicesViewProps>): string {
+  renderInDom(element(overrides));
+  const group = screen.getByText("系统", { selector: ".services-group__title" }).closest("details")!;
+  group.open = true;
+  fireEvent(group, new Event("toggle"));
+  return document.body.innerHTML;
+}
+
 function ready(
   discovery = sampleDiscovery(),
   extra: { refreshing?: boolean; refreshError?: AppError } = {},
@@ -279,7 +287,7 @@ describe("services filters", () => {
   });
 
   it("filters the list and reports how many are shown", () => {
-    const markup = view({
+    const markup = viewWithSystemExpanded({
       filter: withFilter({ scope: "SYSTEM_DAEMON", showSystem: true }),
     });
     expect(markup).toContain("显示 1 / 6 项");
@@ -743,7 +751,7 @@ describe("ownership in the list", () => {
   });
 
   it("filters the list by ownership", () => {
-    const markup = view({
+    const markup = viewWithSystemExpanded({
       filter: withFilter({ ownership: "APPLE_MANAGED", showSystem: true }),
     });
     expect(markup).toContain("显示 1 / 6 项");
