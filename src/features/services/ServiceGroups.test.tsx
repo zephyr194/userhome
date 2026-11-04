@@ -81,6 +81,18 @@ describe("default system visibility", () => {
     );
   });
 
+  it("keeps the system group collapsed by default and opens it on request", () => {
+    renderList({ filter: { ...EMPTY_FILTER, showSystem: true } });
+    const systemGroup = Array.from(document.querySelectorAll<HTMLDetailsElement>(".services-group")).find(
+      (group) => group.querySelector(".services-group__title")?.textContent === "系统",
+    )!;
+    expect(systemGroup.open).toBe(false);
+    expect(screen.queryByText("vendor.daemon")).toBeNull();
+    systemGroup.open = true;
+    fireEvent(systemGroup, new Event("toggle"));
+    expect(screen.getByText("vendor.daemon")).toBeTruthy();
+  });
+
   it("says the hidden count once when the empty list only hides system services", () => {
     renderList({
       state: readyState(sampleServices().filter((service) => service.id.startsWith("system/"))),

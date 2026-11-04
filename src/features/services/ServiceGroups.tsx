@@ -39,7 +39,7 @@ export function ServiceGroups({
   const t = useT();
   const systemCount = systemServiceCount(services);
   const groups = useMemo(() => groupServices(visible), [visible]);
-  const [collapsed, setCollapsed] = useState<ReadonlySet<Injector>>(() => new Set());
+  const [collapsed, setCollapsed] = useState<ReadonlySet<Injector>>(() => new Set<Injector>(["SYSTEM"]));
   const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
   const listRef = useSlideIndicator(selectedId);
   const rowRefs = useRef(new Map<string, HTMLButtonElement>());
