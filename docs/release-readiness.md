@@ -733,7 +733,7 @@ Rust 测试：
 |---|---|---|
 | `pnpm lint` | 退出码 0（含文档放置检查） | B |
 | `pnpm typecheck` | 通过 | B |
-| `pnpm test` | 280 个文件 / 3771 个用例通过（含 RC-3 修补后复测） | A |
+| `pnpm test` | 280 个文件 / 3779 个用例通过（含 RC-3 全部修补后复测） | A |
 | `pnpm build` | 通过 | B |
 | `pnpm corpus:validate` | 通过：300 formulae、300 casks、624 个应用 | B |
 | `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` | 通过 | B |
