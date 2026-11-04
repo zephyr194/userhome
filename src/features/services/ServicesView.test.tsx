@@ -241,7 +241,7 @@ describe("services list", () => {
     expect(rowTabStops(markup, "0")).toHaveLength(1);
     expect(rowTabStops(markup, "-1")).toHaveLength(3);
     expect(markup).toMatch(
-      /aria-label="com\.example\.idle，用户代理，已加载，未运行/,
+      /aria-label="example\.idle，用户代理，已加载，未运行/,
     );
     expect(markup).toContain("services-inventory-row--selected");
   });

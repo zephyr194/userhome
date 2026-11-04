@@ -211,7 +211,7 @@ const ServiceRow = memo(function ServiceRow({
           isSelected && "services-inventory-row--selected",
         )}
         aria-label={t("services.row.ariaLabel", {
-          label: service.label,
+          label: name,
           scope: scopeLabel(service.scope, t),
           status: status.label,
           trigger: trigger.badge,

@@ -201,7 +201,7 @@ describe("keyboard selection in groups", () => {
       />,
     );
     // Homebrew sorts before the user group, so "b" is the first row and ArrowDown reaches "a".
-    const first = screen.getByRole("button", { name: /homebrew\.mxcl\.redis/ });
+    const first = screen.getByRole("button", { name: /^redis，/ });
     fireEvent.keyDown(first, { key: "ArrowDown" });
     expect(onSelect).toHaveBeenCalledWith("a");
   });
@@ -231,5 +231,13 @@ describe("keyboard selection in groups", () => {
       />,
     );
     expect(screen.getByText("example.one")).toBeTruthy();
+  });
+});
+
+describe("row accessible name", () => {
+  it("starts with the visible name, not the raw launchd label", () => {
+    renderList();
+    const row = screen.getByText("example.agent").closest("button");
+    expect(row?.getAttribute("aria-label")).toMatch(/^example\.agent，/);
   });
 });
