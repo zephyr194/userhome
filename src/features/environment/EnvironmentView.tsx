@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import {
   Button,
@@ -51,6 +52,12 @@ function editorOpen(props: Pick<EnvironmentViewProps, "editor">): boolean {
   return props.editor !== undefined && props.editor.state.phase !== "closed";
 }
 
+/** The variable picked in the list; the editor replaces the list, so the pick lives here. */
+interface ListPick {
+  picked?: VariableChainRow;
+  onPick: (row: VariableChainRow) => void;
+}
+
 /**
  * The dotenv level of one directory tab: the variables of the files in the
  * directory on top, with a search field and a file filter; scan settings and
@@ -58,6 +65,7 @@ function editorOpen(props: Pick<EnvironmentViewProps, "editor">): boolean {
  */
 export function EnvironmentView(props: EnvironmentViewProps) {
   const t = useT();
+  const [picked, setPicked] = useState<VariableChainRow>();
   if (editorOpen(props) && props.editor) {
     return (
       <section aria-labelledby="environment-editor-heading" className="flex min-w-0 flex-col">
@@ -80,13 +88,13 @@ export function EnvironmentView(props: EnvironmentViewProps) {
       </section>
     );
   }
-  return <DirectoryContent {...props} />;
+  return <DirectoryContent {...props} onPick={setPicked} picked={picked} />;
 }
 
-function DirectoryContent(props: EnvironmentViewProps) {
+function DirectoryContent(props: EnvironmentViewProps & ListPick) {
   const t = useT();
   const locale = useLocale();
-  const { grants, selectedGrant, actions } = props;
+  const { grants, selectedGrant, actions, onPick, picked } = props;
   if (grants.status === "loading") {
     return <AsyncState kind="loading">{t("env.dotenv.grants.loading")}</AsyncState>;
   }
@@ -133,6 +141,8 @@ function DirectoryContent(props: EnvironmentViewProps) {
         directory={props.directory}
         editable={props.editor !== undefined}
         grantId={selectedGrant.id}
+        onPick={onPick}
+        picked={picked}
       />
       <SettingsDetails {...props} />
     </div>
@@ -273,12 +283,14 @@ function VariableListBody({
   directory,
   editable,
   grantId,
+  onPick,
+  picked,
 }: {
   actions: EnvironmentActions;
   directory: DirectoryState;
   editable: boolean;
   grantId: string;
-}) {
+} & ListPick) {
   const t = useT();
   const sources = directoryVariableSources(directory);
   const rows = dotenvChainRows(sources.readable, t);
@@ -326,7 +338,9 @@ function VariableListBody({
         filter={filter}
         label={t("env.dotenv.table")}
         onEdit={editable ? edit : undefined}
+        onPick={onPick}
         onRevealFinal={reveal}
+        picked={picked}
         rows={rows}
         searchKey={`dotenv:${grantId}`}
       />

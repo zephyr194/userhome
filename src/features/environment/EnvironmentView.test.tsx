@@ -156,6 +156,25 @@ function closedEditor(): NonNullable<EnvironmentViewProps["editor"]> {
   };
 }
 
+/** An open editor on the existing `.env` file, as the page builds it when a row is edited. */
+function openEditor(): NonNullable<EnvironmentViewProps["editor"]> {
+  const file: EnvFileView = {
+    relativePath: ".env",
+    kind: "ENVIRONMENT",
+    contentHash: "a".repeat(64),
+    sizeBytes: 100,
+    lineCount: ENV_ROWS.length,
+    rows: ENV_ROWS,
+    rowsTruncated: false,
+    entryCount: ENV_ROWS.length,
+    secretCount: 0,
+    flaggedCount: 0,
+  };
+  const target: EditorTarget = { kind: "existing", grantId: GRANT_ID, path: ".env", settings: SETTINGS, file };
+  const state: EditorState = { phase: "editing", target, ...EMPTY_DRAFTS, nextId: 1 };
+  return { actions: editorActions(), check: checkDrafts(target, state), state };
+}
+
 function viewProps(patch: Partial<EnvironmentViewProps> = {}): EnvironmentViewProps {
   return {
     grants: { status: "ready", grants: [GRANT_REF] },
@@ -446,6 +465,21 @@ describe("editor open", () => {
     expect(screen.getByRole("heading", { name: "编辑环境文件" })).toBeTruthy();
     expect(screen.queryByRole("region", { name: "目录 dotenv 的变量" })).toBeNull();
     expect(screen.queryByText("文件与扫描设置")).toBeNull();
+  });
+});
+
+describe("selection survives the editor", () => {
+  it("returns to the variable that was selected before the editor opened", () => {
+    const view = renderView();
+    fireEvent.click(
+      within(screen.getByRole("region", { name: "目录 dotenv 的变量" })).getByRole("button", { name: /^PORT\b/ }),
+    );
+    expect(within(screen.getByRole("region", { name: "选中变量的详情" })).getByRole("heading", { level: 3 }).textContent).toBe("PORT");
+
+    view.rerender(<EnvironmentView {...viewProps({ editor: openEditor() })} />);
+    view.rerender(<EnvironmentView {...viewProps()} />);
+
+    expect(within(screen.getByRole("region", { name: "选中变量的详情" })).getByRole("heading", { level: 3 }).textContent).toBe("PORT");
   });
 });
 

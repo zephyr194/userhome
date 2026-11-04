@@ -51,8 +51,11 @@ function renderView(
     onSet: options.onSet ?? vi.fn(async () => change()),
     onUnset: options.onUnset ?? vi.fn(async () => change()),
   };
-  render(<LaunchctlView state={state} {...props} />);
-  return props;
+  const view = render(<LaunchctlView state={state} {...props} />);
+  return {
+    ...props,
+    rerender: (next: LaunchctlState) => view.rerender(<LaunchctlView state={next} {...props} />),
+  };
 }
 
 function openSetDialog() {
@@ -124,6 +127,18 @@ describe("LaunchctlView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "重新读取" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the selected variable when the list is read again", () => {
+    const view = renderView({ status: "ready", environment: ENVIRONMENT });
+
+    selectVariable("PATH");
+    view.rerender({
+      status: "ready",
+      environment: { ...ENVIRONMENT, readAt: "2026-10-22T10:00:00+08:00" },
+    });
+
+    expect(within(screen.getByRole("region", { name: "选中变量的详情" })).getByRole("heading", { level: 3 }).textContent).toBe("PATH");
   });
 
   it("shows plain values as text and marks an empty value", () => {

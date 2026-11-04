@@ -37,6 +37,12 @@ const ROWS: VariableChainRow[] = [
   },
 ];
 
+function rowNamed(name: string): VariableChainRow {
+  const row = ROWS.find((candidate) => candidate.name === name);
+  if (row === undefined) throw new Error(`no row ${name}`);
+  return row;
+}
+
 function renderList(
   overrides: Partial<Parameters<typeof VariableChainList>[0]> = {},
   rows: readonly VariableChainRow[] = ROWS,
@@ -85,6 +91,35 @@ describe("variable list and selected detail", () => {
     expect(within(detail()).getByRole("heading", { level: 3 }).textContent).toBe("ZED");
     expect(within(list()).getByRole("button", { name: /^ZED\b/ }).getAttribute("aria-current")).toBe("true");
     expect(within(list()).getByRole("button", { name: /^EDITOR\b/ }).getAttribute("aria-current")).toBeNull();
+  });
+
+  it("selects the variable it is given and reports each pick", () => {
+    const onPick = vi.fn();
+    renderList({ onPick, picked: rowNamed("ZED") });
+    expect(within(detail()).getByRole("heading", { level: 3 }).textContent).toBe("ZED");
+    pick("EDITOR");
+    expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ name: "EDITOR" }));
+  });
+
+  it("falls back to the first name when the given variable is gone", () => {
+    renderList({ picked: rowNamed("ZED") }, ROWS.filter((row) => row.name !== "ZED"));
+    expect(within(detail()).getByRole("heading", { level: 3 }).textContent).toBe("EDITOR");
+  });
+
+  it("keeps the same name when its assignment moved to another line", () => {
+    const zed = rowNamed("ZED");
+    renderList({ picked: { ...zed, final: { ...zed.final, source: { file: ".zshrc", line: 30 } } } });
+    expect(within(detail()).getByRole("heading", { level: 3 }).textContent).toBe("ZED");
+  });
+
+  it("keeps the same assignment when a name is defined more than once", () => {
+    const second: VariableChainRow = {
+      name: "EDITOR",
+      final: { value: { kind: "text", text: "nano" }, source: { file: ".zshrc", line: 3 } },
+      chain: [],
+    };
+    renderList({ picked: second }, [rowNamed("EDITOR"), second]);
+    expect(within(detail()).getByText("nano")).toBeTruthy();
   });
 
   it("shows the final value and its source, and the earlier values in reading order", () => {

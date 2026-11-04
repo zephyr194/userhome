@@ -37,6 +37,10 @@ export interface VariableChainListProps {
   onRemove?: (row: VariableChainRow) => void;
   /** Keys the search words in page memory, so they survive switching tabs. */
   searchKey: string;
+  /** The row shown in the detail. Absent means the list keeps its own pick. */
+  picked?: VariableChainRow;
+  /** Reports each pick so the page can keep it while the list is remounted. */
+  onPick?: (row: VariableChainRow) => void;
   /** Controls shown next to the search field, such as the file filter. */
   filter?: ReactNode;
   /** Shown instead of the list when there are no variables at all. */
@@ -57,6 +61,12 @@ function sourceText(source: ChainSource): string {
 
 function rowKey(row: VariableChainRow): string {
   return `${sourceText(row.final.source)}#${row.name}`;
+}
+
+/** The same assignment if it is still listed, else a variable of the same name. */
+function findPick(rows: readonly VariableChainRow[], pick: VariableChainRow | undefined): VariableChainRow | undefined {
+  if (pick === undefined) return undefined;
+  return rows.find((row) => rowKey(row) === rowKey(pick)) ?? rows.find((row) => row.name === pick.name);
 }
 
 function Highlighted({ terms, text }: { terms: readonly string[]; text: string }) {
@@ -138,13 +148,17 @@ export function VariableChainList({
  * final value, source and read chain in the other, the same split as the
  * services and AI config pages. Narrow screens stack the details under the list.
  */
-function VariablePanes({ label, onEdit, onRemove, onRevealFinal, rows, terms }: VariablePanesProps) {
+function VariablePanes({ label, onEdit, onPick, onRemove, onRevealFinal, picked, rows, terms }: VariablePanesProps) {
   const t = useT();
   const sorted = [...rows].sort(compareVariableNames);
-  const [picked, setPicked] = useState<string>();
-  const selected = sorted.find((row) => rowKey(row) === picked) ?? sorted[0];
+  const [ownPick, setOwnPick] = useState<VariableChainRow>();
+  const selected = findPick(sorted, picked ?? ownPick) ?? sorted[0];
   if (selected === undefined) return null;
   const selectedKey = rowKey(selected);
+  const choose = (row: VariableChainRow) => {
+    setOwnPick(row);
+    onPick?.(row);
+  };
 
   return (
     <div className="grid min-w-0 gap-ui-12 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] sm:gap-ui-16">
@@ -158,7 +172,7 @@ function VariablePanes({ label, onEdit, onRemove, onRevealFinal, rows, terms }: 
                 <Button
                   aria-current={active ? "true" : undefined}
                   className={classNames(ROW_BUTTON, active && "bg-surface-muted")}
-                  onClick={() => setPicked(key)}
+                  onClick={() => choose(row)}
                   variant="ghost"
                 >
                   <code className="max-w-full break-all font-mono text-aux font-semibold">

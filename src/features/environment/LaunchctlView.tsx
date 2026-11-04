@@ -16,7 +16,7 @@ import {
   type LaunchctlSetInput,
 } from "./LaunchctlDialogs";
 import { VariableChainList } from "./VariableChainList";
-import { launchctlVariableRows } from "./variableChainModel";
+import { launchctlVariableRows, type VariableChainRow } from "./variableChainModel";
 
 export type LaunchctlState =
   | { status: "loading" }
@@ -56,6 +56,7 @@ export function LaunchctlView({
   const [dialog, setDialog] = useState<LaunchctlDialog | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
+  const [picked, setPicked] = useState<VariableChainRow>();
   const loading = state.status === "loading";
   const environment = state.status === "ready" ? state.environment : undefined;
 
@@ -158,8 +159,10 @@ export function LaunchctlView({
                 entry: environment.entries.find((entry) => entry.key === row.name),
               })
             }
+            onPick={setPicked}
             onRemove={(row) => setDialog({ kind: "remove", key: row.name })}
             onRevealFinal={(row) => onReveal(row.name)}
+            picked={picked}
             rows={launchctlVariableRows(environment.entries, t("env.launchctl.source"))}
             searchKey="launchctl"
           />
