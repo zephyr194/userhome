@@ -722,3 +722,28 @@ Rust 测试：
 - 工具集独立编辑框的焦点进入与归还、Esc 取消。
 - 三级导航的折叠展开与分区记忆；新应用图标在 Dock/Finder/Launchpad 的观感（需重新打包后查看）。
 - Caddy 指令表单的真实编辑与保存（输出与改造前黄金样例一致，真实运行验收仍按 `docs/caddy-acceptance.md`）。
+
+## 2026-11-04：本机自动化证据与发布门禁状态
+
+范围：本机 macOS，`main` 分支，工作区干净。本节只记录下列检查的实测结果，**不关闭任何门禁**，不改写历史条目。
+
+### 已执行（本机）
+
+| 检查 | 结果 | 证据等级 |
+|---|---|---|
+| `pnpm lint` | 退出码 0（含文档放置检查） | B |
+| `pnpm typecheck` | 通过 | B |
+| `pnpm test` | 279 个文件 / 3765 个用例通过 | A |
+| `pnpm build` | 通过 | B |
+| `pnpm corpus:validate` | 通过：300 formulae、300 casks、624 个应用 | B |
+| `cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check` | 通过 | B |
+
+### 未执行项
+
+1. Rust 测试：D。本机受管安全软件拦截测试二进制，未绕过；待 CI `rust` job。
+2. E2E 冒烟（`pnpm test:e2e`）：D。未在本机运行（需用户明确要求）；待 CI `e2e` job。
+3. 真机 UI、交互与观感：D，待人工。包括浅色与深色主题、VoiceOver、键盘操作、窄窗口、托盘行为，以及真实 Caddy 验收（`docs/caddy-acceptance.md`）。
+
+### 发布结论
+
+维持 **NO-GO**：签名与公证等外部门禁未关闭（D）；Rust 测试、E2E 与真机验收待上述项目完成。整体证据等级取最低：**D**。
