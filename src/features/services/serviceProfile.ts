@@ -33,7 +33,7 @@ export interface ServiceGroup {
 }
 
 const HOMEBREW_PREFIX = "homebrew.mxcl.";
-const USERHOME_MARK = "userhome.";
+const USERHOME_LABEL_NAMESPACE = "com.zephyr194.userhome.agent.";
 const APPLICATIONS_PROGRAM = /^(?:\/Applications|~\/Applications|\/Users\/[^/]+\/Applications)\/[^/]+\.app\//;
 const APP_BUNDLE_NAME = /(?:^|\/)([^/]+)\.app\//;
 const REVERSE_DOMAIN_SEGMENT = /^[A-Za-z0-9-]+$/;
@@ -96,9 +96,10 @@ export function displayNameOf(service: LaunchdService): string {
   const { label, ownership } = service;
   if (isHomebrewLabel(label)) return label.slice(HOMEBREW_PREFIX.length);
   if (ownership.kind === "USERHOME_CREATED" || ownership.kind === "USERHOME_ADOPTED") {
-    const at = label.indexOf(USERHOME_MARK);
-    const rest = at === -1 ? "" : label.slice(at + USERHOME_MARK.length);
-    if (rest !== "") return rest;
+    if (label.startsWith(USERHOME_LABEL_NAMESPACE)) {
+      const rest = label.slice(USERHOME_LABEL_NAMESPACE.length);
+      if (rest !== "") return rest;
+    }
   }
   const app = appBundleOf(service);
   if (app !== undefined) return app;

@@ -342,8 +342,19 @@ describe("displayNameOf", () => {
 
   it("uses the task name for UserHome jobs", () => {
     expect(displayNameOf(launchdService({ label: CREATED_LABEL, ownership: CREATED_OWNERSHIP }))).toBe(
-      "agent.demo",
+      "demo",
     );
+  });
+
+  it("keeps dots inside the task name for UserHome jobs", () => {
+    expect(
+      displayNameOf(
+        launchdService({
+          label: "com.zephyr194.userhome.agent.my.task",
+          ownership: { ...CREATED_OWNERSHIP, kind: "USERHOME_ADOPTED" },
+        }),
+      ),
+    ).toBe("my.task");
   });
 
   it("uses the app name for app-installed jobs", () => {
