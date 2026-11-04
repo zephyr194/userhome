@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { AsyncState } from "../../components/AsyncState";
 import { Skeleton } from "../../components/ui/Skeleton";
 import {
@@ -105,10 +105,17 @@ export function ServicesView(props: ServicesViewProps) {
   const { state } = props;
   const services =
     state.status === "ready" ? state.discovery.services : undefined;
-  const visible = services ? filterServices(services, props.filter) : [];
-  const candidateCount = services?.filter(
-    (service) => props.filter.showSystem || !isSystemService(service),
-  ).length;
+  const visible = useMemo(
+    () => (services ? filterServices(services, props.filter) : []),
+    [services, props.filter],
+  );
+  const candidateCount = useMemo(
+    () =>
+      services?.filter(
+        (service) => props.filter.showSystem || !isSystemService(service),
+      ).length,
+    [services, props.filter.showSystem],
+  );
 
   return (
     <PageShell layout="master-detail" scrollKey="compact">
