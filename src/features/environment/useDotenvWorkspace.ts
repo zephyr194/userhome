@@ -132,11 +132,14 @@ export function useDotenvWorkspace() {
 
   const selectGrant = useCallback(
     (grantId: string) => {
-      if (editorOpenRef.current) return;
+      if (editorOpenRef.current) {
+        setGrantNotice({ tone: "info", text: t("env.dotenv.switchBlocked") });
+        return;
+      }
       rememberedDirectory = grantId;
       dispatch({ type: "grantSelected", grantId });
     },
-    [],
+    [t],
   );
 
   const addGrant = useCallback(async () => {
@@ -182,6 +185,11 @@ export function useDotenvWorkspace() {
   );
   const editor = useDotenvEditor(reloadAfterSave);
   const editorPhase = editor.state.phase;
+  const [previousPhase, setPreviousPhase] = useState(editorPhase);
+  if (previousPhase !== editorPhase) {
+    setPreviousPhase(editorPhase);
+    if (editorPhase === "closed") setGrantNotice(undefined);
+  }
   useEffect(() => {
     editorOpenRef.current = editorPhase !== "closed";
   }, [editorPhase]);

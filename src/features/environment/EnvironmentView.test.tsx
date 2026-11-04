@@ -466,3 +466,18 @@ describe("reveal failures keep their reason", () => {
     expect(await screen.findByText("载入失败：文件已变化，请重新选择文件。")).toBeTruthy();
   });
 });
+
+describe("tab notice while the editor is open", () => {
+  it("shows the note about switching directories inside the editor", () => {
+    const state: EditorState = { phase: "editing", ...EMPTY_DRAFTS, nextId: 1 };
+    renderView({
+      grantNotice: { tone: "info", text: "正在编辑环境文件，请先保存或取消，再切换目录。" },
+      editor: {
+        actions: editorActions(),
+        check: { edits: [], problems: { entries: {}, additions: {} }, ready: false },
+        state,
+      },
+    });
+    expect(screen.getByRole("status").textContent).toBe("正在编辑环境文件，请先保存或取消，再切换目录。");
+  });
+});

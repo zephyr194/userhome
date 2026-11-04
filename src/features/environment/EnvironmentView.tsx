@@ -71,6 +71,7 @@ export function EnvironmentView(props: EnvironmentViewProps) {
                 ? props.editor.state.target.displayPath
                 : (props.editor.state.target?.path ?? t("env.dotenv.noFile"))}
             </p>
+            <GrantNotice notice={props.grantNotice} />
           </div>
         </header>
         <div className="px-ui-12 py-ui-8">
