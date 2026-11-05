@@ -26,6 +26,7 @@ import {
 import {
   getSystemSnapshot,
   refreshSystemSnapshot,
+  type DiscoverySnapshot,
 } from "./ipc/discovery";
 import {
   getOperation,
@@ -77,6 +78,10 @@ function loadedPreferencesState(
         status: "ready",
         preferences: loaded.preferences,
       };
+}
+
+function hasLoadingProviderModule(snapshot: DiscoverySnapshot): boolean {
+  return snapshot.brew.status === "LOADING" || snapshot.candidates.status === "LOADING";
 }
 
 function App({
@@ -146,7 +151,14 @@ function App({
       getSystemSnapshot()
         .then((snapshot) => {
           dispatch({ type: "discovery-ready", snapshot });
-          return true;
+          return snapshot;
+        })
+        .then((snapshot) => {
+          if (refreshProviders || !hasLoadingProviderModule(snapshot)) return true;
+          return refreshSystemSnapshot().then((refreshed) => {
+            dispatch({ type: "discovery-ready", snapshot: refreshed });
+            return true;
+          });
         })
         .catch((error: AppError) => {
           dispatch({ type: "discovery-error", error });
