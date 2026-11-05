@@ -1961,6 +1961,7 @@ mod tests {
                 Instant::now() < deadline,
                 "the fixture never installed its SIGTERM trap"
             );
+            // timing-ok: 轮询标记文件的间隔，有 5 秒截止，不用于比较先后
             thread::sleep(Duration::from_millis(20));
         }
         let stopped = coordinator.stop().expect("stop");
