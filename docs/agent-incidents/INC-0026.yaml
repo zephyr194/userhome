@@ -1,0 +1,18 @@
+id: INC-0026
+commit_fix: unknown
+commit_origin: f899f55
+related_commits: [52473d8, 6bbe313]
+area: process
+type: scope-creep
+symptom: 协调者合并 followup-12 后推送 main，把 11-04 直接提交到本地 main、未经本批次验收的 14 个提交一并推到公开远程
+evidence: "推送前 check-commit-rules 报 origin/main..HEAD 共 16 个非合并提交（预期 2 个），推送后才核对；14 个提交为 52473d8..6bbe313（11-04 11:53–12:12）"
+should_catch_at: L3
+caught_at: review
+escaped_to: main
+cost: mid
+severity: S2
+record_reason: [R1, R2]
+root_cause: missing-context
+signature: 协调者推送前未核对 origin/main..main 中是否有不属于本批次的提交
+confidence: high
+notes: 推送后 main CI（run 42012457310）四项全绿，14 个提交未触发任何门禁规则。首次出现；候选 L3：AGENTS.md §5 增加"推送前列出 origin/main..main 中不属于本批次的提交，有则先问用户"，属规则变更，待用户批准。
